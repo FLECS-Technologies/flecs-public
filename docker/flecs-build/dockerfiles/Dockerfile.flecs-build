@@ -1,0 +1,5 @@
+FROM debian:bullseye-slim
+
+COPY build-utils/docker/scripts/debian/install-packages.sh /tmp/
+
+RUN /tmp/install-packages.sh build-essential cmake libcjson-dev libssl-dev ninja-build
