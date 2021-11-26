@@ -32,7 +32,7 @@ $(OUT)/%.o: src/%.cpp
 $(BINARY): $(OBJ) $(HEADER)
 	#docker run --rm --user $$(id -u) -v $$(readlink -f $$(pwd)/..):$$(readlink -f $$(pwd)/..) -w $$(pwd) flecs-build\
 		g++ -g -Wall -Wextra -std=c++17 -fPIE -I $$(pwd)/../.. -o $@ $(OBJ)\
-		$$(pwd)/../../util/llhttp_ext/out/llhttp_ext.a $$(pwd)/../../util/process/out/FLECS.core.process.a\
+		$$(pwd)/../../util/llhttp_ext/out/llhttp_ext.a $$(pwd)/../../util/curl_easy_ext/out/curl_easy_ext.a $$(pwd)/../../core/process/out/FLECS.core.process.a\
 		-ljsoncpp
 
 .PHONY: clean

@@ -14,17 +14,15 @@
 
 #include "ui/backend/http_request_handler.h"
 
+#include "util/container/map_constexpr.h"
 #include "util/http/response_headers.h"
 #include "util/http/version_strings.h"
-#include "util/literals.h"
-#include "util/map_constexpr.h"
 #include "util/process/process.h"
+#include "util/string/literals.h"
 
 #include <algorithm>
-#include <array>
 #include <functional>
 #include <iostream>
-#include <memory>
 #include <utility>
 
 namespace FLECS
@@ -48,7 +46,7 @@ http_request_handler_t::http_request_handler_t(FLECS::tcp_socket_t&& conn_socket
 
 http_status_e http_request_handler_t::dispatch()
 {
-    auto err = receive_request();
+    const auto err = receive_request();
     if (err != http_status_e::Ok)
     {
         return err;
@@ -59,7 +57,7 @@ http_status_e http_request_handler_t::dispatch()
         return http_status_e::MethodNotAllowed;
     }
 
-    auto it = find_backend();
+    const auto it = find_backend();
     if (it == _backend_callbacks.end())
     {
         return http_status_e::NotImplemented;
@@ -96,7 +94,7 @@ http_status_e http_request_handler_t::receive_request()
     using FLECS::operator""_kiB;
     char buf[16_kiB];
 
-    ssize_t size = _conn_socket.recv(buf, sizeof(buf), 0);
+    const auto size = _conn_socket.recv(buf, sizeof(buf), 0);
     if ((size <= 0) || (llhttp_execute(&_llhttp_ext, buf, size) != HPE_OK))
     {
         return http_status_e::BadRequest;
@@ -107,7 +105,7 @@ http_status_e http_request_handler_t::receive_request()
 
 auto http_request_handler_t::find_backend() -> http_request_handler_t::backend_callback_table_t::const_iterator
 {
-    auto pos = _llhttp_ext._url.find_last_of('/');
+    const auto pos = _llhttp_ext._url.find_last_of('/');
     if (pos == std::string::npos)
     {
         return _backend_callbacks.cend();
@@ -129,12 +127,12 @@ http_status_e http_request_handler_t::install_app()
         return http_status_e::BadRequest;
     }
 
-    std::string appId = _json_value["appId"].as<std::string>();
-    std::string version = _json_value["appVersion"].as<std::string>();
+    const auto appId = _json_value["appId"].as<std::string>();
+    const auto version = _json_value["appVersion"].as<std::string>();
     std::cout << "[Request]: Install " << appId << " " << version << std::endl;
 
     process_t proc_install {};
-    auto res = proc_install.spawnp("flecs", "app-manager", "install", appId, version);
+    const auto res = proc_install.spawnp("flecs", "app-manager", "install", appId, version);
 
     if (res != 0)
     {

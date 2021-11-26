@@ -1,5 +1,7 @@
-FROM debian:bullseye-slim
+FROM debian:buster-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 COPY build-utils/docker/scripts/debian/install-packages.sh /tmp/
 
-RUN /tmp/install-packages.sh build-essential cmake libcjson-dev libssl-dev ninja-build
+RUN /tmp/install-packages.sh build-essential

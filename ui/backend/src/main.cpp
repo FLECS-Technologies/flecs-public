@@ -1,15 +1,15 @@
 #include "ui/backend/http_request_handler.h"
 
-#include "util/literals.h"
+#include "util/string/literals.h"
+#include "util/container/map_constexpr.h"
 #include "util/llhttp_ext/llhttp_ext.h"
-#include "util/map_constexpr.h"
 #include "util/socket/tcp_server.h"
 
 #include <csignal>
 #include <iostream>
 #include <thread>
 
-bool g_stop = false;
+auto g_stop = false;
 
 int http_request_handler_thread(FLECS::tcp_socket_t&& conn_socket)
 {
@@ -43,7 +43,7 @@ int main()
 
     do
     {
-        FLECS::tcp_socket_t conn_socket = server.accept(nullptr, nullptr);
+        auto conn_socket = FLECS::tcp_socket_t { server.accept(nullptr, nullptr) };
         if (conn_socket.is_valid())
         {
             std::thread handle_thread { &http_request_handler_thread, std::move(conn_socket) };

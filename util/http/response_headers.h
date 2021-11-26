@@ -15,8 +15,8 @@
 #ifndef FLECS_util_http_response_headers_h
 #define FLECS_util_http_response_headers_h
 
+#include "util/container/map_constexpr.h"
 #include "util/http/status_codes.h"
-#include "util/map_constexpr.h"
 
 #include <array>
 #include <utility>
@@ -118,4 +118,3 @@ constexpr http_response_header_map_t http_response_header_map = {{
 } // namespace FLECS
 
 #endif // FLECS_util_http_response_headers_h
-

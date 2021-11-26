@@ -25,4 +25,3 @@ constexpr const char* http_version_2_0 = "HTTP/2";
 
 
 #endif //FLECS_util_http_version_strings_h
-
