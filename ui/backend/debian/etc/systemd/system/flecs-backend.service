@@ -1,0 +1,14 @@
+[Unit]
+Description=FLECS App Management API
+After=network-online.target
+Wants=network-online.target
+After=docker.service containerd.service
+Requires=docker.service containerd.service
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/usr/bin/flecs-backend
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

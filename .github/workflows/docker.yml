@@ -1,0 +1,23 @@
+name: build docker images
+
+on:
+  workflow_dispatch:
+  push:
+    branches: main
+    paths:
+      - 'docker/flecs-build/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: install buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          buildx-version: latest
+      - name: build 'flecs-build' image
+        run: |
+          docker/build-image.sh flecs-build

@@ -1,0 +1,76 @@
+# Copyright 2021 FLECS Technologies GmbH
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# setup docker(less) build
+ifndef DOCKERLESS
+DOCKER_PREFIX = docker run -it -u $$(id -u) -e CROSS_COMPILE=$(CROSS_COMPILE) -v $(ROOT_DIR):$(ROOT_DIR) -w $$(pwd) $(DOCKERARGS) --rm flecs/flecs-build
+else
+DOCKER_PREFIX :=
+endif
+
+# setup tools for cross-compilation
+ifndef CROSS_COMPILE
+COMPILE_PREFIX :=
+else
+COMPILE_PREFIX := $(CROSS_COMPILE)-
+endif
+
+export AR = $(COMPILE_PREFIX)ar
+export AS = $(COMPILE_PREFIX)as
+export CC = $(COMPILE_PREFIX)gcc
+export CXX = $(COMPILE_PREFIX)g++
+export LD = $(COMPILE_PREFIX)ld
+export NM = $(COMPILE_PREFIX)nm
+export OBJCOPY = $(COMPILE_PREFIX)objcopy
+export OBJDUMP = $(COMPILE_PREFIX)objdump
+export RANLIB = $(COMPILE_PREFIX)ranlib
+export READELF = $(COMPILE_PREFIX)readelf
+export STRIP = $(COMPILE_PREFIX)strip
+
+# detect target machine
+MACHINE := $(shell ($(DOCKER_PREFIX) $(CC) -dumpmachine))
+ifndef MACHINE
+$(error Invalid cross compiler $(CC) with prefix $(DOCKER_PREFIX) defined)
+endif
+
+# default build flags
+CXXFLAGS += -std=c++17 -Wall -Wextra -Wfatal-errors
+CXXFLAGS_DEBUG = $(CXXFLAGS) -g
+CXXFLAGS_RELEASE = $(CXXFLAGS) -O2
+
+# build directory
+OUT := out/$(MACHINE)
+
+# object files
+OBJ = $(patsubst src/%.cpp,$(OUT)/%.o,$(SRC))
+
+.PHONY: vars
+vars:
+	@echo DOCKER_PREFIX: $(DOCKER_PREFIX)
+	@echo CROSS_COMPILE: $(CROSS_COMPILE)
+	@echo COMPILE_PREFIX: $(COMPILE_PREFIX)
+	@echo MACHINE: $(MACHINE)
+	@echo AR: $(AR)
+	@echo AS: $(AS)
+	@echo CC: $(CC)
+	@echo CXX: $(CXX)
+	@echo LD: $(LD)
+	@echo OBJCOPY: $(OBJCOPY)
+	@echo OBJDUMP: $(OBJDUMP)
+	@echo RANLIB: $(RANLIB)
+	@echo READELF: $(READELF)
+	@echo STRIP: $(STRIP)
+	@echo CXXFLAGS: $(CXXFLAGS)
+	@echo CXXFLAGS_DEBUG: $(CXXFLAGS_DEBUG)
+	@echo CXXFLAGS_RELEASE: $(CXXFLAGS_RELEASE)
