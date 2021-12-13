@@ -80,14 +80,14 @@ auto build_response(Args&&... args)
     return build_response_impl(json, args...);
 }
 
-http_request_handler_t::http_request_handler_t(FLECS::tcp_socket_t&& conn_socket)
-    : _conn_socket{std::move(conn_socket)},
-      _llhttp_settings{},
-      _llhttp_ext{},
-      _json_builder{},
-      _json_reader{_json_builder.newCharReader()},
-      _json_value{},
-      _json_response{}
+http_request_handler_t::http_request_handler_t(FLECS::socket_t&& conn_socket)
+    : _conn_socket{new socket_t{std::move(conn_socket)}}
+    , _llhttp_settings{}
+    , _llhttp_ext{}
+    , _json_builder{}
+    , _json_reader{_json_builder.newCharReader()}
+    , _json_value{}
+    , _json_response{}
 {
     llhttp_settings_init(&_llhttp_settings);
     _llhttp_settings.on_body = &llhttp_ext_on_body;
@@ -142,7 +142,7 @@ int http_request_handler_t::send_response(http_status_e status)
     // Body
     ss << _json_response.toStyledString();
 
-    return _conn_socket.send(ss.str().c_str(), ss.str().length(), 0);
+    return _conn_socket->send(ss.str().c_str(), ss.str().length(), 0);
 }
 
 http_status_e http_request_handler_t::receive_request()
@@ -150,7 +150,7 @@ http_status_e http_request_handler_t::receive_request()
     using FLECS::operator""_kiB;
     char buf[16_kiB];
 
-    const auto size = _conn_socket.recv(buf, sizeof(buf), 0);
+    const auto size = _conn_socket->recv(buf, sizeof(buf), 0);
     if ((size <= 0) || (llhttp_execute(&_llhttp_ext, buf, size) != HPE_OK))
     {
         return http_status_e::BadRequest;

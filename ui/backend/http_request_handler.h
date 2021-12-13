@@ -16,6 +16,7 @@
 #define FLECS_ui_backend_http_request_handler_h
 
 #include <cstring>
+#include <memory>
 #include <string_view>
 #include <utility>
 
@@ -30,10 +31,12 @@ namespace FLECS {
 class http_request_handler_t
 {
 public:
-    explicit http_request_handler_t(FLECS::tcp_socket_t&& conn_socket);
+    explicit http_request_handler_t(FLECS::socket_t&& conn_socket);
 
     http_status_e dispatch();
     int send_response(http_status_e status);
+
+    const socket_t& conn_socket() const noexcept { return *_conn_socket; }
 
 private:
     using backend_callback_t = http_status_e (http_request_handler_t::*)();
@@ -60,7 +63,7 @@ private:
         std::make_pair("InstalledAppList", &http_request_handler_t::installed_apps_list),
     }};
 
-    FLECS::tcp_socket_t _conn_socket;
+    std::unique_ptr<socket_t> _conn_socket;
     llhttp_settings_t _llhttp_settings;
     FLECS::llhttp_ext_t _llhttp_ext;
 
