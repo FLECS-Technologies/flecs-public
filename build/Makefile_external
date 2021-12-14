@@ -52,7 +52,7 @@ external/jsoncpp:
 external/llhttp:
 	$(call find_external,llhttp)
 	HOME=$$(pwd) npm --prefix $(DIR) install
-	$(call make,PREFIX=$(DIR)/out/$(MACHINE),install)
+	$(call make,PREFIX=$(DIR)/out/$(MACHINE),-B install)
 
 .PHONY: external/mosquitto
 external/mosquitto:
