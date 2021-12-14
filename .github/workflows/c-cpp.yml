@@ -1,0 +1,26 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: flecs/flecs-build
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: native
+      run: |
+        make -C build/ -j6 ui/backend
+        make -C build/ -j6 service
+    - name: armhf
+      run: |
+        make -C build/ CROSS_COMPILE=arm-linux-gnueabihf -j6 ui/backend
+        make -C build/ CROSS_COMPILE=arm-linux-gnueabihf -j6 service
+    - name: aarch64
+      run: |
+        make -C build/ CROSS_COMPILE=aarch64-linux-gnu -j6 ui/backend
+        make -C build/ CROSS_COMPILE=aarch64-linux-gnu -j6 service
