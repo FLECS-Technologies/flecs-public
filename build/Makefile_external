@@ -49,7 +49,8 @@ build-external/jsoncpp:
 build-external/llhttp:
 	$(call find_external,llhttp)
 	HOME=$$(pwd) npm --prefix $(DIR) install
-	$(call make,PREFIX=$(DIR)/out/$(MACHINE),install)
+	$(call make,PREFIX=$(DIR)/out/$(MACHINE),-B install)
+	$(call make,clean)
 
 build-external/mosquitto:
 	$(call find_external,mosquitto)
@@ -58,13 +59,15 @@ build-external/mosquitto:
 build-external/openssl:
 	$(call find_external,openssl)
 	cd $(DIR)/flecs-configure; ./Configure.$(MACHINE).sh --cross-compile-prefix= --prefix=$(DIR)/out/$(MACHINE) no-shared
-	$(call make,all)
-	$(call make,install_sw)
+	$(call make,CROSS_COMPILE=,all)
+	$(call make,CROSS_COMPILE=,install_sw)
+	$(call make,clean)
 
 build-external/sqlite:
 	$(call find_external,sqlite)
 	cd $(DIR); autoreconf; ./configure --prefix=$(DIR)/out/$(MACHINE) --host=$(CROSS_COMPILE)
 	$(call make,install)
+	$(call make,clean)
 
 build-external/yaml-cpp:
 	$(call find_external,yaml-cpp)
@@ -94,7 +97,7 @@ external/openssl: build-external/openssl
 external/sqlite: build-external/sqlite
 
 .PHONY: external/yaml-cpp
-yaml-cpp: build-external/yaml-cpp
+external/yaml-cpp: build-external/yaml-cpp
 
 .PHONY: external/zlib
 external/zlib: build-external/zlib
