@@ -25,9 +25,10 @@ SRC := \
 HEADER := \
 	llhttp_ext.h
 
-INCLUDE := \
+INCLUDE = \
 	-I $(ROOT_DIR) \
-	-I $(ROOT_DIR)/external/curl-7.80.0/include
+	-I $(ROOT_DIR)/external/curl-7.80.0/include \
+	-I $(ROOT_DIR)/external/llhttp-2.1.4/out/$(MACHINE)/include
 
 include $(ROOT_DIR)/build/Makefile
 

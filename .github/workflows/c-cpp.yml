@@ -1,0 +1,27 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    container: flecs/flecs-build
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: native
+      run: |
+        make DOCKERLESS=1 -C build/ ui/backend
+        make DOCKERLESS=1 -C build/ service
+    - name: armhf
+      run: |
+        make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf ui/backend
+        make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf service
+    - name: aarch64
+      run: |
+        make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu ui/backend
+        make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu service
