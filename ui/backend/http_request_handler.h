@@ -37,7 +37,7 @@ public:
 
 private:
     using backend_callback_t = http_status_e (http_request_handler_t::*)();
-    using backend_callback_table_t = map_c<const char*, backend_callback_t, 7, string_comparator>;
+    using backend_callback_table_t = map_c<const char*, backend_callback_t, 8, string_comparator>;
 
     http_status_e receive_request();
     auto find_backend() -> backend_callback_table_t::const_iterator;
@@ -49,6 +49,7 @@ private:
     http_status_e start_app_instance();
     http_status_e stop_app_instance();
     http_status_e installed_apps_list();
+    http_status_e sideload_app();
 
     static constexpr backend_callback_table_t _backend_callbacks = {{
         std::make_pair("InstallApp", &http_request_handler_t::install_app),
@@ -58,6 +59,7 @@ private:
         std::make_pair("StartAppInstance", &http_request_handler_t::start_app_instance),
         std::make_pair("StopAppInstance", &http_request_handler_t::stop_app_instance),
         std::make_pair("InstalledAppList", &http_request_handler_t::installed_apps_list),
+        std::make_pair("SideloadApp", &http_request_handler_t::sideload_app),
     }};
 
     FLECS::tcp_socket_t _conn_socket;
