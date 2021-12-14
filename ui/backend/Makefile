@@ -17,7 +17,6 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 BINARY := flecs-backend
 
 DEPENDS := \
-	external/jsoncpp \
 	util/curl_easy_ext \
 	util/llhttp_ext \
 	util/process
