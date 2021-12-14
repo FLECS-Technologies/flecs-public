@@ -97,7 +97,7 @@ external/openssl: build-external/openssl
 external/sqlite: build-external/sqlite
 
 .PHONY: external/yaml-cpp
-yaml-cpp: build-external/yaml-cpp
+external/yaml-cpp: build-external/yaml-cpp
 
 .PHONY: external/zlib
 external/zlib: build-external/zlib
