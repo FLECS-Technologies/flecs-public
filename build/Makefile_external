@@ -63,8 +63,8 @@ external/mosquitto:
 external/openssl:
 	$(call find_external,openssl)
 	cd $(DIR)/flecs-configure; ./Configure.$(MACHINE).sh --cross-compile-prefix= --prefix=$(DIR)/out/$(MACHINE) no-shared
-	$(call make,all)
-	$(call make,install_sw)
+	$(call make,CROSS_COMPILE=,all)
+	$(call make,CROSS_COMPILE=,install_sw)
 
 .PHONY: external/sqlite
 external/sqlite:
