@@ -15,7 +15,7 @@
 #ifndef FLECS_llhttp_ext_h
 #define FLECS_llhttp_ext_h
 
-#include "external/llhttp-2.1.4/build/llhttp.h"
+#include <llhttp.h>
 
 #include <string>
 
@@ -33,5 +33,4 @@ int llhttp_ext_on_message_complete(llhttp_t* llhttp);
 
 } // namespace FLECS
 
-
-#endif //FLECS_llhttp_ext_h
+#endif // FLECS_llhttp_ext_h

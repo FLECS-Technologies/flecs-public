@@ -53,6 +53,7 @@ external/llhttp:
 	$(call find_external,llhttp)
 	HOME=$$(pwd) npm --prefix $(DIR) install
 	$(call make,PREFIX=$(DIR)/out/$(MACHINE),-B install)
+	$(call make,clean)
 
 .PHONY: external/mosquitto
 external/mosquitto:
@@ -65,12 +66,14 @@ external/openssl:
 	cd $(DIR)/flecs-configure; ./Configure.$(MACHINE).sh --cross-compile-prefix= --prefix=$(DIR)/out/$(MACHINE) no-shared
 	$(call make,CROSS_COMPILE=,all)
 	$(call make,CROSS_COMPILE=,install_sw)
+	$(call make,clean)
 
 .PHONY: external/sqlite
 external/sqlite:
 	$(call find_external,sqlite)
 	cd $(DIR); autoreconf; ./configure --prefix=$(DIR)/out/$(MACHINE) --host=$(CROSS_COMPILE)
 	$(call make,install)
+	$(call make,clean)
 
 .PHONY: external/yaml-cpp
 external/yaml-cpp:

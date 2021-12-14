@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}",
-                "${workspaceFolder}/external/yaml-cpp-0.7.0/include"
+                "${workspaceFolder}/external/yaml-cpp-0.7.0/include",
+                "${workspaceFolder}/external/llhttp-2.1.4/out/x86_64-linux-gnu/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
