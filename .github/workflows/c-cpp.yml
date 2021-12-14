@@ -9,18 +9,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-20.04
+    container: flecs/flecs-build
 
     steps:
     - uses: actions/checkout@v2
     - name: native
       run: |
-        make -C build/ -j6 ui/backend
-        make -C build/ -j6 service
+        make DOCKERLESS=1 -C build/ -j6 ui/backend
+        make DOCKERLESS=1 -C build/ -j6 service
     - name: armhf
       run: |
-        make -C build/ CROSS_COMPILE=arm-linux-gnueabihf -j6 ui/backend
-        make -C build/ CROSS_COMPILE=arm-linux-gnueabihf -j6 service
+        make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf -j6 ui/backend
+        make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf -j6 service
     - name: aarch64
       run: |
-        make -C build/ CROSS_COMPILE=aarch64-linux-gnu -j6 ui/backend
-        make -C build/ CROSS_COMPILE=aarch64-linux-gnu -j6 service
+        make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu -j6 ui/backend
+        make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu -j6 service
