@@ -17,10 +17,6 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 BINARY := flecs
 
 DEPENDS := \
-	external/curl \
-	external/jsoncpp \
-	external/sqlite \
-	external/yaml-cpp \
 	util/curl_easy_ext \
 	util/process \
 	util/sqlite3_ext

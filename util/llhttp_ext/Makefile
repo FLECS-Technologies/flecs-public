@@ -16,9 +16,6 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
 ARCHIVE := libFLECS.llhttp_ext.a
 
-DEPENDS := \
-	external/llhttp
-
 SRC := \
 	src/llhttp_ext.cpp
 
