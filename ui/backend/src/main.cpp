@@ -50,7 +50,7 @@ int main()
     sigaction(SIGTERM, &signal_action, nullptr);
     sigaction(SIGINT, &signal_action, nullptr);
 
-    FLECS::tcp_server_t server{42000, INADDR_LOOPBACK, 10};
+    FLECS::tcp_server_t server{42000, INADDR_ANY, 10};
     if (!server.is_running())
     {
         return 1;

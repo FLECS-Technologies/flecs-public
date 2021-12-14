@@ -81,13 +81,13 @@ auto build_response(Args&&... args)
 }
 
 http_request_handler_t::http_request_handler_t(FLECS::tcp_socket_t&& conn_socket)
-    : _conn_socket{std::move(conn_socket)},
-      _llhttp_settings{},
-      _llhttp_ext{},
-      _json_builder{},
-      _json_reader{_json_builder.newCharReader()},
-      _json_value{},
-      _json_response{}
+    : _conn_socket{std::move(conn_socket)}
+    , _llhttp_settings{}
+    , _llhttp_ext{}
+    , _json_builder{}
+    , _json_reader{_json_builder.newCharReader()}
+    , _json_value{}
+    , _json_response{}
 {
     llhttp_settings_init(&_llhttp_settings);
     _llhttp_settings.on_body = &llhttp_ext_on_body;
@@ -104,18 +104,13 @@ http_status_e http_request_handler_t::dispatch()
         return err;
     }
 
-    if ((_llhttp_ext.method != HTTP_GET) && (_llhttp_ext.method != HTTP_POST) && (_llhttp_ext.method != HTTP_PUT))
-    {
-        return http_status_e::MethodNotAllowed;
-    }
-
     const auto it = find_backend();
     if (it == _backend_callbacks.end())
     {
         return http_status_e::NotImplemented;
     }
 
-    if (_llhttp_ext.method == HTTP_POST || _llhttp_ext.method == HTTP_PUT)
+    if (_llhttp_ext.method == HTTP_POST)
     {
         const auto success = _json_reader->parse(
             _llhttp_ext._body.c_str(),
@@ -171,6 +166,11 @@ auto http_request_handler_t::find_backend() -> http_request_handler_t::backend_c
 
 http_status_e http_request_handler_t::install_app()
 {
+    if (_llhttp_ext.method != HTTP_POST)
+    {
+        return http_status_e::MethodNotAllowed;
+    }
+
     REQUIRED_JSON_VALUE(app);
     REQUIRED_JSON_VALUE(version);
 
@@ -187,6 +187,11 @@ http_status_e http_request_handler_t::install_app()
 
 http_status_e http_request_handler_t::uninstall_app()
 {
+    if (_llhttp_ext.method != HTTP_POST)
+    {
+        return http_status_e::MethodNotAllowed;
+    }
+
     REQUIRED_JSON_VALUE(app);
     REQUIRED_JSON_VALUE(version);
 
@@ -203,6 +208,11 @@ http_status_e http_request_handler_t::uninstall_app()
 
 http_status_e http_request_handler_t::create_app_instance()
 {
+    if (_llhttp_ext.method != HTTP_POST)
+    {
+        return http_status_e::MethodNotAllowed;
+    }
+
     REQUIRED_JSON_VALUE(app);
     REQUIRED_JSON_VALUE(version);
     REQUIRED_JSON_VALUE(instanceName);
@@ -227,6 +237,11 @@ http_status_e http_request_handler_t::create_app_instance()
 
 http_status_e http_request_handler_t::delete_app_instance()
 {
+    if (_llhttp_ext.method != HTTP_POST)
+    {
+        return http_status_e::MethodNotAllowed;
+    }
+
     REQUIRED_JSON_VALUE(app);
     REQUIRED_JSON_VALUE(version);
     REQUIRED_JSON_VALUE(instanceId);
@@ -251,6 +266,11 @@ http_status_e http_request_handler_t::delete_app_instance()
 
 http_status_e http_request_handler_t::start_app_instance()
 {
+    if (_llhttp_ext.method != HTTP_POST)
+    {
+        return http_status_e::MethodNotAllowed;
+    }
+
     REQUIRED_JSON_VALUE(app);
     REQUIRED_JSON_VALUE(version);
     REQUIRED_JSON_VALUE(instanceId);
@@ -275,6 +295,11 @@ http_status_e http_request_handler_t::start_app_instance()
 
 http_status_e http_request_handler_t::stop_app_instance()
 {
+    if (_llhttp_ext.method != HTTP_POST)
+    {
+        return http_status_e::MethodNotAllowed;
+    }
+
     REQUIRED_JSON_VALUE(app);
     REQUIRED_JSON_VALUE(version);
     REQUIRED_JSON_VALUE(instanceId);
@@ -299,6 +324,11 @@ http_status_e http_request_handler_t::stop_app_instance()
 
 http_status_e http_request_handler_t::installed_apps_list()
 {
+    if (_llhttp_ext.method != HTTP_GET)
+    {
+        return http_status_e::MethodNotAllowed;
+    }
+
     std::cout << "[Request]: List installed apps" << std::endl;
 
     const auto res = run_flecs_service("list-apps");
@@ -318,6 +348,42 @@ http_status_e http_request_handler_t::installed_apps_list()
             _json_response["additionalInfo"] = std::string{};
         }
     }
+    return http_status_e::Ok;
+}
+
+http_status_e http_request_handler_t::sideload_app()
+{
+    if (_llhttp_ext.method != HTTP_PUT)
+    {
+        return http_status_e::MethodNotAllowed;
+    }
+
+    std::cout << "[Request]: Sideload app" << std::endl;
+
+    const auto manifest = _llhttp_ext._body;
+    char tmp[] = "/tmp/flecs-manifest-XXXXXX";
+    const auto fd = mkstemp(tmp);
+    if (fd < 0)
+    {
+        return http_status_e::InternalServerError;
+    }
+    const auto res = write(fd, _llhttp_ext._body.c_str(), _llhttp_ext._body.size());
+    if (res < 0)
+    {
+        close(fd);
+        return http_status_e::InternalServerError;
+    }
+
+    const auto flecs_res = run_flecs_service("sideload", tmp);
+    const auto success = (std::get<0>(flecs_res) == 0);
+    unlink(tmp);
+    close(fd);
+
+    if (!success)
+    {
+        return http_status_e::InternalServerError;
+    }
+
     return http_status_e::Ok;
 }
 
