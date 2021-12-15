@@ -27,6 +27,3 @@ INCLUDE=\
 	-I $(ROOT_DIR)/external/curl-7.80.0/include
 
 include $(ROOT_DIR)/build/Makefile
-
-.PHONY: all
-all: $(OUT)/$(ARCHIVE)

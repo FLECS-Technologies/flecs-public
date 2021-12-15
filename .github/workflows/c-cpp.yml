@@ -2,9 +2,9 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -12,16 +12,23 @@ jobs:
     container: flecs/flecs-build
 
     steps:
-    - uses: actions/checkout@v2
-    - name: native
-      run: |
-        make DOCKERLESS=1 -C build/ ui/backend
-        make DOCKERLESS=1 -C build/ service
-    - name: armhf
-      run: |
-        make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf ui/backend
-        make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf service
-    - name: aarch64
-      run: |
-        make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu ui/backend
-        make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu service
+      - uses: actions/checkout@v2
+      - name: native
+        run: |
+          make DOCKERLESS=1 -C build/ ui/backend
+          make DOCKERLESS=1 -C build/ service
+      - name: armhf
+        run: |
+          make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf ui/backend
+          make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf service
+      - name: aarch64
+        run: |
+          make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu ui/backend
+          make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu service
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages
+          path: |
+            ui/backend/out/**/*.deb
+            ui/service/out/**/*.deb

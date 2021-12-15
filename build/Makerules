@@ -12,28 +12,67 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# forward build to Docker if DOCKERLESS is not set
 ifndef DOCKERLESS
 build/%:
 	$(DOCKER_PREFIX) $(MAKE) DOCKERLESS=1 -C $(ROOT_DIR)/$* all
+package/%:
+	$(DOCKER_PREFIX) $(MAKE) DOCKERLESS=1 -C $(ROOT_DIR)/$* package
 else
 build/%:
 	$(MAKE) -C $(ROOT_DIR)/$* all
+package/%:
+	$(MAKE) -C $(ROOT_DIR)%* package
 endif
 
+# generic rule for building objects from source files
 $(OUT)/%.o: src/%.cpp
 	@mkdir -p $(shell readlink -m $(shell dirname $@))
 	$(CXX) -c $(CXXFLAGS) -I $(ROOT_DIR) $(INCLUDE) -o $@ $<
 
+# generic rule to build binary from objects, if set
 ifdef BINARY
 $(OUT)/$(BINARY): $(DEPENDS) $(OBJ) $(HEADER)
 	$(CXX) $(CXXFLAGS) -I $(ROOT_DIR) $(INCLUDE) -o $@ $(OBJ) $(STATIC_LIBS) $(DYNAMIC_LIBS)
+
+ALL += $(OUT)/$(BINARY)
 endif
 
+# generic rule to build archive from objects, if set
 ifdef ARCHIVE
 $(OUT)/$(ARCHIVE): $(DEPENDS) $(OBJ) $(HEADER)
 	$(AR) cr $@ $(OBJ)
+
+ALL += $(OUT)/$(ARCHIVE)
 endif
 
+# generic "all" rule - builds BINARY and ARCHIVE, if set
+.PHONY: all
+all: $(ALL)
+
+# generic "deb-pkg" rule to build .deb package from artifacts
+ifdef DEB_PKG
+$(OUT)/$(DEB_PKG): all deb-pkg-prepare
+	@if [ ! -z "$(OUT)/$(BINARY)" ]; then \
+		mkdir -p debian/usr/bin; \
+		cp -pf $(OUT)/$(BINARY) debian/usr/bin/; \
+	fi;
+	@dpkg-deb --root-owner-group -Z gzip --build debian $(OUT)/$(DEB_PKG)
+
+.PHONY: deb-pkg
+deb-pkg: $(OUT)/$(DEB_PKG)
+
+# allows targets additional preparation steps before packaging
+.PHONY: deb-pkg-prepare
+
+PACKAGES += deb-pkg
+endif
+
+# generic "package" rule to build all available packages
+.PHONY: package
+package: $(PACKAGES)
+
+# generic "clean" rule - remove $(OUT) directory
 .PHONY: clean
 clean:
 	@rm -rf $(OUT)
