@@ -1,6 +1,6 @@
 Package: flecs-backend
-Version: 0.1b-1
-Description: FLECS App Management Web API
+Version: 0.1b-2
+Description: FLECS App Management API
 Architecture: amd64
 Priority: optional
 Maintainer: FLECS Technologies GmbH <alex@flecs.tech>

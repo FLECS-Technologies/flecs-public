@@ -24,5 +24,3 @@ HEADER := \
 	process.h
 
 include $(ROOT_DIR)/build/Makefile
-
-all: $(OUT)/$(ARCHIVE)
