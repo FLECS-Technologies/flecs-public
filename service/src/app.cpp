@@ -36,7 +36,7 @@ app_t::app_t(const std::string& manifest)
         _category = yaml["category"].as<std::string>();
 
         _image = yaml["image"].as<std::string>();
-        _multi_instance = yaml["multi-instance"].as<bool>();
+        _multi_instance = yaml["multiInstance"].as<bool>();
         for (const auto& i : yaml["volumes"])
         {
             const auto volume = split(i.as<std::string>(), ':');
