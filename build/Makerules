@@ -22,7 +22,7 @@ else
 build/%:
 	$(MAKE) -C $(ROOT_DIR)/$* all
 package/%:
-	$(MAKE) -C $(ROOT_DIR)%* package
+	$(MAKE) -C $(ROOT_DIR)/$* package
 endif
 
 # generic rule for building objects from source files
