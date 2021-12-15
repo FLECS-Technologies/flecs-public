@@ -29,8 +29,6 @@ INCLUDE = \
 
 include $(ROOT_DIR)/build/Makefile
 
-all: $(OUT)/$(ARCHIVE)
-
 $(OUT)/$(ARCHIVE): $(DEPENDS) $(OBJ) $(HEADER)
 	cp $(ROOT_DIR)/external/llhttp-2.1.4/out/$(MACHINE)/lib/libllhttp.a $@
 	$(AR) r $@ $(OBJ)

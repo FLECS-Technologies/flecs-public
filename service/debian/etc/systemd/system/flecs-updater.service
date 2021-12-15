@@ -1,0 +1,16 @@
+[Unit]
+Description=FLECS Service Updater
+After=network-online.target
+Wants=network-online.target
+After=docker.service containerd.service
+Requires=docker.service containerd.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker pull 3ef7dc4.online-server.cloud:5000/flecs/updater:latest
+ExecStart=/usr/bin/docker run --rm -v /usr/bin:/host/usr/bin 3ef7dc4.online-server.cloud:5000/flecs/updater:latest
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

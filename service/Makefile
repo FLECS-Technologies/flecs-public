@@ -62,6 +62,8 @@ DYNAMIC_LIBS := \
 
 DEB_PKG := flecs-service.deb
 
+DOCKER_IMAGE = 3ef7dc4.online-server.cloud:5000/flecs/updater:develop
+
 include $(ROOT_DIR)/build/Makefile
 
 deb-pkg-prepare:

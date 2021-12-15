@@ -7,7 +7,11 @@ Requires=docker.service containerd.service
 
 [Service]
 TimeoutStartSec=0
-ExecStart=/usr/bin/flecs-backend
+ExecStartPre=-/usr/bin/docker stop flecs-backend
+ExecStartPre=-/usr/bin/docker rm flecs-backend
+ExecStartPre=-/usr/bin/docker pull 3ef7dc4.online-server.cloud:5000/flecs/backend:latest
+ExecStart=/usr/bin/docker run --network flecs-internal --name flecs-backend 3ef7dc4.online-server.cloud:5000/flecs/backend:latest
+ExecStop=/usr/bin/docker stop flecs-backend
 Restart=on-failure
 
 [Install]

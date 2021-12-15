@@ -68,6 +68,14 @@ deb-pkg: $(OUT)/$(DEB_PKG)
 PACKAGES += deb-pkg
 endif
 
+# generic "docker" rule to build Docker image, if exist
+docker/%:
+	$(MAKE) -C $(ROOT_DIR)/$* docker
+
+.PHONY: docker
+docker:
+	docker build --build-arg MACHINE=$(MACHINE) -t $(DOCKER_IMAGE) .
+
 # generic "package" rule to build all available packages
 .PHONY: package
 package: $(PACKAGES)

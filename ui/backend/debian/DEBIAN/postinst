@@ -4,7 +4,8 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 case "$1" in
   configure)
-      systemctl enable --now flecs-backend
+    docker network create flecs-internal >/dev/null 2>&1
+    systemctl enable --now flecs-backend
     ;;
   abort-upgrade|abort-remove|abort-deconfigure)
     ;;
