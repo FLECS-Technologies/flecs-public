@@ -1,0 +1,13 @@
+#!/bin/bash
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+case "$1" in
+  remove)
+      sed -i 's#:develop#:latest#g' /etc/systemd/system/flecs-*
+    ;;
+  *)
+    ;;
+esac
+
+exit 0
