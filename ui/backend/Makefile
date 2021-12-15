@@ -40,13 +40,6 @@ INCLUDE = \
 DYNAMIC_LIBS := \
 	-lpthread
 
+DEB_PKG := flecs-backend.deb
+
 include $(ROOT_DIR)/build/Makefile
-
-.PHONY: all
-all: $(OUT)/$(BINARY)
-
-.PHONY: deb-pkg
-deb-pkg:
-	@mkdir -p debian/usr/bin
-	@cp -pf $(OUT)/$(BINARY) debian/usr/bin/
-	@dpkg-deb --root-owner-group --build -Z gzip debian $(OUT)/flecs-backend.deb

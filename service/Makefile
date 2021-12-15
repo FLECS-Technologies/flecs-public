@@ -60,15 +60,10 @@ STATIC_LIBS = \
 DYNAMIC_LIBS := \
 	-ldl -lpthread
 
+DEB_PKG := flecs-service.deb
+
 include $(ROOT_DIR)/build/Makefile
 
-.PHONY: all
-all: $(OUT)/$(BINARY)
-
-.PHONY: deb-pkg
-deb-pkg:
-	@mkdir -p debian/usr/bin
+deb-pkg-prepare:
 	@mkdir -p debian/var/lib/flecs/db
-	@cp -pf $(OUT)/$(BINARY) debian/usr/bin/
 	@touch debian/var/lib/flecs/db/apps.db
-	@dpkg-deb --root-owner-group --build -Z gzip debian $(OUT)/flecs.deb

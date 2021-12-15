@@ -19,10 +19,10 @@ include $(ROOT_DIR)/build/Makerules
 include $(ROOT_DIR)/build/Makefile_external
 
 .PHONY: service
-service: build/service
+service: build/service package/service
 
 .PHONY: ui/backend
-ui/backend: build/ui/backend
+ui/backend: build/ui/backend package/ui/backend
 
 .PHONY: util/curl_easy_ext
 util/curl_easy_ext: build/util/curl_easy_ext

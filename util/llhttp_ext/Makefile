@@ -29,7 +29,6 @@ INCLUDE = \
 
 include $(ROOT_DIR)/build/Makefile
 
-.PHONY: all
 all: $(OUT)/$(ARCHIVE)
 
 $(OUT)/$(ARCHIVE): $(DEPENDS) $(OBJ) $(HEADER)

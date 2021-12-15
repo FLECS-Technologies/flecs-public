@@ -25,5 +25,4 @@ HEADER := \
 
 include $(ROOT_DIR)/build/Makefile
 
-.PHONY: all
 all: $(OUT)/$(ARCHIVE)

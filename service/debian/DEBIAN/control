@@ -1,0 +1,6 @@
+Package: flecs
+Version: 0.1b-1
+Description: FLECS Service
+Architecture: amd64
+Priority: optional
+Maintainer: FLECS Technologies GmbH <alex@flecs.tech>

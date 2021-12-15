@@ -22,11 +22,10 @@ SRC := \
 HEADER := \
 	sqlite3_db.h
 
-INCLUDE := \
+INCLUDE = \
 	-I $(ROOT_DIR) \
 	-I $(ROOT_DIR)/external/sqlite-3.37.0
 
 include $(ROOT_DIR)/build/Makefile
 
-.PHONY: all
 all: $(OUT)/$(ARCHIVE)
