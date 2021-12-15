@@ -31,4 +31,4 @@ jobs:
           name: packages
           path: |
             ui/backend/out/**/*.deb
-            ui/service/out/**/*.deb
+            service/out/**/*.deb
