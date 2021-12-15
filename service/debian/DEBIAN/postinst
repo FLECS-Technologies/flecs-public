@@ -1,0 +1,15 @@
+#!/bin/bash
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+case "$1" in
+  configure)
+    systemctl enable --now flecs-updater
+    ;;
+  abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+  *)
+    ;;
+esac
+
+exit 0

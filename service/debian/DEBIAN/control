@@ -1,0 +1,6 @@
+Package: flecs-backend
+Version: 0.1b-2
+Description: FLECS Service Updater
+Architecture: amd64
+Priority: optional
+Maintainer: FLECS Technologies GmbH <alex@flecs.tech>
