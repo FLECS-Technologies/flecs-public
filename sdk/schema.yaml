@@ -55,6 +55,12 @@ properties:
     type: string
     pattern: '^((https?:\/\/)?[^\s.]+\.[\w][^\s]+)$'
     description: Link to an avatar image of the app. The avatar is displayed as round avatar at the app in the FLECS Marketplace
+  # editor: Relative link to an editor of the app. 
+  editor:
+    type: string
+    pattern: '(:(\d+))?((?:\/[\w]+)*)'
+    description: > 
+      Relative link to an editor of the app. E.g. ":8080", or "/my-app-editor", or ":1900/my-app-editor"
   # category: Category of the app. 
   category:
     enum:
