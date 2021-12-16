@@ -18,8 +18,8 @@
 #include <cstdint>
 #include <vector>
 
-#include "service/app_status.h"
-#include "service/instance_status.h"
+#include "app/app_status.h"
+#include "instance/instance_status.h"
 #include "util/sqlite3_ext/sqlite3_db.h"
 
 namespace FLECS {

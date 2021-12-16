@@ -21,8 +21,8 @@
 #include <random>
 #include <sstream>
 
+#include "app/app.h"
 #include "external/jsoncpp-1.9.5/include/json/json.h"
-#include "service/app.h"
 #include "util/curl_easy_ext/curl_easy_ext.h"
 #include "util/process/process.h"
 

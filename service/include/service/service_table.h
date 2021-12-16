@@ -17,10 +17,10 @@
 
 #include <memory>
 
-#include "service/service_app_manager.h"
-#include "service/service_factory.h"
-#include "service/service_help.h"
-#include "service/service_rpc.h"
+#include "service_app_manager.h"
+#include "service_factory.h"
+#include "service_help.h"
+#include "service_rpc.h"
 #include "util/container/map_constexpr.h"
 
 namespace FLECS {

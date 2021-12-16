@@ -19,7 +19,7 @@
 #include <map>
 #include <vector>
 
-#include "service/app_status.h"
+#include "app_status.h"
 #include "util/cxx20/string.h"
 
 namespace FLECS {
