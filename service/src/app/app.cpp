@@ -63,7 +63,8 @@ app_t::app_t(const std::string& manifest)
 
     try
     {
-        REQUIRED_TYPED_YAML_VALUE(yaml, name, _name, std::string);
+        REQUIRED_TYPED_YAML_VALUE(yaml, app, _name, std::string);
+        REQUIRED_TYPED_YAML_VALUE(yaml, title, _title, std::string);
         REQUIRED_TYPED_YAML_VALUE(yaml, version, _version, std::string);
         OPTIONAL_TYPED_YAML_VALUE(yaml, description, _description, std::string);
         REQUIRED_TYPED_YAML_VALUE(yaml, author, _author, std::string);

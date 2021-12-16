@@ -98,6 +98,7 @@ private:
     bool _yaml_loaded;
 
     std::string _name;
+    std::string _title;
     std::string _version;
     std::string _description;
     std::string _author;
