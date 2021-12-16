@@ -22,26 +22,31 @@ DEPENDS := \
 	util/sqlite3_ext
 
 SRC := \
-	main.cpp \
-	src/app.cpp \
-	src/app_db.cpp \
-	src/service_app_manager.cpp \
-	src/service_help.cpp \
-	src/service_rpc.cpp \
-	src/service.cpp \
-	src/private/service_app_manager_private.cpp
+	src/main.cpp \
+	src/app/app.cpp \
+	src/db/app_db.cpp \
+	src/service/private/service_app_manager_private.cpp \
+	src/service/service_app_manager.cpp \
+	src/service/service.cpp \
+	src/service/service_help.cpp \
+	src/service/service_rpc.cpp \
 
 HEADER := \
-	app_db.h \
-	service_app_manager.h \
-	service_factory.h \
-	service_help.h \
-	service_rpc.h \
-	service_table.h \
-	service.h \
-	private/service_app_manager_private.h \
+	include/app/app.h \
+	include/app/app_status.h \
+	include/db/app_db.h \
+	include/instance/instance_status.h \
+	include/service/private/service_app_manager_private.h \
+	include/service/service_app_manager.h \
+	include/service/service_errors.h \
+	include/service/service_factory.h \
+	include/service/service.h \
+	include/service/service_help.h \
+	include/service/service_rpc.h \
+	include/service/service_table.h \
 
 INCLUDE := \
+	-I ./include \
 	-I $(ROOT_DIR)/external/sqlite-3.37.0 \
 	-I $(ROOT_DIR)/external/yaml-cpp-0.7.0/include \
 	-I $(ROOT_DIR)/external/curl-7.80.0/include

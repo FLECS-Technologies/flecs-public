@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include "service/app_db.h"
+#include "db/app_db.h"
 #include "service/service_errors.h"
 
 namespace FLECS {

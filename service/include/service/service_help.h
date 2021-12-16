@@ -12,26 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_service_rpc_h
-#define FLECS_service_service_rpc_h
+#ifndef FLECS_service_service_help_h
+#define FLECS_service_service_help_h
 
-#include "service/service.h"
-#include "util/cxx20/string.h"
+#include <list>
+#include <string>
+
+#include "service.h"
 
 namespace FLECS {
 
-class service_rpc : public service_t
+class service_help : public service_t
 {
 public:
 private:
     service_error_e do_process(int argc, char** argv) override;
 
-    std::string _action;
-    std::string _callee;
-    std::string _method;
-    // std::list<FLECS::any> _args;
+    std::string _topic;
+    std::list<std::string> _subtopics;
 };
 
 } // namespace FLECS
 
-#endif // FLECS_service_service_rpc_h
+#endif // FLECS_service_service_help_h

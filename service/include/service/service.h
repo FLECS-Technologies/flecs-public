@@ -15,7 +15,7 @@
 #ifndef FLECS_service_service_h
 #define FLECS_service_service_h
 
-#include "service/service_errors.h"
+#include "service_errors.h"
 
 namespace FLECS {
 

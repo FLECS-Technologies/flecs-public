@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "service/app_db.h"
+#include "db/app_db.h"
 
 #include <algorithm>
 #include <cstring>

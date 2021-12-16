@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "service/app.h"
+#include "app/app.h"
 
 #include <iostream>
 #include <sstream>

@@ -17,7 +17,7 @@
 
 #include <memory>
 
-#include "service/service.h"
+#include "service.h"
 
 namespace FLECS {
 
