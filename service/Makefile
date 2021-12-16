@@ -47,9 +47,10 @@ HEADER := \
 
 INCLUDE := \
 	-I ./include \
+	-I $(ROOT_DIR)/external/curl-7.80.0/include \
+	-I $(ROOT_DIR)/external/jsoncpp-1.9.5/include \
 	-I $(ROOT_DIR)/external/sqlite-3.37.0 \
 	-I $(ROOT_DIR)/external/yaml-cpp-0.7.0/include \
-	-I $(ROOT_DIR)/external/curl-7.80.0/include
 
 STATIC_LIBS = \
 	$(ROOT_DIR)/util/process/out/$(MACHINE)/libFLECS.process.a \
