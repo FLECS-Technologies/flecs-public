@@ -50,6 +50,11 @@ properties:
     type: string
     pattern: '^[[:alnum:][:space:][:punct:]]{1,35}$'
     description: Author of the app (max. 35 characters)
+  # avatar: Link to an avatar image of the app. The avatar is displayed as a round avatar at the app in the FLECS Marketplace
+  avatar:
+    type: string
+    pattern: '^((https?:\/\/)?[^\s.]+\.[\w][^\s]+)$'
+    description: Link to an avatar image of the app. The avatar is displayed as round avatar at the app in the FLECS Marketplace
   # category: Category of the app. 
   category:
     enum:
@@ -58,8 +63,8 @@ properties:
   # image: location where the image of the app can be found.
   image:
     type: string
-    # Valides Docker-Image
-    # found at https://regex101.com/r/a98UqN/1
+    # Valide Docker image
+    # Pattern found at https://regex101.com/r/a98UqN/1
     # valid inputs:
     # alpine
     # alpine:latest
