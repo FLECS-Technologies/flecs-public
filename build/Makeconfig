@@ -46,8 +46,13 @@ endif
 
 # default build flags
 CXXFLAGS += -std=c++17 -Wall -Wextra -Wfatal-errors
-CXXFLAGS_DEBUG = $(CXXFLAGS) -g
-CXXFLAGS_RELEASE = $(CXXFLAGS) -O2
+CXXFLAGS_DEBUG = -g
+CXXFLAGS_RELEASE = -O2
+ifdef NDEBUG
+CXXFLAGS += $(CXXFLAGS_RELEASE)
+else
+CXXFLAGS += $(CXXFLAGS_DEBUG)
+endif
 
 # build directory
 OUT := out/$(MACHINE)
