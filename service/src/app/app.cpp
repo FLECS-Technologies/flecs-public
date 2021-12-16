@@ -18,26 +18,61 @@
 #include <sstream>
 #include <vector>
 
-#include "external/yaml-cpp-0.7.0/include/yaml-cpp/yaml.h"
 #include "util/string/string_utils.h"
+#include "yaml-cpp/yaml.h"
 
 namespace FLECS {
 
+#define REQUIRED_TYPED_YAML_VALUE(yaml, value, target, type) \
+    do                                                       \
+    {                                                        \
+        target = yaml[#value].as<type>();                    \
+    } while (false)
+
+#define REQUIRED_YAML_VALUE(yaml, value, target) \
+    do                                           \
+    {                                            \
+        target = yaml[#value];                   \
+    } while (false)
+
+#define OPTIONAL_TYPED_YAML_VALUE(yaml, value, target, type) \
+    do                                                       \
+    {                                                        \
+        try                                                  \
+        {                                                    \
+            target = yaml[#value].as<type>();                \
+        } catch (const YAML::Exception& ex)                  \
+        {                                                    \
+        }                                                    \
+    } while (false)
+
+#define OPTIONAL_YAML_VALUE(yaml, value, target) \
+    do                                           \
+    {                                            \
+        try                                      \
+        {                                        \
+            target = yaml[#value];               \
+        } catch (const YAML::Exception& ex)      \
+        {                                        \
+        }                                        \
+    } while (false)
+
 app_t::app_t(const std::string& manifest)
 {
+    const auto yaml = YAML::LoadFile(manifest);
+
     try
     {
-        const auto yaml = YAML::LoadFile(manifest);
-
-        _name = yaml["app"].as<std::string>();
-        _version = yaml["version"].as<std::string>();
-        _description = yaml["description"].as<std::string>();
-        _author = yaml["author"].as<std::string>();
-        _category = yaml["category"].as<std::string>();
-
-        _image = yaml["image"].as<std::string>();
-        _multi_instance = yaml["multiInstance"].as<bool>();
-        for (const auto& i : yaml["volumes"])
+        REQUIRED_TYPED_YAML_VALUE(yaml, name, _name, std::string);
+        REQUIRED_TYPED_YAML_VALUE(yaml, version, _version, std::string);
+        OPTIONAL_TYPED_YAML_VALUE(yaml, description, _description, std::string);
+        REQUIRED_TYPED_YAML_VALUE(yaml, author, _author, std::string);
+        OPTIONAL_TYPED_YAML_VALUE(yaml, category, _category, std::string);
+        REQUIRED_TYPED_YAML_VALUE(yaml, image, _image, std::string);
+        OPTIONAL_TYPED_YAML_VALUE(yaml, multiInstance, _multi_instance, bool);
+        auto volumes = YAML::Node{};
+        OPTIONAL_YAML_VALUE(yaml, volumes, volumes);
+        for (const auto& i : volumes)
         {
             const auto volume = split(i.as<std::string>(), ':');
             if (cxx20::starts_with(volume[0], '/'))
@@ -48,20 +83,24 @@ app_t::app_t(const std::string& manifest)
                 add_volume(volume[0], volume[1]);
             }
         }
-        for (const auto& i : yaml["networks"])
+        auto networks = YAML::Node{};
+        OPTIONAL_YAML_VALUE(yaml, networks, networks);
+        for (const auto& i : networks)
         {
             const auto network = i.as<std::string>();
             add_network(network);
         }
-        for (const auto& i : yaml["ports"])
+        auto ports = YAML::Node{};
+        OPTIONAL_YAML_VALUE(yaml, ports, ports);
+        for (const auto& i : ports)
         {
             const auto port = split(i.as<std::string>(), ':');
             add_port(std::stoi(port[0]), std::stoi(port[1]));
         }
         _yaml_loaded = true;
-    } catch (const YAML::Exception& e)
+    } catch (const YAML::Exception& ex)
     {
-        std::cerr << "Could not load " << manifest << ": " << e.what() << std::endl;
+        std::fprintf(stderr, "%s\n", ex.what());
     }
 }
 
