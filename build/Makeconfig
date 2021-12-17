@@ -14,7 +14,7 @@
 
 # setup docker(less) build
 ifndef DOCKERLESS
-DOCKER_PREFIX = docker run -it -u $$(id -u) -e CROSS_COMPILE=$(CROSS_COMPILE) -v $(ROOT_DIR):$(ROOT_DIR) -w $$(pwd) $(DOCKERARGS) --rm flecs/flecs-build
+DOCKER_PREFIX = docker run -u $$(id -u) -e CROSS_COMPILE=$(CROSS_COMPILE) -v $(ROOT_DIR):$(ROOT_DIR) -w $$(pwd) $(DOCKERARGS) --rm flecs/flecs-build
 else
 DOCKER_PREFIX :=
 endif
