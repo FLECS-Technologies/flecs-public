@@ -15,9 +15,9 @@
 # forward build to Docker if DOCKERLESS is not set
 ifndef DOCKERLESS
 build/%:
-	$(DOCKER_PREFIX) $(MAKE) DOCKERLESS=1 -C $(ROOT_DIR)/$* all
+	$(DOCKER_PREFIX) $(MAKE) -$(MAKEFLAGS) DOCKERLESS=1 -C $(ROOT_DIR)/$* all
 package/%:
-	$(DOCKER_PREFIX) $(MAKE) DOCKERLESS=1 -C $(ROOT_DIR)/$* package
+	$(DOCKER_PREFIX) $(MAKE) -$(MAKEFLAGS) DOCKERLESS=1 -C $(ROOT_DIR)/$* package
 else
 build/%:
 	$(MAKE) -C $(ROOT_DIR)/$* all
