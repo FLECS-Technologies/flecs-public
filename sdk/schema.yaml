@@ -30,8 +30,8 @@ properties:
     type: string
     pattern: '^[a-z][a-z0-9.\-_]+[a-z]$'
     description: App identifier in reverse domain name notation, only lower case letters, format e.g. com.xyz-123.app-name
-  name:
-  # name: Name of the app, which shall appear as the displayed name at the FLECS Marketplace 
+  title:
+  # title: Title of the app, which shall appear as the displayed title at the FLECS Marketplace 
     type: string
     pattern: '^[[:alnum:][:space:][:punct:]]{1,35}$'
     description: Name of the app (max. 35 characters)
@@ -55,6 +55,12 @@ properties:
     type: string
     pattern: '^((https?:\/\/)?[^\s.]+\.[\w][^\s]+)$'
     description: Link to an avatar image of the app. The avatar is displayed as round avatar at the app in the FLECS Marketplace
+  # editor: Relative link to an editor of the app. 
+  editor:
+    type: string
+    pattern: '(:(\d+))?((?:\/[\w]+)*)'
+    description: > 
+      Relative link to an editor of the app. E.g. ":8080", or "/my-app-editor", or ":1900/my-app-editor"
   # category: Category of the app. 
   category:
     enum:
@@ -100,7 +106,7 @@ properties:
     description: All ports the app image needs to communicate with the world outside the image.
 required:
   app,
-  name,
+  title,
   version,
   description,
   author,
