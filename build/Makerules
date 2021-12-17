@@ -53,11 +53,28 @@ all: $(ALL)
 # generic "deb-pkg" rule to build .deb package from artifacts
 ifdef DEB_PKG
 $(OUT)/$(DEB_PKG): all deb-pkg-prepare
-	@if [ ! -z "$(OUT)/$(BINARY)" ]; then \
-		mkdir -p debian/usr/bin; \
-		cp -pf $(OUT)/$(BINARY) debian/usr/bin/; \
+	@rm -rf $(OUT)/debian;
+	@cp -r debian $(OUT)/debian;
+	@echo BINARY: $(BINARY);
+	@if [ ! -z "$(BINARY)" ]; then \
+		mkdir -p $(OUT)/debian/usr/bin; \
+		cp -pf $(OUT)/$(BINARY) $(OUT)/debian/usr/bin; \
 	fi;
-	@dpkg-deb --root-owner-group -Z gzip --build debian $(OUT)/$(DEB_PKG)
+	@if [ ! -z "$(ARCHIVE)" ]; then \
+		mkdir -p $(OUT)/debian/usr/lib; \
+		cp -pf $(OUT)/$(ARCHIVE) $(OUT)/debian/usr/lib; \
+	fi;
+	@if [ "$(MACHINE)" = "x86_64-linux-gnu" ]; then \
+		ARCH=amd64; \
+	elif [ "$(MACHINE)" = "arm-linux-gnueabihf" ]; then \
+		ARCH=armhf; \
+	elif [ "$(MACHINE)" = "aarch64-linux-gnu" ]; then \
+		ARCH=arm64; \
+	else \
+		echo "Unknown architecture for $(MACHINE)"; \
+	fi; \
+	sed -i "s/##ARCH##/$${ARCH}/g" $(OUT)/debian/DEBIAN/control;
+	@dpkg-deb --root-owner-group -Z gzip --build $(OUT)/debian $(OUT)/$(DEB_PKG)
 
 .PHONY: deb-pkg
 deb-pkg: $(OUT)/$(DEB_PKG)
