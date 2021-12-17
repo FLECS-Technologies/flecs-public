@@ -1,6 +1,6 @@
 Package: flecs-updater
 Version: 0.1b-2
 Description: FLECS Service Updater
-Architecture: amd64
+Architecture: ##ARCH##
 Priority: optional
 Maintainer: FLECS Technologies GmbH <alex@flecs.tech>
