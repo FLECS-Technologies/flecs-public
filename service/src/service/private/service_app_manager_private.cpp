@@ -703,7 +703,7 @@ service_error_e download_manifest(const std::string& app_name, const std::string
         return FLECS_IOW;
     }
 
-    const auto fd = fileno(manifest);
+    auto fd = fileno(manifest);
     if (fd < 0)
     {
         std::fprintf(stderr, "Could not get fd for %s\n", path.c_str());
@@ -711,10 +711,17 @@ service_error_e download_manifest(const std::string& app_name, const std::string
     }
 
     const auto url = build_manifest_url(app_name, version);
-    curl_easy_ext curl{url.c_str(), fd};
+    curl_easy_ext curl{};
     if (!curl)
     {
         std::fprintf(stderr, "Could not initialize curl_easy_ext\n");
+        return FLECS_CURL;
+    }
+
+    if (curl.setopt<CURLOPT_URL>(url.c_str()) != CURLE_OK ||
+        curl.setopt<CURLOPT_WRITEDATA>(reinterpret_cast<void*>(&fd)) != CURLE_OK)
+    {
+        std::fprintf(stderr, "Could not set options for curl_easy_ext\n");
         return FLECS_CURL;
     }
 
