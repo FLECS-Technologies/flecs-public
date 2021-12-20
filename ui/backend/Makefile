@@ -35,6 +35,7 @@ STATIC_LIBS = \
 	$(ROOT_DIR)/external/jsoncpp-1.9.5/out/$(MACHINE)/lib/libjsoncpp.a
 
 INCLUDE = \
+	-I $(ROOT_DIR)/external/jsoncpp-1.9.5/include \
 	-I $(ROOT_DIR)/external/llhttp-2.1.4/out/$(MACHINE)/include
 
 DYNAMIC_LIBS := \

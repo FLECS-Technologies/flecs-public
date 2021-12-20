@@ -19,7 +19,7 @@
 #include <string_view>
 #include <utility>
 
-#include "external/jsoncpp-1.9.5/include/json/json.h"
+#include "json/json.h"
 #include "util/container/map_constexpr.h"
 #include "util/http/status_codes.h"
 #include "util/llhttp_ext/llhttp_ext.h"
