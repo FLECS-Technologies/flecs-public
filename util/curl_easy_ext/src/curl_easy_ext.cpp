@@ -14,23 +14,19 @@
 
 #include "util/curl_easy_ext/curl_easy_ext.h"
 
-#include <iostream>
-
 #include <unistd.h>
+
+#include <iostream>
 
 namespace FLECS {
 
-curl_easy_ext::curl_easy_ext(const char* url, int write_fd)
-    : _curl { curl_easy_init() }
-    , _url { url }
-    , _write_fd { write_fd }
+curl_easy_ext::curl_easy_ext()
+    : _curl{curl_easy_init()}
 {
     if (_curl)
     {
-        curl_easy_setopt(_curl, CURLOPT_URL, _url);
-        curl_easy_setopt(_curl, CURLOPT_WRITEFUNCTION, &curl_easy_ext_write_cb);
-        curl_easy_setopt(_curl, CURLOPT_WRITEDATA, reinterpret_cast<int*>(&_write_fd));
-        curl_easy_setopt(_curl, CURLOPT_FAILONERROR, 1);
+        setopt<CURLOPT_WRITEFUNCTION>(&curl_easy_ext_write_cb);
+        setopt<CURLOPT_FAILONERROR>(1L);
     }
 }
 
@@ -40,7 +36,9 @@ curl_easy_ext::~curl_easy_ext()
 }
 
 curl_easy_ext::operator bool() const noexcept
-    { return _curl != nullptr; }
+{
+    return _curl != nullptr;
+}
 
 CURLcode curl_easy_ext::perform()
 {
