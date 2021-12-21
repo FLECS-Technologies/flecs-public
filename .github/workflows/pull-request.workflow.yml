@@ -23,10 +23,3 @@ jobs:
         run: |
           make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu ui/backend
           make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu service
-      - name: Archive build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: packages
-          path: |
-            ui/backend/out/**/*.deb
-            service/out/**/*.deb
