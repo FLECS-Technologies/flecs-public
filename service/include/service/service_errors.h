@@ -19,7 +19,7 @@
 
 namespace FLECS {
 
-enum service_error_e : std::uint32_t
+enum service_error_e : int
 {
     FLECS_OK,
     FLECS_FAILED,
@@ -39,10 +39,10 @@ enum service_error_e : std::uint32_t
     FLECS_INSTANCE_APP,
     FLECS_INSTANCE_VERSION,
 
-    FLECS_CURL = 0x80000000,
-    FLECS_SQLITE = 0x81000000,
-    FLECS_YAML = 0x82000000,
-    FLECS_DOCKER = 0x83000000,
+    FLECS_CURL = 0x70000000,
+    FLECS_SQLITE = 0x71000000,
+    FLECS_YAML = 0x72000000,
+    FLECS_DOCKER = 0x73000000,
 };
 
 } // namespace FLECS
