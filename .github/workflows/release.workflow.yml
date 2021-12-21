@@ -37,6 +37,7 @@ jobs:
           path: |
             ui/backend/out
             service/out
+          retention-days: 1
 
   docker:
     needs: build
