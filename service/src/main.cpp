@@ -62,7 +62,8 @@ int main(int argc, char** argv)
     auto it = FLECS::make_service_table.find(command);
     if (it != FLECS::make_service_table.end())
     {
-        return it->second()->process(argc - optind - 1, &argv[optind + 1]);
+        auto res = it->second()->process(argc - optind - 1, &argv[optind + 1]);
+        return res != 0 ? 1 : 0;
     } else
     {
         std::cerr << "Unknown command " << command << "\n\n";
