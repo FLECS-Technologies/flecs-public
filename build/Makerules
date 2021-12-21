@@ -90,9 +90,15 @@ endif
 docker/%:
 	$(MAKE) -C $(ROOT_DIR)/$* docker
 
+ifndef NDEBUG
+DOCKER_TAG := develop
+else
+DOCKER_TAG := latest
+endif
+
 .PHONY: docker
 docker:
-	docker build --build-arg MACHINE=$(MACHINE) -t $(DOCKER_IMAGE) .
+	docker build --build-arg MACHINE=$(MACHINE) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 
 # generic "package" rule to build all available packages
 .PHONY: package

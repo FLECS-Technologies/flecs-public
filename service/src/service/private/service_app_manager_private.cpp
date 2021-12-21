@@ -666,9 +666,9 @@ bool service_app_manager_private_t::is_instance_running(
 std::string build_manifest_url(const std::string& app_name, const std::string& version)
 {
 #ifndef NDEBUG
-    auto url = std::string{"https://3ef7dc4.online-server.cloud:8443/manifests/apps/"};
+    auto url = std::string{"https://marketplace.flecs.tech:8443/manifests/apps/"};
 #else
-    auto url = std::string{"https://3ef7dc4.online-server.cloud/manifests/apps/"};
+    auto url = std::string{"https://marketplace.flecs.tech/manifests/apps/"};
 #endif // NDEBUG
 
     url.append(app_name);

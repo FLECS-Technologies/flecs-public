@@ -47,7 +47,7 @@ endif
 # default build flags
 CXXFLAGS += -std=c++17 -Wall -Wextra -Wfatal-errors
 CXXFLAGS_DEBUG = -g
-CXXFLAGS_RELEASE = -O2
+CXXFLAGS_RELEASE = -O2 -DNDEBUG
 ifdef NDEBUG
 CXXFLAGS += $(CXXFLAGS_RELEASE)
 else

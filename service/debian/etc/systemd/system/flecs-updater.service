@@ -8,8 +8,8 @@ Requires=docker.service containerd.service
 [Service]
 Type=oneshot
 TimeoutStartSec=0
-ExecStartPre=-/usr/bin/docker pull 3ef7dc4.online-server.cloud:5000/flecs/updater:latest
-ExecStart=/usr/bin/docker run --rm -v /usr/bin:/host/usr/bin 3ef7dc4.online-server.cloud:5000/flecs/updater:latest
+ExecStartPre=-/usr/bin/docker pull marketplace.flecs.tech:5000/flecs/updater:latest
+ExecStart=/usr/bin/docker run --rm -v /usr/bin:/host/usr/bin marketplace.flecs.tech:5000/flecs/updater:latest
 RemainAfterExit=yes
 
 [Install]
