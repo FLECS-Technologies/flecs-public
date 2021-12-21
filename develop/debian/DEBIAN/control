@@ -1,5 +1,5 @@
 Package: flecs-develop
-Version: 0.1b-2
+Version: 0.1.0-b2
 Description: FLECS Development Mode
 Architecture: all
 Priority: optional

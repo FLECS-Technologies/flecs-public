@@ -30,6 +30,7 @@ jobs:
           path: |
             ui/backend/out/**/*.deb
             service/out/**/*.deb
+          retention-days: 3
       - name: Archive raw artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -37,6 +38,7 @@ jobs:
           path: |
             ui/backend/out
             service/out
+          retention-days: 1
 
   docker:
     needs: build

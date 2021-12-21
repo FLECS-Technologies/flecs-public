@@ -1,5 +1,5 @@
 Package: flecs-updater
-Version: 0.1b-2
+Version: 0.1.0-b2
 Description: FLECS Service Updater
 Architecture: ##ARCH##
 Priority: optional

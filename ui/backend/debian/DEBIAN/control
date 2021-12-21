@@ -1,5 +1,5 @@
 Package: flecs-backend
-Version: 0.1b-2
+Version: 0.1.0-b2
 Description: FLECS App Management API
 Architecture: ##ARCH##
 Priority: optional
