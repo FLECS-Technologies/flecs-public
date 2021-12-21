@@ -43,6 +43,6 @@ DYNAMIC_LIBS := \
 
 DEB_PKG := flecs-backend.deb
 
-DOCKER_IMAGE = 3ef7dc4.online-server.cloud:5000/flecs/backend:develop
+DOCKER_IMAGE = marketplace.flecs.tech:5001/flecs/backend
 
 include $(ROOT_DIR)/build/Makefile

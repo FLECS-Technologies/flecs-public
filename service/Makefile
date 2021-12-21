@@ -68,7 +68,7 @@ DYNAMIC_LIBS := \
 
 DEB_PKG := flecs-service.deb
 
-DOCKER_IMAGE = 3ef7dc4.online-server.cloud:5000/flecs/updater:develop
+DOCKER_IMAGE = marketplace.flecs.tech:5001/flecs/updater
 
 include $(ROOT_DIR)/build/Makefile
 
