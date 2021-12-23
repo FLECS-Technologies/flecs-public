@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_socket_h
-#define FLECS_util_socket_h
+#ifndef FLECS_service_daemon_daemon_h
+#define FLECS_service_daemon_daemon_h
 
-#include "sockaddr_in.h"
-#include "tcp_socket.h"
-#include "udp_socket.h"
-#include "unix_socket.h"
+namespace FLECS {
 
-#endif // FLECS_util_socket_h
+constexpr const char* FLECS_SOCKET = "/var/run/flecs/flecs.sock";
+
+}
+
+#endif // FLECS_service_daemon_daemon_h

@@ -15,14 +15,16 @@
 #ifndef FLECS_util_socket_base_h
 #define FLECS_util_socket_base_h
 
-#include "util/socket/sockaddr_in.h"
-
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cstdint>
+
+#include "util/socket/sockaddr_in.h"
+#include "util/socket/sockaddr_un.h"
 
 namespace FLECS {
 
@@ -43,7 +45,9 @@ enum class type_t : std::int32_t
 
 inline bool fd_is_socket(int fd)
 {
-    struct stat stat {};
+    struct stat stat
+    {
+    };
     ::fstat(fd, &stat);
     return S_ISSOCK(stat.st_mode);
 }
@@ -53,10 +57,13 @@ class socket_t
 public:
     int accept(sockaddr* addr, socklen_t* addrlen) const;
     int accept(sockaddr_in_t& addr) const;
+    int accept(sockaddr_un_t& addr) const;
     int bind(const sockaddr* addr, socklen_t addrlen) const;
     int bind(const sockaddr_in_t& addr) const;
+    int bind(const sockaddr_un_t& addr) const;
     int connect(const sockaddr* addr, socklen_t addrlen) const;
     int connect(const sockaddr_in_t& addr) const;
+    int connect(const sockaddr_un_t& addr) const;
     int listen(int backlog) const;
     int recv(void* buf, size_t len, int flags) const;
     int send(const void* buf, size_t len, int flags) const;
@@ -78,28 +85,56 @@ private:
 };
 
 inline int socket_t::accept(sockaddr* addr, socklen_t* addrlen) const
-    { return ::accept(_fd, addr, addrlen); }
+{
+    return ::accept(_fd, addr, addrlen);
+}
 
 inline int socket_t::accept(sockaddr_in_t& addr) const
 {
-    addr.size(sizeof(addr));
+    addr.size(sizeof(addr._addr));
+    return ::accept(_fd, static_cast<sockaddr*>(addr), &addr._size);
+}
+
+inline int socket_t::accept(sockaddr_un_t& addr) const
+{
+    addr.size(sizeof(addr._addr));
     return ::accept(_fd, static_cast<sockaddr*>(addr), &addr._size);
 }
 
 inline int socket_t::bind(const sockaddr* addr, socklen_t addrlen) const
-    { return ::bind(_fd, addr, addrlen); }
+{
+    return ::bind(_fd, addr, addrlen);
+}
 
 inline int socket_t::bind(const sockaddr_in_t& addr) const
-    { return ::bind(_fd, static_cast<const sockaddr*>(addr), sizeof(addr)); }
+{
+    return ::bind(_fd, static_cast<const sockaddr*>(addr), addr.size());
+}
+
+inline int socket_t::bind(const sockaddr_un_t& addr) const
+{
+    return ::bind(_fd, static_cast<const sockaddr*>(addr), addr.size());
+}
 
 inline int socket_t::connect(const sockaddr* addr, socklen_t addrlen) const
-    { return ::connect(_fd, addr, addrlen); }
+{
+    return ::connect(_fd, addr, addrlen);
+}
 
 inline int socket_t::connect(const sockaddr_in_t& addr) const
-    { return ::connect(_fd, static_cast<const sockaddr*>(addr), sizeof(addr)); }
+{
+    return ::connect(_fd, static_cast<const sockaddr*>(addr), addr.size());
+}
+
+inline int socket_t::connect(const sockaddr_un_t& addr) const
+{
+    return ::connect(_fd, static_cast<const sockaddr*>(addr), addr.size());
+}
 
 inline int socket_t::listen(int backlog) const
-    { return ::listen(_fd, backlog); }
+{
+    return ::listen(_fd, backlog);
+}
 
 inline int socket_t::recv(void* buf, size_t len, int flags) const
 {
@@ -109,24 +144,28 @@ inline int socket_t::recv(void* buf, size_t len, int flags) const
 }
 
 inline int socket_t::send(const void* buf, size_t len, int flags) const
-    { return ::send(_fd, buf, len, flags); }
+{
+    return ::send(_fd, buf, len, flags);
+}
 
 inline bool socket_t::is_valid() const noexcept
-    { return _fd != -1; }
+{
+    return _fd != -1;
+}
 
 inline socket_t::socket_t(int fd)
-    : _fd { fd_is_socket(fd) ? fd : -1 }
+    : _fd{fd_is_socket(fd) ? fd : -1}
 {}
 
 inline socket_t::socket_t(domain_t domain, type_t type, int protocol)
-    : _fd { ::socket(static_cast<int>(domain), static_cast<int>(type), protocol) }
+    : _fd{::socket(static_cast<int>(domain), static_cast<int>(type), protocol)}
 {
     const int val = 1;
     setsockopt(_fd, SOL_SOCKET, SO_REUSEPORT, &val, sizeof(val));
 }
 
 inline socket_t::socket_t(socket_t&& other)
-    : _fd { -1 }
+    : _fd{-1}
 {
     swap(*this, other);
 }
@@ -147,4 +186,4 @@ inline void swap(socket_t& lhs, socket_t& rhs)
 
 } // namespace FLECS
 
-#endif //FLECS_util_socket_base_h
+#endif // FLECS_util_socket_base_h

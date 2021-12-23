@@ -12,12 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_socket_h
-#define FLECS_util_socket_h
+#include "lib/libflecs.h"
 
-#include "sockaddr_in.h"
-#include "tcp_socket.h"
-#include "udp_socket.h"
-#include "unix_socket.h"
+#include <string>
 
-#endif // FLECS_util_socket_h
+#include "lib/private/libflecs_private.h"
+
+namespace FLECS {
+
+int run_flecs_command(int argc, char** argv)
+{
+    auto strargs = std::string{};
+    for (auto i = 0; i < argc; ++i)
+    {
+        strargs += argv[i];
+        strargs += '\0';
+    }
+    return Private::run_flecs_command_private(strargs);
+}
+
+} // namespace FLECS

@@ -16,29 +16,29 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
 BINARY := flecs-backend
 
-DEPENDS := \
+DEPENDS_BINARY := \
 	util/curl_easy_ext \
 	util/llhttp_ext \
 	util/process
 
-SRC := \
+SRC_BINARY := \
 	src/main.cpp \
 	src/http_request_handler.cpp
 
-HEADER := \
+HEADER_BINARY := \
 	http_request_handler.h
 
-STATIC_LIBS = \
+STATIC_LIBS_BINARY = \
 	$(ROOT_DIR)/util/curl_easy_ext/out/$(MACHINE)/libFLECS.curl_easy_ext.a \
 	$(ROOT_DIR)/util/llhttp_ext/out/$(MACHINE)/libFLECS.llhttp_ext.a \
 	$(ROOT_DIR)/util/process/out/$(MACHINE)/libFLECS.process.a \
 	$(ROOT_DIR)/external/jsoncpp-1.9.5/out/$(MACHINE)/lib/libjsoncpp.a
 
-INCLUDE = \
+INCLUDE_BINARY = \
 	-I $(ROOT_DIR)/external/jsoncpp-1.9.5/include \
 	-I $(ROOT_DIR)/external/llhttp-2.1.4/out/$(MACHINE)/include
 
-DYNAMIC_LIBS := \
+DYNAMIC_LIBS_BINARY := \
 	-lpthread
 
 DEB_PKG := flecs-backend.deb

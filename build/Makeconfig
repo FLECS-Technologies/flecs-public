@@ -58,7 +58,9 @@ endif
 OUT := out/$(MACHINE)
 
 # object files
-OBJ = $(patsubst src/%.cpp,$(OUT)/%.o,$(SRC))
+OBJ_ARCHIVE = $(patsubst src/%.cpp,$(OUT)/%.o,$(SRC_ARCHIVE))
+OBJ_BINARY = $(patsubst src/%.cpp,$(OUT)/%.o,$(SRC_BINARY))
+OBJ_LIB = $(patsubst src/%.cpp,$(OUT)/%.o,$(SRC_LIB))
 
 .PHONY: vars
 vars:

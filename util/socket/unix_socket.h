@@ -12,12 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_socket_h
-#define FLECS_util_socket_h
+#ifndef FLECS_util_unix_socket_h
+#define FLECS_util_unix_socket_h
 
-#include "sockaddr_in.h"
-#include "tcp_socket.h"
-#include "udp_socket.h"
-#include "unix_socket.h"
+#include "socket_base.h"
 
-#endif // FLECS_util_socket_h
+namespace FLECS {
+
+class unix_socket_t : public socket_t
+{
+public:
+    unix_socket_t()
+        : socket_t{domain_t::LOCAL, type_t::STREAM, 0}
+    {}
+    unix_socket_t(int fd)
+        : socket_t{fd}
+    {}
+};
+
+} // namespace FLECS
+
+#endif // FLECS_util_unix_socket_h

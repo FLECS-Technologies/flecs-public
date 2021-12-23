@@ -14,14 +14,14 @@
 
 ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
-BINARY := flecs
+BINARY := flecsd
 
-DEPENDS := \
-	util/curl_easy_ext \
-	util/process \
-	util/sqlite3_ext
+DEPENDS_BINARY := \
+	util/curl_easy_ext/archive \
+	util/process/archive \
+	util/sqlite3_ext/archive
 
-SRC := \
+SRC_BINARY := \
 	src/main.cpp \
 	src/app/app.cpp \
 	src/db/app_db.cpp \
@@ -31,10 +31,11 @@ SRC := \
 	src/service/service_help.cpp \
 	src/service/service_rpc.cpp \
 
-HEADER := \
+HEADER_BINARY := \
 	include/app/app.h \
 	include/app/app_status.h \
 	include/db/app_db.h \
+	include/daemon.h \
 	include/instance/instance_status.h \
 	include/service/private/service_app_manager_private.h \
 	include/service/service_app_manager.h \
@@ -45,14 +46,14 @@ HEADER := \
 	include/service/service_rpc.h \
 	include/service/service_table.h \
 
-INCLUDE := \
+INCLUDE_BINARY := \
 	-I ./include \
 	-I $(ROOT_DIR)/external/curl-7.80.0/include \
 	-I $(ROOT_DIR)/external/jsoncpp-1.9.5/include \
 	-I $(ROOT_DIR)/external/sqlite-3.37.0 \
 	-I $(ROOT_DIR)/external/yaml-cpp-0.7.0/include \
 
-STATIC_LIBS = \
+STATIC_LIBS_BINARY = \
 	$(ROOT_DIR)/util/process/out/$(MACHINE)/libFLECS.process.a \
 	$(ROOT_DIR)/util/curl_easy_ext/out/$(MACHINE)/libFLECS.curl_easy_ext.a \
 	$(ROOT_DIR)/util/sqlite3_ext/out/$(MACHINE)/libFLECS.sqlite3_ext.a \
@@ -63,8 +64,21 @@ STATIC_LIBS = \
 	$(ROOT_DIR)/external/openssl-1.1.1m/out/$(MACHINE)/lib/libssl.a \
 	$(ROOT_DIR)/external/openssl-1.1.1m/out/$(MACHINE)/lib/libcrypto.a
 
-DYNAMIC_LIBS := \
+DYNAMIC_LIBS_BINARY := \
 	-ldl -lpthread
+
+LIB := libFLECS.daemon.so
+
+SRC_LIB := \
+	src/lib/libflecs.cpp \
+	src/lib/private/libflecs_private.cpp \
+
+HEADER_LIB := \
+	include/lib/libflecs.h \
+	include/lib/private/libflecs_private.h \
+
+INCLUDE_LIB := \
+	-I $(ROOT_DIR)/daemon/include \
 
 DEB_PKG := flecs-service.deb
 

@@ -16,11 +16,11 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
 ARCHIVE := libFLECS.process.a
 
-SRC := \
-	src/process.cpp
+SRC_ARCHIVE := \
+	src/process.cpp \
 
-HEADER := \
-	posix_spawn.h\
-	process.h
+HEADER_ARCHIVE := \
+	posix_spawn.h \
+	process.h \
 
 include $(ROOT_DIR)/build/Makefile

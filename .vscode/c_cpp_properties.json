@@ -4,14 +4,20 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}",
+                "${workspaceFolder}/external/gtest-1.11.0",
+                "${workspaceFolder}/external/jsoncpp-1.9.5/include",
                 "${workspaceFolder}/external/yaml-cpp-0.7.0/include",
-                "${workspaceFolder}/external/llhttp-2.1.4/out/x86_64-linux-gnu/include"
+                "${workspaceFolder}/external/llhttp-2.1.4/out/x86_64-linux-gnu/include",
+                "${workspaceFolder}/daemon/**",
+                "${workspaceFolder}/ui/backend/**",
+                "${workspaceFolder}/daemon/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "linux-gcc-x64"
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "ms-vscode.makefile-tools"
         }
     ],
     "version": 4

@@ -12,19 +12,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace FLECS {
 
+template <typename T>
+std::enable_if_t<!std::is_convertible_v<T, std::string>, std::string> stringify_impl(T&& val)
+{
+    using std::to_string;
+    return to_string(val);
+}
+
+template <typename T>
+std::enable_if_t<std::is_convertible_v<T, std::string>, std::string> stringify_impl(T&& val)
+{
+    return static_cast<std::string>(val);
+}
+
+template <typename... Args>
+std::string stringify(Args&&... args)
+{
+    auto str = std::string{};
+    ((str += stringify_impl(args)), ...);
+    return str;
+}
+
+template <typename... Args>
+std::string stringify_delim(char delim, Args&&... args)
+{
+    (void)delim;
+    auto str = std::string{};
+    ((str += stringify_impl(args) += delim), ...);
+    return str;
+}
+
 template <typename CharT, typename Traits>
 auto split(const std::basic_string<CharT, Traits>& str, CharT delim)
 {
-    auto res = std::vector<std::basic_string<CharT, Traits>> {};
-    auto iss = std::istringstream { str };
-    auto item = std::basic_string<CharT, Traits> {};
+    auto res = std::vector<std::basic_string<CharT, Traits>>{};
+    auto iss = std::istringstream{str};
+    auto item = std::basic_string<CharT, Traits>{};
 
     while (std::getline(iss, item, delim))
     {
@@ -37,13 +69,13 @@ auto split(const std::basic_string<CharT, Traits>& str, CharT delim)
 template <typename CharT, typename Traits>
 auto split(const std::basic_string_view<CharT, Traits>& sv, CharT delim)
 {
-    return split(std::basic_string<CharT, Traits> { sv }, delim);
+    return split(std::basic_string<CharT, Traits>{sv}, delim);
 }
 
 template <typename CharT>
 auto split(const CharT* s, CharT delim)
 {
-    return split(std::basic_string<CharT> { s }, delim);
+    return split(std::basic_string<CharT>{s}, delim);
 }
 
-}
+} // namespace FLECS

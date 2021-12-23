@@ -16,19 +16,18 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
 ARCHIVE := libFLECS.llhttp_ext.a
 
-SRC := \
+SRC_ARCHIVE := \
 	src/llhttp_ext.cpp
 
-HEADER := \
+HEADER_ARCHIVE := \
 	llhttp_ext.h
 
-INCLUDE = \
-	-I $(ROOT_DIR) \
+INCLUDE_ARCHIVE = \
 	-I $(ROOT_DIR)/external/curl-7.80.0/include \
 	-I $(ROOT_DIR)/external/llhttp-2.1.4/out/$(MACHINE)/include
 
 include $(ROOT_DIR)/build/Makefile
 
-$(OUT)/$(ARCHIVE): $(DEPENDS) $(OBJ) $(HEADER)
+$(OUT)/$(ARCHIVE): $(DEPENDS_ARCHIVE) $(OBJ_ARCHIVE) $(HEADER_ARCHIVE)
 	cp $(ROOT_DIR)/external/llhttp-2.1.4/out/$(MACHINE)/lib/libllhttp.a $@
-	$(AR) r $@ $(OBJ)
+	$(AR) r $@ $(OBJ_ARCHIVE)

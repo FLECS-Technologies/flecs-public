@@ -16,14 +16,13 @@ ROOT_DIR=$(shell git rev-parse --show-toplevel)
 
 ARCHIVE := libFLECS.curl_easy_ext.a
 
-SRC=\
-	src/curl_easy_ext.cpp
+SRC_ARCHIVE := \
+	src/curl_easy_ext.cpp \
 
-HEADER=\
-	curl_easy_ext.h
+HEADER_ARCHIVE := \
+	curl_easy_ext.h \
 
-INCLUDE=\
-	-I $(ROOT_DIR)\
-	-I $(ROOT_DIR)/external/curl-7.80.0/include
+INCLUDE_ARCHIVE = \
+	-I $(ROOT_DIR)/external/curl-7.80.0/include \
 
 include $(ROOT_DIR)/build/Makefile

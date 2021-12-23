@@ -14,15 +14,21 @@
 
 ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
-ARCHIVE := libFLECS.sqlite3_ext.a
+BINARY := flecs
 
-SRC_ARCHIVE := \
-	src/sqlite3_db.cpp \
+DEPENDS_BINARY := \
+	daemon/lib
 
-HEADER_ARCHIVE := \
-	sqlite3_db.h \
+SRC_BINARY := \
+	src/main.cpp \
 
-INCLUDE_ARCHIVE = \
-	-I $(ROOT_DIR)/external/sqlite-3.37.0/out/$(MACHINE)/include \
+HEADER_BINARY := \
+
+INCLUDE_BINARY = \
+	-I ./include \
+	-I $(ROOT_DIR)/daemon/include \
+
+DYNAMIC_LIBS_BINARY = \
+	-L $(ROOT_DIR)/daemon/out/$(MACHINE) -l FLECS.daemon
 
 include $(ROOT_DIR)/build/Makefile
