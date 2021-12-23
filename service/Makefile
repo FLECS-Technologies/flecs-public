@@ -60,8 +60,8 @@ STATIC_LIBS = \
 	$(ROOT_DIR)/external/yaml-cpp-0.7.0/out/$(MACHINE)/libyaml-cpp.a \
 	$(ROOT_DIR)/external/curl-7.80.0/out/$(MACHINE)/lib/libcurl.a \
 	$(ROOT_DIR)/external/jsoncpp-1.9.5/out/$(MACHINE)/lib/libjsoncpp.a \
-	$(ROOT_DIR)/external/openssl-1.1.1l/out/$(MACHINE)/lib/libssl.a \
-	$(ROOT_DIR)/external/openssl-1.1.1l/out/$(MACHINE)/lib/libcrypto.a
+	$(ROOT_DIR)/external/openssl-1.1.1m/out/$(MACHINE)/lib/libssl.a \
+	$(ROOT_DIR)/external/openssl-1.1.1m/out/$(MACHINE)/lib/libcrypto.a
 
 DYNAMIC_LIBS := \
 	-ldl -lpthread
