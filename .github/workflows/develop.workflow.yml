@@ -13,16 +13,13 @@ jobs:
       - uses: actions/checkout@v2
       - name: native
         run: |
-          make DOCKERLESS=1 -C build/ ui/backend
-          make DOCKERLESS=1 -C build/ service
+          make DOCKERLESS=1 -C build/ flecs
       - name: armhf
         run: |
-          make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf ui/backend
-          make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf service
+          make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf flecs
       - name: aarch64
         run: |
-          make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu ui/backend
-          make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu service
+          make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu flecs
       - name: Archive packages
         uses: actions/upload-artifact@v2
         with:
@@ -40,21 +37,21 @@ jobs:
             service/out
           retention-days: 1
 
-  docker:
-    needs: build
-    runs-on: self-hosted
+  #docker:
+  #  needs: build
+  #  runs-on: self-hosted
 
-    steps:
-      - uses: actions/checkout@v2
-      - name: Download workflow artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: out
-      - name: native
-        run: |
-          make DOCKERLESS=1 -C build/ docker/ui/backend
-          make DOCKERLESS=1 -C build/ docker/service
-      - name: push
-        run: |
-          docker push marketplace.flecs.tech:5001/flecs/backend:develop
-          docker push marketplace.flecs.tech:5001/flecs/updater:develop
+  #  steps:
+  #    - uses: actions/checkout@v2
+  #    - name: Download workflow artifacts
+  #      uses: actions/download-artifact@v2
+  #      with:
+  #        name: out
+  #    - name: native
+  #      run: |
+  #        make DOCKERLESS=1 -C build/ docker/ui/backend
+  #        make DOCKERLESS=1 -C build/ docker/service
+  #    - name: push
+  #      run: |
+  #        docker push marketplace.flecs.tech:5001/flecs/backend:develop
+  #        docker push marketplace.flecs.tech:5001/flecs/updater:develop

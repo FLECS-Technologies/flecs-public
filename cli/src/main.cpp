@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_socket_h
-#define FLECS_util_socket_h
+#include "daemon/include/lib/libflecs.h"
 
-#include "sockaddr_in.h"
-#include "tcp_socket.h"
-#include "udp_socket.h"
-#include "unix_socket.h"
-
-#endif // FLECS_util_socket_h
+int main(int argc, char** argv)
+{
+    return FLECS::run_flecs_command(argc, argv);
+}

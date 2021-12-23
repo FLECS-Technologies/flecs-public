@@ -18,20 +18,26 @@ include $(ROOT_DIR)/build/Makeconfig
 include $(ROOT_DIR)/build/Makerules
 include $(ROOT_DIR)/build/Makefile_external
 
-.PHONY: service
-service: build/service package/service
+.PHONY: cli
+cli: cli/all
+
+.PHONY: daemon
+daemon: daemon/all
 
 .PHONY: ui/backend
-ui/backend: build/ui/backend package/ui/backend
+ui/backend: ui/backend/all ui/backend/package
+
+.PHONY: flecs
+flecs: cli daemon ui/backend
 
 .PHONY: util/curl_easy_ext
-util/curl_easy_ext: build/util/curl_easy_ext
+util/curl_easy_ext: util/curl_easy_ext/all
 
 .PHONY: util/llhttp_ext
-util/llhttp_ext: build/util/llhttp_ext
+util/llhttp_ext: util/llhttp_ext/all
 
 .PHONY: util/process
-util/process: build/util/process
+util/process: util/process/all
 
 .PHONY: util/sqlite3_ext
-util/sqlite3_ext: build/util/sqlite3_ext
+util/sqlite3_ext: util/sqlite3_ext/all

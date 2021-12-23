@@ -15,16 +15,17 @@
 # forward build to Docker if DOCKERLESS is not set
 ifndef DOCKERLESS
 DOCKERARGS=-e DOCKERLESS=1 -e MAKEFLAGS="$(MAKEFLAGS)"
-build/%:
-	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* all
-package/%:
-	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* package
-else
-build/%:
-	$(MAKE) -C $(ROOT_DIR)/$* all
-package/%:
-	$(MAKE) -C $(ROOT_DIR)/$* package
 endif
+%/all:
+	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* all
+%/archive:
+	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* archive
+%/binary:
+	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* binary
+%/lib:
+	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* lib
+%/package:
+	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* package
 
 # generic rule for building objects from source files
 $(OUT)/%.o: src/%.cpp
@@ -33,21 +34,42 @@ $(OUT)/%.o: src/%.cpp
 
 # generic rule to build binary from objects, if set
 ifdef BINARY
-$(OUT)/$(BINARY): $(DEPENDS) $(OBJ) $(HEADER)
-	$(CXX) $(CXXFLAGS) -I $(ROOT_DIR) $(INCLUDE) -o $@ $(OBJ) $(STATIC_LIBS) $(DYNAMIC_LIBS)
+$(OUT)/$(BINARY): INCLUDE := $(INCLUDE_BINARY)
+$(OUT)/$(BINARY): $(DEPENDS_BINARY) $(OBJ_BINARY) $(HEADER_BINARY)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_BINARY) $(STATIC_LIBS_BINARY) $(DYNAMIC_LIBS_BINARY)
 
-ALL += $(OUT)/$(BINARY)
+.PHONY: binary
+binary: $(OUT)/$(BINARY)
+
+ALL += binary
 endif
 
 # generic rule to build archive from objects, if set
 ifdef ARCHIVE
-$(OUT)/$(ARCHIVE): $(DEPENDS) $(OBJ) $(HEADER)
-	$(AR) cr $@ $(OBJ)
+$(OUT)/$(ARCHIVE): INCLUDE := $(INCLUDE_ARCHIVE)
+$(OUT)/$(ARCHIVE): $(DEPENDS_ARCHIVE) $(OBJ_ARCHIVE) $(HEADER_ARCHIVE)
+	$(AR) cr $@ $(OBJ_ARCHIVE)
 
-ALL += $(OUT)/$(ARCHIVE)
+.PHONY: archive
+archive: $(OUT)/$(ARCHIVE)
+
+ALL += archive
 endif
 
-# generic "all" rule - builds BINARY and ARCHIVE, if set
+# generic rule to build lib from objects, if set
+ifdef LIB
+$(OUT)/$(LIB): INCLUDE := $(INCLUDE_LIB)
+$(OUT)/$(LIB): CXXFLAGS += -shared -fPIC
+$(OUT)/$(LIB): $(DEPENDS_LIB) $(OBJ_LIB) $(HEADER_LIB)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_LIB) $(STATIC_LIBS_LIB) $(DYNAMIC_LIBS_LIB)
+
+.PHONY: lib
+lib: $(OUT)/$(LIB)
+
+ALL += lib
+endif
+
+# generic "all" rule - builds BINARY, LIB and ARCHIVE, if set
 .PHONY: all
 all: $(ALL)
 

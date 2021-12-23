@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "Make*": "makefile",
         "type_traits": "cpp",
         "set": "cpp",
         "functional": "cpp",
@@ -75,7 +76,8 @@
         "locale": "cpp",
         "queue": "cpp",
         "stack": "cpp",
-        "cstdbool": "cpp"
+        "cstdbool": "cpp",
+        "complex": "cpp"
     },
     "cSpell.words": [
         "flecs"
