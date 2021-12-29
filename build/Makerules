@@ -26,6 +26,8 @@ endif
 	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* lib
 %/package:
 	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* package
+%/docker:
+	$(MAKE) -C $(ROOT_DIR)/$* docker
 
 # generic rule for building objects from source files
 $(OUT)/%.o: src/%.cpp
@@ -77,6 +79,7 @@ all: $(ALL)
 ifdef DEB_PKG
 $(OUT)/$(DEB_PKG): all deb-pkg-prepare
 	@rm -rf $(OUT)/debian;
+	@mkdir -p $(shell readlink -m $(shell dirname $@))
 	@cp -r debian $(OUT)/debian;
 	@echo BINARY: $(BINARY);
 	@if [ ! -z "$(BINARY)" ]; then \
@@ -97,6 +100,8 @@ $(OUT)/$(DEB_PKG): all deb-pkg-prepare
 		echo "Unknown architecture for $(MACHINE)"; \
 	fi; \
 	sed -i "s/##ARCH##/$${ARCH}/g" $(OUT)/debian/DEBIAN/control;
+	sed -i "s/##PACKAGE##/$(PACKAGE)/g" $(OUT)/debian/DEBIAN/*;
+	sed -i "s/##VERSION##/$(VERSION)/g" $(OUT)/debian/DEBIAN/*;
 	@dpkg-deb --root-owner-group -Z gzip --build $(OUT)/debian $(OUT)/$(DEB_PKG)
 
 .PHONY: deb-pkg
@@ -108,19 +113,19 @@ deb-pkg: $(OUT)/$(DEB_PKG)
 PACKAGES += deb-pkg
 endif
 
-# generic "docker" rule to build Docker image, if exist
-docker/%:
-	$(MAKE) -C $(ROOT_DIR)/$* docker
-
 ifndef NDEBUG
 DOCKER_TAG := develop
 else
 DOCKER_TAG := latest
 endif
 
+ifdef DOCKER_IMAGE
 .PHONY: docker
-docker:
+docker: docker-prepare
 	docker build --build-arg MACHINE=$(MACHINE) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+
+.PHONY: docker-prepare
+endif
 
 # generic "package" rule to build all available packages
 .PHONY: package

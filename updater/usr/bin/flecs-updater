@@ -1,0 +1,9 @@
+#!/bin/bash
+
+DIR=$(dirname $(readlink -f ${0}))
+
+DEB=flecs-updater.deb
+cd ${DIR}
+./${DEB}.shar
+dpkg --install ${DEB}
+rm ${DEB}

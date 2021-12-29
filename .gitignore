@@ -26,6 +26,12 @@
 *.a
 *.lib
 
+# Packages
+*.deb
+
+# Archives
+*.shar
+
 # Executables
 *.exe
 *.out
@@ -33,6 +39,6 @@
 
 # FLECS binaries
 **/out/**
-**/debian/usr/bin/**
-**/debian/usr/lib/**
-**/debian/var/**
+**/usr/bin/**
+**/usr/lib/**
+**/var/**
