@@ -22,10 +22,13 @@ include $(ROOT_DIR)/build/Makefile_external
 cli: cli/all
 
 .PHONY: daemon
-daemon: daemon/all
+daemon: daemon/all daemon/package
 
 .PHONY: ui/backend
 ui/backend: ui/backend/all ui/backend/package
+
+.PHONY: updater
+updater: updater/docker
 
 .PHONY: flecs
 flecs: cli daemon ui/backend

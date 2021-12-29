@@ -16,6 +16,8 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
 BINARY := flecs-backend
 
+PACKAGE := flecs-backend
+
 DEPENDS_BINARY := \
 	util/curl_easy_ext \
 	util/llhttp_ext \
@@ -42,7 +44,5 @@ DYNAMIC_LIBS_BINARY := \
 	-lpthread
 
 DEB_PKG := flecs-backend.deb
-
-DOCKER_IMAGE = marketplace.flecs.tech:5001/flecs/backend
 
 include $(ROOT_DIR)/build/Makefile

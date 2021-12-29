@@ -25,8 +25,7 @@ jobs:
         with:
           name: packages
           path: |
-            ui/backend/out/**/*.deb
-            service/out/**/*.deb
+            **/*.deb
           retention-days: 3
       - name: Archive raw artifacts
         uses: actions/upload-artifact@v2
@@ -34,24 +33,22 @@ jobs:
           name: out
           path: |
             ui/backend/out
-            service/out
+            daemon/out
+            !**/*.deb
+            !**/*.deb
           retention-days: 1
 
-  #docker:
-  #  needs: build
-  #  runs-on: self-hosted
+  docker:
+    needs: build
+    runs-on: self-hosted
 
-  #  steps:
-  #    - uses: actions/checkout@v2
-  #    - name: Download workflow artifacts
-  #      uses: actions/download-artifact@v2
-  #      with:
-  #        name: out
-  #    - name: native
-  #      run: |
-  #        make DOCKERLESS=1 -C build/ docker/ui/backend
-  #        make DOCKERLESS=1 -C build/ docker/service
-  #    - name: push
-  #      run: |
-  #        docker push marketplace.flecs.tech:5001/flecs/backend:develop
-  #        docker push marketplace.flecs.tech:5001/flecs/updater:develop
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download workflow artifacts
+        uses: actions/download-artifact@v2
+      - name: native
+        run: |
+          make DOCKERLESS=1 -C build/ updater/docker
+      - name: push
+        run: |
+          docker push marketplace.flecs.tech:5001/flecs/updater:develop

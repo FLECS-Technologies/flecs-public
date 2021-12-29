@@ -1,6 +1,6 @@
-Package: flecs-develop
-Version: 0.1.0-b2
+Package: ##PACKAGE##
+Version: ##VERSION##
 Description: FLECS Development Mode
-Architecture: all
+Architecture: ##ARCH##
 Priority: optional
 Maintainer: FLECS Technologies GmbH <alex@flecs.tech>

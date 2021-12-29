@@ -1,6 +1,6 @@
-Package: flecs-updater
-Version: 0.1.0-b2
-Description: FLECS Service Updater
+Package: ##PACKAGE##
+Version: ##VERSION##
+Description: FLECS
 Architecture: ##ARCH##
 Priority: optional
 Maintainer: FLECS Technologies GmbH <alex@flecs.tech>

@@ -1,6 +1,6 @@
 Package: ##PACKAGE##
 Version: ##VERSION##
-Description: FLECS App Management API
+Description: FLECS Service Updater
 Architecture: ##ARCH##
 Priority: optional
 Maintainer: FLECS Technologies GmbH <alex@flecs.tech>

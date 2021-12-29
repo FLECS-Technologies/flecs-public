@@ -16,6 +16,8 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
 BINARY := flecsd
 
+PACKAGE := flecs
+
 DEPENDS_BINARY := \
 	util/curl_easy_ext/archive \
 	util/process/archive \
@@ -81,8 +83,6 @@ INCLUDE_LIB := \
 	-I $(ROOT_DIR)/daemon/include \
 
 DEB_PKG := flecs-service.deb
-
-DOCKER_IMAGE = marketplace.flecs.tech:5001/flecs/updater
 
 include $(ROOT_DIR)/build/Makefile
 
