@@ -23,6 +23,6 @@ DOCKER_IMAGE := marketplace.flecs.tech:5001/flecs/updater
 include $(ROOT_DIR)/build/Makefile
 
 docker-prepare:
-	@shar -VQfx $(ROOT_DIR)/daemon/out/$(MACHINE)/flecs-service.deb >usr/bin/flecs-service.deb.shar
-	@shar -VQfx $(ROOT_DIR)/ui/backend/out/$(MACHINE)/flecs-backend.deb >usr/bin/flecs-backend.deb.shar
-	@shar -VQfx $(ROOT_DIR)/updater/out/$(MACHINE)/flecs-updater.deb >usr/bin/flecs-updater.deb.shar
+	@tar czf usr/bin/flecs-service.deb.tar.gz -C $(ROOT_DIR)/daemon/out/$(MACHINE) flecs-service.deb
+	@tar czf usr/bin/flecs-backend.deb.tar.gz -C $(ROOT_DIR)/ui/backend/out/$(MACHINE) flecs-backend.deb
+	@tar czf usr/bin/flecs-updater.deb.tar.gz -C $(ROOT_DIR)/updater/out/$(MACHINE) flecs-updater.deb

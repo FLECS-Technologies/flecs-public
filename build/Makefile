@@ -28,10 +28,10 @@ daemon: daemon/all daemon/package
 ui/backend: ui/backend/all ui/backend/package
 
 .PHONY: updater
-updater: updater/docker
+updater: updater/package
 
 .PHONY: flecs
-flecs: cli daemon ui/backend
+flecs: cli daemon ui/backend updater
 
 .PHONY: util/curl_easy_ext
 util/curl_easy_ext: util/curl_easy_ext/all

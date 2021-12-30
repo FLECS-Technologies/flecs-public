@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# This file should not be here. However, the update process was not completely finished for 0.1.0-b2, so we need it
+# as a much hated workaround. When updating from 0.1.0-b2, we hijack flecs to migrate to the new package
+# structure once, as it is the only binary that is launched some time after boot to do this reliably.
+# On first startup after upgrading from 0.1.0-b2, this file installs all available FLECS packages, restarts
+# flecs-backend, and executes the actual command
+
+DIR=$(dirname $(readlink -f ${0}))
+
+cd ${DIR}
+
+# purge flecs-updater, as it currently owns /usr/bin/flecs
+dpkg --purge flecs-updater >/dev/null 2>&1
+
+# install new packages
+DEBS=(flecs-service.deb flecs-updater.deb flecs-backend.deb)
+
+for DEB in "${DEBS[@]}"; do
+    tar xf ./${DEB}.tar.gz >/dev/null 2>&1 && rm -f ./${DEB}.tar.gz >/dev/null 2>&1;
+    dpkg --install ${DEB} >/dev/null 2>&1 && rm ${DEB} >/dev/null 2>&1;
+done
+
+# restart backend
+systemctl daemon-reload >/dev/null 2>&1;
+systemctl restart flecs-backend >/dev/null 2>&1;
+
+# execute actual command
+/usr/bin/flecs "$@"

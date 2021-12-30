@@ -1,8 +1,8 @@
-name: Develop
+name: Release
 
 on:
-  push:
-    branches: [main]
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -46,6 +46,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Download workflow artifacts
         uses: actions/download-artifact@v2
+        with:
+          name: packages
       - name: native
         run: |
           make NDEBUG=1 DOCKERLESS=1 -C build/ updater/docker

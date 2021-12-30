@@ -1,9 +1,0 @@
-#!/bin/bash
-
-DIR=$(dirname $(readlink -f ${0}))
-
-DEB=flecs-service.deb
-cd ${DIR}
-./${DEB}.shar
-dpkg --install ${DEB}
-rm ${DEB}

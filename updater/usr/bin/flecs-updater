@@ -1,9 +1,17 @@
 #!/bin/bash
 
+journalctl --boot 0 --unit flecs-updater | grep "Downloaded newer image" >/dev/null 2>&1
+if [ ! $? -eq 0 ]; then
+    exit 0;
+fi
+
+/usr/bin/docker run --rm -v /usr/bin:/host/usr/bin marketplace.flecs.tech:5000/flecs/updater:latest || exit 1
+
 DIR=$(dirname $(readlink -f ${0}))
 
-DEB=flecs-updater.deb
 cd ${DIR}
-./${DEB}.shar
-dpkg --install ${DEB}
-rm ${DEB}
+
+for DEB in "${DEBS[@]}"; do
+    tar xf ./${DEB}.tar.gz && rm ./${DEB}.tar.gz;
+    dpkg --install ${DEB} && rm ${DEB};
+done

@@ -86,6 +86,8 @@ DEB_PKG := flecs-service.deb
 
 include $(ROOT_DIR)/build/Makefile
 
-deb-pkg-prepare:
+deb-pkg-prepare: cli
 	@mkdir -p debian/var/lib/flecs/db
 	@touch debian/var/lib/flecs/db/apps.db
+	@mkdir -p debian/usr/bin
+	@cp -pf $(ROOT_DIR)/cli/out/$(MACHINE)/flecs debian/usr/bin/
