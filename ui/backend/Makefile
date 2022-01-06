@@ -18,6 +18,8 @@ BINARY := flecs-backend
 
 PACKAGE := flecs-backend
 
+PACKAGE_DESC := FLECS App Management API
+
 DEPENDS_BINARY := \
 	util/curl_easy_ext \
 	util/llhttp_ext \
@@ -42,7 +44,5 @@ INCLUDE_BINARY = \
 
 DYNAMIC_LIBS_BINARY := \
 	-lpthread
-
-DEB_PKG := flecs-backend.deb
 
 include $(ROOT_DIR)/build/Makefile

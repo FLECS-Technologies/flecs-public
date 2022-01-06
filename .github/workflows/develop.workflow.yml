@@ -51,6 +51,3 @@ jobs:
       - name: native
         run: |
           make DOCKERLESS=1 -C build/ updater/docker
-      - name: push
-        run: |
-          docker push marketplace.flecs.tech:5001/flecs/updater:develop

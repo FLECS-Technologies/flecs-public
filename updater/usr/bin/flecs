@@ -13,12 +13,14 @@ cd ${DIR}
 # purge flecs-updater, as it currently owns /usr/bin/flecs
 dpkg --purge flecs-updater >/dev/null 2>&1
 
-# install new packages
-DEBS=(flecs-service.deb flecs-updater.deb flecs-backend.deb)
+# extract new packages
+for f in flecs*.tar.gz; do
+    tar xf "${f}" >/dev/null 2>&1  && rm "${f}" >/dev/null 2>&1;
+done
 
-for DEB in "${DEBS[@]}"; do
-    tar xf ./${DEB}.tar.gz >/dev/null 2>&1 && rm -f ./${DEB}.tar.gz >/dev/null 2>&1;
-    dpkg --install ${DEB} >/dev/null 2>&1 && rm ${DEB} >/dev/null 2>&1;
+# install new packages
+for f in flecs*.deb; do
+    dpkg --install "${f}" >/dev/null 2>&1 && rm "${f}" >/dev/null 2>&1;
 done
 
 # restart backend

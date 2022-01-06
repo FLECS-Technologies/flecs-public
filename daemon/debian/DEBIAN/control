@@ -1,6 +1,0 @@
-Package: ##PACKAGE##
-Version: ##VERSION##
-Description: FLECS
-Architecture: ##ARCH##
-Priority: optional
-Maintainer: FLECS Technologies GmbH <alex@flecs.tech>

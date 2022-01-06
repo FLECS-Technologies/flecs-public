@@ -18,6 +18,8 @@ BINARY := flecsd
 
 PACKAGE := flecs
 
+PACKAGE_DESC := FLECS
+
 DEPENDS_BINARY := \
 	util/curl_easy_ext/archive \
 	util/process/archive \
@@ -82,12 +84,8 @@ HEADER_LIB := \
 INCLUDE_LIB := \
 	-I $(ROOT_DIR)/daemon/include \
 
-DEB_PKG := flecs-service.deb
-
 include $(ROOT_DIR)/build/Makefile
 
 deb-pkg-prepare: cli
-	@mkdir -p debian/var/lib/flecs/db
-	@touch debian/var/lib/flecs/db/apps.db
-	@mkdir -p debian/usr/bin
-	@cp -pf $(ROOT_DIR)/cli/out/$(MACHINE)/flecs debian/usr/bin/
+	@mkdir -p $(OUT)/debian/usr/bin
+	@cp -pf $(ROOT_DIR)/cli/$(OUT)/flecs $(OUT)/debian/usr/bin/

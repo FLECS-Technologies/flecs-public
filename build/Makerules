@@ -76,41 +76,63 @@ endif
 all: $(ALL)
 
 # generic "deb-pkg" rule to build .deb package from artifacts
-ifdef DEB_PKG
-$(OUT)/$(DEB_PKG): all deb-pkg-prepare
-	@rm -rf $(OUT)/debian;
-	@mkdir -p $(shell readlink -m $(shell dirname $@))
-	@cp -r debian $(OUT)/debian;
-	@echo BINARY: $(BINARY);
+ifdef PACKAGE
+
+pkg_copy_%:
+	rm -rf $(OUT)/$(PKG_TYPE)
+	mkdir -p $(shell readlink -m $(shell dirname $(TARGET)))
+	cp -r pkg/$(PKG_TYPE) $(OUT)/$(PKG_TYPE)
+	[ -d pkg/fs/ ] && cp -r pkg/fs/* $(OUT)/$(PKG_TYPE)/ || true
+	cp -r $(ROOT_DIR)/build/pkg/$(PKG_TYPE)/* $(OUT)/$(PKG_TYPE)/
+
+pkg_%:
 	@if [ ! -z "$(BINARY)" ]; then \
-		mkdir -p $(OUT)/debian/usr/bin; \
-		cp -pf $(OUT)/$(BINARY) $(OUT)/debian/usr/bin; \
+		mkdir -p $(OUT)/$(PKG_TYPE)/usr/bin; \
+		cp -pf $(OUT)/$(BINARY) $(OUT)/$(PKG_TYPE)/usr/bin; \
 	fi;
 	@if [ ! -z "$(ARCHIVE)" ]; then \
-		mkdir -p $(OUT)/debian/usr/lib; \
-		cp -pf $(OUT)/$(ARCHIVE) $(OUT)/debian/usr/lib; \
+		mkdir -p $(OUT)/$(PKG_TYPE)/usr/lib; \
+		cp -pf $(OUT)/$(ARCHIVE) $(OUT)/$(PKG_TYPE)/usr/lib; \
 	fi;
-	@if [ "$(MACHINE)" = "x86_64-linux-gnu" ]; then \
-		ARCH=amd64; \
-	elif [ "$(MACHINE)" = "arm-linux-gnueabihf" ]; then \
-		ARCH=armhf; \
-	elif [ "$(MACHINE)" = "aarch64-linux-gnu" ]; then \
-		ARCH=arm64; \
-	else \
-		echo "Unknown architecture for $(MACHINE)"; \
-	fi; \
-	sed -i "s/##ARCH##/$${ARCH}/g" $(OUT)/debian/DEBIAN/control;
-	sed -i "s/##PACKAGE##/$(PACKAGE)/g" $(OUT)/debian/DEBIAN/*;
-	sed -i "s/##VERSION##/$(VERSION)/g" $(OUT)/debian/DEBIAN/*;
-	@dpkg-deb --root-owner-group -Z gzip --build $(OUT)/debian $(OUT)/$(DEB_PKG)
+	@if [ ! -z "$(LIB)" ]; then \
+		mkdir -p $(OUT)/$(PKG_TYPE)/usr/lib; \
+		cp -pf $(OUT)/$(LIB) $(OUT)/$(PKG_TYPE)/usr/lib; \
+	fi;
+	@sed -i "s/##ARCH##/$(ARCH)/g" $(OUT)/$(PKG_TYPE)/DEBIAN/control;
+	@sed -i "s/##PACKAGE##/$(PACKAGE)/g" $(OUT)/$(PKG_TYPE)/DEBIAN/*;
+	@sed -i "s/##VERSION##/$(VERSION)/g" $(OUT)/$(PKG_TYPE)/DEBIAN/*;
+	@sed -i "s/##DESCRIPTION##/$(PACKAGE_DESC)/g" $(OUT)/$(PKG_TYPE)/DEBIAN/*;
+	$(PKG_BUILD_CMD) $(PKG_BUILD_CMD_ARGS) $(OUT)/$(PKG_TYPE) $(TARGET)
 
-.PHONY: deb-pkg
-deb-pkg: $(OUT)/$(DEB_PKG)
+DEB_PKG := $(PACKAGE)_$(VERSION)_$(ARCH).deb
+
+$(OUT)/$(DEB_PKG): PKG_TYPE := debian
+$(OUT)/$(DEB_PKG): PKG_BUILD_CMD := dpkg-deb --root-owner-group -Z gzip --build
+$(OUT)/$(DEB_PKG): TARGET = $(OUT)/$(DEB_PKG)
+$(OUT)/$(DEB_PKG): pkg_copy_deb deb-pkg-prepare pkg_deb
 
 # allows targets additional preparation steps before packaging
 .PHONY: deb-pkg-prepare
 
+.PHONY: deb-pkg
+deb-pkg: $(OUT)/$(DEB_PKG)
+
 PACKAGES += deb-pkg
+
+OPKG_PKG := $(PACKAGE)_$(VERSION)_$(ARCH).opk
+
+$(OUT)/$(OPKG_PKG): PKG_TYPE := opkg
+$(OUT)/$(OPKG_PKG): PKG_BUILD_CMD := opkg-build -c -o root -g root
+$(OUT)/$(OPKG_PKG): TARGET = $(shell readlink -f $(OUT))
+$(OUT)/$(OPKG_PKG): pkg_copy_opkg opkg-pkg-prepare pkg_opkg
+
+# allows targets additional preparation steps before packaging
+.PHONY: opkg-pkg-prepare
+
+.PHONY: opkg-pkg
+opkg-pkg: $(OUT)/$(OPKG_PKG)
+
+PACKAGES += opkg-pkg
 endif
 
 ifndef NDEBUG
@@ -122,14 +144,24 @@ endif
 ifdef DOCKER_IMAGE
 .PHONY: docker
 docker: docker-prepare
-	docker build --build-arg MACHINE=$(MACHINE) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	docker buildx build \
+		--push \
+		--build-arg MACHINE=$(MACHINE) \
+		--build-arg ARCH=$(ARCH) \
+		--build-arg VERSION=$(VERSION) \
+		--platform $(DOCKER_ARCH) \
+		--tag $(DOCKER_IMAGE):$(ARCH)-$(DOCKER_TAG) .
+	docker manifest create --amend $(DOCKER_IMAGE):$(DOCKER_TAG) \
+		$(DOCKER_IMAGE):amd64-$(DOCKER_TAG) \
+		$(DOCKER_IMAGE):armhf-$(DOCKER_TAG) \
+		$(DOCKER_IMAGE):arm64-$(DOCKER_TAG)
 
 .PHONY: docker-prepare
 endif
 
 # generic "package" rule to build all available packages
 .PHONY: package
-package: $(PACKAGES)
+package: all $(PACKAGES)
 
 # generic "clean" rule - remove $(OUT) directory
 .PHONY: clean
