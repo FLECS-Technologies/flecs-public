@@ -47,6 +47,25 @@ ifndef MACHINE
 $(error Invalid cross compiler $(CC) with prefix $(DOCKER_PREFIX) defined)
 endif
 
+ifeq ($(MACHINE),x86_64-linux-gnu)
+	ARCH := amd64
+	DOCKER_ARCH := linux/amd64
+endif
+
+ifeq ($(MACHINE),arm-linux-gnueabihf)
+	ARCH := armhf
+	DOCKER_ARCH := linux/arm/v7
+endif
+
+ifeq ($(MACHINE),aarch64-linux-gnu)
+	ARCH := arm64
+	DOCKER_ARCH := linux/arm64
+endif
+
+ifeq ($(ARCH),)
+	$(error Unknown architecture for $(MACHINE))
+endif
+
 # default build flags
 CXXFLAGS += -std=c++17 -Wall -Wextra -Wfatal-errors
 CXXFLAGS_DEBUG = -g

@@ -8,7 +8,6 @@ Requires=docker.service containerd.service
 [Service]
 Type=oneshot
 TimeoutStartSec=0
-ExecStartPre=-/usr/bin/docker pull marketplace.flecs.tech:5000/flecs/updater:latest
 ExecStart=/usr/bin/flecs-updater
 RemainAfterExit=yes
 

@@ -16,13 +16,13 @@ ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
 PACKAGE := flecs-updater
 
-DEB_PKG := flecs-updater.deb
+PACKAGE_DESC := FLECS Service Updater
 
 DOCKER_IMAGE := marketplace.flecs.tech:5001/flecs/updater
 
 include $(ROOT_DIR)/build/Makefile
 
 docker-prepare:
-	@tar czf usr/bin/flecs-service.deb.tar.gz -C $(ROOT_DIR)/daemon/out/$(MACHINE) flecs-service.deb
-	@tar czf usr/bin/flecs-backend.deb.tar.gz -C $(ROOT_DIR)/ui/backend/out/$(MACHINE) flecs-backend.deb
-	@tar czf usr/bin/flecs-updater.deb.tar.gz -C $(ROOT_DIR)/updater/out/$(MACHINE) flecs-updater.deb
+	@tar czf usr/bin/flecs.deb.tar.gz -C $(ROOT_DIR)/daemon/out/$(MACHINE) flecs_$(VERSION)_$(ARCH).deb
+	@tar czf usr/bin/flecs-backend.deb.tar.gz -C $(ROOT_DIR)/ui/backend/out/$(MACHINE) flecs-backend_$(VERSION)_$(ARCH).deb
+	@tar czf usr/bin/flecs-updater.deb.tar.gz -C $(ROOT_DIR)/updater/out/$(MACHINE) flecs-updater_$(VERSION)_$(ARCH).deb

@@ -15,7 +15,6 @@
 ROOT_DIR := $(shell git rev-parse --show-toplevel)
 
 PACKAGE := flecs-develop
-
-DEB_PKG := flecs-develop.deb
+PACKAGE_DESC := FLECS Development mode
 
 include $(ROOT_DIR)/build/Makefile

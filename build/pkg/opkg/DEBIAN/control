@@ -1,6 +1,6 @@
 Package: ##PACKAGE##
 Version: ##VERSION##
-Description: FLECS Development Mode
+Description: ##DESCRIPTION##
 Architecture: ##ARCH##
 Priority: optional
 Maintainer: FLECS Technologies GmbH <alex@flecs.tech>
