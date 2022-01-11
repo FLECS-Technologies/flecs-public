@@ -5,4 +5,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 COPY build-utils/docker/scripts/debian/install-packages.sh /tmp/
 
 RUN /tmp/install-packages.sh automake build-essential cmake gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf \
-    g++-aarch64-linux-gnu g++-arm-linux-gnueabihf git libtool npm sharutils
+    g++-aarch64-linux-gnu g++-arm-linux-gnueabihf git libtool npm
+
+RUN git clone https://git.yoctoproject.org/opkg-utils /opt/opkg-utils
+
+RUN find /opt/opkg-utils -maxdepth 1 -name "opkg-*" -executable -exec ln -s '{}' /usr/local/bin/ \;
