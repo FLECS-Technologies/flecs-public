@@ -6,7 +6,7 @@ if [ -f /etc/flecs.d/channel ]; then
     CHANNEL=$(cat /etc/flecs.d/channel);
 fi
 
-docker pull marketplace.flecs.tech:5000/flecs/updater:${CHANNEL} | grep "Downloaded newer image" >/dev/null 2>&1
+docker pull marketplace.flecs.tech:5000/flecs/updater:${CHANNEL} | grep "Downloaded newer image"
 if [ ! $? -eq 0 ]; then
     exit 0;
 fi
@@ -19,10 +19,10 @@ cd ${DIR}
 
 # extract new packages
 for f in flecs*.tar.gz; do
-    tar xf "${f}" >/dev/null 2>&1  && rm "${f}" >/dev/null 2>&1;
+    tar xf "${f}" && rm "${f}" || exit 1;
 done
 
 # install new packages
 for f in flecs*.deb; do
-    dpkg --install "${f}" >/dev/null 2>&1 && rm "${f}" >/dev/null 2>&1;
+    dpkg --install "${f}" && rm "${f}" || exit 1;
 done

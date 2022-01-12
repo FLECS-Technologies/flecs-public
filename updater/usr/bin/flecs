@@ -20,7 +20,7 @@ done
 
 # install new packages
 for f in flecs*.deb; do
-    dpkg --install "${f}" >/dev/null 2>&1 && rm "${f}" >/dev/null 2>&1;
+    dpkg --install "${f}" >/dev/null 2>&1 && rm "${f}" >/dev/null 2>&1 || exit 1;
 done
 
 # restart backend

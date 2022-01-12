@@ -81,9 +81,9 @@ ifdef PACKAGE
 pkg_copy_%:
 	rm -rf $(OUT)/$(PKG_TYPE)
 	mkdir -p $(shell readlink -m $(shell dirname $(TARGET)))
-	[ -d pkg/$(PKG_TYPE) ] && cp -r pkg/$(PKG_TYPE) $(OUT)/$(PKG_TYPE) || true
-	[ -d pkg/fs/ ] && cp -r pkg/fs/* $(OUT)/$(PKG_TYPE)/ || true
-	cp -r $(ROOT_DIR)/build/pkg/$(PKG_TYPE)/* $(OUT)/$(PKG_TYPE)/
+	[ -d pkg/$(PKG_TYPE) ] && cp -pRTf pkg/$(PKG_TYPE) $(OUT)/$(PKG_TYPE) || true
+	[ -d pkg/fs/ ] && cp -pRTf pkg/fs/ $(OUT)/$(PKG_TYPE)/ || true
+	cp -pRTf $(ROOT_DIR)/build/pkg/$(PKG_TYPE)/ $(OUT)/$(PKG_TYPE)
 
 pkg_%:
 	@if [ ! -z "$(BINARY)" ]; then \

@@ -52,3 +52,9 @@ jobs:
       - name: native
         run: |
           make DOCKERLESS=1 -C build/ updater/docker
+      - name: armhf
+        run: |
+          make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf updater/docker
+      - name: aarch64
+        run: |
+          make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu updater/docker
