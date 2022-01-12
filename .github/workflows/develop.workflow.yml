@@ -26,6 +26,7 @@ jobs:
           name: packages
           path: |
             **/*.deb
+            **/*.ipk
           retention-days: 3
       - name: Archive raw artifacts
         uses: actions/upload-artifact@v2
@@ -35,7 +36,7 @@ jobs:
             ui/backend/out
             daemon/out
             !**/*.deb
-            !**/*.deb
+            !**/*.ipk
           retention-days: 1
 
   docker:
