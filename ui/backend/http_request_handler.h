@@ -24,6 +24,7 @@
 #include "util/http/status_codes.h"
 #include "util/llhttp_ext/llhttp_ext.h"
 #include "util/socket/socket.h"
+#include "util/string/comparator.h"
 
 namespace FLECS {
 
@@ -37,7 +38,7 @@ public:
 
 private:
     using backend_callback_t = http_status_e (http_request_handler_t::*)();
-    using backend_callback_table_t = map_c<const char*, backend_callback_t, 8, string_comparator>;
+    using backend_callback_table_t = map_c<const char*, backend_callback_t, 8, string_comparator_t>;
 
     http_status_e receive_request();
     auto find_backend() -> backend_callback_table_t::const_iterator;

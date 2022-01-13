@@ -26,6 +26,7 @@ DEPENDS_BINARY := \
 	util/sqlite3_ext/archive
 
 SRC_BINARY := \
+	src/daemon.cpp \
 	src/main.cpp \
 	src/app/app.cpp \
 	src/db/app_db.cpp \
@@ -48,7 +49,6 @@ HEADER_BINARY := \
 	include/service/service.h \
 	include/service/service_help.h \
 	include/service/service_rpc.h \
-	include/service/service_table.h \
 
 INCLUDE_BINARY := \
 	-I ./include \
@@ -69,7 +69,7 @@ STATIC_LIBS_BINARY = \
 	$(ROOT_DIR)/external/openssl-1.1.1m/out/$(MACHINE)/lib/libcrypto.a
 
 DYNAMIC_LIBS_BINARY := \
-	-ldl -lpthread
+	-ldl -lpthread -lstdc++fs
 
 LIB := libFLECS.daemon.so
 

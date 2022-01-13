@@ -15,6 +15,7 @@
 #include "service/service_app_manager.h"
 
 #include "service/private/service_app_manager_private.h"
+#include "util/string/comparator.h"
 
 namespace FLECS {
 
@@ -34,7 +35,7 @@ service_error_e service_app_manager_t::do_process(int argc, char** argv)
     const auto action = argv[0];
 
     using action_callback_t = service_error_e (service_app_manager_t::*)(int, char**);
-    using action_callback_table_t = FLECS::map_c<const char*, action_callback_t, 10, string_comparator>;
+    using action_callback_table_t = FLECS::map_c<const char*, action_callback_t, 10, string_comparator_t>;
     constexpr action_callback_table_t action_callbacks = {{
         std::make_pair("install", &service_app_manager_t::install),
         std::make_pair("sideload", &service_app_manager_t::sideload),
