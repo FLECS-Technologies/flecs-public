@@ -101,10 +101,10 @@ int flecs_thread(FLECS::unix_socket_t&& conn_socket)
         return err;
     }
 
-    auto it = FLECS::make_service_table.find(args[0]);
+    auto it = FLECS::make_service_table.find(args[1]);
     if (it != FLECS::make_service_table.end())
     {
-        err = it->second()->process(args.size() - 1, &args.data()[1]);
+        err = it->second()->process(args.size() - 2, &args.data()[2]);
     }
 
     fflush(stdout);
