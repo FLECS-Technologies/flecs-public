@@ -25,15 +25,7 @@
 
 namespace FLECS {
 
-struct string_comparator
-{
-    bool operator()(const char* lhs, const char* rhs) const
-    {
-        return strcmp(lhs, rhs) < 0;
-    }
-};
-
-template <typename Key, typename Value, size_t size, typename Compare=std::less<Key>>
+template <typename Key, typename Value, size_t size, typename Compare = std::less<Key>>
 class map_c
 {
 public:
@@ -54,56 +46,39 @@ public:
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
     constexpr map_c(container_type data)
-        : _data { data }
+        : _data{data}
     {}
 
-    constexpr iterator begin() noexcept
-        { return _data.begin(); }
+    constexpr iterator begin() noexcept { return _data.begin(); }
 
-    constexpr const_iterator begin() const noexcept
-        { return _data.begin(); }
+    constexpr const_iterator begin() const noexcept { return _data.begin(); }
 
-    constexpr const_iterator cbegin() const noexcept
-        { return _data.cbegin(); }
+    constexpr const_iterator cbegin() const noexcept { return _data.cbegin(); }
 
-    constexpr iterator end() noexcept
-        { return _data.end(); }
+    constexpr iterator end() noexcept { return _data.end(); }
 
-    constexpr const_iterator end() const noexcept
-        { return _data.end(); }
+    constexpr const_iterator end() const noexcept { return _data.end(); }
 
-    constexpr const_iterator cend() const noexcept
-        { return _data.cend(); }
+    constexpr const_iterator cend() const noexcept { return _data.cend(); }
 
     constexpr iterator find(const Key& key) noexcept
     {
-        return std::find_if(
-            _data.begin(),
-            _data.end(),
-            [&](const value_type& elem) { return equal(elem, key); }
-        );
+        return std::find_if(_data.begin(), _data.end(), [&](const value_type& elem) { return equal(elem, key); });
     }
 
     constexpr const_iterator find(const Key& key) const noexcept
     {
-        return std::find_if(
-            _data.cbegin(),
-            _data.cend(),
-            [&](const value_type& elem) { return equal(elem, key); }
-        );
+        return std::find_if(_data.cbegin(), _data.cend(), [&](const value_type& elem) { return equal(elem, key); });
     }
 
     constexpr const_reference at(Key key) const
     {
-        const auto it = std::find_if(
-            _data.cbegin(),
-            _data.cend(),
-            [&](const value_type& elem) { return equal(elem, key); }
-        );
+        const auto it =
+            std::find_if(_data.cbegin(), _data.cend(), [&](const value_type& elem) { return equal(elem, key); });
 
         if (it == _data.cend())
         {
-            throw std::out_of_range { "key not found in map_constexpr" };
+            throw std::out_of_range{"key not found in map_constexpr"};
         }
 
         return *it;

@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,21 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_service_factory_h
-#define FLECS_service_service_factory_h
-
-#include <memory>
+#include <cstring>
 
 namespace FLECS {
 
-class service_t;
-
-template <typename T, typename... Args>
-auto make_service(Args&&... args)
+struct string_comparator_t
 {
-    return std::shared_ptr<service_t>{std::make_shared<T>(args...)};
-}
+    bool operator()(const char* lhs, const char* rhs) const { return std::strcmp(lhs, rhs) < 0; }
+};
 
 } // namespace FLECS
-
-#endif // FLECS_service_service_factory_h

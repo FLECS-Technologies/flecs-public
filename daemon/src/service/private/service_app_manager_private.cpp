@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <filesystem>
 #include <iomanip>
 #include <random>
 #include <sstream>
@@ -124,40 +125,14 @@ service_error_e service_app_manager_private_t::do_sideload(const std::string& ma
         return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
     }
 
-    auto fd_r = fopen(manifest_path.c_str(), "r");
-    if (!fd_r)
-    {
-        std::cerr << "Could not open manifest at " << manifest_path << std::endl;
-        return FLECS_IOR;
-    }
-
+    std::error_code ec;
     const auto path = build_manifest_path(app.name(), app.version());
-    auto fd_w = fopen(path.c_str(), "w");
-    if (!fd_w)
+    std::filesystem::copy(manifest_path, path, ec);
+    if (ec)
     {
-        std::cerr << "Could not open manifest at " << path << std::endl;
-        return FLECS_IOW;
+        std::fprintf(stderr, "Could not copy manifest to %s: %d\n", path.c_str(), ec.value());
+        return FLECS_IO;
     }
-
-    char buf[32768] = {0};
-    auto n_bytes = fread(buf, 1, sizeof(buf), fd_r);
-    while ((n_bytes > 0) && !ferror(fd_r))
-    {
-        auto res = fwrite(buf, 1, n_bytes, fd_w);
-        if (res != n_bytes)
-        {
-            std::cerr << "Could not write " << n_bytes << " to " << path << std::endl;
-            return FLECS_IOW;
-        }
-        n_bytes = fread(buf, 1, sizeof(buf), fd_r);
-    }
-    if (!feof(fd_r))
-    {
-        std::cerr << "Incomplete read of " << manifest_path << std::endl;
-        return FLECS_IOR;
-    }
-    fclose(fd_w);
-    fclose(fd_r);
 
     return do_install(manifest_path);
 }
@@ -684,13 +659,8 @@ std::string build_manifest_path(const std::string& app_name, const std::string& 
 {
     auto path = std::string{"/var/lib/flecs/apps"};
 
-    mkdir(path.c_str(), 0755);
-    path.append("/");
-    path.append(app_name);
-    mkdir(path.c_str(), 0755);
-    path.append("/");
-    path.append(version);
-    mkdir(path.c_str(), 0755);
+    std::filesystem::create_directories(path);
+
     path.append("/");
     path.append("manifest.yml");
 

@@ -14,14 +14,18 @@
 
 #include "util/sqlite3_ext/sqlite3_db.h"
 
+#include <filesystem>
 #include <iostream>
 
 namespace FLECS {
 
 sqlite3_db_t::sqlite3_db_t(const char* filename, int flags, const char* zVfs)
-    : _ok { true }
-    , _db { nullptr }
+    : _ok{true}
+    , _db{nullptr}
 {
+    auto dir = std::filesystem::path{filename}.parent_path();
+    std::filesystem::create_directories(dir);
+    flags |= SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
     int res = sqlite3_open_v2(filename, &_db, flags, zVfs);
     if (res != SQLITE_OK)
     {
@@ -35,10 +39,7 @@ sqlite3_db_t::~sqlite3_db_t()
     close();
 }
 
-int sqlite3_db_t::select_all(
-    const char* table,
-    select_callback_t cbk,
-    void* cbk_arg)
+int sqlite3_db_t::select_all(const char* table, select_callback_t cbk, void* cbk_arg)
 {
     const auto len = std::snprintf(nullptr, 0, select_all_stmt, table);
 
@@ -48,7 +49,7 @@ int sqlite3_db_t::select_all(
     return exec(select_str.get(), cbk, cbk_arg);
 }
 
-int sqlite3_db_t::exec(const char* sql, int (*callback)(void*,int,char**,char**), void* arg)
+int sqlite3_db_t::exec(const char* sql, int (*callback)(void*, int, char**, char**), void* arg)
 {
     if (!_ok)
     {
