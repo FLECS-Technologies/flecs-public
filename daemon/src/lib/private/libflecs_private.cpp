@@ -58,7 +58,7 @@ int run_flecs_command_private(const std::string& args)
         rdbuf.insert(rdbuf.end(), tmp.begin(), tmp.begin() + bytes_received);
     }
 
-    std::fprintf(stdout, "Reply:\n%s\n", rdbuf.c_str());
+    std::fprintf(stdout, "%s", rdbuf.c_str());
 
     return res;
 }
