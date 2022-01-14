@@ -14,7 +14,7 @@
 
 # forward build to Docker if DOCKERLESS is not set
 ifndef DOCKERLESS
-DOCKERARGS=-e DOCKERLESS=1 -e MAKEFLAGS="$(MAKEFLAGS)"
+DOCKER_ARGS=-e DOCKERLESS=1 -e MAKEFLAGS="$(MAKEFLAGS)"
 endif
 %/all:
 	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* all
@@ -26,8 +26,12 @@ endif
 	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* lib
 %/package:
 	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* package
+%/docker: DOCKER_USER = 0
+%/docker: DOCKER_ARGS += -v /var/run/docker.sock:/var/run/docker.sock
+%/docker: DOCKER_ARGS += -e REGISTRY_USER=$${REGISTRY_USER}
+%/docker: DOCKER_ARGS += -e REGISTRY_AUTH=$${REGISTRY_AUTH}
 %/docker:
-	$(MAKE) -C $(ROOT_DIR)/$* docker
+	$(DOCKER_PREFIX) $(MAKE) -C $(ROOT_DIR)/$* docker
 
 # generic rule for building objects from source files
 $(OUT)/%.o: src/%.cpp
@@ -144,6 +148,9 @@ endif
 ifdef DOCKER_IMAGE
 .PHONY: docker
 docker: docker-prepare
+	@echo $${REGISTRY_USER}
+	@echo $${REGISTRY_AUTH}
+	docker login -u $${REGISTRY_USER} -p $${REGISTRY_AUTH} marketplace.flecs.tech:5001
 	docker buildx build \
 		--push \
 		--build-arg MACHINE=$(MACHINE) \

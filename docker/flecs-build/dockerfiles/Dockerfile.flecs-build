@@ -5,7 +5,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 COPY build-utils/docker/scripts/debian/install-packages.sh /tmp/
 
 RUN /tmp/install-packages.sh automake build-essential cmake gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf \
-    g++-aarch64-linux-gnu g++-arm-linux-gnueabihf git libtool npm
+    g++-aarch64-linux-gnu g++-arm-linux-gnueabihf git libtool npm ca-certificates curl gnupg lsb-release
+
+COPY scripts/setup-docker-repo.sh /tmp/
+
+RUN /tmp/setup-docker-repo.sh
+
+COPY build-utils/docker/scripts/debian/install-packages.sh /tmp/
+
+RUN /tmp/install-packages.sh docker-ce docker-ce-cli containerd.io
 
 RUN git clone https://git.yoctoproject.org/opkg-utils /opt/opkg-utils
 

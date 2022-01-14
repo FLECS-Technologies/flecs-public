@@ -41,20 +41,35 @@ jobs:
 
   docker:
     needs: build
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
+
+    env:
+      REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+      REGISTRY_AUTH: ${{ secrets.REGISTRY_AUTH }}
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: arm64,arm
+
       - name: Download workflow artifacts
         uses: actions/download-artifact@v2
         with:
           name: packages
+
       - name: native
         run: |
-          make NDEBUG=1 DOCKERLESS=1 -C build/ updater/docker
+          make NDEBUG=1 -C build/ updater/docker
       - name: armhf
         run: |
-          make NDEBUG=1 DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf updater/docker
+          make NDEBUG=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf updater/docker
       - name: aarch64
         run: |
-          make NDEBUG=1 DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu updater/docker
+          make NDEBUG=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu updater/docker
