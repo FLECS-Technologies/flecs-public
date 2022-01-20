@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "util/sqlite3_ext/sqlite3_db.h"
+#include "sqlite3_db.h"
 
 #include <filesystem>
 #include <iostream>
@@ -20,23 +20,30 @@
 namespace FLECS {
 
 sqlite3_db_t::sqlite3_db_t(const char* filename, int flags, const char* zVfs)
-    : _ok{true}
+    : _ok{}
     , _db{nullptr}
 {
-    auto dir = std::filesystem::path{filename}.parent_path();
-    std::filesystem::create_directories(dir);
-    flags |= SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-    int res = sqlite3_open_v2(filename, &_db, flags, zVfs);
-    if (res != SQLITE_OK)
-    {
-        std::cerr << "Could not open SQLite db " << filename << ": " << res << std::endl;
-        _ok = false;
-    }
+    open(filename, flags, zVfs);
 }
 
 sqlite3_db_t::~sqlite3_db_t()
 {
     close();
+}
+
+int sqlite3_db_t::open(const char* filename, int flags, const char* zVfs)
+{
+    const auto file_path = std::filesystem::path{filename};
+    const auto dir = file_path.parent_path();
+    auto ec = std::error_code{};
+    std::filesystem::create_directories(dir, ec);
+    int res = sqlite3_open_v2(filename, &_db, flags, zVfs);
+    if (res != SQLITE_OK)
+    {
+        std::fprintf(stderr, "Could not open SQLite db %s: %d\n", filename, res);
+    }
+    _ok = (res == SQLITE_OK);
+    return res;
 }
 
 int sqlite3_db_t::select_all(const char* table, select_callback_t cbk, void* cbk_arg)

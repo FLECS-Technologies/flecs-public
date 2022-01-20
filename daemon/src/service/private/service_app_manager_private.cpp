@@ -30,15 +30,6 @@
 namespace FLECS {
 namespace Private {
 
-#define XCHECK_SQLITE_SUCCESS                                                         \
-    do                                                                                \
-    {                                                                                 \
-        if (_app_db.last_error() != SQLITE_OK)                                        \
-        {                                                                             \
-            return static_cast<service_error_e>(FLECS_SQLITE + _app_db.last_error()); \
-        }                                                                             \
-    } while (false)
-
 service_error_e download_manifest(const std::string& app_name, const std::string& version);
 std::string build_manifest_url(const std::string& app_name, const std::string& version);
 std::string build_manifest_path(const std::string& app_name, const std::string& version);
@@ -57,11 +48,7 @@ service_error_e service_app_manager_private_t::do_install(const std::string& app
 {
     const auto status = app_status_e::NOT_INSTALLED;
     const auto desired = app_status_e::INSTALLED;
-    const auto sqlite_res = _app_db.insert_app({app_name, version, status, desired, "", 0});
-    if (sqlite_res != SQLITE_OK)
-    {
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.insert_app({app_name, version, status, desired, "", 0});
 
     const auto res = download_manifest(app_name, version);
     if (res != FLECS_OK)
@@ -82,11 +69,7 @@ service_error_e service_app_manager_private_t::do_install(const std::string& man
     }
 
     auto status = MANIFEST_DOWNLOADED;
-    auto sqlite_res = _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0});
-    if (sqlite_res != SQLITE_OK)
-    {
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0});
 
     auto docker_process = process_t{};
     docker_process.spawnp("docker", "pull", app.image_with_tag());
@@ -100,11 +83,8 @@ service_error_e service_app_manager_private_t::do_install(const std::string& man
 
     status = INSTALLED;
 
-    sqlite_res = _app_db.insert_app(apps_table_entry_t{app.name(), app.version(), status, desired, app.category(), 0});
-    if (sqlite_res != SQLITE_OK)
-    {
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.insert_app(apps_table_entry_t{app.name(), app.version(), status, desired, app.category(), 0});
+    _app_db.persist();
 
     return FLECS_OK;
 }
@@ -119,11 +99,7 @@ service_error_e service_app_manager_private_t::do_sideload(const std::string& ma
 
     const auto status = app_status_e::NOT_INSTALLED;
     const auto desired = app_status_e::INSTALLED;
-    const auto sqlite_res = _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0});
-    if (sqlite_res != SQLITE_OK)
-    {
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0});
 
     std::error_code ec;
     const auto path = build_manifest_path(app.name(), app.version());
@@ -157,8 +133,7 @@ service_error_e service_app_manager_private_t::do_uninstall(const std::string& a
         return FLECS_YAML;
     }
 
-    const auto instances = _app_db.query_instances({app_name, version});
-    XCHECK_SQLITE_SUCCESS;
+    const auto instances = _app_db.instances(app_name, version);
     for (auto& instance : instances)
     {
         const auto res = do_stop_instance(app_name, version, instance.id);
@@ -166,15 +141,7 @@ service_error_e service_app_manager_private_t::do_uninstall(const std::string& a
         {
             std::fprintf(stderr, "Warning: Could not stop instance %s: %d\n", instance.id.c_str(), res);
         }
-        const auto sqlite_res = _app_db.delete_instance({instance.id});
-        if (sqlite_res != SQLITE_OK)
-        {
-            std::fprintf(
-                stderr,
-                "Warning: Could not remove instance %s from database: %d\n",
-                instance.id.c_str(),
-                sqlite_res);
-        }
+        _app_db.delete_instance({instance.id});
     }
 
     const auto image = app.image_with_tag();
@@ -198,16 +165,8 @@ service_error_e service_app_manager_private_t::do_uninstall(const std::string& a
         return FLECS_IOW;
     }
 
-    const auto sqlite_res = _app_db.delete_app({app_name, version});
-    if (sqlite_res != SQLITE_OK)
-    {
-        std::fprintf(
-            stderr,
-            "Warning: Could not remove app %s (%s) from database: %d\n",
-            app_name.c_str(),
-            version.c_str(),
-            sqlite_res);
-    }
+    _app_db.delete_app({app_name, version});
+    _app_db.persist();
 
     return FLECS_OK;
 }
@@ -251,11 +210,7 @@ service_error_e service_app_manager_private_t::do_create_instance(
     ss << std::hex << std::setw(8) << std::setfill('0') << id;
 
     status = instance_status_e::REQUESTED;
-    auto sqlite_res = _app_db.insert_instance({ss.str(), app.name(), app.version(), description, status, desired, 0});
-    if (sqlite_res != SQLITE_OK)
-    {
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.insert_instance({ss.str(), app.name(), app.version(), description, status, desired, 0});
 
     for (const auto& volume : app.volumes())
     {
@@ -289,11 +244,7 @@ service_error_e service_app_manager_private_t::do_create_instance(
     }
 
     status = instance_status_e::RESOURCES_READY;
-    sqlite_res = _app_db.insert_instance({ss.str(), app.name(), app.version(), description, status, desired, 0});
-    if (sqlite_res != SQLITE_OK)
-    {
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.insert_instance({ss.str(), app.name(), app.version(), description, status, desired, 0});
 
     auto docker_process = process_t{};
     docker_process.arg("create");
@@ -332,11 +283,7 @@ service_error_e service_app_manager_private_t::do_create_instance(
 
     // status = instance_status_e::CREATED;
     status = instance_status_e::STOPPED;
-    sqlite_res = _app_db.insert_instance({ss.str(), app.name(), app.version(), description, status, desired, 0});
-    if (sqlite_res != SQLITE_OK)
-    {
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.insert_instance({ss.str(), app.name(), app.version(), description, status, desired, 0});
 
     std::cout << ss.str();
 
@@ -346,14 +293,11 @@ service_error_e service_app_manager_private_t::do_create_instance(
 service_error_e service_app_manager_private_t::do_delete_instance(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
-    auto instance = _app_db.query_instance({id});
-    XCHECK_SQLITE_SUCCESS;
-    if (instance.id != id)
+    if (!_app_db.has_instance({id}))
     {
-        std::fprintf(stderr, "Request to delete instance %s, which does not exist\n", id.c_str());
         return FLECS_INSTANCE_NOTEXIST;
     }
-
+    auto instance = _app_db.query_instance({id}).value();
     {
         if (is_instance_running(app_name, version, id))
         {
@@ -401,12 +345,7 @@ service_error_e service_app_manager_private_t::do_delete_instance(
         }
     }
 
-    const auto sqlite_res = _app_db.delete_instance({id});
-    if (sqlite_res != SQLITE_OK)
-    {
-        std::fprintf(stderr, "Could not delete instance %s: database error %d\n", id.c_str(), sqlite_res);
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.delete_instance({id});
 
     return FLECS_OK;
 }
@@ -414,14 +353,12 @@ service_error_e service_app_manager_private_t::do_delete_instance(
 service_error_e service_app_manager_private_t::do_start_instance(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
-    if (!app_name.empty() && !is_instance_runnable(app_name, version, id))
+    if (!_app_db.has_instance({id}))
     {
-        std::fprintf(stderr, "Request to start instance %s, which does not exist\n", id.c_str());
         return FLECS_INSTANCE_NOTEXIST;
     }
 
-    auto instance = _app_db.query_instance({id});
-    XCHECK_SQLITE_SUCCESS;
+    auto instance = _app_db.query_instance({id}).value();
     if (!app_name.empty() && !version.empty() && !is_app_installed(app_name, version))
     {
         std::fprintf(
@@ -457,11 +394,7 @@ service_error_e service_app_manager_private_t::do_start_instance(
     }
 
     instance.desired = instance_status_e::RUNNING;
-    auto sqlite_res = _app_db.insert_instance(instance);
-    if (sqlite_res != SQLITE_OK)
-    {
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.insert_instance(instance);
 
     const auto path = build_manifest_path(instance.app, instance.version);
     app_t app{path};
@@ -481,11 +414,7 @@ service_error_e service_app_manager_private_t::do_start_instance(
     }
 
     instance.status = instance_status_e::RUNNING;
-    sqlite_res = _app_db.insert_instance(instance);
-    if (sqlite_res != SQLITE_OK)
-    {
-        return static_cast<service_error_e>(FLECS_SQLITE + sqlite_res);
-    }
+    _app_db.insert_instance(instance);
 
     return FLECS_OK;
 }
@@ -518,18 +447,17 @@ service_error_e service_app_manager_private_t::do_start_instance(
 service_error_e service_app_manager_private_t::do_stop_instance(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
-    auto instance = _app_db.query_instance({id});
-    XCHECK_SQLITE_SUCCESS;
+    if (!_app_db.has_instance({id}))
+    {
+        return FLECS_INSTANCE_NOTEXIST;
+    }
+    auto instance = _app_db.query_instance({id}).value();
 
     XCHECK_INSTANCE_EXISTS(instance, id);
     XCHECK_INSTANCE_RUNNING(instance);
 
     instance.desired = instance_status_e::STOPPED;
-    auto sqlite_res = _app_db.insert_instance(instance);
-    if (sqlite_res != SQLITE_OK)
-    {
-        std::fprintf(stderr, "Could not modify instance %s in database: %d\n", id.c_str(), sqlite_res);
-    }
+    _app_db.insert_instance(instance);
 
     auto docker_process = process_t{};
     const auto name = std::string{"flecs"} + "-" + id;
@@ -541,11 +469,7 @@ service_error_e service_app_manager_private_t::do_stop_instance(
     }
 
     instance.status = instance_status_e::STOPPED;
-    sqlite_res = _app_db.insert_instance(instance);
-    if (sqlite_res != SQLITE_OK)
-    {
-        std::fprintf(stderr, "Could not modify instance %s in database: %d\n", id.c_str(), sqlite_res);
-    }
+    _app_db.insert_instance(instance);
 
     return FLECS_OK;
 }
@@ -555,7 +479,7 @@ service_error_e service_app_manager_private_t::do_list_apps(const std::string& a
     Json::Value json_value;
     json_value["appList"] = Json::Value{Json::arrayValue};
 
-    const auto apps = _app_db.query_apps();
+    const auto apps = _app_db.all_apps();
     for (const auto& app : apps)
     {
         auto json_app = Json::Value{};
@@ -565,7 +489,7 @@ service_error_e service_app_manager_private_t::do_list_apps(const std::string& a
         json_app["desired"] = app_status_to_string(app.desired);
         json_app["installedSize"] = app.installed_size;
         json_app["instances"] = Json::Value{Json::arrayValue};
-        const auto instances = _app_db.query_instances({app.app, app.version});
+        const auto instances = _app_db.instances(app.app, app.version);
         for (const auto& instance : instances)
         {
             auto json_instance = Json::Value{};
@@ -591,31 +515,24 @@ service_error_e service_app_manager_private_t::do_list_instances(
 
 bool service_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version)
 {
-    const auto app_entry = _app_db.query_app({app_name, version});
-    if ((app_entry.app != app_name) || (app_entry.version != version) || (app_entry.status != INSTALLED))
-    {
-        return false;
-    }
-
-    return true;
+    return _app_db.has_app({app_name, version});
 }
 
 bool service_app_manager_private_t::is_instance_available(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
-    const auto instance_entry = _app_db.query_instance({id});
-    if ((instance_entry.app != app_name) || (instance_entry.version != version) || (instance_entry.id != id))
+    if (_app_db.has_instance({id}))
     {
-        return false;
+        const auto instance = _app_db.query_instance({id});
+        return instance->app == app_name && instance->version == version;
     }
-
-    return true;
+    return false;
 }
 
 bool service_app_manager_private_t::is_instance_runnable(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
-    const auto instance_entry = _app_db.query_instance({id});
+    const auto instance_entry = _app_db.query_instance({id}).value();
     if ((instance_entry.app != app_name) || (instance_entry.version != version) || (instance_entry.id != id) ||
         (instance_entry.status != instance_status_e::CREATED && instance_entry.status != instance_status_e::STOPPED))
     {
@@ -628,7 +545,7 @@ bool service_app_manager_private_t::is_instance_runnable(
 bool service_app_manager_private_t::is_instance_running(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
-    const auto instance_entry = _app_db.query_instance({id});
+    const auto instance_entry = _app_db.query_instance({id}).value();
     if ((instance_entry.app != app_name) || (instance_entry.version != version) || (instance_entry.id != id) ||
         (instance_entry.status != instance_status_e::RUNNING))
     {
@@ -659,7 +576,8 @@ std::string build_manifest_path(const std::string& app_name, const std::string& 
 {
     auto path = std::string{"/var/lib/flecs/apps"};
 
-    std::filesystem::create_directories(path);
+    auto ec = std::error_code{};
+    std::filesystem::create_directories(path, ec);
 
     path.append("/");
     path.append("manifest.yml");

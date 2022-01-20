@@ -18,11 +18,16 @@ ARCHIVE := libFLECS.sqlite3_ext.a
 
 SRC_ARCHIVE := \
 	src/sqlite3_db.cpp \
+	src/sqlite3_table.cpp \
 
 HEADER_ARCHIVE := \
-	sqlite3_db.h \
+	include/sqlite3_column.h \
+	include/sqlite3_db.h \
+	include/sqlite3_primary.h \
+	include/sqlite3_statements.h \
+	include/sqlite3_table.h \
 
 INCLUDE_ARCHIVE = \
-	-I $(ROOT_DIR)/external/sqlite-3.37.0/out/$(MACHINE)/include \
+	-I include -I $(ROOT_DIR)/external/sqlite-3.37.0/out/$(MACHINE)/include \
 
 include $(ROOT_DIR)/build/Makefile

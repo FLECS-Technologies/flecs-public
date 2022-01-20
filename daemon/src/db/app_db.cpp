@@ -16,13 +16,14 @@
 
 #include <algorithm>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <sstream>
 
 namespace FLECS {
 
-constexpr const char* const app_db_path = "/var/lib/flecs/db/apps.db";
+constexpr const char* const app_db_path = FLECS_APP_DB_PATH;
 
 static int select_apps_callback(void* data, int argc, char** argv, char* col_name[])
 {
@@ -38,19 +39,24 @@ static int select_apps_callback(void* data, int argc, char** argv, char* col_nam
         if (strcmp(col_name[i], "app") == 0)
         {
             entry.app = argv[i];
-        } else if (strcmp(col_name[i], "version") == 0)
+        }
+        else if (strcmp(col_name[i], "version") == 0)
         {
             entry.version = argv[i];
-        } else if (strcmp(col_name[i], "status") == 0)
+        }
+        else if (strcmp(col_name[i], "status") == 0)
         {
             entry.status = static_cast<app_status_e>(*argv[i]);
-        } else if (strcmp(col_name[i], "desired") == 0)
+        }
+        else if (strcmp(col_name[i], "desired") == 0)
         {
             entry.desired = static_cast<app_status_e>(*argv[i]);
-        } else if (strcmp(col_name[i], "category") == 0)
+        }
+        else if (strcmp(col_name[i], "category") == 0)
         {
             entry.category = argv[i];
-        } else if (strcmp(col_name[i], "installed_size") == 0)
+        }
+        else if (strcmp(col_name[i], "installed_size") == 0)
         {
             entry.installed_size = atoi(argv[i]);
         }
@@ -72,22 +78,28 @@ static int select_instances_callback(void* data, int argc, char** argv, char* co
         if (strcmp(col_name[i], "id") == 0)
         {
             entry.id = argv[i];
-        } else if (strcmp(col_name[i], "app") == 0)
+        }
+        else if (strcmp(col_name[i], "app") == 0)
         {
             entry.app = argv[i];
-        } else if (strcmp(col_name[i], "version") == 0)
+        }
+        else if (strcmp(col_name[i], "version") == 0)
         {
             entry.version = argv[i];
-        } else if (strcmp(col_name[i], "status") == 0)
+        }
+        else if (strcmp(col_name[i], "status") == 0)
         {
             entry.status = static_cast<instance_status_e>(*argv[i]);
-        } else if (strcmp(col_name[i], "desired") == 0)
+        }
+        else if (strcmp(col_name[i], "desired") == 0)
         {
             entry.desired = static_cast<instance_status_e>(*argv[i]);
-        } else if (strcmp(col_name[i], "description") == 0)
+        }
+        else if (strcmp(col_name[i], "description") == 0)
         {
             entry.description = argv[i];
-        } else if (strcmp(col_name[i], "flags") == 0)
+        }
+        else if (strcmp(col_name[i], "flags") == 0)
         {
             entry.flags = atoi(argv[i]);
         }
@@ -100,151 +112,224 @@ app_db_t::app_db_t()
 {
     if (_ok)
     {
-        constexpr const char* create_apps_table =
-            "CREATE TABLE IF NOT EXISTS apps("
-            "app TEXT(255),"
-            "version TEXT(255),"
-            "status CHAR,"
-            "desired CHAR,"
-            "category INTEGER,"
-            "installed_size INTEGER,"
-            "PRIMARY KEY(app,version))";
-
-        int res = exec(create_apps_table, nullptr, nullptr);
-        if (res != SQLITE_OK)
-        {
-            close();
-        }
-
-        constexpr const char* create_instances_table =
-            "CREATE TABLE IF NOT EXISTS instances("
-            "id TEXT(255),"
-            "app TEXT(255),"
-            "version TEXT(255),"
-            "status CHAR,"
-            "desired CHAR,"
-            "description TEXT(4095),"
-            "flags INTEGER,"
-            "PRIMARY KEY(id))";
-
-        res = exec(create_instances_table, nullptr, nullptr);
-        if (res != SQLITE_OK)
-        {
-            close();
-        }
+        create_app_table();
+        create_instances_table();
     }
+
+    cache_db();
 }
 
-int app_db_t::insert_app(const apps_table_entry_t& entry)
+app_db_t::~app_db_t()
 {
-    const auto sqlite_res = insert_or_replace(
+    persist();
+}
+
+int app_db_t::create_app_table()
+{
+    return create_table(
         apps_table_name,
-        entry.app,
-        entry.version,
-        entry.status,
-        entry.desired,
-        entry.category,
-        entry.installed_size);
-    if (sqlite_res != SQLITE_OK)
-    {
-        std::cerr << "Could not insert app into app database: " << sqlite_res << errmsg() << std::endl;
-    }
-    return sqlite_res;
+        sqlite3_column_t{"app", SQLITE3_TEXT, 255},
+        sqlite3_column_t{"version", SQLITE3_TEXT, 255},
+        sqlite3_column_t{"status", SQLITE3_TEXT, 1},
+        sqlite3_column_t{"desired", SQLITE3_TEXT, 1},
+        sqlite3_column_t{"category", SQLITE3_TEXT, 255},
+        sqlite3_column_t{"installed_size", SQLITE_INTEGER},
+        sqlite3_primary_t{"app, version"});
 }
 
-int app_db_t::delete_app(const apps_table_primary_t& primary)
+int app_db_t::create_instances_table()
 {
-    const auto len1 = snprintf(nullptr, 0, delete_statement, apps_table_name);
-    const auto len2 =
-        snprintf(nullptr, 0, apps_table_primary_where_format, primary.app.c_str(), primary.version.c_str());
-
-    auto delete_str = std::make_unique<char[]>(len1 + len2 + 1);
-
-    std::snprintf(delete_str.get(), len1 + 1, delete_statement, apps_table_name);
-    std::snprintf(
-        delete_str.get() + len1,
-        len2 + 1,
-        apps_table_primary_where_format,
-        primary.app.c_str(),
-        primary.version.c_str());
-
-    return exec(delete_str.get(), nullptr, nullptr);
-}
-
-int app_db_t::insert_instance(const instances_table_entry_t& entry)
-{
-    const auto sqlite_res = insert_or_replace(
+    return create_table(
         instances_table_name,
-        entry.id,
-        entry.app,
-        entry.version,
-        entry.status,
-        entry.desired,
-        entry.description,
-        entry.flags);
-    if (sqlite_res != SQLITE_OK)
+        sqlite3_column_t{"id", SQLITE3_TEXT, 255},
+        sqlite3_column_t{"app", SQLITE3_TEXT, 255},
+        sqlite3_column_t{"version", SQLITE3_TEXT, 255},
+        sqlite3_column_t{"status", SQLITE3_TEXT, 1},
+        sqlite3_column_t{"desired", SQLITE3_TEXT, 1},
+        sqlite3_column_t{"description", SQLITE3_TEXT, 4095},
+        sqlite3_column_t{"flags", SQLITE_INTEGER},
+        sqlite3_primary_t{"id"});
+}
+
+void app_db_t::insert_app(const apps_table_entry_t& entry)
+{
+    decltype(auto) primary = static_cast<const apps_table_primary_t&>(entry);
+    decltype(auto) data = static_cast<const apps_table_data_t&>(entry);
+    if (has_app(primary))
     {
-        std::cerr << "Could not insert instance into app database: " << sqlite_res << errmsg() << std::endl;
+        _apps.at(primary) = data;
     }
-    return sqlite_res;
+    else
+    {
+        _apps.emplace(primary, data);
+    }
 }
 
-int app_db_t::delete_instance(const instances_table_primary_t& primary)
+void app_db_t::delete_app(const apps_table_primary_t& primary)
 {
-    const auto len1 = snprintf(nullptr, 0, delete_statement, instances_table_name);
-    const auto len2 = snprintf(nullptr, 0, instances_table_primary_where_format, primary.id.c_str());
-
-    auto delete_str = std::make_unique<char[]>(len1 + len2 + 1);
-
-    std::snprintf(delete_str.get(), len1 + 1, delete_statement, instances_table_name);
-    std::snprintf(delete_str.get() + len1, len2 + 1, instances_table_primary_where_format, primary.id.c_str());
-
-    return exec(delete_str.get(), nullptr, nullptr);
+    _apps.erase(primary);
 }
 
-apps_table_entry_t app_db_t::query_app(const apps_table_primary_t& primary)
+bool app_db_t::has_app(const apps_table_primary_t& primary) const noexcept
 {
-    auto entries = std::vector<apps_table_entry_t>{};
-
-    std::array<const char*, 2> filter = {"app", "version"};
-    select_all(apps_table_name, &select_apps_callback, &entries, filter, primary.app.c_str(), primary.version.c_str());
-
-    return entries.empty() ? apps_table_entry_t{} : entries.front();
+    return _apps.find(primary) != _apps.cend();
 }
 
-std::vector<apps_table_entry_t> app_db_t::query_apps()
+std::vector<apps_table_entry_t> app_db_t::all_apps() const
 {
-    auto entries = std::vector<apps_table_entry_t>{};
-
-    select_all(apps_table_name, &select_apps_callback, &entries);
-
-    return entries;
+    auto res = std::vector<apps_table_entry_t>{};
+    for (decltype(auto) app : _apps)
+    {
+        res.emplace_back(apps_table_entry_t{app.first, app.second});
+    }
+    return res;
 }
 
-instances_table_entry_t app_db_t::query_instance(const instances_table_primary_t& primary)
+void app_db_t::insert_instance(const instances_table_entry_t& entry)
 {
-    auto entries = std::vector<instances_table_entry_t>{};
-
-    std::array<const char*, 1> filter = {"id"};
-    select_all(instances_table_name, &select_instances_callback, &entries, filter, primary.id.c_str());
-
-    return entries.empty() ? instances_table_entry_t{} : entries.front();
+    decltype(auto) primary = static_cast<const instances_table_primary_t&>(entry);
+    decltype(auto) data = static_cast<const instances_table_data_t&>(entry);
+    if (has_instance(primary))
+    {
+        _instances.at(primary) = data;
+    }
+    else
+    {
+        _instances.emplace(primary, data);
+    }
 }
 
-std::vector<instances_table_entry_t> app_db_t::query_instances(const apps_table_primary_t& instance_entry)
+void app_db_t::delete_instance(const instances_table_primary_t& primary)
 {
-    auto entries = std::vector<instances_table_entry_t>{};
+    _instances.erase(primary);
+}
 
-    std::array<const char*, 2> filter = {"app", "version"};
-    select_all(
-        instances_table_name,
-        &select_instances_callback,
-        reinterpret_cast<void*>(&entries),
-        filter,
-        instance_entry.app.c_str(),
-        instance_entry.version.c_str());
+bool app_db_t::has_instance(const instances_table_primary_t& primary) const noexcept
+{
+    return _instances.find(primary) != _instances.cend();
+}
 
-    return entries;
+std::vector<instances_table_entry_t> app_db_t::all_instances() const
+{
+    auto res = std::vector<instances_table_entry_t>{};
+    for (decltype(auto) instance : _instances)
+    {
+        res.emplace_back(instances_table_entry_t{instance.first, instance.second});
+    }
+    return res;
+}
+
+std::vector<instances_table_entry_t> app_db_t::instances(const std::string& app) const
+{
+    auto res = std::vector<instances_table_entry_t>{};
+    for (decltype(auto) instance : _instances)
+    {
+        if (instance.second.app == app)
+        {
+            res.emplace_back(instances_table_entry_t{instance.first, instance.second});
+        }
+    }
+    return res;
+}
+
+std::vector<instances_table_entry_t> app_db_t::instances(const std::string& app, const std::string& version) const
+{
+    auto res = std::vector<instances_table_entry_t>{};
+    for (decltype(auto) instance : _instances)
+    {
+        if (instance.second.app == app && instance.second.version == version)
+        {
+            res.emplace_back(instances_table_entry_t{instance.first, instance.second});
+        }
+    }
+    return res;
+}
+
+std::optional<apps_table_entry_t> app_db_t::query_app(const apps_table_primary_t& primary) const noexcept
+{
+    if (has_app(primary))
+    {
+        decltype(auto) data = _apps.at(primary);
+        return apps_table_entry_t{primary, data};
+    }
+    return std::nullopt;
+}
+
+std::optional<instances_table_entry_t> app_db_t::query_instance(const instances_table_primary_t& primary) const noexcept
+{
+    if (has_instance(primary))
+    {
+        decltype(auto) data = _instances.at(primary);
+        return instances_table_entry_t{primary, data};
+    }
+    return std::nullopt;
+}
+
+void app_db_t::cache_db()
+{
+    auto apps = std::vector<apps_table_entry_t>{};
+    select_all(apps_table_name, &select_apps_callback, &apps);
+    for (decltype(auto) app : apps)
+    {
+        _apps.emplace(static_cast<apps_table_primary_t>(app), app);
+    }
+
+    auto instances = std::vector<instances_table_entry_t>{};
+    select_all(instances_table_name, &select_instances_callback, &instances);
+    for (decltype(auto) instance : instances)
+    {
+        _instances.emplace(static_cast<instances_table_primary_t>(instance), instance);
+    }
+}
+
+int app_db_t::persist()
+{
+    const auto path_old = std::filesystem::path{app_db_path};
+    const auto path_new = std::filesystem::path{std::string{app_db_path} + ".sav"};
+
+    close();
+
+    auto ec = std::error_code{};
+    std::filesystem::rename(path_old, path_new, ec);
+
+    open(app_db_path, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX, nullptr);
+    create_app_table();
+    create_instances_table();
+    auto res = SQLITE_OK;
+
+    for (decltype(auto) app : _apps)
+    {
+        res = insert(
+            apps_table_name,
+            app.first.app,
+            app.first.version,
+            app.second.status,
+            app.second.desired,
+            app.second.category,
+            app.second.installed_size);
+        if (res != SQLITE_OK)
+        {
+            return res;
+        }
+    }
+
+    for (decltype(auto) instance : _instances)
+    {
+        res = insert(
+            instances_table_name,
+            instance.first.id,
+            instance.second.app,
+            instance.second.version,
+            instance.second.status,
+            instance.second.desired,
+            instance.second.description,
+            instance.second.flags);
+        if (res != SQLITE_OK)
+        {
+            return res;
+        }
+    }
+    return res;
 }
 
 } // namespace FLECS
