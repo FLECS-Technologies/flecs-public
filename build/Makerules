@@ -148,9 +148,7 @@ endif
 ifdef DOCKER_IMAGE
 .PHONY: docker
 docker: docker-prepare
-	@echo $${REGISTRY_USER}
-	@echo $${REGISTRY_AUTH}
-	docker login -u $${REGISTRY_USER} -p $${REGISTRY_AUTH} marketplace.flecs.tech:5001
+	@docker login -u $${REGISTRY_USER} -p $${REGISTRY_AUTH} marketplace.flecs.tech:5001
 	docker buildx build \
 		--push \
 		--build-arg MACHINE=$(MACHINE) \

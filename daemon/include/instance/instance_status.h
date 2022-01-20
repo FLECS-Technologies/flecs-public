@@ -17,7 +17,7 @@
 
 namespace FLECS {
 
-enum class instance_status_e : char
+enum instance_status_e : char
 {
     NOT_CREATED = 'n',
     REQUESTED = 'q',
@@ -26,6 +26,12 @@ enum class instance_status_e : char
     STOPPED = 's',
     RUNNING = 'r',
 };
+
+inline std::string to_string(instance_status_e val)
+{
+    auto res = std::string{};
+    return res.append(1, val);
+}
 
 using instance_status_to_string_t = map_c<instance_status_e, const char*, 6>;
 constexpr instance_status_to_string_t instance_status_to_string_table = {{

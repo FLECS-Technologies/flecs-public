@@ -84,6 +84,9 @@ HEADER_LIB := \
 INCLUDE_LIB := \
 	-I $(ROOT_DIR)/daemon/include \
 
+SRC_TEST := \
+	test/service/test_service_app_manager.cpp \
+
 include $(ROOT_DIR)/build/Makefile
 
 deb-pkg-prepare: cli

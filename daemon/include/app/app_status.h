@@ -15,6 +15,8 @@
 #ifndef FLECS_service_app_status_h
 #define FLECS_service_app_status_h
 
+#include <string>
+
 #include "util/container/map_constexpr.h"
 
 namespace FLECS {
@@ -28,6 +30,12 @@ enum app_status_e : char
     REMOVED = 'r',
     PURGED = 'p',
 };
+
+inline std::string to_string(app_status_e val)
+{
+    auto res = std::string{};
+    return res.append(1, val);
+}
 
 using app_status_to_string_t = map_c<app_status_e, const char*, 6>;
 constexpr app_status_to_string_t app_status_to_string_table = {{

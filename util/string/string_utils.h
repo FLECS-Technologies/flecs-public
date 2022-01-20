@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef FLECS_util_string_utils_h
+#define FLECS_util_string_utils_h
+
 #include <optional>
 #include <sstream>
 #include <string>
@@ -48,6 +51,16 @@ std::string stringify_delim(char delim, Args&&... args)
     (void)delim;
     auto str = std::string{};
     ((str += stringify_impl(args) += delim), ...);
+    str.pop_back();
+    return str;
+}
+
+template <typename... Args>
+std::string stringify_delim(std::string delim, Args&&... args)
+{
+    auto str = std::string{};
+    ((str += stringify_impl(args) += delim), ...);
+    str.resize(str.size() - delim.size());
     return str;
 }
 
@@ -67,15 +80,17 @@ auto split(const std::basic_string<CharT, Traits>& str, CharT delim)
 }
 
 template <typename CharT, typename Traits>
-auto split(const std::basic_string_view<CharT, Traits>& sv, CharT delim)
+inline auto split(const std::basic_string_view<CharT, Traits>& sv, CharT delim)
 {
     return split(std::basic_string<CharT, Traits>{sv}, delim);
 }
 
 template <typename CharT>
-auto split(const CharT* s, CharT delim)
+inline auto split(const CharT* s, CharT delim)
 {
     return split(std::basic_string<CharT>{s}, delim);
 }
 
 } // namespace FLECS
+
+#endif // FLECS_util_string_utils_h

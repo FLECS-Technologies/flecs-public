@@ -22,7 +22,10 @@
 #include <string>
 
 #include "sqlite3.h"
-#include "util/sqlite3_ext/sqlite3_statements.h"
+#include "sqlite3_column.h"
+#include "sqlite3_primary.h"
+#include "sqlite3_statements.h"
+#include "util/string/string_utils.h"
 
 namespace FLECS {
 
@@ -41,10 +44,12 @@ auto value_to_string(T&& value)
     {
         using std::to_string;
         str += to_string(value);
-    } else if constexpr (std::is_enum_v<basic_type_t>)
+    }
+    else if constexpr (std::is_enum_v<basic_type_t>)
     {
         str += static_cast<std::underlying_type_t<basic_type_t>>(value);
-    } else
+    }
+    else
     {
         str += value;
     }
@@ -79,43 +84,6 @@ auto format_where(const char* const* condition, Args&&... args)
     return format_where_impl(where, condition, args...);
 }
 
-struct statement_format_t
-{
-    std::string prefix;
-    std::string intermediate;
-    std::string postfix;
-};
-
-template <typename Arg>
-auto format_statement_impl(const statement_format_t& format, std::string statement, Arg&& arg)
-{
-    statement += value_to_string(arg);
-    statement += format.postfix;
-    return statement;
-}
-
-template <typename Arg, typename... Args>
-auto format_statement_impl(const statement_format_t& format, std::string statement, Arg&& arg, Args&&... args)
-{
-    statement += value_to_string(arg);
-    statement += format.intermediate;
-    return format_statement_impl(format, statement, args...);
-}
-
-template <typename... Args>
-auto format_statement(const statement_format_t& format, Args&&... args)
-{
-    std::string statement = format.prefix;
-    return format_statement_impl(format, statement, args...);
-}
-
-template <typename... Args>
-auto format_values(Args&&... args)
-{
-    auto format = statement_format_t{"VALUES (", ",", ");"};
-    return format_statement(format, args...);
-}
-
 class sqlite3_db_t
 {
 public:
@@ -130,6 +98,11 @@ protected:
 
     sqlite3_db_t(const char* filename, int flags, const char* zVfs);
     virtual ~sqlite3_db_t();
+
+    int open(const char* filename, int flags, const char* zVfs);
+
+    template <typename... Args>
+    int create_table(const char* table, Args&&... args);
 
     template <typename... Args>
     int insert(const char* table, Args&&... args);
@@ -152,36 +125,45 @@ protected:
 
 private:
     template <typename... Args>
-    int insert_impl(bool replace, const char* table, Args&&... args);
+    int insert_or_replace_impl(bool replace, const char* table, Args&&... args);
 
     sqlite3* _db;
 };
 
 template <typename... Args>
+int sqlite3_db_t::create_table(const char* table, Args&&... args)
+{
+    const auto len = std::snprintf(nullptr, 0, create_table_stmt, table);
+    auto create_str = std::make_unique<char[]>(len + 1);
+    std::snprintf(create_str.get(), len + 1, create_table_stmt, table);
+
+    const auto stmt = std::string{create_str.get()} + FLECS::stringify_delim(',', args...) + ");";
+
+    return exec(stmt.c_str(), nullptr, nullptr);
+}
+
+template <typename... Args>
 int sqlite3_db_t::insert(const char* table, Args&&... args)
 {
-    return insert_impl(false, table, args...);
+    return insert_or_replace_impl(false, table, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 int sqlite3_db_t::insert_or_replace(const char* table, Args&&... args)
 {
-    return insert_impl(true, table, args...);
+    return insert_or_replace_impl(true, table, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
-int sqlite3_db_t::insert_impl(bool replace, const char* table, Args&&... args)
+int sqlite3_db_t::insert_or_replace_impl(bool replace, const char* table, Args&&... args)
 {
-    const auto values = format_values(args...);
-
     const auto len1 = std::snprintf(nullptr, 0, replace ? insert_or_replace_stmt : insert_stmt, table);
-    const auto len2 = values.length();
-
-    auto insert_str = std::make_unique<char[]>(len1 + len2 + 1);
+    auto insert_str = std::make_unique<char[]>(len1 + 1);
     std::snprintf(insert_str.get(), len1 + 1, replace ? insert_or_replace_stmt : insert_stmt, table);
-    std::snprintf(insert_str.get() + len1, len2 + 1, "%s", values.c_str());
 
-    return exec(insert_str.get(), nullptr, nullptr);
+    const auto stmt = std::string{insert_str.get()} + stringify_delim("\",\"", args...) + "\");";
+
+    return exec(stmt.c_str(), nullptr, nullptr);
 }
 
 template <size_t N, typename... Args>

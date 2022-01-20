@@ -17,12 +17,12 @@
 
 namespace FLECS {
 
-constexpr const char* insert_stmt = "INSERT INTO %s ";
-constexpr const char* insert_or_replace_stmt = "INSERT OR REPLACE INTO %s ";
+constexpr const char* insert_stmt = "INSERT INTO %s VALUES (\"";
+constexpr const char* insert_or_replace_stmt = "INSERT OR REPLACE INTO %s VALUE(\"";
 constexpr const char* delete_stmt = "DELETE FROM %s WHERE ";
 constexpr const char* select_all_stmt = "SELECT * FROM %s ";
+constexpr const char* create_table_stmt = "CREATE TABLE IF NOT EXISTS %s (";
 
 } // namespace FLECS
-
 
 #endif // FLECS_util_sqlit3_ext_sqlite3_statements_h
