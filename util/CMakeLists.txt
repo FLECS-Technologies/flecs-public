@@ -1,4 +1,4 @@
-# Copyright 2021 FLECS Technologies GmbH
+# Copyright 2021-2022 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR := $(shell git rev-parse --show-toplevel)
-
-PACKAGE := flecs-develop
-PACKAGE_DESC := FLECS Development mode
-
-include $(ROOT_DIR)/build/Makefile
+add_subdirectory(curl_easy_ext)
+add_subdirectory(llhttp_ext)
+add_subdirectory(process)
+add_subdirectory(sqlite3_ext)

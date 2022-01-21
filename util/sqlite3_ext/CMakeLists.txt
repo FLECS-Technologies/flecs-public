@@ -1,4 +1,4 @@
-# Copyright 2021 FLECS Technologies GmbH
+# Copyright 2021-2022 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,23 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR := $(shell git rev-parse --show-toplevel)
+project(FLECS.util.sqlite3_ext)
 
-BINARY := flecs
+set(SRC_ARCHIVE
+    src/sqlite3_db.cpp
+    src/sqlite3_table.cpp
+)
 
-DEPENDS_BINARY := \
-	daemon/lib
+set (HEADER_ARCHIVE
+    sqlite3_column.h
+    sqlite3_db.h
+    sqlite3_primary.h
+    sqlite3_statements.h
+    sqlite3_table.h
+)
 
-SRC_BINARY := \
-	src/main.cpp \
+add_library(FLECS.util.sqlite3_ext STATIC ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-HEADER_BINARY := \
+target_link_libraries(FLECS.util.sqlite3_ext PUBLIC FLECS.external.sqlite3 stdc++fs)
 
-INCLUDE_BINARY = \
-	-I ./include \
-	-I $(ROOT_DIR)/daemon/include \
-
-DYNAMIC_LIBS_BINARY = \
-	-L $(ROOT_DIR)/daemon/out/$(MACHINE) -l FLECS.daemon
-
-include $(ROOT_DIR)/build/Makefile
+target_include_directories(FLECS.util.sqlite3_ext PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)

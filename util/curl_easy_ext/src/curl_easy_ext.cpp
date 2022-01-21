@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "util/curl_easy_ext/curl_easy_ext.h"
+#include "curl_easy_ext.h"
 
 #include <unistd.h>
 

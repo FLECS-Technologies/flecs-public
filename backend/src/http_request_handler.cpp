@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ui/backend/http_request_handler.h"
+#include "backend/http_request_handler.h"
 
 #include <algorithm>
 #include <functional>
