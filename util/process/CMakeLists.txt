@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR := $(shell git rev-parse --show-toplevel)
+project(FLECS.util.process)
 
-PACKAGE := flecs-updater
 
-PACKAGE_DESC := FLECS Service Updater
+set(SRC_ARCHIVE
+    src/process.cpp
+)
 
-DOCKER_IMAGE := marketplace.flecs.tech:5001/flecs/updater
+set (HEADER_ARCHIVE
+    posix_spawn.h
+    process.h
+)
 
-include $(ROOT_DIR)/build/Makefile
+add_library(FLECS.util.process STATIC ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-docker-prepare:
-	@tar czf usr/bin/flecs.deb.tar.gz -C $(ROOT_DIR)/daemon/out/$(MACHINE) flecs_$(VERSION)_$(ARCH).deb
-	@tar czf usr/bin/flecs-backend.deb.tar.gz -C $(ROOT_DIR)/ui/backend/out/$(MACHINE) flecs-backend_$(VERSION)_$(ARCH).deb
-	@tar czf usr/bin/flecs-updater.deb.tar.gz -C $(ROOT_DIR)/updater/out/$(MACHINE) flecs-updater_$(VERSION)_$(ARCH).deb
+target_include_directories(FLECS.util.process PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)

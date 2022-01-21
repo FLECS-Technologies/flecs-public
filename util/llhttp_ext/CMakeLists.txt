@@ -1,4 +1,4 @@
-# Copyright 2021 FLECS Technologies GmbH
+# Copyright 2021-2022 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,22 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR := $(shell git rev-parse --show-toplevel)
+project(FLECS.util.llhttp_ext)
 
-ARCHIVE := libFLECS.sqlite3_ext.a
+set(SRC_ARCHIVE
+    src/llhttp_ext.cpp
+)
 
-SRC_ARCHIVE := \
-	src/sqlite3_db.cpp \
-	src/sqlite3_table.cpp \
+set (HEADER_ARCHIVE
+    llhttp_ext.h
+)
 
-HEADER_ARCHIVE := \
-	include/sqlite3_column.h \
-	include/sqlite3_db.h \
-	include/sqlite3_primary.h \
-	include/sqlite3_statements.h \
-	include/sqlite3_table.h \
+add_library(FLECS.util.llhttp_ext STATIC ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-INCLUDE_ARCHIVE = \
-	-I include -I $(ROOT_DIR)/external/sqlite-3.37.0/out/$(MACHINE)/include \
+target_link_libraries(FLECS.util.llhttp_ext PUBLIC FLECS.external.llhttp)
 
-include $(ROOT_DIR)/build/Makefile
+target_include_directories(FLECS.util.llhttp_ext PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)

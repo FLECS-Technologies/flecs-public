@@ -15,7 +15,7 @@
 #ifndef FLECS_daemon_libflecs_h
 #define FLECS_daemon_libflecs_h
 
-#include "lib/private/libflecs_private.h"
+#include "private/libflecs_private.h"
 #include "util/string/string_utils.h"
 
 namespace FLECS {

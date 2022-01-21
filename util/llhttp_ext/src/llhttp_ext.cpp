@@ -1,9 +1,8 @@
-#include "util/llhttp_ext/llhttp_ext.h"
+#include "llhttp_ext.h"
 
 #include <cctype>
 
-namespace FLECS
-{
+namespace FLECS {
 
 int llhttp_ext_on_body(llhttp_t* llhttp, const char* at, size_t length)
 {

@@ -12,15 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR := $(shell git rev-parse --show-toplevel)
+project(FLECS.util.curl_easy_ext)
 
-ARCHIVE := libFLECS.process.a
+set(SRC_ARCHIVE
+    src/curl_easy_ext.cpp
+)
 
-SRC_ARCHIVE := \
-	src/process.cpp \
+set (HEADER_ARCHIVE
+    curl_easy_ext.h
+)
 
-HEADER_ARCHIVE := \
-	posix_spawn.h \
-	process.h \
+add_library(FLECS.util.curl_easy_ext STATIC ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-include $(ROOT_DIR)/build/Makefile
+target_link_libraries(FLECS.util.curl_easy_ext PUBLIC FLECS.external.curl)
+
+target_include_directories(FLECS.util.curl_easy_ext PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)

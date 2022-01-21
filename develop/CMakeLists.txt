@@ -1,4 +1,4 @@
-# Copyright 2021 FLECS Technologies GmbH
+# Copyright 2021-2022 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR=$(shell git rev-parse --show-toplevel)
+project(FLECS.develop)
 
-ARCHIVE := libFLECS.curl_easy_ext.a
+# configure package
+set(PACKAGE flecs-develop)
+set(PACKAGE_DESC "FLECS Development mode")
 
-SRC_ARCHIVE := \
-	src/curl_easy_ext.cpp \
-
-HEADER_ARCHIVE := \
-	curl_easy_ext.h \
-
-INCLUDE_ARCHIVE = \
-	-I $(ROOT_DIR)/external/curl-7.80.0/include \
-
-include $(ROOT_DIR)/build/Makefile
+include(package)

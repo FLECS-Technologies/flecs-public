@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "util/process/process.h"
-#include "util/process/posix_spawn.h"
+#include "process.h"
 
 #include <fcntl.h>
-#include <unistd.h>
-
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include <cerrno>
 #include <cstdlib>
@@ -27,17 +25,18 @@
 #include <iostream>
 #include <memory>
 
-namespace FLECS
-{
+#include "posix_spawn.h"
+
+namespace FLECS {
 
 process_t::process_t()
-    : _args {}
-    , _filename_stdout { "/tmp/flecs-stdout-XXXXXX" }
-    , _filename_stderr { "/tmp/flecs-stderr-XXXXXX" }
-    , _fd_stdout { mkostemp(_filename_stdout, 0) }
-    , _fd_stderr { mkostemp(_filename_stderr, 0) }
-    , _pid {}
-    , _status {}
+    : _args{}
+    , _filename_stdout{"/tmp/flecs-stdout-XXXXXX"}
+    , _filename_stderr{"/tmp/flecs-stderr-XXXXXX"}
+    , _fd_stdout{mkostemp(_filename_stdout, 0)}
+    , _fd_stderr{mkostemp(_filename_stderr, 0)}
+    , _pid{}
+    , _status{}
 {}
 
 process_t::~process_t()
@@ -121,7 +120,7 @@ int process_t::do_spawn(const char* exec, bool path)
 
     flecs_posix_spawnattr_t attr;
 
-    std::unique_ptr<char*[]> argv { new char*[_args.size() + 2] };
+    std::unique_ptr<char* []> argv { new char*[_args.size() + 2] };
     argv[0] = const_cast<char*>(exec);
     auto it = _args.begin();
     std::size_t i = 1;
@@ -134,9 +133,8 @@ int process_t::do_spawn(const char* exec, bool path)
     }
     argv[i] = nullptr;
 
-    return path ?
-        posix_spawnp(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ) :
-        posix_spawn(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ);
+    return path ? posix_spawnp(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ)
+                : posix_spawn(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ);
 }
 
 } // namespace FLECS

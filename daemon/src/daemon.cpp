@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "daemon/include/daemon.h"
+#include "daemon/daemon.h"
 
 #include <atomic>
 #include <csignal>

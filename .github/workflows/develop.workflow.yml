@@ -9,34 +9,37 @@ jobs:
     runs-on: ubuntu-20.04
     container: flecs/flecs-build
 
+    strategy:
+      matrix:
+        arch: ["x86_64-linux-gnu", "arm-linux-gnueabihf", "aarch64-linux-gnu"]
+
     steps:
       - uses: actions/checkout@v2
-      - name: native
+      - name: "CMake: Configure"
         run: |
-          make DOCKERLESS=1 -C build/ flecs
-      - name: armhf
+          cmake -B out/${{ matrix.arch }} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${{ matrix.arch }}.cmake
+      - name: "CMake: Build"
         run: |
-          make DOCKERLESS=1 -C build/ CROSS_COMPILE=arm-linux-gnueabihf flecs
-      - name: aarch64
+          cmake --build out/${{ matrix.arch }}
+      - name: "CMake: Package"
         run: |
-          make DOCKERLESS=1 -C build/ CROSS_COMPILE=aarch64-linux-gnu flecs
+          cmake --build out/${{ matrix.arch }} --target packages
       - name: Archive packages
         uses: actions/upload-artifact@v2
         with:
           name: packages
           path: |
-            **/*.deb
-            **/*.ipk
+            out/*.deb
+            out/*.ipk
           retention-days: 3
       - name: Archive raw artifacts
         uses: actions/upload-artifact@v2
         with:
           name: out
           path: |
-            ui/backend/out
-            daemon/out
-            !**/*.deb
-            !**/*.ipk
+            out/
+            !out/*.deb
+            !out/*.ipk
           retention-days: 1
 
   docker:
@@ -62,14 +65,14 @@ jobs:
       - name: Download workflow artifacts
         uses: actions/download-artifact@v2
         with:
-          name: packages
+          name: out
 
-      - name: native
+      - name: "Docker: native"
         run: |
-          make -C build/ updater/docker
-      - name: armhf
+          cmake --build out/x86_64-linux-gnu --target docker
+      - name: "Docker: armhf"
         run: |
-          make -C build/ CROSS_COMPILE=arm-linux-gnueabihf updater/docker
-      - name: aarch64
+          cmake --build out/arm-linux-gnueabihf --target docker
+      - name: "Docker: aarch64"
         run: |
-          make -C build/ CROSS_COMPILE=aarch64-linux-gnu updater/docker
+          cmake --build out/aarch64-linux-gnu --target docker

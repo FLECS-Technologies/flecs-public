@@ -4,13 +4,11 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}",
-                "${workspaceFolder}/external/gtest-1.11.0",
-                "${workspaceFolder}/external/jsoncpp-1.9.5/include",
-                "${workspaceFolder}/external/yaml-cpp-0.7.0/include",
-                "${workspaceFolder}/external/llhttp-2.1.4/out/x86_64-linux-gnu/include",
+                "${workspaceFolder}/external/**",
                 "${workspaceFolder}/daemon/**",
-                "${workspaceFolder}/ui/backend/**",
-                "${workspaceFolder}/daemon/include"
+                "${workspaceFolder}/backend/**",
+                "${workspaceFolder}/daemon/**",
+                "${workspaceFolder}/util/llhttp_ext"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

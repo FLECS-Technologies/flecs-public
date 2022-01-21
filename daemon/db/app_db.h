@@ -22,7 +22,7 @@
 
 #include "app/app_status.h"
 #include "instance/instance_status.h"
-#include "util/sqlite3_ext/include/sqlite3_db.h"
+#include "util/sqlite3_ext/sqlite3_db.h"
 
 #ifndef FLECS_APP_DB_PATH
 #define FLECS_APP_DB_PATH "/var/lib/flecs/db/apps.db"
