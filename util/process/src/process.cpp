@@ -63,7 +63,7 @@ int process_t::wait(bool dump_stdout, bool dump_stderr) noexcept
     }
     if (dump_stderr)
     {
-        std::cout << stderr();
+        std::cerr << stderr();
     }
     return res;
 }

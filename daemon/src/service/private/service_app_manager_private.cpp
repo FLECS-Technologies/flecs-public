@@ -659,6 +659,9 @@ std::string build_manifest_path(const std::string& app_name, const std::string& 
 {
     auto path = std::string{"/var/lib/flecs/apps"};
 
+    path.append("/" + app_name);
+    path.append("/" + version);
+
     std::filesystem::create_directories(path);
 
     path.append("/");
