@@ -12,24 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "daemon/daemon.h"
+#ifndef FLECS_daemon_signal_handler_h
+#define FLECS_daemon_signal_handler_h
 
-#include <thread>
-
-#include "api/api.h"
+#include <atomic>
 
 namespace FLECS {
 
-int daemon_t::run()
-{
-    auto socket_api = socket_api_t{};
-    auto socket_api_thread = std::thread{&socket_api_t::run, &socket_api};
-    pthread_setname_np(socket_api_thread.native_handle(), "api_thread");
+extern std::atomic_bool g_stop;
 
+void signal_handler(int signum);
 
-    socket_api_thread.join();
-
-    return 0;
-}
+void signal_handler_init();
 
 } // namespace FLECS
+
+#endif // FLECS_daemon_signal_handler_h

@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 #include <cstdio>
 #include <string>
 
-#include "daemon.h"
+#include "api.h"
 #include "service/service_errors.h"
 #include "util/socket/unix_client.h"
 
