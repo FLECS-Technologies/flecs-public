@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #include <cstdio>
 
 #include "daemon.h"
+#include "signal_handler/signal_handler.h"
 
 constexpr struct option options[] = {{"json", no_argument, nullptr, 0}, {nullptr, no_argument, nullptr, 0}};
 
@@ -37,6 +38,8 @@ int print_usage()
 
 int main(int /*argc*/, char** /*argv*/)
 {
-    FLECS::daemon_t daemon;
+    FLECS::signal_handler_init();
+
+    auto daemon = FLECS::daemon_t{};
     return daemon.run();
 }

@@ -24,6 +24,7 @@ include(package)
 set(SRC_BINARY
     src/daemon.cpp
     src/main.cpp
+    src/api/api.cpp
     src/app/app.cpp
     src/db/app_db.cpp
     src/service/private/service_app_manager_private.cpp
@@ -31,9 +32,11 @@ set(SRC_BINARY
     src/service/service.cpp
     src/service/service_help.cpp
     src/service/service_rpc.cpp
+    src/signal_handler/signal_handler.cpp
 )
 
 set(HEADER_BINARY
+    api/api.h
     app/app.h
     app/app_status.h
     db/app_db.h
@@ -46,6 +49,7 @@ set(HEADER_BINARY
     service/service.h
     service/service_help.h
     service/service_rpc.h
+    signal_handler/signal_handler.h
 )
 
 add_executable(flecsd ${SRC_BINARY} ${HEADER_BINARY})
@@ -53,11 +57,13 @@ add_executable(flecsd ${SRC_BINARY} ${HEADER_BINARY})
 # own includes
 target_include_directories(flecsd PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/api
     ${CMAKE_CURRENT_SOURCE_DIR}/app
     ${CMAKE_CURRENT_SOURCE_DIR}/db
     ${CMAKE_CURRENT_SOURCE_DIR}/instance
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/service
+    ${CMAKE_CURRENT_SOURCE_DIR}/signal_handler
 )
 
 # FLECS link libraries
@@ -86,6 +92,7 @@ set(SRC_LIB
 )
 
 set(HEADER_LIB
+    api/api.h
     app/app.h
     app/app_status.h
     db/app_db.h
@@ -105,6 +112,7 @@ add_library(FLECS.daemon SHARED ${SRC_LIB} ${HEADER_LIB})
 # own includes
 target_include_directories(FLECS.daemon PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/api
     ${CMAKE_CURRENT_SOURCE_DIR}/app
     ${CMAKE_CURRENT_SOURCE_DIR}/db
     ${CMAKE_CURRENT_SOURCE_DIR}/instance

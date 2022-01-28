@@ -12,24 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "daemon/daemon.h"
+#ifndef FLECS_daemon_api_h
+#define FLECS_daemon_api_h
 
-#include <thread>
+#include <map>
+#include <memory>
 
-#include "api/api.h"
+#include "service/service.h"
+#include "util/socket/unix_server.h"
+#include "util/string/comparator.h"
 
 namespace FLECS {
 
-int daemon_t::run()
+constexpr const char* FLECS_SOCKET = "/var/run/flecs/flecs.sock";
+
+class socket_api_t
 {
-    auto socket_api = socket_api_t{};
-    auto socket_api_thread = std::thread{&socket_api_t::run, &socket_api};
-    pthread_setname_np(socket_api_thread.native_handle(), "api_thread");
+public:
+    socket_api_t();
 
+    int run();
 
-    socket_api_thread.join();
+private:
+    int process(FLECS::unix_socket_t&& conn_socket);
 
-    return 0;
-}
+    using service_table_t = std::map<const char*, std::shared_ptr<service_t>, string_comparator_t>;
+    service_table_t _service_table;
+
+    FLECS::unix_server_t _server;
+};
 
 } // namespace FLECS
+
+#endif // FLECS_daemon_api_h
