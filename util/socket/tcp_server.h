@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,8 +15,13 @@
 #ifndef FLECS_util_socket_tcp_server_h
 #define FLECS_util_socket_tcp_server_h
 
-#include "tcp_socket.h"
+#include <arpa/inet.h>
+
+#include <cerrno>
+#include <cstring>
+
 #include "sockaddr_in.h"
+#include "tcp_socket.h"
 
 namespace FLECS {
 
@@ -24,23 +29,41 @@ class tcp_server_t final : public tcp_socket_t
 {
 public:
     tcp_server_t(const sockaddr_in_t& addr, int backlog)
-        : tcp_socket_t {}
-        , _is_running {}
+        : tcp_socket_t{}
+        , _is_running{}
     {
-        if (bind(addr) == 0 && listen(backlog) == 0)
+        if (bind(addr) != 0)
         {
-            _is_running = true;
+            std::fprintf(
+                stderr,
+                "Could not bind to %s:%d: %d (%s)\n",
+                addr.straddr().c_str(),
+                ntohs(addr.port()),
+                errno,
+                strerror(errno));
+            return;
         }
+        if (listen(backlog) != 0)
+        {
+            std::fprintf(
+                stderr,
+                "Could not listen on %s:%d: %d (%s)\n",
+                addr.straddr().c_str(),
+                ntohs(addr.port()),
+                errno,
+                strerror(errno));
+            return;
+        }
+        _is_running = true;
     }
 
     tcp_server_t(in_port_t in_port, in_addr_t in_addr, int backlog)
-        : tcp_server_t { {in_port, in_addr}, backlog }
+        : tcp_server_t{{in_port, in_addr}, backlog}
     {}
 
     virtual ~tcp_server_t() {}
 
-    bool is_running() const noexcept
-         { return _is_running; }
+    bool is_running() const noexcept { return _is_running; }
 
 private:
     bool _is_running;
