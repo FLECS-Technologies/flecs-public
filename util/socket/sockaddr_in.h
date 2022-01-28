@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,10 @@
 #ifndef FLECS_util_sockaddr_in_h
 #define FLECS_util_sockaddr_in_h
 
+#include <arpa/inet.h>
 #include <netinet/in.h>
+
+#include <string>
 
 namespace FLECS {
 
@@ -35,6 +38,8 @@ public:
     in_addr_t addr() const noexcept;
     socklen_t size() const noexcept;
 
+    std::string straddr() const noexcept;
+
     operator sockaddr*() noexcept;
     operator const sockaddr*() const noexcept;
 
@@ -44,11 +49,11 @@ private:
 };
 
 inline sockaddr_in_t::sockaddr_in_t() noexcept
-    : sockaddr_in_t { 0, 0 }
+    : sockaddr_in_t{0, 0}
 {}
 
 inline sockaddr_in_t::sockaddr_in_t(in_port_t port, in_addr_t addr) noexcept
-    : _addr {}
+    : _addr{}
 {
     _addr.sin_family = AF_INET;
     _addr.sin_port = htons(port);
@@ -57,29 +62,52 @@ inline sockaddr_in_t::sockaddr_in_t(in_port_t port, in_addr_t addr) noexcept
 }
 
 inline void sockaddr_in_t::port(in_port_t port) noexcept
-    { _addr.sin_port = htons(port); }
+{
+    _addr.sin_port = htons(port);
+}
 
 inline void sockaddr_in_t::addr(in_addr_t addr) noexcept
-    { _addr.sin_addr.s_addr = htonl(addr); }
+{
+    _addr.sin_addr.s_addr = htonl(addr);
+}
 
 inline void sockaddr_in_t::size(socklen_t size) noexcept
-    { _size = size; }
+{
+    _size = size;
+}
 
 inline in_port_t sockaddr_in_t::port() const noexcept
-    { return _addr.sin_addr.s_addr; }
+{
+    return _addr.sin_port;
+}
 
 inline in_addr_t sockaddr_in_t::addr() const noexcept
-    { return _addr.sin_port; }
+{
+    return _addr.sin_addr.s_addr;
+}
 
 inline socklen_t sockaddr_in_t::size() const noexcept
-    { return _size; }
+{
+    return _size;
+}
+
+inline std::string sockaddr_in_t::straddr() const noexcept
+{
+    char addr[INET_ADDRSTRLEN] = {};
+    inet_ntop(AF_INET, &_addr.sin_addr, addr, INET_ADDRSTRLEN);
+    return std::string{addr};
+}
 
 inline sockaddr_in_t::operator sockaddr*() noexcept
-    { return reinterpret_cast<sockaddr*>(&_addr); }
+{
+    return reinterpret_cast<sockaddr*>(&_addr);
+}
 
 inline sockaddr_in_t::operator const sockaddr*() const noexcept
-    { return reinterpret_cast<const sockaddr*>(&_addr); }
+{
+    return reinterpret_cast<const sockaddr*>(&_addr);
+}
 
 } // namespace FLECS
 
-#endif //FLECS_util_sockaddr_in_h
+#endif // FLECS_util_sockaddr_in_h

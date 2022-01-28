@@ -15,6 +15,8 @@
 #ifndef FLECS_util_socket_unix_server_h
 #define FLECS_util_socket_unix_server_h
 
+#include <cstdio>
+
 #include "sockaddr_un.h"
 #include "unix_socket.h"
 
@@ -28,10 +30,17 @@ public:
         , _is_running{}
     {
         unlink(addr.path());
-        if (bind(addr) == 0 && listen(backlog) == 0)
+        if (bind(addr) != 0)
         {
-            _is_running = true;
+            std::fprintf(stderr, "Could not bind to %s: %d (%s)\n", addr.path(), errno, strerror(errno));
+            return;
         }
+        if (listen(backlog) != 0)
+        {
+            std::fprintf(stderr, "Could not listen on %s: %d (%s)\n", addr.path(), errno, strerror(errno));
+            return;
+        }
+        _is_running = true;
     }
 
     unix_server_t(const char* path, int backlog)
