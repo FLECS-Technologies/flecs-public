@@ -60,7 +60,7 @@ add_custom_target(
 add_custom_target(
     FLECS.external.mosquitto.build
     WORKING_DIRECTORY ${MOSQUITTO_DIR}
-    COMMAND ${CMAKE_COMMAND} -B out/${MACHINE} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DDOCUMENTATION=NO
+    COMMAND ${CMAKE_COMMAND} -B out/${MACHINE} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DDOCUMENTATION=NO -DWITH_STATIC_LIBRARIES=YES -DWITH_PIC=YES -DWITH_APPS=NO -DWITH_BROKER=NO -DWITH_CLIENTS=NO -DWITH_PLUGINS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${MACHINE}
     COMMAND ${CMAKE_COMMAND} --build out/${MACHINE}
 )
 
@@ -137,6 +137,15 @@ set_property(TARGET FLECS.external.jsoncpp PROPERTY INTERFACE_INCLUDE_DIRECTORIE
 add_library(FLECS.external.llhttp STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.llhttp PROPERTY IMPORTED_LOCATION ${LLHTTP_DIR}/out/${MACHINE}/lib/libllhttp.a)
 set_property(TARGET FLECS.external.llhttp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LLHTTP_DIR}/out/${MACHINE}/include)
+
+# mosquitto
+add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)
+set_property(TARGET FLECS.external.mosquitto PROPERTY IMPORTED_LOCATION ${MOSQUITTO_DIR}/out/${MACHINE}/lib/libmosquitto_static.a)
+set_property(TARGET FLECS.external.mosquitto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${MOSQUITTO_DIR}/include)
+target_link_libraries(FLECS.external.mosquitto INTERFACE
+    FLECS.external.ssl
+    FLECS.external.crypto
+)
 
 # OpenSSL
 add_library(FLECS.external.crypto STATIC IMPORTED GLOBAL)
