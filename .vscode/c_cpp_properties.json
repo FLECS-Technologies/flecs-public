@@ -4,13 +4,26 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}",
-                "${workspaceFolder}/external/**",
+                "${workspaceFolder}/external/curl-7.80.0/include",
+                "${workspaceFolder}/external/gtest-1.11.0",
+                "${workspaceFolder}/external/jsoncpp-1.9.5/include",
+                "${workspaceFolder}/external/llhttp-2.1.4/out/x86_64-linux-gnu/include",
+                "${workspaceFolder}/external/mosquitto-2.0.14/include",
+                "${workspaceFolder}/external/openssl-1.1.1m/out/x86_64-linux-gnu/include",
+                "${workspaceFolder}/external/sqlite-3.37.0",
+                "${workspaceFolder}/external/yaml-cpp-0.7.0/include",
+                "${workspaceFolder}/external/zlib-1.2.11",
                 "${workspaceFolder}/daemon/**",
                 "${workspaceFolder}/backend/**",
                 "${workspaceFolder}/daemon/**",
-                "${workspaceFolder}/util/llhttp_ext"
+                "${workspaceFolder}/mqtt/**",
+                "${workspaceFolder}/util/**",
+                "${workspaceFolder}/mqtt/**",
+                "${workspaceFolder}/mqtt"
             ],
-            "defines": [],
+            "defines": [
+                "FLECS_EXPORT=__attribute__((visibility(\"default\")))"
+            ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
             "cppStandard": "c++17",

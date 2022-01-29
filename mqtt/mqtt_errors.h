@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,23 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_libflecs_h
-#define FLECS_daemon_libflecs_h
+#ifndef FLECS_mqtt_mqtt_errors_h
+#define FLECS_mqtt_mqtt_errors_h
 
-#include "private/libflecs_private.h"
-#include "util/string/string_utils.h"
+#include <mosquitto.h>
 
 namespace FLECS {
 
-FLECS_EXPORT int run_flecs_command(int argc, char** argv);
-
-template <typename T, typename... Args>
-int run_flecs_command(T&& command, Args&&... args)
+enum mqtt_error_t : int
 {
-    std::string strargs = stringify_delim('\0', command) + stringify_delim('\0', args...);
-    return Private::run_flecs_command_private(strargs);
-}
+    MQTT_ERR_OK = MOSQ_ERR_SUCCESS,
+    MQTT_ERR_NOMEM = MOSQ_ERR_NOMEM,
+    MQTT_ERR_INVALID = MOSQ_ERR_INVAL,
+    MQTT_ERR_NOTCONN = MOSQ_ERR_NO_CONN,
+    MQTT_ERR_UNKNOWN = MOSQ_ERR_UNKNOWN,
+    MQTT_ERR_OS = MOSQ_ERR_ERRNO,
+    MQTT_ERR_UTF8 = MOSQ_ERR_MALFORMED_UTF8,
+    MQTT_ERR_PACKET_TOO_LARGE = MOSQ_ERR_OVERSIZE_PACKET,
+};
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_libflecs_h
+#endif // FLECS_mqtt_mqtt_errors_h

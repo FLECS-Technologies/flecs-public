@@ -30,6 +30,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 add_compile_options(-Wall -Wextra -Wfatal-errors)
 
+# hide all symbols by default
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+add_link_options(-Wl,--exclude-libs,ALL)
+
+# provide macro to export symbols
+add_definitions("-DFLECS_EXPORT=__attribute__\(\(visibility\(\"default\"\)\)\)")
+
 # set MACHINE and ARCH variables
 execute_process(
     COMMAND ${CMAKE_CXX_COMPILER} -dumpmachine
@@ -57,6 +64,7 @@ add_subdirectory(cli)
 add_subdirectory(daemon)
 add_subdirectory(develop)
 add_subdirectory(external)
+add_subdirectory(mqtt)
 add_subdirectory(updater)
 add_subdirectory(util)
 

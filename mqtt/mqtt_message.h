@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,23 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_libflecs_h
-#define FLECS_daemon_libflecs_h
+#ifndef FLECS_mqtt_mqtt_message_h
+#define FLECS_mqtt_mqtt_message_h
 
-#include "private/libflecs_private.h"
-#include "util/string/string_utils.h"
+#include <stdint.h>
 
+#ifdef __cplusplus
 namespace FLECS {
+#endif // __cplusplus
 
-FLECS_EXPORT int run_flecs_command(int argc, char** argv);
-
-template <typename T, typename... Args>
-int run_flecs_command(T&& command, Args&&... args)
+#ifdef __cplusplus
+struct mqtt_message_t
+#else  // __cplusplus
+struct flecs_mqtt_message_t
+#endif // __cplusplus
 {
-    std::string strargs = stringify_delim('\0', command) + stringify_delim('\0', args...);
-    return Private::run_flecs_command_private(strargs);
-}
+    int id;
+    const char *topic;
+    void *payload;
+    int payloadlen;
+    int qos;
+    bool retain;
+};
 
+#ifdef __cplusplus
 } // namespace FLECS
+#endif // __cplusplus
 
-#endif // FLECS_daemon_libflecs_h
+#endif // FLECS_mqtt_mqtt_message_h
