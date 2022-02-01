@@ -9,7 +9,6 @@ COPY [ \
     "usr/bin/flecs-backend.deb.tar.gz", \
     "usr/bin/flecs-updater.deb.tar.gz", \
     "/bin/" ]
-RUN chmod a+x /bin/flecs*
 
 ENTRYPOINT [ \
     "/bin/cp", "-f", \
