@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(DOCKER_REGISTRY marketplace.flecs.tech:5001)
 set(REGISTRY_USER $ENV{REGISTRY_USER})
 set(REGISTRY_AUTH $ENV{REGISTRY_AUTH})
 set(REGISTRY_PATH flecs)
-set(DOCKER /usr/bin/docker)
 
 if (NOT NDEBUG)
     set(DOCKER_TAG experimental)
@@ -26,11 +24,11 @@ endif()
 
 add_custom_command(
     OUTPUT ${DOCKER_IMAGE}
-    COMMAND ${DOCKER} login -u ${REGISTRY_USER} -p ${REGISTRY_AUTH} ${DOCKER_REGISTRY}
-    COMMAND docker buildx build --push --build-arg MACHINE=${MACHINE} --build-arg ARCH=${ARCH} --build-arg VERSION=${VERSION} --platform ${DOCKER_ARCH} --tag ${DOCKER_REGISTRY}/${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND docker manifest rm ${DOCKER_REGISTRY}/${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} || true
-    COMMAND docker manifest create ${DOCKER_REGISTRY}/${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_REGISTRY}/${REGISTRY_PATH}/${DOCKER_IMAGE}:amd64-${DOCKER_TAG} ${DOCKER_REGISTRY}/${REGISTRY_PATH}/${DOCKER_IMAGE}:armhf-${DOCKER_TAG} ${DOCKER_REGISTRY}/${REGISTRY_PATH}/${DOCKER_IMAGE}:arm64-${DOCKER_TAG}  || true
-    COMMAND docker manifest push ${DOCKER_REGISTRY}/${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG}
+    COMMAND docker login -u ${REGISTRY_USER} -p ${REGISTRY_AUTH}
+    COMMAND docker buildx build --push --build-arg MACHINE=${MACHINE} --build-arg ARCH=${ARCH} --build-arg VERSION=${VERSION} --platform ${DOCKER_ARCH} --tag ${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND docker manifest rm ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} || true
+    COMMAND docker manifest create ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:amd64-${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:armhf-${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:arm64-${DOCKER_TAG} || true
+    COMMAND docker manifest push ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG}
 )
 
 if (NOT TARGET ${DOCKER_IMAGE}_prepare)
