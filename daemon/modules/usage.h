@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,36 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_errors_h
-#define FLECS_daemon_modules_errors_h
+#ifndef FLECS_daemon_modules_usage_h
+#define FLECS_daemon_modules_usage_h
 
-#include <cstdint>
+#include "module.h"
 
 namespace FLECS {
 
-enum module_error_e : int
+class module_usage_t : public module_t
 {
-    FLECS_OK,
-    FLECS_FAILED,
-
-    FLECS_ARGC,
-    FLECS_USAGE,
-
-    FLECS_IO,
-
-    FLECS_APP_NOTINST,
-
-    FLECS_INSTANCE_NOTEXIST,
-    FLECS_INSTANCE_NOTRUN,
-    FLECS_INSTANCE_APP,
-    FLECS_INSTANCE_VERSION,
-
-    FLECS_CURL = 0x70000000,
-    FLECS_SQLITE = 0x71000000,
-    FLECS_YAML = 0x72000000,
-    FLECS_DOCKER = 0x73000000,
+public:
+private:
+    module_error_e do_process(int argc, char** argv) override;
 };
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_modules_errors_h
+#endif // FLECS_daemon_modules_usage_h

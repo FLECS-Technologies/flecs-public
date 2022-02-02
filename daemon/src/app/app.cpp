@@ -79,7 +79,8 @@ app_t::app_t(const std::string& manifest)
             if (cxx20::starts_with(volume[0], '/'))
             {
                 add_bind_mount(volume[0], volume[1]);
-            } else
+            }
+            else
             {
                 add_volume(volume[0], volume[1]);
             }
@@ -101,7 +102,7 @@ app_t::app_t(const std::string& manifest)
         _yaml_loaded = true;
     } catch (const YAML::Exception& ex)
     {
-        std::fprintf(stderr, "%s\n", ex.what());
+        std::fprintf(stderr, "Could not open manifest %s: Invalid YAML (%s)\n", manifest.c_str(), ex.what());
     }
 }
 

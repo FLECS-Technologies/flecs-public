@@ -39,7 +39,6 @@ target_include_directories(flecs-backend PRIVATE
 
 # FLECS link libraries
 target_link_libraries(flecs-backend PRIVATE
-    FLECS.util.curl_easy_ext
     FLECS.util.llhttp_ext
     FLECS.util.process
     FLECS.external.jsoncpp

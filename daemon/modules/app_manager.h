@@ -18,7 +18,7 @@
 #include <memory>
 
 #include "db/app_db.h"
-#include "module.h"
+#include "modules/module.h"
 
 namespace FLECS {
 
