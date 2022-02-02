@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "service/private/service_app_manager_private.h"
+#include "modules/private/app_manager_private.h"
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -30,21 +30,21 @@
 namespace FLECS {
 namespace Private {
 
-service_error_e download_manifest(const std::string& app_name, const std::string& version);
+module_error_e download_manifest(const std::string& app_name, const std::string& version);
 std::string build_manifest_url(const std::string& app_name, const std::string& version);
 std::string build_manifest_path(const std::string& app_name, const std::string& version);
 
-service_app_manager_private_t::service_app_manager_private_t()
+module_app_manager_private_t::module_app_manager_private_t()
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
 }
 
-service_app_manager_private_t::~service_app_manager_private_t()
+module_app_manager_private_t::~module_app_manager_private_t()
 {
     curl_global_cleanup();
 }
 
-service_error_e service_app_manager_private_t::do_install(const std::string& app_name, const std::string& version)
+module_error_e module_app_manager_private_t::do_install(const std::string& app_name, const std::string& version)
 {
     const auto status = app_status_e::NOT_INSTALLED;
     const auto desired = app_status_e::INSTALLED;
@@ -59,7 +59,7 @@ service_error_e service_app_manager_private_t::do_install(const std::string& app
     return do_install(build_manifest_path(app_name, version));
 }
 
-service_error_e service_app_manager_private_t::do_install(const std::string& manifest)
+module_error_e module_app_manager_private_t::do_install(const std::string& manifest)
 {
     const auto desired = INSTALLED;
     auto app = app_t{manifest};
@@ -89,7 +89,7 @@ service_error_e service_app_manager_private_t::do_install(const std::string& man
     return FLECS_OK;
 }
 
-service_error_e service_app_manager_private_t::do_sideload(const std::string& manifest_path)
+module_error_e module_app_manager_private_t::do_sideload(const std::string& manifest_path)
 {
     auto app = app_t{manifest_path};
     if (!app.yaml_loaded())
@@ -113,7 +113,7 @@ service_error_e service_app_manager_private_t::do_sideload(const std::string& ma
     return do_install(manifest_path);
 }
 
-service_error_e service_app_manager_private_t::do_uninstall(const std::string& app_name, const std::string& version)
+module_error_e module_app_manager_private_t::do_uninstall(const std::string& app_name, const std::string& version)
 {
     if (!is_app_installed(app_name, version))
     {
@@ -171,7 +171,7 @@ service_error_e service_app_manager_private_t::do_uninstall(const std::string& a
     return FLECS_OK;
 }
 
-service_error_e service_app_manager_private_t::do_create_instance(
+module_error_e module_app_manager_private_t::do_create_instance(
     const std::string& app_name, const std::string& version, const std::string& description)
 {
     auto status = instance_status_e::NOT_CREATED;
@@ -290,7 +290,7 @@ service_error_e service_app_manager_private_t::do_create_instance(
     return FLECS_OK;
 }
 
-service_error_e service_app_manager_private_t::do_delete_instance(
+module_error_e module_app_manager_private_t::do_delete_instance(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
     if (!_app_db.has_instance({id}))
@@ -350,7 +350,7 @@ service_error_e service_app_manager_private_t::do_delete_instance(
     return FLECS_OK;
 }
 
-service_error_e service_app_manager_private_t::do_start_instance(
+module_error_e module_app_manager_private_t::do_start_instance(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
     if (!_app_db.has_instance({id}))
@@ -444,7 +444,7 @@ service_error_e service_app_manager_private_t::do_start_instance(
         }                                                        \
     } while (false)
 
-service_error_e service_app_manager_private_t::do_stop_instance(
+module_error_e module_app_manager_private_t::do_stop_instance(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
     if (!_app_db.has_instance({id}))
@@ -474,7 +474,7 @@ service_error_e service_app_manager_private_t::do_stop_instance(
     return FLECS_OK;
 }
 
-service_error_e service_app_manager_private_t::do_list_apps(const std::string& app_name)
+module_error_e module_app_manager_private_t::do_list_apps(const std::string& app_name)
 {
     Json::Value json_value;
     json_value["appList"] = Json::Value{Json::arrayValue};
@@ -507,18 +507,18 @@ service_error_e service_app_manager_private_t::do_list_apps(const std::string& a
     return FLECS_OK;
 }
 
-service_error_e service_app_manager_private_t::do_list_instances(
+module_error_e module_app_manager_private_t::do_list_instances(
     const std::string& /*app_name*/, const std::string& /*version*/)
 {
     return FLECS_OK;
 }
 
-bool service_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version)
+bool module_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version)
 {
     return _app_db.has_app({app_name, version});
 }
 
-bool service_app_manager_private_t::is_instance_available(
+bool module_app_manager_private_t::is_instance_available(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
     if (_app_db.has_instance({id}))
@@ -529,7 +529,7 @@ bool service_app_manager_private_t::is_instance_available(
     return false;
 }
 
-bool service_app_manager_private_t::is_instance_runnable(
+bool module_app_manager_private_t::is_instance_runnable(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
     const auto instance_entry = _app_db.query_instance({id}).value();
@@ -542,7 +542,7 @@ bool service_app_manager_private_t::is_instance_runnable(
     return true;
 }
 
-bool service_app_manager_private_t::is_instance_running(
+bool module_app_manager_private_t::is_instance_running(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
     const auto instance_entry = _app_db.query_instance({id}).value();
@@ -588,7 +588,7 @@ std::string build_manifest_path(const std::string& app_name, const std::string& 
     return path;
 }
 
-service_error_e download_manifest(const std::string& app_name, const std::string& version)
+module_error_e download_manifest(const std::string& app_name, const std::string& version)
 {
     const auto path = build_manifest_path(app_name, version);
     const auto manifest = fopen(path.c_str(), "w");
@@ -625,7 +625,7 @@ service_error_e download_manifest(const std::string& app_name, const std::string
     if (curl_res != CURLE_OK)
     {
         std::fprintf(stderr, "Could not download app manifest: %s (%d)\n", curl_easy_strerror(curl_res), curl_res);
-        return static_cast<service_error_e>(FLECS_CURL + curl_res);
+        return static_cast<module_error_e>(FLECS_CURL + curl_res);
     }
 
     return FLECS_OK;

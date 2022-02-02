@@ -12,25 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_service_app_manager_private_h
-#define FLECS_service_service_app_manager_private_h
+#ifndef FLECS_daemon_modules_app_manager_private_h
+#define FLECS_daemon_modules_app_manager_private_h
 
 #include <string>
 
 #include "db/app_db.h"
-#include "service/service_errors.h"
+#include "modules/errors.h"
 
 namespace FLECS {
 
-class service_app_manager_t;
+class module_app_manager_t;
 
 namespace Private {
 
-class service_app_manager_private_t
+class module_app_manager_private_t
 {
 public:
-    service_app_manager_private_t();
-    ~service_app_manager_private_t();
+    module_app_manager_private_t();
+    ~module_app_manager_private_t();
 
     /*! @brief Installs an application from its name and version, i.e. downloads it from the marketplace
      *
@@ -43,7 +43,7 @@ public:
      * @return Any error code returned by @sa download_manifest
      * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
      */
-    service_error_e do_install(const std::string& app_name, const std::string& version);
+    module_error_e do_install(const std::string& app_name, const std::string& version);
 
     /*! @brief Installs an app from its YAML manifest
      *
@@ -55,7 +55,7 @@ public:
      * @return FLECS_SQLITE: Database error
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
-    service_error_e do_install(const std::string& manifest);
+    module_error_e do_install(const std::string& manifest);
 
     /*! @brief Sideloads an app from its YAML manifest
      *
@@ -68,7 +68,7 @@ public:
      * @return FLECS_IOW: Error writing manifest to FLECS application directory
      * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
      */
-    service_error_e do_sideload(const std::string& manifest_path);
+    module_error_e do_sideload(const std::string& manifest_path);
 
     /*! @brief Uninstalls an application
      *
@@ -83,7 +83,7 @@ public:
      * @return FLECS_IOW: Error deleting manifest from disk
      * @return FLECS_SQLITE: Database error
      */
-    service_error_e do_uninstall(const std::string& app_name, const std::string& version);
+    module_error_e do_uninstall(const std::string& app_name, const std::string& version);
 
     /*! Creates a new instance of an installed app
      *
@@ -98,14 +98,14 @@ public:
      * @return FLECS_SQLITE: Database error
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
-    service_error_e do_create_instance(
+    module_error_e do_create_instance(
         const std::string& app_name, const std::string& version, const std::string& description);
-    service_error_e do_delete_instance(const std::string& app_name, const std::string& version, const std::string& id);
-    service_error_e do_start_instance(const std::string& id, const std::string& app, const std::string& version);
-    service_error_e do_stop_instance(const std::string& app_name, const std::string& version, const std::string& id);
-    service_error_e do_list_apps(const std::string& app_name);
-    service_error_e do_list_versions(const std::string& app_name);
-    service_error_e do_list_instances(const std::string& app_name, const std::string& version);
+    module_error_e do_delete_instance(const std::string& app_name, const std::string& version, const std::string& id);
+    module_error_e do_start_instance(const std::string& id, const std::string& app, const std::string& version);
+    module_error_e do_stop_instance(const std::string& app_name, const std::string& version, const std::string& id);
+    module_error_e do_list_apps(const std::string& app_name);
+    module_error_e do_list_versions(const std::string& app_name);
+    module_error_e do_list_instances(const std::string& app_name, const std::string& version);
 
     bool is_app_installed(const std::string& app_name, const std::string& version);
     bool is_instance_available(const std::string& app_name, const std::string& version, const std::string& id);
@@ -119,4 +119,4 @@ private:
 } // namespace Private
 } // namespace FLECS
 
-#endif // FLECS_service_service_app_manager_private_h
+#endif // FLECS_daemon_private_app_manager_private_h

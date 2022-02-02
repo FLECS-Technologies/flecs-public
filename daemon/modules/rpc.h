@@ -12,21 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_service_factory_h
-#define FLECS_service_service_factory_h
+#ifndef FLECS_daemon_modules_rpc_h
+#define FLECS_daemon_modules_rpc_h
 
-#include <memory>
+#include "module.h"
+#include "util/cxx20/string.h"
 
 namespace FLECS {
 
-class service_t;
-
-template <typename T, typename... Args>
-auto make_service(Args&&... args)
+class module_rpc_t : public module_t
 {
-    return std::shared_ptr<service_t>{std::make_shared<T>(args...)};
-}
+public:
+private:
+    module_error_e do_process(int argc, char** argv) override;
+
+    std::string _action;
+    std::string _callee;
+    std::string _method;
+    // std::list<FLECS::any> _args;
+};
 
 } // namespace FLECS
 
-#endif // FLECS_service_service_factory_h
+#endif // FLECS_daemon_modules_rpc_h

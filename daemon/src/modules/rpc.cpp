@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "service/service_rpc.h"
+#include "modules/rpc.h"
 
 #include <iostream>
 #include <list>
@@ -24,7 +24,7 @@
 
 namespace FLECS {
 
-service_error_e service_rpc::do_process(int /*argc*/, char** /*argv*/)
+module_error_e module_rpc_t::do_process(int /*argc*/, char** /*argv*/)
 {
     return FLECS_OK;
 }
@@ -51,7 +51,7 @@ void emplace_arg(std::list<FLECS::any>& args, const char* arg)
     }
 }
 
-int service_rpc(int argc, char** argv)
+int module_rpc_t(int argc, char** argv)
 {
     for (int i = 0; i < argc; ++i)
     {
