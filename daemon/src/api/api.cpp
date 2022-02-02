@@ -18,11 +18,11 @@
 #include <thread>
 #include <vector>
 
-#include "service/service_app_manager.h"
-#include "service/service_errors.h"
-#include "service/service_factory.h"
-#include "service/service_help.h"
-#include "service/service_rpc.h"
+#include "modules/app_manager.h"
+#include "modules/errors.h"
+#include "modules/factory.h"
+#include "modules/help.h"
+#include "modules/rpc.h"
 #include "signal_handler/signal_handler.h"
 #include "util/string/literals.h"
 
@@ -54,9 +54,9 @@ socket_api_t::socket_api_t()
         exit(EXIT_FAILURE);
     }
 
-    _service_table.emplace("app-manager", make_service<service_app_manager_t>());
-    _service_table.emplace("help", make_service<service_help>());
-    _service_table.emplace("rpc", make_service<service_rpc>());
+    _service_table.emplace("app-manager", make_module<module_app_manager_t>());
+    _service_table.emplace("help", make_module<module_help_t>());
+    _service_table.emplace("rpc", make_module<module_rpc_t>());
 }
 
 int socket_api_t::run()
@@ -94,7 +94,7 @@ int socket_api_t::process(unix_socket_t&& conn_socket)
         return 1;
     }
 
-    service_error_e err = FLECS_USAGE;
+    module_error_e err = FLECS_USAGE;
     auto args = parse_args(buf, n_bytes);
     if (args.size() < 1)
     {

@@ -12,26 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_service_help_h
-#define FLECS_service_service_help_h
+#include "modules/module.h"
 
-#include <list>
-#include <string>
-
-#include "service.h"
+#include <iostream>
 
 namespace FLECS {
 
-class service_help : public service_t
+module_error_e module_t::process(int argc, char** argv)
 {
-public:
-private:
-    service_error_e do_process(int argc, char** argv) override;
-
-    std::string _topic;
-    std::list<std::string> _subtopics;
-};
+    return do_process(argc, argv);
+}
 
 } // namespace FLECS
-
-#endif // FLECS_service_service_help_h

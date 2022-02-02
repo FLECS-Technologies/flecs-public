@@ -12,19 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "service/service_help.h"
+#ifndef FLECS_daemon_modules_errors_h
+#define FLECS_daemon_modules_errors_h
+
+#include <cstdint>
 
 namespace FLECS {
 
-service_error_e service_help::do_process(int argc, char** argv)
+enum module_error_e : int
 {
-    _topic = argc > 0 ? argv[0] : "";
-    for (auto i = 1; i < argc; ++i)
-    {
-        _subtopics.push_back(argv[i]);
-    }
+    FLECS_OK,
+    FLECS_FAILED,
 
-    return FLECS_OK;
-}
+    FLECS_ARGC,
+    FLECS_USAGE,
+
+    FLECS_IO,
+    FLECS_IOFD,
+    FLECS_IOR,
+    FLECS_IOW,
+
+    FLECS_APP_NOTINST,
+
+    FLECS_INSTANCE_NOTEXIST,
+    FLECS_INSTANCE_NOTRUN,
+    FLECS_INSTANCE_APP,
+    FLECS_INSTANCE_VERSION,
+
+    FLECS_CURL = 0x70000000,
+    FLECS_SQLITE = 0x71000000,
+    FLECS_YAML = 0x72000000,
+    FLECS_DOCKER = 0x73000000,
+};
 
 } // namespace FLECS
+
+#endif // FLECS_daemon_modules_errors_h

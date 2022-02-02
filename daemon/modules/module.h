@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_service_h
-#define FLECS_service_service_h
+#ifndef FLECS_daemon_modules_module_h
+#define FLECS_daemon_modules_module_h
 
-#include "service_errors.h"
+#include "errors.h"
 
 namespace FLECS {
 
@@ -28,21 +28,21 @@ namespace FLECS {
 
 #define OPTIONAL_ARGUMENT(arg, pos) const auto arg = (argc > pos) ? argv[pos] : ""
 
-class service_t
+class module_t
 {
 public:
-    service_error_e process(int argc, char** argv);
+    module_error_e process(int argc, char** argv);
 
 protected:
-    service_t() = default;
-    virtual ~service_t() = default;
+    module_t() = default;
+    virtual ~module_t() = default;
 
 private:
-    virtual service_error_e do_process(int argc, char** argv) = 0;
+    virtual module_error_e do_process(int argc, char** argv) = 0;
 
     bool _json_output;
 };
 
 } // namespace FLECS
 
-#endif // FLECS_service_service_h
+#endif // FLECS_daemon_modules_module_h

@@ -19,7 +19,7 @@
 #include <string>
 
 #include "api.h"
-#include "service/service_errors.h"
+#include "modules/errors.h"
 #include "util/socket/unix_client.h"
 
 namespace FLECS {
@@ -48,7 +48,7 @@ int run_flecs_command_private(const std::string& args)
             errno);
     }
 
-    auto res = FLECS::service_error_e{};
+    auto res = FLECS::module_error_e{};
     auto rdbuf = std::string{};
     auto bytes_received = client.recv(&res, sizeof(res), 0);
     while (bytes_received > 0)

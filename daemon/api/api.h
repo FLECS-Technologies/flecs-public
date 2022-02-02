@@ -18,7 +18,7 @@
 #include <map>
 #include <memory>
 
-#include "service/service.h"
+#include "modules/module.h"
 #include "util/socket/unix_server.h"
 #include "util/string/comparator.h"
 
@@ -36,7 +36,7 @@ public:
 private:
     int process(FLECS::unix_socket_t&& conn_socket);
 
-    using service_table_t = std::map<const char*, std::shared_ptr<service_t>, string_comparator_t>;
+    using service_table_t = std::map<const char*, std::shared_ptr<module_t>, string_comparator_t>;
     service_table_t _service_table;
 
     FLECS::unix_server_t _server;

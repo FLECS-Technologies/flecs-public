@@ -27,11 +27,11 @@ set(SRC_BINARY
     src/api/api.cpp
     src/app/app.cpp
     src/db/app_db.cpp
-    src/service/private/service_app_manager_private.cpp
-    src/service/service_app_manager.cpp
-    src/service/service.cpp
-    src/service/service_help.cpp
-    src/service/service_rpc.cpp
+    src/modules/private/app_manager_private.cpp
+    src/modules/app_manager.cpp
+    src/modules/help.cpp
+    src/modules/module.cpp
+    src/modules/rpc.cpp
     src/signal_handler/signal_handler.cpp
 )
 
@@ -42,13 +42,13 @@ set(HEADER_BINARY
     db/app_db.h
     daemon.h
     instance/instance_status.h
-    service/private/service_app_manager_private.h
-    service/service_app_manager.h
-    service/service_errors.h
-    service/service_factory.h
-    service/service.h
-    service/service_help.h
-    service/service_rpc.h
+    modules/private/app_manager_private.h
+    modules/app_manager.h
+    modules/errors.h
+    modules/factory.h
+    modules/help.h
+    modules/module.h
+    modules/rpc.h
     signal_handler/signal_handler.h
 )
 
@@ -98,13 +98,13 @@ set(HEADER_LIB
     db/app_db.h
     daemon.h
     instance/instance_status.h
-    service/private/service_app_manager_private.h
-    service/service_app_manager.h
-    service/service_errors.h
-    service/service_factory.h
-    service/service.h
-    service/service_help.h
-    service/service_rpc.h
+    modules/private/app_manager_private.h
+    modules/app_manager.h
+    modules/errors.h
+    modules/factory.h
+    modules/help.h
+    modules/module.h
+    modules/rpc.h
 )
 
 add_library(FLECS.daemon SHARED ${SRC_LIB} ${HEADER_LIB})
