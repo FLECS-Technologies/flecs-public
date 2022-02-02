@@ -77,10 +77,12 @@
         "queue": "cpp",
         "stack": "cpp",
         "cstdbool": "cpp",
-        "complex": "cpp"
+        "complex": "cpp",
+        "codecvt": "cpp"
     },
     "cSpell.words": [
         "flecs"
     ],
-    "cSpell.enabled": true
+    "cSpell.enabled": true,
+    "debug.internalConsoleOptions": "neverOpen"
 }

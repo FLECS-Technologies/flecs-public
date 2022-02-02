@@ -34,22 +34,8 @@ module_error_e download_manifest(const std::string& app_name, const std::string&
 std::string build_manifest_url(const std::string& app_name, const std::string& version);
 std::string build_manifest_path(const std::string& app_name, const std::string& version);
 
-module_app_manager_private_t::module_app_manager_private_t()
-{
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-}
-
-module_app_manager_private_t::~module_app_manager_private_t()
-{
-    curl_global_cleanup();
-}
-
 module_error_e module_app_manager_private_t::do_install(const std::string& app_name, const std::string& version)
 {
-    const auto status = app_status_e::NOT_INSTALLED;
-    const auto desired = app_status_e::INSTALLED;
-    _app_db.insert_app({app_name, version, status, desired, "", 0});
-
     const auto res = download_manifest(app_name, version);
     if (res != FLECS_OK)
     {
@@ -62,6 +48,7 @@ module_error_e module_app_manager_private_t::do_install(const std::string& app_n
 module_error_e module_app_manager_private_t::do_install(const std::string& manifest)
 {
     const auto desired = INSTALLED;
+
     auto app = app_t{manifest};
     if (!app.yaml_loaded())
     {
@@ -101,8 +88,10 @@ module_error_e module_app_manager_private_t::do_sideload(const std::string& mani
     const auto desired = app_status_e::INSTALLED;
     _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0});
 
-    std::error_code ec;
     const auto path = build_manifest_path(app.name(), app.version());
+
+    std::error_code ec;
+    std::filesystem::remove(path, ec);
     std::filesystem::copy(manifest_path, path, ec);
     if (ec)
     {
@@ -162,7 +151,7 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
     if (res < 0)
     {
         std::fprintf(stderr, "Could not delete manifest %s: %d (%s)\n", path.c_str(), errno, strerror(errno));
-        return FLECS_IOW;
+        return FLECS_IO;
     }
 
     _app_db.delete_app({app_name, version});
@@ -595,28 +584,21 @@ module_error_e download_manifest(const std::string& app_name, const std::string&
     if (manifest == nullptr)
     {
         std::fprintf(stderr, "Could not open %s for writing\n", path.c_str());
-        return FLECS_IOW;
+        return FLECS_IO;
     }
 
     auto fd = fileno(manifest);
     if (fd < 0)
     {
         std::fprintf(stderr, "Could not get fd for %s\n", path.c_str());
-        return FLECS_IOFD;
+        return FLECS_IO;
     }
 
     const auto url = build_manifest_url(app_name, version);
-    curl_easy_ext curl{};
+    curl_easy_ext curl{url, &fd};
     if (!curl)
     {
         std::fprintf(stderr, "Could not initialize curl_easy_ext\n");
-        return FLECS_CURL;
-    }
-
-    if (curl.setopt<CURLOPT_URL>(url.c_str()) != CURLE_OK ||
-        curl.setopt<CURLOPT_WRITEDATA>(reinterpret_cast<void*>(&fd)) != CURLE_OK)
-    {
-        std::fprintf(stderr, "Could not set options for curl_easy_ext\n");
         return FLECS_CURL;
     }
 
@@ -624,7 +606,8 @@ module_error_e download_manifest(const std::string& app_name, const std::string&
     fclose(manifest);
     if (curl_res != CURLE_OK)
     {
-        std::fprintf(stderr, "Could not download app manifest: %s (%d)\n", curl_easy_strerror(curl_res), curl_res);
+        auto http_code = curl.response_code();
+        std::fprintf(stderr, "Could not download app manifest: HTTP return code %ld\n", http_code);
         return static_cast<module_error_e>(FLECS_CURL + curl_res);
     }
 

@@ -23,6 +23,7 @@
 #include "modules/factory.h"
 #include "modules/help.h"
 #include "modules/rpc.h"
+#include "modules/usage.h"
 #include "signal_handler/signal_handler.h"
 #include "util/string/literals.h"
 
@@ -57,6 +58,7 @@ socket_api_t::socket_api_t()
     _service_table.emplace("app-manager", make_module<module_app_manager_t>());
     _service_table.emplace("help", make_module<module_help_t>());
     _service_table.emplace("rpc", make_module<module_rpc_t>());
+    _service_table.emplace("usage", make_module<module_usage_t>());
 }
 
 int socket_api_t::run()
@@ -96,14 +98,9 @@ int socket_api_t::process(unix_socket_t&& conn_socket)
 
     module_error_e err = FLECS_USAGE;
     auto args = parse_args(buf, n_bytes);
-    if (args.size() < 1)
-    {
-        err = FLECS_USAGE;
-        conn_socket.send(&err, sizeof(err), 0);
-        return err;
-    }
+    const char* cmd = (args.size() > 1 ? args[1] : "usage");
 
-    auto it = _service_table.find(args[1]);
+    auto it = _service_table.find(cmd);
     if (it != _service_table.end())
     {
         err = it->second->process(args.size() - 2, &args.data()[2]);
@@ -114,9 +111,18 @@ int socket_api_t::process(unix_socket_t&& conn_socket)
 
     conn_socket.send(&err, sizeof(err), 0);
 
-    auto file_stdout = fopen(template_stdout, "r");
-    auto s = fread(buf, 1, sizeof(buf), file_stdout);
-    conn_socket.send(buf, s, 0);
+    if (err == FLECS_OK)
+    {
+        auto file_stdout = fopen(template_stdout, "r");
+        auto s = fread(buf, 1, sizeof(buf), file_stdout);
+        conn_socket.send(buf, s, 0);
+    }
+    else
+    {
+        auto file_stderr = fopen(template_stderr, "r");
+        auto s = fread(buf, 1, sizeof(buf), file_stderr);
+        conn_socket.send(buf, s, 0);
+    }
 
     unlink(template_stdout);
     unlink(template_stderr);

@@ -20,19 +20,35 @@
 
 namespace FLECS {
 
-curl_easy_ext::curl_easy_ext()
-    : _curl{curl_easy_init()}
+curl_easy_ext::curl_easy_ext(const std::string& url, int* write_fd)
+    : _curl{}
 {
+    if (!_ref_count)
+    {
+        auto lock = std::lock_guard<std::mutex>{_ref_mutex};
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+        ++_ref_count;
+    }
+
+    _curl = curl_easy_init();
     if (_curl)
     {
         setopt<CURLOPT_WRITEFUNCTION>(&curl_easy_ext_write_cb);
         setopt<CURLOPT_FAILONERROR>(1L);
+        setopt<CURLOPT_URL>(url.c_str());
+        setopt<CURLOPT_WRITEDATA>(static_cast<void*>(write_fd));
     }
 }
 
 curl_easy_ext::~curl_easy_ext()
 {
     curl_easy_cleanup(_curl);
+    auto lock = std::lock_guard<std::mutex>{_ref_mutex};
+    --_ref_count;
+    if (!_ref_count)
+    {
+        curl_global_cleanup();
+    }
 }
 
 curl_easy_ext::operator bool() const noexcept

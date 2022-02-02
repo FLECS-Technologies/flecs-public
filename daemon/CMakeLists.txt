@@ -32,6 +32,7 @@ set(SRC_BINARY
     src/modules/help.cpp
     src/modules/module.cpp
     src/modules/rpc.cpp
+    src/modules/usage.cpp
     src/signal_handler/signal_handler.cpp
 )
 
@@ -49,6 +50,7 @@ set(HEADER_BINARY
     modules/help.h
     modules/module.h
     modules/rpc.h
+    modules/usage.h
     signal_handler/signal_handler.h
 )
 

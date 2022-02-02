@@ -29,9 +29,6 @@ namespace Private {
 class module_app_manager_private_t
 {
 public:
-    module_app_manager_private_t();
-    ~module_app_manager_private_t();
-
     /*! @brief Installs an application from its name and version, i.e. downloads it from the marketplace
      *
      * @param[in] app_name Name of the application to install

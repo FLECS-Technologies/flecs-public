@@ -15,6 +15,8 @@
 #ifndef FLECS_util_curl_easy_ext_h
 #define FLECS_util_curl_easy_ext_h
 
+#include <mutex>
+#include <optional>
 #include <string>
 
 #include "curl/curl.h"
@@ -24,24 +26,27 @@ namespace FLECS {
 class curl_easy_ext
 {
 public:
-    curl_easy_ext();
+    curl_easy_ext(const std::string& url, int* write_fd);
 
     ~curl_easy_ext();
 
-    template <CURLoption option, typename T>
-    CURLcode setopt(T param);
+    long response_code() const noexcept;
 
     CURLcode perform();
 
     operator bool() const noexcept;
 
 private:
+    template <CURLoption option, typename T>
+    CURLcode setopt(T param);
+
     template <typename T>
     CURLcode setopt(CURLoption option, T param);
 
     CURL* _curl;
 
-    int _write_fd;
+    static inline int _ref_count{};
+    static inline std::mutex _ref_mutex{};
 };
 
 template <typename T>
@@ -52,6 +57,20 @@ CURLcode curl_easy_ext::setopt(CURLoption option, T param)
         return CURLE_FAILED_INIT;
     }
     return curl_easy_setopt(_curl, option, param);
+}
+
+inline long curl_easy_ext::response_code() const noexcept
+{
+    if (!_curl)
+    {
+        return -1;
+    }
+    auto res = long{};
+    if (curl_easy_getinfo(_curl, CURLINFO_RESPONSE_CODE, &res) != CURLE_OK)
+    {
+        return -1;
+    }
+    return res;
 }
 
 #define CURL_EASY_EXT_SETOPT(option, type)                    \

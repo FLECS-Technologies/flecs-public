@@ -12,19 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <getopt.h>
+#include "modules/usage.h"
 
 #include <cstdio>
 
-#include "daemon.h"
-#include "signal_handler/signal_handler.h"
+namespace FLECS {
 
-constexpr struct option options[] = {{"json", no_argument, nullptr, 0}, {nullptr, no_argument, nullptr, 0}};
-
-int main(int /*argc*/, char** /*argv*/)
+module_error_e module_usage_t::do_process(int, char**)
 {
-    FLECS::signal_handler_init();
+    std::fprintf(
+        stdout,
+        "Usage: flecs [OPTIONS] COMMAND\n\n"
+        "Options:\n"
+        "    --json         Produce output in JSON format\n"
+        "\n"
+        "Commands:\n"
+        "    app-manager    Manage apps and instances\n"
+        "    help           Display help for specific COMMAND\n"
+        "    rpc            Issue RPC for running app\n"
+        "    usage          Print this help\n"
+        "\n");
 
-    auto daemon = FLECS::daemon_t{};
-    return daemon.run();
+    return FLECS_USAGE;
 }
+
+} // namespace FLECS

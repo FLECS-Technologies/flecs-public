@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(flecs-cli)
+project(FLECS.cli)
 
 set(SRC_BINARY
     src/main.cpp
