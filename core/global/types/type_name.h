@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,6 @@
 #ifndef FLECS_core_global_type_name_h
 #define FLECS_core_global_type_name_h
 
-#include "core/global/types/types.h"
-#include "core/global/types/type_traits.h"
-
 #include <array>
 #include <list>
 #include <map>
@@ -26,144 +23,250 @@
 #include <string_view>
 #include <vector>
 
+#include "core/global/types/type_traits.h"
+#include "core/global/types/types.h"
+
 namespace FLECS {
 
 constexpr cstr_t type_name(void_t) noexcept
-    { return "void"; }
+{
+    return "void";
+}
 
 constexpr cstr_t type_name(bool_t) noexcept
-    { return "bool"; }
+{
+    return "bool";
+}
 constexpr cstr_t type_name(int8_t) noexcept
-    { return "sint8"; }
+{
+    return "sint8";
+}
 constexpr cstr_t type_name(uint8_t) noexcept
-    { return "uint8"; }
+{
+    return "uint8";
+}
 constexpr cstr_t type_name(int16_t) noexcept
-    { return "sint16"; }
+{
+    return "sint16";
+}
 constexpr cstr_t type_name(uint16_t) noexcept
-    { return "uint16"; }
+{
+    return "uint16";
+}
 constexpr cstr_t type_name(int32_t) noexcept
-    { return "sint32"; }
+{
+    return "sint32";
+}
 constexpr cstr_t type_name(uint32_t) noexcept
-    { return "uint32"; }
+{
+    return "uint32";
+}
 constexpr cstr_t type_name(int64_t) noexcept
-    { return "sint64"; }
+{
+    return "sint64";
+}
 constexpr cstr_t type_name(uint64_t) noexcept
-    { return "uint64"; }
+{
+    return "uint64";
+}
 constexpr cstr_t type_name(fp32_t) noexcept
-    { return "fp32"; }
+{
+    return "fp32";
+}
 constexpr cstr_t type_name(fp64_t) noexcept
-    { return "fp64"; }
+{
+    return "fp64";
+}
 
 constexpr cstr_t type_name(void_t*) noexcept
-    { return "void_ptr"; }
+{
+    return "void_ptr";
+}
 constexpr cstr_t type_name(bool_t*) noexcept
-    { return "bool_ptr"; }
+{
+    return "bool_ptr";
+}
 constexpr cstr_t type_name(int8_t*) noexcept
-    { return "sint8_ptr"; }
+{
+    return "sint8_ptr";
+}
 constexpr cstr_t type_name(uint8_t*) noexcept
-    { return "uint8_ptr"; }
+{
+    return "uint8_ptr";
+}
 constexpr cstr_t type_name(int16_t*) noexcept
-    { return "sint16_ptr"; }
+{
+    return "sint16_ptr";
+}
 constexpr cstr_t type_name(uint16_t*) noexcept
-    { return "uint16_ptr"; }
+{
+    return "uint16_ptr";
+}
 constexpr cstr_t type_name(int32_t*) noexcept
-    { return "sint32_ptr"; }
+{
+    return "sint32_ptr";
+}
 constexpr cstr_t type_name(uint32_t*) noexcept
-    { return "uint32_ptr"; }
+{
+    return "uint32_ptr";
+}
 constexpr cstr_t type_name(int64_t*) noexcept
-    { return "sint64_ptr"; }
+{
+    return "sint64_ptr";
+}
 constexpr cstr_t type_name(uint64_t*) noexcept
-    { return "uint64_ptr"; }
+{
+    return "uint64_ptr";
+}
 constexpr cstr_t type_name(fp32_t*) noexcept
-    { return "fp32_ptr"; }
+{
+    return "fp32_ptr";
+}
 constexpr cstr_t type_name(fp64_t*) noexcept
-    { return "fp64_ptr"; }
+{
+    return "fp64_ptr";
+}
 
 constexpr cstr_t type_name(const void_t*) noexcept
-    { return "void_ptr"; }
+{
+    return "void_ptr";
+}
 constexpr cstr_t type_name(const bool_t*) noexcept
-    { return "bool_ptr"; }
+{
+    return "bool_ptr";
+}
 constexpr cstr_t type_name(const int8_t*) noexcept
-    { return "sint8_ptr"; }
+{
+    return "sint8_ptr";
+}
 constexpr cstr_t type_name(const uint8_t*) noexcept
-    { return "uint8_ptr"; }
+{
+    return "uint8_ptr";
+}
 constexpr cstr_t type_name(const int16_t*) noexcept
-    { return "sint16_ptr"; }
+{
+    return "sint16_ptr";
+}
 constexpr cstr_t type_name(const uint16_t*) noexcept
-    { return "uint16_ptr"; }
+{
+    return "uint16_ptr";
+}
 constexpr cstr_t type_name(const int32_t*) noexcept
-    { return "sint32_ptr"; }
+{
+    return "sint32_ptr";
+}
 constexpr cstr_t type_name(const uint32_t*) noexcept
-    { return "uint32_ptr"; }
+{
+    return "uint32_ptr";
+}
 constexpr cstr_t type_name(const int64_t*) noexcept
-    { return "sint64_ptr"; }
+{
+    return "sint64_ptr";
+}
 constexpr cstr_t type_name(const uint64_t*) noexcept
-    { return "uint64_ptr"; }
+{
+    return "uint64_ptr";
+}
 constexpr cstr_t type_name(const fp32_t*) noexcept
-    { return "fp32_ptr"; }
+{
+    return "fp32_ptr";
+}
 constexpr cstr_t type_name(const fp64_t*) noexcept
-    { return "fp64_ptr"; }
+{
+    return "fp64_ptr";
+}
 
 constexpr cstr_t type_name(cstr_t) noexcept
-    { return "string"; }
+{
+    return "string";
+}
 constexpr cstr_t type_name(const std::string&) noexcept
-    { return "string"; }
+{
+    return "string";
+}
 constexpr cstr_t type_name(const std::string_view&) noexcept
-    { return "string"; }
+{
+    return "string";
+}
 template <size_t N>
 constexpr cstr_t type_name(char_t (&)[N]) noexcept
-    { return "string"; }
+{
+    return "string";
+}
 
 constexpr cstr_t type_name(wcstr_t) noexcept
-    { return "wstring"; }
+{
+    return "wstring";
+}
 constexpr cstr_t type_name(const std::wstring&) noexcept
-    { return "wstring"; }
+{
+    return "wstring";
+}
 constexpr cstr_t type_name(const std::wstring_view&) noexcept
-    { return "wstring"; }
+{
+    return "wstring";
+}
 template <size_t N>
 constexpr cstr_t type_name(wchar_t (&)[N]) noexcept
-{ return "string"; }
+{
+    return "string";
+}
 
 constexpr cstr_t type_name(u16cstr_t) noexcept
-    { return "u16string"; }
+{
+    return "u16string";
+}
 
 constexpr cstr_t type_name(u32cstr_t) noexcept
-    { return "u32string"; }
+{
+    return "u32string";
+}
 
 template <typename T>
 constexpr cstr_t type_name(const std::list<T>&) noexcept
-    { return "list"; }
+{
+    return "list";
+}
 
 template <typename T, typename U>
 constexpr cstr_t type_name(const std::map<T, U>&) noexcept
-    { return "map"; }
+{
+    return "map";
+}
 
 template <typename T>
 constexpr cstr_t type_name(const std::set<T>&) noexcept
-    { return "set"; }
+{
+    return "set";
+}
 
 template <typename T, size_t N>
 constexpr cstr_t type_name(const std::array<T, N>&) noexcept
-    { return "array"; }
+{
+    return "array";
+}
 template <typename T>
 constexpr cstr_t type_name(const std::vector<T>&) noexcept
-    { return "array"; }
+{
+    return "array";
+}
 template <typename T, size_t N>
 constexpr cstr_t type_name(T (&)[N]) noexcept
-    { return "array"; }
+{
+    return "array";
+}
 
 template <typename T>
-constexpr std::enable_if_t<
-    std::is_enum_v<T>,
-cstr_t> type_name(T) noexcept
-    { return type_name(std::underlying_type_t<T>()); }
+constexpr std::enable_if_t<std::is_enum_v<T>, cstr_t> type_name(T) noexcept
+{
+    return type_name(std::underlying_type_t<T>());
+}
 
 template <typename T>
-constexpr std::enable_if_t<
-    std::is_const_v<T> ||
-    std::is_volatile_v<T>,
-cstr_t> type_name() noexcept
-    { return type_name(std::remove_cv_t<T>()); }
+constexpr std::enable_if_t<std::is_const_v<T> || std::is_volatile_v<T>, cstr_t> type_name() noexcept
+{
+    return type_name(std::remove_cv_t<T>());
+}
 
 } // namespace FLECS
 

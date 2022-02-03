@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 
 namespace FLECS {
 
-enum class http_status_e {
+enum class http_status_e
+{
     Ok = 200,
     // Client errors
     BadRequest = 400,
@@ -64,6 +65,5 @@ enum class http_status_e {
 };
 
 } // namespace FLECS
-
 
 #endif // FLECS_util_http_status_codes_h

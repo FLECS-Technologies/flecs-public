@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,7 +34,8 @@ static_assert(sizeof(fp64_t) == 8);
 
 static_assert(sizeof(char_t) == 1);
 static_assert(sizeof(char16_t) == 2);
-static_assert(sizeof(char32_t) == 4);;
+static_assert(sizeof(char32_t) == 4);
+;
 
 static_assert(std::is_same_v<decltype(sizeof(size_t)), size_t>);
 
