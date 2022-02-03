@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,44 +20,34 @@
 
 extern char** environ;
 
-namespace FLECS
-{
+namespace FLECS {
 
 class flecs_posix_spawn_file_actions_t
 {
 public:
-    flecs_posix_spawn_file_actions_t()
-        { posix_spawn_file_actions_init(&_file_actions); }
+    flecs_posix_spawn_file_actions_t() { posix_spawn_file_actions_init(&_file_actions); }
 
-    ~flecs_posix_spawn_file_actions_t()
-        { posix_spawn_file_actions_destroy(&_file_actions); }
+    ~flecs_posix_spawn_file_actions_t() { posix_spawn_file_actions_destroy(&_file_actions); }
 
-    auto pointer() noexcept -> posix_spawn_file_actions_t*
-        { return &_file_actions; }
+    auto pointer() noexcept -> posix_spawn_file_actions_t* { return &_file_actions; }
 
 private:
     posix_spawn_file_actions_t _file_actions;
 };
 
-
 class flecs_posix_spawnattr_t
 {
 public:
-    flecs_posix_spawnattr_t()
-        { posix_spawnattr_init(&_attr); }
+    flecs_posix_spawnattr_t() { posix_spawnattr_init(&_attr); }
 
-    ~flecs_posix_spawnattr_t()
-        { posix_spawnattr_destroy(&_attr); }
+    ~flecs_posix_spawnattr_t() { posix_spawnattr_destroy(&_attr); }
 
-    auto pointer() noexcept -> posix_spawnattr_t*
-        { return &_attr; }
+    auto pointer() noexcept -> posix_spawnattr_t* { return &_attr; }
 
 private:
     posix_spawnattr_t _attr;
 };
 
-
 } // namespace FLECS
 
-
-#endif //FLECS_process_posix_spaw_h
+#endif // FLECS_process_posix_spaw_h

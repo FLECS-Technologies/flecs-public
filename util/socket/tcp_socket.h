@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,11 +23,13 @@ class tcp_socket_t : public socket_t
 {
 public:
     tcp_socket_t()
-        : socket_t { domain_t::INET, type_t::STREAM, 0 } {}
+        : socket_t{domain_t::INET, type_t::STREAM, 0}
+    {}
     tcp_socket_t(int fd)
-        : socket_t { fd } {}
+        : socket_t{fd}
+    {}
 };
 
 } // namespace FLECS
 
-#endif //FLECS_util_tcp_socket_h
+#endif // FLECS_util_tcp_socket_h

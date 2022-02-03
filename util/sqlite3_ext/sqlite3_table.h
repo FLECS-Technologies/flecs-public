@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,10 +27,8 @@ struct sqlite3_type_t
 
 struct sqlite3_table_field_t
 {
-
 };
 
 } // namespace FLECS
-
 
 #endif // FLECS_util_sqlite3_table_h

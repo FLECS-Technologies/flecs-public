@@ -1,4 +1,4 @@
-// Copyright 2021 FLECS Technologies GmbH
+// Copyright 2021-2022 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,5 +23,4 @@ constexpr const char* http_version_2_0 = "HTTP/2";
 
 } // namespace FLECS
 
-
-#endif //FLECS_util_http_version_strings_h
+#endif // FLECS_util_http_version_strings_h
