@@ -6,12 +6,13 @@ if [ -f /etc/flecs.d/channel ]; then
     CHANNEL=$(cat /etc/flecs.d/channel);
 fi
 
-docker pull marketplace.flecs.tech:5000/flecs/updater:${CHANNEL} | grep "Downloaded newer image"
+docker login --username flecs --password $(echo "YzMwMDZmMmYtZWM1My00ZjE5LWEyMjAtYzIyZjZkYjU1OTk1" | base64 -d) >/dev/null
+docker pull flecs/updater:${CHANNEL} | grep "Downloaded newer image"
 if [ ! $? -eq 0 ]; then
     exit 0;
 fi
 
-/usr/bin/docker run --rm -v /usr/bin:/host/usr/bin marketplace.flecs.tech:5000/flecs/updater:${CHANNEL} || exit 1
+/usr/bin/docker run --rm -v /usr/bin:/host/usr/bin flecs/updater:${CHANNEL} || exit 1
 
 DIR=$(dirname $(readlink -f ${0}))
 
