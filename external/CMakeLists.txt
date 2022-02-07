@@ -18,7 +18,7 @@ include(ExternalProject)
 
 # define source directories
 
-set (CURL_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/curl-7.80.0)
+set (CURL_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/curl-7.81.0)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (JSONCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp-1.9.5)
 set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-2.1.4)
