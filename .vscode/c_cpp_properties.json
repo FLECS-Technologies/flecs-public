@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}",
-                "${workspaceFolder}/external/curl-7.80.0/include",
+                "${workspaceFolder}/external/curl-7.81.0/include",
                 "${workspaceFolder}/external/gtest-1.11.0",
                 "${workspaceFolder}/external/jsoncpp-1.9.5/include",
                 "${workspaceFolder}/external/llhttp-2.1.4/out/x86_64-linux-gnu/include",
