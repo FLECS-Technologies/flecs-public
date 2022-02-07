@@ -7,7 +7,7 @@
                 "${workspaceFolder}/external/curl-7.81.0/include",
                 "${workspaceFolder}/external/gtest-1.11.0",
                 "${workspaceFolder}/external/jsoncpp-1.9.5/include",
-                "${workspaceFolder}/external/llhttp-2.1.4/out/x86_64-linux-gnu/include",
+                "${workspaceFolder}/external/llhttp-v6.0.6/out/x86_64-linux-gnu/include",
                 "${workspaceFolder}/external/mosquitto-2.0.14/include",
                 "${workspaceFolder}/external/openssl-1.1.1m/out/x86_64-linux-gnu/include",
                 "${workspaceFolder}/external/sqlite-3.37.0",
