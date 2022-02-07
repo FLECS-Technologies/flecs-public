@@ -14,7 +14,7 @@
 
 #include <filesystem>
 
-#include "daemon/include/db/app_db.h"
+#include "daemon/db/app_db.h"
 #include "gtest/gtest.h"
 
 static auto s_app_db = FLECS::app_db_t{};
