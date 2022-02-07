@@ -85,7 +85,7 @@ public:
      */
     module_error_e do_uninstall(const std::string& app_name, const std::string& version);
 
-    /*! Creates a new instance of an installed app
+    /*! @brief Creates a new instance of an installed app
      *
      * @param[in] app_name Name of the app
      * @param[in] version Version of the app
@@ -99,19 +99,114 @@ public:
      */
     module_error_e do_create_instance(
         const std::string& app_name, const std::string& version, const std::string& description);
-    module_error_e do_delete_instance(const std::string& app_name, const std::string& version, const std::string& id);
+
+    /*! @brief Deletes an existing instance
+     *
+     * @param[in] id Unique instance id assigned by @sa do_create_instance
+     * @param[in] app_name Name of the app the instance belongs to or empty string
+     * @param[in] version Version of the app the instance belongs to or empty string
+     *
+     * @return error code
+     * @return FLECS_OK No error occurred
+     * @return FLECS_INSTANCE_NOTEXIST if the specified instance does not exist
+     * @return any error returned by @sa xcheck_app_instance if app_name and/or versions are provided
+     */
+    module_error_e do_delete_instance(const std::string& id, const std::string& app_name, const std::string& version);
+
+    /*! @brief Starts an existing instance. If the instance is already running, no action is performed and the function
+     * call is considered successful. app_name and version can be provided as additional arguments, in which case these
+     * values are cross-checked to the contents of the app db.
+     *
+     * @param[in] id Unique instance id assigned by @sa do_create_instance
+     * @param[in] app_name Name of the app the instance belongs to or empty string
+     * @param[in] version Version of the app the instance belongs to or empty string
+     *
+     * @return error code
+     * @return FLECS_OK No error occurred
+     * @return FLECS_INSTANCE_NOTEXIST if the specified instance does not exist
+     * @return FLECS_INSTANCE_NOTRUNNABLE if the specified instance was not successfully created
+     * @return FLECS_YAML if the corresponding app manifest is missing or incorrect
+     * @return FLECS_DOCKER if the call to Docker was unsuccessful
+     * @return any error returned by @sa xcheck_app_instance if app_name and/or versions are provided
+     */
     module_error_e do_start_instance(
         const std::string& id, const std::string& app_name, const std::string& version, bool internal = false);
+
+    /*! @brief Stops a running instance. If the instance is not running, no action is performed and the function call is
+     * considered successful. app_name and version can be provided as additional arguments, in which case these
+     * values are cross-checked to the contents of the app db.
+     *
+     * @param[in] id Unique instance id assigned by @sa do_create_instance
+     * @param[in] app_name Name of the app the instance belongs to or empty string
+     * @param[in] version Version of the app the instance belongs to or empty string
+     *
+     * @return error code
+     * @return FLECS_OK No error occurred
+     * @return FLECS_INSTANCE_NOTEXIST if the specified instance does not exist
+     * @return FLECS_DOCKER if the call to Docker was unsuccessful
+     */
     module_error_e do_stop_instance(
         const std::string& id, const std::string& app_name, const std::string& version, bool internal = false);
-    module_error_e do_list_apps(const std::string& app_name);
+
+    /*! @brief Prints all installed apps and their instances in JSON format
+     *
+     * @param None
+     *
+     * @return FLECS_OK
+     */
+    module_error_e do_list_apps();
+
+    /*! @brief Prints all available versions for a given app. Not yet implemented
+     */
     module_error_e do_list_versions(const std::string& app_name);
+
+    /*! @brief Prints all available instances for a given app and version. Not yet implemented
+     */
     module_error_e do_list_instances(const std::string& app_name, const std::string& version);
 
+private:
+    /*! @brief Helper function to determine whether a given app is installed in a given version
+     *
+     * @param[in] app_name Name of the app
+     * @param[in] version Version of the app
+     *
+     * @return true if the app is installed, false otherwise
+     */
     bool is_app_installed(const std::string& app_name, const std::string& version);
+
+    /*! @brief Helper function to determine whether a given instance is runnable, i.e. successfully created
+     *
+     * @param[in] id Unique instance id assigned by @sa do_create_instance
+     *
+     * @return true if instance is runnable, false otherwise
+     */
+    bool is_instance_runnable(const std::string& id);
+
+    /*! @brief Helper function to determine whether a given instance is running. Queries Docker to determine the status.
+     *
+     * @param[in] id Unique instance id assigned by @sa do_create_instance
+     *
+     * @return true if instance is running, false otherwise
+     */
     bool is_instance_running(const std::string& id);
 
-private:
+    /*! @brief Helper function to perform some cross-checks between an instance and a given app_name and version. For
+     * some functions, app_name and versions are optional, but if provided these checks will be performed. Used
+     * especially for actions triggered through the WebApp to ensure user actions are consistently packed into requests.
+     *
+     * @param[in] instance Database entry of the instance to check
+     * @param[in] app_name Name of the corresponding app
+     * @param[in] version Version of the corresponding app
+     *
+     * @return error code
+     * @return FLECS_OK No error occurred
+     * @return FLECS_APP_NOTINST if the app is not installed
+     * @return FLECS_INSTANCE_APP if instance belongs to a different app
+     * @return FLECS_INSTANCE_VERSION if the instance belongs to a different app version
+     */
+    module_error_e xcheck_app_instance(
+        const instances_table_entry_t& instance, const std::string& app_name, const std::string& version);
+
     app_db_t _app_db;
 };
 
