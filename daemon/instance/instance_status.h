@@ -45,7 +45,12 @@ constexpr instance_status_to_string_t instance_status_to_string_table = {{
 
 constexpr const char* instance_status_to_string(instance_status_e status)
 {
-    return instance_status_to_string_table.at(status).second;
+    if (instance_status_to_string_table.find(status) != instance_status_to_string_table.end())
+    {
+        return instance_status_to_string_table.at(status).second;
+    }
+
+    return "unknown";
 }
 
 } // namespace FLECS

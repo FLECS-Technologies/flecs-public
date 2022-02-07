@@ -49,7 +49,12 @@ constexpr app_status_to_string_t app_status_to_string_table = {{
 
 constexpr const char* app_status_to_string(app_status_e status)
 {
-    return app_status_to_string_table.at(status).second;
+    if (app_status_to_string_table.find(status) != app_status_to_string_table.end())
+    {
+        return app_status_to_string_table.at(status).second;
+    }
+
+    return "unknown";
 }
 
 } // namespace FLECS

@@ -288,7 +288,7 @@ http_status_e http_request_handler_t::start_app_instance()
         "instanceId",
         instanceId,
         "additionalInfo",
-        success ? std::string{} : std::get<2>(res));
+        success ? std::get<1>(res) : std::get<2>(res));
 
     return success ? http_status_e::Ok : http_status_e::InternalServerError;
 }
@@ -317,7 +317,7 @@ http_status_e http_request_handler_t::stop_app_instance()
         "instanceId",
         instanceId,
         "additionalInfo",
-        success ? std::string{} : std::get<2>(res));
+        success ? std::get<1>(res) : std::get<2>(res));
 
     return success ? http_status_e::Ok : http_status_e::InternalServerError;
 }

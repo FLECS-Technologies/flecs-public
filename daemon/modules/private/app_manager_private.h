@@ -100,8 +100,10 @@ public:
     module_error_e do_create_instance(
         const std::string& app_name, const std::string& version, const std::string& description);
     module_error_e do_delete_instance(const std::string& app_name, const std::string& version, const std::string& id);
-    module_error_e do_start_instance(const std::string& id, const std::string& app_name, const std::string& version);
-    module_error_e do_stop_instance(const std::string& id, const std::string& app_name, const std::string& version);
+    module_error_e do_start_instance(
+        const std::string& id, const std::string& app_name, const std::string& version, bool internal = false);
+    module_error_e do_stop_instance(
+        const std::string& id, const std::string& app_name, const std::string& version, bool internal = false);
     module_error_e do_list_apps(const std::string& app_name);
     module_error_e do_list_versions(const std::string& app_name);
     module_error_e do_list_instances(const std::string& app_name, const std::string& version);

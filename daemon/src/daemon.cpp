@@ -20,14 +20,17 @@
 
 namespace FLECS {
 
-int daemon_t::run()
+daemon_t::daemon_t()
+    : _api{}
+    , _api_thread{}
+{}
+
+int daemon_t::detach()
 {
-    auto socket_api = socket_api_t{};
-    auto socket_api_thread = std::thread{&socket_api_t::run, &socket_api};
-    pthread_setname_np(socket_api_thread.native_handle(), "api_thread");
+    _api_thread = std::thread{&socket_api_t::run, &_api};
+    pthread_setname_np(_api_thread.native_handle(), "api_thread");
 
-
-    socket_api_thread.join();
+    _api_thread.detach();
 
     return 0;
 }
