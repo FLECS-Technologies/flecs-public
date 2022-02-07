@@ -48,11 +48,26 @@ module_app_manager_private_t::module_app_manager_private_t()
         }
     }
 
+    std::fprintf(stdout, "Starting all app instances...\n");
     for (decltype(auto) instance : _app_db.all_instances())
     {
         if (instance.desired == instance_status_e::RUNNING)
         {
+            std::fprintf(stdout, "\t%s\n", instance.id.c_str());
             do_start_instance(instance.id, "", "");
+        }
+    }
+}
+
+module_app_manager_private_t::~module_app_manager_private_t()
+{
+    std::fprintf(stdout, "Stopping all running app instances...\n");
+    for (decltype(auto) instance : _app_db.all_instances())
+    {
+        if (is_instance_running(instance.id))
+        {
+            std::fprintf(stdout, "\t%s\n", instance.id.c_str());
+            do_stop_instance(instance.id, "", "");
         }
     }
 }
@@ -157,7 +172,7 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
     const auto instances = _app_db.instances(app_name, version);
     for (auto& instance : instances)
     {
-        const auto res = do_stop_instance(app_name, version, instance.id);
+        const auto res = do_stop_instance(instance.id, app_name, version);
         if (res != FLECS_OK)
         {
             std::fprintf(stderr, "Warning: Could not stop instance %s: %d\n", instance.id.c_str(), res);
@@ -363,7 +378,7 @@ module_error_e module_app_manager_private_t::do_delete_instance(
     }
 
     // Step 2: Attempt to stop instance
-    const auto res = do_stop_instance(app_name, version, id);
+    const auto res = do_stop_instance(id, app_name, version);
     if (res != FLECS_OK)
     {
         std::fprintf(stderr, "Could not stop instance %s: %d\n", id.c_str(), res);
@@ -505,7 +520,7 @@ module_error_e module_app_manager_private_t::do_start_instance(
 }
 
 module_error_e module_app_manager_private_t::do_stop_instance(
-    const std::string& app_name, const std::string& version, const std::string& id)
+    const std::string& id, const std::string& app_name, const std::string& version)
 {
     // Step 1: Verify instance does actually exist
     if (!_app_db.has_instance({id}))
@@ -566,7 +581,8 @@ module_error_e module_app_manager_private_t::do_list_apps(const std::string& app
             auto json_instance = Json::Value{};
             json_instance["instanceId"] = instance.id;
             json_instance["instanceName"] = instance.description;
-            json_instance["status"] = instance_status_to_string(instance.status);
+            json_instance["status"] = instance_status_to_string(
+                is_instance_running(instance.id) ? instance_status_e::RUNNING : instance.status);
             json_instance["desired"] = instance_status_to_string(instance.desired);
             json_instance["version"] = instance.version;
             json_app["instances"].append(json_instance);

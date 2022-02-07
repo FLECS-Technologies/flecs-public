@@ -30,6 +30,7 @@ class module_app_manager_private_t
 {
 public:
     module_app_manager_private_t();
+    ~module_app_manager_private_t();
 
     /*! @brief Installs an app from its name and version, i.e. downloads it from the marketplace
      *
@@ -100,7 +101,7 @@ public:
         const std::string& app_name, const std::string& version, const std::string& description);
     module_error_e do_delete_instance(const std::string& app_name, const std::string& version, const std::string& id);
     module_error_e do_start_instance(const std::string& id, const std::string& app_name, const std::string& version);
-    module_error_e do_stop_instance(const std::string& app_name, const std::string& version, const std::string& id);
+    module_error_e do_stop_instance(const std::string& id, const std::string& app_name, const std::string& version);
     module_error_e do_list_apps(const std::string& app_name);
     module_error_e do_list_versions(const std::string& app_name);
     module_error_e do_list_instances(const std::string& app_name, const std::string& version);

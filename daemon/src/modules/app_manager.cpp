@@ -107,7 +107,7 @@ module_error_e module_app_manager_t::stop_instance(int argc, char** argv)
     REQUIRED_ARGUMENT(id, 0);
     OPTIONAL_ARGUMENT(app_name, 1);
     OPTIONAL_ARGUMENT(version, 2);
-    return _impl->do_stop_instance(app_name, version, id);
+    return _impl->do_stop_instance(id, app_name, version);
 }
 
 module_error_e module_app_manager_t::list_apps(int /*argc*/, char** /*argv*/)
