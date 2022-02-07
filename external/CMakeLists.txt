@@ -21,7 +21,7 @@ include(ExternalProject)
 set (CURL_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/curl-7.81.0)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (JSONCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp-1.9.5)
-set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-2.1.4)
+set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-v6.0.6)
 set (MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.14)
 set (OPENSSL_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1m)
 set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.37.0)
@@ -51,9 +51,8 @@ add_custom_target(
 add_custom_target(
     FLECS.external.llhttp.build
     WORKING_DIRECTORY ${LLHTTP_DIR}
-    COMMAND HOME=$(pwd) npm install
-    COMMAND ${CMAKE_MAKE_PROGRAM} PREFIX=out/${MACHINE} -B install
-    COMMAND ${CMAKE_MAKE_PROGRAM} PREFIX=out/${MACHINE} clean
+    COMMAND ${CMAKE_COMMAND} -B out/${MACHINE} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+    COMMAND ${CMAKE_COMMAND} --build out/${MACHINE}
 )
 
 # mosquitto
@@ -136,7 +135,7 @@ set_property(TARGET FLECS.external.jsoncpp PROPERTY INTERFACE_INCLUDE_DIRECTORIE
 # llhttp
 add_library(FLECS.external.llhttp STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.llhttp PROPERTY IMPORTED_LOCATION ${LLHTTP_DIR}/out/${MACHINE}/lib/libllhttp.a)
-set_property(TARGET FLECS.external.llhttp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LLHTTP_DIR}/out/${MACHINE}/include)
+set_property(TARGET FLECS.external.llhttp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LLHTTP_DIR}/include)
 
 # mosquitto
 add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)
