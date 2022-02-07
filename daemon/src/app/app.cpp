@@ -23,10 +23,10 @@
 
 namespace FLECS {
 
-#define REQUIRED_TYPED_YAML_VALUE(yaml, value, target, type) \
-    do                                                       \
-    {                                                        \
-        target = yaml[#value].as<type>();                    \
+#define REQUIRED_TYPED_YAML_VALUE(yaml, value, target) \
+    do                                                 \
+    {                                                  \
+        target = yaml[#value].as<decltype(target)>();  \
     } while (false)
 
 #define REQUIRED_YAML_VALUE(yaml, value, target) \
@@ -35,15 +35,15 @@ namespace FLECS {
         target = yaml[#value];                   \
     } while (false)
 
-#define OPTIONAL_TYPED_YAML_VALUE(yaml, value, target, type) \
-    do                                                       \
-    {                                                        \
-        try                                                  \
-        {                                                    \
-            target = yaml[#value].as<type>();                \
-        } catch (const YAML::Exception& ex)                  \
-        {                                                    \
-        }                                                    \
+#define OPTIONAL_TYPED_YAML_VALUE(yaml, value, target)    \
+    do                                                    \
+    {                                                     \
+        try                                               \
+        {                                                 \
+            target = yaml[#value].as<decltype(target)>(); \
+        } catch (const YAML::Exception& ex)               \
+        {                                                 \
+        }                                                 \
     } while (false)
 
 #define OPTIONAL_YAML_VALUE(yaml, value, target) \
@@ -63,14 +63,14 @@ app_t::app_t(const std::string& manifest)
 
     try
     {
-        REQUIRED_TYPED_YAML_VALUE(yaml, app, _name, std::string);
-        REQUIRED_TYPED_YAML_VALUE(yaml, title, _title, std::string);
-        REQUIRED_TYPED_YAML_VALUE(yaml, version, _version, std::string);
-        OPTIONAL_TYPED_YAML_VALUE(yaml, description, _description, std::string);
-        REQUIRED_TYPED_YAML_VALUE(yaml, author, _author, std::string);
-        OPTIONAL_TYPED_YAML_VALUE(yaml, category, _category, std::string);
-        REQUIRED_TYPED_YAML_VALUE(yaml, image, _image, std::string);
-        OPTIONAL_TYPED_YAML_VALUE(yaml, multiInstance, _multi_instance, bool);
+        REQUIRED_TYPED_YAML_VALUE(yaml, app, _name);
+        REQUIRED_TYPED_YAML_VALUE(yaml, title, _title);
+        REQUIRED_TYPED_YAML_VALUE(yaml, version, _version);
+        OPTIONAL_TYPED_YAML_VALUE(yaml, description, _description);
+        REQUIRED_TYPED_YAML_VALUE(yaml, author, _author);
+        OPTIONAL_TYPED_YAML_VALUE(yaml, category, _category);
+        REQUIRED_TYPED_YAML_VALUE(yaml, image, _image);
+        OPTIONAL_TYPED_YAML_VALUE(yaml, multiInstance, _multi_instance);
         auto volumes = YAML::Node{};
         OPTIONAL_YAML_VALUE(yaml, volumes, volumes);
         for (const auto& i : volumes)

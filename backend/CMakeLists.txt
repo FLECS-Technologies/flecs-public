@@ -30,15 +30,16 @@ set(HEADER_BINARY
     http_request_handler.h
 )
 
-add_executable(flecs-backend ${SRC_BINARY} ${HEADER_BINARY})
+add_executable(FLECS.backend ${SRC_BINARY} ${HEADER_BINARY})
+set_target_properties(FLECS.backend PROPERTIES OUTPUT_NAME flecs-backend)
 
 # own includes
-target_include_directories(flecs-backend PRIVATE
+target_include_directories(FLECS.backend PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # FLECS link libraries
-target_link_libraries(flecs-backend PRIVATE
+target_link_libraries(FLECS.backend PRIVATE
     FLECS.util.llhttp_ext
     FLECS.util.process
     FLECS.external.jsoncpp
@@ -47,10 +48,10 @@ target_link_libraries(flecs-backend PRIVATE
 
 # install executable flecsd for packaging
 install(
-    TARGETS flecs-backend RUNTIME
+    TARGETS FLECS.backend RUNTIME
     DESTINATION ${PACKAGE_DIR}/debian/usr/bin
 )
 install(
-    TARGETS flecs-backend RUNTIME
+    TARGETS FLECS.backend RUNTIME
     DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
 )

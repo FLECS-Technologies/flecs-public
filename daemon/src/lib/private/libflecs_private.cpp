@@ -18,7 +18,7 @@
 #include <cstdio>
 #include <string>
 
-#include "api.h"
+#include "api/api.h"
 #include "modules/errors.h"
 #include "util/socket/unix_client.h"
 
