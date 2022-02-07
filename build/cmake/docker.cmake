@@ -17,9 +17,9 @@ set(REGISTRY_AUTH $ENV{REGISTRY_AUTH})
 set(REGISTRY_PATH flecs)
 
 if (NOT NDEBUG)
-    set(DOCKER_TAG experimental)
+    set(DOCKER_TAG develop)
 else()
-    set(DOCKER_TAG experimental)
+    set(DOCKER_TAG develop)
 endif()
 
 add_custom_command(
