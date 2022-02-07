@@ -54,7 +54,7 @@ module_app_manager_private_t::module_app_manager_private_t()
         if (instance.desired == instance_status_e::RUNNING)
         {
             std::fprintf(stdout, "\t%s\n", instance.id.c_str());
-            do_start_instance(instance.id, "", "");
+            do_start_instance(instance.id, "", "", true);
         }
     }
 }
@@ -67,7 +67,7 @@ module_app_manager_private_t::~module_app_manager_private_t()
         if (is_instance_running(instance.id))
         {
             std::fprintf(stdout, "\t%s\n", instance.id.c_str());
-            do_stop_instance(instance.id, "", "");
+            do_stop_instance(instance.id, "", "", true);
         }
     }
 }
@@ -172,7 +172,7 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
     const auto instances = _app_db.instances(app_name, version);
     for (auto& instance : instances)
     {
-        const auto res = do_stop_instance(instance.id, app_name, version);
+        const auto res = do_stop_instance(instance.id, app_name, version, true);
         if (res != FLECS_OK)
         {
             std::fprintf(stderr, "Warning: Could not stop instance %s: %d\n", instance.id.c_str(), res);
@@ -378,7 +378,7 @@ module_error_e module_app_manager_private_t::do_delete_instance(
     }
 
     // Step 2: Attempt to stop instance
-    const auto res = do_stop_instance(id, app_name, version);
+    const auto res = do_stop_instance(id, app_name, version, true);
     if (res != FLECS_OK)
     {
         std::fprintf(stderr, "Could not stop instance %s: %d\n", id.c_str(), res);
@@ -432,7 +432,7 @@ module_error_e module_app_manager_private_t::do_delete_instance(
 }
 
 module_error_e module_app_manager_private_t::do_start_instance(
-    const std::string& id, const std::string& app_name, const std::string& version)
+    const std::string& id, const std::string& app_name, const std::string& version, bool internal)
 {
     // Step 1: Verify instance does actually exist
     if (!_app_db.has_instance({id}))
@@ -492,10 +492,13 @@ module_error_e module_app_manager_private_t::do_start_instance(
         return FLECS_OK;
     }
 
-    // Step 3: Persist desired status into db
-    instance.desired = instance_status_e::RUNNING;
-    _app_db.insert_instance(instance);
-    _app_db.persist();
+    // Step 3: Persist desired status into db, if triggered externally
+    if (!internal)
+    {
+        instance.desired = instance_status_e::RUNNING;
+        _app_db.insert_instance(instance);
+        _app_db.persist();
+    }
 
     // Step 4: Load app manifest
     const auto path = build_manifest_path(instance.app, instance.version);
@@ -520,7 +523,7 @@ module_error_e module_app_manager_private_t::do_start_instance(
 }
 
 module_error_e module_app_manager_private_t::do_stop_instance(
-    const std::string& id, const std::string& app_name, const std::string& version)
+    const std::string& id, const std::string& app_name, const std::string& version, bool internal)
 {
     // Step 1: Verify instance does actually exist
     if (!_app_db.has_instance({id}))
@@ -533,6 +536,16 @@ module_error_e module_app_manager_private_t::do_stop_instance(
             version.empty() ? "unspecified" : version.c_str());
         return FLECS_INSTANCE_NOTEXIST;
     }
+
+    // Step 1a: Persist status into db
+    // Previous beta versions kept the actual status in the database, which now changed to determining it from
+    // Docker directly. Therefore, only the desired status is updated while the actual status remains in its original
+    // state (i.e. "CREATED" for runnable instances)
+    auto instance = _app_db.query_instance({id}).value();
+    instance.status = instance_status_e::CREATED;
+    _app_db.insert_instance(instance);
+    _app_db.persist();
+
     // Step 2: Return if instance is not running
     if (!is_instance_running(id))
     {
@@ -540,12 +553,13 @@ module_error_e module_app_manager_private_t::do_stop_instance(
         return FLECS_OK;
     }
 
-    auto instance = _app_db.query_instance({id}).value();
-
-    // Step 3: Persist desired status into db
-    instance.desired = instance_status_e::STOPPED;
-    _app_db.insert_instance(instance);
-    _app_db.persist();
+    // Step 3: Persist desired status into db, if triggered externally
+    if (!internal)
+    {
+        instance.desired = instance_status_e::STOPPED;
+        _app_db.insert_instance(instance);
+        _app_db.persist();
+    }
 
     // Step 4: Stop instance through Docker
     auto docker_process = process_t{};
@@ -581,8 +595,15 @@ module_error_e module_app_manager_private_t::do_list_apps(const std::string& app
             auto json_instance = Json::Value{};
             json_instance["instanceId"] = instance.id;
             json_instance["instanceName"] = instance.description;
-            json_instance["status"] = instance_status_to_string(
-                is_instance_running(instance.id) ? instance_status_e::RUNNING : instance.status);
+            if (instance.status == instance_status_e::CREATED)
+            {
+                json_instance["status"] = instance_status_to_string(
+                    is_instance_running(instance.id) ? instance_status_e::RUNNING : instance_status_e::STOPPED);
+            }
+            else
+            {
+                json_instance["status"] = instance_status_to_string(instance.status);
+            }
             json_instance["desired"] = instance_status_to_string(instance.desired);
             json_instance["version"] = instance.version;
             json_app["instances"].append(json_instance);
@@ -612,7 +633,8 @@ bool module_app_manager_private_t::is_instance_running(const std::string& id)
 
     docker_process.spawnp("docker", "ps", "--quiet", "--filter", std::string{"name=flecs-" + id});
     docker_process.wait(false, false);
-    if (docker_process.exit_code() == 0)
+    // Consider instance running if Docker call was successful and returned a container id
+    if (docker_process.exit_code() == 0 && !docker_process.stdout().empty())
     {
         return true;
     }

@@ -15,12 +15,21 @@
 #ifndef FLECS_service_daemon_daemon_h
 #define FLECS_service_daemon_daemon_h
 
+#include <thread>
+
+#include "api/api.h"
+
 namespace FLECS {
 
 class daemon_t
 {
 public:
-    int run();
+    daemon_t();
+    int detach();
+
+private:
+    socket_api_t _api;
+    std::thread _api_thread;
 };
 
 } // namespace FLECS

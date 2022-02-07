@@ -15,6 +15,7 @@
 #include <getopt.h>
 
 #include <cstdio>
+#include <thread>
 
 #include "daemon.h"
 #include "signal_handler/signal_handler.h"
@@ -26,5 +27,10 @@ int main(int /*argc*/, char** /*argv*/)
     FLECS::signal_handler_init();
 
     auto daemon = FLECS::daemon_t{};
-    return daemon.run();
+    daemon.detach();
+
+    while (!FLECS::g_stop)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
 }
