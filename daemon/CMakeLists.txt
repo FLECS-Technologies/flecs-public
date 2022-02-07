@@ -54,22 +54,16 @@ set(HEADER_BINARY
     signal_handler/signal_handler.h
 )
 
-add_executable(flecsd ${SRC_BINARY} ${HEADER_BINARY})
+add_executable(FLECS.daemon ${SRC_BINARY} ${HEADER_BINARY})
+set_target_properties(FLECS.daemon PROPERTIES OUTPUT_NAME flecsd)
 
 # own includes
-target_include_directories(flecsd PRIVATE
+target_include_directories(FLECS.daemon PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/api
-    ${CMAKE_CURRENT_SOURCE_DIR}/app
-    ${CMAKE_CURRENT_SOURCE_DIR}/db
-    ${CMAKE_CURRENT_SOURCE_DIR}/instance
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/service
-    ${CMAKE_CURRENT_SOURCE_DIR}/signal_handler
 )
 
 # FLECS link libraries
-target_link_libraries(flecsd PRIVATE
+target_link_libraries(FLECS.daemon PRIVATE
     FLECS.util.process
     FLECS.util.curl_easy_ext
     FLECS.util.sqlite3_ext
@@ -79,11 +73,11 @@ target_link_libraries(flecsd PRIVATE
 
 # install executable flecsd for packaging
 install(
-    TARGETS flecsd RUNTIME
+    TARGETS FLECS.daemon RUNTIME
     DESTINATION ${PACKAGE_DIR}/debian/usr/bin
 )
 install(
-    TARGETS flecsd RUNTIME
+    TARGETS FLECS.daemon RUNTIME
     DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
 )
 
@@ -94,50 +88,33 @@ set(SRC_LIB
 )
 
 set(HEADER_LIB
-    api/api.h
-    app/app.h
-    app/app_status.h
-    db/app_db.h
-    daemon.h
-    instance/instance_status.h
-    modules/private/app_manager_private.h
-    modules/app_manager.h
-    modules/errors.h
-    modules/factory.h
-    modules/help.h
-    modules/module.h
-    modules/rpc.h
+    lib/libflecs.h
+    lib/private/libflecs_private.h
 )
 
-add_library(FLECS.daemon SHARED ${SRC_LIB} ${HEADER_LIB})
+add_library(FLECS.libdaemon SHARED ${SRC_LIB} ${HEADER_LIB})
 
 # own includes
-target_include_directories(FLECS.daemon PRIVATE
+target_include_directories(FLECS.libdaemon PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/api
-    ${CMAKE_CURRENT_SOURCE_DIR}/app
-    ${CMAKE_CURRENT_SOURCE_DIR}/db
-    ${CMAKE_CURRENT_SOURCE_DIR}/instance
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/service
 )
 
 # install shared object for packaging
 install(
-    TARGETS FLECS.daemon LIBRARY
+    TARGETS FLECS.libdaemon LIBRARY
     DESTINATION ${PACKAGE_DIR}/debian/usr/lib
 )
 install(
-    TARGETS FLECS.daemon LIBRARY
+    TARGETS FLECS.libdaemon LIBRARY
     DESTINATION ${PACKAGE_DIR}/opkg/usr/lib
 )
 
 # install FLECS cli for packaging
 install(
-    TARGETS flecs RUNTIME
+    TARGETS FLECS.cli RUNTIME
     DESTINATION ${PACKAGE_DIR}/debian/usr/bin
 )
 install(
-    TARGETS flecs RUNTIME
+    TARGETS FLECS.cli RUNTIME
     DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
 )

@@ -29,16 +29,19 @@ namespace Private {
 class module_app_manager_private_t
 {
 public:
-    /*! @brief Installs an application from its name and version, i.e. downloads it from the marketplace
+    module_app_manager_private_t();
+
+    /*! @brief Installs an app from its name and version, i.e. downloads it from the marketplace
      *
-     * @param[in] app_name Name of the application to install
-     * @param[in] version Version of the application to install
+     * Downloads the according app manifest and forwards to manifest installation
+     *
+     * @param[in] app_name Name of the app to install
+     * @param[in] version Version of the app to install
      *
      * @return error code
      * @return FLECS_OK: No error occurred
-     * @return FLECS_SQLITE: Database error
      * @return Any error code returned by @sa download_manifest
-     * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
+     * @return Any error code returned by overloaded @sa do_install(const std::string&)
      */
     module_error_e do_install(const std::string& app_name, const std::string& version);
 
@@ -49,18 +52,18 @@ public:
      * @return error code
      * @return FLECS_OK: No error occurred
      * @return FLECS_YAML: Error parsing manifest
-     * @return FLECS_SQLITE: Database error
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
     module_error_e do_install(const std::string& manifest);
 
     /*! @brief Sideloads an app from its YAML manifest
      *
+     * Copies the transferred app manifest and forwards to manifest installation
+     *
      * @param[in] manifest_path Path to a YAML manifest file
      *
      * @return error code
      * @return FLECS_OK: No error occurred
-     * @return FLECS_SQLITE: Database error
      * @return FLECS_IOR: Error reading from manifest
      * @return FLECS_IOW: Error writing manifest to FLECS application directory
      * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
@@ -78,7 +81,6 @@ public:
      * @return FLECS_YAML: Error parsing manifest of installed app
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      * @return FLECS_IOW: Error deleting manifest from disk
-     * @return FLECS_SQLITE: Database error
      */
     module_error_e do_uninstall(const std::string& app_name, const std::string& version);
 
@@ -92,22 +94,19 @@ public:
      * @return FLECS_OK: No error occurred
      * @return FLECS_APP_NOTINST: App not installed in the requested version
      * @return FLECS_YAML: Error parsing manifest of installed app
-     * @return FLECS_SQLITE: Database error
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
     module_error_e do_create_instance(
         const std::string& app_name, const std::string& version, const std::string& description);
     module_error_e do_delete_instance(const std::string& app_name, const std::string& version, const std::string& id);
-    module_error_e do_start_instance(const std::string& id, const std::string& app, const std::string& version);
+    module_error_e do_start_instance(const std::string& id, const std::string& app_name, const std::string& version);
     module_error_e do_stop_instance(const std::string& app_name, const std::string& version, const std::string& id);
     module_error_e do_list_apps(const std::string& app_name);
     module_error_e do_list_versions(const std::string& app_name);
     module_error_e do_list_instances(const std::string& app_name, const std::string& version);
 
     bool is_app_installed(const std::string& app_name, const std::string& version);
-    bool is_instance_available(const std::string& app_name, const std::string& version, const std::string& id);
-    bool is_instance_runnable(const std::string& app_name, const std::string& version, const std::string& id);
-    bool is_instance_running(const std::string& app_name, const std::string& version, const std::string& id);
+    bool is_instance_running(const std::string& id);
 
 private:
     app_db_t _app_db;

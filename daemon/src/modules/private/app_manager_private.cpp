@@ -34,8 +34,32 @@ module_error_e download_manifest(const std::string& app_name, const std::string&
 std::string build_manifest_url(const std::string& app_name, const std::string& version);
 std::string build_manifest_path(const std::string& app_name, const std::string& version);
 
+module_app_manager_private_t::module_app_manager_private_t()
+    : _app_db{}
+{
+    // Prune all entries of apps that completely failed to install. This usually means that an app with this combination
+    // of name and version does not exist anywhere in the universe, and it should never have been inserted into the db
+    // in the first place. As this happened nonetheless in earlier versions, the mess is cleaned up here
+    for (decltype(auto) app : _app_db.all_apps())
+    {
+        if (app.status == app_status_e::NOT_INSTALLED && app.desired == app_status_e::INSTALLED)
+        {
+            _app_db.delete_app({app.app, app.version});
+        }
+    }
+
+    for (decltype(auto) instance : _app_db.all_instances())
+    {
+        if (instance.desired == instance_status_e::RUNNING)
+        {
+            do_start_instance(instance.id, "", "");
+        }
+    }
+}
+
 module_error_e module_app_manager_private_t::do_install(const std::string& app_name, const std::string& version)
 {
+    // Download app manifest and forward to manifest installation, if download successful
     const auto res = download_manifest(app_name, version);
     if (res != FLECS_OK)
     {
@@ -49,15 +73,19 @@ module_error_e module_app_manager_private_t::do_install(const std::string& manif
 {
     const auto desired = INSTALLED;
 
+    // Step 1: Load app manifest
     auto app = app_t{manifest};
     if (!app.yaml_loaded())
     {
         return FLECS_YAML;
     }
 
+    // Step 2: Add database entry for app. At this point the existence of the requested app is guaranteed as its
+    // manifest was transferred to the local storage, so it is safe to add it to the local app database
     auto status = MANIFEST_DOWNLOADED;
     _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0});
 
+    // Step 3: Pull Docker image for this app
     auto docker_process = process_t{};
     docker_process.spawnp("docker", "pull", app.image_with_tag());
     docker_process.wait(false, true);
@@ -66,10 +94,12 @@ module_error_e module_app_manager_private_t::do_install(const std::string& manif
         return FLECS_DOCKER;
     }
 
+    // Placeholder for future extensions. As of now, the installation is complete once the image is downloaded
     // status = IMAGE_DOWNLOADED;
 
     status = INSTALLED;
 
+    // Final step: Persist successful installation into db
     _app_db.insert_app(apps_table_entry_t{app.name(), app.version(), status, desired, app.category(), 0});
     _app_db.persist();
 
@@ -78,16 +108,14 @@ module_error_e module_app_manager_private_t::do_install(const std::string& manif
 
 module_error_e module_app_manager_private_t::do_sideload(const std::string& manifest_path)
 {
+    // Step 1: Parse transferred manifest
     auto app = app_t{manifest_path};
     if (!app.yaml_loaded())
     {
         return FLECS_YAML;
     }
 
-    const auto status = app_status_e::NOT_INSTALLED;
-    const auto desired = app_status_e::INSTALLED;
-    _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0});
-
+    // Step 2: Copy manifest to local storage
     const auto path = build_manifest_path(app.name(), app.version());
 
     std::error_code ec;
@@ -99,11 +127,13 @@ module_error_e module_app_manager_private_t::do_sideload(const std::string& mani
         return FLECS_IO;
     }
 
+    // Step 3: Forward to manifest installation
     return do_install(manifest_path);
 }
 
 module_error_e module_app_manager_private_t::do_uninstall(const std::string& app_name, const std::string& version)
 {
+    // Step 1: Ensure app is actually installed
     if (!is_app_installed(app_name, version))
     {
         std::fprintf(
@@ -114,6 +144,7 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
         return FLECS_APP_NOTINST;
     }
 
+    // Step 2: Load app manifest
     const auto path = build_manifest_path(app_name, version);
 
     auto app = app_t{path};
@@ -122,6 +153,7 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
         return FLECS_YAML;
     }
 
+    // Step 3: Stop and delete all instances of the app
     const auto instances = _app_db.instances(app_name, version);
     for (auto& instance : instances)
     {
@@ -133,6 +165,7 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
         _app_db.delete_instance({instance.id});
     }
 
+    // Step 4: Remove Docker image of the app
     const auto image = app.image_with_tag();
     auto docker_process = process_t{};
     docker_process.spawnp("docker", "rmi", "-f", image);
@@ -147,13 +180,16 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
             version.c_str());
     }
 
-    const auto res = unlink(path.c_str());
-    if (res < 0)
+    // Step 5: Remove app manifest
+    auto ec = std::error_code{};
+    const auto res = std::filesystem::remove(path, ec);
+    if (!res)
     {
-        std::fprintf(stderr, "Could not delete manifest %s: %d (%s)\n", path.c_str(), errno, strerror(errno));
+        std::fprintf(stderr, "Could not delete manifest %s: %d\n", path.c_str(), ec.value());
         return FLECS_IO;
     }
 
+    // Step 6: Persist removal of app into db
     _app_db.delete_app({app_name, version});
     _app_db.persist();
 
@@ -166,6 +202,7 @@ module_error_e module_app_manager_private_t::do_create_instance(
     auto status = instance_status_e::NOT_CREATED;
     const auto desired = instance_status_e::CREATED;
 
+    // Step 1: Ensure app is actually installed
     if (!is_app_installed(app_name, version))
     {
         std::fprintf(
@@ -176,35 +213,61 @@ module_error_e module_app_manager_private_t::do_create_instance(
         return FLECS_APP_NOTINST;
     }
 
+    // Step 2: Load app manifest
     const auto path = build_manifest_path(app_name, version);
     app_t app{path};
     if (!app.yaml_loaded())
     {
-        std::fprintf(
-            stderr,
-            "Could not create instance of app %s (%s): manifest error\n",
-            app_name.c_str(),
-            version.c_str());
         return FLECS_YAML;
     }
 
+    // Step 3: Ensure there is only one instance of single-instance apps
+    if (!app.multi_instance())
+    {
+        decltype(auto) instances = _app_db.instances(app.name(), app.version());
+        if (instances.size() > 1)
+        {
+            std::fprintf(
+                stderr,
+                "Warning: Multiple instances found for single-instance app %s (%s). Please consider uninstalling and "
+                "reinstalling the app.\n",
+                app.name().c_str(),
+                app.version().c_str());
+        }
+        if (instances.size() > 0)
+        {
+            decltype(auto) instance = instances[0];
+            std::fprintf(stdout, "%s\n", instance.id.c_str());
+            return FLECS_OK;
+        }
+    }
+
+    // Step 4: Create unique id for this instance
     auto seed = std::random_device{};
     auto generator = std::mt19937{seed()};
     auto distribution = std::uniform_int_distribution{
         std::numeric_limits<std::uint32_t>::min(),
         std::numeric_limits<std::uint32_t>::max()};
 
-    const auto id = distribution(generator);
-    auto ss = std::stringstream{};
-    ss << std::hex << std::setw(8) << std::setfill('0') << id;
+    auto id = distribution(generator);
+    auto hex_id = std::string(8, '\0');
+    std::snprintf(hex_id.data(), hex_id.length() + 1, "%.8x", id);
+    // Repeat in the unlikely case that the id already exists
+    while (_app_db.has_instance({hex_id}))
+    {
+        id = distribution(generator);
+        std::snprintf(hex_id.data(), hex_id.length() + 1, "%.8x", id);
+    }
 
     status = instance_status_e::REQUESTED;
-    _app_db.insert_instance({ss.str(), app.name(), app.version(), description, status, desired, 0});
 
+    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, 0});
+
+    // Step 5: Create Docker volumes
     for (const auto& volume : app.volumes())
     {
         auto docker_process = process_t{};
-        const auto name = std::string{"flecs-"} + ss.str() + "-" + volume.first;
+        const auto name = std::string{"flecs-"} + hex_id + "-" + volume.first;
         docker_process.spawnp("docker", "volume", "create", name);
         docker_process.wait(false, true);
         if (docker_process.exit_code() != 0)
@@ -214,6 +277,7 @@ module_error_e module_app_manager_private_t::do_create_instance(
         }
     }
 
+    // Step 6: Create required Docker networks, if not exist
     for (const auto& network : app.networks())
     {
         auto docker_inspect_process = process_t{};
@@ -233,19 +297,20 @@ module_error_e module_app_manager_private_t::do_create_instance(
     }
 
     status = instance_status_e::RESOURCES_READY;
-    _app_db.insert_instance({ss.str(), app.name(), app.version(), description, status, desired, 0});
+    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, 0});
 
+    // Step 7: Create Docker container
     auto docker_process = process_t{};
     docker_process.arg("create");
     for (const auto& volume : app.volumes())
     {
         docker_process.arg("--volume");
-        docker_process.arg("flecs-" + ss.str() + "-" + volume.first + ":" + volume.second);
+        docker_process.arg("flecs-" + hex_id + "-" + volume.first + ":" + volume.second);
     }
     for (const auto& bind_mount : app.bind_mounts())
     {
         docker_process.arg("--volume");
-        docker_process.arg(bind_mount.first + ":" + bind_mount.second + " ");
+        docker_process.arg(bind_mount.first + ":" + bind_mount.second);
     }
 
     for (const auto& network : app.networks())
@@ -259,22 +324,25 @@ module_error_e module_app_manager_private_t::do_create_instance(
         docker_process.arg(std::to_string(port.first) + ":" + std::to_string(port.second));
     }
     docker_process.arg("--name");
-    docker_process.arg("flecs-" + ss.str());
+    docker_process.arg("flecs-" + hex_id);
     docker_process.arg(app.image_with_tag());
 
     docker_process.spawnp("docker");
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0)
     {
-        std::fprintf(stderr, "Could not create container for instance %s\n", ss.str().c_str());
+        std::fprintf(stderr, "Could not create container for instance %s\n", hex_id.c_str());
         return FLECS_DOCKER;
     }
 
-    // status = instance_status_e::CREATED;
-    status = instance_status_e::STOPPED;
-    _app_db.insert_instance({ss.str(), app.name(), app.version(), description, status, desired, 0});
+    status = instance_status_e::CREATED;
 
-    std::cout << ss.str();
+    // Final step: Persist successful creation into db
+
+    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, 0});
+    _app_db.persist();
+
+    std::fprintf(stdout, "%s", hex_id.c_str());
 
     return FLECS_OK;
 }
@@ -282,35 +350,26 @@ module_error_e module_app_manager_private_t::do_create_instance(
 module_error_e module_app_manager_private_t::do_delete_instance(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
+    // Step 1: Verify instance does actually exist
     if (!_app_db.has_instance({id}))
-    {
-        return FLECS_INSTANCE_NOTEXIST;
-    }
-    auto instance = _app_db.query_instance({id}).value();
-    {
-        if (is_instance_running(app_name, version, id))
-        {
-            const auto res = do_stop_instance(app_name, version, id);
-            if (res != FLECS_OK)
-            {
-                std::fprintf(stderr, "Could not stop instance %s: %d\n", id.c_str(), res);
-                return res;
-            }
-        }
-    }
-
-    const auto path = build_manifest_path(instance.app, instance.version);
-    app_t app{path};
-    if (!app.yaml_loaded())
     {
         std::fprintf(
             stderr,
-            "Could not delete instance of app %s (%s): manifest error\n",
+            "Could not delete instance %s of app %s (%s), which does not exist\n",
+            id.c_str(),
             app_name.c_str(),
             version.c_str());
-        return FLECS_YAML;
+        return FLECS_INSTANCE_NOTEXIST;
     }
 
+    // Step 2: Attempt to stop instance
+    const auto res = do_stop_instance(app_name, version, id);
+    if (res != FLECS_OK)
+    {
+        std::fprintf(stderr, "Could not stop instance %s: %d\n", id.c_str(), res);
+    }
+
+    // Step 3: Remove Docker container for instance
     {
         auto docker_process = process_t{};
         const auto name = std::string{"flecs-"} + id;
@@ -322,31 +381,58 @@ module_error_e module_app_manager_private_t::do_delete_instance(
         }
     }
 
-    for (const auto& volume : app.volumes())
+    // Step 4: Attempt to load app manifest
+    auto instance = _app_db.query_instance({id}).value();
+    const auto path = build_manifest_path(instance.app, instance.version);
+    app_t app{path};
+    if (!app.yaml_loaded())
     {
-        auto docker_process = process_t{};
-        const auto name = std::string{"flecs-"} + id + "-" + volume.first;
-        docker_process.spawnp("docker", "volume", "rm", name);
-        docker_process.wait(false, true);
-        if (docker_process.exit_code() != 0)
+        std::fprintf(
+            stderr,
+            "Could not remove volumes of app %s (%s): manifest error\n",
+            app_name.c_str(),
+            version.c_str());
+    }
+    // Step 5: Remove volumes of instance, if manifest loaded successfully
+    else
+    {
+        for (const auto& volume : app.volumes())
         {
-            std::fprintf(stderr, "Could not remove docker volume %s\n", name.c_str());
+            auto docker_process = process_t{};
+            const auto name = std::string{"flecs-"} + id + "-" + volume.first;
+            docker_process.spawnp("docker", "volume", "rm", name);
+            docker_process.wait(false, true);
+            if (docker_process.exit_code() != 0)
+            {
+                std::fprintf(stderr, "Could not remove docker volume %s\n", name.c_str());
+            }
         }
     }
 
+    // Final step: Persist removal of instance into db
     _app_db.delete_instance({id});
+    _app_db.persist();
 
     return FLECS_OK;
 }
 
 module_error_e module_app_manager_private_t::do_start_instance(
-    const std::string& app_name, const std::string& version, const std::string& id)
+    const std::string& id, const std::string& app_name, const std::string& version)
 {
+    // Step 1: Verify instance does actually exist
     if (!_app_db.has_instance({id}))
     {
+        std::fprintf(
+            stderr,
+            "Could not start instance %s of app %s (%s), which does not exist\n",
+            id.c_str(),
+            app_name.empty() ? "unspecified" : app_name.c_str(),
+            version.empty() ? "unspecified" : version.c_str());
         return FLECS_INSTANCE_NOTEXIST;
     }
 
+    // Step 2: Do some cross-checks if app_name and version are provided
+    // Step 2a: Is app installed?
     auto instance = _app_db.query_instance({id}).value();
     if (!app_name.empty() && !version.empty() && !is_app_installed(app_name, version))
     {
@@ -359,6 +445,7 @@ module_error_e module_app_manager_private_t::do_start_instance(
         return FLECS_APP_NOTINST;
     }
 
+    // Step 2b: Do app_name and instance's app match?
     if (!app_name.empty() && (instance.app != app_name))
     {
         std::fprintf(
@@ -370,6 +457,7 @@ module_error_e module_app_manager_private_t::do_start_instance(
         return FLECS_INSTANCE_APP;
     }
 
+    // Step 2c: Do version and instance's version match?
     if (!version.empty() && (instance.version != version))
     {
         std::fprintf(
@@ -382,9 +470,19 @@ module_error_e module_app_manager_private_t::do_start_instance(
         return FLECS_INSTANCE_VERSION;
     }
 
+    // Step 3: Return if instance is already running
+    if (is_instance_running(id))
+    {
+        std::fprintf(stdout, "Instance %s is already running\n", id.c_str());
+        return FLECS_OK;
+    }
+
+    // Step 3: Persist desired status into db
     instance.desired = instance_status_e::RUNNING;
     _app_db.insert_instance(instance);
+    _app_db.persist();
 
+    // Step 4: Load app manifest
     const auto path = build_manifest_path(instance.app, instance.version);
     app_t app{path};
     if (!app.yaml_loaded())
@@ -392,8 +490,9 @@ module_error_e module_app_manager_private_t::do_start_instance(
         return FLECS_YAML;
     }
 
+    // Step 5: Launch app through Docker
     auto docker_process = process_t{};
-    const auto name = std::string{"flecs"} + "-" + id;
+    const auto name = std::string{"flecs-"} + id;
 
     docker_process.spawnp("docker", "start", name);
     docker_process.wait(false, true);
@@ -402,63 +501,46 @@ module_error_e module_app_manager_private_t::do_start_instance(
         return FLECS_DOCKER;
     }
 
-    instance.status = instance_status_e::RUNNING;
-    _app_db.insert_instance(instance);
-
     return FLECS_OK;
 }
-
-#define XCHECK_APP_INSTALLED(app_entry, app_name, version)                                                        \
-    if (app_entry.app != app_name || app_entry.version != version || app_entry.status != app_status_e::INSTALLED) \
-    {                                                                                                             \
-        std::fprintf(stderr, "App %s (%s) is not installed\n", app_name.c_str(), version.c_str());                \
-        return FLECS_APP_NOTINST;                                                                                 \
-    }
-
-#define XCHECK_INSTANCE_EXISTS(instance_entry, id) \
-    do                                             \
-    {                                              \
-        if (instance_entry.id != id)               \
-        {                                          \
-            return FLECS_INSTANCE_NOTEXIST;        \
-        };                                         \
-    } while (false)
-
-#define XCHECK_INSTANCE_RUNNING(instance_entry)                  \
-    do                                                           \
-    {                                                            \
-        if (instance_entry.status != instance_status_e::RUNNING) \
-        {                                                        \
-            return FLECS_INSTANCE_NOTRUN;                        \
-        }                                                        \
-    } while (false)
 
 module_error_e module_app_manager_private_t::do_stop_instance(
     const std::string& app_name, const std::string& version, const std::string& id)
 {
+    // Step 1: Verify instance does actually exist
     if (!_app_db.has_instance({id}))
     {
+        std::fprintf(
+            stderr,
+            "Could not stop instance %s of app %s (%s), which does not exist\n",
+            id.c_str(),
+            app_name.empty() ? "unspecified" : app_name.c_str(),
+            version.empty() ? "unspecified" : version.c_str());
         return FLECS_INSTANCE_NOTEXIST;
     }
+    // Step 2: Return if instance is not running
+    if (!is_instance_running(id))
+    {
+        std::fprintf(stdout, "Instance %s is not running\n", id.c_str());
+        return FLECS_OK;
+    }
+
     auto instance = _app_db.query_instance({id}).value();
 
-    XCHECK_INSTANCE_EXISTS(instance, id);
-    XCHECK_INSTANCE_RUNNING(instance);
-
+    // Step 3: Persist desired status into db
     instance.desired = instance_status_e::STOPPED;
     _app_db.insert_instance(instance);
+    _app_db.persist();
 
+    // Step 4: Stop instance through Docker
     auto docker_process = process_t{};
-    const auto name = std::string{"flecs"} + "-" + id;
+    const auto name = std::string{"flecs-"} + id;
     docker_process.spawnp("docker", "stop", name);
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0)
     {
         return FLECS_DOCKER;
     }
-
-    instance.status = instance_status_e::STOPPED;
-    _app_db.insert_instance(instance);
 
     return FLECS_OK;
 }
@@ -504,44 +586,22 @@ module_error_e module_app_manager_private_t::do_list_instances(
 
 bool module_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version)
 {
-    return _app_db.has_app({app_name, version});
+    return _app_db.has_app({app_name, version}) &&
+           (_app_db.query_app({app_name, version}).value().status == app_status_e::INSTALLED);
 }
 
-bool module_app_manager_private_t::is_instance_available(
-    const std::string& app_name, const std::string& version, const std::string& id)
+bool module_app_manager_private_t::is_instance_running(const std::string& id)
 {
-    if (_app_db.has_instance({id}))
+    auto docker_process = process_t{};
+
+    docker_process.spawnp("docker", "ps", "--quiet", "--filter", std::string{"name=flecs-" + id});
+    docker_process.wait(false, false);
+    if (docker_process.exit_code() == 0)
     {
-        const auto instance = _app_db.query_instance({id});
-        return instance->app == app_name && instance->version == version;
+        return true;
     }
+
     return false;
-}
-
-bool module_app_manager_private_t::is_instance_runnable(
-    const std::string& app_name, const std::string& version, const std::string& id)
-{
-    const auto instance_entry = _app_db.query_instance({id}).value();
-    if ((instance_entry.app != app_name) || (instance_entry.version != version) || (instance_entry.id != id) ||
-        (instance_entry.status != instance_status_e::CREATED && instance_entry.status != instance_status_e::STOPPED))
-    {
-        return false;
-    }
-
-    return true;
-}
-
-bool module_app_manager_private_t::is_instance_running(
-    const std::string& app_name, const std::string& version, const std::string& id)
-{
-    const auto instance_entry = _app_db.query_instance({id}).value();
-    if ((instance_entry.app != app_name) || (instance_entry.version != version) || (instance_entry.id != id) ||
-        (instance_entry.status != instance_status_e::RUNNING))
-    {
-        return false;
-    }
-
-    return true;
 }
 
 std::string build_manifest_url(const std::string& app_name, const std::string& version)

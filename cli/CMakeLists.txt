@@ -18,6 +18,7 @@ set(SRC_BINARY
     src/main.cpp
 )
 
-add_executable(flecs ${SRC_BINARY})
+add_executable(FLECS.cli ${SRC_BINARY})
+set_target_properties(FLECS.cli PROPERTIES OUTPUT_NAME flecs)
 
-target_link_libraries(flecs PRIVATE FLECS.daemon)
+target_link_libraries(FLECS.cli PRIVATE FLECS.libdaemon)
