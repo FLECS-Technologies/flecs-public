@@ -119,3 +119,5 @@ install(
     TARGETS FLECS.cli RUNTIME
     DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
 )
+
+add_subdirectory(test)
