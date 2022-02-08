@@ -6,7 +6,9 @@ if [ -f /etc/flecs.d/channel ]; then
     CHANNEL=$(cat /etc/flecs.d/channel);
 fi
 
-dpkg -s wget >/dev/null 2>&1 || (export DEBIAN_FRONTEND=noninteractive && apt -y update && apt -yq install wget)
+docker login --username flecs --password $(echo "YzMwMDZmMmYtZWM1My00ZjE5LWEyMjAtYzIyZjZkYjU1OTk1" | base64 -d) >/dev/null
+
+dpkg -s wget >/dev/null 2>&1 || (export DEBIAN_FRONTEND=noninteractive && apt -y update >/dev/null 2>&1 && apt -yq install wget)
 if [ "${CHANNEL}" = "latest" ]; then
     wget -q -P /tmp/ https://marketplace.flecs.tech/deb/flecs-webapp.deb
 else
@@ -17,16 +19,14 @@ MD5_INSTALLED=$(cat /var/lib/flecs-updater/flecs-webapp.installed 2>/dev/null)
 MD5_DOWNLOADED=($(md5sum /tmp/flecs-webapp.deb 2>/dev/null))
 
 if [ "${MD5_DOWNLOADED}" != "" ] && [ "${MD5_DOWNLOADED}" != "${MD5_INSTALLED}" ]; then
-    echo new: "${MD5_DOWNLOADED}"
-    echo old: "${MD5_INSTALLED}"
     dpkg -i /tmp/flecs-webapp.deb
     if [ $? -eq 0 ]; then
         mkdir -p /var/lib/flecs-updater/
         echo ${MD5_DOWNLOADED} >/var/lib/flecs-updater/flecs-webapp.installed
+        systemctl restart flecs-webapp
     fi
 fi
 
-docker login --username flecs --password $(echo "YzMwMDZmMmYtZWM1My00ZjE5LWEyMjAtYzIyZjZkYjU1OTk1" | base64 -d) >/dev/null
 docker pull flecs/updater:${CHANNEL} | grep "Downloaded newer image"
 if [ ! $? -eq 0 ]; then
     exit 0;

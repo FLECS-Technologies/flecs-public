@@ -3,13 +3,9 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 case "$1" in
-  configure)
+  *)
     docker network create flecs-internal >/dev/null 2>&1
     systemctl enable --now ##PACKAGE##
-    ;;
-  abort-upgrade|abort-remove|abort-deconfigure)
-    ;;
-  *)
     ;;
 esac
 

@@ -3,10 +3,8 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 case "$1" in
-  remove)
-      systemctl disable --now ##PACKAGE##
-    ;;
   *)
+    systemctl disable --now ##PACKAGE##
     ;;
 esac
 

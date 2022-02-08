@@ -3,12 +3,8 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 case "$1" in
-  configure)
-    systemctl enable --now ##PACKAGE##
-    ;;
-  abort-upgrade|abort-remove|abort-deconfigure)
-    ;;
   *)
+    systemctl enable --now ##PACKAGE##
     ;;
 esac
 
