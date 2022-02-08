@@ -166,6 +166,7 @@ add_library(FLECS.external.sqlite3 STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.sqlite3 PROPERTY IMPORTED_LOCATION ${SQLITE3_DIR}/out/${MACHINE}/lib/libsqlite3.a)
 set_property(TARGET FLECS.external.sqlite3 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${SQLITE3_DIR})
 target_link_libraries(FLECS.external.sqlite3 INTERFACE
+    dl
     pthread
 )
 
