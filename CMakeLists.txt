@@ -23,6 +23,10 @@ set(CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/build/cmake
 )
 
+if (FLECS_BUILD_TESTS)
+include (CTest)
+endif()
+
 # rpath may contain absolute paths otherwise
 set(CMAKE_SKIP_RPATH true)
 

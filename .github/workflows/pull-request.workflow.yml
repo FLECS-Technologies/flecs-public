@@ -24,3 +24,23 @@ jobs:
       - name: "CMake: Package"
         run: |
           cmake --build out/${{ matrix.arch }} --target packages
+
+  test:
+    runs-on: ubuntu-20.04
+    container: flecs/flecs-build
+
+    strategy:
+      matrix:
+        arch: ["x86_64-linux-gnu"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: "CMake: Configure"
+        run: |
+          cmake -B out/${{ matrix.arch }} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${{ matrix.arch }}.cmake -DFLECS_BUILD_TESTS=Yes
+      - name: "CMake: Build"
+        run: |
+          cmake --build out/${{ matrix.arch }}
+      - name: "CMake: Test"
+        run: |
+          cmake --build out/${{ matrix.arch }} --target test

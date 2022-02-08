@@ -12,21 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.util.process)
+if (BUILD_TESTING)
+    project(FLECS.util.process.test)
 
-set(SRC_ARCHIVE
-    src/process.cpp
-)
+    add_executable(FLECS.test.util.process
+        test_process.cpp
+    )
 
-set (HEADER_ARCHIVE
-    posix_spawn.h
-    process.h
-)
+    set_target_properties(FLECS.test.util.process PROPERTIES OUTPUT_NAME test_util_process)
 
-add_library(FLECS.util.process STATIC ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
+    target_link_libraries(FLECS.test.util.process PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.util.process
+    )
 
-target_include_directories(FLECS.util.process PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-add_subdirectory(test)
+    add_test(NAME FLECS.test.util.process COMMAND FLECS.test.util.process)
+endif()
