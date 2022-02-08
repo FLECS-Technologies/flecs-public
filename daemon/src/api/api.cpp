@@ -24,6 +24,7 @@
 #include "modules/help.h"
 #include "modules/rpc.h"
 #include "modules/usage.h"
+#include "modules/version.h"
 #include "signal_handler/signal_handler.h"
 #include "util/string/literals.h"
 
@@ -59,6 +60,7 @@ socket_api_t::socket_api_t()
     _service_table.emplace("help", make_module<module_help_t>());
     _service_table.emplace("rpc", make_module<module_rpc_t>());
     _service_table.emplace("usage", make_module<module_usage_t>());
+    _service_table.emplace("version", make_module<module_version_t>());
 }
 
 int socket_api_t::run()

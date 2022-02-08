@@ -12,29 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "modules/usage.h"
+#ifndef FLECS_daemon_modules_version_h
+#define FLECS_daemon_modules_version_h
 
-#include <cstdio>
+#include "module.h"
 
 namespace FLECS {
 
-module_error_e module_usage_t::do_process(int, char**)
+class module_version_t : public module_t
 {
-    std::fprintf(
-        stdout,
-        "Usage: flecs [OPTIONS] COMMAND\n\n"
-        "Options:\n"
-        "    --json         Produce output in JSON format\n"
-        "\n"
-        "Commands:\n"
-        "    app-manager    Manage apps and instances\n"
-        "    help           Display help for specific COMMAND\n"
-        "    rpc            Issue RPC for running app\n"
-        "    usage          Print this help\n"
-        "    version        Print version and exit\n"
-        "\n");
-
-    return FLECS_USAGE;
-}
+public:
+private:
+    module_error_e do_process(int argc, char** argv) override;
+};
 
 } // namespace FLECS
+
+#endif // FLECS_daemon_modules_version_h
