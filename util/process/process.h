@@ -36,8 +36,8 @@ public:
     template <typename... Args>
     int spawn(const char* file, Args&&... args)
     {
-        _args.clear();
-        return spawn_impl(file, args...);
+        _args = decltype(_args){args...};
+        return do_spawn(file, false);
     }
 
     int spawnp(const char* file) { return do_spawn(file, true); }
@@ -45,8 +45,8 @@ public:
     template <typename... Args>
     int spawnp(const char* file, Args&&... args)
     {
-        _args.clear();
-        return spawnp_impl(file, args...);
+        _args = decltype(_args){args...};
+        return do_spawn(file, true);
     }
 
     void arg(std::string arg) { _args.emplace_back(arg); }
@@ -60,24 +60,6 @@ public:
     std::string stderr() const noexcept;
 
 private:
-    int spawn_impl(const char* path) { return do_spawn(path, false); }
-
-    template <typename Arg, typename... Args>
-    int spawn_impl(const char* file, Arg arg, Args... args)
-    {
-        _args.emplace_back(arg);
-        return spawn_impl(file, args...);
-    }
-
-    int spawnp_impl(const char* file) { return do_spawn(file, true); }
-
-    template <typename Arg, typename... Args>
-    int spawnp_impl(const char* file, Arg arg, Args... args)
-    {
-        _args.emplace_back(arg);
-        return spawnp_impl(file, args...);
-    }
-
     int do_spawn(const char* exec, bool path);
 
     std::string output(int fd) const noexcept;

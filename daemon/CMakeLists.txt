@@ -93,6 +93,7 @@ set(HEADER_LIB
 )
 
 add_library(FLECS.libdaemon SHARED ${SRC_LIB} ${HEADER_LIB})
+set_target_properties(FLECS.libdaemon PROPERTIES OUTPUT_NAME FLECS.daemon)
 
 # own includes
 target_include_directories(FLECS.libdaemon PRIVATE
