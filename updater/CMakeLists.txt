@@ -26,6 +26,7 @@ set(DOCKER_IMAGE "updater")
 add_custom_target(
     ${DOCKER_IMAGE}_prepare
     DEPENDS ${PACKAGE}_package
+    COMMAND mkdir -p ${CMAKE_CURRENT_SOURCE_DIR}/usr/bin
     COMMAND tar czf ${CMAKE_CURRENT_SOURCE_DIR}/usr/bin/flecs.deb.tar.gz -C ${CMAKE_BINARY_DIR}/ flecs_${VERSION}_${ARCH}.deb
 	COMMAND tar czf ${CMAKE_CURRENT_SOURCE_DIR}/usr/bin/flecs-backend.deb.tar.gz -C ${CMAKE_BINARY_DIR}/ flecs-backend_${VERSION}_${ARCH}.deb
 	COMMAND tar czf ${CMAKE_CURRENT_SOURCE_DIR}/usr/bin/flecs-updater.deb.tar.gz -C ${CMAKE_BINARY_DIR}/ flecs-updater_${VERSION}_${ARCH}.deb
