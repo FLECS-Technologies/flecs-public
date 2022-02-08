@@ -12,29 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "modules/usage.h"
+#include "modules/version.h"
 
 #include <cstdio>
 
 namespace FLECS {
 
-module_error_e module_usage_t::do_process(int, char**)
+module_error_e module_version_t::do_process(int, char**)
 {
-    std::fprintf(
-        stdout,
-        "Usage: flecs [OPTIONS] COMMAND\n\n"
-        "Options:\n"
-        "    --json         Produce output in JSON format\n"
-        "\n"
-        "Commands:\n"
-        "    app-manager    Manage apps and instances\n"
-        "    help           Display help for specific COMMAND\n"
-        "    rpc            Issue RPC for running app\n"
-        "    usage          Print this help\n"
-        "    version        Print version and exit\n"
-        "\n");
+    std::fprintf(stdout, "%s\n", VERSION);
 
-    return FLECS_USAGE;
+    return FLECS_OK;
 }
 
 } // namespace FLECS
