@@ -122,6 +122,9 @@ set_property(TARGET FLECS.external.gmock PROPERTY INTERFACE_INCLUDE_DIRECTORIES 
 add_library(FLECS.external.gtest_main STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.gtest_main PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgtest_main.a)
 set_property(TARGET FLECS.external.gtest_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR})
+target_link_libraries(FLECS.external.gtest_main INTERFACE
+    pthread
+)
 
 add_library(FLECS.external.gtest STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.gtest PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgtest.a)
