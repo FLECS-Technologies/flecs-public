@@ -21,7 +21,7 @@ namespace FLECS {
 module_error_e module_usage_t::do_process(int, char**)
 {
     std::fprintf(
-        stdout,
+        stderr,
         "Usage: flecs [OPTIONS] COMMAND\n\n"
         "Options:\n"
         "    --json         Produce output in JSON format\n"

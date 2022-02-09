@@ -49,7 +49,7 @@ std::vector<char*> parse_args(char* const& str, size_t len)
 
 socket_api_t::socket_api_t()
     : _service_table{}
-    , _server{FLECS_SOCKET, 10}
+    , _server{FLECS_SOCKET, 1}
 {
     if (!_server.is_running())
     {
@@ -80,11 +80,17 @@ int socket_api_t::run()
 
 int socket_api_t::process(unix_socket_t&& conn_socket)
 {
-    char template_stdout[18] = "/tmp/flecs-XXXXXX";
-    char template_stderr[18] = "/tmp/flecs-XXXXXX";
+    char template_stdout[] = "/tmp/flecs-XXXXXX";
+    char template_stderr[] = "/tmp/flecs-XXXXXX";
 
-    auto fd_stdout = mkstemp(template_stdout);
-    auto fd_stderr = mkstemp(template_stderr);
+    const auto fd_stdout = mkstemp(template_stdout);
+    const auto fd_stderr = mkstemp(template_stderr);
+
+    fflush(stdout);
+    fflush(stderr);
+
+    const auto old_stdout = dup(STDOUT_FILENO);
+    const auto old_stderr = dup(STDERR_FILENO);
 
     dup2(fd_stdout, STDOUT_FILENO);
     dup2(fd_stderr, STDERR_FILENO);
@@ -111,6 +117,9 @@ int socket_api_t::process(unix_socket_t&& conn_socket)
     fflush(stdout);
     fflush(stderr);
 
+    dup2(old_stdout, STDOUT_FILENO);
+    dup2(old_stderr, STDERR_FILENO);
+
     conn_socket.send(&err, sizeof(err), 0);
 
     if (err == FLECS_OK)
@@ -125,6 +134,9 @@ int socket_api_t::process(unix_socket_t&& conn_socket)
         auto s = fread(buf, 1, sizeof(buf), file_stderr);
         conn_socket.send(buf, s, 0);
     }
+
+    close(fd_stdout);
+    close(fd_stderr);
 
     unlink(template_stdout);
     unlink(template_stderr);
