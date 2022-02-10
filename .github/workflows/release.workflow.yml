@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    container: flecs/flecs-build
+
+    strategy:
+      matrix:
+        arch: ["x86_64-linux-gnu", "arm-linux-gnueabihf", "aarch64-linux-gnu"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: "CMake: Configure"
+        run: |
+          cmake -B out/${{ matrix.arch }} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${{ matrix.arch }}.cmake -DCMAKE_BUILD_TYPE=Release -DNDEBUG=1
+      - name: "CMake: Build"
+        run: |
+          cmake --build out/${{ matrix.arch }}
+      - name: "CMake: Package"
+        run: |
+          cmake --build out/${{ matrix.arch }} --target packages
+      - name: Archive packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages
+          path: |
+            out/**/*.deb
+            out/**/*.ipk
+          retention-days: 3
+      - name: Archive raw artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: out
+          path: |
+            out/
+          retention-days: 1
+
+  docker:
+    needs: build
+    runs-on: ubuntu-20.04
+    container: flecs/flecs-build
+
+    env:
+      REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+      REGISTRY_AUTH: ${{ secrets.REGISTRY_AUTH }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: arm64,arm
+
+      - name: Download workflow artifacts
+        uses: actions/download-artifact@v2
+
+      - name: "Docker: native"
+        run: |
+          cmake --build out/x86_64-linux-gnu --target docker
+      - name: "Docker: armhf"
+        run: |
+          cmake --build out/arm-linux-gnueabihf --target docker
+      - name: "Docker: aarch64"
+        run: |
+          cmake --build out/aarch64-linux-gnu --target docker

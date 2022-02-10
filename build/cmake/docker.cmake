@@ -19,7 +19,7 @@ set(REGISTRY_PATH flecs)
 if (NOT NDEBUG)
     set(DOCKER_TAG develop)
 else()
-    set(DOCKER_TAG develop)
+    set(DOCKER_TAG latest)
 endif()
 
 add_custom_command(
