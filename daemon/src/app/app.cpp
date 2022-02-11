@@ -99,6 +99,7 @@ app_t::app_t(const std::string& manifest)
             const auto port = split(i.as<std::string>(), ':');
             add_port(std::stoi(port[0]), std::stoi(port[1]));
         }
+        OPTIONAL_TYPED_YAML_VALUE(yaml, interactive, _interactive);
         _yaml_loaded = true;
     } catch (const YAML::Exception& ex)
     {

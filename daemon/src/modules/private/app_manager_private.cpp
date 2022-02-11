@@ -338,6 +338,12 @@ module_error_e module_app_manager_private_t::do_create_instance(
         docker_process.arg("--publish");
         docker_process.arg(std::to_string(port.first) + ":" + std::to_string(port.second));
     }
+
+    if (app.interactive())
+    {
+        docker_process.arg("--interactive");
+    }
+
     docker_process.arg("--name");
     docker_process.arg("flecs-" + hex_id);
     docker_process.arg(app.image_with_tag());
