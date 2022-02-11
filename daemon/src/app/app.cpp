@@ -59,10 +59,10 @@ namespace FLECS {
 
 app_t::app_t(const std::string& manifest)
 {
-    const auto yaml = YAML::LoadFile(manifest);
-
     try
     {
+        const auto yaml = YAML::LoadFile(manifest);
+
         REQUIRED_TYPED_YAML_VALUE(yaml, app, _name);
         REQUIRED_TYPED_YAML_VALUE(yaml, title, _title);
         REQUIRED_TYPED_YAML_VALUE(yaml, version, _version);
