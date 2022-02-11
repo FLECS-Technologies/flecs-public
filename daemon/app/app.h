@@ -83,6 +83,9 @@ public:
     }
     auto remove_port(const ports_t::key_type& local) { return _ports.erase(local); }
 
+    auto interactive() const noexcept { return _interactive; }
+    auto interactive(bool interactive) { _interactive = interactive; }
+
     auto installed_size() const noexcept { return _installed_size; }
 
     auto multi_instance() const noexcept { return _multi_instance; }
@@ -108,6 +111,7 @@ private:
     volumes_t _bind_mounts;
     networks_t _networks;
     ports_t _ports;
+    bool _interactive;
     std::int32_t _installed_size;
     bool _multi_instance;
     app_status_e _status;
