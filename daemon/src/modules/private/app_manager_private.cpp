@@ -159,7 +159,11 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
         return FLECS_APP_NOTINST;
     }
 
-    // Step 2: Load app manifest
+    // Step 2: Persist removal of app into db
+    _app_db.delete_app({app_name, version});
+    _app_db.persist();
+
+    // Step 3: Load app manifest
     const auto path = build_manifest_path(app_name, version);
 
     auto app = app_t{path};
@@ -168,7 +172,7 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
         return FLECS_YAML;
     }
 
-    // Step 3: Stop and delete all instances of the app
+    // Step 4: Stop and delete all instances of the app
     const auto instances = _app_db.instances(app_name, version);
     for (auto& instance : instances)
     {
@@ -180,7 +184,7 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
         _app_db.delete_instance({instance.id});
     }
 
-    // Step 4: Remove Docker image of the app
+    // Step 5: Remove Docker image of the app
     const auto image = app.image_with_tag();
     auto docker_process = process_t{};
     docker_process.spawnp("docker", "rmi", "-f", image);
@@ -195,7 +199,7 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
             version.c_str());
     }
 
-    // Step 5: Remove app manifest
+    // Step 6: Remove app manifest
     auto ec = std::error_code{};
     const auto res = std::filesystem::remove(path, ec);
     if (!res)
@@ -203,10 +207,6 @@ module_error_e module_app_manager_private_t::do_uninstall(const std::string& app
         std::fprintf(stderr, "Could not delete manifest %s: %d\n", path.c_str(), ec.value());
         return FLECS_IO;
     }
-
-    // Step 6: Persist removal of app into db
-    _app_db.delete_app({app_name, version});
-    _app_db.persist();
 
     return FLECS_OK;
 }
@@ -555,7 +555,7 @@ module_error_e module_app_manager_private_t::do_stop_instance(
     }
 
     // Step 3: Return if instance is not running
-    if (!is_instance_running(id))
+    if (!is_instance_running(id) && !internal)
     {
         std::fprintf(stdout, "Instance %s is not running\n", id.c_str());
         return FLECS_OK;
