@@ -20,7 +20,7 @@ namespace FLECS {
 
 module_error_e module_version_t::do_process(int, char**)
 {
-    std::fprintf(stdout, "%s\n", FLECS_VERSION);
+    std::fprintf(stdout, "%s-%s\n", FLECS_VERSION, FLECS_GIT_SHA);
 
     return FLECS_OK;
 }
