@@ -16,8 +16,16 @@ cmake_minimum_required(VERSION 3.13)
 
 project(FLECS)
 
-set(VERSION 1.0.0-alpha)
+# set version and SHA
+set(VERSION 1.0.0-alpha.1)
 add_definitions(-DFLECS_VERSION="${VERSION}")
+
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    OUTPUT_VARIABLE FLECS_GIT_SHA
+)
+add_definitions(-DFLECS_GIT_SHA="${FLECS_GIT_SHA}")
 
 set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
