@@ -15,18 +15,40 @@
 #ifndef FLECS_daemon_libflecs_h
 #define FLECS_daemon_libflecs_h
 
+#include <memory>
+
 #include "private/libflecs_private.h"
 #include "util/string/string_utils.h"
 
 namespace FLECS {
 
-FLECS_EXPORT int run_flecs_command(int argc, char** argv);
+namespace Private {
+class libflecs_private_t;
+}
 
-template <typename T, typename... Args>
-int run_flecs_command(T&& command, Args&&... args)
+class libflecs_t
 {
-    std::string strargs = stringify_delim('\0', command) + stringify_delim('\0', args...);
-    return Private::run_flecs_command_private(strargs);
+public:
+    FLECS_EXPORT libflecs_t();
+
+    template <typename T, typename... Args>
+    FLECS_EXPORT int run_command(T&& command, Args&&... args)
+    {
+        std::string strargs = stringify_delim('\0', command) + stringify_delim('\0', args...);
+        return _impl->run_command(strargs);
+    }
+
+    FLECS_EXPORT int run_command(int argc, char** argv);
+
+    FLECS_EXPORT std::string response() const;
+
+private:
+    std::unique_ptr<Private::libflecs_private_t> _impl;
+};
+
+std::string libflecs_t::response() const
+{
+    return _impl->response();
 }
 
 } // namespace FLECS

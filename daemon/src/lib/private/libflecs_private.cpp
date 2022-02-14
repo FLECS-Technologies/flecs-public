@@ -25,7 +25,7 @@
 namespace FLECS {
 namespace Private {
 
-int run_flecs_command_private(const std::string& args)
+int libflecs_private_t::run_command(const std::string& args)
 {
     auto client = FLECS::unix_client_t{FLECS_SOCKET};
     if (!client.is_connected())
@@ -48,19 +48,15 @@ int run_flecs_command_private(const std::string& args)
             errno);
     }
 
-    auto res = FLECS::module_error_e{};
-    auto rdbuf = std::string{};
-    auto bytes_received = client.recv(&res, sizeof(res), 0);
+    auto bytes_received = client.recv(&_return_code, sizeof(_return_code), 0);
     while (bytes_received > 0)
     {
         auto tmp = std::array<char, 4096>{};
         bytes_received = client.recv(tmp.data(), tmp.size(), 0);
-        rdbuf.insert(rdbuf.end(), tmp.begin(), tmp.begin() + bytes_received);
+        _response.insert(_response.end(), tmp.begin(), tmp.begin() + bytes_received);
     }
 
-    std::fprintf(stdout, "%s", rdbuf.c_str());
-
-    return res;
+    return _return_code;
 }
 
 } // namespace Private

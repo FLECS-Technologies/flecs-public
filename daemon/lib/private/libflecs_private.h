@@ -20,7 +20,17 @@
 namespace FLECS {
 namespace Private {
 
-int run_flecs_command_private(const std::string& args);
+class libflecs_private_t
+{
+public:
+    FLECS_EXPORT int run_command(const std::string& args);
+
+    FLECS_EXPORT std::string response() const { return _response; }
+
+private:
+    int _return_code;
+    std::string _response;
+};
 
 } // namespace Private
 } // namespace FLECS
