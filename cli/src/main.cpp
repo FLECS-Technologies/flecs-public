@@ -16,5 +16,8 @@
 
 int main(int argc, char** argv)
 {
-    return FLECS::run_flecs_command(argc, argv);
+    auto lib = FLECS::libflecs_t{};
+    auto res = lib.run_command(argc, argv);
+    std::fprintf((res == 0) ? stdout : stderr, "%s", lib.response().c_str());
+    return res;
 }

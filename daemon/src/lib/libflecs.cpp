@@ -20,7 +20,11 @@
 
 namespace FLECS {
 
-int run_flecs_command(int argc, char** argv)
+libflecs_t::libflecs_t()
+    : _impl{new Private::libflecs_private_t{}}
+{}
+
+int libflecs_t::run_command(int argc, char** argv)
 {
     auto strargs = std::string{};
     for (auto i = 0; i < argc; ++i)
@@ -28,7 +32,7 @@ int run_flecs_command(int argc, char** argv)
         strargs += argv[i];
         strargs += '\0';
     }
-    return Private::run_flecs_command_private(strargs);
+    return _impl->run_command(strargs);
 }
 
 } // namespace FLECS

@@ -20,10 +20,10 @@
 #include <tuple>
 #include <utility>
 
+#include "daemon/lib/libflecs.h"
 #include "util/container/map_constexpr.h"
 #include "util/http/response_headers.h"
 #include "util/http/version_strings.h"
-#include "util/process/process.h"
 #include "util/string/literals.h"
 
 namespace FLECS {
@@ -43,21 +43,6 @@ namespace FLECS {
         std::cerr << "Malformed field " << #val << " in request: " << ex.what() << std::endl; \
         return http_status_e::BadRequest;                                                     \
     }
-
-template <typename... Args>
-std::tuple<int, std::string, std::string> run_flecs_service(const char* action, Args&&... args)
-{
-    process_t proc_install{};
-    const auto res = proc_install.spawnp("flecs", "app-manager", action, args...);
-
-    if (res != 0)
-    {
-        return std::make_tuple(-1, "", "flecs executable not found");
-    }
-
-    proc_install.wait(true, true);
-    return std::make_tuple(proc_install.exit_code(), proc_install.stdout(), proc_install.stderr());
-}
 
 template <typename T>
 auto build_response_impl(Json::Value json, const char* field, T&& value)
@@ -176,13 +161,11 @@ http_status_e http_request_handler_t::install_app()
 
     std::cout << "[Request]: Install " << app << " " << version << std::endl;
 
-    const auto res = run_flecs_service("install", app, version);
-    const auto success = (std::get<0>(res) == 0);
+    auto lib = libflecs_t{};
+    auto res = lib.run_command("app-manager", "install", app, version);
+    _json_response = build_response("app", app, "version", version, "additionalInfo", lib.response());
 
-    _json_response =
-        build_response("app", app, "version", version, "additionalInfo", success ? std::string{} : std::get<2>(res));
-
-    return success ? http_status_e::Ok : http_status_e::InternalServerError;
+    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
 http_status_e http_request_handler_t::uninstall_app()
@@ -197,13 +180,11 @@ http_status_e http_request_handler_t::uninstall_app()
 
     std::cout << "[Request]: Uninstall " << app << " " << version << std::endl;
 
-    const auto res = run_flecs_service("uninstall", app, version);
-    const auto success = (std::get<0>(res) == 0);
+    auto lib = libflecs_t{};
+    auto res = lib.run_command("app-manager", "uninstall", app, version);
+    _json_response = build_response("app", app, "version", version, "additionalInfo", lib.response());
 
-    _json_response =
-        build_response("app", app, "version", version, "additionalInfo", success ? std::string{} : std::get<2>(res));
-
-    return success ? http_status_e::Ok : http_status_e::InternalServerError;
+    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
 http_status_e http_request_handler_t::create_app_instance()
@@ -219,8 +200,8 @@ http_status_e http_request_handler_t::create_app_instance()
 
     std::cout << "[Request]: Create instance " << instanceName << " of " << app << " " << version << std::endl;
 
-    const auto res = run_flecs_service("create-instance", app, version, instanceName);
-    const bool success = (std::get<0>(res) == 0);
+    auto lib = libflecs_t{};
+    auto res = lib.run_command("app-manager", "create-instance", app, version, instanceName);
 
     _json_response = build_response(
         "app",
@@ -228,11 +209,11 @@ http_status_e http_request_handler_t::create_app_instance()
         "version",
         version,
         "instanceId",
-        success ? std::get<1>(res) : std::string{},
+        (res == 0) ? lib.response() : std::string{},
         "additionalInfo",
-        success ? std::string{} : std::get<2>(res));
+        (res == 0) ? std::string{} : lib.response());
 
-    return success ? http_status_e::Ok : http_status_e::InternalServerError;
+    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
 http_status_e http_request_handler_t::delete_app_instance()
@@ -248,8 +229,8 @@ http_status_e http_request_handler_t::delete_app_instance()
 
     std::cout << "[Request]: Delete instance " << instanceId << " of " << app << " " << version << std::endl;
 
-    const auto res = run_flecs_service("delete-instance", instanceId, app, version);
-    const auto success = (std::get<0>(res) == 0);
+    auto lib = libflecs_t{};
+    auto res = lib.run_command("app-manager", "delete-instance", instanceId, app, version);
 
     _json_response = build_response(
         "app",
@@ -259,9 +240,9 @@ http_status_e http_request_handler_t::delete_app_instance()
         "instanceId",
         instanceId,
         "additionalInfo",
-        success ? std::string{} : std::get<2>(res));
+        (res == 0) ? std::string{} : lib.response());
 
-    return success ? http_status_e::Ok : http_status_e::InternalServerError;
+    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
 http_status_e http_request_handler_t::start_app_instance()
@@ -277,20 +258,13 @@ http_status_e http_request_handler_t::start_app_instance()
 
     std::cout << "[Request]: Start instance " << instanceId << " of " << app << " " << version << std::endl;
 
-    const auto res = run_flecs_service("start-instance", instanceId, app, version);
-    const auto success = (std::get<0>(res) == 0);
+    auto lib = libflecs_t{};
+    auto res = lib.run_command("app-manager", "start-instance", instanceId, app, version);
 
-    _json_response = build_response(
-        "app",
-        app,
-        "version",
-        version,
-        "instanceId",
-        instanceId,
-        "additionalInfo",
-        success ? std::get<1>(res) : std::get<2>(res));
+    _json_response =
+        build_response("app", app, "version", version, "instanceId", instanceId, "additionalInfo", lib.response());
 
-    return success ? http_status_e::Ok : http_status_e::InternalServerError;
+    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
 http_status_e http_request_handler_t::stop_app_instance()
@@ -306,20 +280,13 @@ http_status_e http_request_handler_t::stop_app_instance()
 
     std::cout << "[Request]: Stop instance " << instanceId << " of " << app << " " << version << std::endl;
 
-    const auto res = run_flecs_service("stop-instance", instanceId, app, version);
-    const auto success = (std::get<0>(res) == 0);
+    auto lib = libflecs_t{};
+    auto res = lib.run_command("app-manager", "stop-instance", instanceId, app, version);
 
-    _json_response = build_response(
-        "app",
-        app,
-        "version",
-        version,
-        "instanceId",
-        instanceId,
-        "additionalInfo",
-        success ? std::get<1>(res) : std::get<2>(res));
+    _json_response =
+        build_response("app", app, "version", version, "instanceId", instanceId, "additionalInfo", lib.response());
 
-    return success ? http_status_e::Ok : http_status_e::InternalServerError;
+    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
 http_status_e http_request_handler_t::installed_apps_list()
@@ -331,16 +298,14 @@ http_status_e http_request_handler_t::installed_apps_list()
 
     std::cout << "[Request]: List installed apps" << std::endl;
 
-    const auto res = run_flecs_service("list-apps");
-    const auto success = (std::get<0>(res) == 0);
+    auto lib = libflecs_t{};
+    auto res = lib.run_command("app-manager", "list-apps");
 
-    if (success)
+    if (res == 0)
     {
-        const auto json_output = std::get<1>(res);
-
         const auto json_result = _json_reader->parse(
-            json_output.c_str(),
-            json_output.c_str() + json_output.size(),
+            lib.response().c_str(),
+            lib.response().c_str() + lib.response().size(),
             &_json_response,
             nullptr);
         if (json_result)
@@ -374,17 +339,12 @@ http_status_e http_request_handler_t::sideload_app()
         return http_status_e::InternalServerError;
     }
 
-    const auto flecs_res = run_flecs_service("sideload", tmp);
-    const auto success = (std::get<0>(flecs_res) == 0);
+    auto lib = libflecs_t{};
+    auto flecs_res = lib.run_command("app-manager", "sideload", tmp);
     unlink(tmp);
     close(fd);
 
-    if (!success)
-    {
-        return http_status_e::InternalServerError;
-    }
-
-    return http_status_e::Ok;
+    return (flecs_res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
 } // namespace FLECS
