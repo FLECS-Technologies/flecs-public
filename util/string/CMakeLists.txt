@@ -12,8 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(curl_easy_ext)
-add_subdirectory(llhttp_ext)
-add_subdirectory(process)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
+add_subdirectory(test)
