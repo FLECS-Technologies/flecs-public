@@ -159,7 +159,10 @@ inline socket_t::socket_t(int fd)
 
 inline socket_t::socket_t(domain_t domain, type_t type, int protocol)
     : _fd{::socket(static_cast<int>(domain), static_cast<int>(type), protocol)}
-{}
+{
+    const int val = 1;
+    setsockopt(_fd, SOL_SOCKET, SO_REUSEPORT, &val, sizeof(val));
+}
 
 inline socket_t::socket_t(socket_t&& other)
     : _fd{-1}

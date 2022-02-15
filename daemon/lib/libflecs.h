@@ -34,7 +34,7 @@ public:
     template <typename T, typename... Args>
     FLECS_EXPORT int run_command(T&& command, Args&&... args)
     {
-        std::string strargs = stringify_delim('\0', command, args...);
+        std::string strargs = stringify_delim('\0', "flecs", command, args...);
         return _impl->run_command(strargs);
     }
 
