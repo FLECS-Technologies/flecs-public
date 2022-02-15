@@ -12,22 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.modules.rpc)
-
-add_library(
-    FLECS.daemon.modules.rpc OBJECT
-    src/rpc.cpp
-    rpc.h
-)
-
-target_include_directories(
-    FLECS.daemon.modules.rpc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
-
-target_include_directories(
-    FLECS.daemon.modules.rpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(FLECS.daemon.modules.rpc PRIVATE
-    FLECS.daemon.modules.module_base
+flecs_add_module(
+    MODULE_NAME rpc
 )
