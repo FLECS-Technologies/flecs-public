@@ -12,18 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_string_comparator_h
-#define FLECS_util_string_comparator_h
+#include "module.h"
 
-#include <cstring>
+#include <iostream>
 
 namespace FLECS {
 
-struct string_comparator_t
+module_error_e module_t::process(int argc, char** argv)
 {
-    bool operator()(const char* lhs, const char* rhs) const { return std::strcmp(lhs, rhs) < 0; }
-};
+    return do_process(argc, argv);
+}
 
 } // namespace FLECS
-
-#endif // FLECS_util_string_comparator_h

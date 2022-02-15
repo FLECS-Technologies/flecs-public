@@ -12,28 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.util.sqlite3_ext)
+project(FLECS.daemon.modules.usage)
 
-set(SRC_ARCHIVE
-    src/sqlite3_db.cpp
-    src/sqlite3_table.cpp
+add_library(
+    FLECS.daemon.modules.usage OBJECT
+    src/usage.cpp
+    usage.h
 )
 
-set (HEADER_ARCHIVE
-    sqlite3_column.h
-    sqlite3_db.h
-    sqlite3_primary.h
-    sqlite3_statements.h
-    sqlite3_table.h
+target_include_directories(
+    FLECS.daemon.modules.usage INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
 
-add_library(FLECS.util.sqlite3_ext OBJECT ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
-
-target_link_libraries(FLECS.util.sqlite3_ext PUBLIC
-    FLECS.external.sqlite3
-    stdc++fs
+target_include_directories(
+    FLECS.daemon.modules.usage PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_include_directories(FLECS.util.sqlite3_ext PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
+target_link_libraries(FLECS.daemon.modules.usage PRIVATE
+    FLECS.daemon.modules.module_base
 )

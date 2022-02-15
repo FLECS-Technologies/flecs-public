@@ -14,9 +14,12 @@
 
 #include "daemon/daemon.h"
 
+#include <getopt.h>
+
 #include <thread>
 
 #include "api/api.h"
+#include "signal_handler.h"
 
 namespace FLECS {
 
@@ -27,7 +30,7 @@ daemon_t::daemon_t()
 
 int daemon_t::detach()
 {
-    _api_thread = std::thread{&socket_api_t::run, &_api};
+    _api_thread = std::thread{&daemon_api_t::run, &_api};
     pthread_setname_np(_api_thread.native_handle(), "api_thread");
 
     _api_thread.detach();
@@ -36,3 +39,18 @@ int daemon_t::detach()
 }
 
 } // namespace FLECS
+
+constexpr struct option options[] = {{"json", no_argument, nullptr, 0}, {nullptr, no_argument, nullptr, 0}};
+
+int main(int /*argc*/, char** /*argv*/)
+{
+    FLECS::signal_handler_init();
+
+    auto daemon = FLECS::daemon_t{};
+    daemon.detach();
+
+    while (!FLECS::g_stop)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+}

@@ -28,7 +28,7 @@ public:
     int detach();
 
 private:
-    socket_api_t _api;
+    daemon_api_t _api;
     std::thread _api_thread;
 };
 
