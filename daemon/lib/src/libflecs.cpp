@@ -20,11 +20,13 @@
 
 namespace FLECS {
 
-libflecs_t::libflecs_t()
-    : _impl{new Private::libflecs_private_t{}}
+template <typename Impl>
+libflecs_t<Impl>::libflecs_t()
+    : _impl{new Impl{}}
 {}
 
-int libflecs_t::run_command(int argc, char** argv)
+template <typename Impl>
+int libflecs_t<Impl>::run_command(int argc, char** argv)
 {
     auto strargs = std::string{};
     for (auto i = 0; i < argc; ++i)
@@ -34,5 +36,13 @@ int libflecs_t::run_command(int argc, char** argv)
     }
     return _impl->run_command(strargs);
 }
+
+template <typename Impl>
+std::string libflecs_t<Impl>::response() const
+{
+    return _impl->response();
+}
+
+template class libflecs_t<Private::libflecs_private_t>;
 
 } // namespace FLECS
