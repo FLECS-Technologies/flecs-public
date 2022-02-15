@@ -24,10 +24,6 @@
 #include "instance/instance_status.h"
 #include "util/sqlite3_ext/sqlite3_db.h"
 
-#ifndef FLECS_APP_DB_PATH
-#define FLECS_APP_DB_PATH "/var/lib/flecs/db/apps.db"
-#endif // FLECS_APP_DB_PATH
-
 namespace FLECS {
 
 using t = std::remove_cv_t<std::remove_reference_t<const instance_status_e&>>;
@@ -98,6 +94,8 @@ class app_db_t : public sqlite3_db_t
 {
 public:
     app_db_t();
+
+    explicit app_db_t(std::string path);
 
     ~app_db_t() override;
 
@@ -182,6 +180,7 @@ private:
         std::map<instances_table_primary_t, instances_table_data_t, instances_table_primary_comparator_t>;
     apps_table_t _apps;
     instances_table_t _instances;
+    std::string _path;
 };
 
 } // namespace FLECS

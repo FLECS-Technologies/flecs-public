@@ -19,7 +19,16 @@
                 "${workspaceFolder}/mqtt/**",
                 "${workspaceFolder}/util/**",
                 "${workspaceFolder}/mqtt/**",
-                "${workspaceFolder}/mqtt"
+                "${workspaceFolder}/mqtt",
+                "${workspaceFolder}/daemon",
+                "${workspaceFolder}/daemon/modules",
+                "${workspaceFolder}/daemon/modules/app_manager",
+                "${workspaceFolder}/daemon/modules/factory",
+                "${workspaceFolder}/daemon/modules/help",
+                "${workspaceFolder}/daemon/modules/module_base",
+                "${workspaceFolder}/daemon/modules/rpc",
+                "${workspaceFolder}/daemon/modules/usage",
+                "${workspaceFolder}/daemon/modules/version"
             ],
             "defines": [
                 "FLECS_EXPORT=__attribute__((visibility(\"default\")))"

@@ -12,18 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_string_comparator_h
-#define FLECS_util_string_comparator_h
+#include "signal_handler.h"
 
-#include <cstring>
+#include <atomic>
+#include <csignal>
 
 namespace FLECS {
 
-struct string_comparator_t
+std::atomic_bool g_stop{};
+
+void signal_handler(int)
 {
-    bool operator()(const char* lhs, const char* rhs) const { return std::strcmp(lhs, rhs) < 0; }
-};
+    g_stop = true;
+}
+
+void signal_handler_init()
+{
+    struct sigaction signal_action
+    {
+    };
+    signal_action.sa_handler = &FLECS::signal_handler;
+    sigaction(SIGTERM, &signal_action, nullptr);
+    sigaction(SIGINT, &signal_action, nullptr);
+}
 
 } // namespace FLECS
-
-#endif // FLECS_util_string_comparator_h

@@ -12,18 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_string_comparator_h
-#define FLECS_util_string_comparator_h
+#include "libflecs.h"
 
-#include <cstring>
+#include <string>
+
+#include "private/libflecs_private.h"
 
 namespace FLECS {
 
-struct string_comparator_t
+libflecs_t::libflecs_t()
+    : _impl{new Private::libflecs_private_t{}}
+{}
+
+int libflecs_t::run_command(int argc, char** argv)
 {
-    bool operator()(const char* lhs, const char* rhs) const { return std::strcmp(lhs, rhs) < 0; }
-};
+    auto strargs = std::string{};
+    for (auto i = 0; i < argc; ++i)
+    {
+        strargs += argv[i];
+        strargs += '\0';
+    }
+    return _impl->run_command(strargs);
+}
 
 } // namespace FLECS
-
-#endif // FLECS_util_string_comparator_h

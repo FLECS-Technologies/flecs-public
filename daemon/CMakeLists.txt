@@ -14,6 +14,13 @@
 
 project(FLECS.daemon)
 
+add_subdirectory(api)
+add_subdirectory(app)
+add_subdirectory(db)
+add_subdirectory(instance)
+add_subdirectory(lib)
+add_subdirectory(modules)
+
 # configure package
 set(PACKAGE flecs)
 set(PACKAGE_DESC FLECS)
@@ -23,37 +30,12 @@ include(package)
 # build executable flecsd
 set(SRC_BINARY
     src/daemon.cpp
-    src/main.cpp
-    src/api/api.cpp
-    src/app/app.cpp
-    src/db/app_db.cpp
-    src/modules/private/app_manager_private.cpp
-    src/modules/app_manager.cpp
-    src/modules/help.cpp
-    src/modules/module.cpp
-    src/modules/rpc.cpp
-    src/modules/usage.cpp
-    src/modules/version.cpp
-    src/signal_handler/signal_handler.cpp
+    src/signal_handler.cpp
 )
 
 set(HEADER_BINARY
-    api/api.h
-    app/app.h
-    app/app_status.h
-    db/app_db.h
     daemon.h
-    instance/instance_status.h
-    modules/private/app_manager_private.h
-    modules/app_manager.h
-    modules/errors.h
-    modules/factory.h
-    modules/help.h
-    modules/module.h
-    modules/rpc.h
-    modules/usage.h
-    modules/version.h
-    signal_handler/signal_handler.h
+    signal_handler.h
 )
 
 add_executable(FLECS.daemon ${SRC_BINARY} ${HEADER_BINARY})
@@ -66,6 +48,13 @@ target_include_directories(FLECS.daemon PRIVATE
 
 # FLECS link libraries
 target_link_libraries(FLECS.daemon PRIVATE
+    FLECS.daemon.api
+    FLECS.daemon.modules.app_manager
+    FLECS.daemon.modules.factory
+    FLECS.daemon.modules.help
+    FLECS.daemon.modules.rpc
+    FLECS.daemon.modules.usage
+    FLECS.daemon.modules.version
     FLECS.util.process
     FLECS.util.curl_easy_ext
     FLECS.util.sqlite3_ext
@@ -83,32 +72,13 @@ install(
     DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
 )
 
-# build shared object
-set(SRC_LIB
-    src/lib/libflecs.cpp
-    src/lib/private/libflecs_private.cpp
-)
-
-set(HEADER_LIB
-    lib/libflecs.h
-    lib/private/libflecs_private.h
-)
-
-add_library(FLECS.libdaemon SHARED ${SRC_LIB} ${HEADER_LIB})
-set_target_properties(FLECS.libdaemon PROPERTIES OUTPUT_NAME FLECS.daemon)
-
-# own includes
-target_include_directories(FLECS.libdaemon PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 # install shared object for packaging
 install(
-    TARGETS FLECS.libdaemon LIBRARY
+    TARGETS FLECS.daemon.lib LIBRARY
     DESTINATION ${PACKAGE_DIR}/debian/usr/lib
 )
 install(
-    TARGETS FLECS.libdaemon LIBRARY
+    TARGETS FLECS.daemon.lib LIBRARY
     DESTINATION ${PACKAGE_DIR}/opkg/usr/lib
 )
 
@@ -121,5 +91,3 @@ install(
     TARGETS FLECS.cli RUNTIME
     DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
 )
-
-add_subdirectory(test)

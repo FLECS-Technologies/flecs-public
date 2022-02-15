@@ -15,29 +15,21 @@
 #ifndef FLECS_daemon_api_h
 #define FLECS_daemon_api_h
 
-#include <map>
-#include <memory>
-
-#include "modules/module.h"
 #include "util/socket/unix_server.h"
-#include "util/string/comparator.h"
 
 namespace FLECS {
 
 constexpr const char* FLECS_SOCKET = "/var/run/flecs/flecs.sock";
 
-class socket_api_t
+class daemon_api_t
 {
 public:
-    socket_api_t();
+    daemon_api_t();
 
     int run();
 
 private:
     int process(FLECS::unix_socket_t&& conn_socket);
-
-    using service_table_t = std::map<const char*, std::shared_ptr<module_t>, string_comparator_t>;
-    service_table_t _service_table;
 
     FLECS::unix_server_t _server;
 };

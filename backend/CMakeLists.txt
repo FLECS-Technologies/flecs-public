@@ -41,7 +41,7 @@ target_include_directories(FLECS.backend PRIVATE
 # FLECS link libraries
 target_link_libraries(FLECS.backend PRIVATE
     FLECS.util.llhttp_ext
-    FLECS.libdaemon
+    FLECS.daemon.lib
     FLECS.external.jsoncpp
     pthread
 )
