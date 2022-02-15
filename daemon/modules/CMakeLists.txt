@@ -14,6 +14,41 @@
 
 project(FLECS.daemon.modules)
 
+macro(flecs_add_module)
+    set(options "")
+    set(oneValueArgs MODULE_NAME)
+    set(multiValueArgs ADDITIONAL_SOURCES ADDITIONAL_HEADERS LIBS_PRIVATE LIBS_PUBLIC)
+    cmake_parse_arguments(
+        mod "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN}
+    )
+
+    project(FLECS.daemon.modules.${mod_MODULE_NAME})
+
+    add_library(
+        FLECS.daemon.modules.${mod_MODULE_NAME} OBJECT
+        src/${mod_MODULE_NAME}.cpp ${mod_ADDITIONAL_SOURCES}
+        ${mod_MODULE_NAME}.h ${mod_ADDITIONAL_HEADERS}
+    )
+
+    target_include_directories(
+        FLECS.daemon.modules.${mod_MODULE_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
+    )
+
+    target_include_directories(
+        FLECS.daemon.modules.${mod_MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    target_link_libraries(FLECS.daemon.modules.${mod_MODULE_NAME} PUBLIC
+        FLECS.daemon.modules.factory
+        FLECS.daemon.modules.module_base
+        ${mod_LIBS_PUBLIC}
+    )
+
+    target_link_libraries(FLECS.daemon.modules.${mod_MODULE_NAME} PRIVATE
+        ${mod_LIBS_PRIVATE}
+    )
+endmacro()
+
 add_subdirectory(app_manager)
 add_subdirectory(factory)
 add_subdirectory(help)

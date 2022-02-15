@@ -12,22 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.modules.help)
-
-add_library(
-    FLECS.daemon.modules.help OBJECT
-    src/help.cpp
-    help.h
-)
-
-target_include_directories(
-    FLECS.daemon.modules.help INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
-
-target_include_directories(
-    FLECS.daemon.modules.help PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(FLECS.daemon.modules.help PRIVATE
-    FLECS.daemon.modules.module_base
+flecs_add_module(
+    MODULE_NAME help
 )

@@ -12,29 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.modules.app_manager)
-
-add_library(
-    FLECS.daemon.modules.app_manager OBJECT
-    src/app_manager.cpp src/private/app_manager_private.cpp
-    app_manager.h private/app_manager_private.h
-)
-
-target_include_directories(
-    FLECS.daemon.modules.app_manager INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
-
-target_include_directories(
-    FLECS.daemon.modules.app_manager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(FLECS.daemon.modules.app_manager PUBLIC
-    FLECS.daemon.db
-)
-
-target_link_libraries(FLECS.daemon.modules.app_manager PRIVATE
-    FLECS.daemon.modules.factory
-    FLECS.daemon.modules.module_base
-    FLECS.external.jsoncpp
-    FLECS.util.curl_easy_ext
+flecs_add_module(
+    MODULE_NAME app_manager
+    ADDITIONAL_SOURCES src/private/app_manager_private.cpp
+    ADDITIONAL_HEADERS private/app_manager_private.h
+    LIBS_PUBLIC FLECS.daemon.db
+    LIBS_PRIVATE FLECS.daemon.modules.factory FLECS.daemon.modules.module_base FLECS.external.jsoncpp FLECS.util.curl_easy_ext
 )

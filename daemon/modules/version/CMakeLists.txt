@@ -12,20 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.modules.version)
-
-add_library(
-    FLECS.daemon.modules.version OBJECT
-    src/version.cpp
-    version.h
-)
-
-target_include_directories(
-    FLECS.daemon.modules.version INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
-
-target_include_directories(
-    FLECS.daemon.modules.version PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+flecs_add_module(
+    MODULE_NAME version
 )
 
 execute_process(
@@ -34,8 +22,8 @@ execute_process(
     OUTPUT_VARIABLE FLECS_GIT_SHA
 )
 
-target_compile_definitions(FLECS.daemon.modules.version PRIVATE -DFLECS_GIT_SHA="${FLECS_GIT_SHA}")
-
-target_link_libraries(FLECS.daemon.modules.version PRIVATE
-    FLECS.daemon.modules.module_base
+target_compile_definitions(FLECS.daemon.modules.version PUBLIC
+    -DFLECS_GIT_SHA="${FLECS_GIT_SHA}"
 )
+
+add_subdirectory(test)
