@@ -35,6 +35,7 @@ module_error_e module_usage_t::do_process(int, char**)
         "Commands:\n"
         "    app-manager    Manage apps and instances\n"
         "    help           Display help for specific COMMAND\n"
+        "    mp             Interact with FLECS marketplace\n"
         "    rpc            Issue RPC for running app\n"
         "    usage          Print this help\n"
         "    version        Print version and exit\n"

@@ -347,4 +347,23 @@ http_status_e http_request_handler_t::sideload_app()
     return (flecs_res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
+http_status_e http_request_handler_t::mp_login()
+{
+    REQUIRED_JSON_VALUE(user);
+    REQUIRED_JSON_VALUE(token);
+
+    std::cout << "[Request]: Login to marketplace" << std::endl;
+
+    return http_status_e::Ok;
+}
+
+http_status_e http_request_handler_t::mp_logout()
+{
+    REQUIRED_JSON_VALUE(user);
+
+    std::cout << "[Request]: Logout from marketplace" << std::endl;
+
+    return http_status_e::Ok;
+}
+
 } // namespace FLECS
