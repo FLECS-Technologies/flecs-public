@@ -26,6 +26,7 @@ namespace Private {
 class libflecs_private_t;
 }
 
+template <typename Impl = Private::libflecs_private_t>
 class libflecs_t
 {
 public:
@@ -43,13 +44,10 @@ public:
     FLECS_EXPORT std::string response() const;
 
 private:
-    std::unique_ptr<Private::libflecs_private_t> _impl;
+    std::unique_ptr<Impl> _impl;
 };
 
-std::string libflecs_t::response() const
-{
-    return _impl->response();
-}
+extern template class FLECS_EXPORT libflecs_t<Private::libflecs_private_t>;
 
 } // namespace FLECS
 
