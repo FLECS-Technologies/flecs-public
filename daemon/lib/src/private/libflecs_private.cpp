@@ -26,8 +26,10 @@ namespace Private {
 
 constexpr const char* FLECS_SOCKET = "/var/run/flecs/flecs.sock";
 
-int libflecs_private_t::run_command(const std::string& args)
+int libflecs_private_t::run_command(std::string args)
 {
+    using std::string_literals::operator""s;
+    args = "flecs\0"s + args;
     auto client = FLECS::unix_client_t{FLECS_SOCKET};
     if (!client.is_connected())
     {
@@ -38,7 +40,7 @@ int libflecs_private_t::run_command(const std::string& args)
         return 1;
     }
 
-    const auto bytes_sent = client.send(args.data(), args.size(), 0);
+    const auto bytes_sent = client.send(args.data(), args.size() + 1, 0);
     if (bytes_sent <= 0)
     {
         std::fprintf(

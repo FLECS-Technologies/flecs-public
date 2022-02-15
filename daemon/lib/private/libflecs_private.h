@@ -23,7 +23,7 @@ namespace Private {
 class libflecs_private_t
 {
 public:
-    FLECS_EXPORT int run_command(const std::string& args);
+    FLECS_EXPORT int run_command(std::string args);
 
     FLECS_EXPORT std::string response() const { return _response; }
 
