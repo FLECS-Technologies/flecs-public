@@ -50,6 +50,7 @@ macro(flecs_add_module)
 endmacro()
 
 add_subdirectory(app_manager)
+add_subdirectory(data_layer)
 add_subdirectory(factory)
 add_subdirectory(help)
 add_subdirectory(marketplace)
