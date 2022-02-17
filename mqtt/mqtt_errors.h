@@ -15,20 +15,18 @@
 #ifndef FLECS_mqtt_mqtt_errors_h
 #define FLECS_mqtt_mqtt_errors_h
 
-#include <mosquitto.h>
-
 namespace FLECS {
 
 enum mqtt_error_t : int
 {
-    MQTT_ERR_OK = MOSQ_ERR_SUCCESS,
-    MQTT_ERR_NOMEM = MOSQ_ERR_NOMEM,
-    MQTT_ERR_INVALID = MOSQ_ERR_INVAL,
-    MQTT_ERR_NOTCONN = MOSQ_ERR_NO_CONN,
-    MQTT_ERR_UNKNOWN = MOSQ_ERR_UNKNOWN,
-    MQTT_ERR_OS = MOSQ_ERR_ERRNO,
-    MQTT_ERR_UTF8 = MOSQ_ERR_MALFORMED_UTF8,
-    MQTT_ERR_PACKET_TOO_LARGE = MOSQ_ERR_OVERSIZE_PACKET,
+    MQTT_ERR_OK = 0,
+    MQTT_ERR_NOMEM = 1,
+    MQTT_ERR_INVALID = 3,
+    MQTT_ERR_NOTCONN = 4,
+    MQTT_ERR_UNKNOWN = 13,
+    MQTT_ERR_OS = 14,
+    MQTT_ERR_UTF8 = 18,
+    MQTT_ERR_PACKET_TOO_LARGE = 25,
 };
 
 } // namespace FLECS
