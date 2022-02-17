@@ -22,12 +22,13 @@
 
 #include <stdbool.h>
 
+#include "mqtt_errors.h"
 #include "mqtt_message.h"
 
 #ifndef __cplusplus
-    #define FLECS_MQTT_HOST "flecs-mqtt"
-    #define FLECS_MQTT_PORT 1883
-    #define FLECS_MQTT_KEEPALIVE 60
+#define FLECS_MQTT_HOST "flecs-mqtt"
+#define FLECS_MQTT_PORT 1883
+#define FLECS_MQTT_KEEPALIVE 60
 #endif // __cplusplus
 
 #ifdef __cplusplus
@@ -211,7 +212,7 @@ FLECS_EXPORT void* flecs_mqtt_client_new(void);
 
 FLECS_EXPORT void flecs_mqtt_client_destroy(void* mqtt);
 
-FLECS_EXPORT int flecs_mqtt_connect(void* mqtt, const char* host , int port, int keepalive);
+FLECS_EXPORT int flecs_mqtt_connect(void* mqtt, const char* host, int port, int keepalive);
 
 FLECS_EXPORT int flecs_mqtt_reconnect(void* mqtt);
 
