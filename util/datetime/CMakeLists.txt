@@ -12,9 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(curl_easy_ext)
-add_subdirectory(datetime)
-add_subdirectory(llhttp_ext)
-add_subdirectory(process)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
+project(FLECS.util.datetime)
+
+set(SRC_ARCHIVE
+    src/datetime.cpp
+)
+
+set (HEADER_ARCHIVE
+    datetime.h
+)
+
+add_library(FLECS.util.datetime OBJECT ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
+
+target_include_directories(FLECS.util.datetime PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+add_subdirectory(test)

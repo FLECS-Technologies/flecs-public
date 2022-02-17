@@ -12,9 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(curl_easy_ext)
-add_subdirectory(datetime)
-add_subdirectory(llhttp_ext)
-add_subdirectory(process)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
+if (BUILD_TESTING)
+    project(FLECS.util.datetime.test)
+
+    add_executable(FLECS.util.datetime.test
+        test_datetime.cpp
+    )
+
+    set_target_properties(FLECS.util.datetime.test PROPERTIES OUTPUT_NAME test_util_datetime)
+
+    target_link_libraries(FLECS.util.datetime.test PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.util.datetime
+    )
+
+    add_test(NAME FLECS.util.datetime.test COMMAND FLECS.util.datetime.test)
+endif()
