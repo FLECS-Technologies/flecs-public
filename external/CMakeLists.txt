@@ -19,6 +19,7 @@ include(ExternalProject)
 # define source directories
 
 set (CMAKE_ARGS    -B out/${MACHINE} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_BUILD_TYPE=Release)
+set (CPPZMQ_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/cppzmq-4.8.1)
 set (CURL_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/curl-7.81.0)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (JSONCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp-1.9.5)
@@ -120,6 +121,15 @@ add_custom_target(
 )
 
 # imported libraries
+# cppzmq
+add_library(FLECS.external.cppzmq INTERFACE)
+target_include_directories(FLECS.external.cppzmq INTERFACE
+    ${CPPZMQ_DIR}
+)
+target_link_libraries(FLECS.external.cppzmq INTERFACE
+    FLECS.external.zeromq
+)
+
 # cURL
 add_library(FLECS.external.curl STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.curl PROPERTY IMPORTED_LOCATION ${CURL_DIR}/out/${MACHINE}/lib/libcurl.a)
