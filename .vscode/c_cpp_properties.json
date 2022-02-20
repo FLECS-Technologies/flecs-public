@@ -4,6 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}",
+                "${workspaceFolder}/external/cppzmq-4.8.1",
                 "${workspaceFolder}/external/curl-7.81.0/include",
                 "${workspaceFolder}/external/gtest-1.11.0",
                 "${workspaceFolder}/external/jsoncpp-1.9.5/include",
@@ -12,6 +13,7 @@
                 "${workspaceFolder}/external/openssl-1.1.1m/out/x86_64-linux-gnu/include",
                 "${workspaceFolder}/external/sqlite-3.37.2",
                 "${workspaceFolder}/external/yaml-cpp-0.7.0/include",
+                "${workspaceFolder}/external/zeromq-4.3.4/include",
                 "${workspaceFolder}/external/zlib-1.2.11",
                 "${workspaceFolder}/daemon/**",
                 "${workspaceFolder}/backend/**",
