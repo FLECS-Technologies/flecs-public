@@ -1,0 +1,378 @@
+openapi: 3.0.3
+info:
+  title: FLECS Daemon API
+  version: 1.0.0-alpha.1
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+templates:
+  additionalInfo:
+    type: object
+    description: Additional info
+    properties:
+      additionalInfo:
+        type: string
+  app:
+    type: object
+    description: App name
+    properties:
+      app:
+        type: string
+        example: "tech.flecs.app"
+  instanceId:
+    type: object
+    description: Instance ID
+    properties:
+      instanceId:
+        type: string
+        example: "87654fed"
+  instanceName:
+    type: object
+    description: Instance name
+    properties:
+      instanceName:
+        type: string
+        example: "Smart home"
+  licenseKey:
+    type: object
+    description: License key for app installation
+    properties:
+      licenseKey:
+        type: string
+        example: "538E-A5E8-84A3-D798"
+  version:
+    type: object
+    description: App version
+    properties:
+      version:
+        type: string
+        example: "v4.0.6"
+
+components:
+  responses:
+    response_400:
+      description: Malformed request body
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              additionalInfo:
+                type: string
+                example: "Missing field app in request"
+
+    response_500:
+      type: object
+      description: Internal error
+      properties:
+        additionalInfo:
+          type: string
+          example: "Details what went wrong"
+
+  schema:
+    installed_app:
+      type: object
+      description: Installed app metadata
+      allOf:
+        - $ref: "#/templates/app"
+        - type: object
+          properties:
+            versions:
+              type: array
+              items:
+                $ref: "#/components/schema/app_versions"
+            instances:
+              type: array
+              items:
+                $ref: "#/components/schema/app_instances"
+
+    app_versions:
+      type: object
+      description: App versions
+      allOf:
+        - type: object
+          properties:
+            desired:
+              type: string
+              example: "installed"
+            installedSize:
+              type: int
+              example: 10485760
+            status:
+              type: string
+              example: "installed" # todo: refine possible values
+        - $ref: "#/templates/version"
+
+    app_instances:
+      type: object
+      description: App instances
+      allOf:
+        - type: object
+          properties:
+            desired:
+              type: string
+              example: "running"
+        - $ref: "#/templates/instanceId"
+        - $ref: "#/templates/instanceName"
+        - type: object
+          properties:
+            status:
+              type: string
+              example: "running" # todo: refine possible values
+        - $ref: "#/templates/version"
+
+paths:
+  /app/install:
+    post:
+      summary: Install an app from the FLECS marketplace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/templates/app"
+                - $ref: "#/templates/licenseKey"
+                - $ref: "#/templates/version"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/templates/additionalInfo"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/version"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/responses/response_500"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/version"
+
+  /app/list:
+    get:
+      summary: List installed apps and their instances
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/templates/additionalInfo"
+                  - type: object
+                    properties:
+                      appList:
+                        type: array
+                        items:
+                          $ref: "#/components/schema/installed_app"
+
+  /app/sideload:
+    put:
+      summary: Sideload an app from its manifest
+      requestBody:
+        content:
+          application/yaml:
+            schema:
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/templates/additionalInfo"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/version"
+
+  /app/uninstall:
+    post:
+      summary: Uninstall an app
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/templates/app"
+                - $ref: "#/templates/version"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/templates/additionalInfo"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/version"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/responses/response_500"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/version"
+
+  /instance/create:
+    post:
+      summary: Create new instance of an installed app
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/templates/app"
+                - $ref: "#/templates/instanceName"
+                - $ref: "#/templates/version"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/templates/additionalInfo"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/instanceId"
+                  - $ref: "#/templates/instanceName"
+                  - $ref: "#/templates/version"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/responses/response_500"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/instanceName"
+                  - $ref: "#/templates/version"
+
+  /instance/delete:
+    post:
+      summary: Delete an app instance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - allOf:
+                    - $ref: "#/templates/app"
+                    - $ref: "#/templates/instanceId"
+                    - $ref: "#/templates/version"
+                - $ref: "#/templates/instanceId"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/templates/additionalInfo"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/instanceId"
+                  - $ref: "#/templates/version"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/responses/response_500"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/instanceId"
+                  - $ref: "#/templates/version"
+
+  /instance/start:
+    post:
+      summary: Start an app instance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - allOf:
+                    - $ref: "#/templates/app"
+                    - $ref: "#/templates/instanceId"
+                    - $ref: "#/templates/version"
+                - $ref: "#/templates/instanceId"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/templates/additionalInfo"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/instanceId"
+                  - $ref: "#/templates/version"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/responses/response_500"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/version"
+                  - $ref: "#/templates/instanceId"
+
+  /instance/stop:
+    post:
+      summary: Stop an app instance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - allOf:
+                    - $ref: "#/templates/app"
+                    - $ref: "#/templates/instanceId"
+                    - $ref: "#/templates/version"
+                - $ref: "#/templates/instanceId"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/templates/additionalInfo"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/instanceId"
+                  - $ref: "#/templates/version"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/responses/response_500"
+                  - $ref: "#/templates/app"
+                  - $ref: "#/templates/instanceId"
+                  - $ref: "#/templates/version"
