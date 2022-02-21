@@ -40,3 +40,4 @@ target_link_libraries(FLECS.daemon.api PRIVATE
 )
 
 add_subdirectory(endpoints)
+add_subdirectory(lib)
