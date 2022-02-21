@@ -18,7 +18,12 @@
 #include <string>
 
 #include "db/app_db.h"
-#include "module_base/errors.h"
+#include "module_base/module.h"
+#include "util/http/status_codes.h"
+
+namespace Json {
+class Value;
+} // namespace Json
 
 namespace FLECS {
 
@@ -32,6 +37,14 @@ public:
     module_app_manager_private_t();
     ~module_app_manager_private_t();
 
+    /*! @brief Initializes the module. Sanitizes the app database and starts all previously running app instances
+     *
+     * @param None
+     *
+     * @return None
+     */
+    void do_init();
+
     /*! @brief Installs an app from its name and version, i.e. downloads it from the marketplace
      *
      * Downloads the according app manifest and forwards to manifest installation
@@ -44,7 +57,7 @@ public:
      * @return Any error code returned by @sa download_manifest
      * @return Any error code returned by overloaded @sa do_install(const std::string&)
      */
-    module_error_e do_install(const std::string& app_name, const std::string& version);
+    http_status_e do_install(const std::string& app_name, const std::string& version, Json::Value& response);
 
     /*! @brief Installs an app from its YAML manifest
      *
@@ -55,7 +68,7 @@ public:
      * @return FLECS_YAML: Error parsing manifest
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
-    module_error_e do_install(const std::string& manifest);
+    http_status_e do_install(const std::string& manifest, Json::Value& response);
 
     /*! @brief Sideloads an app from its YAML manifest
      *
@@ -69,7 +82,7 @@ public:
      * @return FLECS_IOW: Error writing manifest to FLECS application directory
      * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
      */
-    module_error_e do_sideload(const std::string& manifest_path);
+    http_status_e do_sideload(const std::string& manifest_path, Json::Value& response);
 
     /*! @brief Uninstalls an application
      *
@@ -83,7 +96,7 @@ public:
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      * @return FLECS_IOW: Error deleting manifest from disk
      */
-    module_error_e do_uninstall(const std::string& app_name, const std::string& version);
+    http_status_e do_uninstall(const std::string& app_name, const std::string& version, Json::Value& response);
 
     /*! @brief Creates a new instance of an installed app
      *
@@ -97,8 +110,8 @@ public:
      * @return FLECS_YAML: Error parsing manifest of installed app
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
-    module_error_e do_create_instance(
-        const std::string& app_name, const std::string& version, const std::string& description);
+    http_status_e do_create_instance(
+        const std::string& app_name, const std::string& version, const std::string& description, Json::Value& response);
 
     /*! @brief Deletes an existing instance
      *
@@ -111,7 +124,8 @@ public:
      * @return FLECS_INSTANCE_NOTEXIST if the specified instance does not exist
      * @return any error returned by @sa xcheck_app_instance if app_name and/or versions are provided
      */
-    module_error_e do_delete_instance(const std::string& id, const std::string& app_name, const std::string& version);
+    http_status_e do_delete_instance(
+        const std::string& id, const std::string& app_name, const std::string& version, Json::Value& response);
 
     /*! @brief Starts an existing instance. If the instance is already running, no action is performed and the function
      * call is considered successful. app_name and version can be provided as additional arguments, in which case these
@@ -129,8 +143,9 @@ public:
      * @return FLECS_DOCKER if the call to Docker was unsuccessful
      * @return any error returned by @sa xcheck_app_instance if app_name and/or versions are provided
      */
-    module_error_e do_start_instance(
-        const std::string& id, const std::string& app_name, const std::string& version, bool internal = false);
+    http_status_e do_start_instance(
+        const std::string& id, const std::string& app_name, const std::string& version, Json::Value& response,
+        bool internal = false);
 
     /*! @brief Stops a running instance. If the instance is not running, no action is performed and the function call is
      * considered successful. app_name and version can be provided as additional arguments, in which case these
@@ -145,8 +160,9 @@ public:
      * @return FLECS_INSTANCE_NOTEXIST if the specified instance does not exist
      * @return FLECS_DOCKER if the call to Docker was unsuccessful
      */
-    module_error_e do_stop_instance(
-        const std::string& id, const std::string& app_name, const std::string& version, bool internal = false);
+    http_status_e do_stop_instance(
+        const std::string& id, const std::string& app_name, const std::string& version, Json::Value& response,
+        bool internal = false);
 
     /*! @brief Prints all installed apps and their instances in JSON format
      *
@@ -154,15 +170,15 @@ public:
      *
      * @return FLECS_OK
      */
-    module_error_e do_list_apps();
+    http_status_e do_list_apps(Json::Value& response);
 
     /*! @brief Prints all available versions for a given app. Not yet implemented
      */
-    module_error_e do_list_versions(const std::string& app_name);
+    http_status_e do_list_versions(const std::string& app_name, Json::Value& response);
 
     /*! @brief Prints all available instances for a given app and version. Not yet implemented
      */
-    module_error_e do_list_instances(const std::string& app_name, const std::string& version);
+    http_status_e do_list_instances(const std::string& app_name, const std::string& version, Json::Value& response);
 
 private:
     /*! @brief Helper function to determine whether a given app is installed in a given version
@@ -198,17 +214,15 @@ private:
      * @param[in] app_name Name of the corresponding app
      * @param[in] version Version of the corresponding app
      *
-     * @return error code
-     * @return FLECS_OK No error occurred
-     * @return FLECS_APP_NOTINST if the app is not installed
-     * @return FLECS_INSTANCE_APP if instance belongs to a different app
-     * @return FLECS_INSTANCE_VERSION if the instance belongs to a different app version
+     * @return 0 if check is ok, -1 otherwise
      */
-    module_error_e xcheck_app_instance(
+    int xcheck_app_instance(
         const instances_table_entry_t& instance, const std::string& app_name, const std::string& version);
 
     app_db_t _app_db;
 };
+
+std::string build_manifest_path(const std::string& app_name, const std::string& version);
 
 } // namespace Private
 } // namespace FLECS

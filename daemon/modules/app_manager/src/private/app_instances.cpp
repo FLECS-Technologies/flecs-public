@@ -12,36 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_errors_h
-#define FLECS_daemon_modules_errors_h
-
-#include <cstdint>
+#include "private/app_manager_private.h"
 
 namespace FLECS {
+namespace Private {
 
-enum module_error_e : int
+http_status_e module_app_manager_private_t::do_list_instances(
+    const std::string& /*app_name*/, const std::string& /*version*/, Json::Value& /*response*/)
 {
-    FLECS_OK,
-    FLECS_FAILED,
+    return http_status_e::Ok;
+}
 
-    FLECS_ARGC,
-    FLECS_USAGE,
-
-    FLECS_IO,
-
-    FLECS_APP_NOTINST,
-
-    FLECS_INSTANCE_NOTEXIST,
-    FLECS_INSTANCE_NOTRUNNABLE,
-    FLECS_INSTANCE_APP,
-    FLECS_INSTANCE_VERSION,
-
-    FLECS_CURL = 0x70000000,
-    FLECS_SQLITE = 0x71000000,
-    FLECS_YAML = 0x72000000,
-    FLECS_DOCKER = 0x73000000,
-};
-
+} // namespace Private
 } // namespace FLECS
-
-#endif // FLECS_daemon_modules_errors_h

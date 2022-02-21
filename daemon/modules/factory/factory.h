@@ -34,25 +34,29 @@ auto make_module()
 class module_factory_t
 {
 public:
+    module_factory_t(const module_factory_t&) = delete;
+    module_factory_t(module_factory_t&&) = delete;
+    module_factory_t& operator=(module_factory_t) = delete;
+
     using module_table_t = std::map<const char*, std::shared_ptr<module_t>, string_comparator_t>;
 
-    template <typename T>
-    static void register_module(const char* module_name);
-
-    static auto& module_table() noexcept { return _module_table; }
-
     static module_factory_t& instance();
+
+    template <typename T>
+    void register_module(const char* module_name);
+
+    std::shared_ptr<module_t> query(const char* endpoint);
 
 private:
     module_factory_t() = default;
 
-    inline static module_table_t _module_table = {};
+    module_table_t _module_table;
 };
 
 template <typename T>
 void module_factory_t::register_module(const char* module_name)
 {
-    _module_table.emplace(module_name, make_module<T>());
+    _module_table.try_emplace(module_name, make_module<T>());
 }
 
 template <typename T>
@@ -67,6 +71,10 @@ register_module_t<T>::register_module_t(const char* module_name)
 {
     module_factory_t::instance().register_module<T>(module_name);
 }
+
+namespace api {
+std::shared_ptr<module_t> query_module(const char* module_name);
+} // namespace api
 
 } // namespace FLECS
 

@@ -18,117 +18,97 @@
 #include <thread>
 #include <vector>
 
-#include "factory/factory.h"
-#include "module_base/errors.h"
+#include "endpoints/endpoints.h"
+#include "json/json.h"
 #include "signal_handler.h"
+#include "util/http/response_headers.h"
+#include "util/http/version_strings.h"
+#include "util/llhttp_ext/llhttp_ext.h"
 #include "util/string/literals.h"
 
 namespace FLECS {
 
-std::vector<char*> parse_args(char* const& str, size_t len)
-{
-    auto res = std::vector<char*>{};
-
-    auto last = size_t{};
-    for (size_t i = 0; i < len; ++i)
-    {
-        if (str[i] == '\0')
-        {
-            res.emplace_back(&str[last]);
-            last = i + 1;
-        }
-    }
-
-    return res;
-}
-
-daemon_api_t::daemon_api_t()
-    : _server{FLECS_SOCKET, 1}
+flecs_api_t::flecs_api_t()
+    : _server{8951, INADDR_ANY, 1}
+    , _json_reader{Json::CharReaderBuilder().newCharReader()}
 {
     if (!_server.is_running())
     {
-        exit(EXIT_FAILURE);
+        std::terminate();
     }
 }
 
-int daemon_api_t::run()
+flecs_api_t::~flecs_api_t()
+{}
+
+int flecs_api_t::run()
 {
     do
     {
-        auto conn_socket = unix_socket_t{_server.accept(nullptr, nullptr)};
+        auto conn_socket = tcp_socket_t{_server.accept(nullptr, nullptr)};
         if (conn_socket.is_valid())
         {
-            std::thread handle_thread{&daemon_api_t::process, this, std::move(conn_socket)};
-            handle_thread.detach();
+            process(conn_socket);
         }
     } while (!g_stop);
 
     return 0;
 }
 
-int daemon_api_t::process(unix_socket_t&& conn_socket)
+http_status_e flecs_api_t::process(tcp_socket_t& conn_socket)
 {
-    char template_stdout[] = "/tmp/flecs-XXXXXX";
-    char template_stderr[] = "/tmp/flecs-XXXXXX";
-
-    const auto fd_stdout = mkstemp(template_stdout);
-    const auto fd_stderr = mkstemp(template_stderr);
-
-    fflush(stdout);
-    fflush(stderr);
-
-    const auto old_stdout = dup(STDOUT_FILENO);
-    const auto old_stderr = dup(STDERR_FILENO);
-
-    dup2(fd_stdout, STDOUT_FILENO);
-    dup2(fd_stderr, STDERR_FILENO);
-
+    // Receive data from the connected client
     using FLECS::operator""_kiB;
     char buf[128_kiB];
 
     auto n_bytes = conn_socket.recv(buf, sizeof(buf), 0);
     if (n_bytes <= 0)
     {
-        return 1;
+        return http_status_e::BadRequest;
     }
 
-    module_error_e err = FLECS_USAGE;
-    auto args = parse_args(buf, n_bytes);
-    const char* cmd = (args.size() > 1 ? args[1] : "usage");
-
-    decltype(auto) module_table = module_factory_t::instance().module_table();
-    const auto it = module_table.find(cmd);
-    if (it != module_table.cend())
+    auto llhttp_ext = llhttp_ext_t{};
+    auto llhttp_ext_settings = llhttp_settings_t{};
+    llhttp_ext_settings_init(&llhttp_ext_settings);
+    llhttp_init(&llhttp_ext, HTTP_REQUEST, &llhttp_ext_settings);
+    if (llhttp_execute(&llhttp_ext, buf, n_bytes) != HPE_OK)
     {
-        err = it->second->process(args.size() - 2, &args.data()[2]);
+        return http_status_e::BadRequest;
     }
 
-    fflush(stdout);
-    fflush(stderr);
-
-    dup2(old_stdout, STDOUT_FILENO);
-    dup2(old_stderr, STDERR_FILENO);
-
-    conn_socket.send(&err, sizeof(err), 0);
-
-    if (err == FLECS_OK)
+    auto args = Json::Value{};
+    if (llhttp_ext.method == HTTP_POST)
     {
-        auto file_stdout = fopen(template_stdout, "r");
-        auto s = fread(buf, 1, sizeof(buf), file_stdout);
-        conn_socket.send(buf, s, 0);
+        const auto success = _json_reader->parse(
+            llhttp_ext._body.c_str(),
+            llhttp_ext._body.c_str() + llhttp_ext._body.size(),
+            &args,
+            nullptr);
+        if (!success)
+        {
+            return http_status_e::BadRequest;
+        }
     }
-    else
+
+    http_status_e err = http_status_e::NotImplemented;
+
+    const auto endpoint = api::query_endpoint(llhttp_ext._url.c_str());
+    auto json_response = Json::Value{};
+    if (endpoint.has_value())
     {
-        auto file_stderr = fopen(template_stderr, "r");
-        auto s = fread(buf, 1, sizeof(buf), file_stderr);
-        conn_socket.send(buf, s, 0);
+        err = static_cast<http_status_e>(std::invoke(endpoint.value(), args, json_response));
     }
 
-    close(fd_stdout);
-    close(fd_stderr);
+    std::stringstream ss;
+    // HTTP header
+    ss << http_version_1_1 << " " << http_response_header_map.at(err).second;
+    // Separator
+    ss << "\r\n";
+    // Body
+    ss << json_response.toStyledString();
 
-    unlink(template_stdout);
-    unlink(template_stderr);
+    conn_socket.send(ss.str().c_str(), ss.str().length(), 0);
+
     return err;
 }
 

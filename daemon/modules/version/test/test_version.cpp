@@ -17,18 +17,14 @@
 
 TEST(module_version, print_version)
 {
-    testing::internal::CaptureStdout();
-    testing::internal::CaptureStderr();
-
-    const auto stdout_expected = std::string{FLECS_VERSION} + "-" + FLECS_GIT_SHA + "\n";
-    const auto stderr_expected = std::string{};
+    const auto out_expected = std::string{"{\n\t\"core\" : \""} + FLECS_VERSION + "-" + FLECS_GIT_SHA + "\"\n}\n";
 
     auto mod = FLECS::module_version_t{};
-    const auto res = mod.process(0, nullptr);
-    const auto stdout_actual = testing::internal::GetCapturedStdout();
-    const auto stderr_actual = testing::internal::GetCapturedStderr();
+    auto response = Json::Value{};
+    const auto res = mod.print_version(Json::Value{}, response);
 
-    ASSERT_EQ(res, FLECS::module_error_e::FLECS_OK);
-    ASSERT_EQ(stdout_actual, stdout_expected);
-    ASSERT_EQ(stderr_actual, stderr_expected);
+    response.toStyledString();
+
+    ASSERT_EQ(res, FLECS::http_status_e::Ok);
+    ASSERT_EQ(response.toStyledString(), out_expected);
 }

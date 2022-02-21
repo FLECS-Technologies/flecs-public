@@ -19,18 +19,19 @@
 namespace FLECS {
 
 namespace {
-auto _register_help = register_module_t<module_help_t>{"help"};
+register_module_t<module_help_t> _reg("help");
 }
 
-module_error_e module_help_t::do_process(int argc, char** argv)
+module_help_t::module_help_t()
 {
-    _topic = argc > 0 ? argv[0] : "";
-    for (auto i = 1; i < argc; ++i)
-    {
-        _subtopics.push_back(argv[i]);
-    }
+    using namespace std::placeholders;
 
-    return FLECS_OK;
+    api::register_endpoint("/help", std::bind(&module_help_t::print_help, this, _1));
+}
+
+http_status_e module_help_t::print_help(const Json::Value& /*args*/)
+{
+    return http_status_e::Ok;
 }
 
 } // namespace FLECS

@@ -14,8 +14,6 @@
 
 #include "rpc.h"
 
-#include <factory/factory.h>
-
 #include <iostream>
 #include <list>
 #include <memory>
@@ -26,14 +24,6 @@
 
 namespace FLECS {
 
-namespace {
-auto _register_rpc = register_module_t<module_rpc_t>{"rpc"};
-}
-
-module_error_e module_rpc_t::do_process(int /*argc*/, char** /*argv*/)
-{
-    return FLECS_OK;
-}
 /*
 void emplace_arg(std::list<FLECS::any>& args, const char* arg)
 {

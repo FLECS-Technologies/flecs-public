@@ -4,6 +4,14 @@
 
 namespace FLECS {
 
+void llhttp_ext_settings_init(llhttp_settings_t* settings)
+{
+    llhttp_settings_init(settings);
+    settings->on_body = &llhttp_ext_on_body;
+    settings->on_url = &llhttp_ext_on_url;
+    settings->on_message_complete = &llhttp_ext_on_message_complete;
+}
+
 int llhttp_ext_on_body(llhttp_t* llhttp, const char* at, size_t length)
 {
     using FLECS::llhttp_ext_t;

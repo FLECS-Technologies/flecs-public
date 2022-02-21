@@ -16,7 +16,6 @@
                 "${workspaceFolder}/external/zeromq-4.3.4/include",
                 "${workspaceFolder}/external/zlib-1.2.11",
                 "${workspaceFolder}/daemon/**",
-                "${workspaceFolder}/backend/**",
                 "${workspaceFolder}/daemon/**",
                 "${workspaceFolder}/mqtt/**",
                 "${workspaceFolder}/util/**",

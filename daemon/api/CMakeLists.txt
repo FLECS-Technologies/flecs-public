@@ -15,7 +15,7 @@
 project(FLECS.daemon.api)
 
 add_library(
-    FLECS.daemon.api STATIC
+    FLECS.daemon.api OBJECT
     src/api.cpp
     api.h
 )
@@ -28,9 +28,15 @@ target_include_directories(
     FLECS.daemon.api PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_link_libraries(FLECS.daemon.api PUBLIC
+    FLECS.daemon.api.endpoints
+    FLECS.external.jsoncpp
+    FLECS.util.llhttp_ext
+)
+
 target_link_libraries(FLECS.daemon.api PRIVATE
     FLECS.daemon.app
-    FLECS.daemon.modules.factory
-    FLECS.daemon.modules.module_base
     FLECS.util.sqlite3_ext
 )
+
+add_subdirectory(endpoints)

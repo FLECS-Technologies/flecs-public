@@ -15,9 +15,6 @@
 #ifndef FLECS_daemon_modules_data_layer_h
 #define FLECS_daemon_modules_data_layer_h
 
-#include <list>
-#include <string>
-
 #include "module_base/module.h"
 
 namespace FLECS {
@@ -26,7 +23,6 @@ class module_data_layer_t : public module_t
 {
 public:
 private:
-    module_error_e do_process(int argc, char** argv) override;
 };
 
 } // namespace FLECS

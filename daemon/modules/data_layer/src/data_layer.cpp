@@ -19,12 +19,7 @@
 namespace FLECS {
 
 namespace {
-auto _register_data_layer = register_module_t<module_data_layer_t>{"data-layer"};
-}
-
-module_error_e module_data_layer_t::do_process(int /*argc*/, char** /*argv*/)
-{
-    return FLECS_OK;
+register_module_t<module_data_layer_t> _reg("data-layer");
 }
 
 } // namespace FLECS

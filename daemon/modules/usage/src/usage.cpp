@@ -21,13 +21,19 @@
 namespace FLECS {
 
 namespace {
-auto _register_usage = register_module_t<module_usage_t>{"usage"};
+register_module_t<module_usage_t> _reg("usage");
 }
 
-module_error_e module_usage_t::do_process(int, char**)
+module_usage_t::module_usage_t()
 {
-    std::fprintf(
-        stderr,
+    using namespace std::placeholders;
+
+    api::register_endpoint("/usage", std::bind(&module_usage_t::print_usage, this, _1, _2));
+}
+
+http_status_e module_usage_t::print_usage(const Json::Value& /*args*/, Json::Value& response)
+{
+    response["usage"] =
         "Usage: flecs [OPTIONS] COMMAND\n\n"
         "Options:\n"
         "    --json         Produce output in JSON format\n"
@@ -39,9 +45,9 @@ module_error_e module_usage_t::do_process(int, char**)
         "    rpc            Issue RPC for running app\n"
         "    usage          Print this help\n"
         "    version        Print version and exit\n"
-        "\n");
+        "\n";
 
-    return FLECS_USAGE;
+    return http_status_e::Ok;
 }
 
 } // namespace FLECS

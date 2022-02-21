@@ -15,32 +15,54 @@
 #ifndef FLECS_daemon_modules_module_h
 #define FLECS_daemon_modules_module_h
 
-#include "errors.h"
+#include <json/json.h>
+
+#include "endpoints/endpoints.h"
+#include "util/http/status_codes.h"
 
 namespace FLECS {
 
-#define REQUIRED_ARGUMENT(arg, pos) \
-    if (argc < (pos + 1))           \
-    {                               \
-        return FLECS_ARGC;          \
-    }                               \
-    const auto arg = argv[pos]
+// Helper macros to parse JSON arguments passed to endpoints
+#define REQUIRED_JSON_VALUE(json, val)                                                       \
+    if (json[#val].isNull())                                                                 \
+    {                                                                                        \
+        response["additionalInfo"] = std::string{"Missing field "} + #val + " in request";   \
+        return http_status_e::BadRequest;                                                    \
+    }                                                                                        \
+    auto val = std::string{};                                                                \
+    try                                                                                      \
+    {                                                                                        \
+        val = json[#val].as<std::string>();                                                  \
+    } catch (const Json::LogicError& ex)                                                     \
+    {                                                                                        \
+        response["additionalInfo"] = std::string{"Malformed field "} + #val + " in request"; \
+        return http_status_e::BadRequest;                                                    \
+    }
 
-#define OPTIONAL_ARGUMENT(arg, pos) const auto arg = (argc > pos) ? argv[pos] : ""
+#define OPTIONAL_JSON_VALUE(json, val)          \
+    auto val = std::string{};                   \
+    if (!json[#val].isNull())                   \
+    {                                           \
+        try                                     \
+        {                                       \
+            val = json[#val].as<std::string>(); \
+        } catch (const Json::LogicError& ex)    \
+        {                                       \
+        }                                       \
+    }
 
+// Module base class - tbd
 class module_t
 {
 public:
-    module_error_e process(int argc, char** argv);
-
-protected:
-    module_t() = default;
     virtual ~module_t() = default;
 
-private:
-    virtual module_error_e do_process(int argc, char** argv) = 0;
+    void init();
+    // std::string usage();
 
-    bool _json_output;
+private:
+    virtual void do_init(){};
+    // virtual std::string do_usage() = 0;
 };
 
 } // namespace FLECS

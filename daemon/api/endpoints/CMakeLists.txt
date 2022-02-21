@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.modules.module_base)
+project(FLECS.daemon.api.endpoints)
 
-add_library(FLECS.daemon.modules.module_base INTERFACE)
-
-target_include_directories(
-    FLECS.daemon.modules.module_base INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
+add_library(
+    FLECS.daemon.api.endpoints OBJECT
+    src/endpoints.cpp
+    endpoints.h
 )
 
-target_link_libraries(
-    FLECS.daemon.modules.module_base INTERFACE
-    FLECS.daemon.api.endpoints
-    FLECS.external.jsoncpp
+target_include_directories(
+    FLECS.daemon.api.endpoints INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
+)
+
+target_include_directories(
+    FLECS.daemon.api.endpoints PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )

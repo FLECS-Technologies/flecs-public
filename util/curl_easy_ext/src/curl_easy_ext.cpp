@@ -23,11 +23,13 @@ namespace FLECS {
 curl_easy_ext::curl_easy_ext(const std::string& url, int* write_fd)
     : _curl{}
 {
-    if (!_ref_count)
     {
         auto lock = std::lock_guard<std::mutex>{_ref_mutex};
-        curl_global_init(CURL_GLOBAL_DEFAULT);
-        ++_ref_count;
+        if (!_ref_count)
+        {
+            curl_global_init(CURL_GLOBAL_DEFAULT);
+            ++_ref_count;
+        }
     }
 
     _curl = curl_easy_init();
