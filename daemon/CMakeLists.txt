@@ -18,7 +18,6 @@ add_subdirectory(api)
 add_subdirectory(app)
 add_subdirectory(db)
 add_subdirectory(instance)
-add_subdirectory(lib)
 add_subdirectory(modules)
 
 # configure package
