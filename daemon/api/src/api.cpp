@@ -89,6 +89,26 @@ http_status_e flecs_api_t::process(tcp_socket_t& conn_socket)
             return http_status_e::BadRequest;
         }
     }
+    else if (llhttp_ext.method == HTTP_PUT)
+    {
+        char tmp[] = "/tmp/flecs-XXXXXX";
+        int fd = mkstemp(tmp);
+        if (fd < -1)
+        {
+            return http_status_e::InternalServerError;
+        }
+        const auto res = write(fd, llhttp_ext._body.c_str(), llhttp_ext._body.length());
+        close(fd);
+        if (res != llhttp_ext._body.length())
+        {
+            return http_status_e::InternalServerError;
+        }
+        args["path"] = tmp;
+    }
+    else if (llhttp_ext.method != HTTP_GET)
+    {
+        return http_status_e::MethodNotAllowed;
+    }
 
     http_status_e err = http_status_e::NotImplemented;
 
