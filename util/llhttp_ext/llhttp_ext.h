@@ -19,6 +19,8 @@
 
 #include <string>
 
+#include "util/http/status_codes.h"
+
 namespace FLECS {
 
 struct llhttp_ext_t : public llhttp_t
