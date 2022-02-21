@@ -49,7 +49,9 @@ target_include_directories(FLECS.daemon PRIVATE
 # FLECS link libraries
 target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.api
+    FLECS.daemon.api.endpoints
     FLECS.daemon.modules.app_manager
+    FLECS.daemon.modules.factory
     FLECS.daemon.modules.help
     FLECS.daemon.modules.rpc
     FLECS.daemon.modules.usage
@@ -57,7 +59,6 @@ target_link_libraries(FLECS.daemon PRIVATE
     FLECS.util.process
     FLECS.util.curl_easy_ext
     FLECS.util.sqlite3_ext
-    FLECS.external.jsoncpp
     FLECS.external.yaml-cpp
 )
 

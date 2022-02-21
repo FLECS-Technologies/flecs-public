@@ -17,7 +17,7 @@ set(REGISTRY_AUTH $ENV{REGISTRY_AUTH})
 set(REGISTRY_PATH flecs)
 
 if (NOT NDEBUG)
-    set(DOCKER_TAG develop)
+    set(DOCKER_TAG experimental)
 else()
     set(DOCKER_TAG latest)
 endif()

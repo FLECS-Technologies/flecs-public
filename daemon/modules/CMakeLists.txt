@@ -39,6 +39,7 @@ macro(flecs_add_module)
     )
 
     target_link_libraries(FLECS.daemon.modules.${mod_MODULE_NAME} PUBLIC
+        FLECS.daemon.api
         FLECS.daemon.modules.factory
         FLECS.daemon.modules.module_base
         ${mod_LIBS_PUBLIC}

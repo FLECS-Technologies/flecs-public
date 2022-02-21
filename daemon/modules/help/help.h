@@ -25,8 +25,10 @@ namespace FLECS {
 class module_help_t : public module_t
 {
 public:
+    module_help_t();
+
 private:
-    module_error_e do_process(int argc, char** argv) override;
+    http_status_e print_help(const Json::Value& args);
 
     std::string _topic;
     std::list<std::string> _subtopics;

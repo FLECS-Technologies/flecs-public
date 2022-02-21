@@ -17,7 +17,6 @@
 
 #include <memory>
 
-#include "db/app_db.h"
 #include "module_base/module.h"
 
 namespace FLECS {
@@ -30,22 +29,23 @@ class module_app_manager_t : public module_t
 {
 public:
     module_app_manager_t();
-    ~module_app_manager_t();
+
+    ~module_app_manager_t() override;
 
 private:
-    module_error_e do_process(int argc, char** argv) override;
+    void do_init() override;
 
-    /*! Entry points for all commands - parse arguments and forward to implementation */
-    module_error_e install(int argc, char** argv);
-    module_error_e sideload(int argc, char** argv);
-    module_error_e uninstall(int argc, char** argv);
-    module_error_e create_instance(int argc, char** argv);
-    module_error_e delete_instance(int argc, char** argv);
-    module_error_e start_instance(int argc, char** argv);
-    module_error_e stop_instance(int argc, char** argv);
-    module_error_e list_apps(int argc, char** argv);
-    module_error_e list_versions(int argc, char** argv);
-    module_error_e list_instances(int argc, char** argv);
+    /*! Endpoints - parse arguments and forward to implementation */
+    http_status_e install(const Json::Value& args, Json::Value& response);
+    http_status_e sideload(const Json::Value& args, Json::Value& response);
+    http_status_e uninstall(const Json::Value& args, Json::Value& response);
+    http_status_e create_instance(const Json::Value& args, Json::Value& response);
+    http_status_e delete_instance(const Json::Value& args, Json::Value& response);
+    http_status_e start_instance(const Json::Value& args, Json::Value& response);
+    http_status_e stop_instance(const Json::Value& args, Json::Value& response);
+    http_status_e list_apps(const Json::Value& args, Json::Value& response);
+    http_status_e list_versions(const Json::Value& args, Json::Value& response);
+    http_status_e list_instances(const Json::Value& args, Json::Value& response);
 
     std::unique_ptr<Private::module_app_manager_private_t> _impl;
 };

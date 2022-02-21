@@ -24,8 +24,6 @@ class module_rpc_t : public module_t
 {
 public:
 private:
-    module_error_e do_process(int argc, char** argv) override;
-
     std::string _action;
     std::string _callee;
     std::string _method;

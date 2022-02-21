@@ -28,10 +28,6 @@ target_include_directories(
     FLECS.daemon.modules.factory PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(FLECS.daemon.modules.factory INTERFACE
-    FLECS.daemon.modules.module_base
-)
-
-target_link_libraries(FLECS.daemon.modules.factory PRIVATE
+target_link_libraries(FLECS.daemon.modules.factory PUBLIC
     FLECS.daemon.modules.module_base
 )

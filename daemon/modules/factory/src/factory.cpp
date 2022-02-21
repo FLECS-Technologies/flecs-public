@@ -22,4 +22,19 @@ module_factory_t& module_factory_t::instance()
     return factory;
 }
 
+std::shared_ptr<module_t> module_factory_t::query(const char* module_name)
+{
+    decltype(auto) it = _module_table.find(module_name);
+    if (it != _module_table.end())
+    {
+        return it->second;
+    }
+    return nullptr;
+}
+
+std::shared_ptr<module_t> query_module(const char* module_name)
+{
+    return module_factory_t::instance().query(module_name);
+}
+
 } // namespace FLECS

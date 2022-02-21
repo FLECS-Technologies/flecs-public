@@ -19,12 +19,25 @@
 namespace FLECS {
 
 namespace {
-auto _register_marketplace = register_module_t<module_marketplace_t>{"mp"};
+register_module_t<module_marketplace_t> _reg("mp");
 }
 
-module_error_e module_marketplace_t::do_process(int argc, char** argv)
+module_marketplace_t::module_marketplace_t()
 {
-    return do_process(argc, argv);
+    using namespace std::placeholders;
+
+    api::register_endpoint("/marketplace/login", std::bind(&module_marketplace_t::mp_login, this, _1, _2));
+    api::register_endpoint("/marketplace/logout", std::bind(&module_marketplace_t::mp_logout, this, _1, _2));
+}
+
+http_status_e module_marketplace_t::mp_login(const Json::Value& /*args*/, Json::Value& /*response*/)
+{
+    return http_status_e::Ok;
+}
+
+http_status_e module_marketplace_t::mp_logout(const Json::Value& /*args*/, Json::Value& /*response*/)
+{
+    return http_status_e::Ok;
 }
 
 } // namespace FLECS

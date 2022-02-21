@@ -22,8 +22,10 @@ namespace FLECS {
 class module_usage_t : public module_t
 {
 public:
+    module_usage_t();
+
 private:
-    module_error_e do_process(int argc, char** argv) override;
+    http_status_e print_usage(const Json::Value& args, Json::Value& response);
 };
 
 } // namespace FLECS

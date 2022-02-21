@@ -30,7 +30,7 @@ daemon_t::daemon_t()
 
 int daemon_t::detach()
 {
-    _api_thread = std::thread{&daemon_api_t::run, &_api};
+    _api_thread = std::thread{&flecs_api_t::run, &_api};
     pthread_setname_np(_api_thread.native_handle(), "api_thread");
 
     _api_thread.detach();

@@ -15,21 +15,18 @@
 #ifndef FLECS_daemon_modules_marketplace_h
 #define FLECS_daemon_modules_marketplace_h
 
-#include <string>
-#include <utility>
-
 #include "module_base/module.h"
 
 namespace FLECS {
 
 class module_marketplace_t : public module_t
 {
-private:
-    module_error_e do_process(int argc, char** argv) override;
+public:
+    module_marketplace_t();
 
-    using username_t = std::string;
-    using token_t = std::string;
-    std::pair<username_t, token_t> _auth;
+private:
+    http_status_e mp_login(const Json::Value& args, Json::Value& response);
+    http_status_e mp_logout(const Json::Value& args, Json::Value& response);
 };
 
 } // namespace FLECS

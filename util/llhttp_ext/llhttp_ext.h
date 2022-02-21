@@ -29,6 +29,7 @@ struct llhttp_ext_t : public llhttp_t
     std::string _url;
 };
 
+void llhttp_ext_settings_init(llhttp_settings_t* settings);
 int llhttp_ext_on_body(llhttp_t* llhttp, const char* at, size_t length);
 int llhttp_ext_on_url(llhttp_t* llhttp, const char* at, size_t length);
 int llhttp_ext_on_message_complete(llhttp_t* llhttp);

@@ -21,118 +21,105 @@
 namespace FLECS {
 
 namespace {
-
-auto _register_app_manager = register_module_t<module_app_manager_t>{"app-manager"};
-
-} // namespace
+register_module_t<module_app_manager_t> _reg("app-manager");
+}
 
 module_app_manager_t::module_app_manager_t()
     : _impl{new Private::module_app_manager_private_t}
-{}
+{
+    using namespace std::placeholders;
+
+    api::register_endpoint("/app/install", std::bind(&module_app_manager_t::install, this, _1, _2));
+    api::register_endpoint("/app/instances", std::bind(&module_app_manager_t::list_instances, this, _1, _2));
+    api::register_endpoint("/app/list", std::bind(&module_app_manager_t::list_apps, this, _1, _2));
+    api::register_endpoint("/app/sideload", std::bind(&module_app_manager_t::sideload, this, _1, _2));
+    api::register_endpoint("/app/uninstall", std::bind(&module_app_manager_t::uninstall, this, _1, _2));
+    api::register_endpoint("/app/versions", std::bind(&module_app_manager_t::list_versions, this, _1, _2));
+    api::register_endpoint("/instance/create", std::bind(&module_app_manager_t::sideload, this, _1, _2));
+    api::register_endpoint("/instance/delete", std::bind(&module_app_manager_t::delete_instance, this, _1, _2));
+    api::register_endpoint("/instance/start", std::bind(&module_app_manager_t::start_instance, this, _1, _2));
+    api::register_endpoint("/instance/stop", std::bind(&module_app_manager_t::stop_instance, this, _1, _2));
+}
 
 module_app_manager_t::~module_app_manager_t()
 {}
 
-module_error_e module_app_manager_t::do_process(int argc, char** argv)
+void module_app_manager_t::do_init()
+{}
+
+http_status_e module_app_manager_t::install(const Json::Value& args, Json::Value& response)
 {
-    if (argc < 1)
-    {
-        return FLECS_ARGC;
-    }
-    const auto action = argv[0];
-
-    using action_callback_t = module_error_e (module_app_manager_t::*)(int, char**);
-    using action_callback_table_t = FLECS::map_c<const char*, action_callback_t, 10, string_comparator_t>;
-    constexpr action_callback_table_t action_callbacks = {{
-        std::make_pair("install", &module_app_manager_t::install),
-        std::make_pair("sideload", &module_app_manager_t::sideload),
-        std::make_pair("uninstall", &module_app_manager_t::uninstall),
-        std::make_pair("create-instance", &module_app_manager_t::create_instance),
-        std::make_pair("delete-instance", &module_app_manager_t::delete_instance),
-        std::make_pair("start-instance", &module_app_manager_t::start_instance),
-        std::make_pair("stop-instance", &module_app_manager_t::stop_instance),
-        std::make_pair("list-apps", &module_app_manager_t::list_apps),
-        std::make_pair("list-versions", &module_app_manager_t::list_versions),
-        std::make_pair("list-instances", &module_app_manager_t::list_instances),
-    }};
-
-    const auto it = action_callbacks.find(action);
-    if (it != action_callbacks.end())
-    {
-        return std::invoke(it->second, this, argc - 1, &argv[1]);
-    }
-
-    return FLECS_USAGE;
+    REQUIRED_JSON_VALUE(args, app);
+    REQUIRED_JSON_VALUE(args, version);
+    OPTIONAL_JSON_VALUE(args, licenseKey);
+    return _impl->do_install(app, version, response);
 }
 
-module_error_e module_app_manager_t::install(int argc, char** argv)
+http_status_e module_app_manager_t::sideload(const Json::Value& args, Json::Value& response)
 {
-    REQUIRED_ARGUMENT(app_name, 0);
-    REQUIRED_ARGUMENT(version, 1);
-    return _impl->do_install(app_name, version);
+    REQUIRED_JSON_VALUE(args, manifest);
+    return _impl->do_sideload(manifest, response);
 }
 
-module_error_e module_app_manager_t::sideload(int argc, char** argv)
+http_status_e module_app_manager_t::uninstall(const Json::Value& args, Json::Value& response)
 {
-    REQUIRED_ARGUMENT(manifest, 0);
-    return _impl->do_sideload(manifest);
+    REQUIRED_JSON_VALUE(args, app);
+    REQUIRED_JSON_VALUE(args, version);
+    return _impl->do_uninstall(app, version, response);
 }
 
-module_error_e module_app_manager_t::uninstall(int argc, char** argv)
+http_status_e module_app_manager_t::create_instance(const Json::Value& args, Json::Value& response)
 {
-    REQUIRED_ARGUMENT(app_name, 0);
-    REQUIRED_ARGUMENT(version, 1);
-    return _impl->do_uninstall(app_name, version);
+    REQUIRED_JSON_VALUE(args, app);
+    REQUIRED_JSON_VALUE(args, version);
+    OPTIONAL_JSON_VALUE(args, instanceName);
+    return _impl->do_create_instance(app, version, instanceName, response);
 }
 
-module_error_e module_app_manager_t::create_instance(int argc, char** argv)
+http_status_e module_app_manager_t::delete_instance(const Json::Value& args, Json::Value& response)
 {
-    REQUIRED_ARGUMENT(app_name, 0);
-    REQUIRED_ARGUMENT(version, 1);
-    OPTIONAL_ARGUMENT(description, 2);
-    return _impl->do_create_instance(app_name, version, description);
+    REQUIRED_JSON_VALUE(args, instanceId);
+    OPTIONAL_JSON_VALUE(args, app);
+    OPTIONAL_JSON_VALUE(args, version);
+    return _impl->do_delete_instance(instanceId, app, version, response);
 }
 
-module_error_e module_app_manager_t::delete_instance(int argc, char** argv)
+http_status_e module_app_manager_t::start_instance(const Json::Value& args, Json::Value& response)
 {
-    REQUIRED_ARGUMENT(id, 0);
-    OPTIONAL_ARGUMENT(app_name, 1);
-    OPTIONAL_ARGUMENT(version, 2);
-    return _impl->do_delete_instance(id, app_name, version);
+    REQUIRED_JSON_VALUE(args, instanceId);
+    OPTIONAL_JSON_VALUE(args, app);
+    OPTIONAL_JSON_VALUE(args, version);
+    return _impl->do_start_instance(instanceId, app, version, response);
 }
 
-module_error_e module_app_manager_t::start_instance(int argc, char** argv)
+http_status_e module_app_manager_t::stop_instance(const Json::Value& args, Json::Value& response)
 {
-    REQUIRED_ARGUMENT(id, 0);
-    OPTIONAL_ARGUMENT(app_name, 1);
-    OPTIONAL_ARGUMENT(version, 2);
-    return _impl->do_start_instance(id, app_name, version);
+    REQUIRED_JSON_VALUE(args, instanceId);
+    OPTIONAL_JSON_VALUE(args, app);
+    OPTIONAL_JSON_VALUE(args, version);
+    return _impl->do_stop_instance(instanceId, app, version, response);
 }
 
-module_error_e module_app_manager_t::stop_instance(int argc, char** argv)
+http_status_e module_app_manager_t::list_apps(const Json::Value& /*args*/, Json::Value& response)
 {
-    REQUIRED_ARGUMENT(id, 0);
-    OPTIONAL_ARGUMENT(app_name, 1);
-    OPTIONAL_ARGUMENT(version, 2);
-    return _impl->do_stop_instance(id, app_name, version);
+    return _impl->do_list_apps(response);
 }
 
-module_error_e module_app_manager_t::list_apps(int /*argc*/, char** /*argv*/)
+http_status_e module_app_manager_t::list_versions(const Json::Value& args, Json::Value& response)
 {
-    return _impl->do_list_apps();
+    REQUIRED_JSON_VALUE(args, app_name);
+    return _impl->do_list_versions(app_name, response);
 }
 
-module_error_e module_app_manager_t::list_versions(int argc, char** argv)
+http_status_e module_app_manager_t::list_instances(const Json::Value& args, Json::Value& response)
 {
-    REQUIRED_ARGUMENT(app_name, 0);
-    return _impl->do_list_versions(app_name);
+    REQUIRED_JSON_VALUE(args, app_name);
+    OPTIONAL_JSON_VALUE(args, version);
+    return _impl->do_list_instances(app_name, version, response);
 }
 
-module_error_e module_app_manager_t::list_instances(int argc, char** argv)
-{
-    REQUIRED_ARGUMENT(app_name, 0);
-    OPTIONAL_ARGUMENT(version, 1);
-    return _impl->do_list_instances(app_name, version);
+namespace {
+module_app_manager_t _mod_app_manager;
 }
 
 } // namespace FLECS

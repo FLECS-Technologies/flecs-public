@@ -47,3 +47,6 @@ done
 for f in flecs*.deb; do
     dpkg --install "${f}" && rm "${f}" || exit 1;
 done
+
+# purge obsolete packages
+dpkg --purge flecs-backend

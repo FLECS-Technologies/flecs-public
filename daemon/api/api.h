@@ -15,23 +15,48 @@
 #ifndef FLECS_daemon_api_h
 #define FLECS_daemon_api_h
 
-#include "util/socket/unix_server.h"
+#include <memory>
+
+#include "util/http/status_codes.h"
+#include "util/socket/tcp_server.h"
+
+namespace Json {
+class CharReader;
+} // namespace Json
 
 namespace FLECS {
 
-constexpr const char* FLECS_SOCKET = "/var/run/flecs/flecs.sock";
-
-class daemon_api_t
+/*! API for communication with the outside world. Runs an HTTP server handling requests on registered endpoints.
+ */
+class flecs_api_t
 {
 public:
-    daemon_api_t();
+    /*! @brief Default constructor. Initializes TCP server for API requests on Port 8951.
+     */
+    flecs_api_t();
 
+    ~flecs_api_t();
+
+    /*! @brief Cyclically accepts pending connections and processes a single command
+     */
     int run();
 
 private:
-    int process(FLECS::unix_socket_t&& conn_socket);
+    /*! @brief Processes a single command read from a connected client.
+     *
+     * Receives up to 128kiB of data from the connected socket, parses the request and passes it to the desired
+     * endpoint, if available.
+     *
+     * @return HTTP status code
+     *      200: OK - endpoint was found and handled command successfully
+     *      400: Bad Request - no or invalid data was received
+     *      500: Internal Server Error - an error occurred while the endpoint processed the request
+     *      501: Not Implemented - requested endpoint is not available
+     */
+    http_status_e process(FLECS::tcp_socket_t& conn_socket);
 
-    FLECS::unix_server_t _server;
+    tcp_server_t _server;
+    std::unique_ptr<Json::CharReader> _json_reader;
 };
 
 } // namespace FLECS

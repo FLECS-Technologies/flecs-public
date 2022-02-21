@@ -12,26 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_daemon_daemon_h
-#define FLECS_service_daemon_daemon_h
-
-#include <thread>
-
-#include "api/api.h"
+#include "private/app_manager_private.h"
 
 namespace FLECS {
+namespace Private {
 
-class daemon_t
+http_status_e module_app_manager_private_t::do_list_versions(
+    const std::string& /*app_name*/, Json::Value& /* response */)
 {
-public:
-    daemon_t();
-    int detach();
+    return http_status_e::Ok;
+}
 
-private:
-    flecs_api_t _api;
-    std::thread _api_thread;
-};
-
+} // namespace Private
 } // namespace FLECS
-
-#endif // FLECS_service_daemon_daemon_h

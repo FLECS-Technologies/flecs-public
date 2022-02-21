@@ -14,13 +14,11 @@
 
 #include "module.h"
 
-#include <iostream>
-
 namespace FLECS {
 
-module_error_e module_t::process(int argc, char** argv)
+void module_t::init()
 {
-    return do_process(argc, argv);
+    return do_init();
 }
 
 } // namespace FLECS

@@ -18,7 +18,6 @@
 #include <cstdio>
 #include <string>
 
-#include "module_base/errors.h"
 #include "util/socket/unix_client.h"
 
 namespace FLECS {

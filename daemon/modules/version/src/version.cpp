@@ -14,21 +14,28 @@
 
 #include "version.h"
 
-#include <cstdio>
+#include <factory/factory.h>
 
-#include "factory/factory.h"
+#include <cstdio>
 
 namespace FLECS {
 
 namespace {
-auto _register_usage = register_module_t<module_version_t>{"version"};
+register_module_t<module_version_t> _reg("version");
 }
 
-module_error_e module_version_t::do_process(int, char**)
+module_version_t::module_version_t()
 {
-    std::fprintf(stdout, "%s-%s\n", FLECS_VERSION, FLECS_GIT_SHA);
+    using namespace std::placeholders;
 
-    return FLECS_OK;
+    api::register_endpoint("/system/version", std::bind(&module_version_t::print_version, this, _1, _2));
+}
+
+http_status_e module_version_t::print_version(const Json::Value& /*args*/, Json::Value& response)
+{
+    response["core"] = std::string{FLECS_VERSION} + "-" + std::string{FLECS_GIT_SHA};
+
+    return http_status_e::Ok;
 }
 
 } // namespace FLECS
