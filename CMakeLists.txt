@@ -31,9 +31,6 @@ add_compile_options(-fprofile-arcs -ftest-coverage)
 add_link_options(-lgcov --coverage)
 endif()
 
-# rpath may contain absolute paths otherwise
-set(CMAKE_SKIP_RPATH true)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 add_compile_options(-Wall -Wextra -Wfatal-errors)

@@ -14,49 +14,376 @@
 
 #include "private/libflecs_private.h"
 
-#include <array>
-#include <cstdio>
-#include <string>
+#include <cpr/cpr.h>
+#include <json/json.h>
 
-#include "util/socket/unix_client.h"
+#include <filesystem>
+#include <fstream>
+#include <mutex>
 
 namespace FLECS {
 namespace Private {
 
-constexpr const char* FLECS_SOCKET = "/var/run/flecs/flecs.sock";
-
-int libflecs_private_t::run_command(const std::string& args)
+template <typename Key, typename Value, typename... Args>
+Json::Value build_json_impl(Json::Value& json, Key&& key, Value&& value, Args&&... args)
 {
-    auto client = FLECS::unix_client_t{FLECS_SOCKET};
-    if (!client.is_connected())
+    json[key] = value;
+    if constexpr (sizeof...(args))
     {
-        std::fprintf(
-            stderr,
-            "Could not connect to the FLECS socket at %s. Please make sure the FLECS daemon is running.\n",
-            FLECS_SOCKET);
-        return 1;
+        return build_json_impl(json, std::forward<Args>(args)...);
+    }
+    return json;
+}
+
+template <typename... Args>
+Json::Value build_json(Args&&... args)
+{
+    auto json = Json::Value{};
+    return build_json_impl(json, std::forward<Args>(args)...);
+}
+
+libflecs_private_t::libflecs_private_t()
+    : _base_url{}
+    , _path{}
+    , _response{}
+{}
+
+libflecs_private_t::~libflecs_private_t()
+{}
+
+int libflecs_private_t::do_connect(std::string path)
+{
+    do_disconnect();
+
+    _base_url = cpr::Url{std::string{"http:/flecs"}};
+    _path = path;
+
+    return do_ping();
+}
+
+int libflecs_private_t::do_connect(std::string host, int port)
+{
+    do_disconnect();
+
+    _base_url = cpr::Url{host + ":" + std::to_string(port)};
+
+    return do_ping();
+}
+
+int libflecs_private_t::do_disconnect()
+{
+    _base_url = cpr::Url{""};
+    _path.clear();
+}
+
+// app management
+int libflecs_private_t::do_install_app(const std::string& app, const std::string& version, const std::string& license)
+{
+    auto body = build_json("app", app, "version", version, "licenseKey", license);
+    return post("/app/install", body.toStyledString().c_str());
+}
+
+int libflecs_private_t::do_uninstall_app(const std::string& app, const std::string& version)
+{
+    auto body = build_json("app", app, "version", version);
+    return post("/app/uninstall", body.toStyledString().c_str());
+}
+
+int libflecs_private_t::do_sideload_app(const std::string& manifest_path)
+{
+    if (!std::filesystem::exists(manifest_path))
+    {
+        std::fprintf(stderr, "Specified manifest %s does not exist\n", manifest_path.c_str());
+        return -1;
     }
 
-    const auto bytes_sent = client.send(args.data(), args.size() + 1, 0);
-    if (bytes_sent <= 0)
+    auto ec = std::error_code{};
+    const auto file_size = std::filesystem::file_size(manifest_path, ec);
+    if (ec)
     {
-        std::fprintf(
-            stderr,
-            "Could not communicate with the FLECS socket at %s: %s (%d)\n",
-            FLECS_SOCKET,
-            strerror(errno),
-            errno);
+        std::fprintf(stderr, "Could not determine size of %s: %d\n", manifest_path.c_str(), ec.value());
+        return -1;
     }
 
-    auto bytes_received = client.recv(&_return_code, sizeof(_return_code), 0);
-    while (bytes_received > 0)
+    auto data = std::make_unique<char[]>(file_size + 1);
+    auto file = fopen(manifest_path.c_str(), "rb");
+    if (!file)
     {
-        auto tmp = std::array<char, 4096>{};
-        bytes_received = client.recv(tmp.data(), tmp.size(), 0);
-        _response.insert(_response.end(), tmp.begin(), tmp.begin() + bytes_received);
+        std::fprintf(stderr, "Could not open %s for reading: %d\n", manifest_path.c_str(), errno);
+        return -1;
+    }
+    const auto bytes_read = fread(data.get(), 1, file_size, file);
+    fclose(file);
+    if (bytes_read != file_size)
+    {
+        return -1;
     }
 
-    return _return_code;
+    return put("/app/sideload", data.get());
+}
+
+int libflecs_private_t::do_list_apps()
+{
+    return get("/app/list");
+}
+
+int libflecs_private_t::do_list_instances(const std::string& app, const std::string& version)
+{
+    return -1;
+}
+
+int libflecs_private_t::do_list_versions(const std::string& app)
+{
+    return -1;
+}
+
+// instance management
+int libflecs_private_t::do_create_instance(
+    const std::string& app, const std::string& version, const std::string& instanceName)
+{
+    auto body = build_json("app", app, "version", version, "instanceName", instanceName);
+    return post("/instance/create", body.toStyledString().c_str());
+}
+
+int libflecs_private_t::do_delete_instance(
+    const std::string& instanceId, const std::string& app, const std::string& version)
+{
+    auto body = build_json("instanceId", instanceId, "app", app, "version", version);
+    return post("/instance/delete", body.toStyledString().c_str());
+}
+
+int libflecs_private_t::do_start_instance(
+    const std::string& instanceId, const std::string& app, const std::string& version)
+{
+    auto body = build_json("instanceId", instanceId, "app", app, "version", version);
+    return post("/instance/start", body.toStyledString().c_str());
+}
+
+int libflecs_private_t::do_stop_instance(
+    const std::string& instanceId, const std::string& app, const std::string& version)
+{
+    auto body = build_json("instanceId", instanceId, "app", app, "version", version);
+    return post("/instance/stop", body.toStyledString().c_str());
+}
+
+// system info
+int libflecs_private_t::do_version()
+{
+    return get("/system/version");
+}
+
+int libflecs_private_t::do_ping()
+{
+    return get("/system/ping");
+}
+
+using command_callback_t = int (libflecs_private_t::*)(const std::vector<std::string>&);
+struct command_t
+{
+    std::string command;
+    command_callback_t cbk;
+    std::vector<command_t> subcommands;
+};
+
+// string-based interface
+int libflecs_private_t::do_run_command(const std::string& command, const std::vector<std::string>& args)
+{
+    const auto known_commands = std::vector<command_t>{
+        {"app-manager",
+         nullptr,
+         {command_t{"list-apps", &libflecs_private_t::dispatch_list_apps, {}},
+          command_t{"install", &libflecs_private_t::dispatch_install_app, {}},
+          command_t{"uninstall", &libflecs_private_t::dispatch_uninstall_app, {}},
+          command_t{"sideload", &libflecs_private_t::dispatch_sideload_app, {}},
+          command_t{"create-instance", &libflecs_private_t::dispatch_create_instance, {}},
+          command_t{"delete-instance", &libflecs_private_t::dispatch_delete_instance, {}},
+          command_t{"start-instance", &libflecs_private_t::dispatch_start_instance, {}},
+          command_t{"stop-instance", &libflecs_private_t::dispatch_stop_instance, {}}}},
+        {"system", nullptr, {command_t{"ping", &libflecs_private_t::dispatch_ping, {}}}},
+        {"version", &libflecs_private_t::dispatch_version, {}}};
+
+    // search top-level command
+    auto i = known_commands.cbegin();
+    for (; i != known_commands.cend(); ++i)
+    {
+        if (i->command == command)
+        {
+            // command found and has callback -> done
+            if (i->cbk)
+            {
+                return std::invoke(i->cbk, this, args);
+            }
+            // command found and has no callback -> continue searching subcommands
+            else
+            {
+                break;
+            }
+        }
+    }
+    // command not found or no subcommand specified -> return
+    if (i == known_commands.cend() || args.empty())
+    {
+        return -1;
+    }
+
+    // search in subcommands
+    for (auto j = i->subcommands.cbegin(); j != i->subcommands.cend(); ++j)
+    {
+        if (j->command == args[0] && j->cbk)
+        {
+            auto cmd_args = std::vector<std::string>{args.begin() + 1, args.end()};
+            return std::invoke(j->cbk, this, cmd_args);
+        }
+    }
+
+    return -1;
+}
+
+#define ARG_OR_EMPTY(num) args.size() > num ? args[num] : ""
+
+int libflecs_private_t::dispatch_install_app(const std::vector<std::string>& args)
+{
+    return do_install_app(ARG_OR_EMPTY(0), ARG_OR_EMPTY(1), ARG_OR_EMPTY(2));
+}
+
+int libflecs_private_t::dispatch_uninstall_app(const std::vector<std::string>& args)
+{
+    return do_uninstall_app(ARG_OR_EMPTY(0), ARG_OR_EMPTY(1));
+}
+
+int libflecs_private_t::dispatch_sideload_app(const std::vector<std::string>& args)
+{
+    return do_sideload_app(ARG_OR_EMPTY(0));
+}
+
+int libflecs_private_t::dispatch_list_apps(const std::vector<std::string>& /*args*/)
+{
+    return do_list_apps();
+}
+
+int libflecs_private_t::dispatch_list_instances(const std::vector<std::string>& args)
+{
+    return do_list_instances(ARG_OR_EMPTY(0), ARG_OR_EMPTY(1));
+}
+
+int libflecs_private_t::dispatch_list_versions(const std::vector<std::string>& args)
+{
+    return do_list_versions(ARG_OR_EMPTY(0));
+}
+
+int libflecs_private_t::dispatch_create_instance(const std::vector<std::string>& args)
+{
+    return do_create_instance(ARG_OR_EMPTY(0), ARG_OR_EMPTY(1), ARG_OR_EMPTY(2));
+}
+
+int libflecs_private_t::dispatch_delete_instance(const std::vector<std::string>& args)
+{
+    return do_delete_instance(ARG_OR_EMPTY(0), ARG_OR_EMPTY(1), ARG_OR_EMPTY(2));
+}
+
+int libflecs_private_t::dispatch_start_instance(const std::vector<std::string>& args)
+{
+    return do_start_instance(ARG_OR_EMPTY(0), ARG_OR_EMPTY(1), ARG_OR_EMPTY(2));
+}
+
+int libflecs_private_t::dispatch_stop_instance(const std::vector<std::string>& args)
+{
+    return do_stop_instance(ARG_OR_EMPTY(0), ARG_OR_EMPTY(1), ARG_OR_EMPTY(2));
+}
+
+int libflecs_private_t::dispatch_version(const std::vector<std::string>& /*args*/)
+{
+    return do_version();
+}
+
+int libflecs_private_t::dispatch_ping(const std::vector<std::string>& /*args*/)
+{
+    return do_ping();
+}
+
+// retrieve actual HTTP status code
+int libflecs_private_t::do_response_code() const noexcept
+{
+    return static_cast<int>(_response.status_code);
+}
+
+// retrieve response as formatted JSON string
+std::string libflecs_private_t::do_json_response() const noexcept
+{
+    return _response.text;
+}
+
+cpr::Url libflecs_private_t::build_url(const std::string& endpoint)
+{
+    return cpr::Url{_base_url.str() + endpoint};
+}
+
+int libflecs_private_t::get(const std::string& endpoint)
+{
+    if (_base_url.str().empty())
+    {
+        return -1;
+    }
+
+    if (!_path.empty())
+    {
+        auto path = _path;
+        _response = cpr::Get(build_url(endpoint), cpr::UnixSocket{std::move(path)});
+    }
+    else
+    {
+        _response = cpr::Get(build_url(endpoint));
+    }
+
+    return !_response.error ? 0 : -1;
+}
+
+int libflecs_private_t::post(const std::string& endpoint, const char* data)
+{
+    if (_base_url.str().empty())
+    {
+        return -1;
+    }
+
+    if (!_path.empty())
+    {
+        auto path = _path;
+        _response = cpr::Post(
+            build_url(endpoint),
+            cpr::Header{{"Content-type", "application/json"}},
+            cpr::Body{data},
+            cpr::UnixSocket{std::move(path)});
+    }
+    else
+    {
+        _response = cpr::Post(build_url(endpoint), cpr::Header{{"Content-type", "application/json"}}, cpr::Body{data});
+    }
+
+    return !_response.error ? 0 : -1;
+}
+
+int libflecs_private_t::put(const std::string& endpoint, const char* data)
+{
+    if (_base_url.str().empty())
+    {
+        return -1;
+    }
+
+    if (!_path.empty())
+    {
+        auto path = _path;
+        _response = cpr::Put(
+            build_url(endpoint),
+            cpr::Header{{"Content-type", "application/x-yaml"}},
+            cpr::Body{data},
+            cpr::UnixSocket{std::move(path)});
+    }
+    else
+    {
+        _response = cpr::Put(build_url(endpoint), cpr::Header{{"Content-type", "application/x-yaml"}}, cpr::Body{data});
+    }
+
+    return !_response.error ? 0 : -1;
 }
 
 } // namespace Private

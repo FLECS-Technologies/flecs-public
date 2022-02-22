@@ -16,8 +16,10 @@
 #define CDA38A84_96B2_4ABF_BF57_39654CBCFB5D
 
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
-#include "private/libflecs_private.h"
 #include "util/string/string_utils.h"
 
 namespace FLECS {
@@ -32,16 +34,41 @@ class libflecs_t
 public:
     FLECS_EXPORT libflecs_t();
 
-    template <typename T, typename... Args>
-    FLECS_EXPORT int run_command(T&& command, Args&&... args)
-    {
-        std::string strargs = stringify_delim('\0', "flecs", command, args...);
-        return _impl->run_command(strargs);
-    }
+    FLECS_EXPORT ~libflecs_t();
 
+    FLECS_EXPORT int connect(const std::string& path);
+    FLECS_EXPORT int connect(const std::string& host, int port);
+
+    FLECS_EXPORT int disconnect();
+
+    // app management
+    FLECS_EXPORT int install_app(const std::string& app, const std::string& version, const std::string& license);
+    FLECS_EXPORT int uninstall_app(const std::string& app, const std::string& version);
+    FLECS_EXPORT int sideload_app(const std::string& manifest_path);
+    FLECS_EXPORT int list_apps();
+    FLECS_EXPORT int list_instances(const std::string& app, const std::string& version);
+    FLECS_EXPORT int list_versions(const std::string& app);
+
+    // instance management
+    FLECS_EXPORT int create_instance(
+        const std::string& app, const std::string& version, const std::string& instanceName);
+    FLECS_EXPORT int delete_instance(const std::string& instanceId, const std::string& app, const std::string& version);
+    FLECS_EXPORT int start_instance(const std::string& instanceId, const std::string& app, const std::string& version);
+    FLECS_EXPORT int stop_instance(const std::string& instanceId, const std::string& app, const std::string& version);
+
+    // system info
+    FLECS_EXPORT int version();
+    FLECS_EXPORT int ping();
+
+    // string-based interface
+    FLECS_EXPORT int run_command(const std::string& command, const std::vector<std::string>& args);
     FLECS_EXPORT int run_command(int argc, char** argv);
 
-    FLECS_EXPORT std::string response() const;
+    // retrieve HTTP status code
+    FLECS_EXPORT int response_code() const noexcept;
+
+    // retrieve response as formatted JSON string
+    FLECS_EXPORT std::string json_response() const noexcept;
 
 private:
     std::unique_ptr<Impl> _impl;

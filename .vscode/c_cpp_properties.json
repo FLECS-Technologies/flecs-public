@@ -22,6 +22,7 @@
                 "${workspaceFolder}/mqtt/**",
                 "${workspaceFolder}/mqtt",
                 "${workspaceFolder}/daemon",
+                "${workspaceFolder}/daemon/api/lib",
                 "${workspaceFolder}/daemon/modules",
                 "${workspaceFolder}/daemon/modules/app_manager",
                 "${workspaceFolder}/daemon/modules/factory",

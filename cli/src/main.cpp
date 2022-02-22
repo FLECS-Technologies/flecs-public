@@ -17,7 +17,13 @@
 int main(int argc, char** argv)
 {
     auto lib = FLECS::libflecs_t{};
-    auto res = lib.run_command(argc, argv);
-    std::fprintf((res == 0) ? stdout : stderr, "%s", lib.response().c_str());
-    return res;
+    const auto host = "/var/run/flecs/flecs.sock";
+    if (lib.connect(host) != 0)
+    {
+        std::fprintf(stderr, "Could not connect to FLECS at %s. Is the FLECS daemon running?\n", host);
+        exit(1);
+    }
+    lib.run_command(argc, argv);
+    std::fprintf(stdout, "%s\n", lib.json_response().c_str());
+    return 0;
 }

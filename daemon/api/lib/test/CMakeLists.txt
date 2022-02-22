@@ -12,27 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.lib)
+if (BUILD_TESTING)
+    project(FLECS.daemon.api.lib.test)
 
-add_library(FLECS.daemon.lib SHARED
-    src/libflecs.cpp
-    src/private/libflecs_private.cpp
-    libflecs.h
-    private/libflecs_private.h
-)
+    add_executable(FLECS.daemon.api.lib.test
+        test_api_lib.cpp
+    )
 
-set_target_properties(FLECS.daemon.lib PROPERTIES OUTPUT_NAME FLECS.daemon)
+    set_target_properties(FLECS.daemon.api.lib.test PROPERTIES OUTPUT_NAME test_api_lib)
 
-target_include_directories(FLECS.daemon.lib PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+    target_link_libraries(FLECS.daemon.api.lib.test PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.external.jsoncpp
+        FLECS.daemon.lib
+        FLECS.util.llhttp_ext
+        stdc++fs
+    )
 
-target_link_libraries(FLECS.daemon.lib PRIVATE
-    FLECS.daemon.modules.module_base
-    FLECS.external.cpr
-    FLECS.external.jsoncpp
-    stdc++fs
-    pthread
-)
-
-add_subdirectory(test)
+    add_test(NAME FLECS.daemon.api.lib.test COMMAND FLECS.daemon.api.lib.test)
+endif()
