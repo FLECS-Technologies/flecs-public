@@ -14,6 +14,8 @@
 
 #include "api.h"
 
+#include <poll.h>
+
 #include <cstdio>
 #include <thread>
 #include <vector>
@@ -29,10 +31,11 @@
 namespace FLECS {
 
 flecs_api_t::flecs_api_t()
-    : _server{8951, INADDR_ANY, 1}
+    : _tcp_server{8951, INADDR_ANY, 1}
+    , _unix_server{"/var/run/flecs/flecs.sock", 1}
     , _json_reader{Json::CharReaderBuilder().newCharReader()}
 {
-    if (!_server.is_running())
+    if (!_tcp_server.is_running() || !_unix_server.is_running())
     {
         std::terminate();
     }
@@ -45,17 +48,35 @@ int flecs_api_t::run()
 {
     do
     {
-        auto conn_socket = tcp_socket_t{_server.accept(nullptr, nullptr)};
-        if (conn_socket.is_valid())
+        pollfd pollfds[2] = {{_unix_server.fd(), POLLIN, 0}, {_tcp_server.fd(), POLLIN, 0}};
+
+        auto res = poll(pollfds, sizeof(pollfds) / (sizeof(pollfds[0])), -1);
+
+        if (res > 0)
         {
-            process(conn_socket);
+            if (pollfds[0].revents == POLLIN)
+            {
+                auto conn_socket = unix_socket_t{_unix_server.accept(nullptr, nullptr)};
+                if (conn_socket.is_valid())
+                {
+                    process(conn_socket);
+                }
+            }
+            if (pollfds[1].revents == POLLIN)
+            {
+                auto conn_socket = tcp_socket_t{_tcp_server.accept(nullptr, nullptr)};
+                if (conn_socket.is_valid())
+                {
+                    process(conn_socket);
+                }
+            }
         }
     } while (!g_stop);
 
     return 0;
 }
 
-http_status_e flecs_api_t::process(tcp_socket_t& conn_socket)
+http_status_e flecs_api_t::process(socket_t& conn_socket)
 {
     // Receive data from the connected client
     using FLECS::operator""_kiB;

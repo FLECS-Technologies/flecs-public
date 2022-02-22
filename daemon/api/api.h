@@ -19,6 +19,7 @@
 
 #include "util/http/status_codes.h"
 #include "util/socket/tcp_server.h"
+#include "util/socket/unix_server.h"
 
 namespace Json {
 class CharReader;
@@ -53,9 +54,10 @@ private:
      *      500: Internal Server Error - an error occurred while the endpoint processed the request
      *      501: Not Implemented - requested endpoint is not available
      */
-    http_status_e process(FLECS::tcp_socket_t& conn_socket);
+    http_status_e process(socket_t& conn_socket);
 
-    tcp_server_t _server;
+    tcp_server_t _tcp_server;
+    unix_server_t _unix_server;
     std::unique_ptr<Json::CharReader> _json_reader;
 };
 

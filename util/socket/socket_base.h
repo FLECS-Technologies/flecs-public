@@ -55,6 +55,7 @@ inline bool fd_is_socket(int fd)
 class socket_t
 {
 public:
+    int fd() const noexcept;
     int accept(sockaddr* addr, socklen_t* addrlen) const;
     int accept(sockaddr_in_t& addr) const;
     int accept(sockaddr_un_t& addr) const;
@@ -83,6 +84,11 @@ protected:
 private:
     int _fd;
 };
+
+inline int socket_t::fd() const noexcept
+{
+    return _fd;
+}
 
 inline int socket_t::accept(sockaddr* addr, socklen_t* addrlen) const
 {

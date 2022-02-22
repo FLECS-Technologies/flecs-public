@@ -57,7 +57,7 @@ inline sockaddr_in_t::sockaddr_in_t(in_port_t port, in_addr_t addr) noexcept
 {
     _addr.sin_family = AF_INET;
     _addr.sin_port = htons(port);
-    _addr.sin_addr.s_addr = htonl(addr);
+    _addr.sin_addr.s_addr = addr;
     _size = sizeof(_addr);
 }
 
