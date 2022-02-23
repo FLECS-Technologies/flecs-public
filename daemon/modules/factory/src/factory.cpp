@@ -16,10 +16,23 @@
 
 namespace FLECS {
 
+__attribute__((constructor)) void ctor_init_modules()
+{
+    return module_factory_t::instance().init_modules();
+}
+
 module_factory_t& module_factory_t::instance()
 {
     static module_factory_t factory;
     return factory;
+}
+
+void module_factory_t::init_modules()
+{
+    for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it)
+    {
+        it->second->init();
+    }
 }
 
 std::shared_ptr<module_t> module_factory_t::query(const char* module_name)
@@ -32,9 +45,10 @@ std::shared_ptr<module_t> module_factory_t::query(const char* module_name)
     return nullptr;
 }
 
+namespace api {
 std::shared_ptr<module_t> query_module(const char* module_name)
 {
     return module_factory_t::instance().query(module_name);
 }
-
+} // namespace api
 } // namespace FLECS
