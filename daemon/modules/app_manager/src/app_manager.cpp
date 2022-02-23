@@ -35,7 +35,7 @@ module_app_manager_t::module_app_manager_t()
     api::register_endpoint("/app/sideload", std::bind(&module_app_manager_t::sideload, this, _1, _2));
     api::register_endpoint("/app/uninstall", std::bind(&module_app_manager_t::uninstall, this, _1, _2));
     api::register_endpoint("/app/versions", std::bind(&module_app_manager_t::list_versions, this, _1, _2));
-    api::register_endpoint("/instance/create", std::bind(&module_app_manager_t::sideload, this, _1, _2));
+    api::register_endpoint("/instance/create", std::bind(&module_app_manager_t::create_instance, this, _1, _2));
     api::register_endpoint("/instance/delete", std::bind(&module_app_manager_t::delete_instance, this, _1, _2));
     api::register_endpoint("/instance/start", std::bind(&module_app_manager_t::start_instance, this, _1, _2));
     api::register_endpoint("/instance/stop", std::bind(&module_app_manager_t::stop_instance, this, _1, _2));
