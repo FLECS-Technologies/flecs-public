@@ -14,14 +14,21 @@
 
 project(FLECS.daemon.modules.module_base)
 
-add_library(FLECS.daemon.modules.module_base INTERFACE)
+add_library(FLECS.daemon.modules.module_base OBJECT
+    src/module.cpp
+    module.h
+)
+
+target_include_directories(
+    FLECS.daemon.modules.module_base PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 target_include_directories(
     FLECS.daemon.modules.module_base INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
 
 target_link_libraries(
-    FLECS.daemon.modules.module_base INTERFACE
+    FLECS.daemon.modules.module_base PUBLIC
     FLECS.daemon.api.endpoints
     FLECS.external.jsoncpp
 )

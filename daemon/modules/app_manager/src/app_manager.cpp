@@ -45,7 +45,9 @@ module_app_manager_t::~module_app_manager_t()
 {}
 
 void module_app_manager_t::do_init()
-{}
+{
+    return _impl->do_init();
+}
 
 http_status_e module_app_manager_t::install(const Json::Value& args, Json::Value& response)
 {
