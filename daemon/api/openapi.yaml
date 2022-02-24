@@ -373,3 +373,18 @@ paths:
                   - $ref: "#/components/schemas/app"
                   - $ref: "#/components/schemas/instanceId"
                   - $ref: "#/components/schemas/version"
+
+  /system/ping:
+    get:
+      summary: Check daemon availability and connectivity
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  additionalInfo:
+                    type: string
+                    example: "OK"
