@@ -45,12 +45,10 @@ public:
     template <typename T>
     void register_module(const char* module_name);
 
+    void init_modules();
     std::shared_ptr<module_t> query(const char* endpoint);
 
 private:
-    friend void ctor_init_modules();
-    void init_modules();
-
     module_factory_t() = default;
 
     module_table_t _module_table;
@@ -76,6 +74,7 @@ register_module_t<T>::register_module_t(const char* module_name)
 }
 
 namespace api {
+void init_modules();
 std::shared_ptr<module_t> query_module(const char* module_name);
 } // namespace api
 

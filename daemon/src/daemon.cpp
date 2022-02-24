@@ -19,6 +19,7 @@
 #include <thread>
 
 #include "api/api.h"
+#include "factory/factory.h"
 #include "signal_handler.h"
 
 namespace FLECS {
@@ -45,6 +46,7 @@ constexpr struct option options[] = {{"json", no_argument, nullptr, 0}, {nullptr
 int main(int /*argc*/, char** /*argv*/)
 {
     FLECS::signal_handler_init();
+    FLECS::api::init_modules();
 
     auto daemon = FLECS::daemon_t{};
     daemon.detach();
