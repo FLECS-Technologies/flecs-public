@@ -20,7 +20,9 @@
 #include <vector>
 
 #include "app_status.h"
+#include "port_range/port_range.h"
 #include "util/cxx20/string.h"
+#include "util/string/string_utils.h"
 
 namespace FLECS {
 
@@ -29,7 +31,7 @@ class app_t
 public:
     using volumes_t = std::map<std::string, std::string>;
     using networks_t = std::vector<std::string>;
-    using ports_t = std::map<std::uint16_t, std::uint16_t>;
+    using ports_t = std::vector<mapped_port_range_t>;
 
     app_t() noexcept = default;
     explicit app_t(const std::string& manifest);
@@ -77,11 +79,7 @@ public:
     }
 
     auto& ports() const noexcept { return _ports; }
-    auto add_port(ports_t::key_type local, ports_t::mapped_type container)
-    {
-        return _ports.try_emplace(local, container);
-    }
-    auto remove_port(const ports_t::key_type& local) { return _ports.erase(local); }
+    void add_port(ports_t::value_type range) { _ports.push_back(range); }
 
     auto interactive() const noexcept { return _interactive; }
     auto interactive(bool interactive) { _interactive = interactive; }

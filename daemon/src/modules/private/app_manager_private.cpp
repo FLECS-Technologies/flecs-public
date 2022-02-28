@@ -333,10 +333,10 @@ module_error_e module_app_manager_private_t::do_create_instance(
         docker_process.arg("--network");
         docker_process.arg(network);
     }
-    for (const auto& port : app.ports())
+    for (const auto& port_range : app.ports())
     {
         docker_process.arg("--publish");
-        docker_process.arg(std::to_string(port.first) + ":" + std::to_string(port.second));
+        docker_process.arg(stringify(port_range));
     }
 
     if (app.interactive())

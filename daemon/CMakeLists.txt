@@ -22,6 +22,7 @@ include(package)
 
 # build executable flecsd
 set(SRC_BINARY
+    app/port_range/src/port_range.cpp
     src/daemon.cpp
     src/main.cpp
     src/api/api.cpp
@@ -41,6 +42,7 @@ set(HEADER_BINARY
     api/api.h
     app/app.h
     app/app_status.h
+    app/port_range/port_range.h
     db/app_db.h
     daemon.h
     instance/instance_status.h
