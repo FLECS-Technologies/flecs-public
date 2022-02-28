@@ -44,7 +44,7 @@ http_status_e module_app_manager_private_t::do_stop_instance(
     auto xcheck = xcheck_app_instance(instance, app_name, version);
     if (xcheck < 0)
     {
-        response["additionalInfo"] = "Could not start instance: instance/app mismatch";
+        response["additionalInfo"] = "Could not stop instance: instance/app mismatch";
         return http_status_e::BadRequest;
     }
 
