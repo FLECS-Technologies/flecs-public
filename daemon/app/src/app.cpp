@@ -18,7 +18,6 @@
 #include <sstream>
 #include <vector>
 
-#include "util/string/string_utils.h"
 #include "yaml-cpp/yaml.h"
 
 namespace FLECS {
@@ -41,7 +40,8 @@ namespace FLECS {
         try                                               \
         {                                                 \
             target = yaml[#value].as<decltype(target)>(); \
-        } catch (const YAML::Exception& ex)               \
+        }                                                 \
+        catch (const YAML::Exception& ex)                 \
         {                                                 \
         }                                                 \
     } while (false)
@@ -52,7 +52,8 @@ namespace FLECS {
         try                                      \
         {                                        \
             target = yaml[#value];               \
-        } catch (const YAML::Exception& ex)      \
+        }                                        \
+        catch (const YAML::Exception& ex)        \
         {                                        \
         }                                        \
     } while (false)
@@ -94,14 +95,23 @@ app_t::app_t(const std::string& manifest)
         }
         auto ports = YAML::Node{};
         OPTIONAL_YAML_VALUE(yaml, ports, ports);
-        for (const auto& i : ports)
+        for (const auto& port_range : ports)
         {
-            const auto port = split(i.as<std::string>(), ':');
-            add_port(std::stoi(port[0]), std::stoi(port[1]));
+            const auto mapped_range = mapped_port_range_t{port_range.as<std::string>()};
+            if (!mapped_range.is_valid())
+            {
+                std::fprintf(
+                    stderr,
+                    "Could not parse manifest: syntax/schema error in %s\n",
+                    port_range.as<std::string>().c_str());
+                return;
+            }
+            add_port(mapped_range);
         }
         OPTIONAL_TYPED_YAML_VALUE(yaml, interactive, _interactive);
         _yaml_loaded = true;
-    } catch (const YAML::Exception& ex)
+    }
+    catch (const YAML::Exception& ex)
     {
         std::fprintf(stderr, "Could not open manifest %s: Invalid YAML (%s)\n", manifest.c_str(), ex.what());
     }
