@@ -317,6 +317,12 @@ module_error_e module_app_manager_private_t::do_create_instance(
     // Step 7: Create Docker container
     auto docker_process = process_t{};
     docker_process.arg("create");
+
+    for (const auto& env : app.env())
+    {
+        docker_process.arg("--env");
+        docker_process.arg(stringify(env));
+    }
     for (const auto& volume : app.volumes())
     {
         docker_process.arg("--volume");
