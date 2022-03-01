@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "app_status.h"
+#include "env_var/env_var.h"
 #include "port_range/port_range.h"
 #include "util/cxx20/string.h"
 #include "util/string/string_utils.h"
@@ -32,6 +33,7 @@ public:
     using volumes_t = std::map<std::string, std::string>;
     using networks_t = std::vector<std::string>;
     using ports_t = std::vector<mapped_port_range_t>;
+    using envs_t = std::vector<mapped_env_var_t>;
 
     app_t() noexcept = default;
     explicit app_t(const std::string& manifest);
@@ -56,6 +58,9 @@ public:
     auto& image() const noexcept { return _image; }
     void image(std::string image) { _image = image; }
     auto image_with_tag() const { return _image + ":" + _version; }
+
+    auto& env() const noexcept { return _env; }
+    void add_env(envs_t::value_type env) { _env.emplace_back(env); }
 
     auto& volumes() const noexcept { return _volumes; }
     auto add_volume(volumes_t::key_type local, volumes_t::mapped_type container)
@@ -105,6 +110,7 @@ private:
     std::string _author;
     std::string _category;
     std::string _image;
+    envs_t _env;
     volumes_t _volumes;
     volumes_t _bind_mounts;
     networks_t _networks;

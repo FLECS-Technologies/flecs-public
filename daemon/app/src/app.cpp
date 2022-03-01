@@ -72,6 +72,23 @@ app_t::app_t(const std::string& manifest)
         OPTIONAL_TYPED_YAML_VALUE(yaml, category, _category);
         REQUIRED_TYPED_YAML_VALUE(yaml, image, _image);
         OPTIONAL_TYPED_YAML_VALUE(yaml, multiInstance, _multi_instance);
+
+        auto envs = YAML::Node{};
+        OPTIONAL_YAML_VALUE(yaml, env, envs);
+        for (const auto env : envs)
+        {
+            const auto env_var = mapped_env_var_t{env.as<std::string>()};
+            if (!env_var.is_valid())
+            {
+                std::fprintf(
+                    stderr,
+                    "Could not parse manifest: syntax/schema error in %s\n",
+                    env.as<std::string>().c_str());
+                return;
+            }
+            add_env(env_var);
+        }
+
         auto volumes = YAML::Node{};
         OPTIONAL_YAML_VALUE(yaml, volumes, volumes);
         for (const auto& i : volumes)
