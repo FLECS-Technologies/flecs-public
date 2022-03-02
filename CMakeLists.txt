@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.13)
 project(FLECS)
 
 # set version and SHA
-set(VERSION 1.0.0-alpha.1)
+set(VERSION 1.0.0-alpha.2)
 add_definitions(-DFLECS_VERSION="${VERSION}")
 
 execute_process(
