@@ -13,6 +13,7 @@
                 "${workspaceFolder}/external/openssl-1.1.1m/out/x86_64-linux-gnu/include",
                 "${workspaceFolder}/external/sqlite-3.37.2",
                 "${workspaceFolder}/external/yaml-cpp-0.7.0/include",
+                "${workspaceFolder}/external/zenoh-c-0.5.0-beta.9/include",
                 "${workspaceFolder}/external/zeromq-4.3.4/include",
                 "${workspaceFolder}/external/zlib-1.2.11",
                 "${workspaceFolder}/daemon/**",
