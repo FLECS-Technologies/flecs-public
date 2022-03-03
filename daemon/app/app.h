@@ -34,6 +34,7 @@ public:
     using networks_t = std::vector<std::string>;
     using ports_t = std::vector<mapped_port_range_t>;
     using envs_t = std::vector<mapped_env_var_t>;
+    using args_t = std::vector<std::string>;
 
     app_t() noexcept = default;
     explicit app_t(const std::string& manifest);
@@ -86,6 +87,9 @@ public:
     auto& ports() const noexcept { return _ports; }
     void add_port(ports_t::value_type range) { _ports.push_back(range); }
 
+    auto& args() const noexcept { return _args; }
+    void add_arg(args_t::value_type arg) { _args.emplace_back(arg); }
+
     auto interactive() const noexcept { return _interactive; }
     auto interactive(bool interactive) { _interactive = interactive; }
 
@@ -115,6 +119,7 @@ private:
     volumes_t _bind_mounts;
     networks_t _networks;
     ports_t _ports;
+    args_t _args;
     bool _interactive;
     std::int32_t _installed_size;
     bool _multi_instance;

@@ -125,6 +125,13 @@ app_t::app_t(const std::string& manifest)
             }
             add_port(mapped_range);
         }
+
+        auto args = YAML::Node{};
+        OPTIONAL_YAML_VALUE(yaml, args, args);
+        for (const auto& arg : args)
+        {
+            add_arg(arg.as<std::string>());
+        }
         OPTIONAL_TYPED_YAML_VALUE(yaml, interactive, _interactive);
         _yaml_loaded = true;
     }
