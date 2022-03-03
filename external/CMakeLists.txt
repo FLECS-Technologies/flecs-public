@@ -30,6 +30,7 @@ set (OPENSSL_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1m)
 set (PYBIND11_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.9.1)
 set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.37.2)
 set (YAMLCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
+set (ZENOH_C_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
 set (ZEROMQ_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/zeromq-4.3.4)
 set (ZLIB_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.11)
 
@@ -104,6 +105,9 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DYAML_CPP_BUILD_TESTS=NO
     COMMAND ${CMAKE_COMMAND} --build out/${MACHINE}
 )
+
+# Zenoh-C
+# Use prebuilt
 
 # ZeroMQ
 add_custom_target(
@@ -216,6 +220,12 @@ target_link_libraries(FLECS.external.sqlite3 INTERFACE
 add_library(FLECS.external.yaml-cpp STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.yaml-cpp PROPERTY IMPORTED_LOCATION ${YAMLCPP_DIR}/out/${MACHINE}/libyaml-cpp.a)
 set_property(TARGET FLECS.external.yaml-cpp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${YAMLCPP_DIR}/include)
+
+# Zenoh-C
+add_library(FLECS.external.zenoh-c SHARED IMPORTED GLOBAL)
+set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_LOCATION ${ZENOH_C_DIR}/out/${MACHINE}/lib/libzenohc.so)
+set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_NO_SONAME TRUE)
+set_property(TARGET FLECS.external.zenoh-c PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZENOH_C_DIR}/include)
 
 # ZeroMQ
 add_library(FLECS.external.zeromq STATIC IMPORTED GLOBAL)
