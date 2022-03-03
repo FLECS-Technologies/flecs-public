@@ -25,6 +25,10 @@ http_status_e module_app_manager_private_t::do_start_instance(
     const std::string& id, const std::string& app_name, const std::string& version, Json::Value& response,
     bool internal)
 {
+    response["instanceId"] = id;
+    response["app"] = app_name;
+    response["version"] = version;
+    response["additionalInfo"] = "";
     // Step 1: Verify instance does actually exist and is fully created
     if (!_app_db.has_instance({id}))
     {
