@@ -52,6 +52,7 @@ target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.modules.app_manager
     FLECS.daemon.modules.factory
     FLECS.daemon.modules.help
+    FLECS.daemon.modules.marketplace
     FLECS.daemon.modules.module_base
     FLECS.daemon.modules.rpc
     FLECS.daemon.modules.usage
