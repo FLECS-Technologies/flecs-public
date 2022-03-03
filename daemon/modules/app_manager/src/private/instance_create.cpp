@@ -164,6 +164,11 @@ http_status_e module_app_manager_private_t::do_create_instance(
     docker_process.arg("flecs-" + hex_id);
     docker_process.arg(app.image_with_tag());
 
+    for (const auto& arg : app.args())
+    {
+        docker_process.arg(arg);
+    }
+
     docker_process.spawnp("docker");
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0)
