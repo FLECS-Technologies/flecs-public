@@ -24,24 +24,20 @@ set(INCLUDE_LIB
     private/mqtt_client_private.h
 )
 
-add_library(FLECS.mqtt.shared SHARED ${SRC_LIB} ${HEADER_LIB})
+add_library(FLECS.mqtt OBJECT ${SRC_LIB} ${HEADER_LIB})
+
+set_property(TARGET FLECS.mqtt PROPERTY POSITION_INDEPENDENT_CODE 1)
+
+add_library(FLECS.mqtt.shared SHARED $<TARGET_OBJECTS:FLECS.mqtt>)
 set_target_properties(FLECS.mqtt.shared PROPERTIES OUTPUT_NAME FLECS.mqtt)
 
-add_library(FLECS.mqtt.static STATIC ${SRC_LIB} ${HEADER_LIB})
+add_library(FLECS.mqtt.static STATIC $<TARGET_OBJECTS:FLECS.mqtt>)
 set_target_properties(FLECS.mqtt.static PROPERTIES OUTPUT_NAME FLECS.mqtt)
 
-target_include_directories(FLECS.mqtt.shared PRIVATE
+target_include_directories(FLECS.mqtt PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_include_directories(FLECS.mqtt.static PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(FLECS.mqtt.shared PRIVATE
-    FLECS.external.mosquitto
-)
-
-target_link_libraries(FLECS.mqtt.static PRIVATE
+target_link_libraries(FLECS.mqtt PRIVATE
     FLECS.external.mosquitto
 )
