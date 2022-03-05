@@ -26,7 +26,7 @@ void signal_handler(int)
     g_stop = 1;
 }
 
-void mqtt_receive_callback(FLECS::mqtt_client_t* client, void*, FLECS::mqtt_message_t* msg)
+void mqtt_receive_callback(FLECS::mqtt_client_t* client, FLECS::mqtt_message_t* msg, void*)
 {
     std::fprintf(stdout, "Received MQTT message for topic %s on client %p\n", msg->topic, client);
 }

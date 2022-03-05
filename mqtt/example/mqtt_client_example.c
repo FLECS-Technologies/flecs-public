@@ -26,7 +26,7 @@ void signal_handler(int signum)
     g_stop = 1;
 }
 
-void mqtt_receive_callback(void* client, void* userp, struct flecs_mqtt_message_t* msg)
+void mqtt_receive_callback(void* client, struct flecs_mqtt_message_t* msg, void* userp)
 {
     (void)userp;
     fprintf(stdout, "Received MQTT message for topic %s on client %p\n", msg->topic, client);

@@ -33,6 +33,7 @@
 
 #ifdef __cplusplus
 
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -170,11 +171,27 @@ public:
     /*! @brief Type for MQTT message callbacks
      *
      * @param[in] mqtt_client_t pointer to the mqtt_client_t instance that triggered the callback
+     * @param[in] mqtt_message_t* Pointer to MQTT message. Message is only valid during execution of the callback.
+     *                            If message is required after the callback, a copy has to be made by the user
+     */
+    using mqtt_callback_t = std::function<void(mqtt_client_t*, mqtt_message_t*)>;
+
+    /*! @brief Type for MQTT message callbacks with userdata
+     *
+     * @param[in] mqtt_client_t pointer to the mqtt_client_t instance that triggered the callback
      * @param[in] void* pointer to arbitrary userdata
      * @param[in] mqtt_message_t* Pointer to MQTT message. Message is only valid during execution of the callback.
      *                            If message is required after the callback, a copy has to be made by the user
      */
-    using mqtt_callback_t = void (*)(mqtt_client_t*, void*, mqtt_message_t*);
+    using mqtt_callback_userp_t = std::function<void(mqtt_client_t*, mqtt_message_t*, void*)>;
+
+    /*! @brief Register a receive callback function on the client
+     *
+     * @param[in] cbk Function pointer to callback
+     *
+     * @return MQTT_ERR_OK
+     */
+    FLECS_EXPORT int receive_callback_set(mqtt_callback_t cbk);
 
     /*! @brief Register a receive callback function on the client
      *
@@ -183,7 +200,7 @@ public:
      *
      * @return MQTT_ERR_OK
      */
-    FLECS_EXPORT int receive_callback_set(mqtt_callback_t cbk, void* userp);
+    FLECS_EXPORT int receive_callback_set(mqtt_callback_userp_t cbk, void* userp);
 
     /*! @brief Unregister the receive callback function on the client
      *
@@ -206,7 +223,7 @@ private:
 extern "C" {
 #endif // __cplusplus
 
-typedef void (*flecs_mqtt_callback)(void*, void*, struct flecs_mqtt_message_t*);
+typedef void (*flecs_mqtt_callback)(void*, struct flecs_mqtt_message_t*, void*);
 
 FLECS_EXPORT void* flecs_mqtt_client_new(void);
 
