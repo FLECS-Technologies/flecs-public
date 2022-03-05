@@ -15,9 +15,15 @@
 #ifndef FLECS_mqtt_mqtt_errors_h
 #define FLECS_mqtt_mqtt_errors_h
 
+#ifdef __cplusplus
 namespace FLECS {
+#endif //__cplusplus
 
+#ifdef __cplusplus
 enum mqtt_error_t : int
+#else
+enum mqtt_error_t
+#endif // __cplusplus
 {
     MQTT_ERR_OK = 0,
     MQTT_ERR_NOMEM = 1,
@@ -29,6 +35,8 @@ enum mqtt_error_t : int
     MQTT_ERR_PACKET_TOO_LARGE = 25,
 };
 
+#ifdef __cplusplus
 } // namespace FLECS
+#endif // __cplusplus
 
 #endif // FLECS_mqtt_mqtt_errors_h

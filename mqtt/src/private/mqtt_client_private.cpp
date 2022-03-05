@@ -90,34 +90,56 @@ int mqtt_client_private_t::publish(const char* topic, int payloadlen, const void
     return mosquitto_publish(_mosq, nullptr, topic, payloadlen, payload, qos, retain);
 }
 
-int mqtt_client_private_t::receive_callback_set(mqtt_client_t::mqtt_callback_t cbk, void* client, void* userp)
+int mqtt_client_private_t::receive_callback_set(mqtt_client_t::mqtt_callback_t cbk, void* client)
 {
-    _receive_cbk = cbk;
-    _receive_cbk_client = client;
-    _receive_cbk_userp = userp;
+    _rcv_cbk = cbk;
+    _rcv_cbk_client = client;
+    _rcv_cbk_userp = nullptr;
+    return MQTT_ERR_OK;
+}
+
+int mqtt_client_private_t::receive_callback_set(mqtt_client_t::mqtt_callback_userp_t cbk, void* client, void* userp)
+{
+    _rcv_cbk = cbk;
+    _rcv_cbk_client = client;
+    _rcv_cbk_userp = userp;
     return MQTT_ERR_OK;
 }
 
 int mqtt_client_private_t::receive_callback_clear()
 {
-    _receive_cbk = nullptr;
-    _receive_cbk_client = nullptr;
-    _receive_cbk_userp = nullptr;
+    _rcv_cbk = nullptr;
+    _rcv_cbk_client = nullptr;
+    _rcv_cbk_userp = nullptr;
     return MQTT_ERR_OK;
 }
 
+/** @todo */
+template <class... Ts>
+struct overload : Ts...
+{
+    using Ts::operator()...;
+};
+template <class... Ts>
+overload(Ts...) -> overload<Ts...>;
+
 void mqtt_client_private_t::lib_receive_callback(mosquitto*, void* mqtt_client, const mosquitto_message* msg)
 {
-    decltype(auto) client = static_cast<mqtt_client_private_t*>(mqtt_client);
-    if (client->_receive_cbk)
-    {
-        mqtt_message_t mqtt_msg{msg->mid, msg->topic, msg->payload, msg->payloadlen, msg->qos, msg->retain};
+    decltype(auto) c = static_cast<mqtt_client_private_t*>(mqtt_client);
+    mqtt_message_t mqtt_msg{msg->mid, msg->topic, (char*)msg->payload, msg->payloadlen, msg->qos, msg->retain};
 
-        client->_receive_cbk(
-            static_cast<FLECS::mqtt_client_t*>(client->_receive_cbk_client),
-            client->_receive_cbk_userp,
-            &mqtt_msg);
-    }
+    std::visit(
+        overload{// do nothing if no callback is set
+                 [](std::nullptr_t&) {},
+                 // call callback without userdata
+                 [&](FLECS::mqtt_client_t::mqtt_callback_t& cbk) {
+                     cbk(static_cast<FLECS::mqtt_client_t*>(c->_rcv_cbk_client), &mqtt_msg);
+                 },
+                 // call callback with userdata
+                 [&](FLECS::mqtt_client_t::mqtt_callback_userp_t cbk) {
+                     cbk(static_cast<FLECS::mqtt_client_t*>(c->_rcv_cbk_client), &mqtt_msg, c->_rcv_cbk_userp);
+                 }},
+        c->_rcv_cbk);
 }
 
 } // namespace Private

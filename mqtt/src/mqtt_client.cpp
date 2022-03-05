@@ -68,7 +68,12 @@ int mqtt_client_t::publish(const char* topic, int payloadlen, const void* payloa
     return _impl->publish(topic, payloadlen, payload, qos, retain);
 }
 
-int mqtt_client_t::receive_callback_set(mqtt_callback_t cbk, void* userp)
+int mqtt_client_t::receive_callback_set(mqtt_callback_t cbk)
+{
+    return _impl->receive_callback_set(cbk, static_cast<void*>(this));
+}
+
+int mqtt_client_t::receive_callback_set(mqtt_callback_userp_t cbk, void* userp)
 {
     return _impl->receive_callback_set(cbk, static_cast<void*>(this), userp);
 }
@@ -129,9 +134,8 @@ FLECS_EXPORT int flecs_mqtt_publish(
 
 FLECS_EXPORT int flecs_mqtt_receive_callback_set(void* mqtt, flecs_mqtt_callback cbk, void* userp)
 {
-    return static_cast<FLECS::mqtt_client_t*>(mqtt)->receive_callback_set(
-        reinterpret_cast<FLECS::mqtt_client_t::mqtt_callback_t>(cbk),
-        userp);
+    auto p = reinterpret_cast<void (*)(FLECS::mqtt_client_t*, FLECS::mqtt_message_t*, void*)>(cbk);
+    return static_cast<FLECS::mqtt_client_t*>(mqtt)->receive_callback_set(p, userp);
 }
 
 FLECS_EXPORT int flecs_mqtt_receive_callback_clear(void* mqtt)

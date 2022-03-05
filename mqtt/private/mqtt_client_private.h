@@ -16,6 +16,7 @@
 #define FLECS_mqtt_mqtt_client_private_h
 
 #include <mutex>
+#include <variant>
 
 #include "mqtt_client.h"
 
@@ -63,7 +64,9 @@ public:
      */
     int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain);
 
-    int receive_callback_set(mqtt_client_t::mqtt_callback_t cbk, void* client, void* userp);
+    int receive_callback_set(mqtt_client_t::mqtt_callback_t cbk, void* client);
+
+    int receive_callback_set(mqtt_client_t::mqtt_callback_userp_t cbk, void* client, void* userp);
 
     int receive_callback_clear();
 
@@ -74,11 +77,12 @@ private:
     mosquitto* _mosq;
 
     /*! Function pointer to receive callback */
-    mqtt_client_t::mqtt_callback_t _receive_cbk;
+    using cbk_t = std::variant<std::nullptr_t, mqtt_client_t::mqtt_callback_t, mqtt_client_t::mqtt_callback_userp_t>;
+    cbk_t _rcv_cbk;
     /*! Pointer to mqtt_client_t that associated with this instance */
-    void* _receive_cbk_client;
+    void* _rcv_cbk_client;
     /*! Pointer to userdata passed to receive callback */
-    void* _receive_cbk_userp;
+    void* _rcv_cbk_userp;
 
     /* @brief Receive callback function registered with the underlying mosquitto client library.
      */

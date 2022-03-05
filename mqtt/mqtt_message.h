@@ -15,6 +15,7 @@
 #ifndef FLECS_mqtt_mqtt_message_h
 #define FLECS_mqtt_mqtt_message_h
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -29,7 +30,7 @@ struct flecs_mqtt_message_t
 {
     int id;
     const char *topic;
-    void *payload;
+    char *payload;
     int payloadlen;
     int qos;
     bool retain;
