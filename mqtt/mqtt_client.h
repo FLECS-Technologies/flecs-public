@@ -166,7 +166,7 @@ public:
      *
      * @return MQTT error code
      */
-    FLECS_EXPORT int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain);
+    FLECS_EXPORT int publish(const char* topic, int payloadlen, const char* payload, int qos, bool retain);
 
     /*! @brief Type for MQTT message callbacks
      *
@@ -240,7 +240,7 @@ FLECS_EXPORT int flecs_mqtt_subscribe(void* mqtt, const char* sub, int qos);
 FLECS_EXPORT int flecs_mqtt_unsubscribe(void* mqtt, const char* sub);
 
 FLECS_EXPORT int flecs_mqtt_publish(
-    void* mqtt, const char* topic, int payloadlen, const void* payload, int qos, bool retain);
+    void* mqtt, const char* topic, int payloadlen, const char* payload, int qos, bool retain);
 
 FLECS_EXPORT int flecs_mqtt_receive_callback_set(void* mqtt, flecs_mqtt_callback cbk, void* userp);
 

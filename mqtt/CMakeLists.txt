@@ -41,3 +41,11 @@ target_include_directories(FLECS.mqtt PRIVATE
 target_link_libraries(FLECS.mqtt PRIVATE
     FLECS.external.mosquitto
 )
+
+target_link_libraries(FLECS.mqtt.shared PRIVATE
+    -Wl,--whole-archive
+    FLECS.external.mosquitto
+    -Wl,--no-whole-archive
+)
+
+add_subdirectory(pybind)

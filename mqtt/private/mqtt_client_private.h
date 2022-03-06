@@ -62,7 +62,7 @@ public:
 
     /*! @brief Forwards to mosquitto_publish(_mosq, nullptr, topic, payloadlen, payload, qos, retain)
      */
-    int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain);
+    int publish(const char* topic, int payloadlen, const char* payload, int qos, bool retain);
 
     int receive_callback_set(mqtt_client_t::mqtt_callback_t cbk, void* client);
 
