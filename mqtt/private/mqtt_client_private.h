@@ -15,7 +15,6 @@
 #ifndef FLECS_mqtt_mqtt_client_private_h
 #define FLECS_mqtt_mqtt_client_private_h
 
-#include <mutex>
 #include <variant>
 
 #include "mqtt_client.h"
@@ -62,7 +61,7 @@ public:
 
     /*! @brief Forwards to mosquitto_publish(_mosq, nullptr, topic, payloadlen, payload, qos, retain)
      */
-    int publish(const char* topic, int payloadlen, const char* payload, int qos, bool retain);
+    int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain);
 
     int receive_callback_set(mqtt_client_t::mqtt_callback_t cbk, void* client);
 
@@ -87,11 +86,6 @@ private:
     /* @brief Receive callback function registered with the underlying mosquitto client library.
      */
     static void lib_receive_callback(mosquitto* _mosq, void* mqtt_client, const mosquitto_message* msg);
-
-    /*! Number of currently instantiated clients */
-    inline static int _ref_count{};
-    /*! Internal mutex to protect non-MT-safe operations on the broker */
-    inline static std::mutex _ref_mutex{};
 };
 
 } // namespace Private
