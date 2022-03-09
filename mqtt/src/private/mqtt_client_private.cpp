@@ -19,27 +19,44 @@
 #include <unistd.h>
 
 #include <cstring>
+#include <random>
 
 #include "mqtt_errors.h"
 
 namespace FLECS {
 namespace Private {
 
+__attribute__((constructor)) void mqtt_client_private_ctor()
+{
+    mosquitto_lib_init();
+}
+
+__attribute__((destructor)) void mqtt_client_private_dtor()
+{
+    mosquitto_lib_cleanup();
+}
+
 mqtt_client_private_t::mqtt_client_private_t()
     : _mosq{}
 {
-    {
-        std::lock_guard<std::mutex> lock(_ref_mutex);
-        if (!_ref_count)
-        {
-            mosquitto_lib_init();
-        }
-        ++_ref_count;
-    }
+    // ClientId: hostname-random
+    // hostname       -       random
+    // ^ HOSTNAME_MAX ^ + 1 + ^ 8
+    auto client_id = std::string{};
+    client_id.resize(HOST_NAME_MAX + 1 + 8);
+    gethostname(client_id.data(), HOST_NAME_MAX);
 
-    char hostname[HOST_NAME_MAX + 1]{};
-    gethostname(hostname, HOST_NAME_MAX);
-    _mosq = mosquitto_new((std::strlen(hostname) == 0) ? nullptr : hostname, true, this);
+    auto seed = std::random_device{};
+    auto generator = std::mt19937{seed()};
+    auto distribution = std::uniform_int_distribution{
+        std::numeric_limits<std::uint32_t>::min(),
+        std::numeric_limits<std::uint32_t>::max()};
+
+    auto id = distribution(generator);
+    const auto offset = std::strlen(client_id.c_str());
+    std::snprintf(client_id.data() + offset, client_id.length() + 1 - offset, "-%.8x", id);
+
+    _mosq = mosquitto_new(client_id.c_str(), true, this);
 
     mosquitto_message_callback_set(_mosq, &mqtt_client_private_t::lib_receive_callback);
 
@@ -51,13 +68,6 @@ mqtt_client_private_t::~mqtt_client_private_t()
     disconnect();
     mosquitto_loop_stop(_mosq, false);
     mosquitto_destroy(_mosq);
-
-    std::lock_guard<std::mutex> lock(_ref_mutex);
-    --_ref_count;
-    if (!_ref_count)
-    {
-        mosquitto_lib_cleanup();
-    }
 }
 
 int mqtt_client_private_t::connect(const char* host, const int port, const int keepalive)
@@ -85,7 +95,7 @@ int mqtt_client_private_t::unsubscribe(const char* sub)
     return mosquitto_unsubscribe(_mosq, nullptr, sub);
 }
 
-int mqtt_client_private_t::publish(const char* topic, int payloadlen, const char* payload, int qos, bool retain)
+int mqtt_client_private_t::publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain)
 {
     return mosquitto_publish(_mosq, nullptr, topic, payloadlen, (const void*)payload, qos, retain);
 }
