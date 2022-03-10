@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_version_h
-#define FLECS_daemon_modules_version_h
+#ifndef A120ECB5_AF1A_49CB_8C2E_6A09CF6F242C
+#define A120ECB5_AF1A_49CB_8C2E_6A09CF6F242C
 
 #include "module_base/module.h"
 
@@ -29,4 +29,4 @@ public:
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_modules_version_h
+#endif // A120ECB5_AF1A_49CB_8C2E_6A09CF6F242C

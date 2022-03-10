@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_http_status_codes_h
-#define FLECS_util_http_status_codes_h
+#ifndef AADF5F77_99AD_4348_8FDF_21AB38147706
+#define AADF5F77_99AD_4348_8FDF_21AB38147706
 
 namespace FLECS {
 
@@ -66,4 +66,4 @@ enum class http_status_e : int
 
 } // namespace FLECS
 
-#endif // FLECS_util_http_status_codes_h
+#endif // AADF5F77_99AD_4348_8FDF_21AB38147706

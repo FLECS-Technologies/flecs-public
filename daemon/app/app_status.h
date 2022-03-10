@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_app_status_h
-#define FLECS_service_app_status_h
+#ifndef A374D934_15CF_4E41_9406_B3368CEA8A94
+#define A374D934_15CF_4E41_9406_B3368CEA8A94
 
 #include <string>
 
@@ -59,4 +59,4 @@ constexpr const char* app_status_to_string(app_status_e status)
 
 } // namespace FLECS
 
-#endif // FLECS_service_app_status_h
+#endif // A374D934_15CF_4E41_9406_B3368CEA8A94

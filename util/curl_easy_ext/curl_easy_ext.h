@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_curl_easy_ext_h
-#define FLECS_util_curl_easy_ext_h
+#ifndef A29E2E8D_34E9_4A60_9756_7A3A180DCBE6
+#define A29E2E8D_34E9_4A60_9756_7A3A180DCBE6
 
 #include <mutex>
 #include <optional>
@@ -92,4 +92,4 @@ size_t curl_easy_ext_write_cb(char* buffer, size_t size, size_t nmemb, void* use
 
 } // namespace FLECS
 
-#endif // FLECS_util_curl_easy_ext_h
+#endif // A29E2E8D_34E9_4A60_9756_7A3A180DCBE6

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_http_version_strings_h
-#define FLECS_util_http_version_strings_h
+#ifndef ECE3B0AC_F6B4_4CFB_B429_63F1214486AA
+#define ECE3B0AC_F6B4_4CFB_B429_63F1214486AA
 
 namespace FLECS {
 
@@ -23,4 +23,4 @@ constexpr const char* http_version_2_0 = "HTTP/2";
 
 } // namespace FLECS
 
-#endif // FLECS_util_http_version_strings_h
+#endif // ECE3B0AC_F6B4_4CFB_B429_63F1214486AA

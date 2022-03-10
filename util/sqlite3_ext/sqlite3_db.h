@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_sqlite3_db_h
-#define FLECS_util_sqlite3_db_h
+#ifndef A46C0241_A55D_44A7_AAD0_70A31A41AFEA
+#define A46C0241_A55D_44A7_AAD0_70A31A41AFEA
 
 #include <array>
 #include <cstdio>
@@ -185,4 +185,4 @@ int sqlite3_db_t::select_all(
 
 } // namespace FLECS
 
-#endif // FLECS_util_sqlite3_db_h
+#endif // A46C0241_A55D_44A7_AAD0_70A31A41AFEA

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_cxx20_string_h
-#define FLECS_util_cxx20_string_h
+#ifndef C54190C2_D535_4427_A5AA_82FC31D024D8
+#define C54190C2_D535_4427_A5AA_82FC31D024D8
 
 #include <string>
 #include <string_view>
@@ -91,4 +91,4 @@ constexpr bool starts_with(const std::basic_string<CharT, Traits>& str, const Ch
 } // namespace cxx20
 } // namespace FLECS
 
-#endif // FLECS_util_cxx20_string_h
+#endif // C54190C2_D535_4427_A5AA_82FC31D024D8

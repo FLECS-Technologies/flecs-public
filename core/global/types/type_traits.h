@@ -11,8 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef FLECS_core_global_types_type_traits_h
-#define FLECS_core_global_types_type_traits_h
+
+#ifndef EE7E8533_2B64_4B48_AE6F_802059D018CF
+#define EE7E8533_2B64_4B48_AE6F_802059D018CF
 
 #include <string>
 #include <type_traits>
@@ -78,4 +79,4 @@ inline constexpr bool is_std_container_v = is_std_container<T>::value;
 
 } // namespace FLECS
 
-#endif // FLECS_core_global_types_type_traits_h
+#endif // EE7E8533_2B64_4B48_AE6F_802059D018CF

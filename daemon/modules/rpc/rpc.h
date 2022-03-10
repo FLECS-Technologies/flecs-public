@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_rpc_h
-#define FLECS_daemon_modules_rpc_h
+#ifndef E0824352_500A_41C8_8DB9_39130CC65EB3
+#define E0824352_500A_41C8_8DB9_39130CC65EB3
 
 #include "module_base/module.h"
 #include "util/cxx20/string.h"
@@ -32,4 +32,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_modules_rpc_h
+#endif // E0824352_500A_41C8_8DB9_39130CC65EB3

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_map_constexpr_h
-#define FLECS_util_map_constexpr_h
+#ifndef D169E3DF_92D6_49A2_998E_0B5503E9060B
+#define D169E3DF_92D6_49A2_998E_0B5503E9060B
 
 #include <algorithm>
 #include <array>
@@ -95,4 +95,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_util_map_constexpr_h
+#endif // D169E3DF_92D6_49A2_998E_0B5503E9060B

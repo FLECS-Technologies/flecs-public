@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_mqtt_mqtt_errors_h
-#define FLECS_mqtt_mqtt_errors_h
+#ifndef ADCBE21F_884C_4C70_8CC2_F09C443B0F06
+#define ADCBE21F_884C_4C70_8CC2_F09C443B0F06
 
 #ifdef __cplusplus
 namespace FLECS {
@@ -39,4 +39,4 @@ enum mqtt_error_t
 } // namespace FLECS
 #endif // __cplusplus
 
-#endif // FLECS_mqtt_mqtt_errors_h
+#endif // ADCBE21F_884C_4C70_8CC2_F09C443B0F06

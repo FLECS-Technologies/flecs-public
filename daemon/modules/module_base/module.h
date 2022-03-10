@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_module_h
-#define FLECS_daemon_modules_module_h
+#ifndef DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B
+#define DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B
 
 #include <json/json.h>
 
@@ -33,7 +33,8 @@ namespace FLECS {
     try                                                                                      \
     {                                                                                        \
         val = json[#val].as<std::string>();                                                  \
-    } catch (const Json::LogicError& ex)                                                     \
+    }                                                                                        \
+    catch (const Json::LogicError& ex)                                                       \
     {                                                                                        \
         response["additionalInfo"] = std::string{"Malformed field "} + #val + " in request"; \
         return http_status_e::BadRequest;                                                    \
@@ -46,7 +47,8 @@ namespace FLECS {
         try                                     \
         {                                       \
             val = json[#val].as<std::string>(); \
-        } catch (const Json::LogicError& ex)    \
+        }                                       \
+        catch (const Json::LogicError& ex)      \
         {                                       \
         }                                       \
     }
@@ -67,4 +69,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_modules_module_h
+#endif // DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B

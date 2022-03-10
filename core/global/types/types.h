@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_core_global_types_h
-#define FLECS_core_global_types_h
+#ifndef F014EC88_6841_4FAE_AA61_09B3F2F4CB2A
+#define F014EC88_6841_4FAE_AA61_09B3F2F4CB2A
 
 #include <cstdint>
 #include <type_traits>
@@ -48,4 +48,4 @@ using wcstr_t = const wchar_t*;
 
 } // namespace FLECS
 
-#endif // FLECS_core_global_types_h
+#endif // F014EC88_6841_4FAE_AA61_09B3F2F4CB2A

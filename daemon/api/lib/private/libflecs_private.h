@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_libflecs_private_h
-#define FLECS_daemon_libflecs_private_h
+#ifndef B9FC4679_2559_4145_830A_947F1BB2CF52
+#define B9FC4679_2559_4145_830A_947F1BB2CF52
 
 #include <string>
 
@@ -35,4 +35,4 @@ private:
 } // namespace Private
 } // namespace FLECS
 
-#endif // FLECS_daemon_libflecs_private_h
+#endif // B9FC4679_2559_4145_830A_947F1BB2CF52

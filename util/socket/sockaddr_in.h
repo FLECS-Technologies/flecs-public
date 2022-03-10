@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_sockaddr_in_h
-#define FLECS_util_sockaddr_in_h
+#ifndef CE0178AA_88CC_483E_9E53_B0CC10CE02B8
+#define CE0178AA_88CC_483E_9E53_B0CC10CE02B8
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -110,4 +110,4 @@ inline sockaddr_in_t::operator const sockaddr*() const noexcept
 
 } // namespace FLECS
 
-#endif // FLECS_util_sockaddr_in_h
+#endif // CE0178AA_88CC_483E_9E53_B0CC10CE02B8

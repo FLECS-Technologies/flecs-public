@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_process_posix_spaw_h
-#define FLECS_process_posix_spaw_h
+#ifndef C7E0F659_7D95_4432_B347_7174F4D8A425
+#define C7E0F659_7D95_4432_B347_7174F4D8A425
 
 #include <spawn.h>
 #include <unistd.h>
@@ -50,4 +50,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_process_posix_spaw_h
+#endif // C7E0F659_7D95_4432_B347_7174F4D8A425

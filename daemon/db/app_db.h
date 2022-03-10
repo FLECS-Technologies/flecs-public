@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_app_db_h
-#define FLECS_service_app_db_h
+#ifndef A73466A9_55BD_49A9_AE77_408A1A82751C
+#define A73466A9_55BD_49A9_AE77_408A1A82751C
 
 #include <cstdint>
 #include <map>
@@ -185,4 +185,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_service_app_db_h
+#endif // A73466A9_55BD_49A9_AE77_408A1A82751C

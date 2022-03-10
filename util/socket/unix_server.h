@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_socket_unix_server_h
-#define FLECS_util_socket_unix_server_h
+#ifndef B5CE87B0_D184_4684_9CA9_F3F24E002B53
+#define B5CE87B0_D184_4684_9CA9_F3F24E002B53
 
 #include <cstdio>
 
@@ -55,4 +55,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_util_socket_unix_server_h
+#endif // B5CE87B0_D184_4684_9CA9_F3F24E002B53

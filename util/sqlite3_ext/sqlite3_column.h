@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_sqlite3_column_h
-#define FLECS_util_sqlite3_column_h
+#ifndef CEF12FC5_E3D7_46BF_8703_1C5A010CB5E8
+#define CEF12FC5_E3D7_46BF_8703_1C5A010CB5E8
 
 #include <string>
 
@@ -71,4 +71,4 @@ inline std::string to_string(const sqlite3_column_t& col)
 
 } // namespace FLECS
 
-#endif // FLECS_util_sqlite3_column_h
+#endif // CEF12FC5_E3D7_46BF_8703_1C5A010CB5E8

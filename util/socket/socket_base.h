@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_socket_base_h
-#define FLECS_util_socket_base_h
+#ifndef A2E0C7BD_9DAC_46A8_9700_D2CE1CE0171E
+#define A2E0C7BD_9DAC_46A8_9700_D2CE1CE0171E
 
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -186,4 +186,4 @@ inline void swap(socket_t& lhs, socket_t& rhs)
 
 } // namespace FLECS
 
-#endif // FLECS_util_socket_base_h
+#endif // A2E0C7BD_9DAC_46A8_9700_D2CE1CE0171E

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_socket_unix_client_h
-#define FLECS_util_socket_unix_client_h
+#ifndef BB1957BD_34F0_4EE0_AA8D_38A9F92A33A1
+#define BB1957BD_34F0_4EE0_AA8D_38A9F92A33A1
 
 #include "sockaddr_un.h"
 #include "unix_socket.h"
@@ -45,4 +45,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_util_socket_unix_client_h
+#endif // BB1957BD_34F0_4EE0_AA8D_38A9F92A33A1

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_literals_h
-#define FLECS_util_literals_h
+#ifndef C675AFA3_8344_4013_A6F5_1AB5B8B7902F
+#define C675AFA3_8344_4013_A6F5_1AB5B8B7902F
 
 namespace FLECS {
 
@@ -44,4 +44,4 @@ constexpr auto operator""_TiB(const unsigned long long num)
 
 } // namespace FLECS
 
-#endif // FLECS_util_literals_h
+#endif // C675AFA3_8344_4013_A6F5_1AB5B8B7902F
