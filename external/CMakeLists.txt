@@ -21,7 +21,6 @@ include(ExternalProject)
 set (CMAKE_ARGS    -B build/${MACHINE} -DCMAKE_INSTALL_PREFIX=out/${MACHINE} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
 set (CPPZMQ_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/cppzmq-4.8.1)
 set (CPR_DIR       ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.7.2)
-set (CURL_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/curl-7.82.0)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (JSONCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp-1.9.5)
 set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
@@ -33,7 +32,6 @@ set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.37.2)
 set (YAMLCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set (ZENOH_C_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
 set (ZEROMQ_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/zeromq-4.3.4)
-set (ZLIB_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.11)
 
 # custom build rules
 
@@ -41,16 +39,6 @@ set (ZLIB_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.11)
 add_custom_target(
     FLECS.external.cpr.build
     WORKING_DIRECTORY ${CPR_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${MACHINE} -DOPENSSL_INCLUDE_DIR=${OPENSSL_DIR}/out/${MACHINE}/include
-    COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
-    COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
-)
-
-# cURL
-add_custom_target(
-    FLECS.external.curl.build
-    #DEPENDS FLECS.external.openssl.build
-    WORKING_DIRECTORY ${CURL_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${MACHINE} -DOPENSSL_INCLUDE_DIR=${OPENSSL_DIR}/out/${MACHINE}/include
     COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
     COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
@@ -133,15 +121,6 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
 )
 
-# zlib
-add_custom_target(
-    FLECS.external.zlib.build
-    WORKING_DIRECTORY ${ZLIB_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=NO
-    COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
-    COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
-)
-
 # imported libraries
 # cppzmq
 add_library(FLECS.external.cppzmq INTERFACE)
@@ -169,16 +148,6 @@ set_property(TARGET FLECS.external.cpr PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${
 target_link_libraries(FLECS.external.cpr INTERFACE
     FLECS.external.cpr.curl
     FLECS.external.cpr.zlib
-)
-
-# cURL
-add_library(FLECS.external.curl STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.curl PROPERTY IMPORTED_LOCATION ${CURL_DIR}/out/${MACHINE}/lib/libcurl.a)
-set_property(TARGET FLECS.external.curl PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CURL_DIR}/include)
-target_link_libraries(FLECS.external.curl INTERFACE
-    FLECS.external.ssl
-    FLECS.external.crypto
-    FLECS.external.zlib
 )
 
 # gtest
@@ -267,8 +236,3 @@ set_property(TARGET FLECS.external.zenoh-c PROPERTY INTERFACE_INCLUDE_DIRECTORIE
 add_library(FLECS.external.zeromq STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.zeromq PROPERTY IMPORTED_LOCATION ${ZEROMQ_DIR}/out/${MACHINE}/lib/libzmq.a)
 set_property(TARGET FLECS.external.zeromq PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZEROMQ_DIR}/include)
-
-# zlib
-add_library(FLECS.external.zlib STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.zlib PROPERTY IMPORTED_LOCATION ${ZLIB_DIR}/out/${MACHINE}/lib/libz.a)
-set_property(TARGET FLECS.external.zlib PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZLIB_DIR})
