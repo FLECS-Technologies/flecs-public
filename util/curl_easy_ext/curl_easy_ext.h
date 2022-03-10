@@ -44,9 +44,6 @@ private:
     CURLcode setopt(CURLoption option, T param);
 
     CURL* _curl;
-
-    static inline int _ref_count{};
-    static inline std::mutex _ref_mutex{};
 };
 
 template <typename T>

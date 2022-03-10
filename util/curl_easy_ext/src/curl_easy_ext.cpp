@@ -20,18 +20,21 @@
 
 namespace FLECS {
 
+namespace {
+__attribute__((constructor)) void curl_easy_ext_ctor()
+{
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+}
+
+__attribute__((constructor)) void curl_easy_ext_dtor()
+{
+    curl_global_cleanup();
+}
+} // namespace
+
 curl_easy_ext::curl_easy_ext(const std::string& url, int* write_fd)
     : _curl{}
 {
-    {
-        auto lock = std::lock_guard<std::mutex>{_ref_mutex};
-        if (!_ref_count)
-        {
-            curl_global_init(CURL_GLOBAL_DEFAULT);
-            ++_ref_count;
-        }
-    }
-
     _curl = curl_easy_init();
     if (_curl)
     {
@@ -45,12 +48,6 @@ curl_easy_ext::curl_easy_ext(const std::string& url, int* write_fd)
 curl_easy_ext::~curl_easy_ext()
 {
     curl_easy_cleanup(_curl);
-    auto lock = std::lock_guard<std::mutex>{_ref_mutex};
-    --_ref_count;
-    if (!_ref_count)
-    {
-        curl_global_cleanup();
-    }
 }
 
 curl_easy_ext::operator bool() const noexcept
