@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(curl_easy_ext)
 add_subdirectory(datetime)
 add_subdirectory(llhttp_ext)
 add_subdirectory(process)
