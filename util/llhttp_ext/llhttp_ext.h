@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_llhttp_ext_h
-#define FLECS_llhttp_ext_h
+#ifndef D1251A7E_3083_4C6E_8B7E_C02B589C00AA
+#define D1251A7E_3083_4C6E_8B7E_C02B589C00AA
 
 #include <llhttp.h>
 
@@ -36,4 +36,4 @@ int llhttp_ext_on_message_complete(llhttp_t* llhttp);
 
 } // namespace FLECS
 
-#endif // FLECS_llhttp_ext_h
+#endif // D1251A7E_3083_4C6E_8B7E_C02B589C00AA

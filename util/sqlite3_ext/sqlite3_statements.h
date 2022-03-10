@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_sqlit3_ext_sqlite3_statements_h
-#define FLECS_util_sqlit3_ext_sqlite3_statements_h
+#ifndef D6217C81_BDE7_47A6_B815_74FFA64B3248
+#define D6217C81_BDE7_47A6_B815_74FFA64B3248
 
 namespace FLECS {
 
@@ -25,4 +25,4 @@ constexpr const char* create_table_stmt = "CREATE TABLE IF NOT EXISTS %s (";
 
 } // namespace FLECS
 
-#endif // FLECS_util_sqlit3_ext_sqlite3_statements_h
+#endif // D6217C81_BDE7_47A6_B815_74FFA64B3248

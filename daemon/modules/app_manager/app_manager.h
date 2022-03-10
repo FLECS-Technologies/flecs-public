@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_app_manager_h
-#define FLECS_daemon_modules_app_manager_h
+#ifndef B9B56278_BFF8_4E56_83D7_1129F37256DF
+#define B9B56278_BFF8_4E56_83D7_1129F37256DF
 
 #include <memory>
 
@@ -52,4 +52,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_modules_app_manager_h
+#endif // B9B56278_BFF8_4E56_83D7_1129F37256DF

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_daemon_daemon_h
-#define FLECS_service_daemon_daemon_h
+#ifndef AFCCCBEF_238B_4510_B85C_E967FD439F4B
+#define AFCCCBEF_238B_4510_B85C_E967FD439F4B
 
 #include <thread>
 
@@ -34,4 +34,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_service_daemon_daemon_h
+#endif // AFCCCBEF_238B_4510_B85C_E967FD439F4B

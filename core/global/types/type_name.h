@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_core_global_type_name_h
-#define FLECS_core_global_type_name_h
+#ifndef B2BC57AF_1CAA_4C27_9C4F_940B766B7E3C
+#define B2BC57AF_1CAA_4C27_9C4F_940B766B7E3C
 
 #include <array>
 #include <list>
@@ -270,4 +270,4 @@ constexpr std::enable_if_t<std::is_const_v<T> || std::is_volatile_v<T>, cstr_t> 
 
 } // namespace FLECS
 
-#endif // FLECS_core_global_type_name_h
+#endif // B2BC57AF_1CAA_4C27_9C4F_940B766B7E3C

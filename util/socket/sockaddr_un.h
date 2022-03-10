@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_sockaddr_un_h
-#define FLECS_util_sockaddr_un_h
+#ifndef B04D2855_A716_46AD_A054_160DC79E8213
+#define B04D2855_A716_46AD_A054_160DC79E8213
 
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -88,4 +88,4 @@ inline sockaddr_un_t::operator const sockaddr*() const noexcept
 
 } // namespace FLECS
 
-#endif // FLECS_util_sockaddr_un_h
+#endif // B04D2855_A716_46AD_A054_160DC79E8213

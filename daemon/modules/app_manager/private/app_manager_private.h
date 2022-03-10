@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_app_manager_private_h
-#define FLECS_daemon_modules_app_manager_private_h
+#ifndef A26C3D22_DE7E_4EF2_BA44_CB50A45E8C9B
+#define A26C3D22_DE7E_4EF2_BA44_CB50A45E8C9B
 
 #include <string>
 
@@ -227,4 +227,4 @@ std::string build_manifest_path(const std::string& app_name, const std::string& 
 } // namespace Private
 } // namespace FLECS
 
-#endif // FLECS_daemon_private_app_manager_private_h
+#endif // A26C3D22_DE7E_4EF2_BA44_CB50A45E8C9B

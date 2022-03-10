@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_tcp_socket_h
-#define FLECS_util_tcp_socket_h
+#ifndef CA8939C7_5EE8_4EBC_94AE_2E6CE3855C44
+#define CA8939C7_5EE8_4EBC_94AE_2E6CE3855C44
 
 #include "socket_base.h"
 
@@ -32,4 +32,4 @@ public:
 
 } // namespace FLECS
 
-#endif // FLECS_util_tcp_socket_h
+#endif // CA8939C7_5EE8_4EBC_94AE_2E6CE3855C44

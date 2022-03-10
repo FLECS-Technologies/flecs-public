@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_unix_socket_h
-#define FLECS_util_unix_socket_h
+#ifndef B8AAC358_2FAF_4BA9_9696_BBAEAA11BA18
+#define B8AAC358_2FAF_4BA9_9696_BBAEAA11BA18
 
 #include "socket_base.h"
 
@@ -32,4 +32,4 @@ public:
 
 } // namespace FLECS
 
-#endif // FLECS_util_unix_socket_h
+#endif // B8AAC358_2FAF_4BA9_9696_BBAEAA11BA18

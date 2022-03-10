@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_marketplace_h
-#define FLECS_daemon_modules_marketplace_h
+#ifndef CBE91B30_CC56_4E6A_969C_9A84233C1DA4
+#define CBE91B30_CC56_4E6A_969C_9A84233C1DA4
 
 #include "module_base/module.h"
 
@@ -31,4 +31,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_modules_marketplace_h
+#endif // CBE91B30_CC56_4E6A_969C_9A84233C1DA4

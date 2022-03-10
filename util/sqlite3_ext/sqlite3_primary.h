@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_sqlite3_primary_h
-#define FLECS_util_sqlite3_primary_h
+#ifndef B4BB1593_56FE_435A_BF07_BA1E4B7F2431
+#define B4BB1593_56FE_435A_BF07_BA1E4B7F2431
 
 #include <string>
 
@@ -43,4 +43,4 @@ inline std::string to_string(const sqlite3_primary_t& primary)
 
 } // namespace FLECS
 
-#endif // FLECS_util_sqlite3_primary_h
+#endif // B4BB1593_56FE_435A_BF07_BA1E4B7F2431

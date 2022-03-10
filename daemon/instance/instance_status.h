@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_instance_status_h
-#define FLECS_service_instance_status_h
+#ifndef A1671630_FCCE_4302_B252_4C67A6FF0562
+#define A1671630_FCCE_4302_B252_4C67A6FF0562
 
 namespace FLECS {
 
@@ -55,4 +55,4 @@ constexpr const char* instance_status_to_string(instance_status_e status)
 
 } // namespace FLECS
 
-#endif // FLECS_service_instance_status_h
+#endif // A1671630_FCCE_4302_B252_4C67A6FF0562

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_socket_tcp_client_h
-#define FLECS_util_socket_tcp_client_h
+#ifndef CD985EBD_4F4F_4C51_B4D1_C107292DD9D4
+#define CD985EBD_4F4F_4C51_B4D1_C107292DD9D4
 
 #include <arpa/inet.h>
 
@@ -60,4 +60,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_util_socket_tcp_server_h
+#endif // CD985EBD_4F4F_4C51_B4D1_C107292DD9D4

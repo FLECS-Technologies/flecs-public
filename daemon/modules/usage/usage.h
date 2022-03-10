@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_usage_h
-#define FLECS_daemon_modules_usage_h
+#ifndef B24999EC_55E9_4341_9915_0930AEC84E8F
+#define B24999EC_55E9_4341_9915_0930AEC84E8F
 
 #include "module_base/module.h"
 
@@ -30,4 +30,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_modules_usage_h
+#endif // B24999EC_55E9_4341_9915_0930AEC84E8F

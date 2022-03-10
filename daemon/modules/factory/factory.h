@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_modules_factory_h
-#define FLECS_daemon_modules_factory_h
+#ifndef E020106A_682E_43CD_99AA_07D004790681
+#define E020106A_682E_43CD_99AA_07D004790681
 
 #include <map>
 #include <memory>
@@ -80,4 +80,4 @@ std::shared_ptr<module_t> query_module(const char* module_name);
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_modules_factory_h
+#endif // E020106A_682E_43CD_99AA_07D004790681

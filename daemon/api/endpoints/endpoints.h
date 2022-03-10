@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef D2CA0BA7_23AC_45FE_B6BF_DC1EFD9E8446
+#define D2CA0BA7_23AC_45FE_B6BF_DC1EFD9E8446
+
 #include <functional>
 #include <map>
 #include <optional>
 
 #include "util/http/status_codes.h"
 #include "util/string/comparator.h"
-
-#ifndef FLECS_daemon_api_endpoint_factory_h
-#define FLECS_daemon_api_endpoint_factory_h
 
 namespace Json {
 class Value;
@@ -63,4 +63,4 @@ std::optional<endpoint_t> query_endpoint(const char* endpoint);
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_api_endpoint_factory_h
+#endif // D2CA0BA7_23AC_45FE_B6BF_DC1EFD9E8446

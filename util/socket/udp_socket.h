@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_udp_socket_h
-#define FLECS_util_udp_socket_h
+#ifndef CCB34EE3_116F_4442_85EE_7C2159622DA0
+#define CCB34EE3_116F_4442_85EE_7C2159622DA0
 
 #include "socket_base.h"
 
@@ -32,4 +32,4 @@ public:
 
 } // namespace FLECS
 
-#endif // FLECS_util_udp_socket_h
+#endif // CCB34EE3_116F_4442_85EE_7C2159622DA0

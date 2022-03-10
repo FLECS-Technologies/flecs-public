@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_datetime_h
-#define FLECS_util_datetime_h
+#ifndef F945857A_262A_4302_A4C9_B209858CFA98
+#define F945857A_262A_4302_A4C9_B209858CFA98
 
 #include <array>
 #include <chrono>
@@ -58,4 +58,4 @@ std::string time_to_iso(std::chrono::time_point<system_clock_t> tp, precision_e 
 
 } // namespace FLECS
 
-#endif // FLECS_util_datetime_h
+#endif // F945857A_262A_4302_A4C9_B209858CFA98

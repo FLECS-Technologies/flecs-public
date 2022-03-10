@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_string_utils_h
-#define FLECS_util_string_utils_h
+#ifndef E3107886_7E4E_4556_9EDD_91B48A8DF4D9
+#define E3107886_7E4E_4556_9EDD_91B48A8DF4D9
 
 #include <optional>
 #include <sstream>
@@ -93,4 +93,4 @@ inline auto split(const CharT* s, CharT delim)
 
 } // namespace FLECS
 
-#endif // FLECS_util_string_utils_h
+#endif // E3107886_7E4E_4556_9EDD_91B48A8DF4D9

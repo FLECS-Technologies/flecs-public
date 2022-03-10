@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_sqlite3_table_h
-#define FLECS_util_sqlite3_table_h
+#ifndef BC8F8E01_8A1E_4957_8C0D_97CF1C251781
+#define BC8F8E01_8A1E_4957_8C0D_97CF1C251781
 
 #include <cstdint>
 
@@ -31,4 +31,4 @@ struct sqlite3_table_field_t
 
 } // namespace FLECS
 
-#endif // FLECS_util_sqlite3_table_h
+#endif // BC8F8E01_8A1E_4957_8C0D_97CF1C251781

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_app_env_var_h
-#define FLECS_daemon_app_env_var_h
+#ifndef FDADEFFE_6E66_4E93_8B9D_DDBA6629DEC1
+#define FDADEFFE_6E66_4E93_8B9D_DDBA6629DEC1
 
 #include <string>
 
@@ -85,4 +85,4 @@ inline std::string to_string(const mapped_env_var_t& mapped_env_var)
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_app_env_var_h
+#endif // FDADEFFE_6E66_4E93_8B9D_DDBA6629DEC1

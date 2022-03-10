@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_mqtt_mqtt_client_h
-#define FLECS_mqtt_mqtt_client_h
+#ifndef A060EDC4_84A2_4655_A89E_290C0AC4F5C2
+#define A060EDC4_84A2_4655_A89E_290C0AC4F5C2
 
 /*! @todo */
 #ifndef FLECS_EXPORT
@@ -250,4 +250,4 @@ FLECS_EXPORT int flecs_mqtt_receive_callback_clear(void* mqtt);
 } // extern "C"
 #endif // __cplusplus
 
-#endif // FLECS_mqtt_mqtt_client_h
+#endif // A060EDC4_84A2_4655_A89E_290C0AC4F5C2

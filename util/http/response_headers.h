@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_http_response_headers_h
-#define FLECS_util_http_response_headers_h
+#ifndef C69D5FB9_9BA2_440A_B050_B389B05D961F
+#define C69D5FB9_9BA2_440A_B050_B389B05D961F
 
 #include <array>
 #include <utility>
@@ -117,4 +117,4 @@ constexpr http_response_header_map_t http_response_header_map = {{
 
 } // namespace FLECS
 
-#endif // FLECS_util_http_response_headers_h
+#endif // C69D5FB9_9BA2_440A_B050_B389B05D961F

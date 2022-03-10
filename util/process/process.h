@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_process_process_h
-#define FLECS_util_process_process_h
+#ifndef E969507F_A779_48AF_8F25_F942A12CCA68
+#define E969507F_A779_48AF_8F25_F942A12CCA68
 
 #include <unistd.h>
 
@@ -75,4 +75,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_util_process_process_h
+#endif // E969507F_A779_48AF_8F25_F942A12CCA68

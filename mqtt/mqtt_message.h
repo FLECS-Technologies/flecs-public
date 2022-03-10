@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_mqtt_mqtt_message_h
-#define FLECS_mqtt_mqtt_message_h
+#ifndef C2E307A4_1114_43A5_974D_C3E7149F2F5B
+#define C2E307A4_1114_43A5_974D_C3E7149F2F5B
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -40,4 +40,4 @@ struct flecs_mqtt_message_t
 } // namespace FLECS
 #endif // __cplusplus
 
-#endif // FLECS_mqtt_mqtt_message_h
+#endif // C2E307A4_1114_43A5_974D_C3E7149F2F5B

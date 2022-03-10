@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_service_app_h
-#define FLECS_service_app_h
+#ifndef C8B89989_19D1_40AE_B788_DD80AE214500
+#define C8B89989_19D1_40AE_B788_DD80AE214500
 
 #include <algorithm>
 #include <map>
@@ -129,4 +129,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_service_app_h
+#endif // C8B89989_19D1_40AE_B788_DD80AE214500

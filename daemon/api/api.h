@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_api_h
-#define FLECS_daemon_api_h
+#ifndef D409ED4F_76EC_4E01_B2EB_9DCBCF588B5E
+#define D409ED4F_76EC_4E01_B2EB_9DCBCF588B5E
 
 #include <memory>
 
@@ -61,4 +61,4 @@ private:
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_api_h
+#endif // D409ED4F_76EC_4E01_B2EB_9DCBCF588B5E

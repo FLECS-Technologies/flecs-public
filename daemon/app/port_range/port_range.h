@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef D25F6491_3BA5_410A_A410_0ACC76BADC98
+#define D25F6491_3BA5_410A_A410_0ACC76BADC98
+
 #include <cstdint>
 #include <limits>
 #include <string>
 #include <type_traits>
 
 #include "util/string/string_utils.h"
-
-#ifndef FLECS_daemon_app_port_range_h
-#define FLECS_daemon_app_port_range_h
 
 namespace FLECS {
 
@@ -177,4 +177,4 @@ inline std::string to_string(const mapped_port_range_t& mapped_port_range)
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_app_port_range_h
+#endif // D25F6491_3BA5_410A_A410_0ACC76BADC98

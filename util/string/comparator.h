@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_util_string_comparator_h
-#define FLECS_util_string_comparator_h
+#ifndef DAF95744_686F_407F_8FDD_4E2758FE3054
+#define DAF95744_686F_407F_8FDD_4E2758FE3054
 
 #include <cstring>
 
@@ -26,4 +26,4 @@ struct string_comparator_t
 
 } // namespace FLECS
 
-#endif // FLECS_util_string_comparator_h
+#endif // DAF95744_686F_407F_8FDD_4E2758FE3054

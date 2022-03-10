@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FLECS_daemon_signal_handler_h
-#define FLECS_daemon_signal_handler_h
+#ifndef CCC70E82_3BE2_46D4_AA04_A1B11B6CBF5D
+#define CCC70E82_3BE2_46D4_AA04_A1B11B6CBF5D
 
 #include <atomic>
 
@@ -27,4 +27,4 @@ void signal_handler_init();
 
 } // namespace FLECS
 
-#endif // FLECS_daemon_signal_handler_h
+#endif // CCC70E82_3BE2_46D4_AA04_A1B11B6CBF5D
