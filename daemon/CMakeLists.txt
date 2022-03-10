@@ -58,8 +58,8 @@ target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.modules.usage
     FLECS.daemon.modules.version
     FLECS.util.process
-    FLECS.util.curl_easy_ext
     FLECS.util.sqlite3_ext
+    FLECS.external.cpr
     FLECS.external.yaml-cpp
 )
 

@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cpr/cpr.h>
+
 #include "app/app.h"
 #include "private/app_manager_private.h"
-#include "util/curl_easy_ext/curl_easy_ext.h"
 #include "util/process/process.h"
 
 namespace FLECS {
@@ -49,27 +50,18 @@ int download_manifest(const std::string& app_name, const std::string& version)
         return -1;
     }
 
-    auto fd = fileno(manifest);
-    if (fd < 0)
-    {
-        std::fprintf(stderr, "Could not get fd for %s\n", path.c_str());
-        return -1;
-    }
-
     const auto url = build_manifest_url(app_name, version);
-    curl_easy_ext curl{url, &fd};
-    if (!curl)
+    auto response = cpr::Get(cpr::Url{url.c_str()});
+    if (response.status_code != static_cast<long>(http_status_e::Ok))
     {
-        std::fprintf(stderr, "Could not initialize curl_easy_ext\n");
+        std::fprintf(stderr, "Could not download app manifest: HTTP return code %ld\n", response.status_code);
         return -1;
     }
-
-    const auto curl_res = curl.perform();
+    const auto bytes_written = fwrite(response.text.data(), 1, response.text.length(), manifest);
     fclose(manifest);
-    if (curl_res != CURLE_OK)
+    if (bytes_written != response.text.length())
     {
-        auto http_code = curl.response_code();
-        std::fprintf(stderr, "Could not download app manifest: HTTP return code %ld\n", http_code);
+        std::fprintf(stderr, "Could not download app manifest: Write error %d\n", errno);
         return -1;
     }
 
