@@ -78,7 +78,9 @@
         "stack": "cpp",
         "cstdbool": "cpp",
         "complex": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "mutex": "cpp"
     },
     "cSpell.words": [
         "flecs"
