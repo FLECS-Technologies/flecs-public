@@ -119,13 +119,18 @@ http_status_e flecs_api_t::process(tcp_socket_t& conn_socket)
         err = static_cast<http_status_e>(std::invoke(endpoint.value(), args, json_response));
     }
 
+    decltype(auto) body = json_response.toStyledString();
     std::stringstream ss;
     // HTTP header
     ss << http_version_1_1 << " " << http_response_header_map.at(err).second;
+    // Content-Type
+    ss << "Content-Type: application/json\r\n";
+    // Content-Length
+    ss << "Content-Length: " << body.length() << "\r\n";
     // Separator
     ss << "\r\n";
     // Body
-    ss << json_response.toStyledString();
+    ss << body;
 
     conn_socket.send(ss.str().c_str(), ss.str().length(), 0);
 
