@@ -15,6 +15,12 @@
 #ifndef ZENOH_C_H_DEFINED_
 #define ZENOH_C_H_DEFINED_
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 #include "zenoh/net.h"
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
 #endif /* ZENOH_C_H_DEFINED_ */
