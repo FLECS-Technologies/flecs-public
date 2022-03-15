@@ -50,6 +50,7 @@ target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.api
     FLECS.daemon.api.endpoints
     FLECS.daemon.modules.app_manager
+    FLECS.daemon.modules.data_layer
     FLECS.daemon.modules.factory
     FLECS.daemon.modules.help
     FLECS.daemon.modules.marketplace

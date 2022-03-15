@@ -15,14 +15,33 @@
 #ifndef C747A5B8_3554_4BE3_B178_63AA7227B37D
 #define C747A5B8_3554_4BE3_B178_63AA7227B37D
 
+#include <memory>
+
 #include "module_base/module.h"
 
 namespace FLECS {
 
+namespace Private {
+class module_data_layer_private_t;
+} // namespace Private
+
 class module_data_layer_t : public module_t
 {
 public:
+    module_data_layer_t();
+
+    ~module_data_layer_t() override;
+
+    http_status_e browse(const Json::Value& args, Json::Value& response);
+#if 0
+    /* add persistent in-memory storage for path */
+    int add_mem_storage(const std::string_view& path);
+
+    /* remove persistent in-memory storage for path */
+    int remove_mem_storage(const std::string_view& path);
+#endif // 0
 private:
+    std::unique_ptr<Private::module_data_layer_private_t> _impl;
 };
 
 } // namespace FLECS

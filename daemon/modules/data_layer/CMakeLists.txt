@@ -14,5 +14,7 @@
 
 flecs_add_module(
     MODULE_NAME data_layer
-    LIBS_PRIVATE FLECS.mqtt.shared
+    ADDITIONAL_SOURCES src/private/data_layer_private.cpp
+    ADDITIONAL_HEADERS private/data_layer_private.h
+    LIBS_PRIVATE FLECS.flunder.static
 )

@@ -12,33 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "data_layer.h"
+#ifndef ED9FB390_4279_4DD1_9325_B7D3F8F86D98
+#define ED9FB390_4279_4DD1_9325_B7D3F8F86D98
 
-#include "factory/factory.h"
-#include "private/data_layer_private.h"
+#include "data_layer/data_layer.h"
+#include "flunder/flunder_client.h"
 
 namespace FLECS {
+namespace Private {
 
-namespace {
-register_module_t<module_data_layer_t> _reg("data-layer");
-}
-
-module_data_layer_t::module_data_layer_t()
-    : _impl{new Private::module_data_layer_private_t{}}
+class module_data_layer_private_t
 {
-    using namespace std::placeholders;
+public:
+    module_data_layer_private_t();
+    ~module_data_layer_private_t();
 
-    api::register_endpoint("/data-layer/browse", std::bind(&module_data_layer_t::browse, this, _1, _2));
-}
+    http_status_e do_browse(const std::string& path, Json::Value& response);
 
-module_data_layer_t::~module_data_layer_t()
-{}
+private:
+    flunder_client_t _client;
+};
 
-http_status_e module_data_layer_t::browse(const Json::Value& args, Json::Value& response)
-{
-    OPTIONAL_JSON_VALUE(args, path);
-
-    return _impl->do_browse(path, response);
-}
-
+} // namespace Private
 } // namespace FLECS
+
+#endif // ED9FB390_4279_4DD1_9325_B7D3F8F86D98
