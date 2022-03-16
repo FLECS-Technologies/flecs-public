@@ -103,6 +103,7 @@ app_t::app_t(const std::string& manifest)
                 add_volume(volume[0], volume[1]);
             }
         }
+        add_network("flecs");
         auto networks = YAML::Node{};
         OPTIONAL_YAML_VALUE(yaml, networks, networks);
         for (const auto& i : networks)
