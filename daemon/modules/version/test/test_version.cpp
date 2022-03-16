@@ -15,11 +15,17 @@
 #include "gtest/gtest.h"
 #include "version/version.h"
 
+class module_version_test_t : public FLECS::module_version_t
+{
+public:
+    module_version_test_t() = default;
+};
+
 TEST(module_version, print_version)
 {
     const auto out_expected = std::string{"{\n\t\"core\" : \""} + FLECS_VERSION + "-" + FLECS_GIT_SHA + "\"\n}\n";
 
-    auto mod = FLECS::module_version_t{};
+    auto mod = module_version_test_t{};
     auto response = Json::Value{};
     const auto res = mod.print_version(Json::Value{}, response);
 
