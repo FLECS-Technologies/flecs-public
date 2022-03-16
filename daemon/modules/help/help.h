@@ -25,6 +25,9 @@ namespace FLECS {
 class module_help_t : public module_t
 {
 public:
+protected:
+    friend class module_factory_t;
+
     module_help_t();
 
 private:

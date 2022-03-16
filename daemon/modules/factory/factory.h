@@ -23,14 +23,6 @@
 
 namespace FLECS {
 
-namespace {
-template <typename T>
-auto make_module()
-{
-    return std::shared_ptr<module_t>{std::make_shared<T>()};
-}
-} // namespace
-
 class module_factory_t
 {
 public:
@@ -57,7 +49,7 @@ private:
 template <typename T>
 void module_factory_t::register_module(const char* module_name)
 {
-    _module_table.try_emplace(module_name, make_module<T>());
+    _module_table.try_emplace(module_name, new T{});
 }
 
 template <typename T>

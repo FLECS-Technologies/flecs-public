@@ -120,8 +120,4 @@ http_status_e module_app_manager_t::list_instances(const Json::Value& args, Json
     return _impl->do_list_instances(app_name, version, response);
 }
 
-namespace {
-module_app_manager_t _mod_app_manager;
-}
-
 } // namespace FLECS

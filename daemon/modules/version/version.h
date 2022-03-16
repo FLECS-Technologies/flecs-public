@@ -22,9 +22,12 @@ namespace FLECS {
 class module_version_t : public module_t
 {
 public:
-    module_version_t();
-
     http_status_e print_version(const Json::Value& args, Json::Value& response);
+
+protected:
+    friend class module_factory_t;
+
+    module_version_t();
 };
 
 } // namespace FLECS
