@@ -18,6 +18,7 @@
 
 #include <filesystem>
 #include <sstream>
+#include <thread>
 
 #include "app/app.h"
 #include "util/process/process.h"
@@ -66,6 +67,16 @@ void module_app_manager_private_t::do_init()
             do_start_instance(instance.id, "", "", _unused, true);
         }
     }
+
+    auto hosts_thread = std::thread([] {
+        pthread_setname_np(pthread_self(), "flecs-update-hosts");
+        auto hosts_process = process_t{};
+        hosts_process.arg("-c");
+        hosts_process.arg("flecs-update-hosts.sh");
+        hosts_process.spawnp("sh");
+        hosts_process.wait(false, false);
+    });
+    hosts_thread.detach();
 }
 
 bool module_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version)
