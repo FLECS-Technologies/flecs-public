@@ -22,9 +22,11 @@ namespace FLECS {
 class module_marketplace_t : public module_t
 {
 public:
+private:
+    friend class module_factory_t;
+
     module_marketplace_t();
 
-private:
     http_status_e mp_login(const Json::Value& args, Json::Value& response);
     http_status_e mp_logout(const Json::Value& args, Json::Value& response);
 };

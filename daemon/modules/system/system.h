@@ -22,9 +22,11 @@ namespace FLECS {
 class module_system_t : public module_t
 {
 public:
+private:
+    friend class module_factory_t;
+
     module_system_t();
 
-private:
     http_status_e ping(const Json::Value& args, Json::Value& response);
 };
 

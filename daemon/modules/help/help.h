@@ -25,9 +25,11 @@ namespace FLECS {
 class module_help_t : public module_t
 {
 public:
+private:
+    friend class module_factory_t;
+
     module_help_t();
 
-private:
     http_status_e print_help(const Json::Value& args);
 
     std::string _topic;

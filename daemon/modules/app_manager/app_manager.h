@@ -28,11 +28,13 @@ class module_app_manager_private_t;
 class module_app_manager_t : public module_t
 {
 public:
-    module_app_manager_t();
-
     ~module_app_manager_t() override;
 
 private:
+    friend class module_factory_t;
+
+    module_app_manager_t();
+
     void do_init() override;
 
     /*! Endpoints - parse arguments and forward to implementation */

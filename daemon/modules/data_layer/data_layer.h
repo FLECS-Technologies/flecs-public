@@ -28,8 +28,6 @@ class module_data_layer_private_t;
 class module_data_layer_t : public module_t
 {
 public:
-    module_data_layer_t();
-
     ~module_data_layer_t() override;
 
     http_status_e browse(const Json::Value& args, Json::Value& response);
@@ -41,6 +39,10 @@ public:
     int remove_mem_storage(const std::string_view& path);
 #endif // 0
 private:
+    friend class module_factory_t;
+
+    module_data_layer_t();
+
     std::unique_ptr<Private::module_data_layer_private_t> _impl;
 };
 
