@@ -33,7 +33,7 @@ http_status_e module_data_layer_private_t::do_browse(const std::string& path, Js
 
     if (std::get<0>(res) != 0)
     {
-        response["additionalInfo"] = "Could not get data from from client";
+        response["additionalInfo"] = "Could not get data from client";
         return http_status_e::InternalServerError;
     }
 
