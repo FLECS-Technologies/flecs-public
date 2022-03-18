@@ -27,6 +27,8 @@ set(CMAKE_MODULE_PATH
 
 if (FLECS_BUILD_TESTS)
 include (CTest)
+add_compile_options(-fprofile-arcs -ftest-coverage)
+add_link_options(-lgcov --coverage)
 endif()
 
 # rpath may contain absolute paths otherwise
