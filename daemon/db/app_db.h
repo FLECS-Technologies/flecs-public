@@ -101,6 +101,8 @@ public:
 
     int create_app_table();
     int create_instances_table();
+    int set_user_version();
+    int get_user_version();
 
     /*! @brief Inserts an app into the app database
      *
@@ -180,6 +182,7 @@ private:
         std::map<instances_table_primary_t, instances_table_data_t, instances_table_primary_comparator_t>;
     apps_table_t _apps;
     instances_table_t _instances;
+    int _user_version;
     std::string _path;
 };
 
