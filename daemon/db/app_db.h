@@ -99,10 +99,7 @@ public:
 
     ~app_db_t() override;
 
-    int create_app_table();
-    int create_instances_table();
-    int set_user_version();
-    int get_user_version();
+    int user_version() const noexcept;
 
     /*! @brief Inserts an app into the app database
      *
@@ -174,8 +171,15 @@ public:
 
     const char* errmsg() const noexcept { return static_cast<const sqlite3_db_t*>(this)->errmsg(); }
 
+    static constexpr int CURRENT_USER_VERSION = 1;
+
 private:
     void cache_db();
+
+    int create_app_table();
+    int create_instances_table();
+    int set_user_version();
+    int query_user_version();
 
     using apps_table_t = std::map<apps_table_primary_t, apps_table_data_t, apps_table_primary_comparator_t>;
     using instances_table_t =

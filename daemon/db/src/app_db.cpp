@@ -176,12 +176,18 @@ int app_db_t::create_instances_table()
         sqlite3_primary_t{"id"});
 }
 
-int app_db_t::set_user_version()
+int app_db_t::user_version() const noexcept
 {
-    return exec("PRAGMA user_version = 1;", nullptr, nullptr);
+    return _user_version;
 }
 
-int app_db_t::get_user_version()
+int app_db_t::set_user_version()
+{
+    const auto stmt = std::string{"PRAGMA user_version = "} + std::to_string(CURRENT_USER_VERSION) + std::string{";"};
+    return exec(stmt.c_str(), nullptr, nullptr);
+}
+
+int app_db_t::query_user_version()
 {
     return exec("PRAGMA user_version;", user_version_callback, &_user_version);
 }
@@ -316,7 +322,7 @@ void app_db_t::cache_db()
         _instances.emplace(static_cast<instances_table_primary_t>(instance), instance);
     }
 
-    get_user_version();
+    query_user_version();
 }
 
 int app_db_t::persist()

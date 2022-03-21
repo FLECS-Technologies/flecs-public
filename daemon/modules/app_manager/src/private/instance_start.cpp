@@ -46,10 +46,14 @@ http_status_e module_app_manager_private_t::do_start_instance(
     // Previous beta versions kept the actual status in the database, which now changed to determining it from
     // Docker directly. Therefore, only the desired status is updated while the actual status remains in its original
     // state (i.e. "CREATED" for runnable instances)
+    /** @todo remove for release */
     auto instance = _app_db.query_instance({id}).value();
-    instance.status = instance_status_e::CREATED;
-    _app_db.insert_instance(instance);
-    _app_db.persist();
+    if (instance.status == instance_status_e::RUNNING)
+    {
+        instance.status = instance_status_e::CREATED;
+        _app_db.insert_instance(instance);
+        _app_db.persist();
+    }
 
     // Step 2: Do some cross-checks if app_name and version are provided
     auto xcheck = xcheck_app_instance(instance, app_name, version);

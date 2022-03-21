@@ -49,6 +49,7 @@ void module_app_manager_private_t::do_init()
     // Prune all entries of apps that completely failed to install. This usually means that an app with this combination
     // of name and version does not exist anywhere in the universe, and it should never have been inserted into the db
     // in the first place. As this happened nonetheless in earlier versions, the mess is cleaned up here
+    /** @todo remove for release */
     for (decltype(auto) app : _app_db.all_apps())
     {
         if (app.status == app_status_e::NOT_INSTALLED && app.desired == app_status_e::INSTALLED)
