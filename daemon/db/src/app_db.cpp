@@ -107,6 +107,24 @@ static int select_instances_callback(void* data, int argc, char** argv, char* co
     return 0;
 }
 
+static int user_version_callback(void* data, int argc, char** argv, char* col_name[])
+{
+    auto version = reinterpret_cast<int*>(data);
+    for (auto i = 0; i < argc; ++i)
+    {
+        if (argv[i] == nullptr)
+        {
+            continue;
+        }
+
+        if (strcmp(col_name[i], "user_version") == 0)
+        {
+            *version = std::stoi(argv[i]);
+        }
+    }
+    return 0;
+}
+
 app_db_t::app_db_t()
     : app_db_t{app_db_path}
 {}
@@ -156,6 +174,16 @@ int app_db_t::create_instances_table()
         sqlite3_column_t{"description", SQLITE3_TEXT, 4095},
         sqlite3_column_t{"flags", SQLITE_INTEGER},
         sqlite3_primary_t{"id"});
+}
+
+int app_db_t::set_user_version()
+{
+    return exec("PRAGMA user_version = 1;", nullptr, nullptr);
+}
+
+int app_db_t::get_user_version()
+{
+    return exec("PRAGMA user_version;", user_version_callback, &_user_version);
 }
 
 void app_db_t::insert_app(const apps_table_entry_t& entry)
@@ -287,6 +315,8 @@ void app_db_t::cache_db()
     {
         _instances.emplace(static_cast<instances_table_primary_t>(instance), instance);
     }
+
+    get_user_version();
 }
 
 int app_db_t::persist()
@@ -302,6 +332,7 @@ int app_db_t::persist()
     open(_path.c_str(), SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX, nullptr);
     create_app_table();
     create_instances_table();
+    set_user_version();
     auto res = SQLITE_OK;
 
     for (decltype(auto) app : _apps)
