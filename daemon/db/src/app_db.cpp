@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <string_view>
 
 namespace FLECS {
 
@@ -36,27 +37,28 @@ static int select_apps_callback(void* data, int argc, char** argv, char* col_nam
             continue;
         }
 
-        if (strcmp(col_name[i], "app") == 0)
+        auto col = std::string_view(col_name[i]);
+        if (col == "app")
         {
             entry.app = argv[i];
         }
-        else if (strcmp(col_name[i], "version") == 0)
+        else if (col == "version")
         {
             entry.version = argv[i];
         }
-        else if (strcmp(col_name[i], "status") == 0)
+        else if (col == "status")
         {
             entry.status = static_cast<app_status_e>(*argv[i]);
         }
-        else if (strcmp(col_name[i], "desired") == 0)
+        else if (col == "desired")
         {
             entry.desired = static_cast<app_status_e>(*argv[i]);
         }
-        else if (strcmp(col_name[i], "category") == 0)
+        else if (col == "category")
         {
             entry.category = argv[i];
         }
-        else if (strcmp(col_name[i], "installed_size") == 0)
+        else if (col == "installed_size")
         {
             entry.installed_size = atoi(argv[i]);
         }
@@ -75,31 +77,36 @@ static int select_instances_callback(void* data, int argc, char** argv, char* co
             continue;
         }
 
-        if (strcmp(col_name[i], "id") == 0)
+        auto col = std::string_view{col_name[i]};
+        if (col == "id")
         {
             entry.id = argv[i];
         }
-        else if (strcmp(col_name[i], "app") == 0)
+        else if (col == "app")
         {
             entry.app = argv[i];
         }
-        else if (strcmp(col_name[i], "version") == 0)
+        else if (col == "version")
         {
             entry.version = argv[i];
         }
-        else if (strcmp(col_name[i], "status") == 0)
+        else if (col == "status")
         {
             entry.status = static_cast<instance_status_e>(*argv[i]);
         }
-        else if (strcmp(col_name[i], "desired") == 0)
+        else if (col == "desired")
         {
             entry.desired = static_cast<instance_status_e>(*argv[i]);
         }
-        else if (strcmp(col_name[i], "description") == 0)
+        else if (col == "description")
         {
             entry.description = argv[i];
         }
-        else if (strcmp(col_name[i], "flags") == 0)
+        else if (col == "ip_addr")
+        {
+            entry.ip = argv[i];
+        }
+        else if (col == "flags")
         {
             entry.flags = atoi(argv[i]);
         }
@@ -172,6 +179,7 @@ int app_db_t::create_instances_table()
         sqlite3_column_t{"status", SQLITE3_TEXT, 1},
         sqlite3_column_t{"desired", SQLITE3_TEXT, 1},
         sqlite3_column_t{"description", SQLITE3_TEXT, 4095},
+        sqlite3_column_t{"ip_addr", SQLITE3_TEXT, 255},
         sqlite3_column_t{"flags", SQLITE_INTEGER},
         sqlite3_primary_t{"id"});
 }
@@ -367,6 +375,7 @@ int app_db_t::persist()
             instance.second.status,
             instance.second.desired,
             instance.second.description,
+            instance.second.ip,
             instance.second.flags);
         if (res != SQLITE_OK)
         {
