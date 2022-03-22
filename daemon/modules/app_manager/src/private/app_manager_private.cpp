@@ -183,6 +183,7 @@ int module_app_manager_private_t::xcheck_app_instance(
     return 0;
 }
 
+/** @todo remove for release */
 int module_app_manager_private_t::migrate_apps_and_instances()
 {
     auto res = 0;
@@ -266,6 +267,7 @@ int module_app_manager_private_t::migrate_apps_and_instances()
                     }
                     _app_db.insert_instance(instance);
                 }
+                _app_db.persist();
             }
         }
     }
