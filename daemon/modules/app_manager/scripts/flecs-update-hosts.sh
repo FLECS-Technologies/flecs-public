@@ -22,8 +22,15 @@ fi
 while read line; do
 	sed -i '/### BEGIN FLECS ###/,/### END FLECS ###/d' /etc/hosts
 	echo "### BEGIN FLECS ###" >>/etc/hosts
-	docker network inspect -f '{{range.Containers}}{{.IPv4Address}} {{.Name}}#{{end}}' flecs |\
-		sed -E 's,/[0-9]{2},,g' |\
-		sed 's,#,\n,g' >>/etc/hosts
+	ENTRIES=`docker network inspect -f '{{range.Containers}}{{.IPv4Address}}#{{println .Name}}{{end}}' flecs | sed -E 's,/[0-9]{2},,g'`
+	for i in ${ENTRIES}; do
+		IP=`echo ${i} | cut -f1 -d '#'`
+		CONTAINER=`echo ${i} | cut -f2 -d '#'`
+		ALIASES=`docker inspect -f '{{.NetworkSettings.Networks.flecs.Aliases}}' ${CONTAINER} | grep -oP '(?<=\[).*(?=\])'`;
+		for j in ${ALIASES}; do
+			echo "${IP} ${j}" >>/etc/hosts
+		done
+		echo "${IP} ${CONTAINER}" >>/etc/hosts
+	done
 	echo "### END FLECS ###" >>/etc/hosts
 done
