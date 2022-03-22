@@ -37,13 +37,16 @@ public:
     using envs_t = std::vector<mapped_env_var_t>;
     using args_t = std::vector<std::string>;
 
-    app_t() noexcept = default;
+    app_t() noexcept;
     explicit app_t(const std::string& manifest);
 
     auto yaml_loaded() const noexcept { return _yaml_loaded; }
 
     auto& name() const noexcept { return _name; }
     void name(std::string name) { _name = name; }
+
+    auto& title() const noexcept { return _title; }
+    void title(std::string title) { _title = title; }
 
     auto& version() const noexcept { return _version; }
     void version(std::string version) { _version = version; }
@@ -77,6 +80,9 @@ public:
         return _bind_mounts.try_emplace(local, container);
     }
     auto remove_bind_mount(const volumes_t::key_type& local) { return _bind_mounts.erase(local); }
+
+    auto& hostname() const noexcept { return _hostname; }
+    void hostname(std::string hostname) { _hostname = hostname; }
 
     auto& networks() const noexcept { return _networks; }
     auto add_network(networks_t::value_type network) { return _networks.emplace(network); }
@@ -114,6 +120,7 @@ private:
     envs_t _env;
     volumes_t _volumes;
     volumes_t _bind_mounts;
+    std::string _hostname;
     networks_t _networks;
     ports_t _ports;
     args_t _args;

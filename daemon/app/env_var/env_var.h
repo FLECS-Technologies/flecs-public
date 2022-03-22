@@ -43,6 +43,11 @@ inline bool operator<(const env_var_t& lhs, const env_var_t& rhs)
     return lhs.var() < rhs.var();
 }
 
+inline bool operator==(const env_var_t& lhs, const env_var_t& rhs)
+{
+    return lhs.var() == rhs.var();
+}
+
 class mapped_env_var_t
 {
 public:
@@ -71,6 +76,11 @@ private:
 inline bool operator<(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs)
 {
     return lhs.var() < rhs.var();
+}
+
+inline bool operator==(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs)
+{
+    return lhs.var() == rhs.var() && lhs.value() == rhs.value();
 }
 
 inline std::string to_string(const mapped_env_var_t& mapped_env_var)
