@@ -163,6 +163,12 @@ http_status_e module_app_manager_private_t::do_create_instance(
     docker_process.arg("--name");
     docker_process.arg("flecs-" + hex_id);
 
+    if (!app.hostname().empty())
+    {
+        docker_process.arg("--hostname");
+        docker_process.arg(app.hostname());
+    }
+
     // assign static ip
     const auto ip = generate_instance_ip();
     docker_process.arg("--ip");
