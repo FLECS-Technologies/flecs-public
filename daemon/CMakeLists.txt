@@ -92,3 +92,13 @@ install(
     TARGETS FLECS.cli RUNTIME
     DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
 )
+
+# install hosts script for packaging
+install(
+    PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
+    DESTINATION ${PACKAGE_DIR}/debian/usr/bin
+)
+install(
+    PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
+    DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
+)
