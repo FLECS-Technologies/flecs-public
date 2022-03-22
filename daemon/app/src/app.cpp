@@ -58,7 +58,50 @@ namespace FLECS {
         }                                        \
     } while (false)
 
+app_t::app_t() noexcept
+    : _yaml_loaded{}
+    , _name{}
+    , _title{}
+    , _version{}
+    , _description{}
+    , _author{}
+    , _category{}
+    , _image{}
+    , _env{}
+    , _volumes{}
+    , _bind_mounts{}
+    , _hostname{}
+    , _networks{}
+    , _ports{}
+    , _args{}
+    , _interactive{}
+    , _installed_size{}
+    , _multi_instance{}
+    , _status{}
+    , _desired{}
+{}
+
 app_t::app_t(const std::string& manifest)
+    : _yaml_loaded{}
+    , _name{}
+    , _title{}
+    , _version{}
+    , _description{}
+    , _author{}
+    , _category{}
+    , _image{}
+    , _env{}
+    , _volumes{}
+    , _bind_mounts{}
+    , _hostname{}
+    , _networks{}
+    , _ports{}
+    , _args{}
+    , _interactive{}
+    , _installed_size{}
+    , _multi_instance{}
+    , _status{}
+    , _desired{}
 {
     try
     {
@@ -84,7 +127,7 @@ app_t::app_t(const std::string& manifest)
                     stderr,
                     "Could not parse manifest: syntax/schema error in %s\n",
                     env.as<std::string>().c_str());
-                return;
+                throw std::runtime_error{env.as<std::string>()};
             }
             add_env(env_var);
         }
@@ -103,6 +146,7 @@ app_t::app_t(const std::string& manifest)
                 add_volume(volume[0], volume[1]);
             }
         }
+        OPTIONAL_TYPED_YAML_VALUE(yaml, hostname, _hostname);
         add_network("flecs");
         auto networks = YAML::Node{};
         OPTIONAL_YAML_VALUE(yaml, networks, networks);
@@ -122,7 +166,7 @@ app_t::app_t(const std::string& manifest)
                     stderr,
                     "Could not parse manifest: syntax/schema error in %s\n",
                     port_range.as<std::string>().c_str());
-                return;
+                throw std::runtime_error{port_range.as<std::string>()};
             }
             add_port(mapped_range);
         }
@@ -134,11 +178,18 @@ app_t::app_t(const std::string& manifest)
             add_arg(arg.as<std::string>());
         }
         OPTIONAL_TYPED_YAML_VALUE(yaml, interactive, _interactive);
+
+        if (!_hostname.empty() && _multi_instance)
+        {
+            std::fprintf(stderr, "Could not load manifest: hostname is set alongside multi-instance\n");
+            throw std::runtime_error{"hostname is set alongside multi-instance"};
+        }
         _yaml_loaded = true;
     }
-    catch (const YAML::Exception& ex)
+    catch (const std::exception& ex)
     {
         std::fprintf(stderr, "Could not open manifest %s: Invalid YAML (%s)\n", manifest.c_str(), ex.what());
+        *this = app_t{};
     }
 }
 
