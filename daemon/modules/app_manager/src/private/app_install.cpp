@@ -98,9 +98,9 @@ http_status_e module_app_manager_private_t::do_install(const std::string& manife
         response["additionalInfo"] = "Could not open app manifest " + manifest;
         return http_status_e::InternalServerError;
     }
+    response["additionalInfo"] = std::string{};
     response["app"] = app.name();
     response["version"] = app.version();
-    response["additionalInfo"] = std::string{};
 
     // Step 2: Add database entry for app. At this point the existence of the requested app is guaranteed as its
     // manifest was transferred to the local storage, so it is safe to add it to the local app database
