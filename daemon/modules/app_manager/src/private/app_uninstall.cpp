@@ -25,9 +25,9 @@ namespace Private {
 http_status_e module_app_manager_private_t::do_uninstall(
     const std::string& app_name, const std::string& version, Json::Value& response)
 {
+    response["additionalInfo"] = std::string{};
     response["app"] = app_name;
     response["version"] = version;
-    response["additionalInfo"] = std::string{};
 
     // Step 1: Ensure app is actually installed
     if (!is_app_installed(app_name, version))
@@ -81,8 +81,12 @@ http_status_e module_app_manager_private_t::do_uninstall(
     const auto res = std::filesystem::remove(path, ec);
     if (!res)
     {
-        response["additionalInfo"] = "Could not delete manifest " + path;
-        return http_status_e::InternalServerError;
+        std::fprintf(
+            stderr,
+            "Warning: Could not remove manifest %s of app %s (%s)\n",
+            path.c_str(),
+            app_name.c_str(),
+            version.c_str());
     }
 
     return http_status_e::Ok;

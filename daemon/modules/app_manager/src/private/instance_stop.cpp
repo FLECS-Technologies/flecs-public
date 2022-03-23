@@ -24,6 +24,12 @@ http_status_e module_app_manager_private_t::do_stop_instance(
     const std::string& id, const std::string& app_name, const std::string& version, Json::Value& response,
     bool internal)
 {
+    // Provisional response based on request
+    response["additionalInfo"] = std::string{};
+    response["app"] = app_name;
+    response["instanceId"] = id;
+    response["version"] = version;
+
     // Step 1: Verify instance does actually exist
     if (!_app_db.has_instance({id}))
     {
@@ -43,6 +49,10 @@ http_status_e module_app_manager_private_t::do_stop_instance(
         _app_db.insert_instance(instance);
         _app_db.persist();
     }
+
+    // correct response based on actual instance
+    response["app"] = instance.app;
+    response["version"] = instance.version;
 
     // Step 2: Do some cross-checks if app_name and version are provided
     auto xcheck = xcheck_app_instance(instance, app_name, version);
