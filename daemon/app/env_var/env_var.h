@@ -80,7 +80,12 @@ inline bool operator<(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs)
 
 inline bool operator==(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs)
 {
-    return lhs.var() == rhs.var() && lhs.value() == rhs.value();
+    return lhs.var() == rhs.var();
+}
+
+inline bool operator!=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs)
+{
+    return !(lhs == rhs);
 }
 
 inline std::string to_string(const mapped_env_var_t& mapped_env_var)

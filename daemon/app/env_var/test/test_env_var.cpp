@@ -44,9 +44,15 @@ TEST(env_var, invalid)
 TEST(env_var, mapped_valid)
 {
     auto mapped_env_var1 = FLECS::mapped_env_var_t(std::string{"VALID_ENV_VAR"}, "VALUE");
+    auto mapped_env_var2 = FLECS::mapped_env_var_t(std::string{"VALID_ENV_VAR"}, "VALUE");
+    auto mapped_env_var3 = FLECS::mapped_env_var_t(std::string{"VALID_ENV_VAR"}, "ANOTHER_VALUE");
+    auto another_mapped_env_var1 = FLECS::mapped_env_var_t(std::string{"ANOTHER_VALID_ENV_VAR"}, "VALUE");
 
     ASSERT_TRUE(mapped_env_var1.is_valid());
     ASSERT_EQ(FLECS::stringify(mapped_env_var1), "VALID_ENV_VAR=VALUE");
+    ASSERT_EQ(mapped_env_var1, mapped_env_var2);
+    ASSERT_EQ(mapped_env_var1, mapped_env_var3);
+    ASSERT_NE(mapped_env_var1, another_mapped_env_var1);
 }
 
 TEST(env_var, mapped_invalid)
