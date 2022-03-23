@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.13)
 project(FLECS)
 
 # set version
-set(VERSION 1.0.0-beta)
+set(VERSION 1.0.0-beta.1)
 add_definitions(-DFLECS_VERSION="${VERSION}")
 
 set(CMAKE_MODULE_PATH
