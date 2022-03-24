@@ -29,12 +29,10 @@ include(package)
 # build executable flecsd
 set(SRC_BINARY
     src/daemon.cpp
-    src/signal_handler.cpp
 )
 
 set(HEADER_BINARY
     daemon.h
-    signal_handler.h
 )
 
 add_executable(FLECS.daemon ${SRC_BINARY} ${HEADER_BINARY})
@@ -60,6 +58,7 @@ target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.modules.usage
     FLECS.daemon.modules.version
     FLECS.util.process
+    FLECS.util.signal_handler
     FLECS.util.sqlite3_ext
     FLECS.external.yaml-cpp
 )

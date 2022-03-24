@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(datetime)
-add_subdirectory(llhttp_ext)
-add_subdirectory(process)
-add_subdirectory(signal_handler)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
+project(FLECS.util.signal_handler)
+
+add_library(FLECS.util.signal_handler OBJECT
+    src/signal_handler.cpp
+    signal_handler.h
+)
+
+target_include_directories(FLECS.util.signal_handler PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
