@@ -62,9 +62,13 @@ public:
      */
     FLECS_EXPORT flunder_client_t(flunder_client_t&& other);
 
-    /*! @brief assignment operator (deleted)
+    /*! @brief copy-assignment operator (deleted)
      */
-    FLECS_EXPORT flunder_client_t& operator=(flunder_client_t) = delete;
+    FLECS_EXPORT flunder_client_t& operator=(const flunder_client_t&) = delete;
+
+    /*! @brief move-assignment operator
+     */
+    FLECS_EXPORT flunder_client_t& operator=(flunder_client_t&& other);
 
     /*! @brief Destructor
      */
