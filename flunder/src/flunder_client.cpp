@@ -34,7 +34,7 @@ int flunder_client_t::connect()
     return connect(FLUNDER_HOST, FLUNDER_PORT);
 }
 
-int flunder_client_t::connect(const std::string_view& host, int port)
+int flunder_client_t::connect(std::string_view host, int port)
 {
     return _impl->connect(host, port);
 }
@@ -49,49 +49,55 @@ int flunder_client_t::disconnect()
     return _impl->disconnect();
 }
 
-int flunder_client_t::publish(const std::string_view& path, const char* value)
+int flunder_client_t::publish(std::string_view path, const char* value)
 {
     return publish_string(path, std::string{value});
 }
 
-int flunder_client_t::publish(const std::string_view& path, const void* data, size_t len)
+int flunder_client_t::publish(std::string_view path, const void* data, size_t len)
 {
     return _impl->publish(path, "application/octet-stream", std::string{(const char*)data, len});
 }
 
-int flunder_client_t::publish_int(const std::string_view& path, const std::string& value)
+int flunder_client_t::publish_int(std::string_view path, const std::string& value)
 {
     return _impl->publish(path, "application/integer", value);
 }
 
-int flunder_client_t::publish_float(const std::string_view& path, const std::string& value)
+int flunder_client_t::publish_float(std::string_view path, const std::string& value)
 {
     return _impl->publish(path, "application/float", value);
 }
 
-int flunder_client_t::publish_string(const std::string_view& path, const std::string& value)
+int flunder_client_t::publish_string(std::string_view path, const std::string& value)
 {
     return _impl->publish(path, "text/plain", value);
 }
 
-// int flunder_client_t::subscribe(const std::string_view& path, const subscribe_callback_t& cbk)
+// int flunder_client_t::subscribe(std::string_view path, const subscribe_callback_t& cbk)
 // {
 //     return _impl->subscribe(path, cbk);
 // }
 
-// int flunder_client_t::unsubscribe(const std::string_view& path)
+// int flunder_client_t::unsubscribe(std::string_view path)
 // {
 //     return _impl->unsubscribe(path);
 // }
 
-auto flunder_client_t::get(const std::string_view& path) -> std::tuple<int, std::vector<flunder_variable_t>>
+auto flunder_client_t::get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>
 {
     return _impl->get(path);
 }
 
-int flunder_client_t::erase(const std::string_view& path)
+int flunder_client_t::erase(std::string_view path)
 {
     return _impl->erase(path);
+}
+
+void swap(flunder_client_t& lhs, flunder_client_t& rhs) noexcept
+{
+    using std::swap;
+    swap(lhs._impl, rhs._impl);
 }
 
 } // namespace FLECS

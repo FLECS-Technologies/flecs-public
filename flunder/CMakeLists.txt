@@ -43,11 +43,12 @@ target_link_libraries(FLECS.flunder PRIVATE
     FLECS.external.jsoncpp
     FLECS.external.zenoh-c
 )
-#
-#target_link_libraries(FLECS.flunder.shared PRIVATE
-#    -Wl,--whole-archive
-#    FLECS.external.mosquitto
-#    -Wl,--no-whole-archive
-#)
-#
+
+target_link_libraries(FLECS.flunder.shared PRIVATE
+    -Wl,--whole-archive
+    FLECS.external.cpr
+    FLECS.external.jsoncpp
+    -Wl,--no-whole-archive
+)
+
 #add_subdirectory(pybind)
