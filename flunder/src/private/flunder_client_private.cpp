@@ -31,14 +31,16 @@ flunder_client_private_t::flunder_client_private_t()
 flunder_client_private_t::~flunder_client_private_t()
 {}
 
-int flunder_client_private_t::connect(const std::string_view& /*host*/, int /*port*/)
+int flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/)
 {
-    return 0;
+    const auto url = std::string{"http://flecs-flunder:8000"};
+    const auto res = cpr::Get(cpr::Url{url});
+    return (res.status_code == 200) ? 0 : -1;
 }
 
 int flunder_client_private_t::reconnect()
 {
-    return 0;
+    return connect("", 0);
 }
 
 int flunder_client_private_t::disconnect()
@@ -46,29 +48,29 @@ int flunder_client_private_t::disconnect()
     return 0;
 }
 
-int flunder_client_private_t::publish(const std::string_view& path, const std::string& type, const std::string& value)
+int flunder_client_private_t::publish(std::string_view path, const std::string& type, const std::string& value)
 {
-    const auto url = std::string{"http://localhost:8000"}.append(path);
+    const auto url = std::string{"http://flecs-flunder:8000"}.append(path);
     const auto res = cpr::Put(cpr::Url{url}, cpr::Header{{"content-type", type}}, cpr::Body{value});
     return (res.status_code == 200) ? 0 : -1;
 }
 
 // int flunder_client_private_t::subscribe(
-//     const std::string_view& /*path*/, const flunder_client_t::subscribe_callback_t& /*cbk*/)
+//     std::string_view /*path*/, const flunder_client_t::subscribe_callback_t& /*cbk*/)
 // {
 //     return -1;
 // }
 
-// int flunder_client_private_t::unsubscribe(const std::string_view& /*path*/)
+// int flunder_client_private_t::unsubscribe(std::string_view /*path*/)
 // {
 //     return -1;
 // }
 
-auto flunder_client_private_t::get(const std::string_view& path) -> std::tuple<int, std::vector<flunder_variable_t>>
+auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>
 {
     auto vars = std::vector<flunder_variable_t>{};
 
-    const auto url = std::string{"http://localhost:8000"}.append(path);
+    const auto url = std::string{"http://flecs-flunder:8000"}.append(path);
     const auto res = cpr::Get(cpr::Url{url});
 
     if (res.status_code != static_cast<long>(http_status_e::Ok))
@@ -95,9 +97,9 @@ auto flunder_client_private_t::get(const std::string_view& path) -> std::tuple<i
     return {0, vars};
 }
 
-int flunder_client_private_t::erase(const std::string_view& path)
+int flunder_client_private_t::erase(std::string_view path)
 {
-    const auto url = std::string{"http://localhost:8000"}.append(path);
+    const auto url = std::string{"http://flecs-flunder:8000"}.append(path);
     const auto res = cpr::Delete(cpr::Url{url});
     return (res.status_code == 200) ? 0 : -1;
 }

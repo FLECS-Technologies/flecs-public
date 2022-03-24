@@ -83,7 +83,7 @@ int mqtt_client_t::receive_callback_clear()
     return _impl->receive_callback_clear();
 }
 
-void swap(mqtt_client_t& lhs, mqtt_client_t& rhs)
+void swap(mqtt_client_t& lhs, mqtt_client_t& rhs) noexcept
 {
     using std::swap;
     swap(lhs._impl, rhs._impl);

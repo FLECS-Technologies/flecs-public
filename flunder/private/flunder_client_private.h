@@ -33,19 +33,19 @@ public:
     flunder_client_private_t();
     ~flunder_client_private_t();
 
-    FLECS_EXPORT int connect(const std::string_view& host, int port);
+    FLECS_EXPORT int connect(std::string_view host, int port);
 
     FLECS_EXPORT int reconnect();
 
     FLECS_EXPORT int disconnect();
 
-    FLECS_EXPORT int publish(const std::string_view& path, const std::string& type, const std::string& value);
+    FLECS_EXPORT int publish(std::string_view path, const std::string& type, const std::string& value);
 
-    // FLECS_EXPORT int subscribe(const std::string_view& path, const flunder_client_t::subscribe_callback_t& cbk);
-    // FLECS_EXPORT int unsubscribe(const std::string_view& path);
+    // FLECS_EXPORT int subscribe(std::string_view path, const flunder_client_t::subscribe_callback_t& cbk);
+    // FLECS_EXPORT int unsubscribe(std::string_view path);
 
-    FLECS_EXPORT auto get(const std::string_view& path) -> std::tuple<int, std::vector<flunder_variable_t>>;
-    FLECS_EXPORT int erase(const std::string_view& path);
+    FLECS_EXPORT auto get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>;
+    FLECS_EXPORT int erase(std::string_view path);
 
 private:
     std::unique_ptr<Json::CharReader> _json_reader;

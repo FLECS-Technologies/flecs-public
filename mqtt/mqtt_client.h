@@ -211,11 +211,11 @@ public:
     FLECS_EXPORT int receive_callback_clear();
 
 private:
+    /*! friend swap function */
+    friend FLECS_EXPORT void swap(mqtt_client_t& lhs, mqtt_client_t& rhs) noexcept;
+
     /*! Pointer to implementation */
     std::unique_ptr<Private::mqtt_client_private_t> _impl;
-
-    /*! friend swap function */
-    friend void swap(mqtt_client_t& lhs, mqtt_client_t& rhs);
 };
 
 } // namespace FLECS

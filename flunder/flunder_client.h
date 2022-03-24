@@ -71,7 +71,7 @@ public:
     FLECS_EXPORT ~flunder_client_t();
 
     FLECS_EXPORT int connect();
-    FLECS_EXPORT int connect(const std::string_view& host, int port);
+    FLECS_EXPORT int connect(std::string_view host, int port);
 
     FLECS_EXPORT int reconnect();
 
@@ -80,60 +80,60 @@ public:
     /* publish typed data to live subscribers */
     /* integer-types */
     template <typename T>
-    FLECS_EXPORT auto publish(const std::string_view& path, const T& value)
-        -> std::enable_if_t<std::is_integral_v<T>, int>;
+    FLECS_EXPORT auto publish(std::string_view path, const T& value) -> std::enable_if_t<std::is_integral_v<T>, int>;
 
     /* floating-point-types */
     template <typename T>
-    FLECS_EXPORT auto publish(const std::string_view& path, const T& value)
+    FLECS_EXPORT auto publish(std::string_view path, const T& value)
         -> std::enable_if_t<std::is_floating_point_v<T>, int>;
 
     /* string-types */
     template <typename T>
-    FLECS_EXPORT auto publish(const std::string_view& path, const T& value)
+    FLECS_EXPORT auto publish(std::string_view path, const T& value)
         -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>;
 
-    FLECS_EXPORT int publish(const std::string_view& path, const char* value);
+    FLECS_EXPORT int publish(std::string_view path, const char* value);
 
     /* raw data */
-    FLECS_EXPORT int publish(const std::string_view& path, const void* data, size_t len);
+    FLECS_EXPORT int publish(std::string_view path, const void* data, size_t len);
 
     // using subscribe_callback_t = void (*)(const flunder_data_t*, const void*);
     /* subscribe to live data */
-    // FLECS_EXPORT int subscribe(const std::string_view& path, const subscribe_callback_t& cbk);
+    // FLECS_EXPORT int subscribe(std::string_view path, const subscribe_callback_t& cbk);
     /* unsubscribe from live data */
-    // FLECS_EXPORT int unsubscribe(const std::string_view& path);
+    // FLECS_EXPORT int unsubscribe(std::string_view path);
 
     /* get data from storage */
-    FLECS_EXPORT auto get(const std::string_view& path) -> std::tuple<int, std::vector<flunder_variable_t>>;
+    FLECS_EXPORT auto get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>;
     /* delete data from storage */
-    FLECS_EXPORT int erase(const std::string_view& path);
+    FLECS_EXPORT int erase(std::string_view path);
 
 private:
-    int publish_int(const std::string_view& path, const std::string& value);
-    int publish_float(const std::string_view& path, const std::string& value);
-    int publish_string(const std::string_view& path, const std::string& value);
-    int publish_raw(const std::string_view& path, const std::string& value);
+    friend FLECS_EXPORT void swap(flunder_client_t& lhs, flunder_client_t& rhs) noexcept;
+
+    int publish_int(std::string_view path, const std::string& value);
+    int publish_float(std::string_view path, const std::string& value);
+    int publish_string(std::string_view path, const std::string& value);
+    int publish_raw(std::string_view path, const std::string& value);
 
     std::unique_ptr<Private::flunder_client_private_t> _impl;
 };
 
 template <typename T>
-auto flunder_client_t::publish(const std::string_view& path, const T& value)
-    -> std::enable_if_t<std::is_integral_v<T>, int>
+auto flunder_client_t::publish(std::string_view path, const T& value) -> std::enable_if_t<std::is_integral_v<T>, int>
 {
     return publish_int(path, stringify(value));
 }
 
 template <typename T>
-auto flunder_client_t::publish(const std::string_view& path, const T& value)
+auto flunder_client_t::publish(std::string_view path, const T& value)
     -> std::enable_if_t<std::is_floating_point_v<T>, int>
 {
     return publish_float(path, stringify(value));
 }
 
 template <typename T>
-auto flunder_client_t::publish(const std::string_view& path, const T& value)
+auto flunder_client_t::publish(std::string_view path, const T& value)
     -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>
 {
     return publish_string(path, value);
