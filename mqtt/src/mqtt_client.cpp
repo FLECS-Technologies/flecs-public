@@ -30,8 +30,16 @@ mqtt_client_t::mqtt_client_t(mqtt_client_t&& other)
     : _impl{std::move(other._impl)}
 {}
 
+mqtt_client_t& mqtt_client_t::operator=(mqtt_client_t&& other)
+{
+    swap(*this, other);
+    return *this;
+}
+
 mqtt_client_t::~mqtt_client_t()
-{}
+{
+    disconnect();
+}
 
 int mqtt_client_t::connect()
 {
@@ -68,12 +76,12 @@ int mqtt_client_t::publish(const char* topic, int payloadlen, const void* payloa
     return _impl->publish(topic, payloadlen, payload, qos, retain);
 }
 
-int mqtt_client_t::receive_callback_set(mqtt_callback_t cbk)
+int mqtt_client_t::receive_callback_set(mqtt_receive_callback_t cbk)
 {
     return _impl->receive_callback_set(cbk, static_cast<void*>(this));
 }
 
-int mqtt_client_t::receive_callback_set(mqtt_callback_userp_t cbk, void* userp)
+int mqtt_client_t::receive_callback_set(mqtt_receive_callback_userp_t cbk, void* userp)
 {
     return _impl->receive_callback_set(cbk, static_cast<void*>(this), userp);
 }
@@ -81,6 +89,21 @@ int mqtt_client_t::receive_callback_set(mqtt_callback_userp_t cbk, void* userp)
 int mqtt_client_t::receive_callback_clear()
 {
     return _impl->receive_callback_clear();
+}
+
+int mqtt_client_t::disconnect_callback_set(mqtt_disconnect_callback_t cbk)
+{
+    return _impl->disconnect_callback_set(cbk, static_cast<void*>(this));
+}
+
+int mqtt_client_t::disconnect_callback_set(mqtt_disconnect_callback_userp_t cbk, void* userp)
+{
+    return _impl->disconnect_callback_set(cbk, static_cast<void*>(this), userp);
+}
+
+int mqtt_client_t::disconnect_callback_clear()
+{
+    return _impl->disconnect_callback_clear();
 }
 
 void swap(mqtt_client_t& lhs, mqtt_client_t& rhs) noexcept

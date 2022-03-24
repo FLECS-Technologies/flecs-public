@@ -59,6 +59,7 @@ mqtt_client_private_t::mqtt_client_private_t()
     _mosq = mosquitto_new(client_id.c_str(), true, this);
 
     mosquitto_message_callback_set(_mosq, &mqtt_client_private_t::lib_receive_callback);
+    mosquitto_disconnect_callback_set(_mosq, &mqtt_client_private_t::lib_disconnect_callback);
 
     mosquitto_loop_start(_mosq);
 }
@@ -100,7 +101,7 @@ int mqtt_client_private_t::publish(const char* topic, int payloadlen, const void
     return mosquitto_publish(_mosq, nullptr, topic, payloadlen, (const void*)payload, qos, retain);
 }
 
-int mqtt_client_private_t::receive_callback_set(mqtt_client_t::mqtt_callback_t cbk, void* client)
+int mqtt_client_private_t::receive_callback_set(mqtt_client_t::mqtt_receive_callback_t cbk, void* client)
 {
     _rcv_cbk = cbk;
     _rcv_cbk_client = client;
@@ -108,7 +109,8 @@ int mqtt_client_private_t::receive_callback_set(mqtt_client_t::mqtt_callback_t c
     return MQTT_ERR_OK;
 }
 
-int mqtt_client_private_t::receive_callback_set(mqtt_client_t::mqtt_callback_userp_t cbk, void* client, void* userp)
+int mqtt_client_private_t::receive_callback_set(
+    mqtt_client_t::mqtt_receive_callback_userp_t cbk, void* client, void* userp)
 {
     _rcv_cbk = cbk;
     _rcv_cbk_client = client;
@@ -142,14 +144,57 @@ void mqtt_client_private_t::lib_receive_callback(mosquitto*, void* mqtt_client, 
         overload{// do nothing if no callback is set
                  [](std::nullptr_t&) {},
                  // call callback without userdata
-                 [&](FLECS::mqtt_client_t::mqtt_callback_t& cbk) {
+                 [&](FLECS::mqtt_client_t::mqtt_receive_callback_t& cbk) {
                      cbk(static_cast<FLECS::mqtt_client_t*>(c->_rcv_cbk_client), &mqtt_msg);
                  },
                  // call callback with userdata
-                 [&](FLECS::mqtt_client_t::mqtt_callback_userp_t cbk) {
+                 [&](FLECS::mqtt_client_t::mqtt_receive_callback_userp_t cbk) {
                      cbk(static_cast<FLECS::mqtt_client_t*>(c->_rcv_cbk_client), &mqtt_msg, c->_rcv_cbk_userp);
                  }},
         c->_rcv_cbk);
+}
+
+int mqtt_client_private_t::disconnect_callback_set(mqtt_client_t::mqtt_disconnect_callback_t cbk, void* client)
+{
+    _disconnect_cbk = cbk;
+    _disconnect_cbk_client = client;
+    _disconnect_cbk_userp = nullptr;
+    return MQTT_ERR_OK;
+}
+
+int mqtt_client_private_t::disconnect_callback_set(
+    mqtt_client_t::mqtt_disconnect_callback_userp_t cbk, void* client, void* userp)
+{
+    _disconnect_cbk = cbk;
+    _disconnect_cbk_client = client;
+    _disconnect_cbk_userp = userp;
+    return MQTT_ERR_OK;
+}
+
+int mqtt_client_private_t::disconnect_callback_clear()
+{
+    _disconnect_cbk = nullptr;
+    _disconnect_cbk_client = nullptr;
+    _disconnect_cbk_userp = nullptr;
+    return MQTT_ERR_OK;
+}
+
+void mqtt_client_private_t::lib_disconnect_callback(mosquitto*, void* mqtt_client, int)
+{
+    decltype(auto) c = static_cast<mqtt_client_private_t*>(mqtt_client);
+
+    std::visit(
+        overload{// do nothing if no callback is set
+                 [](std::nullptr_t&) {},
+                 // call callback without userdata
+                 [&](FLECS::mqtt_client_t::mqtt_disconnect_callback_t& cbk) {
+                     cbk(static_cast<FLECS::mqtt_client_t*>(c->_disconnect_cbk_client));
+                 },
+                 // call callback with userdata
+                 [&](FLECS::mqtt_client_t::mqtt_disconnect_callback_userp_t cbk) {
+                     cbk(static_cast<FLECS::mqtt_client_t*>(c->_disconnect_cbk_client), c->_disconnect_cbk_userp);
+                 }},
+        c->_disconnect_cbk);
 }
 
 } // namespace Private
