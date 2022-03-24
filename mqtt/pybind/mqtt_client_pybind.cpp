@@ -7,7 +7,7 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(mqtt_client, m)
 {
-    using receive_callback_set_t = int (FLECS::mqtt_client_t::*)(FLECS::mqtt_client_t::mqtt_callback_t);
+    using receive_callback_set_t = int (FLECS::mqtt_client_t::*)(FLECS::mqtt_client_t::mqtt_receive_callback_t);
     py::class_<FLECS::mqtt_client_t>(m, "mqtt_client")
         .def(py::init())
         .def("connect", (int(FLECS::mqtt_client_t::*)())(&FLECS::mqtt_client_t::connect))

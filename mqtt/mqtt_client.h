@@ -66,9 +66,13 @@ public:
      */
     FLECS_EXPORT mqtt_client_t(mqtt_client_t&& other);
 
-    /*! @brief assignment operator (deleted)
+    /*! @brief copy-assignment operator (deleted)
      */
-    FLECS_EXPORT mqtt_client_t& operator=(mqtt_client_t) = delete;
+    FLECS_EXPORT mqtt_client_t& operator=(const mqtt_client_t&) = delete;
+
+    /*! @brief move-assignment operator
+     */
+    FLECS_EXPORT mqtt_client_t& operator=(mqtt_client_t&& other);
 
     /*! @brief Destructor
      */
@@ -174,7 +178,7 @@ public:
      * @param[in] mqtt_message_t* Pointer to MQTT message. Message is only valid during execution of the callback.
      *                            If message is required after the callback, a copy has to be made by the user
      */
-    using mqtt_callback_t = std::function<void(mqtt_client_t*, mqtt_message_t*)>;
+    using mqtt_receive_callback_t = std::function<void(mqtt_client_t*, mqtt_message_t*)>;
 
     /*! @brief Type for MQTT message callbacks with userdata
      *
@@ -183,7 +187,7 @@ public:
      * @param[in] mqtt_message_t* Pointer to MQTT message. Message is only valid during execution of the callback.
      *                            If message is required after the callback, a copy has to be made by the user
      */
-    using mqtt_callback_userp_t = std::function<void(mqtt_client_t*, mqtt_message_t*, void*)>;
+    using mqtt_receive_callback_userp_t = std::function<void(mqtt_client_t*, mqtt_message_t*, void*)>;
 
     /*! @brief Register a receive callback function on the client
      *
@@ -191,7 +195,7 @@ public:
      *
      * @return MQTT_ERR_OK
      */
-    FLECS_EXPORT int receive_callback_set(mqtt_callback_t cbk);
+    FLECS_EXPORT int receive_callback_set(mqtt_receive_callback_t cbk);
 
     /*! @brief Register a receive callback function on the client
      *
@@ -200,7 +204,7 @@ public:
      *
      * @return MQTT_ERR_OK
      */
-    FLECS_EXPORT int receive_callback_set(mqtt_callback_userp_t cbk, void* userp);
+    FLECS_EXPORT int receive_callback_set(mqtt_receive_callback_userp_t cbk, void* userp);
 
     /*! @brief Unregister the receive callback function on the client
      *
@@ -209,6 +213,44 @@ public:
      * @return MQTT_ERR_OK
      */
     FLECS_EXPORT int receive_callback_clear();
+
+    /*! @brief Type for disconnect callbacks
+     *
+     * @param[in] mqtt_client_t pointer to the mqtt_client_t instance that triggered the callback
+     */
+    using mqtt_disconnect_callback_t = std::function<void(mqtt_client_t*)>;
+
+    /*! @brief Type for disconnect callbacks with userdata
+     *
+     * @param[in] mqtt_client_t pointer to the mqtt_client_t instance that triggered the callback
+     * @param[in] void* pointer to arbitrary userdata
+     */
+    using mqtt_disconnect_callback_userp_t = std::function<void(mqtt_client_t*, void*)>;
+
+    /*! @brief Register a disconnect callback function on the client
+     *
+     * @param[in] cbk Function pointer to callback
+     *
+     * @return MQTT_ERR_OK
+     */
+    FLECS_EXPORT int disconnect_callback_set(mqtt_disconnect_callback_t cbk);
+
+    /*! @brief Register a receive callback function on the client
+     *
+     * @param[in] cbk Function pointer to callback
+     * @param[in] userp Optional userdata that is passed to the callback
+     *
+     * @return MQTT_ERR_OK
+     */
+    FLECS_EXPORT int disconnect_callback_set(mqtt_disconnect_callback_userp_t cbk, void* userp);
+
+    /*! @brief Unregister the disconnect callback function on the client
+     *
+     * @param none
+     *
+     * @return MQTT_ERR_OK
+     */
+    FLECS_EXPORT int disconnect_callback_clear();
 
 private:
     /*! friend swap function */

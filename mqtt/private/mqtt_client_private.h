@@ -63,29 +63,43 @@ public:
      */
     int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain);
 
-    int receive_callback_set(mqtt_client_t::mqtt_callback_t cbk, void* client);
-
-    int receive_callback_set(mqtt_client_t::mqtt_callback_userp_t cbk, void* client, void* userp);
-
+    int receive_callback_set(mqtt_client_t::mqtt_receive_callback_t cbk, void* client);
+    int receive_callback_set(mqtt_client_t::mqtt_receive_callback_userp_t cbk, void* client, void* userp);
     int receive_callback_clear();
 
-    mqtt_client_t::mqtt_callback_t receive_callback();
+    int disconnect_callback_set(mqtt_client_t::mqtt_disconnect_callback_t cbk, void* client);
+    int disconnect_callback_set(mqtt_client_t::mqtt_disconnect_callback_userp_t cbk, void* client, void* userp);
+    int disconnect_callback_clear();
 
 private:
     /*! Pointer to mosquitto MQTT implementation */
     mosquitto* _mosq;
 
     /*! Function pointer to receive callback */
-    using cbk_t = std::variant<std::nullptr_t, mqtt_client_t::mqtt_callback_t, mqtt_client_t::mqtt_callback_userp_t>;
-    cbk_t _rcv_cbk;
-    /*! Pointer to mqtt_client_t that associated with this instance */
+    using receive_cbk_t = std::variant<
+        std::nullptr_t, mqtt_client_t::mqtt_receive_callback_t, mqtt_client_t::mqtt_receive_callback_userp_t>;
+    receive_cbk_t _rcv_cbk;
+    /*! Pointer to mqtt_client_t associated with this instance */
     void* _rcv_cbk_client;
     /*! Pointer to userdata passed to receive callback */
     void* _rcv_cbk_userp;
 
-    /* @brief Receive callback function registered with the underlying mosquitto client library.
+    /*! Function pointer to disconnect callback */
+    using disconnect_cbk_t = std::variant<
+        std::nullptr_t, mqtt_client_t::mqtt_disconnect_callback_t, mqtt_client_t::mqtt_disconnect_callback_userp_t>;
+    disconnect_cbk_t _disconnect_cbk;
+    /*! Pointer to mqtt_client_t tassociated with this instance */
+    void* _disconnect_cbk_client;
+    /*! Pointer to userdata passed to disconnect callback */
+    void* _disconnect_cbk_userp;
+
+    /*! @brief Receive callback function registered with the underlying mosquitto client library.
      */
     static void lib_receive_callback(mosquitto* _mosq, void* mqtt_client, const mosquitto_message* msg);
+
+    /*! @brief Disconnect callback function registered with the underlying mosquitto client library.
+     */
+    static void lib_disconnect_callback(mosquitto* _mosq, void* mqtt_client, int);
 };
 
 } // namespace Private
