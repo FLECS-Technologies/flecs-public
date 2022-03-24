@@ -20,7 +20,7 @@
 
 #include "api/api.h"
 #include "factory/factory.h"
-#include "signal_handler.h"
+#include "util/signal_handler/signal_handler.h"
 
 namespace FLECS {
 

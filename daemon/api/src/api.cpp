@@ -22,10 +22,10 @@
 
 #include "endpoints/endpoints.h"
 #include "json/json.h"
-#include "signal_handler.h"
 #include "util/http/response_headers.h"
 #include "util/http/version_strings.h"
 #include "util/llhttp_ext/llhttp_ext.h"
+#include "util/signal_handler/signal_handler.h"
 #include "util/string/literals.h"
 
 namespace FLECS {
