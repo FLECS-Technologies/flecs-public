@@ -74,6 +74,8 @@ int libflecs_private_t::do_disconnect()
 {
     _base_url = cpr::Url{""};
     _path.clear();
+
+    return 0;
 }
 
 // app management
