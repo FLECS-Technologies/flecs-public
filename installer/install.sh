@@ -41,9 +41,6 @@ if [ ${EUID} -gt 0 ]; then
   exit 1
 fi
 
-# beta-only: add Docker Hub access token
-docker login --username flecs --password $(echo "YzMwMDZmMmYtZWM1My00ZjE5LWEyMjAtYzIyZjZkYjU1OTk1" | base64 -d) >/dev/null 2>&1
-
 # check and install prerequisites
 if ! find_program dpkg; then
   echo "Required program dpkg not found on the system" 1>&2
@@ -57,6 +54,9 @@ fi
 if ! find_program docker && ! install_dependency docker.io; then
   exit 1
 fi
+
+# beta-only: add Docker Hub access token
+docker login --username flecs --password $(echo "YzMwMDZmMmYtZWM1My00ZjE5LWEyMjAtYzIyZjZkYjU1OTk1" | base64 -d) >/dev/null 2>&1
 
 # determine dpkg architecture
 ARCH=`dpkg --print-architecture`
