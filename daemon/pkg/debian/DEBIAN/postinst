@@ -4,6 +4,7 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 case "$1" in
   *)
+    docker network create --subnet 172.21.0.0/16 --gateway 172.21.0.1 flecs
     systemctl enable --now ##PACKAGE##
     ;;
 esac

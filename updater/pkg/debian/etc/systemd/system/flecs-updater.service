@@ -2,8 +2,8 @@
 Description=FLECS Service Updater
 After=network-online.target
 Wants=network-online.target
-After=docker.service containerd.service
-Requires=docker.service containerd.service
+After=docker.service
+Requires=docker.service
 
 [Service]
 Type=oneshot
