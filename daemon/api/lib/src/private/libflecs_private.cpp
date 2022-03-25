@@ -129,12 +129,12 @@ int libflecs_private_t::do_list_apps()
     return get("/app/list");
 }
 
-int libflecs_private_t::do_list_instances(const std::string& app, const std::string& version)
+int libflecs_private_t::do_list_instances(const std::string& /*app*/, const std::string& /*version*/)
 {
     return -1;
 }
 
-int libflecs_private_t::do_list_versions(const std::string& app)
+int libflecs_private_t::do_list_versions(const std::string& /*app*/)
 {
     return -1;
 }

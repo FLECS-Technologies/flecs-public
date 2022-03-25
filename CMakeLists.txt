@@ -33,7 +33,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
-add_compile_options(-Wall -Wextra -Wfatal-errors)
+add_compile_options(-Wall -Wextra -Werror -Wfatal-errors)
 
 # hide all symbols by default
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)

@@ -120,7 +120,7 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
         }
         const auto res = write(fd, llhttp_ext._body.c_str(), llhttp_ext._body.length());
         close(fd);
-        if (res != llhttp_ext._body.length())
+        if (res != static_cast<ssize_t>(llhttp_ext._body.length()))
         {
             return http_status_e::InternalServerError;
         }
