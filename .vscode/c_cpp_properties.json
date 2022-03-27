@@ -4,6 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}",
+                "${workspaceFolder}/apps/tech.flecs.mqtt-bridge",
                 "${workspaceFolder}/external/cppzmq-4.8.1",
                 "${workspaceFolder}/external/cpr-1.7.2/out/x86_64-linux-gnu/include",
                 "${workspaceFolder}/external/gtest-1.11.0",
