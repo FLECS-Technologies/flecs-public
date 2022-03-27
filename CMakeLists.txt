@@ -75,12 +75,14 @@ add_subdirectory(mqtt)
 add_subdirectory(updater)
 add_subdirectory(util)
 
+get_property(PACKAGES GLOBAL PROPERTY PACKAGES)
 add_custom_target(
     packages
     DEPENDS ${PACKAGES}
     COMMAND echo ${PACKAGES}
 )
 
+get_property(DOCKER_IMAGES GLOBAL PROPERTY DOCKER_IMAGES)
 add_custom_target(
     docker
     DEPENDS ${DOCKER_IMAGES}
