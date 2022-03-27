@@ -4,8 +4,6 @@ After=network-online.target
 Wants=network-online.target
 After=docker.service
 Requires=docker.service
-After=flecs-updater.service
-Wants=flecs-updater.service
 After=containerd.service
 Wants=containerd.service
 
