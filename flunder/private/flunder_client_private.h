@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <tuple>
+#include <vector>
 
 #include "flunder_client.h"
 
@@ -52,6 +53,7 @@ public:
 
 private:
     std::unique_ptr<Json::CharReader> _json_reader;
+    std::vector<std::string> _mem_storages;
 };
 
 } // namespace Private
