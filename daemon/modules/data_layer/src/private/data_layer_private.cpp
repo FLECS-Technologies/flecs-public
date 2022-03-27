@@ -38,13 +38,15 @@ http_status_e module_data_layer_private_t::do_browse(const std::string& path, Js
     }
 
     decltype(auto) vars = std::get<1>(res);
+
+    response["data"] = Json::Value{Json::arrayValue};
     for (decltype(auto) it = vars.cbegin(); it != vars.cend(); ++it)
     {
         auto data = Json::Value{};
         data["key"] = it->key;
         data["value"] = it->value;
         data["encoding"] = it->encoding;
-        data["timestamp"] = it->timestamp;
+        data["timestamp"] = it->timestamp.substr(0, it->timestamp.find('/'));
         response["data"].append(data);
     }
 
