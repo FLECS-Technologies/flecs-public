@@ -16,10 +16,12 @@ set(REGISTRY_USER $ENV{REGISTRY_USER})
 set(REGISTRY_AUTH $ENV{REGISTRY_AUTH})
 set(REGISTRY_PATH flecs)
 
-if (NOT NDEBUG)
-    set(DOCKER_TAG develop)
-else()
-    set(DOCKER_TAG latest)
+if (NOT DOCKER_TAG)
+    if (NOT NDEBUG)
+        set(DOCKER_TAG develop)
+    else()
+        set(DOCKER_TAG latest)
+    endif()
 endif()
 
 add_custom_command(
