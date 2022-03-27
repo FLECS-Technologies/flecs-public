@@ -66,6 +66,25 @@ int flunder_client_private_t::publish(std::string_view path, const std::string& 
 //     return -1;
 // }
 
+int flunder_client_private_t::add_mem_storage(std::string_view name, std::string_view path)
+{
+    auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
+                            .append("/@/router/local/plugin/storages/backend/memory/storage/")
+                            .append(name)};
+    auto body = cpr::Body{std::string{"path_expr="}.append(path)};
+    const auto res = cpr::Put(url, cpr::Header{{"content-type", "application/properties"}}, body);
+    return (res.status_code == 200) ? 0 : -1;
+}
+
+int flunder_client_private_t::remove_mem_storage(std::string_view name)
+{
+    auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
+                            .append("/@/router/local/plugin/storages/backend/memory/storage/")
+                            .append(name)};
+    const auto res = cpr::Delete(url);
+    return (res.status_code == 200) ? 0 : -1;
+}
+
 auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>
 {
     auto vars = std::vector<flunder_variable_t>{};
