@@ -107,6 +107,9 @@ public:
     /* unsubscribe from live data */
     // FLECS_EXPORT int unsubscribe(std::string_view path);
 
+    FLECS_EXPORT int add_mem_storage(std::string_view name, std::string_view path);
+    FLECS_EXPORT int remove_mem_storage(std::string_view name);
+
     /* get data from storage */
     FLECS_EXPORT auto get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>;
     /* delete data from storage */
@@ -115,10 +118,10 @@ public:
 private:
     friend FLECS_EXPORT void swap(flunder_client_t& lhs, flunder_client_t& rhs) noexcept;
 
-    int publish_int(std::string_view path, const std::string& value);
-    int publish_float(std::string_view path, const std::string& value);
-    int publish_string(std::string_view path, const std::string& value);
-    int publish_raw(std::string_view path, const std::string& value);
+    FLECS_EXPORT int publish_int(std::string_view path, const std::string& value);
+    FLECS_EXPORT int publish_float(std::string_view path, const std::string& value);
+    FLECS_EXPORT int publish_string(std::string_view path, const std::string& value);
+    FLECS_EXPORT int publish_raw(std::string_view path, const std::string& value);
 
     std::unique_ptr<Private::flunder_client_private_t> _impl;
 };
