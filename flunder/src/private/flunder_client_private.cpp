@@ -26,6 +26,7 @@ namespace Private {
 
 flunder_client_private_t::flunder_client_private_t()
     : _json_reader{Json::CharReaderBuilder().newCharReader()}
+    , _mem_storages{}
 {}
 
 flunder_client_private_t::~flunder_client_private_t()
@@ -45,6 +46,10 @@ int flunder_client_private_t::reconnect()
 
 int flunder_client_private_t::disconnect()
 {
+    while (!_mem_storages.empty())
+    {
+        remove_mem_storage(*_mem_storages.rbegin());
+    }
     return 0;
 }
 
@@ -73,7 +78,15 @@ int flunder_client_private_t::add_mem_storage(std::string_view name, std::string
                             .append(name)};
     auto body = cpr::Body{std::string{"path_expr="}.append(path)};
     const auto res = cpr::Put(url, cpr::Header{{"content-type", "application/properties"}}, body);
-    return (res.status_code == 200) ? 0 : -1;
+
+    if (res.status_code != 200)
+    {
+        return -1;
+    }
+
+    _mem_storages.emplace_back(name);
+
+    return 0;
 }
 
 int flunder_client_private_t::remove_mem_storage(std::string_view name)
@@ -82,7 +95,17 @@ int flunder_client_private_t::remove_mem_storage(std::string_view name)
                             .append("/@/router/local/plugin/storages/backend/memory/storage/")
                             .append(name)};
     const auto res = cpr::Delete(url);
-    return (res.status_code == 200) ? 0 : -1;
+
+    if (res.status_code != 200)
+    {
+        return -1;
+    }
+
+    _mem_storages.erase(
+        std::remove_if(_mem_storages.begin(), _mem_storages.end(), [&](const std::string& str) { return str == name; }),
+        _mem_storages.end());
+
+    return 0;
 }
 
 auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>
