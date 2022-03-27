@@ -162,9 +162,6 @@ set_property(TARGET FLECS.external.gmock PROPERTY INTERFACE_INCLUDE_DIRECTORIES 
 add_library(FLECS.external.gtest_main STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.gtest_main PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgtest_main.a)
 set_property(TARGET FLECS.external.gtest_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR})
-target_link_libraries(FLECS.external.gtest_main INTERFACE
-    pthread
-)
 
 add_library(FLECS.external.gtest STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.gtest PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgtest.a)
@@ -198,9 +195,6 @@ target_link_libraries(FLECS.external.mosquitto INTERFACE
 add_library(FLECS.external.crypto STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/out/${MACHINE}/lib/libcrypto.a)
 set_property(TARGET FLECS.external.crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_DIR}/out/${MACHINE}/include)
-target_link_libraries(FLECS.external.crypto INTERFACE
-    dl
-)
 
 add_library(FLECS.external.ssl STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.ssl PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/out/${MACHINE}/lib/libssl.a)
@@ -216,10 +210,6 @@ target_include_directories(FLECS.external.pybind11 INTERFACE
 add_library(FLECS.external.sqlite3 STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.sqlite3 PROPERTY IMPORTED_LOCATION ${SQLITE3_DIR}/out/${MACHINE}/lib/libsqlite3.a)
 set_property(TARGET FLECS.external.sqlite3 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${SQLITE3_DIR})
-target_link_libraries(FLECS.external.sqlite3 INTERFACE
-    dl
-    pthread
-)
 
 # yaml-cpp
 add_library(FLECS.external.yaml-cpp STATIC IMPORTED GLOBAL)
