@@ -12,31 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.app)
-
-add_subdirectory(conffile)
-add_subdirectory(env_var)
-add_subdirectory(port_range)
+project(FLECS.daemon.app.conffile)
 
 add_library(
-    FLECS.daemon.app STATIC
-    src/app.cpp
-    app.h app_status.h
+    FLECS.daemon.app.conffile OBJECT
+    src/conffile.cpp
+    conffile.h
 )
 
 target_include_directories(
-    FLECS.daemon.app INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
+    FLECS.daemon.app.conffile INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
 
 target_include_directories(
-    FLECS.daemon.app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(FLECS.daemon.app
-    FLECS.daemon.app.conffile
-    FLECS.daemon.app.env_var
-    FLECS.daemon.app.port_range
-    FLECS.external.yaml-cpp
+    FLECS.daemon.app.conffile PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 add_subdirectory(test)

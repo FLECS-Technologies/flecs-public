@@ -68,6 +68,7 @@ app_t::app_t() noexcept
     , _category{}
     , _image{}
     , _env{}
+    , _conffiles{}
     , _volumes{}
     , _bind_mounts{}
     , _hostname{}
@@ -91,6 +92,7 @@ app_t::app_t(const std::string& manifest)
     , _category{}
     , _image{}
     , _env{}
+    , _conffiles{}
     , _volumes{}
     , _bind_mounts{}
     , _hostname{}
@@ -130,6 +132,22 @@ app_t::app_t(const std::string& manifest)
                 throw std::runtime_error{env.as<std::string>()};
             }
             add_env(env_var);
+        }
+
+        auto conffiles = YAML::Node{};
+        OPTIONAL_YAML_VALUE(yaml, conffiles, conffiles);
+        for (const auto& conf : conffiles)
+        {
+            const auto conffile = conffile_t{conf.as<std::string>()};
+            if (!conffile.is_valid())
+            {
+                std::fprintf(
+                    stderr,
+                    "Could not parse manifest: syntax/schema error in %s\n",
+                    conf.as<std::string>().c_str());
+                throw std::runtime_error{conf.as<std::string>()};
+            }
+            add_conffile(conffile);
         }
 
         auto volumes = YAML::Node{};

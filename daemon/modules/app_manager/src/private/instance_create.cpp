@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <limits>
 #include <random>
 
@@ -126,10 +128,60 @@ http_status_e module_app_manager_private_t::do_create_instance(
         }
     }
 
+    // Step 7: Create conffiles
+    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + hex_id + "/conf/";
+    if (!app.conffiles().empty())
+    {
+        auto ec = std::error_code{};
+        if (!std::filesystem::create_directories(conf_path, ec))
+        {
+            response["additionalInfo"] = "Could not create conf dir";
+            return http_status_e::InternalServerError;
+        }
+    }
+
+    for (const auto& conffile : app.conffiles())
+    {
+        const auto local_path = conf_path + conffile.local();
+        if (conffile.init())
+        {
+            const auto name = std::string{"flecs-"}.append(hex_id).append("-init");
+            {
+                auto docker_process = process_t{};
+                docker_process.arg("create");
+                docker_process.arg("--name");
+                docker_process.arg(name);
+                docker_process.arg(app.image_with_tag());
+                docker_process.spawnp("docker");
+                docker_process.wait(false, true);
+            }
+            {
+                auto docker_process = process_t{};
+                docker_process.arg("cp");
+                docker_process.arg(name + ":" + conffile.container());
+                docker_process.arg(local_path);
+                docker_process.spawnp("docker");
+                docker_process.wait(false, true);
+            }
+            {
+                auto docker_process = process_t{};
+                docker_process.arg("rm");
+                docker_process.arg("-f");
+                docker_process.arg(name);
+                docker_process.spawnp("docker");
+                docker_process.wait(false, true);
+            }
+        }
+        else
+        {
+            auto f = std::ofstream{local_path};
+        }
+    }
+
     status = instance_status_e::RESOURCES_READY;
     _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, "", 0});
 
-    // Step 7: Create Docker container
+    // Step 8: Create Docker container
     auto docker_process = process_t{};
     docker_process.arg("create");
 
@@ -137,6 +189,12 @@ http_status_e module_app_manager_private_t::do_create_instance(
     {
         docker_process.arg("--env");
         docker_process.arg(stringify(env));
+    }
+    for (const auto& conffile : app.conffiles())
+    {
+        docker_process.arg("--volume");
+        const auto arg = conf_path + conffile.local() + ":" + conffile.container() + (conffile.ro() ? ":ro" : "");
+        docker_process.arg(arg);
     }
     for (const auto& volume : app.volumes())
     {

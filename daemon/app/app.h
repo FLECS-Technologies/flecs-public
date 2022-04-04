@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "app_status.h"
+#include "conffile/conffile.h"
 #include "env_var/env_var.h"
 #include "port_range/port_range.h"
 #include "util/cxx20/string.h"
@@ -32,6 +33,7 @@ class app_t
 {
 public:
     using volumes_t = std::map<std::string, std::string>;
+    using conffiles_t = std::vector<conffile_t>;
     using networks_t = std::set<std::string>;
     using ports_t = std::vector<mapped_port_range_t>;
     using envs_t = std::vector<mapped_env_var_t>;
@@ -66,6 +68,9 @@ public:
 
     auto& env() const noexcept { return _env; }
     void add_env(envs_t::value_type env) { _env.emplace_back(env); }
+
+    auto& conffiles() const noexcept { return _conffiles; }
+    void add_conffile(conffiles_t::value_type conffile) { _conffiles.emplace_back(conffile); }
 
     auto& volumes() const noexcept { return _volumes; }
     auto add_volume(volumes_t::key_type local, volumes_t::mapped_type container)
@@ -118,6 +123,7 @@ private:
     std::string _category;
     std::string _image;
     envs_t _env;
+    conffiles_t _conffiles;
     volumes_t _volumes;
     volumes_t _bind_mounts;
     std::string _hostname;
