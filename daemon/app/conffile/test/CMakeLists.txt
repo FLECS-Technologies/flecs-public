@@ -12,31 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.app)
+if (BUILD_TESTING)
+    project(FLECS.daemon.app.conffile.test)
 
-add_subdirectory(conffile)
-add_subdirectory(env_var)
-add_subdirectory(port_range)
+    add_executable(FLECS.daemon.app.conffile.test
+        test_conffile.cpp
+    )
 
-add_library(
-    FLECS.daemon.app STATIC
-    src/app.cpp
-    app.h app_status.h
-)
+    set_target_properties(FLECS.daemon.app.conffile.test PROPERTIES OUTPUT_NAME test_conffile)
 
-target_include_directories(
-    FLECS.daemon.app INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
+    target_link_libraries(FLECS.daemon.app.conffile.test PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.daemon.app.conffile
+    )
 
-target_include_directories(
-    FLECS.daemon.app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(FLECS.daemon.app
-    FLECS.daemon.app.conffile
-    FLECS.daemon.app.env_var
-    FLECS.daemon.app.port_range
-    FLECS.external.yaml-cpp
-)
-
-add_subdirectory(test)
+    add_test(NAME FLECS.daemon.app.conffile.test COMMAND FLECS.daemon.app.conffile.test)
+endif()
