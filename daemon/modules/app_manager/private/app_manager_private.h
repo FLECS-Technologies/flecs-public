@@ -164,6 +164,14 @@ public:
         const std::string& id, const std::string& app_name, const std::string& version, Json::Value& response,
         bool internal = false);
 
+    /*! @brief Returns details of an app instance, such as IP address, hostname or exposed ports
+     *
+     * @param[in] id Unique instance id assigned by @sa do_create_instance
+     *
+     * @return error code
+     */
+    http_status_e do_instance_details(const std::string& id, Json::Value& response);
+
     /*! @brief Prints all installed apps and their instances in JSON format
      *
      * @param None
