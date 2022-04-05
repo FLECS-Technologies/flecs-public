@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: FLECS Daemon API
-  version: 1.0.0-alpha.1
+  version: 1.0.0-beta.4
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
@@ -21,6 +21,28 @@ components:
         app:
           type: string
           example: "tech.flecs.app"
+    conffiles:
+      type: object
+      description: Bind-mounted configuration files of an instance
+      properties:
+        conffiles:
+          type: array
+          items:
+            type: object
+            properties:
+              container:
+                type: string
+                example: "/etc/conf.d/configuration.cfg"
+              host:
+                type: string
+                example: "/var/lib/flecs/instances/0123abcd/conf/configuration.cfg"
+    hostname:
+      type: object
+      description: Hostname of an instance
+      properties:
+        hostname:
+          type: string
+          example: flecs-0123abcd
     instanceId:
       type: object
       description: Instance ID
@@ -35,6 +57,13 @@ components:
         instanceName:
           type: string
           example: "Smart home"
+    ipAddress:
+      type: object
+      description: IP address of an instance
+      properties:
+        ipAdddress:
+          type: string
+          example: "172.21.0.2"
     licenseKey:
       type: object
       description: License key for app installation
@@ -42,6 +71,36 @@ components:
         licenseKey:
           type: string
           example: "538E-A5E8-84A3-D798"
+    mounts:
+      type: object
+      description: Bind mounts of an instance
+      properties:
+        mounts:
+          type: array
+          items:
+            type: object
+            properties:
+              container:
+                type: string
+                example: "/path/to/dir"
+              host:
+                type: string
+                example: "/path/to/host/dir"
+    ports:
+      type: object
+      description: Allocated network ports of an instance
+      properties:
+        ports:
+          type: array
+          items:
+            type: object
+            properties:
+              container:
+                type: string
+                example: "8080"
+              host:
+                type: string
+                example: "18080"
     version:
       type: object
       description: App version
@@ -49,6 +108,21 @@ components:
         version:
           type: string
           example: "v4.0.6"
+    volumes:
+      type: object
+      description: Automatic volumes of an instance
+      properties:
+        volumes:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "var"
+              path:
+                type: string
+                example: "/var/app"
 
     response_500:
       type: object
@@ -117,7 +191,7 @@ components:
             properties:
               additionalInfo:
                 type: string
-                example: "Missing field app in request"
+                example: "Explanation what is wrong"
 
 paths:
   /app/install:
@@ -297,6 +371,35 @@ paths:
                   - $ref: "#/components/schemas/app"
                   - $ref: "#/components/schemas/instanceId"
                   - $ref: "#/components/schemas/version"
+
+  /instance/details:
+    post:
+      summary: Obtain details of an app instance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/instanceId"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/additionalInfo"
+                  - $ref: "#/components/schemas/app"
+                  - $ref: "#/components/schemas/conffiles"
+                  - $ref: "#/components/schemas/hostname"
+                  - $ref: "#/components/schemas/instanceId"
+                  - $ref: "#/components/schemas/ipAddress"
+                  - $ref: "#/components/schemas/mounts"
+                  - $ref: "#/components/schemas/ports"
+                  - $ref: "#/components/schemas/version"
+                  - $ref: "#/components/schemas/volumes"
+        "400":
+          $ref: "#/components/responses/response_400"
 
   /instance/start:
     post:

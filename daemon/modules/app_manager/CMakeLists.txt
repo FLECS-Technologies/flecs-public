@@ -24,6 +24,7 @@ flecs_add_module(
         src/private/app_versions.cpp
         src/private/instance_create.cpp
         src/private/instance_delete.cpp
+        src/private/instance_details.cpp
         src/private/instance_start.cpp
         src/private/instance_stop.cpp
     ADDITIONAL_HEADERS private/app_manager_private.h

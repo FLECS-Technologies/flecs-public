@@ -39,6 +39,7 @@ module_app_manager_t::module_app_manager_t()
     api::register_endpoint("/instance/delete", std::bind(&module_app_manager_t::delete_instance, this, _1, _2));
     api::register_endpoint("/instance/start", std::bind(&module_app_manager_t::start_instance, this, _1, _2));
     api::register_endpoint("/instance/stop", std::bind(&module_app_manager_t::stop_instance, this, _1, _2));
+    api::register_endpoint("/instance/details", std::bind(&module_app_manager_t::instance_details, this, _1, _2));
 }
 
 module_app_manager_t::~module_app_manager_t()
@@ -100,6 +101,12 @@ http_status_e module_app_manager_t::stop_instance(const Json::Value& args, Json:
     OPTIONAL_JSON_VALUE(args, app);
     OPTIONAL_JSON_VALUE(args, version);
     return _impl->do_stop_instance(instanceId, app, version, response);
+}
+
+http_status_e module_app_manager_t::instance_details(const Json::Value& args, Json::Value& response)
+{
+    REQUIRED_JSON_VALUE(args, instanceId);
+    return _impl->do_instance_details(instanceId, response);
 }
 
 http_status_e module_app_manager_t::list_apps(const Json::Value& /*args*/, Json::Value& response)

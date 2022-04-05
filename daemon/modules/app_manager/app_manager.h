@@ -46,6 +46,7 @@ private:
     http_status_e delete_instance(const Json::Value& args, Json::Value& response);
     http_status_e start_instance(const Json::Value& args, Json::Value& response);
     http_status_e stop_instance(const Json::Value& args, Json::Value& response);
+    http_status_e instance_details(const Json::Value& args, Json::Value& response);
     http_status_e list_apps(const Json::Value& args, Json::Value& response);
     http_status_e list_versions(const Json::Value& args, Json::Value& response);
     http_status_e list_instances(const Json::Value& args, Json::Value& response);
