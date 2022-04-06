@@ -192,6 +192,16 @@ FLECS_EXPORT int flunder_publish_raw(void* flunder, const char* path, const void
     return static_cast<FLECS::flunder_client_t*>(flunder)->publish(path, value, payloadlen);
 }
 
+FLECS_EXPORT int flunder_add_mem_storage(void* flunder, const char* name, const char* path)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->add_mem_storage(name, path);
+}
+
+FLECS_EXPORT int flunder_remove_mem_storage(void* flunder, const char* name)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->remove_mem_storage(name);
+}
+
 } // extern "C"
 
 } // namespace FLECS

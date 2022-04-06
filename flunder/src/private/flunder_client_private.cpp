@@ -30,10 +30,14 @@ flunder_client_private_t::flunder_client_private_t()
 {}
 
 flunder_client_private_t::~flunder_client_private_t()
-{}
+{
+    disconnect();
+}
 
 int flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/)
 {
+    disconnect();
+
     const auto url = std::string{"http://flecs-flunder:8000"};
     const auto res = cpr::Get(cpr::Url{url});
     return (res.status_code == 200) ? 0 : -1;
@@ -135,10 +139,10 @@ auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std
     for (decltype(auto) it = json.begin(); it != json.end(); ++it)
     {
         vars.emplace_back(flunder_variable_t{
-            (*it)["key"].as<std::string>(),
-            (*it)["value"].as<std::string>(),
-            (*it)["encoding"].as<std::string>(),
-            (*it)["time"].as<std::string>()});
+            (*it)["key"].as<std::string>().c_str(),
+            (*it)["value"].as<std::string>().c_str(),
+            (*it)["encoding"].as<std::string>().c_str(),
+            (*it)["time"].as<std::string>().c_str()});
     }
 
     return {0, vars};

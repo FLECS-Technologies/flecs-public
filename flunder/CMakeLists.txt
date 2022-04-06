@@ -16,11 +16,14 @@ project(FLECS.flunder)
 
 set(SRC_LIB
     src/flunder_client.cpp
+    src/flunder_variable.cpp
     src/private/flunder_client_private.cpp
 )
 
 set(HEADER_LIB
     flunder_client.h
+    flunder_data.h
+    flunder_variable.h
     private/flunder_client_private.h
 )
 
@@ -58,4 +61,5 @@ target_link_libraries(FLECS.flunder.shared PRIVATE
     -Wl,--no-whole-archive
 )
 
+add_subdirectory(examples)
 #add_subdirectory(pybind)
