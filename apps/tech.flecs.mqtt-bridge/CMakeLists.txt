@@ -28,9 +28,6 @@ target_include_directories(FLECS.apps.mqtt-bridge PRIVATE
 target_link_libraries(FLECS.apps.mqtt-bridge PRIVATE
     FLECS.mqtt.static
     FLECS.flunder.static
-    FLECS.external.cpr
-    FLECS.external.jsoncpp
-    FLECS.external.mosquitto
     FLECS.util.signal_handler
 )
 
