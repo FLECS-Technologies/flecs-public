@@ -82,15 +82,20 @@ int flunder_client_t::publish_string(std::string_view path, const std::string& v
     return _impl->publish(path, "text/plain", value);
 }
 
-// int flunder_client_t::subscribe(std::string_view path, const subscribe_callback_t& cbk)
-// {
-//     return _impl->subscribe(path, cbk);
-// }
+int flunder_client_t::subscribe(std::string_view path, const subscribe_cbk_t& cbk)
+{
+    return _impl->subscribe(path, cbk);
+}
 
-// int flunder_client_t::unsubscribe(std::string_view path)
-// {
-//     return _impl->unsubscribe(path);
-// }
+int flunder_client_t::subscribe(std::string_view path, const subscribe_cbk_userp_t& cbk, void* userp)
+{
+    return _impl->subscribe(path, cbk, userp);
+}
+
+int flunder_client_t::unsubscribe(std::string_view path)
+{
+    return _impl->unsubscribe(path);
+}
 
 int flunder_client_t::add_mem_storage(std::string_view name, std::string_view path)
 {
@@ -117,5 +122,76 @@ void swap(flunder_client_t& lhs, flunder_client_t& rhs) noexcept
     using std::swap;
     swap(lhs._impl, rhs._impl);
 }
+
+extern "C" {
+
+FLECS_EXPORT void* flunder_client_new(void)
+{
+    return static_cast<void*>(new FLECS::flunder_client_t{});
+}
+
+FLECS_EXPORT void flunder_client_destroy(void* flunder)
+{
+    delete static_cast<FLECS::flunder_client_t*>(flunder);
+}
+
+FLECS_EXPORT int flunder_connect(void* flunder, const char* host, int port)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->connect(host, port);
+}
+
+FLECS_EXPORT int flunder_reconnect(void* flunder)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->reconnect();
+}
+
+FLECS_EXPORT int flunder_disconnect(void* flunder)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->disconnect();
+}
+
+FLECS_EXPORT int flunder_subscribe(void* flunder, const char* path, flunder_subscribe_cbk_t cbk)
+{
+    auto p = reinterpret_cast<void (*)(FLECS::flunder_client_t*, FLECS::flunder_data_t*)>(cbk);
+    return static_cast<FLECS::flunder_client_t*>(flunder)->subscribe(path, p);
+}
+FLECS_EXPORT int flunder_subscribe_userp(
+    void* flunder, const char* path, flunder_subscribe_cbk_userp_t cbk, void* userp)
+{
+    auto p = reinterpret_cast<void (*)(FLECS::flunder_client_t*, FLECS::flunder_data_t*, void*)>(cbk);
+    return static_cast<FLECS::flunder_client_t*>(flunder)->subscribe(path, p, userp);
+}
+
+FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* path)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->unsubscribe(path);
+}
+
+FLECS_EXPORT int flunder_publish_int(void* flunder, const char* path, int value)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(path, value);
+}
+
+FLECS_EXPORT int flunder_publish_float(void* flunder, const char* path, float value)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(path, value);
+}
+
+FLECS_EXPORT int flunder_publish_double(void* flunder, const char* path, double value)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(path, value);
+}
+
+FLECS_EXPORT int flunder_publish_string(void* flunder, const char* path, const char* value)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(path, value);
+}
+
+FLECS_EXPORT int flunder_publish_raw(void* flunder, const char* path, const void* value, size_t payloadlen)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(path, value, payloadlen);
+}
+
+} // extern "C"
 
 } // namespace FLECS

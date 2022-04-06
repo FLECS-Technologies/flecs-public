@@ -60,16 +60,21 @@ int flunder_client_private_t::publish(std::string_view path, const std::string& 
     return (res.status_code == 200) ? 0 : -1;
 }
 
-// int flunder_client_private_t::subscribe(
-//     std::string_view /*path*/, const flunder_client_t::subscribe_callback_t& /*cbk*/)
-// {
-//     return -1;
-// }
+int flunder_client_private_t::subscribe(std::string_view /*path*/, const flunder_client_t::subscribe_cbk_t& /*cbk*/)
+{
+    return -1;
+}
 
-// int flunder_client_private_t::unsubscribe(std::string_view /*path*/)
-// {
-//     return -1;
-// }
+int flunder_client_private_t::subscribe(
+    std::string_view /*path*/, const flunder_client_t::subscribe_cbk_userp_t& /*cbk*/, void* /*userp*/)
+{
+    return -1;
+}
+
+int flunder_client_private_t::unsubscribe(std::string_view /*path*/)
+{
+    return -1;
+}
 
 int flunder_client_private_t::add_mem_storage(std::string_view name, std::string_view path)
 {
