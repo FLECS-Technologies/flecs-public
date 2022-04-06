@@ -25,6 +25,9 @@
 #define FLECS_FLUNDER_PORT 8000
 #endif // __cplusplus
 
+#include "flunder_data.h"
+#include "flunder_variable.h"
+
 #ifdef __cplusplus
 
 #include <functional>
@@ -46,20 +49,6 @@ class flunder_client_private_t;
 constexpr const char* FLUNDER_HOST = "flecs-flunder";
 /*! Port of the default flunder broker */
 constexpr const int FLUNDER_PORT = 8000;
-
-struct flunder_data_t
-{
-    std::string path;
-    void* data;
-};
-
-struct flunder_variable_t
-{
-    std::string key;
-    std::string value;
-    std::string encoding;
-    std::string timestamp;
-};
 
 class flunder_client_t
 {
@@ -193,6 +182,9 @@ FLECS_EXPORT int flunder_publish_float(void* flunder, const char* path, float va
 FLECS_EXPORT int flunder_publish_double(void* flunder, const char* path, double value);
 FLECS_EXPORT int flunder_publish_string(void* flunder, const char* path, const char* value);
 FLECS_EXPORT int flunder_publish_raw(void* flunder, const char* path, const void* value, size_t payloadlen);
+
+FLECS_EXPORT int flunder_add_mem_storage(void* flunder, const char* name, const char* path);
+FLECS_EXPORT int flunder_remove_mem_storage(void* flunder, const char* name);
 
 #ifdef __cplusplus
 } // extern "C"
