@@ -15,6 +15,19 @@
 #ifndef C33E0442_0C18_433F_88A2_9738DDC82A5A
 #define C33E0442_0C18_433F_88A2_9738DDC82A5A
 
+/*! @todo */
+#ifndef FLECS_EXPORT
+#define FLECS_EXPORT
+#endif // FLECS_EXPORT
+
+#ifndef __cplusplus
+#define FLECS_FLUNDER_HOST "flecs-flunder"
+#define FLECS_FLUNDER_PORT 8000
+#endif // __cplusplus
+
+#ifdef __cplusplus
+
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -22,15 +35,16 @@
 #include <vector>
 
 #include "core/global/types/type_traits.h"
+#include "util/string/string_utils.h"
 
 namespace FLECS {
 namespace Private {
 class flunder_client_private_t;
 } // namespace Private
 
-/*! DNS name of the default FLECS MQTT broker */
+/*! DNS name of the default flunder broker */
 constexpr const char* FLUNDER_HOST = "flecs-flunder";
-/*! Port of the default FLECS MQTT broker */
+/*! Port of the default flunder broker */
 constexpr const int FLUNDER_PORT = 8000;
 
 struct flunder_data_t
@@ -101,11 +115,15 @@ public:
     /* raw data */
     FLECS_EXPORT int publish(std::string_view path, const void* data, size_t len);
 
-    // using subscribe_callback_t = void (*)(const flunder_data_t*, const void*);
+    using subscribe_cbk_t = std::function<void(flunder_client_t*, flunder_data_t*)>;
+    using subscribe_cbk_userp_t = std::function<void(flunder_client_t*, flunder_data_t*, void*)>;
+
     /* subscribe to live data */
-    // FLECS_EXPORT int subscribe(std::string_view path, const subscribe_callback_t& cbk);
+    FLECS_EXPORT int subscribe(std::string_view path, const subscribe_cbk_t& cbk);
+    /* subscribe to live data with userdata */
+    FLECS_EXPORT int subscribe(std::string_view path, const subscribe_cbk_userp_t& cbk, void* userp);
     /* unsubscribe from live data */
-    // FLECS_EXPORT int unsubscribe(std::string_view path);
+    FLECS_EXPORT int unsubscribe(std::string_view path);
 
     FLECS_EXPORT int add_mem_storage(std::string_view name, std::string_view path);
     FLECS_EXPORT int remove_mem_storage(std::string_view name);
@@ -147,5 +165,37 @@ auto flunder_client_t::publish(std::string_view path, const T& value)
 }
 
 } // namespace FLECS
+
+extern "C" {
+#endif // __cplusplus
+
+typedef void (*flunder_subscribe_cbk_t)(void*, struct flunder_data_t*);
+typedef void (*flunder_subscribe_cbk_userp_t)(void*, struct flunder_data_t*, void*);
+
+FLECS_EXPORT void* flunder_client_new(void);
+
+FLECS_EXPORT void flunder_client_destroy(void* flunder);
+
+FLECS_EXPORT int flunder_connect(void* flunder, const char* host, int port);
+
+FLECS_EXPORT int flunder_reconnect(void* flunder);
+
+FLECS_EXPORT int flunder_disconnect(void* flunder);
+
+FLECS_EXPORT int flunder_subscribe(void* flunder, const char* path, flunder_subscribe_cbk_t cbk);
+FLECS_EXPORT int flunder_subscribe_userp(
+    void* flunder, const char* path, flunder_subscribe_cbk_userp_t cbk, void* userp);
+
+FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* path);
+
+FLECS_EXPORT int flunder_publish_int(void* flunder, const char* path, int value);
+FLECS_EXPORT int flunder_publish_float(void* flunder, const char* path, float value);
+FLECS_EXPORT int flunder_publish_double(void* flunder, const char* path, double value);
+FLECS_EXPORT int flunder_publish_string(void* flunder, const char* path, const char* value);
+FLECS_EXPORT int flunder_publish_raw(void* flunder, const char* path, const void* value, size_t payloadlen);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif // __cplusplus
 
 #endif // C33E0442_0C18_433F_88A2_9738DDC82A5A

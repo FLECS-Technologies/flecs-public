@@ -42,8 +42,9 @@ public:
 
     FLECS_EXPORT int publish(std::string_view path, const std::string& type, const std::string& value);
 
-    // FLECS_EXPORT int subscribe(std::string_view path, const flunder_client_t::subscribe_callback_t& cbk);
-    // FLECS_EXPORT int unsubscribe(std::string_view path);
+    FLECS_EXPORT int subscribe(std::string_view path, const flunder_client_t::subscribe_cbk_t& cbk);
+    FLECS_EXPORT int subscribe(std::string_view path, const flunder_client_t::subscribe_cbk_userp_t& cbk, void* userp);
+    FLECS_EXPORT int unsubscribe(std::string_view path);
 
     FLECS_EXPORT int add_mem_storage(std::string_view path, std::string_view name);
     FLECS_EXPORT int remove_mem_storage(std::string_view name);
