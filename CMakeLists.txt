@@ -40,6 +40,9 @@ link_libraries(dl pthread)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 add_link_options(-Wl,--exclude-libs,ALL)
 
+# add install directory to rpath
+set(CMAKE_INSTALL_RPATH "/opt/flecs/lib")
+
 # provide macro to export symbols
 add_definitions("-DFLECS_EXPORT=__attribute__\(\(visibility\(\"default\"\)\)\)")
 
@@ -67,13 +70,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(apps)
 add_subdirectory(cli)
-add_subdirectory(daemon)
 add_subdirectory(develop)
 add_subdirectory(external)
 add_subdirectory(flunder)
 add_subdirectory(mqtt)
 add_subdirectory(updater)
 add_subdirectory(util)
+add_subdirectory(daemon)
 
 get_property(PACKAGES GLOBAL PROPERTY PACKAGES)
 add_custom_target(

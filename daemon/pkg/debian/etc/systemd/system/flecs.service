@@ -10,7 +10,7 @@ Wants=containerd.service
 [Service]
 Type=exec
 TimeoutStartSec=0
-ExecStart=/usr/bin/flecsd
+ExecStart=/opt/flecs/bin/flecsd
 Restart=on-failure
 RuntimeDirectory=flecs
 
