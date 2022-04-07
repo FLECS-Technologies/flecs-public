@@ -15,8 +15,12 @@
 #ifndef ADF3DE5E_D65D_4E99_8318_021E8B92926E
 #define ADF3DE5E_D65D_4E99_8318_021E8B92926E
 
+#include <zenoh.h>
+
+#include <map>
 #include <memory>
 #include <tuple>
+#include <variant>
 #include <vector>
 
 #include "flunder_client.h"
@@ -42,8 +46,10 @@ public:
 
     FLECS_EXPORT int publish(std::string_view path, const std::string& type, const std::string& value);
 
-    FLECS_EXPORT int subscribe(std::string_view path, const flunder_client_t::subscribe_cbk_t& cbk);
-    FLECS_EXPORT int subscribe(std::string_view path, const flunder_client_t::subscribe_cbk_userp_t& cbk, void* userp);
+    FLECS_EXPORT int subscribe(flunder_client_t* client, std::string_view path, flunder_client_t::subscribe_cbk_t cbk);
+    FLECS_EXPORT int subscribe(
+        flunder_client_t* client, std::string_view path, flunder_client_t::subscribe_cbk_userp_t cbk,
+        const void* userp);
     FLECS_EXPORT int unsubscribe(std::string_view path);
 
     FLECS_EXPORT int add_mem_storage(std::string_view path, std::string_view name);
@@ -52,9 +58,23 @@ public:
     FLECS_EXPORT auto get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>;
     FLECS_EXPORT int erase(std::string_view path);
 
+    /*! Function pointer to receive callback */
+    using subscribe_cbk_t = std::variant<flunder_client_t::subscribe_cbk_t, flunder_client_t::subscribe_cbk_userp_t>;
+
+    struct subscribe_ctx_t
+    {
+        flunder_client_t* _client;
+        zn_subscriber_t* _sub;
+        subscribe_cbk_t _cbk;
+        const void* _userp;
+    };
+
 private:
     std::unique_ptr<Json::CharReader> _json_reader;
     std::vector<std::string> _mem_storages;
+
+    zn_session_t* _zn_session;
+    std::map<std::string, subscribe_ctx_t> _subscriptions;
 };
 
 } // namespace Private

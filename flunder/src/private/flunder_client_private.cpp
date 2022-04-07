@@ -24,15 +24,35 @@
 namespace FLECS {
 namespace Private {
 
+/** @todo */
+template <class... Ts>
+struct overload : Ts...
+{
+    using Ts::operator()...;
+};
+template <class... Ts>
+overload(Ts...) -> overload<Ts...>;
+
+static void lib_subscribe_callback(const zn_sample_t* sample, const void* arg)
+{
+    auto key = std::string{sample->key.val, sample->key.len};
+    auto var = flunder_data_t{key.c_str(), sample->value.val, sample->value.len};
+    const auto* ctx = static_cast<const flunder_client_private_t::subscribe_ctx_t*>(arg);
+    std::visit(
+        overload{// call callback without userdata
+                 [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx->_client, &var); },
+                 // call callback with userdata
+                 [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx->_client, &var, ctx->_userp); }},
+        ctx->_cbk);
+}
+
 flunder_client_private_t::flunder_client_private_t()
     : _json_reader{Json::CharReaderBuilder().newCharReader()}
     , _mem_storages{}
 {}
 
 flunder_client_private_t::~flunder_client_private_t()
-{
-    disconnect();
-}
+{}
 
 int flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/)
 {
@@ -40,7 +60,13 @@ int flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/)
 
     const auto url = std::string{"http://flecs-flunder:8000"};
     const auto res = cpr::Get(cpr::Url{url});
-    return (res.status_code == 200) ? 0 : -1;
+
+    auto zn_properties = zn_config_default();
+    zn_properties_insert(zn_properties, ZN_CONFIG_PEER_KEY, z_string_make("tcp/flecs-flunder:7447"));
+    zn_properties_insert(zn_properties, ZN_CONFIG_MODE_KEY, z_string_make("client"));
+    _zn_session = zn_open(zn_properties);
+
+    return (res.status_code == 200 && _zn_session) ? 0 : -1;
 }
 
 int flunder_client_private_t::reconnect()
@@ -54,6 +80,11 @@ int flunder_client_private_t::disconnect()
     {
         remove_mem_storage(*_mem_storages.rbegin());
     }
+    if (_zn_session)
+    {
+        zn_close(_zn_session);
+        _zn_session = nullptr;
+    }
     return 0;
 }
 
@@ -64,20 +95,82 @@ int flunder_client_private_t::publish(std::string_view path, const std::string& 
     return (res.status_code == 200) ? 0 : -1;
 }
 
-int flunder_client_private_t::subscribe(std::string_view /*path*/, const flunder_client_t::subscribe_cbk_t& /*cbk*/)
+int flunder_client_private_t::subscribe(
+    flunder_client_t* client, std::string_view path, flunder_client_t::subscribe_cbk_t cbk)
 {
-    return -1;
+    if (_subscriptions.count(path.data()) > 0)
+    {
+        return -1;
+    }
+
+    auto ctx = subscribe_ctx_t{client, nullptr, cbk, nullptr};
+    auto res = _subscriptions.emplace(path, ctx);
+    if (!res.second)
+    {
+        return -1;
+    }
+
+    auto sub = zn_declare_subscriber(
+        _zn_session,
+        zn_rname(path.data()),
+        zn_subinfo_default(),
+        lib_subscribe_callback,
+        &res.first->second);
+    res.first->second._sub = sub;
+
+    if (!sub)
+    {
+        _subscriptions.erase(res.first);
+        return -1;
+    }
+
+    return 0;
 }
 
 int flunder_client_private_t::subscribe(
-    std::string_view /*path*/, const flunder_client_t::subscribe_cbk_userp_t& /*cbk*/, void* /*userp*/)
+    flunder_client_t* client, std::string_view path, flunder_client_t::subscribe_cbk_userp_t cbk, const void* userp)
 {
-    return -1;
+    if (_subscriptions.count(path.data()) > 0)
+    {
+        return -1;
+    }
+
+    auto ctx = subscribe_ctx_t{client, nullptr, cbk, userp};
+    auto res = _subscriptions.emplace(path, ctx);
+    if (!res.second)
+    {
+        return -1;
+    }
+
+    auto sub = zn_declare_subscriber(
+        _zn_session,
+        zn_rname(path.data()),
+        zn_subinfo_default(),
+        lib_subscribe_callback,
+        &res.first->second);
+    res.first->second._sub = sub;
+
+    if (!sub)
+    {
+        _subscriptions.erase(res.first);
+        return -1;
+    }
+
+    return 0;
 }
 
-int flunder_client_private_t::unsubscribe(std::string_view /*path*/)
+int flunder_client_private_t::unsubscribe(std::string_view path)
 {
-    return -1;
+    auto it = _subscriptions.find(path.data());
+    if (it == _subscriptions.cend())
+    {
+        return -1;
+    }
+
+    zn_undeclare_subscriber(it->second._sub);
+    _subscriptions.erase(it);
+
+    return 0;
 }
 
 int flunder_client_private_t::add_mem_storage(std::string_view name, std::string_view path)

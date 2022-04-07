@@ -30,8 +30,8 @@ namespace FLECS {
 struct flunder_data_t
 {
     const char* _path;
-    void* _data;
-    uint32_t _len;
+    const void* _data;
+    uint64_t _len;
 };
 
 #ifdef __cplusplus

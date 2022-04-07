@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define __STDC_FORMAT_MACROS 1
+
+#include <cinttypes>
 #include <csignal>
 #include <thread>
 
@@ -28,7 +31,23 @@ void signal_handler(int)
 
 void flunder_receive_callback(FLECS::flunder_client_t* client, FLECS::flunder_data_t* msg)
 {
-    std::fprintf(stdout, "Received flunder message for topic %s on client %p\n", msg->_path, client);
+    std::fprintf(
+        stdout,
+        "Received flunder message for topic %s on client %p with length %" PRIu64 "\n",
+        msg->_path,
+        client,
+        msg->_len);
+}
+
+void flunder_receive_callback_userp(FLECS::flunder_client_t* client, FLECS::flunder_data_t* msg, const void* userp)
+{
+    std::fprintf(
+        stdout,
+        "Received flunder message for topic %s on client %p with length %" PRIu64 " and userdata %s\n",
+        msg->_path,
+        client,
+        msg->_len,
+        (const char*)userp);
 }
 
 int main()
@@ -42,7 +61,8 @@ int main()
     flunder_client.add_mem_storage("flunder-cpp", "/flecs/flunder/**");
 
     flunder_client.subscribe("/flecs/flunder/cpp", &flunder_receive_callback);
-    flunder_client.subscribe("/flecs/flunder/external", &flunder_receive_callback);
+    const char* userdata = "Hello, world!";
+    flunder_client.subscribe("/flecs/flunder/external", &flunder_receive_callback_userp, (const void*)userdata);
 
     while (!g_stop)
     {
