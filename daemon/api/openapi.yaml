@@ -61,7 +61,7 @@ components:
       type: object
       description: IP address of an instance
       properties:
-        ipAdddress:
+        ipAddress:
           type: string
           example: "172.21.0.2"
     licenseKey:
