@@ -80,7 +80,8 @@
         "complex": "cpp",
         "codecvt": "cpp",
         "condition_variable": "cpp",
-        "mutex": "cpp"
+        "mutex": "cpp",
+        "future": "cpp"
     },
     "cSpell.words": [
         "flecs"

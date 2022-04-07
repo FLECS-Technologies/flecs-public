@@ -105,12 +105,12 @@ public:
     FLECS_EXPORT int publish(std::string_view path, const void* data, size_t len);
 
     using subscribe_cbk_t = std::function<void(flunder_client_t*, flunder_data_t*)>;
-    using subscribe_cbk_userp_t = std::function<void(flunder_client_t*, flunder_data_t*, void*)>;
+    using subscribe_cbk_userp_t = std::function<void(flunder_client_t*, flunder_data_t*, const void*)>;
 
     /* subscribe to live data */
-    FLECS_EXPORT int subscribe(std::string_view path, const subscribe_cbk_t& cbk);
+    FLECS_EXPORT int subscribe(std::string_view path, subscribe_cbk_t cbk);
     /* subscribe to live data with userdata */
-    FLECS_EXPORT int subscribe(std::string_view path, const subscribe_cbk_userp_t& cbk, void* userp);
+    FLECS_EXPORT int subscribe(std::string_view path, subscribe_cbk_userp_t cbk, const void* userp);
     /* unsubscribe from live data */
     FLECS_EXPORT int unsubscribe(std::string_view path);
 
@@ -159,7 +159,7 @@ extern "C" {
 #endif // __cplusplus
 
 typedef void (*flunder_subscribe_cbk_t)(void*, struct flunder_data_t*);
-typedef void (*flunder_subscribe_cbk_userp_t)(void*, struct flunder_data_t*, void*);
+typedef void (*flunder_subscribe_cbk_userp_t)(void*, struct flunder_data_t*, const void*);
 
 FLECS_EXPORT void* flunder_client_new(void);
 
@@ -173,7 +173,7 @@ FLECS_EXPORT int flunder_disconnect(void* flunder);
 
 FLECS_EXPORT int flunder_subscribe(void* flunder, const char* path, flunder_subscribe_cbk_t cbk);
 FLECS_EXPORT int flunder_subscribe_userp(
-    void* flunder, const char* path, flunder_subscribe_cbk_userp_t cbk, void* userp);
+    void* flunder, const char* path, flunder_subscribe_cbk_userp_t cbk, const void* userp);
 
 FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* path);
 
