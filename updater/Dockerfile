@@ -5,12 +5,12 @@ ARG ARCH
 ARG VERSION
 
 COPY [ \
-    "out/${MACHINE}/usr/bin/flecs.deb.tar.gz", \
-    "out/${MACHINE}/usr/bin/flecs-updater.deb.tar.gz", \
-    "/bin/" ]
+    "out/${MACHINE}/opt/flecs/pkg/flecs.deb.tar.gz", \
+    "out/${MACHINE}/opt/flecs/pkg/flecs-updater.deb.tar.gz", \
+    "/pkg/" ]
 
 ENTRYPOINT [ \
     "/bin/cp", "-f", \
-    "/bin/flecs.deb.tar.gz", \
-    "/bin/flecs-updater.deb.tar.gz", \
+    "/pkg/flecs.deb.tar.gz", \
+    "/pkg/flecs-updater.deb.tar.gz", \
     "-t", "/host/usr/bin/" ]

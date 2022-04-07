@@ -66,39 +66,49 @@ target_link_libraries(FLECS.daemon PRIVATE
 # install executable flecsd for packaging
 install(
     TARGETS FLECS.daemon RUNTIME
-    DESTINATION ${PACKAGE_DIR}/debian/usr/bin
+    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )
 install(
     TARGETS FLECS.daemon RUNTIME
-    DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
+    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/bin
 )
 
-# install shared object for packaging
+# install shared objects for packaging
 install(
-    TARGETS FLECS.daemon.lib LIBRARY
-    DESTINATION ${PACKAGE_DIR}/debian/usr/lib
+    TARGETS FLECS.daemon.lib FLECS.mqtt.shared LIBRARY
+    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
 )
 install(
-    TARGETS FLECS.daemon.lib LIBRARY
-    DESTINATION ${PACKAGE_DIR}/opkg/usr/lib
+    TARGETS FLECS.daemon.lib FLECS.mqtt.shared LIBRARY
+    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/lib
 )
+
+install(
+    FILES $<TARGET_FILE:FLECS.external.zenoh-c>
+    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
+)
+install(
+    FILES $<TARGET_FILE:FLECS.external.zenoh-c>
+    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/lib
+)
+
 
 # install FLECS cli for packaging
 install(
     TARGETS FLECS.cli RUNTIME
-    DESTINATION ${PACKAGE_DIR}/debian/usr/bin
+    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )
 install(
     TARGETS FLECS.cli RUNTIME
-    DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
+    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/bin
 )
 
 # install hosts script for packaging
 install(
     PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
-    DESTINATION ${PACKAGE_DIR}/debian/usr/bin
+    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )
 install(
     PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
-    DESTINATION ${PACKAGE_DIR}/opkg/usr/bin
+    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/bin
 )

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 set(PACKAGE_DIR ${CMAKE_CURRENT_BINARY_DIR}/pkg)
+set(FLECS_INSTALL_DIR /opt/flecs/)
 
 # copy generic pkg directory
 install(
