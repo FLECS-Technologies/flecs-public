@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: "CMake: Configure"
         run: |
-          cmake -B out/${{ matrix.arch }} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${{ matrix.arch }}.cmake
+          cmake -G Ninja -B out/${{ matrix.arch }} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${{ matrix.arch }}.cmake
       - name: "CMake: Build"
         run: |
           cmake --build out/${{ matrix.arch }}
