@@ -42,6 +42,8 @@ struct apps_table_data_t
     app_status_e desired;
     std::string category;
     std::int32_t installed_size;
+    std::string license_key;
+    std::string download_token;
 };
 struct apps_table_entry_t : public apps_table_primary_t, public apps_table_data_t
 {
@@ -172,7 +174,7 @@ public:
 
     const char* errmsg() const noexcept { return static_cast<const sqlite3_db_t*>(this)->errmsg(); }
 
-    static constexpr int CURRENT_USER_VERSION = 2;
+    static constexpr int CURRENT_USER_VERSION = 3;
 
 private:
     void cache_db();
