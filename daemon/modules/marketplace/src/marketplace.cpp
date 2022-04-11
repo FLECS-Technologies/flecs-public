@@ -30,13 +30,28 @@ module_marketplace_t::module_marketplace_t()
     api::register_endpoint("/marketplace/logout", std::bind(&module_marketplace_t::mp_logout, this, _1, _2));
 }
 
-http_status_e module_marketplace_t::mp_login(const Json::Value& /*args*/, Json::Value& /*response*/)
+http_status_e module_marketplace_t::mp_login(const Json::Value& args, Json::Value& response)
 {
+    REQUIRED_JSON_VALUE(args, user);
+    REQUIRED_JSON_VALUE(args, token);
+
+    _user = user;
+    _token = token;
+
+    response["additionalInfo"] = "OK";
+
     return http_status_e::Ok;
 }
 
-http_status_e module_marketplace_t::mp_logout(const Json::Value& /*args*/, Json::Value& /*response*/)
+http_status_e module_marketplace_t::mp_logout(const Json::Value& args, Json::Value& response)
 {
+    OPTIONAL_JSON_VALUE(args, user);
+
+    _user.clear();
+    _token.clear();
+
+    response["additionalInfo"] = "OK";
+
     return http_status_e::Ok;
 }
 
