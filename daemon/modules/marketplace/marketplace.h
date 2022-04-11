@@ -27,9 +27,15 @@ protected:
 
     module_marketplace_t();
 
+    auto& user() const noexcept { return _user; }
+    auto& token() const noexcept { return _token; }
+
 private:
     http_status_e mp_login(const Json::Value& args, Json::Value& response);
     http_status_e mp_logout(const Json::Value& args, Json::Value& response);
+
+    std::string _user;
+    std::string _token;
 };
 
 } // namespace FLECS
