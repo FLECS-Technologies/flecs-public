@@ -62,6 +62,14 @@ static int select_apps_callback(void* data, int argc, char** argv, char* col_nam
         {
             entry.installed_size = atoi(argv[i]);
         }
+        else if (col == "license_key")
+        {
+            entry.license_key = argv[i];
+        }
+        else if (col == "download_token")
+        {
+            entry.download_token = argv[i];
+        }
     }
     return 0;
 }
@@ -166,6 +174,8 @@ int app_db_t::create_app_table()
         sqlite3_column_t{"desired", SQLITE3_TEXT, 1},
         sqlite3_column_t{"category", SQLITE3_TEXT, 255},
         sqlite3_column_t{"installed_size", SQLITE_INTEGER},
+        sqlite3_column_t{"license_key", SQLITE3_TEXT, 255},
+        sqlite3_column_t{"download_token", SQLITE3_TEXT, 1024},
         sqlite3_primary_t{"app, version"});
 }
 
@@ -358,7 +368,9 @@ int app_db_t::persist()
             app.second.status,
             app.second.desired,
             app.second.category,
-            app.second.installed_size);
+            app.second.installed_size,
+            app.second.license_key,
+            app.second.download_token);
         if (res != SQLITE_OK)
         {
             return res;

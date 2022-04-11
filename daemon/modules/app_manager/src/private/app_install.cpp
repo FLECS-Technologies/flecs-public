@@ -105,7 +105,7 @@ http_status_e module_app_manager_private_t::do_install(const std::string& manife
     // Step 2: Add database entry for app. At this point the existence of the requested app is guaranteed as its
     // manifest was transferred to the local storage, so it is safe to add it to the local app database
     auto status = MANIFEST_DOWNLOADED;
-    _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0});
+    _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0, "", ""});
 
     // Step 3: Pull Docker image for this app
     auto docker_process = process_t{};
@@ -123,7 +123,7 @@ http_status_e module_app_manager_private_t::do_install(const std::string& manife
     status = INSTALLED;
 
     // Final step: Persist successful installation into db
-    _app_db.insert_app(apps_table_entry_t{app.name(), app.version(), status, desired, app.category(), 0});
+    _app_db.insert_app(apps_table_entry_t{app.name(), app.version(), status, desired, app.category(), 0, "", ""});
     _app_db.persist();
 
     return http_status_e::Ok;

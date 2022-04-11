@@ -23,7 +23,13 @@ auto make_app_entry(std::string app = "tech.flecs.test", std::string version = "
 {
     return FLECS::apps_table_entry_t{
         FLECS::apps_table_primary_t{app, version},
-        FLECS::apps_table_data_t{FLECS::NOT_INSTALLED, FLECS::INSTALLED, "test", 2134}};
+        FLECS::apps_table_data_t{
+            FLECS::NOT_INSTALLED,
+            FLECS::INSTALLED,
+            "test",
+            2134,
+            "license-key",
+            "download-token"}};
 }
 
 auto make_instance_entry(std::string id = "789abcde", FLECS::apps_table_primary_t app = {"tech.flecs.test", "1.0.0.0"})
@@ -60,6 +66,8 @@ void assert_db_has_app(const FLECS::app_db_t& app_db, const FLECS::apps_table_en
     ASSERT_EQ(app_val.desired, data.desired);
     ASSERT_EQ(app_val.category, data.category);
     ASSERT_EQ(app_val.installed_size, data.installed_size);
+    ASSERT_EQ(app_val.license_key, data.license_key);
+    ASSERT_EQ(app_val.download_token, data.download_token);
 }
 
 void assert_db_has_instance(const FLECS::app_db_t& app_db, const FLECS::instances_table_entry_t& instance)
