@@ -58,5 +58,5 @@ fi
 
 echo "Building ${BUILD_TYPE} for ${ARCH} with options ${CMAKE_OPTIONS}"
 
-cmake -B out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${ARCH}.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${CMAKE_OPTIONS}
+cmake -G Ninja -B out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${ARCH}.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${CMAKE_OPTIONS}
 cmake --build out/${ARCH}
