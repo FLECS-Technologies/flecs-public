@@ -41,12 +41,4 @@ install(
     DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${MACHINE}/docker
 )
 
-# workaround to trigger CMake install for now
-add_custom_target(
-    ${DOCKER_IMAGE}_prepare
-    DEPENDS packages
-)
-
-
 include(docker)
-
