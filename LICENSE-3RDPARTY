@@ -3,7 +3,7 @@ licensed under the following conditions by their respective owners
 
 ================================================================================
 Project:    libcurl
-Version:    v7.79.1
+Version:    v7.81.0
 License:    MIT license derivative
 URL         https://github.com/curl/curl
 Copyright:  Daniel Stenberg
@@ -115,7 +115,7 @@ Copyright:  Eclipse Foundation
 
 ================================================================================
 Project:    cpr
-Version:    v1.7.2
+Version:    v1.8.1
 License:    MIT License
 URL:        https://github.com/libcpr/cpr
 Copyright:  2017-2021 Huu Nguyen, 2021 libcpr and many other contributors
