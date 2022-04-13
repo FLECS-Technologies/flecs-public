@@ -39,6 +39,18 @@ process_t::process_t()
     , _status{}
 {}
 
+process_t::process_t(process_t&& other)
+    : process_t{}
+{
+    swap(*this, other);
+}
+
+process_t& process_t::operator=(process_t other)
+{
+    swap(*this, other);
+    return *this;
+}
+
 process_t::~process_t()
 {
     close(_fd_stdout);
@@ -140,6 +152,19 @@ int process_t::do_spawn(const char* exec, bool path)
 
     return path ? posix_spawnp(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ)
                 : posix_spawn(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ);
+}
+
+void swap(process_t& lhs, process_t& rhs)
+{
+    using std::swap;
+
+    swap(lhs._args, rhs._args);
+    swap(lhs._filename_stdout, rhs._filename_stdout);
+    swap(lhs._filename_stderr, rhs._filename_stderr);
+    swap(lhs._fd_stdout, rhs._fd_stdout);
+    swap(lhs._fd_stderr, rhs._fd_stderr);
+    swap(lhs._pid, rhs._pid);
+    swap(lhs._status, rhs._status);
 }
 
 } // namespace FLECS
