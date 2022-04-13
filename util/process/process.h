@@ -29,6 +29,10 @@ class process_t
 public:
     process_t();
 
+    process_t(const process_t&) = delete;
+    process_t(process_t&& other);
+    process_t& operator=(process_t other);
+
     ~process_t();
 
     int spawn(const char* path) { return do_spawn(path, false); }
@@ -60,6 +64,8 @@ public:
     std::string stderr() const noexcept;
 
 private:
+    friend void swap(process_t& lhs, process_t& rhs);
+
     int do_spawn(const char* exec, bool path);
 
     std::string output(int fd) const noexcept;
