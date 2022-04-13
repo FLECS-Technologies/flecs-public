@@ -25,6 +25,7 @@ enum app_status_e : char
 {
     NOT_INSTALLED = 'n',
     MANIFEST_DOWNLOADED = 'm',
+    TOKEN_ACQUIRED = 't',
     IMAGE_DOWNLOADED = 'd',
     INSTALLED = 'i',
     REMOVED = 'r',
@@ -37,10 +38,11 @@ inline std::string to_string(app_status_e val)
     return res.append(1, val);
 }
 
-using app_status_to_string_t = map_c<app_status_e, const char*, 6>;
+using app_status_to_string_t = map_c<app_status_e, const char*, 7>;
 constexpr app_status_to_string_t app_status_to_string_table = {{
     std::make_pair(app_status_e::NOT_INSTALLED, "not installed"),
     std::make_pair(app_status_e::MANIFEST_DOWNLOADED, "manifest downloaded"),
+    std::make_pair(app_status_e::TOKEN_ACQUIRED, "token acquired"),
     std::make_pair(app_status_e::IMAGE_DOWNLOADED, "image downloaded"),
     std::make_pair(app_status_e::INSTALLED, "installed"),
     std::make_pair(app_status_e::REMOVED, "removed"),
