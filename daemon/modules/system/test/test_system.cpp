@@ -12,26 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef E72B4073_69B1_4AE8_BCEC_210EBF10489E
-#define E72B4073_69B1_4AE8_BCEC_210EBF10489E
+#include "gtest/gtest.h"
+#include "system/system.h"
 
-#include "module_base/module.h"
-
-namespace FLECS {
-
-class module_system_t : public module_t
+class module_system_test_t : public FLECS::module_system_t
 {
 public:
-    http_status_e ping(const Json::Value& args, Json::Value& response);
-
-protected:
-    friend class module_factory_t;
-
-    module_system_t();
-
-private:
+    module_system_test_t() = default;
 };
 
-} // namespace FLECS
+TEST(module_version, print_version)
+{
+    const auto out_expected = std::string{"{\n\t\"additionalInfo\" : \"OK\"\n}\n"};
 
-#endif // E72B4073_69B1_4AE8_BCEC_210EBF10489E
+    auto mod = module_system_test_t{};
+    auto response = Json::Value{};
+    const auto res = mod.ping(Json::Value{}, response);
+
+    response.toStyledString();
+
+    ASSERT_EQ(res, FLECS::http_status_e::Ok);
+    ASSERT_EQ(response.toStyledString(), out_expected);
+}
