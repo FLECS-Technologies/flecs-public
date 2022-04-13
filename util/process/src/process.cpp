@@ -97,6 +97,11 @@ std::string process_t::output(int fd) const noexcept
     ssize_t len = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
 
+    if (len < 0)
+    {
+        return "";
+    }
+
     std::string str(len, '\0');
     read(fd, str.data(), len);
     return str;
