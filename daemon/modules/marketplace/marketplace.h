@@ -22,13 +22,13 @@ namespace FLECS {
 class module_marketplace_t : public module_t
 {
 public:
+    auto& user() const noexcept { return _user; }
+    auto& token() const noexcept { return _token; }
+
 protected:
     friend class module_factory_t;
 
     module_marketplace_t();
-
-    auto& user() const noexcept { return _user; }
-    auto& token() const noexcept { return _token; }
 
 private:
     http_status_e mp_login(const Json::Value& args, Json::Value& response);
