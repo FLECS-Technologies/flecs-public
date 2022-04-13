@@ -51,13 +51,15 @@ public:
      *
      * @param[in] app_name Name of the app to install
      * @param[in] version Version of the app to install
+     * @param[in] license_key License key to activate with the marketplace
      *
      * @return error code
      * @return FLECS_OK: No error occurred
      * @return Any error code returned by @sa download_manifest
      * @return Any error code returned by overloaded @sa do_install(const std::string&)
      */
-    http_status_e do_install(const std::string& app_name, const std::string& version, Json::Value& response);
+    http_status_e do_install(
+        const std::string& app_name, const std::string& version, const std::string& license_key, Json::Value& response);
 
     /*! @brief Installs an app from its YAML manifest
      *
@@ -68,7 +70,7 @@ public:
      * @return FLECS_YAML: Error parsing manifest
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
-    http_status_e do_install(const std::string& manifest, Json::Value& response);
+    http_status_e do_install(const std::string& manifest, const std::string& license_key, Json::Value& response);
 
     /*! @brief Sideloads an app from its YAML manifest
      *
@@ -82,7 +84,7 @@ public:
      * @return FLECS_IOW: Error writing manifest to FLECS application directory
      * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
      */
-    http_status_e do_sideload(const std::string& manifest_path, Json::Value& response);
+    http_status_e do_sideload(const std::string& manifest_path, const std::string& license_key, Json::Value& response);
 
     /*! @brief Uninstalls an application
      *

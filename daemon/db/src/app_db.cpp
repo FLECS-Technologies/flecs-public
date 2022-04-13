@@ -175,7 +175,7 @@ int app_db_t::create_app_table()
         sqlite3_column_t{"category", SQLITE3_TEXT, 255},
         sqlite3_column_t{"installed_size", SQLITE_INTEGER},
         sqlite3_column_t{"license_key", SQLITE3_TEXT, 255},
-        sqlite3_column_t{"download_token", SQLITE3_TEXT, 1024},
+        sqlite3_column_t{"download_token", SQLITE3_TEXT, 8192},
         sqlite3_primary_t{"app, version"});
 }
 

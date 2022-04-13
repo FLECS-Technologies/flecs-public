@@ -21,7 +21,8 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_sideload(const std::string& manifest_path, Json::Value& response)
+http_status_e module_app_manager_private_t::do_sideload(
+    const std::string& manifest_path, const std::string& license_key, Json::Value& response)
 {
     // Step 1: Parse transferred manifest
     auto app = app_t{manifest_path};
@@ -44,7 +45,7 @@ http_status_e module_app_manager_private_t::do_sideload(const std::string& manif
     }
 
     // Step 3: Forward to manifest installation
-    return do_install(manifest_path, response);
+    return do_install(manifest_path, license_key, response);
 }
 
 } // namespace Private

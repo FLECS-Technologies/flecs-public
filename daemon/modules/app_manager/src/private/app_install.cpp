@@ -15,7 +15,10 @@
 #include <cpr/cpr.h>
 
 #include "app/app.h"
+#include "factory/factory.h"
+#include "marketplace/marketplace.h"
 #include "private/app_manager_private.h"
+#include "util/json/json_parser.h"
 #include "util/process/process.h"
 
 namespace FLECS {
@@ -68,10 +71,78 @@ int download_manifest(const std::string& app_name, const std::string& version)
     return 0;
 }
 
+std::string acquire_download_token(const std::string& license_key)
+{
+    const auto mp_api = dynamic_cast<const module_marketplace_t*>(api::query_module("mp").get());
+    if (!mp_api)
+    {
+        return "";
+    }
+
+    const auto wc_user_token = mp_api->token();
+
+    auto post_json = Json::Value{};
+    post_json["wc_user_token"] = wc_user_token;
+    post_json["license_key"] = license_key;
+
+    const auto http_res = cpr::Post(
+        cpr::Url{"https://marketplace.flecs.tech/api/v1/app/download"},
+        cpr::Header{{"content-type", "application/json"}},
+        cpr::Body{post_json.toStyledString()});
+
+    if (http_res.status_code != 200)
+    {
+        return "";
+    }
+
+    const auto response_json = parse_json(http_res.text);
+    if (!response_json.has_value())
+    {
+        return "";
+    }
+
+    const auto success = response_json.value()["success"].as<bool>();
+    const auto user_token = response_json.value()["user_token"].as<std::string>();
+    const auto access_token = response_json.value()["access_token"]["token"].as<std::string>();
+    const auto uuid = response_json.value()["access_token"]["uuid"].as<std::string>();
+
+    if (!success || user_token.empty() || access_token.empty() || uuid.empty())
+    {
+        return "";
+    }
+
+    return stringify_delim(';', user_token, access_token, uuid);
+}
+
+bool expire_download_token(const std::string& user_token, const std::string& access_token)
+{
+    auto post_json = Json::Value{};
+    post_json["user_token"] = user_token;
+    post_json["access_token"] = access_token;
+
+    const auto http_res = cpr::Post(
+        cpr::Url{"https://marketplace.flecs.tech/api/v1/app/finish"},
+        cpr::Header{{"content-type", "application/json"}},
+        cpr::Body{post_json.toStyledString()});
+
+    if (http_res.status_code != 200)
+    {
+        return false;
+    }
+
+    const auto response_json = parse_json(http_res.text);
+    if (!response_json.has_value())
+    {
+        return false;
+    }
+
+    return response_json.value()["success"].as<std::string>() == "true";
+}
+
 } // namespace
 
 http_status_e module_app_manager_private_t::do_install(
-    const std::string& app_name, const std::string& version, Json::Value& response)
+    const std::string& app_name, const std::string& version, const std::string& license_key, Json::Value& response)
 {
     response["app"] = app_name;
     response["version"] = version;
@@ -84,15 +155,16 @@ http_status_e module_app_manager_private_t::do_install(
         return http_status_e::InternalServerError;
     };
 
-    return do_install(build_manifest_path(app_name, version), response);
+    return do_install(build_manifest_path(app_name, version), license_key, response);
 }
 
-http_status_e module_app_manager_private_t::do_install(const std::string& manifest, Json::Value& response)
+http_status_e module_app_manager_private_t::do_install(
+    const std::string& manifest, const std::string& license_key, Json::Value& response)
 {
     const auto desired = INSTALLED;
 
     // Step 1: Load app manifest
-    auto app = app_t{manifest};
+    const auto app = app_t{manifest};
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open app manifest " + manifest;
@@ -102,28 +174,107 @@ http_status_e module_app_manager_private_t::do_install(const std::string& manife
     response["app"] = app.name();
     response["version"] = app.version();
 
-    // Step 2: Add database entry for app. At this point the existence of the requested app is guaranteed as its
-    // manifest was transferred to the local storage, so it is safe to add it to the local app database
-    auto status = MANIFEST_DOWNLOADED;
-    _app_db.insert_app({app.name(), app.version(), status, desired, app.category(), 0, "", ""});
+    // Step 2: Determine current app status to decide where to continue
+    auto app_entry = _app_db.query_app({app.name(), app.version()})
+                         .value_or(apps_table_entry_t{
+                             apps_table_primary_t{app.name(), app.version()},
+                             apps_table_data_t{MANIFEST_DOWNLOADED, desired, app.category(), 0, license_key, ""}});
 
-    // Step 3: Pull Docker image for this app
-    auto docker_process = process_t{};
-    docker_process.spawnp("docker", "pull", app.image_with_tag());
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0)
+    // Step 3: Add database entry for app. At this point the existence of the requested app is guaranteed as its
+    // manifest was transferred to the local storage, so it is safe to add it to the local app database
+    _app_db.insert_app(app_entry);
+
+    switch (app_entry.status)
     {
-        response["additionalInfo"] = docker_process.stderr();
-        return http_status_e::InternalServerError;
+        case MANIFEST_DOWNLOADED: {
+            // Step 4: Acquire download token for app
+            app_entry.download_token = acquire_download_token(license_key);
+
+            if (app_entry.download_token.empty())
+            {
+                response["additionalInfo"] = "Could not acquire download token";
+            }
+            else
+            {
+                app_entry.status = TOKEN_ACQUIRED;
+            }
+
+            _app_db.insert_app(app_entry);
+            [[fallthrough]];
+        }
+        case TOKEN_ACQUIRED: {
+            // Step 5: Pull Docker image for this app
+            auto docker_login_process = process_t{};
+            auto docker_pull_process = process_t{};
+            auto docker_logout_process = process_t{};
+            const auto args = split(app_entry.download_token, ';');
+
+            if (args.size() == 3)
+            {
+                auto login_attempts = 3;
+                while (login_attempts-- > 0)
+                {
+                    docker_login_process = process_t{};
+                    docker_login_process.spawnp("docker", "login", "--username", "flecs", "--password", args[1]);
+                    docker_login_process.wait(true, true);
+                    if (docker_login_process.exit_code() == 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (docker_login_process.exit_code() != 0)
+            {
+                response["additionalInfo"] = docker_login_process.stderr();
+                return http_status_e::InternalServerError;
+            }
+
+            auto pull_attempts = 3;
+            while (pull_attempts-- > 0)
+            {
+                docker_pull_process = process_t{};
+                docker_pull_process.spawnp("docker", "pull", app.image_with_tag());
+                docker_pull_process.wait(true, true);
+                if (docker_pull_process.exit_code() == 0)
+                {
+                    break;
+                }
+            }
+
+            docker_logout_process.spawnp("docker", "logout");
+            docker_logout_process.wait(true, true);
+
+            if (docker_pull_process.exit_code() != 0)
+            {
+                response["additionalInfo"] = docker_pull_process.stderr();
+                return http_status_e::InternalServerError;
+            }
+            app_entry.status = IMAGE_DOWNLOADED;
+            _app_db.insert_app(app_entry);
+            [[fallthrough]];
+        }
+        case IMAGE_DOWNLOADED: {
+            // Step 6: Expire download token
+            const auto args = split(app_entry.download_token, ';');
+            if (args.size() == 3)
+            {
+                const auto success = expire_download_token(args[0], args[2]);
+                if (!success)
+                {
+                    response["additionalInfo"] = "Could not expire download token";
+                }
+            }
+            // Placeholder for future extensions. As of now, the installation is complete once the image is downloaded
+            app_entry.status = INSTALLED;
+            _app_db.insert_app(app_entry);
+            break;
+        }
+        default: {
+        }
     }
 
-    // Placeholder for future extensions. As of now, the installation is complete once the image is downloaded
-    // status = IMAGE_DOWNLOADED;
-
-    status = INSTALLED;
-
     // Final step: Persist successful installation into db
-    _app_db.insert_app(apps_table_entry_t{app.name(), app.version(), status, desired, app.category(), 0, "", ""});
     _app_db.persist();
 
     return http_status_e::Ok;

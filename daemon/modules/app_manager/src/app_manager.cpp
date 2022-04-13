@@ -55,13 +55,14 @@ http_status_e module_app_manager_t::install(const Json::Value& args, Json::Value
     REQUIRED_JSON_VALUE(args, app);
     REQUIRED_JSON_VALUE(args, version);
     OPTIONAL_JSON_VALUE(args, licenseKey);
-    return _impl->do_install(app, version, response);
+    return _impl->do_install(app, version, licenseKey, response);
 }
 
 http_status_e module_app_manager_t::sideload(const Json::Value& args, Json::Value& response)
 {
     REQUIRED_JSON_VALUE(args, path);
-    return _impl->do_sideload(path, response);
+    OPTIONAL_JSON_VALUE(args, licenseKey);
+    return _impl->do_sideload(path, licenseKey, response);
 }
 
 http_status_e module_app_manager_t::uninstall(const Json::Value& args, Json::Value& response)
