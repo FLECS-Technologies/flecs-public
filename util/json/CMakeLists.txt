@@ -12,10 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(datetime)
-add_subdirectory(json)
-add_subdirectory(llhttp_ext)
-add_subdirectory(process)
-add_subdirectory(signal_handler)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
+project(FLECS.util.json)
+
+add_library(FLECS.util.json OBJECT
+    src/json_parser.cpp
+    json_parser.h
+)
+
+target_include_directories(FLECS.util.json PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(FLECS.util.json PUBLIC
+    FLECS.external.jsoncpp
+)
