@@ -28,7 +28,7 @@ set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-v6.0.6)
 set (MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.14)
 set (OPENSSL_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1m)
 set (PYBIND11_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.9.1)
-set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.37.2)
+set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.38.2)
 set (YAMLCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set (ZENOH_C_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
 set (ZEROMQ_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/zeromq-4.3.4)
@@ -96,8 +96,8 @@ add_custom_target(
     WORKING_DIRECTORY ${SQLITE3_DIR}
     COMMAND autoreconf
     COMMAND ./configure --prefix=${SQLITE3_DIR}/out/${MACHINE} --host=${CROSS_COMPILE}
-    COMMAND ${CMAKE_MAKE_PROGRAM} install
-    COMMAND ${CMAKE_MAKE_PROGRAM} clean
+    COMMAND make install
+    COMMAND make clean
 )
 
 # yaml-cpp
