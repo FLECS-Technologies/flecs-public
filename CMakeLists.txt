@@ -79,10 +79,7 @@ add_subdirectory(util)
 add_subdirectory(daemon)
 
 get_property(PACKAGES GLOBAL PROPERTY PACKAGES)
-add_custom_target(
-    pkg-install
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target install
-)
+
 add_custom_target(
     packages
     DEPENDS ${PACKAGES}

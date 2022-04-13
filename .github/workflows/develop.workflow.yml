@@ -21,6 +21,9 @@ jobs:
       - name: "CMake: Build"
         run: |
           cmake --build out/${{ matrix.arch }}
+      - name: "CMake: Install"
+        run: |
+          cmake --build out/${{ matrix.arch }} --target install
       - name: "CMake: Package"
         run: |
           cmake --build out/${{ matrix.arch }} --target packages

@@ -61,7 +61,6 @@ add_custom_command(
 # these should not be two separate copy-paste rules, but let's get to that...
 add_custom_target(
     ${PACKAGE}_deb-pkg-prepare
-    DEPENDS pkg-install
     COMMAND sed -i "s/##ARCH##/${ARCH}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/control
     COMMAND sed -i "s/##PACKAGE##/${PACKAGE}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/*
     COMMAND sed -i "s/##VERSION##/${VERSION}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/*
@@ -70,7 +69,6 @@ add_custom_target(
 
 add_custom_target(
     ${PACKAGE}_opkg-pkg-prepare
-    DEPENDS pkg-install
     COMMAND sed -i "s/##ARCH##/${ARCH}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/control
     COMMAND sed -i "s/##PACKAGE##/${PACKAGE}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/*
     COMMAND sed -i "s/##VERSION##/${VERSION}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/*
