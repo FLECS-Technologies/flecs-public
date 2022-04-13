@@ -15,3 +15,5 @@
 flecs_add_module(
     MODULE_NAME system
 )
+
+add_subdirectory(test)
