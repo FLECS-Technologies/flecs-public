@@ -29,5 +29,5 @@ flecs_add_module(
         src/private/instance_stop.cpp
     ADDITIONAL_HEADERS private/app_manager_private.h
     LIBS_PUBLIC FLECS.daemon.db
-    LIBS_PRIVATE FLECS.external.jsoncpp FLECS.external.cpr
+    LIBS_PRIVATE FLECS.util.json FLECS.external.cpr
 )
