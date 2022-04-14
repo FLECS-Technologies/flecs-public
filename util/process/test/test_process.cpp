@@ -43,6 +43,25 @@ TEST(util_process, spawnp)
     ASSERT_EQ(test_process.stdout(), "FLECS");
 }
 
+TEST(util_process, spawnp_args)
+{
+    auto test_process = FLECS::process_t{};
+
+    test_process.arg("-n");
+    test_process.arg("FLECS");
+
+    testing::internal::CaptureStdout();
+
+    const auto spawn_res = test_process.spawnp("echo");
+    ASSERT_EQ(spawn_res, 0);
+
+    const auto wait_res = test_process.wait(true, true);
+    ASSERT_NE(wait_res, -1);
+
+    ASSERT_EQ(test_process.exit_code(), 0);
+    ASSERT_EQ(testing::internal::GetCapturedStdout(), "FLECS");
+}
+
 TEST(util_process, spawn_fail)
 {
     auto test_process = FLECS::process_t{};
@@ -69,4 +88,42 @@ TEST(util_process, spawnp_fail)
 
     ASSERT_EQ(test_process.stdout(), "");
     ASSERT_EQ(test_process.stderr(), "");
+}
+
+TEST(util_process, move_construct)
+{
+    auto test_process = FLECS::process_t{};
+
+    test_process.arg("-n");
+    test_process.arg("FLECS");
+
+    auto test_process_2 = FLECS::process_t{std::move(test_process)};
+
+    const auto spawn_res = test_process_2.spawnp("echo");
+    ASSERT_EQ(spawn_res, 0);
+
+    const auto wait_res = test_process_2.wait(false, false);
+    ASSERT_NE(wait_res, -1);
+
+    ASSERT_EQ(test_process_2.exit_code(), 0);
+    ASSERT_EQ(test_process_2.stdout(), "FLECS");
+}
+
+TEST(util_process, assign)
+{
+    auto test_process = FLECS::process_t{};
+
+    test_process.arg("-n");
+    test_process.arg("FLECS");
+
+    test_process = FLECS::process_t{};
+
+    const auto spawn_res = test_process.spawnp("echo");
+    ASSERT_EQ(spawn_res, 0);
+
+    const auto wait_res = test_process.wait(false, false);
+    ASSERT_NE(wait_res, -1);
+
+    ASSERT_EQ(test_process.exit_code(), 0);
+    ASSERT_EQ(test_process.stdout(), "\n");
 }

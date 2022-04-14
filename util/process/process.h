@@ -56,8 +56,6 @@ public:
     void arg(std::string arg) { _args.emplace_back(arg); }
 
     int wait(bool dump_stdout, bool dump_stderr) noexcept;
-    void dump_stdout() const noexcept;
-    void dump_stderr() const noexcept;
     int exit_code() const noexcept;
 
     std::string stdout() const noexcept;
