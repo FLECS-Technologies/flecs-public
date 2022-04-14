@@ -80,9 +80,7 @@ void module_app_manager_private_t::do_init()
     auto hosts_thread = std::thread([] {
         pthread_setname_np(pthread_self(), "flecs-update-hosts");
         auto hosts_process = process_t{};
-        hosts_process.arg("-c");
-        hosts_process.arg("flecs-update-hosts.sh");
-        hosts_process.spawnp("sh");
+        hosts_process.spawnp("sh", "-c", "flecs-update-hosts.sh");
         hosts_process.wait(false, false);
     });
     hosts_thread.detach();
@@ -281,12 +279,8 @@ std::string module_app_manager_private_t::generate_instance_ip()
     auto out = std::string{};
     {
         auto docker_process = FLECS::process_t{};
-        docker_process.arg("network");
-        docker_process.arg("inspect");
-        docker_process.arg("-f");
-        docker_process.arg("'{{range .IPAM.Config}}{{.Subnet}}{{end}}'");
-        docker_process.arg("flecs");
-        docker_process.spawnp("docker");
+        docker_process
+            .spawnp("docker", "network", "inspect", "-f", "'{{range .IPAM.Config}}{{.Subnet}}{{end}}'", "flecs");
         docker_process.wait(false, false);
         out = docker_process.stdout();
     }
