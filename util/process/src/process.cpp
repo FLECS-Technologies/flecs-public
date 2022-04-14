@@ -79,16 +79,6 @@ int process_t::wait(bool dump_stdout, bool dump_stderr) noexcept
     return res;
 }
 
-void process_t::dump_stdout() const noexcept
-{
-    std::cout << stdout();
-}
-
-void process_t::dump_stderr() const noexcept
-{
-    std::cerr << stderr();
-}
-
 int process_t::exit_code() const noexcept
 {
     return WEXITSTATUS(_status);
@@ -108,11 +98,6 @@ std::string process_t::output(int fd) const noexcept
 {
     ssize_t len = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
-
-    if (len < 0)
-    {
-        return "";
-    }
 
     std::string str(len, '\0');
     read(fd, str.data(), len);
