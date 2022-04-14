@@ -174,6 +174,14 @@ public:
      */
     http_status_e do_instance_details(const std::string& id, Json::Value& response);
 
+    /*! @brief Returns logfile of an app instance
+     *
+     * @param[in] id Unique instance id assigned by @sa do_create_instance
+     *
+     * @return error code
+     */
+    http_status_e do_instance_log(const std::string& id, Json::Value& response);
+
     /*! @brief Prints all installed apps and their instances in JSON format
      *
      * @param None
