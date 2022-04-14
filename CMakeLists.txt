@@ -92,3 +92,10 @@ add_custom_target(
     DEPENDS ${DOCKER_IMAGES}
     COMMAND echo ${DOCKER_IMAGES}
 )
+
+add_custom_target(
+    coverage
+    DEPENDS test
+    COMMAND mkdir -p coverage
+    COMMAND gcovr -r ${CMAKE_SOURCE_DIR} -e ${CMAKE_SOURCE_DIR}/external/ --html-details coverage/coverage.html
+)
