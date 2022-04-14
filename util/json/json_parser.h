@@ -34,6 +34,11 @@ inline auto parse_json(std::string_view sv)
     return parse_json(sv.data(), sv.data() + sv.length());
 }
 
+inline auto parse_json(const char* str)
+{
+    return parse_json(str, str + std::strlen(str));
+}
+
 } // namespace FLECS
 
 #endif // A868B916_0CDC_4998_B52B_48094FB446C8

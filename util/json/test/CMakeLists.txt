@@ -12,19 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.util.json)
+if (BUILD_TESTING)
+    project(FLECS.util.json.test)
 
-add_library(FLECS.util.json OBJECT
-    src/json_parser.cpp
-    json_parser.h
-)
+    add_executable(FLECS.test.util.json
+        test_json.cpp
+    )
 
-target_include_directories(FLECS.util.json PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+    set_target_properties(FLECS.test.util.json PROPERTIES OUTPUT_NAME test_util_json)
 
-target_link_libraries(FLECS.util.json PUBLIC
-    FLECS.external.jsoncpp
-)
+    target_link_libraries(FLECS.test.util.json PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.util.json
+    )
 
-add_subdirectory(test)
+    add_test(NAME FLECS.test.util.json COMMAND FLECS.test.util.json)
+endif()
