@@ -148,27 +148,17 @@ http_status_e module_app_manager_private_t::do_create_instance(
             const auto name = std::string{"flecs-"}.append(hex_id).append("-init");
             {
                 auto docker_process = process_t{};
-                docker_process.arg("create");
-                docker_process.arg("--name");
-                docker_process.arg(name);
-                docker_process.arg(app.image_with_tag());
-                docker_process.spawnp("docker");
+                docker_process.spawnp("docker", "create", "--name", name, app.image_with_tag());
                 docker_process.wait(false, true);
             }
             {
                 auto docker_process = process_t{};
-                docker_process.arg("cp");
-                docker_process.arg(name + ":" + conffile.container());
-                docker_process.arg(local_path);
-                docker_process.spawnp("docker");
+                docker_process.spawnp("docker", "cp", name + ":" + conffile.container(), local_path);
                 docker_process.wait(false, true);
             }
             {
                 auto docker_process = process_t{};
-                docker_process.arg("rm");
-                docker_process.arg("-f");
-                docker_process.arg(name);
-                docker_process.spawnp("docker");
+                docker_process.spawnp("docker", "rm", "-f", name);
                 docker_process.wait(false, true);
             }
         }

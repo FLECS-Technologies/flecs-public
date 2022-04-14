@@ -80,9 +80,7 @@ void module_app_manager_private_t::do_init()
     auto hosts_thread = std::thread([] {
         pthread_setname_np(pthread_self(), "flecs-update-hosts");
         auto hosts_process = process_t{};
-        hosts_process.arg("-c");
-        hosts_process.arg("flecs-update-hosts.sh");
-        hosts_process.spawnp("sh");
+        hosts_process.spawnp("sh", "-c", "flecs-update-hosts.sh");
         hosts_process.wait(false, false);
     });
     hosts_thread.detach();
