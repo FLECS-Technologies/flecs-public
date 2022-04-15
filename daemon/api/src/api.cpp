@@ -31,8 +31,8 @@
 namespace FLECS {
 
 flecs_api_t::flecs_api_t()
-    : _tcp_server{8951, INADDR_ANY, 1}
-    , _unix_server{"/var/run/flecs/flecs.sock", 1}
+    : _tcp_server{8951, INADDR_ANY, 10}
+    , _unix_server{"/var/run/flecs/flecs.sock", 10}
     , _json_reader{Json::CharReaderBuilder().newCharReader()}
 {
     if (!_tcp_server.is_running() || !_unix_server.is_running())
