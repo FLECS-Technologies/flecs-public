@@ -105,6 +105,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
         if (docker_process.exit_code() != 0)
         {
             response["additionalInfo"] = docker_process.stderr();
+            _app_db.persist();
             return http_status_e::InternalServerError;
         }
     }
@@ -123,6 +124,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
             if (docker_create_process.exit_code() != 0)
             {
                 response["additionalInfo"] = docker_create_process.stderr();
+                _app_db.persist();
                 return http_status_e::InternalServerError;
             }
         }
@@ -136,6 +138,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
         if (!std::filesystem::create_directories(conf_path, ec))
         {
             response["additionalInfo"] = "Could not create conf dir";
+            _app_db.persist();
             return http_status_e::InternalServerError;
         }
     }
@@ -244,6 +247,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
     if (docker_process.exit_code() != 0)
     {
         response["additionalInfo"] = docker_process.stderr();
+        _app_db.persist();
         return http_status_e::InternalServerError;
     }
 

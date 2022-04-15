@@ -235,6 +235,7 @@ http_status_e module_app_manager_private_t::do_install(
             if (docker_login_process.exit_code() != 0)
             {
                 response["additionalInfo"] = docker_login_process.stderr();
+                _app_db.persist();
                 return http_status_e::InternalServerError;
             }
 
@@ -256,6 +257,7 @@ http_status_e module_app_manager_private_t::do_install(
             if (docker_pull_process.exit_code() != 0)
             {
                 response["additionalInfo"] = docker_pull_process.stderr();
+                _app_db.persist();
                 return http_status_e::InternalServerError;
             }
             app_entry.status = IMAGE_DOWNLOADED;
