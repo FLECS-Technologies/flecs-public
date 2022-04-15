@@ -268,13 +268,21 @@ http_status_e module_app_manager_private_t::do_install(
             if (args.size() == 3)
             {
                 const auto success = expire_download_token(args[0], args[2]);
-                if (!success)
+                if (success)
+                {
+                    app_entry.download_token.clear();
+                    app_entry.status = INSTALLED;
+                }
+                else
                 {
                     response["additionalInfo"] = "Could not expire download token";
                 }
             }
-            // Placeholder for future extensions. As of now, the installation is complete once the image is downloaded
-            app_entry.status = INSTALLED;
+            else
+            {
+                app_entry.download_token.clear();
+                app_entry.status = INSTALLED;
+            }
             _app_db.insert_app(app_entry);
             break;
         }
