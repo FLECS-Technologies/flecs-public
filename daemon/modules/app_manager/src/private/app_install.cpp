@@ -85,10 +85,14 @@ std::string acquire_download_token(const std::string& license_key)
     post_json["wc_user_token"] = wc_user_token;
     post_json["license_key"] = license_key;
 
-    const auto http_res = cpr::Post(
-        cpr::Url{"https://marketplace.flecs.tech/api/v1/app/download"},
-        cpr::Header{{"content-type", "application/json"}},
-        cpr::Body{post_json.toStyledString()});
+#ifndef NDEBUG
+    const auto url = cpr::Url{"https://marketplace.flecs.tech:8443/api/v1/app/download"};
+#else
+    const auto url = cpr::Url{"https://marketplace.flecs.tech/api/v1/app/download"};
+#endif // NDEBUG
+
+    const auto http_res =
+        cpr::Post(url, cpr::Header{{"content-type", "application/json"}}, cpr::Body{post_json.toStyledString()});
 
     if (http_res.status_code != 200)
     {
@@ -120,10 +124,14 @@ bool expire_download_token(const std::string& user_token, const std::string& acc
     post_json["user_token"] = user_token;
     post_json["access_token"] = access_token;
 
-    const auto http_res = cpr::Post(
-        cpr::Url{"https://marketplace.flecs.tech/api/v1/app/finish"},
-        cpr::Header{{"content-type", "application/json"}},
-        cpr::Body{post_json.toStyledString()});
+#ifndef NDEBUG
+    const auto url = cpr::Url{"https://marketplace.flecs.tech:8443/api/v1/app/finish"};
+#else
+    const auto url = cpr::Url{"https://marketplace.flecs.tech/api/v1/app/finish"};
+#endif // NDEBUG
+
+    const auto http_res =
+        cpr::Post(url, cpr::Header{{"content-type", "application/json"}}, cpr::Body{post_json.toStyledString()});
 
     if (http_res.status_code != 200)
     {
