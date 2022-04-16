@@ -24,17 +24,6 @@ jobs:
       - name: "CMake: Install"
         run: |
           cmake --build out/${{ matrix.arch }} --target install
-      - name: "CMake: Package"
-        run: |
-          cmake --build out/${{ matrix.arch }} --target packages
-      - name: Archive packages
-        uses: actions/upload-artifact@v2
-        with:
-          name: packages
-          path: |
-            out/**/*.deb
-            out/**/*.ipk
-          retention-days: 3
       - name: Archive raw artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -76,3 +65,39 @@ jobs:
       - name: "Docker: aarch64"
         run: |
           cmake --build out/aarch64-linux-gnu --target docker
+
+      - name: Archive raw artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: out
+          path: |
+            out/
+          retention-days: 1
+
+  package:
+    needs: docker
+    runs-on: ubuntu-20.04
+    container: flecs/flecs-build
+
+    strategy:
+      matrix:
+        arch: ["x86_64-linux-gnu", "arm-linux-gnueabihf", "aarch64-linux-gnu"]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download workflow artifacts
+        uses: actions/download-artifact@v2
+
+      - name: "CMake: Package"
+        run: |
+          cmake --build out/${{ matrix.arch }} --target packages
+
+      - name: Archive packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages
+          path: |
+            out/**/*.deb
+            out/**/*.ipk
+          retention-days: 3

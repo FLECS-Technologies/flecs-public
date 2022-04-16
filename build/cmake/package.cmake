@@ -65,6 +65,8 @@ add_custom_target(
     COMMAND sed -i "s/##PACKAGE##/${PACKAGE}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/*
     COMMAND sed -i "s/##VERSION##/${VERSION}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/*
     COMMAND sed -i "s/##DESCRIPTION##/${PACKAGE_DESC}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/*
+    COMMAND chmod 755 ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/p* || true
+    COMMAND chmod 644 ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/control
 )
 
 add_custom_target(
@@ -73,6 +75,8 @@ add_custom_target(
     COMMAND sed -i "s/##PACKAGE##/${PACKAGE}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/*
     COMMAND sed -i "s/##VERSION##/${VERSION}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/*
     COMMAND sed -i "s/##DESCRIPTION##/${PACKAGE_DESC}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/*
+    COMMAND chmod 755 ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/p* || true
+    COMMAND chmod 644 ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/control
 )
 
 # generic package rule, depends on .deb/.ipk builds
