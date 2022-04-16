@@ -26,8 +26,14 @@ endif()
 
 add_custom_command(
     OUTPUT ${DOCKER_IMAGE}
+    # Build image and store locally
+    COMMAND docker buildx build --load --build-arg MACHINE=${MACHINE} --build-arg ARCH=${ARCH} --build-arg VERSION=${VERSION} --platform ${DOCKER_ARCH} --tag ${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${CMAKE_CURRENT_SOURCE_DIR}
+    # Tag without architecture and save to archive
+    COMMAND docker tag ${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG}
+    COMMAND docker save ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} --output ${CMAKE_CURRENT_BINARY_DIR}/${DOCKER_IMAGE}-${VERSION}-${ARCH}.tar.gz
+    COMMAND docker rmi ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG}
+    # Push image and attempt to push manifest list
     COMMAND docker login -u ${REGISTRY_USER} -p ${REGISTRY_AUTH}
-    COMMAND docker buildx build --push --build-arg MACHINE=${MACHINE} --build-arg ARCH=${ARCH} --build-arg VERSION=${VERSION} --platform ${DOCKER_ARCH} --tag ${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND docker manifest rm ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} || true
     COMMAND docker manifest create ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:amd64-${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:armhf-${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:arm64-${DOCKER_TAG} || true
     COMMAND docker manifest push ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG}
