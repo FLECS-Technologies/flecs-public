@@ -24,6 +24,20 @@ add_subdirectory(modules)
 set(PACKAGE flecs)
 set(PACKAGE_DESC FLECS)
 
+add_custom_target(
+    flecs_deb-pkg-copy
+    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/assets/
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/assets/
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/assets/
+)
+
+add_custom_target(
+    flecs_opkg-pkg-copy
+    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/assets/
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/assets/
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/assets/
+)
+
 include(package)
 
 # build executable flecsd

@@ -24,9 +24,6 @@ jobs:
       - name: "CMake: Install"
         run: |
           cmake --build out/${{ matrix.arch }} --target install
-      - name: "CMake: Package"
-        run: |
-          cmake --build out/${{ matrix.arch }} --target packages
 
   test:
     runs-on: ubuntu-20.04

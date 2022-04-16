@@ -30,7 +30,7 @@ add_custom_command(
     COMMAND docker buildx build --load --build-arg MACHINE=${MACHINE} --build-arg ARCH=${ARCH} --build-arg VERSION=${VERSION} --platform ${DOCKER_ARCH} --tag ${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${CMAKE_CURRENT_BINARY_DIR}
     # Tag without architecture and save to archive
     COMMAND docker tag ${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG}
-    COMMAND docker save ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} --output ${CMAKE_CURRENT_BINARY_DIR}/${DOCKER_IMAGE}-${VERSION}-${ARCH}.tar.gz
+    COMMAND docker save ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} --output ${CMAKE_CURRENT_BINARY_DIR}/${DOCKER_IMAGE}_${VERSION}_${ARCH}.tar.gz
     COMMAND docker rmi ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG}
     # Push image and attempt to push manifest list
     COMMAND docker login -u ${REGISTRY_USER} -p ${REGISTRY_AUTH}
