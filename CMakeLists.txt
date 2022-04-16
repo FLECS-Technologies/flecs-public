@@ -74,7 +74,6 @@ add_subdirectory(develop)
 add_subdirectory(external)
 add_subdirectory(flunder)
 add_subdirectory(mqtt)
-add_subdirectory(updater)
 add_subdirectory(util)
 add_subdirectory(daemon)
 
