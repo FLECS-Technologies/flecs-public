@@ -50,6 +50,13 @@ http_status_e module_app_manager_private_t::do_uninstall(
         return http_status_e::InternalServerError;
     }
 
+    // Step 2a: Prevent removal of system apps
+    if (cxx20::contains(app.category(), "system"))
+    {
+        response["additionalInfo"] = "Not removing system app " + app.name() + "(" + app.version() + ")";
+        return http_status_e::InternalServerError;
+    }
+
     // Step 3: Stop and delete all instances of the app
     const auto instances = _app_db.instances(app_name, version);
     for (auto& instance : instances)
