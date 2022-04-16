@@ -27,7 +27,7 @@ endif()
 add_custom_command(
     OUTPUT ${DOCKER_IMAGE}
     # Build image and store locally
-    COMMAND docker buildx build --load --build-arg MACHINE=${MACHINE} --build-arg ARCH=${ARCH} --build-arg VERSION=${VERSION} --platform ${DOCKER_ARCH} --tag ${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND docker buildx build --load --build-arg MACHINE=${MACHINE} --build-arg ARCH=${ARCH} --build-arg VERSION=${VERSION} --platform ${DOCKER_ARCH} --tag ${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${CMAKE_CURRENT_BINARY_DIR}
     # Tag without architecture and save to archive
     COMMAND docker tag ${REGISTRY_PATH}/${DOCKER_IMAGE}:${ARCH}-${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG}
     COMMAND docker save ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} --output ${CMAKE_CURRENT_BINARY_DIR}/${DOCKER_IMAGE}-${VERSION}-${ARCH}.tar.gz
@@ -47,6 +47,11 @@ add_custom_target(
     ${DOCKER_IMAGE}_docker
     DEPENDS ${DOCKER_IMAGE}_prepare
     DEPENDS ${DOCKER_IMAGE}
+)
+
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Dockerfile
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 set_property(GLOBAL APPEND PROPERTY DOCKER_IMAGES ${DOCKER_IMAGE}_docker)
