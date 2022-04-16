@@ -38,7 +38,7 @@ set(DOCKER_TAG ${VERSION})
 
 install(
     TARGETS FLECS.apps.mqtt-bridge
-    DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${MACHINE}/docker
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docker
 )
 
 include(docker)

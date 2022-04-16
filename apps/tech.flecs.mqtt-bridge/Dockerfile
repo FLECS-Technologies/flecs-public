@@ -3,7 +3,7 @@ FROM debian:buster-slim
 ARG MACHINE
 
 COPY [ \
-    "out/${MACHINE}/docker/mqtt_bridge", \
+    "docker/mqtt_bridge", \
     "/usr/bin/" ]
 
 ENTRYPOINT [ \

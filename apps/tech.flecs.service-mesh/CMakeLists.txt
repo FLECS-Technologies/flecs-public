@@ -19,4 +19,9 @@ set(DOCKER_IMAGE "tech.flecs.service-mesh")
 
 set(DOCKER_TAG ${VERSION})
 
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/assets
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 include(docker)
