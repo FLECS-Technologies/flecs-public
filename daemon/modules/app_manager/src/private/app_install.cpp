@@ -26,51 +26,6 @@ namespace Private {
 
 namespace {
 
-std::string build_manifest_url(const std::string& app_name, const std::string& version)
-{
-#ifndef NDEBUG
-    auto url = std::string{"https://marketplace.flecs.tech:8443/manifests/apps/"};
-#else
-    auto url = std::string{"https://marketplace.flecs.tech/manifests/apps/"};
-#endif // NDEBUG
-
-    url.append(app_name);
-    url.append("/");
-    url.append(version);
-    url.append("/");
-    url.append("manifest.yml");
-
-    return url;
-}
-
-int download_manifest(const std::string& app_name, const std::string& version)
-{
-    const auto path = build_manifest_path(app_name, version);
-    const auto manifest = fopen(path.c_str(), "w");
-    if (manifest == nullptr)
-    {
-        std::fprintf(stderr, "Could not open %s for writing\n", path.c_str());
-        return -1;
-    }
-
-    const auto url = build_manifest_url(app_name, version);
-    auto response = cpr::Get(cpr::Url{url.c_str()});
-    if (response.status_code != static_cast<long>(http_status_e::Ok))
-    {
-        std::fprintf(stderr, "Could not download app manifest: HTTP return code %ld\n", response.status_code);
-        return -1;
-    }
-    const auto bytes_written = fwrite(response.text.data(), 1, response.text.length(), manifest);
-    fclose(manifest);
-    if (bytes_written != response.text.length())
-    {
-        std::fprintf(stderr, "Could not download app manifest: Write error %d\n", errno);
-        return -1;
-    }
-
-    return 0;
-}
-
 std::string acquire_download_token(const std::string& license_key)
 {
     const auto mp_api = dynamic_cast<const module_marketplace_t*>(api::query_module("mp").get());

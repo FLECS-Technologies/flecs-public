@@ -15,8 +15,10 @@
 #include "private/app_manager_private.h"
 
 #include <arpa/inet.h>
+#include <cpr/cpr.h>
 #include <unistd.h>
 
+#include <array>
 #include <filesystem>
 #include <regex>
 #include <set>
@@ -24,10 +26,72 @@
 #include <thread>
 
 #include "app/app.h"
+#include "factory/factory.h"
 #include "util/process/process.h"
+#include "version/version.h"
 
 namespace FLECS {
 namespace Private {
+
+std::string build_manifest_path(const std::string& app_name, const std::string& version)
+{
+    auto path = std::string{"/var/lib/flecs/apps"};
+
+    path.append("/" + app_name);
+    path.append("/" + version);
+
+    auto ec = std::error_code{};
+    std::filesystem::create_directories(path, ec);
+
+    path.append("/manifest.yml");
+
+    return path;
+}
+
+std::string build_manifest_url(const std::string& app_name, const std::string& version)
+{
+#ifndef NDEBUG
+    auto url = std::string{"https://marketplace.flecs.tech:8443/manifests/apps/"};
+#else
+    auto url = std::string{"https://marketplace.flecs.tech/manifests/apps/"};
+#endif // NDEBUG
+
+    url.append(app_name);
+    url.append("/");
+    url.append(version);
+    url.append("/");
+    url.append("manifest.yml");
+
+    return url;
+}
+
+int download_manifest(const std::string& app_name, const std::string& version)
+{
+    const auto path = build_manifest_path(app_name, version);
+    const auto manifest = fopen(path.c_str(), "w");
+    if (manifest == nullptr)
+    {
+        std::fprintf(stderr, "Could not open %s for writing\n", path.c_str());
+        return -1;
+    }
+
+    const auto url = build_manifest_url(app_name, version);
+    auto response = cpr::Get(cpr::Url{url.c_str()});
+    if (response.status_code != static_cast<long>(http_status_e::Ok))
+    {
+        std::fprintf(stderr, "Could not download app manifest: HTTP return code %ld\n", response.status_code);
+        return -1;
+    }
+    const auto bytes_written = fwrite(response.text.data(), 1, response.text.length(), manifest);
+    fclose(manifest);
+    if (bytes_written != response.text.length())
+    {
+        std::fprintf(stderr, "Could not download app manifest: Write error %d\n", errno);
+        return -1;
+    }
+
+    return 0;
+}
 
 module_app_manager_private_t::module_app_manager_private_t()
     : _app_db{}
@@ -49,6 +113,38 @@ module_app_manager_private_t::~module_app_manager_private_t()
 
 void module_app_manager_private_t::do_init()
 {
+    // "install" system apps on first start
+    constexpr auto system_apps = std::array<const char*, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
+    constexpr auto system_apps_desc = std::array<const char*, 2>{"FLECS MQTT Bridge", "FLECS Service Mesh"};
+
+    for (size_t i = 0; i < system_apps.size(); ++i)
+    {
+        const auto has_instance = !_app_db.instances(system_apps[i], FLECS_VERSION).empty();
+        const auto instance_ready =
+            has_instance ? (_app_db.instances(system_apps[i], FLECS_VERSION)[0].status == CREATED) : false;
+
+        if (!instance_ready)
+        {
+            std::fprintf(stdout, "Installing system app %s\n", system_apps[i]);
+            download_manifest(system_apps[i], FLECS_VERSION);
+            auto app = app_t{build_manifest_path(system_apps[i], FLECS_VERSION)};
+            if (app.yaml_loaded())
+            {
+                auto response = Json::Value{};
+                _app_db.insert_app({{app.name(), app.version()}, {INSTALLED, INSTALLED, app.category(), 0, "", ""}});
+                do_create_instance(app.name(), app.version(), system_apps_desc[i], response);
+                const auto app_instances = _app_db.instances(system_apps[i], FLECS_VERSION);
+                if (!app_instances.empty())
+                {
+                    auto instance = *app_instances.begin();
+                    instance.desired = RUNNING;
+                    _app_db.insert_instance(instance);
+                }
+            }
+            _app_db.persist();
+        }
+    }
+
     std::fprintf(stdout, "Starting all app instances...\n");
     for (decltype(auto) instance : _app_db.all_instances())
     {
@@ -104,21 +200,6 @@ bool module_app_manager_private_t::is_instance_running(const std::string& id)
     }
 
     return false;
-}
-
-std::string build_manifest_path(const std::string& app_name, const std::string& version)
-{
-    auto path = std::string{"/var/lib/flecs/apps"};
-
-    path.append("/" + app_name);
-    path.append("/" + version);
-
-    auto ec = std::error_code{};
-    std::filesystem::create_directories(path, ec);
-
-    path.append("/manifest.yml");
-
-    return path;
 }
 
 int module_app_manager_private_t::xcheck_app_instance(
