@@ -14,6 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DEPENDS="ca-certificates curl gnupg lsb-release net-tools"
+
+run() {
+    $* || exit 1;
+}
+
 find_program() {
   which ${1} >/dev/null 2>&1
   if [ $? -ne 0 ]; then
@@ -22,16 +28,42 @@ find_program() {
   return 0
 }
 
-install_dependency() {
+install_program() {
   find_program apt || return 1
-  echo "Installing dependency ${1}"
-  if ! apt-get update >/dev/null; then
-    echo "Could not install dependency '${1}' (apt update returned error)"
+  echo "Installing ${1}"
+  if ! apt-get update; then
+    echo "Could not install '${1}' (apt update returned error)"
     return 1
   fi
-  if ! apt-get -y install ${1} >/dev/null; then
-    echo "Could not install dependency '${1}' (apt install returned error)"
+  if ! apt-get -y install ${1}; then
+    echo "Could not install '${1}' (apt install returned error)"
     return 1
+  fi
+}
+
+remove_program() {
+  echo "Removing ${1}"
+  if ! apt-get -y remove ${1}; then
+    echo "Could not remove '${1}' (apt remove returned error)"
+  fi
+}
+
+install_docker() {
+  # remove conflicting packages
+  remove_program docker docker-engine docker.io containerd runc
+
+  # get Docker gpg keys
+  run curl -fsSL https://download.docker.com/linux/${OS}/gpg | \
+    gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+  # add Docker package archive
+  run echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/${OS} \
+    $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+  # install Docker
+  if ! install_program "docker-ce docker-ce-cli containerd.io"; then
+    exit 1;
   fi
 }
 
@@ -41,22 +73,21 @@ if [ ${EUID} -gt 0 ]; then
   exit 1
 fi
 
-# check and install prerequisites
-if ! find_program dpkg; then
-  echo "Required program dpkg not found on the system" 1>&2
+# redirect output
+exec 1>flecs_install.log
+exec 2>&1
+
+# install prerequisites
+if ! install_program "${DEPENDS}"; then
   exit 1
 fi
 
-if ! find_program curl && ! install_dependency curl; then
-  exit 1
-fi
+# detect OS (Debian or Ubuntu)
+OS=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
+echo ${OS}
 
-if ! find_program docker && ! install_dependency docker.io; then
-  exit 1
-fi
-
-# beta-only: add Docker Hub access token
-docker login --username flecs --password $(echo "YzMwMDZmMmYtZWM1My00ZjE5LWEyMjAtYzIyZjZkYjU1OTk1" | base64 -d) >/dev/null 2>&1
+# install Docker engine
+install_docker
 
 # determine dpkg architecture
 ARCH=`dpkg --print-architecture`
@@ -73,7 +104,7 @@ case ${ARCH} in
     ;;
 esac
 
-# determine current version
+# determine latest version
 BASE_URL=https://marketplace.flecs.tech/dl
 VERSION=`curl -s -f ${BASE_URL}/latest`
 echo "Installing FLECS v${VERSION} for ${ARCH}"
@@ -87,7 +118,7 @@ fi
 
 # download packages
 cd ${DOWNLOAD_DIR} || exit 1
-PACKAGES=(flecs_${VERSION}_${ARCH}.deb flecs-webapp_${VERSION}_all.deb)
+PACKAGES=(flecs_${VERSION}_${ARCH}.deb flecs-webapp_${VERSION}_${ARCH}.deb)
 for PACKAGE in ${PACKAGES[*]}; do
   cd ${DOWNLOAD_DIR} || exit 1
   if ! curl -s -f -O ${BASE_URL}/deb/${PACKAGE}; then
