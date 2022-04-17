@@ -49,6 +49,8 @@ static void lib_subscribe_callback(const zn_sample_t* sample, const void* arg)
 flunder_client_private_t::flunder_client_private_t()
     : _json_reader{Json::CharReaderBuilder().newCharReader()}
     , _mem_storages{}
+    , _zn_session{}
+    , _subscriptions{}
 {}
 
 flunder_client_private_t::~flunder_client_private_t()
@@ -76,6 +78,10 @@ int flunder_client_private_t::reconnect()
 
 int flunder_client_private_t::disconnect()
 {
+    while (!_subscriptions.empty())
+    {
+        unsubscribe(_subscriptions.rbegin()->first);
+    }
     while (!_mem_storages.empty())
     {
         remove_mem_storage(*_mem_storages.rbegin());
