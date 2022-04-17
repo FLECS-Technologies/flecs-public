@@ -237,7 +237,6 @@ private:
     int xcheck_app_instance(
         const instances_table_entry_t& instance, const std::string& app_name, const std::string& version);
 
-    int migrate_apps_and_instances();
     std::string generate_instance_ip();
 
     app_db_t _app_db;
