@@ -93,9 +93,9 @@ add_custom_target(
 add_custom_target(
     ${PACKAGE}_package
     DEPENDS ${PACKAGE}_deb-pkg-prepare
-    DEPENDS ${PACKAGE}_opkg-pkg-prepare
+    #DEPENDS ${PACKAGE}_opkg-pkg-prepare
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE}_${VERSION}_${ARCH}.deb
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE}_${VERSION}_${ARCH}.ipk
+    #DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE}_${VERSION}_${ARCH}.ipk
 )
 
 set_property(GLOBAL APPEND PROPERTY PACKAGES ${PACKAGE}_package)
