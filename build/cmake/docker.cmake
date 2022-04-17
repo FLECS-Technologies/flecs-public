@@ -36,7 +36,7 @@ add_custom_command(
     COMMAND docker login -u ${REGISTRY_USER} -p ${REGISTRY_AUTH}
     COMMAND docker manifest rm ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} || true
     COMMAND docker manifest create ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:amd64-${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:armhf-${DOCKER_TAG} ${REGISTRY_PATH}/${DOCKER_IMAGE}:arm64-${DOCKER_TAG} || true
-    COMMAND docker manifest push ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG}
+    COMMAND docker manifest push ${REGISTRY_PATH}/${DOCKER_IMAGE}:${DOCKER_TAG} || true
 )
 
 if (NOT TARGET ${DOCKER_IMAGE}_prepare)
