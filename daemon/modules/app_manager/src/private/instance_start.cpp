@@ -44,19 +44,8 @@ http_status_e module_app_manager_private_t::do_start_instance(
         return http_status_e::BadRequest;
     }
 
-    // Step 1a: Persist status into db
-    // Previous beta versions kept the actual status in the database, which now changed to determining it from
-    // Docker directly. Therefore, only the desired status is updated while the actual status remains in its original
-    // state (i.e. "CREATED" for runnable instances)
-    /** @todo remove for release */
+    // get instance details from database
     auto instance = _app_db.query_instance({id}).value();
-    if (instance.status == instance_status_e::RUNNING)
-    {
-        instance.status = instance_status_e::CREATED;
-        _app_db.insert_instance(instance);
-        _app_db.persist();
-    }
-
     // correct response based on actual instance
     response["app"] = instance.app;
     response["version"] = instance.version;

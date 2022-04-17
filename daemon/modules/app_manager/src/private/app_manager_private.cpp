@@ -49,23 +49,6 @@ module_app_manager_private_t::~module_app_manager_private_t()
 
 void module_app_manager_private_t::do_init()
 {
-    // Prune all entries of apps that completely failed to install. This usually means that an app with this combination
-    // of name and version does not exist anywhere in the universe, and it should never have been inserted into the db
-    // in the first place. As this happened nonetheless in earlier versions, the mess is cleaned up here
-    /** @todo remove for release */
-    for (decltype(auto) app : _app_db.all_apps())
-    {
-        if (app.status == app_status_e::NOT_INSTALLED && app.desired == app_status_e::INSTALLED)
-        {
-            _app_db.delete_app({app.app, app.version});
-        }
-    }
-
-    // Migrate all apps and instances in case of a new database version. This means that either new columns have been
-    // added, or columns have been removed. This may impact the configuration of apps and instances that need to be
-    // reflected in their deployment.
-    migrate_apps_and_instances();
-
     std::fprintf(stdout, "Starting all app instances...\n");
     for (decltype(auto) instance : _app_db.all_instances())
     {
@@ -176,98 +159,6 @@ int module_app_manager_private_t::xcheck_app_instance(
             version.c_str(),
             instance.version.c_str());
         return -1;
-    }
-
-    return 0;
-}
-
-/** @todo remove for release */
-int module_app_manager_private_t::migrate_apps_and_instances()
-{
-    if (_app_db.CURRENT_USER_VERSION > 0 && _app_db.user_version() < 1)
-    {
-        // 0 -> 1 had no changes -- nothing to do
-    }
-
-    if (_app_db.CURRENT_USER_VERSION > 1 && _app_db.user_version() < 2)
-    {
-        // 1 -> 2 added "ip" to instances, so assign a fixed IP address to every instance
-        // first, stop all instances and disconnect them from all networks
-        for (decltype(auto) instance : _app_db.all_instances())
-        {
-            auto unused = Json::Value{};
-            do_stop_instance(instance.id, instance.app, instance.version, unused, true);
-            // disconnect instance from default bridge network
-            {
-                auto docker_process = process_t{};
-                docker_process.arg("network");
-                docker_process.arg("disconnect");
-                docker_process.arg("bridge");
-                auto container_name = std::string{"flecs-"} + instance.id;
-                docker_process.arg(container_name);
-                docker_process.spawnp("docker");
-                docker_process.wait(false, false);
-            }
-            // disconnect instance from flecs network
-            {
-                auto docker_process = process_t{};
-                docker_process.arg("network");
-                docker_process.arg("disconnect");
-                docker_process.arg("flecs");
-                auto container_name = std::string{"flecs-"} + instance.id;
-                docker_process.arg(container_name);
-                docker_process.spawnp("docker");
-                docker_process.wait(false, false);
-            }
-        }
-        // remove flecs network and recreate it with a fixed subnet
-        {
-            {
-                auto docker_process = process_t{};
-                docker_process.arg("network");
-                docker_process.arg("rm");
-                docker_process.arg("flecs");
-                docker_process.spawnp("docker");
-                docker_process.wait(false, true);
-            }
-            {
-                auto docker_process = process_t{};
-                docker_process.arg("network");
-                docker_process.arg("create");
-                docker_process.arg("--subnet");
-                docker_process.arg("172.21.0.0/16");
-                docker_process.arg("--gateway");
-                docker_process.arg("172.21.0.1");
-                docker_process.arg("flecs");
-                docker_process.spawnp("docker");
-                docker_process.wait(false, false);
-            }
-        }
-        for (decltype(auto) instance : _app_db.all_instances())
-        {
-            instance.ip = generate_instance_ip();
-            auto docker_process = process_t{};
-            docker_process.arg("network");
-            docker_process.arg("connect");
-            docker_process.arg("--ip");
-            docker_process.arg(instance.ip);
-            docker_process.arg("flecs");
-            docker_process.arg("flecs-" + instance.id);
-            docker_process.spawnp("docker");
-            docker_process.wait(false, true);
-            if (docker_process.exit_code() != 0)
-            {
-                exit(1);
-            }
-            _app_db.insert_instance(instance);
-        }
-        _app_db.persist();
-    }
-
-    if (_app_db.CURRENT_USER_VERSION > 2 && _app_db.user_version() < 3)
-    {
-        // 2 -> 3 added "license_key" and "download_token" to apps; not relevant to existing apps
-        _app_db.persist();
     }
 
     return 0;
