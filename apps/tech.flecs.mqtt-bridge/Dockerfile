@@ -4,7 +4,7 @@ ARG MACHINE
 
 COPY [ \
     "docker/libzenohc.so", \
-    "/usr/lib/x86_64-linux-gnu/" ]
+    "/usr/lib/" ]
 
 COPY [ \
     "docker/mqtt_bridge", \
