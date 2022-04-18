@@ -5,8 +5,8 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 case "$1" in
   *)
     docker network create --subnet 172.21.0.0/16 --gateway 172.21.0.1 flecs 2>/dev/null || true
-    docker load --input /opt/flecs/assets/tech.flecs.service-mesh_*.tar.gz
-    docker load --input /opt/flecs/assets/tech.flecs.mqtt-bridge_*.tar.gz
+    docker load --input /opt/flecs/assets/tech.flecs.service-mesh_*.tar.gz || exit 1
+    docker load --input /opt/flecs/assets/tech.flecs.mqtt-bridge_*.tar.gz || exit 1
     systemctl enable --now ##PACKAGE##
     ;;
 esac

@@ -26,16 +26,16 @@ set(PACKAGE_DESC FLECS)
 
 add_custom_target(
     flecs_deb-pkg-copy
-    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/assets/
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/assets/
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/assets/
+    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/
 )
 
 add_custom_target(
     flecs_opkg-pkg-copy
     COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/opt/assets/
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/opt/assets/
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/opt/assets/
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/opt/flecs/assets/
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/opt/flecs/assets/
 )
 
 include(package)
