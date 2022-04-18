@@ -41,4 +41,9 @@ install(
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docker
 )
 
+install(
+    FILES $<TARGET_FILE:FLECS.external.zenoh-c>
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docker
+)
+
 include(docker)
