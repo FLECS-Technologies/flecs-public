@@ -31,11 +31,11 @@ find_program() {
 install_program() {
   find_program apt || return 1
   echo "Installing ${1}"
-  if ! apt-get update; then
+  if ! apt-get update >/dev/null; then
     echo "Could not install '${1}' (apt update returned error)"
     return 1
   fi
-  if ! apt-get -y install ${1}; then
+  if ! apt-get -y install ${1} >/dev/null; then
     echo "Could not install '${1}' (apt install returned error)"
     return 1
   fi
@@ -43,7 +43,7 @@ install_program() {
 
 remove_program() {
   echo "Removing ${1}"
-  if ! apt-get -y remove ${1}; then
+  if ! apt-get -y remove ${1} >/dev/null; then
     echo "Could not remove '${1}' (apt remove returned error)"
   fi
 }
@@ -73,10 +73,6 @@ if [ ${EUID} -gt 0 ]; then
   exit 1
 fi
 
-# redirect output
-exec 1>flecs_install.log
-exec 2>&1
-
 # install prerequisites
 if ! install_program "${DEPENDS}"; then
   exit 1
@@ -84,7 +80,6 @@ fi
 
 # detect OS (Debian or Ubuntu)
 OS=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
-echo ${OS}
 
 # install Docker engine
 install_docker
@@ -138,7 +133,7 @@ for PACKAGE in ${PACKAGES[*]}; do
   fi
 done
 
-echo "Successfully installed FLECS"
-
 # clean up
 rm -rf ${DOWNLOAD_DIR} >/dev/null 2>&1
+
+echo "Successfully installed FLECS"
