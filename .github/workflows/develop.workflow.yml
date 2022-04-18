@@ -24,12 +24,14 @@ jobs:
       - name: "CMake: Install"
         run: |
           cmake --build out/${{ matrix.arch }} --target install
-      - name: Archive raw artifacts
+
+      - name: Tar raw artifacts
+        run: tar cvf out_${{ matrix.arch }}.tar out/${{ matrix.arch }}
+      - name: Upload raw artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: out
-          path: |
-            out/
+          name: out_${{ matrix.arch }}
+          path: out_${{ matrix.arch }}.tar
           retention-days: 1
 
   docker:
@@ -55,6 +57,11 @@ jobs:
 
       - name: Download workflow artifacts
         uses: actions/download-artifact@v2
+      - name: Untar raw artifacts
+        run: |
+          tar xf out_x86_64-linux-gnu/out_x86_64-linux-gnu.tar
+          tar xf out_arm-linux-gnueabihf/out_arm-linux-gnueabihf.tar
+          tar xf out_aarch64-linux-gnu/out_aarch64-linux-gnu.tar
 
       - name: "Docker: native"
         run: |
@@ -66,12 +73,13 @@ jobs:
         run: |
           cmake --build out/aarch64-linux-gnu --target docker
 
-      - name: Archive raw artifacts
+      - name: Tar raw artifacts
+        run: tar cvf out.tar out/
+      - name: Upload raw artifacts
         uses: actions/upload-artifact@v2
         with:
           name: out
-          path: |
-            out/
+          path: out.tar
           retention-days: 1
 
   package:
@@ -88,6 +96,10 @@ jobs:
 
       - name: Download workflow artifacts
         uses: actions/download-artifact@v2
+        with:
+          name: out
+      - name: Untar raw artifacts
+        run: tar xf out.tar
 
       - name: "CMake: Package"
         run: |
