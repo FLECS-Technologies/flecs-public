@@ -131,7 +131,7 @@ void module_app_manager_private_t::do_init()
             {
                 std::fprintf(
                     stdout,
-                    "Installing old version %s system app %s\n",
+                    "Removing old version %s system app %s\n",
                     instance.version.c_str(),
                     instance.app.c_str());
                 auto response = Json::Value{};
