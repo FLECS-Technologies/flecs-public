@@ -15,6 +15,7 @@
 #ifndef A26C3D22_DE7E_4EF2_BA44_CB50A45E8C9B
 #define A26C3D22_DE7E_4EF2_BA44_CB50A45E8C9B
 
+#include <filesystem>
 #include <string>
 
 #include "db/app_db.h"
@@ -84,7 +85,22 @@ public:
      * @return FLECS_IOW: Error writing manifest to FLECS application directory
      * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
      */
-    http_status_e do_sideload(const std::string& manifest_path, const std::string& license_key, Json::Value& response);
+    http_status_e do_sideload(const std::string& yaml, const std::string& license_key, Json::Value& response);
+
+    /*! @brief Sideloads an app from its YAML manifest
+     *
+     * Copies the transferred app manifest and forwards to manifest installation
+     *
+     * @param[in] manifest_path Path to a YAML manifest file
+     *
+     * @return error code
+     * @return FLECS_OK: No error occurred
+     * @return FLECS_IOR: Error reading from manifest
+     * @return FLECS_IOW: Error writing manifest to FLECS application directory
+     * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
+     */
+    http_status_e do_sideload(
+        const std::filesystem::path& manifest_path, const std::string& license_key, Json::Value& response);
 
     /*! @brief Uninstalls an application
      *
