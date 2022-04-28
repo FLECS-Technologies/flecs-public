@@ -119,6 +119,29 @@ void module_app_manager_private_t::do_init()
 
     for (size_t i = 0; i < system_apps.size(); ++i)
     {
+        const auto instances = _app_db.instances(system_apps[i]);
+        if (instances.empty())
+        {
+            continue;
+        }
+
+        for (const auto& instance : instances)
+        {
+            if (instance.version != FLECS_VERSION)
+            {
+                std::fprintf(
+                    stdout,
+                    "Installing old version %s system app %s\n",
+                    instance.version.c_str(),
+                    instance.app.c_str());
+                auto response = Json::Value{};
+                do_uninstall(instance.app, instance.version, response);
+            }
+        }
+    }
+
+    for (size_t i = 0; i < system_apps.size(); ++i)
+    {
         const auto has_instance = !_app_db.instances(system_apps[i], FLECS_VERSION).empty();
         const auto instance_ready =
             has_instance ? (_app_db.instances(system_apps[i], FLECS_VERSION)[0].status == CREATED) : false;
