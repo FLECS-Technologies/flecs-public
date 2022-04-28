@@ -25,7 +25,7 @@ http_status_e module_app_manager_private_t::do_sideload(
     const std::string& manifest_path, const std::string& license_key, Json::Value& response)
 {
     // Step 1: Parse transferred manifest
-    auto app = app_t{manifest_path};
+    auto app = app_t::from_file(manifest_path);
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open manifest " + manifest_path;

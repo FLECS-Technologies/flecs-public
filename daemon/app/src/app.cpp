@@ -18,8 +18,6 @@
 #include <sstream>
 #include <vector>
 
-#include "yaml-cpp/yaml.h"
-
 namespace FLECS {
 
 #define REQUIRED_TYPED_YAML_VALUE(yaml, value, target) \
@@ -42,8 +40,7 @@ namespace FLECS {
             target = yaml[#value].as<decltype(target)>(); \
         }                                                 \
         catch (const YAML::Exception& ex)                 \
-        {                                                 \
-        }                                                 \
+        {}                                                \
     } while (false)
 
 #define OPTIONAL_YAML_VALUE(yaml, value, target) \
@@ -54,8 +51,7 @@ namespace FLECS {
             target = yaml[#value];               \
         }                                        \
         catch (const YAML::Exception& ex)        \
-        {                                        \
-        }                                        \
+        {}                                       \
     } while (false)
 
 app_t::app_t() noexcept
@@ -82,33 +78,40 @@ app_t::app_t() noexcept
     , _desired{}
 {}
 
-app_t::app_t(const std::string& manifest)
-    : _yaml_loaded{}
-    , _name{}
-    , _title{}
-    , _version{}
-    , _description{}
-    , _author{}
-    , _category{}
-    , _image{}
-    , _env{}
-    , _conffiles{}
-    , _volumes{}
-    , _bind_mounts{}
-    , _hostname{}
-    , _networks{}
-    , _ports{}
-    , _args{}
-    , _interactive{}
-    , _installed_size{}
-    , _multi_instance{}
-    , _status{}
-    , _desired{}
+app_t app_t::from_file(const std::filesystem::path& path)
+{
+    auto res = app_t{};
+    try
+    {
+        const auto yaml_node = YAML::LoadFile(path);
+        res.load_yaml(yaml_node);
+    }
+    catch (const std::exception& ex)
+    {
+        std::fprintf(stderr, "Could not open manifest %s: Invalid YAML (%s)\n", path.c_str(), ex.what());
+    }
+    return res;
+}
+
+app_t app_t::from_string(const std::string& yaml)
+{
+    auto res = app_t{};
+    try
+    {
+        const auto yaml_node = YAML::Load(yaml.c_str());
+        res.load_yaml(yaml_node);
+    }
+    catch (const std::exception& ex)
+    {
+        std::fprintf(stderr, "Could not open manifest: Invalid YAML (%s)\n", ex.what());
+    }
+    return res;
+}
+
+void app_t::load_yaml(const YAML::Node& yaml)
 {
     try
     {
-        const auto yaml = YAML::LoadFile(manifest);
-
         REQUIRED_TYPED_YAML_VALUE(yaml, app, _name);
         REQUIRED_TYPED_YAML_VALUE(yaml, title, _title);
         REQUIRED_TYPED_YAML_VALUE(yaml, version, _version);
@@ -206,7 +209,7 @@ app_t::app_t(const std::string& manifest)
     }
     catch (const std::exception& ex)
     {
-        std::fprintf(stderr, "Could not open manifest %s: Invalid YAML (%s)\n", manifest.c_str(), ex.what());
+        std::fprintf(stderr, "Could not open manifest: Invalid YAML (%s)\n", ex.what());
         *this = app_t{};
     }
 }

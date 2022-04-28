@@ -61,6 +61,7 @@ target_include_directories(FLECS.daemon PRIVATE
 target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.api
     FLECS.daemon.api.endpoints
+    FLECS.daemon.app
     FLECS.daemon.modules.app_manager
     FLECS.daemon.modules.data_layer
     FLECS.daemon.modules.factory

@@ -127,7 +127,7 @@ void module_app_manager_private_t::do_init()
         {
             std::fprintf(stdout, "Installing system app %s\n", system_apps[i]);
             download_manifest(system_apps[i], FLECS_VERSION);
-            auto app = app_t{build_manifest_path(system_apps[i], FLECS_VERSION)};
+            auto app = app_t::from_file(build_manifest_path(system_apps[i], FLECS_VERSION));
             if (app.yaml_loaded())
             {
                 auto response = Json::Value{};

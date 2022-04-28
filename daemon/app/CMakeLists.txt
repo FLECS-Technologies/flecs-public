@@ -32,11 +32,14 @@ target_include_directories(
     FLECS.daemon.app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(FLECS.daemon.app
+target_link_libraries(FLECS.daemon.app PUBLIC
+    FLECS.external.yaml-cpp
+)
+
+target_link_libraries(FLECS.daemon.app PRIVATE
     FLECS.daemon.app.conffile
     FLECS.daemon.app.env_var
     FLECS.daemon.app.port_range
-    FLECS.external.yaml-cpp
 )
 
 add_subdirectory(test)
