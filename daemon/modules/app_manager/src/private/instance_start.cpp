@@ -75,7 +75,7 @@ http_status_e module_app_manager_private_t::do_start_instance(
 
     // Step 4: Load app manifest
     const auto path = build_manifest_path(instance.app, instance.version);
-    app_t app{path};
+    auto app = app_t::from_file(path);
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open manifest " + path;

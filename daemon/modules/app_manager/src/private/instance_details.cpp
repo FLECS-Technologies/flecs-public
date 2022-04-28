@@ -37,7 +37,7 @@ http_status_e module_app_manager_private_t::do_instance_details(const std::strin
     // Step 2: Obtain instance and corresponsing app
     const auto instance = _app_db.query_instance({id}).value();
     const auto manifest_path = build_manifest_path(instance.app, instance.version);
-    const auto app = app_t{manifest_path};
+    const auto app = app_t::from_file(manifest_path);
 
     // Build response
     response["app"] = instance.app;

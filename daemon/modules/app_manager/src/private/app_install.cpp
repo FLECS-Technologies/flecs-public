@@ -127,7 +127,7 @@ http_status_e module_app_manager_private_t::do_install(
     const auto desired = INSTALLED;
 
     // Step 1: Load app manifest
-    const auto app = app_t{manifest};
+    const auto app = app_t::from_file(manifest);
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open app manifest " + manifest;

@@ -39,7 +39,7 @@ http_status_e module_app_manager_private_t::do_uninstall(
     // Step 2: Load app manifest
     const auto path = build_manifest_path(app_name, version);
 
-    auto app = app_t{path};
+    auto app = app_t::from_file(path);
     if (!app.yaml_loaded())
     {
         // Manifest missing or invalid - persist removal of app into db

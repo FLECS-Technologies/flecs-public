@@ -15,7 +15,10 @@
 #ifndef C8B89989_19D1_40AE_B788_DD80AE214500
 #define C8B89989_19D1_40AE_B788_DD80AE214500
 
+#include <yaml-cpp/yaml.h>
+
 #include <algorithm>
+#include <filesystem>
 #include <map>
 #include <set>
 #include <vector>
@@ -40,7 +43,9 @@ public:
     using args_t = std::vector<std::string>;
 
     app_t() noexcept;
-    explicit app_t(const std::string& manifest);
+
+    static app_t from_file(const std::filesystem::path& path);
+    static app_t from_string(const std::string& yaml);
 
     auto yaml_loaded() const noexcept { return _yaml_loaded; }
 
@@ -113,6 +118,8 @@ public:
     void desired(app_status_e desired) noexcept { _desired = desired; }
 
 private:
+    void load_yaml(const YAML::Node& yaml);
+
     bool _yaml_loaded;
 
     std::string _name;

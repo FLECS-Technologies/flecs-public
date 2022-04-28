@@ -57,7 +57,7 @@ TEST(daemon_app, minimal_app)
 {
     auto manifest = manifest_writer_t{"minimal_app.yml", manifest_header()};
 
-    auto app = FLECS::app_t{manifest.filename()};
+    auto app = FLECS::app_t::from_file(manifest.filename());
 
     ASSERT_TRUE(app.yaml_loaded());
     ASSERT_EQ(app.name(), g_app);
@@ -71,7 +71,7 @@ TEST(daemon_app, empty_app)
 {
     auto manifest = manifest_writer_t{"empty_app.yml", std::string{}};
 
-    auto app = FLECS::app_t{manifest.filename()};
+    auto app = FLECS::app_t::from_file(manifest.filename());
 
     ASSERT_FALSE(app.yaml_loaded());
 }
@@ -102,9 +102,7 @@ TEST(daemon_app, complex_app)
     yaml.append("hostname: flecs-unit-test\n");
     yaml.append("interactive: true\n");
 
-    auto manifest = manifest_writer_t{"complex_app.yml", yaml};
-
-    auto app = FLECS::app_t{manifest.filename()};
+    auto app = FLECS::app_t::from_string(yaml);
 
     ASSERT_TRUE(app.yaml_loaded());
     ASSERT_EQ(app.description(), "FLECS Test application");
@@ -132,7 +130,7 @@ TEST(daemon_app, invalid_apps)
 
         auto manifest = manifest_writer_t{"invalid_app.yml", yaml};
 
-        auto app = FLECS::app_t{manifest.filename()};
+        auto app = FLECS::app_t::from_file(manifest.filename());
         ASSERT_FALSE(app.yaml_loaded());
         ASSERT_EQ(app.name(), "");
     }
