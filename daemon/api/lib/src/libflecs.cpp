@@ -64,9 +64,15 @@ int libflecs_t<Impl>::uninstall_app(const std::string& app, const std::string& v
 }
 
 template <typename Impl>
-int libflecs_t<Impl>::sideload_app(const std::string& manifest_path)
+int libflecs_t<Impl>::sideload_app_from_yaml(const std::string& yaml)
 {
-    return _impl->do_sideload_app(manifest_path);
+    return _impl->do_sideload_app_from_yaml(yaml);
+}
+
+template <typename Impl>
+int libflecs_t<Impl>::sideload_app_from_file(const std::filesystem::path& manifest_path)
+{
+    return _impl->do_sideload_app_from_file(manifest_path);
 }
 
 template <typename Impl>

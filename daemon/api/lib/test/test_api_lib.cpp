@@ -97,7 +97,7 @@ void echo_server_t::loop(FLECS::socket_t& socket)
             auto json = Json::Value{};
             auto response = std::stringstream{};
             response << response_header;
-            if (llhttp_ext.method == HTTP_POST)
+            if (llhttp_ext.method == HTTP_POST || llhttp_ext.method == HTTP_PUT)
             {
                 json_parser->parse(
                     llhttp_ext._body.c_str(),
@@ -106,10 +106,6 @@ void echo_server_t::loop(FLECS::socket_t& socket)
                     nullptr);
             }
             json["endpoint"] = llhttp_ext._url;
-            if (llhttp_ext.method == HTTP_PUT)
-            {
-                json["body"] = llhttp_ext._body;
-            }
             response << json.toStyledString();
             conn_socket.send(response.str().c_str(), response.str().length(), 0);
         }
@@ -232,14 +228,14 @@ TEST(api_lib, app_sideload_success)
     auto manifest_file = fopen(filename, "w");
     fwrite(app_manifest, 1, strlen(app_manifest), manifest_file);
     fclose(manifest_file);
-    const auto res = lib.sideload_app(filename);
+    const auto res = lib.sideload_app_from_file(filename);
     std::filesystem::remove(filename);
 
     const auto response = parse_json(lib.json_response());
 
     ASSERT_EQ(res, 0);
     ASSERT_EQ(response["endpoint"], "/app/sideload");
-    ASSERT_EQ(response["body"], app_manifest);
+    ASSERT_EQ(response["appYaml"], app_manifest);
 }
 
 TEST(api_lib, app_sideload_fail)
@@ -250,7 +246,7 @@ TEST(api_lib, app_sideload_fail)
     lib.connect("localhost", TEST_PORT);
     const auto filename = "non-existent-manifest.yml";
 
-    const auto res = lib.sideload_app(filename);
+    const auto res = lib.sideload_app_from_file(filename);
 
     const auto response = parse_json(lib.json_response());
 
@@ -412,7 +408,7 @@ TEST(api_lib, cmdline_app_sideload)
 
     ASSERT_EQ(res, 0);
     ASSERT_EQ(response["endpoint"], "/app/sideload");
-    ASSERT_EQ(response["body"], app_manifest);
+    ASSERT_EQ(response["appYaml"], app_manifest);
 }
 
 TEST(api_lib, cmdline_app_list)
