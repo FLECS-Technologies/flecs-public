@@ -91,7 +91,13 @@ int libflecs_private_t::do_uninstall_app(const std::string& app, const std::stri
     return post("/app/uninstall", body.toStyledString().c_str());
 }
 
-int libflecs_private_t::do_sideload_app(const std::string& manifest_path)
+int libflecs_private_t::do_sideload_app_from_yaml(const std::string& yaml)
+{
+    auto body = build_json("appYaml", yaml);
+    return put("/app/sideload", body.toStyledString().c_str());
+}
+
+int libflecs_private_t::do_sideload_app_from_file(const std::filesystem::path& manifest_path)
 {
     if (!std::filesystem::exists(manifest_path))
     {
@@ -121,7 +127,8 @@ int libflecs_private_t::do_sideload_app(const std::string& manifest_path)
         return -1;
     }
 
-    return put("/app/sideload", data.get());
+    auto body = build_json("appYaml", data.get());
+    return put("/app/sideload", body.toStyledString().c_str());
 }
 
 int libflecs_private_t::do_list_apps()
@@ -255,7 +262,7 @@ int libflecs_private_t::dispatch_uninstall_app(const std::vector<std::string>& a
 
 int libflecs_private_t::dispatch_sideload_app(const std::vector<std::string>& args)
 {
-    return do_sideload_app(ARG_OR_EMPTY(0));
+    return do_sideload_app_from_file(ARG_OR_EMPTY(0));
 }
 
 int libflecs_private_t::dispatch_list_apps(const std::vector<std::string>& /*args*/)

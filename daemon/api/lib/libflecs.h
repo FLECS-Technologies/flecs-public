@@ -15,6 +15,7 @@
 #ifndef CDA38A84_96B2_4ABF_BF57_39654CBCFB5D
 #define CDA38A84_96B2_4ABF_BF57_39654CBCFB5D
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <utility>
@@ -44,7 +45,8 @@ public:
     // app management
     FLECS_EXPORT int install_app(const std::string& app, const std::string& version, const std::string& license);
     FLECS_EXPORT int uninstall_app(const std::string& app, const std::string& version);
-    FLECS_EXPORT int sideload_app(const std::string& manifest_path);
+    FLECS_EXPORT int sideload_app_from_yaml(const std::string& yaml);
+    FLECS_EXPORT int sideload_app_from_file(const std::filesystem::path& manifest_path);
     FLECS_EXPORT int list_apps();
     FLECS_EXPORT int list_instances(const std::string& app, const std::string& version);
     FLECS_EXPORT int list_versions(const std::string& app);
