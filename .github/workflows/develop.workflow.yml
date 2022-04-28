@@ -113,3 +113,14 @@ jobs:
             out/**/*.deb
             out/**/*.ipk
           retention-days: 3
+
+      - name: Deploy packages
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.MP_GITHUB_SERVER }}
+          username: ${{ secrets.MP_GITHUB_USER }}
+          key: ${{ secrets.MP_GITHUB_SSH_KEY }}
+          passphrase: ${{ secrets.MP_GITHUB_SSH_KEY_PW }}
+          source: "out/${{ matrix.arch }}/*.deb"
+          target: ${{ secrets.MP_GITHUB_DEVELOP_DIR }}
+          strip_components: 2
