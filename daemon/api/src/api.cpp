@@ -98,7 +98,7 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
     }
 
     auto args = Json::Value{};
-    if (llhttp_ext.method == HTTP_POST)
+    if (llhttp_ext.method == HTTP_POST || llhttp_ext.method == HTTP_PUT)
     {
         const auto success = _json_reader->parse(
             llhttp_ext._body.c_str(),
@@ -109,22 +109,6 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
         {
             return http_status_e::BadRequest;
         }
-    }
-    else if (llhttp_ext.method == HTTP_PUT)
-    {
-        char tmp[] = "/tmp/flecs-XXXXXX";
-        int fd = mkstemp(tmp);
-        if (fd < -1)
-        {
-            return http_status_e::InternalServerError;
-        }
-        const auto res = write(fd, llhttp_ext._body.c_str(), llhttp_ext._body.length());
-        close(fd);
-        if (res != static_cast<ssize_t>(llhttp_ext._body.length()))
-        {
-            return http_status_e::InternalServerError;
-        }
-        args["path"] = tmp;
     }
     else if (llhttp_ext.method != HTTP_GET)
     {

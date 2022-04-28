@@ -61,9 +61,9 @@ http_status_e module_app_manager_t::install(const Json::Value& args, Json::Value
 
 http_status_e module_app_manager_t::sideload(const Json::Value& args, Json::Value& response)
 {
-    REQUIRED_JSON_VALUE(args, path);
+    REQUIRED_JSON_VALUE(args, appYaml);
     OPTIONAL_JSON_VALUE(args, licenseKey);
-    return _impl->do_sideload(path, licenseKey, response);
+    return _impl->do_sideload(appYaml, licenseKey, response);
 }
 
 http_status_e module_app_manager_t::uninstall(const Json::Value& args, Json::Value& response)
