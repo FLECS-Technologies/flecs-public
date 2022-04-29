@@ -33,8 +33,9 @@ target_link_libraries(FLECS.apps.mqtt-bridge PRIVATE
 
 # configure Docker image
 set(DOCKER_IMAGE "tech.flecs.mqtt-bridge")
+set(APP_VERSION "v1.0.0-porpoise")
 
-set(DOCKER_TAG ${VERSION})
+set(DOCKER_TAG ${APP_VERSION})
 
 install(
     TARGETS FLECS.apps.mqtt-bridge

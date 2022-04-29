@@ -16,8 +16,9 @@ project(FLECS.apps.service-mesh)
 
 # configure Docker image
 set(DOCKER_IMAGE "tech.flecs.service-mesh")
+set(APP_VERSION "v1.0.0-porpoise")
 
-set(DOCKER_TAG ${VERSION})
+set(DOCKER_TAG ${APP_VERSION})
 
 install(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/assets
