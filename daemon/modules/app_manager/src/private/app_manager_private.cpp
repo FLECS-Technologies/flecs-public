@@ -116,6 +116,7 @@ void module_app_manager_private_t::do_init()
     // "install" system apps on first start
     constexpr auto system_apps = std::array<const char*, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
     constexpr auto system_apps_desc = std::array<const char*, 2>{"FLECS MQTT Bridge", "FLECS Service Mesh"};
+    constexpr auto system_apps_versions = std::array<const char*, 2>{"v1.0.0-porpoise", "v1.0.0-porpoise"};
 
     for (size_t i = 0; i < system_apps.size(); ++i)
     {
@@ -127,7 +128,7 @@ void module_app_manager_private_t::do_init()
 
         for (const auto& instance : instances)
         {
-            if (instance.version != FLECS_VERSION)
+            if (instance.version != system_apps_versions[i])
             {
                 std::fprintf(
                     stdout,
@@ -142,21 +143,21 @@ void module_app_manager_private_t::do_init()
 
     for (size_t i = 0; i < system_apps.size(); ++i)
     {
-        const auto has_instance = !_app_db.instances(system_apps[i], FLECS_VERSION).empty();
+        const auto has_instance = !_app_db.instances(system_apps[i], system_apps_versions[i]).empty();
         const auto instance_ready =
-            has_instance ? (_app_db.instances(system_apps[i], FLECS_VERSION)[0].status == CREATED) : false;
+            has_instance ? (_app_db.instances(system_apps[i], system_apps_versions[i])[0].status == CREATED) : false;
 
         if (!instance_ready)
         {
             std::fprintf(stdout, "Installing system app %s\n", system_apps[i]);
-            download_manifest(system_apps[i], FLECS_VERSION);
-            auto app = app_t::from_file(build_manifest_path(system_apps[i], FLECS_VERSION));
+            download_manifest(system_apps[i], system_apps_versions[i]);
+            auto app = app_t::from_file(build_manifest_path(system_apps[i], system_apps_versions[i]));
             if (app.yaml_loaded())
             {
                 auto response = Json::Value{};
                 _app_db.insert_app({{app.name(), app.version()}, {INSTALLED, INSTALLED, app.category(), 0, "", ""}});
                 do_create_instance(app.name(), app.version(), system_apps_desc[i], response);
-                const auto app_instances = _app_db.instances(system_apps[i], FLECS_VERSION);
+                const auto app_instances = _app_db.instances(system_apps[i], system_apps_versions[i]);
                 if (!app_instances.empty())
                 {
                     auto instance = *app_instances.begin();
