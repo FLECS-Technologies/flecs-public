@@ -218,7 +218,7 @@ TEST(api_lib, app_uninstall)
     ASSERT_EQ(response["version"], version);
 }
 
-TEST(api_lib, app_sideload_success)
+TEST(api_lib, app_sideload_file_success)
 {
     auto lib = FLECS::libflecs_t{};
     lib.connect("localhost", TEST_PORT);
@@ -230,6 +230,23 @@ TEST(api_lib, app_sideload_success)
     fclose(manifest_file);
     const auto res = lib.sideload_app_from_file(filename);
     std::filesystem::remove(filename);
+
+    const auto response = parse_json(lib.json_response());
+
+    ASSERT_EQ(res, 0);
+    ASSERT_EQ(response["endpoint"], "/app/sideload");
+    ASSERT_EQ(response["appYaml"], app_manifest);
+}
+
+TEST(api_lib, app_sideload_string_success)
+{
+    auto lib = FLECS::libflecs_t{};
+    lib.connect("localhost", TEST_PORT);
+    // const auto app_manifest = "app: \"tech.flecs.sideloaded-app\"\r\ntitle: \"Sideloaded FLECS app\"\r\n";
+    const auto app_manifest =
+        "\"app\":\"ch.inasoft.sql4automation\",\"title\":\"SQL4AUTOMATION\",\"version\":\"v4.0.0.6\"";
+
+    const auto res = lib.sideload_app_from_yaml(app_manifest);
 
     const auto response = parse_json(lib.json_response());
 

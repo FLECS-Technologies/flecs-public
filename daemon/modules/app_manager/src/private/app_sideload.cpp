@@ -36,12 +36,14 @@ http_status_e module_app_manager_private_t::do_sideload(
     // Step 2: Copy manifest to local storage
     const auto manifest_path = build_manifest_path(app.name(), app.version());
 
-    auto file = std::fstream{manifest_path, std::fstream::out};
-    file << yaml;
-    if (!file)
     {
-        response["additionalInfo"] = "Could not place manifest in " + manifest_path;
-        return http_status_e::InternalServerError;
+        auto file = std::fstream{manifest_path, std::fstream::out};
+        file << yaml;
+        if (!file)
+        {
+            response["additionalInfo"] = "Could not place manifest in " + manifest_path;
+            return http_status_e::InternalServerError;
+        }
     }
 
     // Step 3: Forward to manifest installation
