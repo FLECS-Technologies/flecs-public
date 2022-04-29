@@ -135,7 +135,7 @@ void module_app_manager_private_t::do_init()
                     instance.version.c_str(),
                     instance.app.c_str());
                 auto response = Json::Value{};
-                do_uninstall(instance.app, instance.version, response);
+                do_uninstall(instance.app, instance.version, response, true);
             }
         }
     }
