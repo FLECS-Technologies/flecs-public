@@ -16,7 +16,7 @@ project(FLECS.apps.service-mesh)
 
 # configure Docker image
 set(DOCKER_IMAGE "tech.flecs.service-mesh")
-set(APP_VERSION "v1.0.0-porpoise")
+set(APP_VERSION "1.0.0-porpoise")
 
 set(DOCKER_TAG ${APP_VERSION})
 

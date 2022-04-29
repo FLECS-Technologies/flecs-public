@@ -116,7 +116,7 @@ void module_app_manager_private_t::do_init()
     // "install" system apps on first start
     constexpr auto system_apps = std::array<const char*, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
     constexpr auto system_apps_desc = std::array<const char*, 2>{"FLECS MQTT Bridge", "FLECS Service Mesh"};
-    constexpr auto system_apps_versions = std::array<const char*, 2>{"v1.0.0-porpoise", "v1.0.0-porpoise"};
+    constexpr auto system_apps_versions = std::array<const char*, 2>{"1.0.0-porpoise", "1.0.0-porpoise"};
 
     for (size_t i = 0; i < system_apps.size(); ++i)
     {
