@@ -114,7 +114,8 @@ public:
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      * @return FLECS_IOW: Error deleting manifest from disk
      */
-    http_status_e do_uninstall(const std::string& app_name, const std::string& version, Json::Value& response);
+    http_status_e do_uninstall(
+        const std::string& app_name, const std::string& version, Json::Value& response, bool force = false);
 
     /*! @brief Creates a new instance of an installed app
      *

@@ -23,7 +23,7 @@ namespace FLECS {
 namespace Private {
 
 http_status_e module_app_manager_private_t::do_uninstall(
-    const std::string& app_name, const std::string& version, Json::Value& response)
+    const std::string& app_name, const std::string& version, Json::Value& response, bool force)
 {
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
@@ -51,7 +51,7 @@ http_status_e module_app_manager_private_t::do_uninstall(
     }
 
     // Step 2a: Prevent removal of system apps
-    if (cxx20::contains(app.category(), "system"))
+    if (cxx20::contains(app.category(), "system") && !force)
     {
         response["additionalInfo"] = "Not removing system app " + app.name() + "(" + app.version() + ")";
         return http_status_e::InternalServerError;
