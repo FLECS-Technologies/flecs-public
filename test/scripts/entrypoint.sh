@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Copyright 2021-2022 FLECS Technologies GmbH
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+/usr/bin/containerd >/tmp/containerd.log 2>&1 &
+/usr/bin/dockerd >/tmp/dockerd.log 2>&1 &
+
+BASE_URL="https://marketplace.flecs.tech:8443"
+curl -L ${BASE_URL}/install.sh | bash
+
+VERSION=`curl -s -f ${BASE_URL}/dl/latest`
+/usr/bin/docker run -d -p 80:80 --add-host=host.docker.internal:172.18.0.1 --name flecs-webapp flecs/webapp:${VERSION}
+
+mkdir -p /var/run/flecs/
+/opt/flecs/bin/flecsd >/tmp/flecsd.log 2>&1 &
+
+bash
