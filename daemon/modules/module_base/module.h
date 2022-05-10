@@ -23,12 +23,12 @@ namespace FLECS {
 
 // Helper macros to parse JSON arguments passed to endpoints
 #define REQUIRED_TYPED_JSON_VALUE(json, val, type)                                           \
-    if (json[#val].is_null())                                                                \
+    if (!json.contains(#val))                                                                \
     {                                                                                        \
         response["additionalInfo"] = std::string{"Missing field "} + #val + " in request";   \
         return http_status_e::BadRequest;                                                    \
     }                                                                                        \
-    auto val = std::string{};                                                                \
+    auto val = type{};                                                                       \
     try                                                                                      \
     {                                                                                        \
         val = json[#val].get<type>();                                                        \
@@ -43,7 +43,7 @@ namespace FLECS {
 
 #define OPTIONAL_TYPED_JSON_VALUE(json, val, type)    \
     auto val = type{};                                \
-    if (!json.is_null() && !json[#val].is_null())     \
+    if (json.contains(#val))                          \
     {                                                 \
         try                                           \
         {                                             \

@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(datetime)
-add_subdirectory(llhttp_ext)
-add_subdirectory(network)
-add_subdirectory(process)
-add_subdirectory(signal_handler)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
+project(FLECS.util.network)
+
+add_library(FLECS.util.network STATIC
+    src/network.cpp
+    network.h
+)
+
+target_include_directories(FLECS.util.network PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+#add_subdirectory(test)

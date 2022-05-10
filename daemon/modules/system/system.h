@@ -15,14 +15,45 @@
 #ifndef E72B4073_69B1_4AE8_BCEC_210EBF10489E
 #define E72B4073_69B1_4AE8_BCEC_210EBF10489E
 
+#include <map>
+#include <string>
+#include <vector>
+
 #include "module_base/module.h"
 
 namespace FLECS {
+
+enum netif_type_t
+{
+    UNKNOWN,
+    WIRED,
+    WIRELESS,
+    LOCAL,
+    BRIDGE,
+    VIRTUAL,
+};
+
+struct ipaddr_t
+{
+    std::string addr;
+    std::string subnet_mask;
+};
+
+struct netif_t
+{
+    std::string mac;
+    netif_type_t type;
+    std::vector<ipaddr_t> ipv4_addr;
+    std::vector<ipaddr_t> ipv6_addr;
+    std::string gateway;
+};
 
 class module_system_t : public module_t
 {
 public:
     http_status_e ping(const json_t& args, json_t& response);
+
+    auto get_network_adapters() const -> std::map<std::string, netif_t>;
 
 protected:
     friend class module_factory_t;

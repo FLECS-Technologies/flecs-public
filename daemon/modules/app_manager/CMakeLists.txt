@@ -22,6 +22,7 @@ flecs_add_module(
         src/private/app_sideload.cpp
         src/private/app_uninstall.cpp
         src/private/app_versions.cpp
+        src/private/instance_config.cpp
         src/private/instance_create.cpp
         src/private/instance_delete.cpp
         src/private/instance_details.cpp

@@ -15,6 +15,7 @@
 #include "app_manager.h"
 
 #include "factory/factory.h"
+#include "instance/instance_config.h"
 #include "private/app_manager_private.h"
 #include "util/string/comparator.h"
 
@@ -35,6 +36,14 @@ module_app_manager_t::module_app_manager_t()
     api::register_endpoint("/app/sideload", HTTP_PUT, std::bind(&module_app_manager_t::sideload, this, _1, _2));
     api::register_endpoint("/app/uninstall", HTTP_POST, std::bind(&module_app_manager_t::uninstall, this, _1, _2));
     api::register_endpoint("/app/versions", HTTP_POST, std::bind(&module_app_manager_t::list_versions, this, _1, _2));
+    api::register_endpoint(
+        "/instance/config",
+        HTTP_POST,
+        std::bind(&module_app_manager_t::post_config_instance, this, _1, _2));
+    api::register_endpoint(
+        "/instance/config",
+        HTTP_PUT,
+        std::bind(&module_app_manager_t::put_config_instance, this, _1, _2));
     api::register_endpoint(
         "/instance/create",
         HTTP_POST,
@@ -145,6 +154,29 @@ http_status_e module_app_manager_t::list_instances(const json_t& args, json_t& r
     REQUIRED_JSON_VALUE(args, app_name);
     OPTIONAL_JSON_VALUE(args, version);
     return _impl->do_list_instances(app_name, version, response);
+}
+
+http_status_e module_app_manager_t::post_config_instance(const json_t& args, json_t& response)
+{
+    REQUIRED_JSON_VALUE(args, instanceId);
+    return _impl->do_post_config_instance(instanceId, response);
+}
+
+http_status_e module_app_manager_t::put_config_instance(const json_t& args, json_t& response)
+{
+    REQUIRED_JSON_VALUE(args, instanceId);
+    auto config = instance_config_t{};
+    for (decltype(auto) it : args["networkAdapters"])
+    {
+        REQUIRED_TYPED_JSON_VALUE(it, name, std::string);
+        REQUIRED_TYPED_JSON_VALUE(it, active, bool);
+        OPTIONAL_JSON_VALUE(it, ipAddress);
+        OPTIONAL_JSON_VALUE(it, subnetMask);
+        OPTIONAL_JSON_VALUE(it, gateway);
+        config.networkAdapters.push_back({name, ipAddress, subnetMask, gateway, active});
+    }
+
+    return _impl->do_put_config_instance(instanceId, config, response);
 }
 
 } // namespace FLECS
