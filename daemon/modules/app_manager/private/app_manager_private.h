@@ -25,6 +25,7 @@
 namespace FLECS {
 
 class module_app_manager_t;
+struct instance_config_t;
 
 namespace Private {
 
@@ -211,6 +212,11 @@ public:
      */
     http_status_e do_list_instances(const std::string& app_name, const std::string& version, json_t& response);
 
+    http_status_e do_post_config_instance(const std::string& instanceId, json_t& response);
+
+    http_status_e do_put_config_instance(
+        const std::string& instanceId, const instance_config_t& config, json_t& response);
+
 private:
     /*! @brief Helper function to determine whether a given app is installed in a given version
      *
@@ -251,6 +257,7 @@ private:
         const instances_table_entry_t& instance, const std::string& app_name, const std::string& version);
 
     std::string generate_instance_ip();
+    std::string generate_ip(const std::string& cidr_subnet);
 
     app_db_t _app_db;
 };

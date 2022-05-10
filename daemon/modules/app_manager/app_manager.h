@@ -51,6 +51,8 @@ private:
     http_status_e list_apps(const json_t& args, json_t& response);
     http_status_e list_versions(const json_t& args, json_t& response);
     http_status_e list_instances(const json_t& args, json_t& response);
+    http_status_e post_config_instance(const json_t& args, json_t& response);
+    http_status_e put_config_instance(const json_t& args, json_t& response);
 
     std::unique_ptr<Private::module_app_manager_private_t> _impl;
 };

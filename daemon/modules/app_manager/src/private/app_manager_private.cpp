@@ -27,6 +27,7 @@
 
 #include "app/app.h"
 #include "factory/factory.h"
+#include "util/network/network.h"
 #include "util/process/process.h"
 #include "version/version.h"
 
@@ -271,21 +272,21 @@ int module_app_manager_private_t::xcheck_app_instance(
 
 std::string module_app_manager_private_t::generate_instance_ip()
 {
-    // Get base IP and subnet as "a.b.c.d/x"
-    auto out = std::string{};
-    {
-        auto docker_process = FLECS::process_t{};
-        docker_process
-            .spawnp("docker", "network", "inspect", "-f", "'{{range .IPAM.Config}}{{.Subnet}}{{end}}'", "flecs");
-        docker_process.wait(false, false);
-        out = docker_process.stdout();
-    }
+    // Get base IP and subnet of FLECS network as "a.b.c.d/x"
+    auto docker_process = FLECS::process_t{};
+    docker_process.spawnp("docker", "network", "inspect", "-f", "'{{range .IPAM.Config}}{{.Subnet}}{{end}}'", "flecs");
+    docker_process.wait(false, false);
+    return generate_ip(docker_process.stdout());
+}
+
+std::string module_app_manager_private_t::generate_ip(const std::string& cidr_subnet)
+{
     // parse a.b.c.d
     auto base_ip = in_addr_t{};
     {
         const auto ip_regex = std::regex{"(?:\\d{1,3}\\.){3}\\d{1,3}"};
         auto m = std::smatch{};
-        if (!std::regex_search(out, m, ip_regex))
+        if (!std::regex_search(cidr_subnet, m, ip_regex))
         {
             return std::string{};
         }
@@ -296,7 +297,7 @@ std::string module_app_manager_private_t::generate_instance_ip()
     {
         const auto subnet_regex = std::regex{"/(\\d{1,2})"};
         auto m = std::smatch{};
-        if (!std::regex_search(out, m, subnet_regex) || m.size() < 2)
+        if (!std::regex_search(cidr_subnet, m, subnet_regex) || m.size() < 2)
         {
             return std::string{};
         }
@@ -312,9 +313,9 @@ std::string module_app_manager_private_t::generate_instance_ip()
     auto used_ips = std::set<in_addr_t>{};
     for (decltype(auto) instance : _app_db.all_instances())
     {
-        if (!instance.ips.empty())
+        for (decltype(auto) ip : instance.ips)
         {
-            used_ips.emplace(inet_network(instance.ips[0].c_str()));
+            used_ips.emplace(ipv4_to_bits(ip).s_addr);
         }
     }
 
