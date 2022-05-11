@@ -22,6 +22,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "core/global/types/type_traits.h"
+
 namespace FLECS {
 
 template <typename T>
@@ -45,23 +47,39 @@ std::string stringify(Args&&... args)
     return str;
 }
 
-template <typename... Args>
-std::string stringify_delim(char delim, Args&&... args)
+template <typename T>
+std::string stringify_delim_impl(std::string_view delim, T&& val)
 {
-    (void)delim;
+    (void)delim; // suppress wrong unused warning
+    if constexpr (is_std_container_v<T>)
+    {
+        auto str = std::string{};
+        for (decltype(auto) it : val)
+        {
+            str += stringify_impl(it) + std::string{delim};
+        }
+        str.pop_back();
+        return str;
+    }
+    else
+    {
+        return stringify_impl(val);
+    }
+}
+
+template <typename... Args>
+std::string stringify_delim(std::string_view delim, Args&&... args)
+{
     auto str = std::string{};
-    ((str += stringify_impl(args) += delim), ...);
-    str.pop_back();
+    ((str += stringify_delim_impl(delim, args) += delim), ...);
+    str.resize(str.size() - delim.size());
     return str;
 }
 
 template <typename... Args>
-std::string stringify_delim(std::string delim, Args&&... args)
+std::string stringify_delim(char delim, Args&&... args)
 {
-    auto str = std::string{};
-    ((str += stringify_impl(args) += delim), ...);
-    str.resize(str.size() - delim.size());
-    return str;
+    return stringify_delim(std::string_view{&delim, 1}, args...);
 }
 
 template <typename CharT, typename Traits>

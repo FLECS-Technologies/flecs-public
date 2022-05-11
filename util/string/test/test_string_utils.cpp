@@ -50,11 +50,23 @@ TEST(string_utils, stringify_delim3)
     using std::string_literals::operator""s;
 
     const auto expected = std::string{"flecs\000test-case\0003"s};
-    auto str1 = "flecs";
+    auto str1 = std::string{"flecs"};
     auto str2 = "test-case";
     auto str3 = 3;
 
     const auto actual = FLECS::stringify_delim('\0', str1, str2, str3);
+
+    EXPECT_EQ(actual, expected);
+}
+
+TEST(string_utils, stringify_delim4)
+{
+    using std::string_literals::operator""s;
+
+    const auto expected = std::string{"1,2,3,4,5"s};
+    const auto v = std::vector<int>{1, 2, 3, 4, 5};
+
+    const auto actual = FLECS::stringify_delim(",", v);
 
     EXPECT_EQ(actual, expected);
 }
