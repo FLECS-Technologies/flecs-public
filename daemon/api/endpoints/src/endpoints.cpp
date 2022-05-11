@@ -16,42 +16,56 @@
 
 namespace FLECS {
 
+endpoint_t::endpoint_t()
+    : _endpoint{}
+    , _method{}
+    , _cbk{}
+{}
+
+endpoint_t::endpoint_t(const char* endpoint, llhttp_method method, cbk_t cbk)
+    : _endpoint{endpoint}
+    , _method{method}
+    , _cbk{cbk}
+{}
+
 endpoint_factory_t& endpoint_factory_t::instance()
 {
     static endpoint_factory_t factory;
     return factory;
 }
 
-std::optional<endpoint_t> endpoint_factory_t::query(const char* endpoint)
+std::optional<endpoint_t> endpoint_factory_t::query(const char* endpoint, llhttp_method method)
 {
-    decltype(auto) it = _endpoint_table.find(endpoint);
+    decltype(auto) it = std::find_if(_endpoint_table.cbegin(), _endpoint_table.cend(), [&](const endpoint_t& ep) {
+        return ((endpoint == ep.endpoint()) && (ep.method() == method));
+    });
     if (it != _endpoint_table.end())
     {
-        return it->second;
+        return *it;
     }
     return {};
 }
 
-void endpoint_factory_t::register_endpoint(const char* endpoint, endpoint_t cbk)
+void endpoint_factory_t::register_endpoint(const char* endpoint_regex, llhttp_method method, endpoint_t::cbk_t cbk)
 {
-    _endpoint_table.try_emplace(endpoint, cbk);
+    _endpoint_table.emplace_back(endpoint_regex, method, cbk);
 }
 
-register_endpoint_t::register_endpoint_t(const char* endpoint, endpoint_t cbk)
+register_endpoint_t::register_endpoint_t(const char* endpoint_regex, llhttp_method method, endpoint_t::cbk_t cbk)
 {
-    endpoint_factory_t::instance().register_endpoint(endpoint, cbk);
+    endpoint_factory_t::instance().register_endpoint(endpoint_regex, method, cbk);
 }
 
 namespace api {
 
-void register_endpoint(const char* endpoint, endpoint_t cbk)
+void register_endpoint(const char* endpoint_regex, llhttp_method method, endpoint_t::cbk_t cbk)
 {
-    return endpoint_factory_t::instance().register_endpoint(endpoint, cbk);
+    return endpoint_factory_t::instance().register_endpoint(endpoint_regex, method, cbk);
 }
 
-std::optional<endpoint_t> query_endpoint(const char* endpoint)
+std::optional<endpoint_t> query_endpoint(const char* endpoint, llhttp_method method)
 {
-    return endpoint_factory_t::instance().query(endpoint);
+    return endpoint_factory_t::instance().query(endpoint, method);
 }
 
 } // namespace api

@@ -26,7 +26,7 @@ module_help_t::module_help_t()
 {
     using namespace std::placeholders;
 
-    api::register_endpoint("/help", std::bind(&module_help_t::print_help, this, _1));
+    api::register_endpoint("/help", HTTP_GET, std::bind(&module_help_t::print_help, this, _1));
 }
 
 http_status_e module_help_t::print_help(const Json::Value& /*args*/)

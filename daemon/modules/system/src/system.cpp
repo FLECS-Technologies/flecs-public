@@ -28,7 +28,7 @@ module_system_t::module_system_t()
 {
     using namespace std::placeholders;
 
-    api::register_endpoint("/system/ping", std::bind(&module_system_t::ping, this, _1, _2));
+    api::register_endpoint("/system/ping", HTTP_GET, std::bind(&module_system_t::ping, this, _1, _2));
 }
 
 http_status_e module_system_t::ping(const Json::Value& /*args*/, Json::Value& response)

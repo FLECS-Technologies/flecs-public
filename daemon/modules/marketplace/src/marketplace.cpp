@@ -26,8 +26,8 @@ module_marketplace_t::module_marketplace_t()
 {
     using namespace std::placeholders;
 
-    api::register_endpoint("/marketplace/login", std::bind(&module_marketplace_t::mp_login, this, _1, _2));
-    api::register_endpoint("/marketplace/logout", std::bind(&module_marketplace_t::mp_logout, this, _1, _2));
+    api::register_endpoint("/marketplace/login", HTTP_POST, std::bind(&module_marketplace_t::mp_login, this, _1, _2));
+    api::register_endpoint("/marketplace/logout", HTTP_POST, std::bind(&module_marketplace_t::mp_logout, this, _1, _2));
 }
 
 http_status_e module_marketplace_t::mp_login(const Json::Value& args, Json::Value& response)

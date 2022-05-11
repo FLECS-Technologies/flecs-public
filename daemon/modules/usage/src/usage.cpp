@@ -28,7 +28,7 @@ module_usage_t::module_usage_t()
 {
     using namespace std::placeholders;
 
-    api::register_endpoint("/usage", std::bind(&module_usage_t::print_usage, this, _1, _2));
+    api::register_endpoint("/usage", HTTP_GET, std::bind(&module_usage_t::print_usage, this, _1, _2));
 }
 
 http_status_e module_usage_t::print_usage(const Json::Value& /*args*/, Json::Value& response)

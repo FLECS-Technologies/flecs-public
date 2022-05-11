@@ -29,18 +29,30 @@ module_app_manager_t::module_app_manager_t()
 {
     using namespace std::placeholders;
 
-    api::register_endpoint("/app/install", std::bind(&module_app_manager_t::install, this, _1, _2));
-    api::register_endpoint("/app/instances", std::bind(&module_app_manager_t::list_instances, this, _1, _2));
-    api::register_endpoint("/app/list", std::bind(&module_app_manager_t::list_apps, this, _1, _2));
-    api::register_endpoint("/app/sideload", std::bind(&module_app_manager_t::sideload, this, _1, _2));
-    api::register_endpoint("/app/uninstall", std::bind(&module_app_manager_t::uninstall, this, _1, _2));
-    api::register_endpoint("/app/versions", std::bind(&module_app_manager_t::list_versions, this, _1, _2));
-    api::register_endpoint("/instance/create", std::bind(&module_app_manager_t::create_instance, this, _1, _2));
-    api::register_endpoint("/instance/delete", std::bind(&module_app_manager_t::delete_instance, this, _1, _2));
-    api::register_endpoint("/instance/start", std::bind(&module_app_manager_t::start_instance, this, _1, _2));
-    api::register_endpoint("/instance/stop", std::bind(&module_app_manager_t::stop_instance, this, _1, _2));
-    api::register_endpoint("/instance/details", std::bind(&module_app_manager_t::instance_details, this, _1, _2));
-    api::register_endpoint("/instance/log", std::bind(&module_app_manager_t::instance_log, this, _1, _2));
+    api::register_endpoint("/app/install", HTTP_POST, std::bind(&module_app_manager_t::install, this, _1, _2));
+    api::register_endpoint("/app/instances", HTTP_POST, std::bind(&module_app_manager_t::list_instances, this, _1, _2));
+    api::register_endpoint("/app/list", HTTP_GET, std::bind(&module_app_manager_t::list_apps, this, _1, _2));
+    api::register_endpoint("/app/sideload", HTTP_PUT, std::bind(&module_app_manager_t::sideload, this, _1, _2));
+    api::register_endpoint("/app/uninstall", HTTP_POST, std::bind(&module_app_manager_t::uninstall, this, _1, _2));
+    api::register_endpoint("/app/versions", HTTP_POST, std::bind(&module_app_manager_t::list_versions, this, _1, _2));
+    api::register_endpoint(
+        "/instance/create",
+        HTTP_POST,
+        std::bind(&module_app_manager_t::create_instance, this, _1, _2));
+    api::register_endpoint(
+        "/instance/delete",
+        HTTP_POST,
+        std::bind(&module_app_manager_t::delete_instance, this, _1, _2));
+    api::register_endpoint(
+        "/instance/start",
+        HTTP_POST,
+        std::bind(&module_app_manager_t::start_instance, this, _1, _2));
+    api::register_endpoint("/instance/stop", HTTP_POST, std::bind(&module_app_manager_t::stop_instance, this, _1, _2));
+    api::register_endpoint(
+        "/instance/details",
+        HTTP_POST,
+        std::bind(&module_app_manager_t::instance_details, this, _1, _2));
+    api::register_endpoint("/instance/log", HTTP_POST, std::bind(&module_app_manager_t::instance_log, this, _1, _2));
 }
 
 module_app_manager_t::~module_app_manager_t()
