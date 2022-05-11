@@ -42,7 +42,8 @@ auto make_instance_entry(std::string id = "789abcde", FLECS::apps_table_primary_
             "Test instance",
             FLECS::NOT_CREATED,
             FLECS::CREATED,
-            "127.0.0.1",
+            {"network"},
+            {"127.0.0.1"},
             0}};
 }
 
@@ -88,7 +89,8 @@ void assert_db_has_instance(const FLECS::app_db_t& app_db, const FLECS::instance
     ASSERT_EQ(instance_val.status, data.status);
     ASSERT_EQ(instance_val.desired, data.desired);
     ASSERT_EQ(instance_val.description, data.description);
-    ASSERT_EQ(instance_val.ip, data.ip);
+    ASSERT_EQ(instance_val.networks, data.networks);
+    ASSERT_EQ(instance_val.ips, data.ips);
     ASSERT_EQ(instance_val.flags, data.flags);
 }
 

@@ -58,7 +58,10 @@ std::string stringify_delim_impl(std::string_view delim, T&& val)
         {
             str += stringify_impl(it) + std::string{delim};
         }
-        str.pop_back();
+        if (!str.empty())
+        {
+            str.resize(str.size() - delim.size());
+        }
         return str;
     }
     else

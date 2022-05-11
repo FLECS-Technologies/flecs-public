@@ -42,7 +42,7 @@ http_status_e module_app_manager_private_t::do_instance_details(const std::strin
     // Build response
     response["app"] = instance.app;
     response["version"] = instance.version;
-    response["IPAddress"] = instance.ip;
+    response["IPAddress"] = instance.ips[0];
     response["conffiles"] = Json::Value{Json::arrayValue};
     response["hostname"] = app.hostname().empty() ? (std::string{"flecs-"}.append(instance.id)) : app.hostname();
     for (const auto& conffile : app.conffiles())

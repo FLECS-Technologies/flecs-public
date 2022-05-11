@@ -169,6 +169,7 @@ void app_t::load_yaml(const YAML::Node& yaml)
         }
         OPTIONAL_TYPED_YAML_VALUE(yaml, hostname, _hostname);
         add_network("flecs");
+#if 0  // Deactivate network support for now
         auto networks = YAML::Node{};
         OPTIONAL_YAML_VALUE(yaml, networks, networks);
         for (const auto& i : networks)
@@ -176,6 +177,7 @@ void app_t::load_yaml(const YAML::Node& yaml)
             const auto network = i.as<std::string>();
             add_network(network);
         }
+#endif // 0
         auto ports = YAML::Node{};
         OPTIONAL_YAML_VALUE(yaml, ports, ports);
         for (const auto& port_range : ports)

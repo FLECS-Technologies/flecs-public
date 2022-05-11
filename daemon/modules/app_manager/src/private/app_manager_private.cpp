@@ -312,7 +312,7 @@ std::string module_app_manager_private_t::generate_instance_ip()
     auto used_ips = std::set<in_addr_t>{};
     for (decltype(auto) instance : _app_db.all_instances())
     {
-        used_ips.emplace(inet_network(instance.ip.c_str()));
+        used_ips.emplace(inet_network(instance.ips[0].c_str()));
     }
 
     // skip network address and host address

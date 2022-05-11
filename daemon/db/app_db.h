@@ -77,7 +77,8 @@ struct instances_table_data_t
     std::string description;
     instance_status_e status;
     instance_status_e desired;
-    std::string ip;
+    std::vector<std::string> networks;
+    std::vector<std::string> ips;
     std::int32_t flags;
 };
 struct instances_table_entry_t : public instances_table_primary_t, public instances_table_data_t
@@ -174,10 +175,11 @@ public:
 
     const char* errmsg() const noexcept { return static_cast<const sqlite3_db_t*>(this)->errmsg(); }
 
-    static constexpr int CURRENT_USER_VERSION = 3;
+    static constexpr int CURRENT_USER_VERSION = 4;
 
 private:
     void cache_db();
+    void migrate_db();
 
     int create_app_table();
     int create_instances_table();

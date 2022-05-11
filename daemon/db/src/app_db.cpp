@@ -110,9 +110,21 @@ static int select_instances_callback(void* data, int argc, char** argv, char* co
         {
             entry.description = argv[i];
         }
-        else if (col == "ip_addr")
+        else if (col == "networks")
         {
-            entry.ip = argv[i];
+            auto networks = split(argv[i], ',');
+            for (decltype(auto) network : networks)
+            {
+                entry.networks.emplace_back(network);
+            }
+        }
+        else if (col == "ipv4_addr" || col == "ip_addr")
+        {
+            auto ips = split(argv[i], ',');
+            for (decltype(auto) ip : ips)
+            {
+                entry.ips.emplace_back(ip);
+            }
         }
         else if (col == "flags")
         {
@@ -157,6 +169,7 @@ app_db_t::app_db_t(std::string path)
     }
 
     cache_db();
+    migrate_db();
 }
 
 app_db_t::~app_db_t()
@@ -188,8 +201,9 @@ int app_db_t::create_instances_table()
         sqlite3_column_t{"version", SQLITE3_TEXT, 255},
         sqlite3_column_t{"status", SQLITE3_TEXT, 1},
         sqlite3_column_t{"desired", SQLITE3_TEXT, 1},
-        sqlite3_column_t{"description", SQLITE3_TEXT, 4095},
-        sqlite3_column_t{"ip_addr", SQLITE3_TEXT, 255},
+        sqlite3_column_t{"description", SQLITE3_TEXT, 4096},
+        sqlite3_column_t{"networks", SQLITE3_TEXT, 4096},
+        sqlite3_column_t{"ipv4_addr", SQLITE3_TEXT, 4096},
         sqlite3_column_t{"flags", SQLITE_INTEGER},
         sqlite3_primary_t{"id"});
 }
@@ -343,6 +357,23 @@ void app_db_t::cache_db()
     query_user_version();
 }
 
+void app_db_t::migrate_db()
+{
+    if (user_version() < CURRENT_USER_VERSION)
+    {
+        // There is currently no need to check 'from' and 'to' version
+        for (decltype(auto) instance : _instances)
+        {
+            if (instance.second.networks.empty())
+            {
+                instance.second.networks.emplace_back("flecs");
+            }
+        }
+        persist();
+        _user_version = CURRENT_USER_VERSION;
+    }
+}
+
 int app_db_t::persist()
 {
     const auto path_old = std::filesystem::path{_path};
@@ -387,7 +418,8 @@ int app_db_t::persist()
             instance.second.status,
             instance.second.desired,
             instance.second.description,
-            instance.second.ip,
+            stringify_delim(',', instance.second.networks),
+            stringify_delim(',', instance.second.ips),
             instance.second.flags);
         if (res != SQLITE_OK)
         {

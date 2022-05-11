@@ -37,7 +37,7 @@ class app_t
 public:
     using volumes_t = std::map<std::string, std::string>;
     using conffiles_t = std::vector<conffile_t>;
-    using networks_t = std::set<std::string>;
+    using networks_t = std::vector<std::string>;
     using ports_t = std::vector<mapped_port_range_t>;
     using envs_t = std::vector<mapped_env_var_t>;
     using args_t = std::vector<std::string>;
@@ -95,7 +95,7 @@ public:
     void hostname(std::string hostname) { _hostname = hostname; }
 
     auto& networks() const noexcept { return _networks; }
-    auto add_network(networks_t::value_type network) { return _networks.emplace(network); }
+    auto add_network(networks_t::value_type network) { return _networks.emplace_back(network); }
 
     auto& ports() const noexcept { return _ports; }
     void add_port(ports_t::value_type range) { _ports.push_back(range); }

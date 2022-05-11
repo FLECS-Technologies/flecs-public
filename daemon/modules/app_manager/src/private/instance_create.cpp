@@ -93,7 +93,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
 
     status = instance_status_e::REQUESTED;
 
-    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, "", 0});
+    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, {""}, {""}, 0});
 
     // Step 5: Create Docker volumes
     for (const auto& volume : app.volumes())
@@ -172,7 +172,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
     }
 
     status = instance_status_e::RESOURCES_READY;
-    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, "", 0});
+    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, {""}, {""}, 0});
 
     // Step 8: Create Docker container
     auto docker_process = process_t{};
@@ -255,7 +255,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
 
     // Final step: Persist successful creation into db
 
-    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, ip, 0});
+    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, app.networks(), {ip}, 0});
     _app_db.persist();
 
     response["instanceId"] = hex_id;
