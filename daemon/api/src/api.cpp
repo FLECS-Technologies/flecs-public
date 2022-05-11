@@ -117,11 +117,11 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
 
     http_status_e err = http_status_e::NotImplemented;
 
-    const auto endpoint = api::query_endpoint(llhttp_ext._url.c_str());
+    const auto endpoint = api::query_endpoint(llhttp_ext._url.c_str(), static_cast<llhttp_method>(llhttp_ext.method));
     auto json_response = Json::Value{};
     if (endpoint.has_value())
     {
-        err = static_cast<http_status_e>(std::invoke(endpoint.value(), args, json_response));
+        err = endpoint.value()(args, json_response);
     }
 
     decltype(auto) body = json_response.toStyledString();

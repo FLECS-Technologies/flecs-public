@@ -27,3 +27,7 @@ target_include_directories(
 target_include_directories(
     FLECS.daemon.api.endpoints PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+target_link_libraries(FLECS.daemon.api.endpoints PUBLIC
+    FLECS.external.llhttp
+)

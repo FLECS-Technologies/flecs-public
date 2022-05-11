@@ -28,7 +28,7 @@ module_version_t::module_version_t()
 {
     using namespace std::placeholders;
 
-    api::register_endpoint("/system/version", std::bind(&module_version_t::print_version, this, _1, _2));
+    api::register_endpoint("/system/version", HTTP_GET, std::bind(&module_version_t::print_version, this, _1, _2));
 }
 
 http_status_e module_version_t::print_version(const Json::Value& /*args*/, Json::Value& response)

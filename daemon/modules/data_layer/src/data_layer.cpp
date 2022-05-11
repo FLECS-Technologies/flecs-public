@@ -28,7 +28,7 @@ module_data_layer_t::module_data_layer_t()
 {
     using namespace std::placeholders;
 
-    api::register_endpoint("/data-layer/browse", std::bind(&module_data_layer_t::browse, this, _1, _2));
+    api::register_endpoint("/data-layer/browse", HTTP_GET, std::bind(&module_data_layer_t::browse, this, _1, _2));
 }
 
 module_data_layer_t::~module_data_layer_t()
