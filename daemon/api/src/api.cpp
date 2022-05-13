@@ -17,11 +17,11 @@
 #include <poll.h>
 
 #include <cstdio>
+#include <nlohmann/json.hpp>
 #include <thread>
 #include <vector>
 
 #include "endpoints/endpoints.h"
-#include "json/json.h"
 #include "util/http/response_headers.h"
 #include "util/http/version_strings.h"
 #include "util/llhttp_ext/llhttp_ext.h"
@@ -33,7 +33,6 @@ namespace FLECS {
 flecs_api_t::flecs_api_t()
     : _tcp_server{8951, INADDR_ANY, 10}
     , _unix_server{"/var/run/flecs/flecs.sock", 10}
-    , _json_reader{Json::CharReaderBuilder().newCharReader()}
 {
     if (!_tcp_server.is_running() || !_unix_server.is_running())
     {
@@ -97,15 +96,11 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
         return http_status_e::BadRequest;
     }
 
-    auto args = Json::Value{};
+    auto args = nlohmann::json{};
     if (llhttp_ext.method == HTTP_POST || llhttp_ext.method == HTTP_PUT)
     {
-        const auto success = _json_reader->parse(
-            llhttp_ext._body.c_str(),
-            llhttp_ext._body.c_str() + llhttp_ext._body.size(),
-            &args,
-            nullptr);
-        if (!success)
+        args = nlohmann::json::parse(llhttp_ext._body, nullptr, false);
+        if (args.is_discarded())
         {
             return http_status_e::BadRequest;
         }
@@ -118,13 +113,13 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
     http_status_e err = http_status_e::NotImplemented;
 
     const auto endpoint = api::query_endpoint(llhttp_ext._url.c_str(), static_cast<llhttp_method>(llhttp_ext.method));
-    auto json_response = Json::Value{};
+    auto json_response = nlohmann::json{};
     if (endpoint.has_value())
     {
         err = endpoint.value()(args, json_response);
     }
 
-    decltype(auto) body = json_response.toStyledString();
+    decltype(auto) body = json_response.dump();
     std::stringstream ss;
     // HTTP header
     ss << http_version_1_1 << " " << http_response_header_map.at(err).second;

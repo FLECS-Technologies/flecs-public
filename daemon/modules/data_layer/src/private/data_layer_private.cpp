@@ -14,7 +14,7 @@
 
 #include "private/data_layer_private.h"
 
-#include <json/json.h>
+#include <nlohmann/json.hpp>
 
 namespace FLECS {
 namespace Private {
@@ -25,7 +25,7 @@ module_data_layer_private_t::module_data_layer_private_t()
 module_data_layer_private_t::~module_data_layer_private_t()
 {}
 
-http_status_e module_data_layer_private_t::do_browse(const std::string& path, Json::Value& response)
+http_status_e module_data_layer_private_t::do_browse(const std::string& path, nlohmann::json& response)
 {
     response["additionalInfo"] = "";
 
@@ -39,16 +39,16 @@ http_status_e module_data_layer_private_t::do_browse(const std::string& path, Js
 
     decltype(auto) vars = std::get<1>(res);
 
-    response["data"] = Json::Value{Json::arrayValue};
+    response["data"] = nlohmann::json::array();
     for (decltype(auto) it = vars.cbegin(); it != vars.cend(); ++it)
     {
-        auto data = Json::Value{};
+        auto data = nlohmann::json{};
         data["key"] = it->_key;
         data["value"] = it->_value;
         data["encoding"] = it->_encoding;
         data["timestamp"] =
             std::string{it->_timestamp, std::find(it->_timestamp, it->_timestamp + std::strlen(it->_timestamp), '/')};
-        response["data"].append(data);
+        response["data"].push_back(data);
     }
 
     return http_status_e::Ok;

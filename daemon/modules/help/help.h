@@ -31,7 +31,7 @@ protected:
     module_help_t();
 
 private:
-    http_status_e print_help(const Json::Value& args);
+    http_status_e print_help(const nlohmann::json& args);
 
     std::string _topic;
     std::list<std::string> _subtopics;

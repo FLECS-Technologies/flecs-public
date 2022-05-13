@@ -18,7 +18,7 @@ namespace FLECS {
 namespace Private {
 
 http_status_e module_app_manager_private_t::do_list_versions(
-    const std::string& /*app_name*/, Json::Value& /* response */)
+    const std::string& /*app_name*/, nlohmann::json& /* response */)
 {
     return http_status_e::Ok;
 }

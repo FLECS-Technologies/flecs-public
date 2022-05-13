@@ -21,10 +21,6 @@
 #include "util/socket/tcp_server.h"
 #include "util/socket/unix_server.h"
 
-namespace Json {
-class CharReader;
-} // namespace Json
-
 namespace FLECS {
 
 /*! API for communication with the outside world. Runs an HTTP server handling requests on registered endpoints.
@@ -58,7 +54,6 @@ private:
 
     tcp_server_t _tcp_server;
     unix_server_t _unix_server;
-    std::unique_ptr<Json::CharReader> _json_reader;
 };
 
 } // namespace FLECS

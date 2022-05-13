@@ -22,7 +22,7 @@ namespace FLECS {
 namespace Private {
 
 http_status_e module_app_manager_private_t::do_delete_instance(
-    const std::string& id, const std::string& app_name, const std::string& version, Json::Value& response)
+    const std::string& id, const std::string& app_name, const std::string& version, nlohmann::json& response)
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};

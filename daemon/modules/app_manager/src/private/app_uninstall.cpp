@@ -23,7 +23,7 @@ namespace FLECS {
 namespace Private {
 
 http_status_e module_app_manager_private_t::do_uninstall(
-    const std::string& app_name, const std::string& version, Json::Value& response, bool force)
+    const std::string& app_name, const std::string& version, nlohmann::json& response, bool force)
 {
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;

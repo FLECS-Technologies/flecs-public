@@ -27,7 +27,7 @@ public:
     module_data_layer_private_t();
     ~module_data_layer_private_t();
 
-    http_status_e do_browse(const std::string& path, Json::Value& response);
+    http_status_e do_browse(const std::string& path, nlohmann::json& response);
 
 private:
     flunder_client_t _client;

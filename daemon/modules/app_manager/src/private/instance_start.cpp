@@ -22,7 +22,7 @@ namespace FLECS {
 namespace Private {
 
 http_status_e module_app_manager_private_t::do_start_instance(
-    const std::string& id, const std::string& app_name, const std::string& version, Json::Value& response,
+    const std::string& id, const std::string& app_name, const std::string& version, nlohmann::json& response,
     bool internal)
 {
     // Provisional response based on request

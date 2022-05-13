@@ -21,16 +21,16 @@ public:
     module_system_test_t() = default;
 };
 
-TEST(module_version, print_version)
+TEST(module_version, ping)
 {
-    const auto out_expected = std::string{"{\n\t\"additionalInfo\" : \"OK\"\n}\n"};
+    const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
 
     auto mod = module_system_test_t{};
-    auto response = Json::Value{};
-    const auto res = mod.ping(Json::Value{}, response);
+    auto response = nlohmann::json{};
+    const auto res = mod.ping(nlohmann::json{}, response);
 
-    response.toStyledString();
+    response.dump();
 
     ASSERT_EQ(res, FLECS::http_status_e::Ok);
-    ASSERT_EQ(response.toStyledString(), out_expected);
+    ASSERT_EQ(response.dump(), out_expected);
 }

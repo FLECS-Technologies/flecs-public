@@ -31,7 +31,7 @@ module_version_t::module_version_t()
     api::register_endpoint("/system/version", HTTP_GET, std::bind(&module_version_t::print_version, this, _1, _2));
 }
 
-http_status_e module_version_t::print_version(const Json::Value& /*args*/, Json::Value& response)
+http_status_e module_version_t::print_version(const nlohmann::json& /*args*/, nlohmann::json& response)
 {
     response["core"] = std::string{FLECS_VERSION} + "-" + std::string{FLECS_GIT_SHA};
 

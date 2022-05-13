@@ -30,12 +30,12 @@ target_include_directories(
 
 target_link_libraries(FLECS.daemon.api PUBLIC
     FLECS.daemon.api.endpoints
-    FLECS.external.jsoncpp
     FLECS.util.llhttp_ext
 )
 
 target_link_libraries(FLECS.daemon.api PRIVATE
     FLECS.daemon.app
+    FLECS.external.json
     FLECS.util.sqlite3_ext
 )
 

@@ -25,18 +25,18 @@ TEST(module_marketplace, login)
 {
     const auto user = "testuser";
     const auto token = "abcdef-1234-5678-XYZ";
-    const auto out_expected = std::string{"{\n\t\"additionalInfo\" : \"OK\"\n}\n"};
+    const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
 
     auto mod = module_marketplace_test_t{};
-    auto request = Json::Value{};
+    auto request = nlohmann::json{};
     request["user"] = user;
     request["token"] = token;
 
-    auto response = Json::Value{};
+    auto response = nlohmann::json{};
     const auto res = mod.mp_login(request, response);
 
     ASSERT_EQ(res, FLECS::http_status_e::Ok);
-    ASSERT_EQ(response.toStyledString(), out_expected);
+    ASSERT_EQ(response.dump(), out_expected);
     ASSERT_EQ(mod.user(), user);
     ASSERT_EQ(mod.token(), token);
 }
@@ -45,22 +45,22 @@ TEST(module_marketplace, logout)
 {
     const auto user = "testuser";
     const auto token = "abcdef-1234-5678-XYZ";
-    const auto out_expected = std::string{"{\n\t\"additionalInfo\" : \"OK\"\n}\n"};
+    const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
 
     auto mod = module_marketplace_test_t{};
-    auto login_request = Json::Value{};
+    auto login_request = nlohmann::json{};
     login_request["user"] = user;
     login_request["token"] = token;
 
-    auto logout_request = Json::Value{};
+    auto logout_request = nlohmann::json{};
     logout_request["user"] = user;
 
-    auto response = Json::Value{};
+    auto response = nlohmann::json{};
     (void)mod.mp_login(login_request, response);
     const auto res = mod.mp_logout(logout_request, response);
 
     ASSERT_EQ(res, FLECS::http_status_e::Ok);
-    ASSERT_EQ(response.toStyledString(), out_expected);
+    ASSERT_EQ(response.dump(), out_expected);
     ASSERT_TRUE(mod.user().empty());
     ASSERT_TRUE(mod.token().empty());
 }

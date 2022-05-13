@@ -15,17 +15,17 @@
 #include "private/libflecs_private.h"
 
 #include <cpr/cpr.h>
-#include <json/json.h>
 
 #include <filesystem>
 #include <fstream>
 #include <mutex>
+#include <nlohmann/json.hpp>
 
 namespace FLECS {
 namespace Private {
 
 template <typename Key, typename Value, typename... Args>
-Json::Value build_json_impl(Json::Value& json, Key&& key, Value&& value, Args&&... args)
+nlohmann::json build_json_impl(nlohmann::json& json, Key&& key, Value&& value, Args&&... args)
 {
     json[key] = value;
     if constexpr (sizeof...(args))
@@ -36,9 +36,9 @@ Json::Value build_json_impl(Json::Value& json, Key&& key, Value&& value, Args&&.
 }
 
 template <typename... Args>
-Json::Value build_json(Args&&... args)
+nlohmann::json build_json(Args&&... args)
 {
-    auto json = Json::Value{};
+    auto json = nlohmann::json{};
     return build_json_impl(json, std::forward<Args>(args)...);
 }
 
@@ -82,19 +82,19 @@ int libflecs_private_t::do_disconnect()
 int libflecs_private_t::do_install_app(const std::string& app, const std::string& version, const std::string& license)
 {
     auto body = build_json("app", app, "version", version, "licenseKey", license);
-    return post("/app/install", body.toStyledString().c_str());
+    return post("/app/install", body.dump().c_str());
 }
 
 int libflecs_private_t::do_uninstall_app(const std::string& app, const std::string& version)
 {
     auto body = build_json("app", app, "version", version);
-    return post("/app/uninstall", body.toStyledString().c_str());
+    return post("/app/uninstall", body.dump().c_str());
 }
 
 int libflecs_private_t::do_sideload_app_from_yaml(const std::string& yaml)
 {
     auto body = build_json("appYaml", yaml);
-    return put("/app/sideload", body.toStyledString().c_str());
+    return put("/app/sideload", body.dump().c_str());
 }
 
 int libflecs_private_t::do_sideload_app_from_file(const std::filesystem::path& manifest_path)
@@ -128,7 +128,7 @@ int libflecs_private_t::do_sideload_app_from_file(const std::filesystem::path& m
     }
 
     auto body = build_json("appYaml", data.get());
-    return put("/app/sideload", body.toStyledString().c_str());
+    return put("/app/sideload", body.dump().c_str());
 }
 
 int libflecs_private_t::do_list_apps()
@@ -151,28 +151,28 @@ int libflecs_private_t::do_create_instance(
     const std::string& app, const std::string& version, const std::string& instanceName)
 {
     auto body = build_json("app", app, "version", version, "instanceName", instanceName);
-    return post("/instance/create", body.toStyledString().c_str());
+    return post("/instance/create", body.dump().c_str());
 }
 
 int libflecs_private_t::do_delete_instance(
     const std::string& instanceId, const std::string& app, const std::string& version)
 {
     auto body = build_json("instanceId", instanceId, "app", app, "version", version);
-    return post("/instance/delete", body.toStyledString().c_str());
+    return post("/instance/delete", body.dump().c_str());
 }
 
 int libflecs_private_t::do_start_instance(
     const std::string& instanceId, const std::string& app, const std::string& version)
 {
     auto body = build_json("instanceId", instanceId, "app", app, "version", version);
-    return post("/instance/start", body.toStyledString().c_str());
+    return post("/instance/start", body.dump().c_str());
 }
 
 int libflecs_private_t::do_stop_instance(
     const std::string& instanceId, const std::string& app, const std::string& version)
 {
     auto body = build_json("instanceId", instanceId, "app", app, "version", version);
-    return post("/instance/stop", body.toStyledString().c_str());
+    return post("/instance/stop", body.dump().c_str());
 }
 
 // system info

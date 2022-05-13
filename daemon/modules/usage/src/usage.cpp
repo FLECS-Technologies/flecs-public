@@ -31,7 +31,7 @@ module_usage_t::module_usage_t()
     api::register_endpoint("/usage", HTTP_GET, std::bind(&module_usage_t::print_usage, this, _1, _2));
 }
 
-http_status_e module_usage_t::print_usage(const Json::Value& /*args*/, Json::Value& response)
+http_status_e module_usage_t::print_usage(const nlohmann::json& /*args*/, nlohmann::json& response)
 {
     response["usage"] =
         "Usage: flecs [OPTIONS] COMMAND\n\n"

@@ -19,15 +19,12 @@
 
 #include <map>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <tuple>
 #include <variant>
 #include <vector>
 
 #include "flunder_client.h"
-
-namespace Json {
-class CharReader;
-} // namespace Json
 
 namespace FLECS {
 namespace Private {
@@ -70,7 +67,6 @@ public:
     };
 
 private:
-    std::unique_ptr<Json::CharReader> _json_reader;
     std::vector<std::string> _mem_storages;
 
     zn_session_t* _zn_session;

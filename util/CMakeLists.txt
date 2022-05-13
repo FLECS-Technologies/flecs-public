@@ -13,7 +13,6 @@
 # limitations under the License.
 
 add_subdirectory(datetime)
-add_subdirectory(json)
 add_subdirectory(llhttp_ext)
 add_subdirectory(process)
 add_subdirectory(signal_handler)
