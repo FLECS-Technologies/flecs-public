@@ -13,12 +13,12 @@
 // limitations under the License.
 
 #include <arpa/inet.h>
-#include <json/json.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
 #include <filesystem>
+#include <nlohmann/json.hpp>
 #include <sstream>
 #include <thread>
 
@@ -62,6 +62,11 @@ echo_server_t::echo_server_t()
     unix_thread.detach();
 }
 
+auto parse_json(const std::string& str)
+{
+    return nlohmann::json::parse(str, nullptr, false);
+}
+
 template <typename Socket>
 void echo_server_t::loop(FLECS::socket_t& socket)
 {
@@ -70,8 +75,6 @@ void echo_server_t::loop(FLECS::socket_t& socket)
 
     auto shutdown = bool{};
     const char* response_header = "HTTP/1.1 200 OK \r\n\r\n";
-
-    auto json_parser = std::unique_ptr<Json::CharReader>{Json::CharReaderBuilder().newCharReader()};
 
     while (!shutdown)
     {
@@ -94,32 +97,18 @@ void echo_server_t::loop(FLECS::socket_t& socket)
             {
                 exit(EXIT_FAILURE);
             }
-            auto json = Json::Value{};
+            auto json = nlohmann::json{};
             auto response = std::stringstream{};
             response << response_header;
             if (llhttp_ext.method == HTTP_POST || llhttp_ext.method == HTTP_PUT)
             {
-                json_parser->parse(
-                    llhttp_ext._body.c_str(),
-                    llhttp_ext._body.c_str() + llhttp_ext._body.length(),
-                    &json,
-                    nullptr);
+                json = parse_json(llhttp_ext._body);
             }
             json["endpoint"] = llhttp_ext._url;
-            response << json.toStyledString();
+            response << json.dump();
             conn_socket.send(response.str().c_str(), response.str().length(), 0);
         }
     }
-}
-
-auto parse_json(const std::string& str)
-{
-    auto json = Json::Value{};
-
-    auto json_parser = std::unique_ptr<Json::CharReader>{Json::CharReaderBuilder().newCharReader()};
-    json_parser->parse(str.c_str(), str.c_str() + str.length(), &json, nullptr);
-
-    return json;
 }
 
 static echo_server_t echo_server;

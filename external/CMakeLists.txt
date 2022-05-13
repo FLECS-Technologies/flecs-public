@@ -16,13 +16,25 @@ project(FLECS.external)
 
 include(ExternalProject)
 
+include(FetchContent)
+
+FetchContent_Declare(
+  external.nlohmann.json
+  GIT_REPOSITORY https://github.com/nlohmann/json/
+  GIT_TAG        4f8fba1 # v3.10.5
+)
+
+FetchContent_MakeAvailable(external.nlohmann.json)
+
+add_library(FLECS.external.json INTERFACE)
+target_include_directories(FLECS.external.json INTERFACE ${external.nlohmann.json_SOURCE_DIR}/include)
+
 # define source directories
 
 set (CMAKE_ARGS    -B build/${MACHINE} -DCMAKE_INSTALL_PREFIX=out/${MACHINE} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
 set (CPPZMQ_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/cppzmq-4.8.1)
 set (CPR_DIR       ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.8.1)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
-set (JSONCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp-1.9.5)
 set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
 set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-v6.0.6)
 set (MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.14)
@@ -40,15 +52,6 @@ add_custom_target(
     FLECS.external.cpr.build
     WORKING_DIRECTORY ${CPR_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${MACHINE} -DOPENSSL_INCLUDE_DIR=${OPENSSL_DIR}/out/${MACHINE}/include
-    COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
-    COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
-)
-
-# JsonCpp
-add_custom_target(
-    FLECS.external.jsoncpp.build
-    WORKING_DIRECTORY ${JSONCPP_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DJSONCPP_WITH_TESTS=OFF -DBUILD_SHARED_LIBS=OFF
     COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
     COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
 )
@@ -166,11 +169,6 @@ set_property(TARGET FLECS.external.gtest_main PROPERTY INTERFACE_INCLUDE_DIRECTO
 add_library(FLECS.external.gtest STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.gtest PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgtest.a)
 set_property(TARGET FLECS.external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR})
-
-# JsonCpp
-add_library(FLECS.external.jsoncpp STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.jsoncpp PROPERTY IMPORTED_LOCATION ${JSONCPP_DIR}/out/${MACHINE}/lib/libjsoncpp.a)
-set_property(TARGET FLECS.external.jsoncpp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${JSONCPP_DIR}/include)
 
 # libsodium
 add_library(FLECS.external.libsodium STATIC IMPORTED GLOBAL)

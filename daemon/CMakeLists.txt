@@ -72,7 +72,6 @@ target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.modules.system
     FLECS.daemon.modules.usage
     FLECS.daemon.modules.version
-    FLECS.util.json
     FLECS.util.process
     FLECS.util.signal_handler
     FLECS.util.sqlite3_ext

@@ -34,7 +34,7 @@ module_data_layer_t::module_data_layer_t()
 module_data_layer_t::~module_data_layer_t()
 {}
 
-http_status_e module_data_layer_t::browse(const Json::Value& args, Json::Value& response)
+http_status_e module_data_layer_t::browse(const nlohmann::json& args, nlohmann::json& response)
 {
     OPTIONAL_JSON_VALUE(args, path);
 

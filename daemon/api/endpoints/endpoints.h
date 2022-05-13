@@ -18,6 +18,7 @@
 #include <llhttp.h>
 
 #include <functional>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <vector>
@@ -25,21 +26,17 @@
 #include "util/http/status_codes.h"
 #include "util/string/comparator.h"
 
-namespace Json {
-class Value;
-} // namespace Json
-
 namespace FLECS {
 
 class endpoint_t
 {
 public:
-    using cbk_t = std::function<http_status_e(const Json::Value&, Json::Value&)>;
+    using cbk_t = std::function<http_status_e(const nlohmann::json&, nlohmann::json&)>;
 
     endpoint_t();
     endpoint_t(const char*, llhttp_method method, cbk_t cbk);
 
-    auto operator()(const Json::Value& args, Json::Value& response) const { return _cbk(args, response); }
+    auto operator()(const nlohmann::json& args, nlohmann::json& response) const { return _cbk(args, response); }
 
     auto& endpoint() const noexcept { return _endpoint; }
     auto& method() const noexcept { return _method; }

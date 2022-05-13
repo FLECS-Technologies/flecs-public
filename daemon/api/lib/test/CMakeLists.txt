@@ -24,7 +24,7 @@ if (BUILD_TESTING)
     target_link_libraries(FLECS.daemon.api.lib.test PRIVATE
         FLECS.external.gtest
         FLECS.external.gtest_main
-        FLECS.external.jsoncpp
+        FLECS.external.json
         FLECS.daemon.lib
         FLECS.util.llhttp_ext
         stdc++fs

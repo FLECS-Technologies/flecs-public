@@ -15,7 +15,6 @@
 #include "private/flunder_client_private.h"
 
 #include <cpr/cpr.h>
-#include <json/json.h>
 
 #include <thread>
 
@@ -47,8 +46,7 @@ static void lib_subscribe_callback(const zn_sample_t* sample, const void* arg)
 }
 
 flunder_client_private_t::flunder_client_private_t()
-    : _json_reader{Json::CharReaderBuilder().newCharReader()}
-    , _mem_storages{}
+    : _mem_storages{}
     , _zn_session{}
     , _subscriptions{}
 {}
@@ -229,8 +227,8 @@ auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std
     }
 
     decltype(auto) str = res.text;
-    auto json = Json::Value{};
-    if (!_json_reader->parse(res.text.c_str(), res.text.c_str() + res.text.length(), &json, nullptr))
+    const auto json = nlohmann::json::parse(res.text, nullptr, false);
+    if (json.is_discarded())
     {
         return {-1, vars};
     }
@@ -238,10 +236,10 @@ auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std
     for (decltype(auto) it = json.begin(); it != json.end(); ++it)
     {
         vars.emplace_back(flunder_variable_t{
-            (*it)["key"].as<std::string>().c_str(),
-            (*it)["value"].as<std::string>().c_str(),
-            (*it)["encoding"].as<std::string>().c_str(),
-            (*it)["time"].as<std::string>().c_str()});
+            (*it)["key"].get<std::string>().c_str(),
+            (*it)["value"].get<std::string>().c_str(),
+            (*it)["encoding"].get<std::string>().c_str(),
+            (*it)["time"].get<std::string>().c_str()});
     }
 
     return {0, vars};

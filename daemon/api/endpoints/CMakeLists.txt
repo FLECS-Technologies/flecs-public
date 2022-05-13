@@ -29,5 +29,6 @@ target_include_directories(
 )
 
 target_link_libraries(FLECS.daemon.api.endpoints PUBLIC
+    FLECS.external.json
     FLECS.external.llhttp
 )

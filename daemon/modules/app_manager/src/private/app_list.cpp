@@ -12,33 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <json/json.h>
-
 #include <cstdio>
+#include <nlohmann/json.hpp>
 
 #include "private/app_manager_private.h"
 
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_list_apps(Json::Value& response)
+http_status_e module_app_manager_private_t::do_list_apps(nlohmann::json& response)
 {
-    response["appList"] = Json::Value{Json::arrayValue};
+    response["appList"] = nlohmann::json::array();
 
     const auto apps = _app_db.all_apps();
     for (const auto& app : apps)
     {
-        auto json_app = Json::Value{};
+        auto json_app = nlohmann::json{};
         json_app["app"] = app.app.c_str();
         json_app["version"] = app.version.c_str();
         json_app["status"] = app_status_to_string(app.status);
         json_app["desired"] = app_status_to_string(app.desired);
         json_app["installedSize"] = app.installed_size;
-        json_app["instances"] = Json::Value{Json::arrayValue};
+        json_app["instances"] = nlohmann::json::array();
         const auto instances = _app_db.instances(app.app, app.version);
         for (const auto& instance : instances)
         {
-            auto json_instance = Json::Value{};
+            auto json_instance = nlohmann::json{};
             json_instance["instanceId"] = instance.id;
             json_instance["instanceName"] = instance.description;
             if (instance.status == instance_status_e::CREATED)
@@ -52,9 +51,9 @@ http_status_e module_app_manager_private_t::do_list_apps(Json::Value& response)
             }
             json_instance["desired"] = instance_status_to_string(instance.desired);
             json_instance["version"] = instance.version;
-            json_app["instances"].append(json_instance);
+            json_app["instances"].push_back(json_instance);
         }
-        response["appList"].append(json_app);
+        response["appList"].push_back(json_app);
     }
 
     return http_status_e::Ok;

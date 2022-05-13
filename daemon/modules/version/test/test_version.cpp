@@ -23,14 +23,14 @@ public:
 
 TEST(module_version, print_version)
 {
-    const auto out_expected = std::string{"{\n\t\"core\" : \""} + FLECS_VERSION + "-" + FLECS_GIT_SHA + "\"\n}\n";
+    const auto out_expected = std::string{"{\"core\":\""} + FLECS_VERSION + "-" + FLECS_GIT_SHA + "\"}";
 
     auto mod = module_version_test_t{};
-    auto response = Json::Value{};
-    const auto res = mod.print_version(Json::Value{}, response);
+    auto response = nlohmann::json{};
+    const auto res = mod.print_version(nlohmann::json{}, response);
 
-    response.toStyledString();
+    response.dump();
 
     ASSERT_EQ(res, FLECS::http_status_e::Ok);
-    ASSERT_EQ(response.toStyledString(), out_expected);
+    ASSERT_EQ(response.dump(), out_expected);
 }

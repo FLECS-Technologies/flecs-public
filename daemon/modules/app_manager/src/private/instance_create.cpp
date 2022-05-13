@@ -27,7 +27,7 @@ namespace FLECS {
 namespace Private {
 
 http_status_e module_app_manager_private_t::do_create_instance(
-    const std::string& app_name, const std::string& version, const std::string& description, Json::Value& response)
+    const std::string& app_name, const std::string& version, const std::string& description, nlohmann::json& response)
 {
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;

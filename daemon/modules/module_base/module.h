@@ -15,7 +15,7 @@
 #ifndef DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B
 #define DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B
 
-#include <json/json.h>
+#include <nlohmann/json.hpp>
 
 #include "endpoints/endpoints.h"
 #include "util/http/status_codes.h"
@@ -23,8 +23,8 @@
 namespace FLECS {
 
 // Helper macros to parse JSON arguments passed to endpoints
-#define REQUIRED_JSON_VALUE(json, val)                                                       \
-    if (json[#val].isNull())                                                                 \
+#define REQUIRED_TYPED_JSON_VALUE(json, val, type)                                           \
+    if (json[#val].is_null())                                                                \
     {                                                                                        \
         response["additionalInfo"] = std::string{"Missing field "} + #val + " in request";   \
         return http_status_e::BadRequest;                                                    \
@@ -32,26 +32,29 @@ namespace FLECS {
     auto val = std::string{};                                                                \
     try                                                                                      \
     {                                                                                        \
-        val = json[#val].as<std::string>();                                                  \
+        val = json[#val].get<type>();                                                        \
     }                                                                                        \
-    catch (const Json::LogicError& ex)                                                       \
+    catch (const nlohmann::detail::exception& ex)                                            \
     {                                                                                        \
         response["additionalInfo"] = std::string{"Malformed field "} + #val + " in request"; \
         return http_status_e::BadRequest;                                                    \
     }
 
-#define OPTIONAL_JSON_VALUE(json, val)          \
-    auto val = std::string{};                   \
-    if (!json[#val].isNull())                   \
-    {                                           \
-        try                                     \
-        {                                       \
-            val = json[#val].as<std::string>(); \
-        }                                       \
-        catch (const Json::LogicError& ex)      \
-        {                                       \
-        }                                       \
+#define REQUIRED_JSON_VALUE(json, val) REQUIRED_TYPED_JSON_VALUE(json, val, std::string)
+
+#define OPTIONAL_TYPED_JSON_VALUE(json, val, type)    \
+    auto val = type{};                                \
+    if (!json.is_null() && !json[#val].is_null())     \
+    {                                                 \
+        try                                           \
+        {                                             \
+            val = json[#val].get<std::string>();      \
+        }                                             \
+        catch (const nlohmann::detail::exception& ex) \
+        {}                                            \
     }
+
+#define OPTIONAL_JSON_VALUE(json, val) OPTIONAL_TYPED_JSON_VALUE(json, val, std::string)
 
 // Module base class - tbd
 class module_t

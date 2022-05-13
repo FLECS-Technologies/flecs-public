@@ -39,18 +39,18 @@ private:
     void do_init() override;
 
     /*! Endpoints - parse arguments and forward to implementation */
-    http_status_e install(const Json::Value& args, Json::Value& response);
-    http_status_e sideload(const Json::Value& args, Json::Value& response);
-    http_status_e uninstall(const Json::Value& args, Json::Value& response);
-    http_status_e create_instance(const Json::Value& args, Json::Value& response);
-    http_status_e delete_instance(const Json::Value& args, Json::Value& response);
-    http_status_e start_instance(const Json::Value& args, Json::Value& response);
-    http_status_e stop_instance(const Json::Value& args, Json::Value& response);
-    http_status_e instance_details(const Json::Value& args, Json::Value& response);
-    http_status_e instance_log(const Json::Value& args, Json::Value& response);
-    http_status_e list_apps(const Json::Value& args, Json::Value& response);
-    http_status_e list_versions(const Json::Value& args, Json::Value& response);
-    http_status_e list_instances(const Json::Value& args, Json::Value& response);
+    http_status_e install(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e sideload(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e uninstall(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e create_instance(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e delete_instance(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e start_instance(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e stop_instance(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e instance_details(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e instance_log(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e list_apps(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e list_versions(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e list_instances(const nlohmann::json& args, nlohmann::json& response);
 
     std::unique_ptr<Private::module_app_manager_private_t> _impl;
 };

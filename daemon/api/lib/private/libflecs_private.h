@@ -20,10 +20,6 @@
 #include "libflecs.h"
 #include "util/http/status_codes.h"
 
-namespace Json {
-class Value;
-}
-
 namespace FLECS {
 namespace Private {
 

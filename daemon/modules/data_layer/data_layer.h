@@ -30,7 +30,7 @@ class module_data_layer_t : public module_t
 public:
     ~module_data_layer_t() override;
 
-    http_status_e browse(const Json::Value& args, Json::Value& response);
+    http_status_e browse(const nlohmann::json& args, nlohmann::json& response);
 #if 0
     /* add persistent in-memory storage for path */
     int add_mem_storage(const std::string_view& path);
