@@ -32,7 +32,6 @@ target_include_directories(FLECS.external.json INTERFACE ${external.nlohmann.jso
 # define source directories
 
 set (CMAKE_ARGS    -B build/${MACHINE} -DCMAKE_INSTALL_PREFIX=out/${MACHINE} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
-set (CPPZMQ_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/cppzmq-4.8.1)
 set (CPR_DIR       ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.8.1)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
@@ -43,7 +42,6 @@ set (PYBIND11_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.9.1)
 set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.38.2)
 set (YAMLCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set (ZENOH_C_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
-set (ZEROMQ_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/zeromq-4.3.4)
 
 # custom build rules
 
@@ -115,25 +113,7 @@ add_custom_target(
 # Zenoh-C
 # Use prebuilt
 
-# ZeroMQ
-add_custom_target(
-    FLECS.external.zeromq.build
-    WORKING_DIRECTORY ${ZEROMQ_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DWITH_PERF_TOOL=OFF -DZMQ_BUILD_TESTS=OFF -DWITH_LIBSODIUM_STATIC=ON -DSODIUM_INCLUDE_HINTS=${LIBSODIUM_DIR}/out/${MACHINE}/include -DSODIUM_LIBRARY_HINTS=${LIBSODIUM_DIR}/out/${MACHINE}/lib
-    COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
-    COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
-)
-
 # imported libraries
-# cppzmq
-add_library(FLECS.external.cppzmq INTERFACE)
-target_include_directories(FLECS.external.cppzmq INTERFACE
-    ${CPPZMQ_DIR}
-)
-target_link_libraries(FLECS.external.cppzmq INTERFACE
-    FLECS.external.zeromq
-)
-
 # cpr
 add_library(FLECS.external.cpr.curl STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.cpr.curl PROPERTY IMPORTED_LOCATION ${CPR_DIR}/out/${MACHINE}/lib/libcurl.a)
@@ -219,8 +199,3 @@ add_library(FLECS.external.zenoh-c SHARED IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_LOCATION ${ZENOH_C_DIR}/out/${MACHINE}/lib/libzenohc.so)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_NO_SONAME TRUE)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZENOH_C_DIR}/include)
-
-# ZeroMQ
-add_library(FLECS.external.zeromq STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.zeromq PROPERTY IMPORTED_LOCATION ${ZEROMQ_DIR}/out/${MACHINE}/lib/libzmq.a)
-set_property(TARGET FLECS.external.zeromq PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZEROMQ_DIR}/include)

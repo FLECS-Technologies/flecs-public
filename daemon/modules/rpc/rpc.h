@@ -16,7 +16,6 @@
 #define E0824352_500A_41C8_8DB9_39130CC65EB3
 
 #include "module_base/module.h"
-#include "util/cxx20/string.h"
 
 namespace FLECS {
 
@@ -24,10 +23,6 @@ class module_rpc_t : public module_t
 {
 public:
 private:
-    std::string _action;
-    std::string _callee;
-    std::string _method;
-    // std::list<FLECS::any> _args;
 };
 
 } // namespace FLECS
