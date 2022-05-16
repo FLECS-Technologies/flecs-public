@@ -14,10 +14,9 @@
 
 project(FLECS.external)
 
-include(FetchContent)
-
 # define source directories
 set (CMAKE_ARGS    -B build/${MACHINE} -DCMAKE_INSTALL_PREFIX=out/${MACHINE} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
+set (CPR_DIR       ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.8.1)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
 set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-v6.0.6)
@@ -28,11 +27,19 @@ set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.38.2)
 set (YAMLCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set (ZENOH_C_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
 
-# cpr
-add_subdirectory(cpr)
+# external projects
 add_subdirectory(json)
 
 # custom build rules
+# cpr
+add_custom_target(
+    FLECS.external.cpr.build
+    WORKING_DIRECTORY ${CPR_DIR}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${MACHINE} -DOPENSSL_INCLUDE_DIR=${OPENSSL_DIR}/out/${MACHINE}/include
+    COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
+    COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
+)
+
 # libsodium
 add_custom_target(
     FLECS.external.libsodium.build
@@ -93,6 +100,25 @@ add_custom_target(
 # Use prebuilt
 
 # imported libraries
+# cpr
+add_library(FLECS.external.cpr.curl STATIC IMPORTED GLOBAL)
+set_property(TARGET FLECS.external.cpr.curl PROPERTY IMPORTED_LOCATION ${CPR_DIR}/out/${MACHINE}/lib/libcurl.a)
+target_link_libraries(FLECS.external.cpr.curl INTERFACE
+    FLECS.external.ssl
+    FLECS.external.crypto
+)
+
+add_library(FLECS.external.cpr.zlib STATIC IMPORTED GLOBAL)
+set_property(TARGET FLECS.external.cpr.zlib PROPERTY IMPORTED_LOCATION ${CPR_DIR}/out/${MACHINE}/lib/libz.a)
+
+add_library(FLECS.external.cpr STATIC IMPORTED GLOBAL)
+set_property(TARGET FLECS.external.cpr PROPERTY IMPORTED_LOCATION ${CPR_DIR}/out/${MACHINE}/lib/libcpr.a)
+set_property(TARGET FLECS.external.cpr PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CPR_DIR}/out/${MACHINE}/include)
+target_link_libraries(FLECS.external.cpr INTERFACE
+    FLECS.external.cpr.curl
+    FLECS.external.cpr.zlib
+)
+
 # gtest
 add_library(FLECS.external.gmock_main STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.gmock_main PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgmock_main.a)
