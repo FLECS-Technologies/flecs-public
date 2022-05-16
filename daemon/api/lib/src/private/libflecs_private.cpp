@@ -19,13 +19,14 @@
 #include <filesystem>
 #include <fstream>
 #include <mutex>
-#include <nlohmann/json.hpp>
+
+#include "util/json/json.h"
 
 namespace FLECS {
 namespace Private {
 
 template <typename Key, typename Value, typename... Args>
-nlohmann::json build_json_impl(nlohmann::json& json, Key&& key, Value&& value, Args&&... args)
+json_t build_json_impl(json_t& json, Key&& key, Value&& value, Args&&... args)
 {
     json[key] = value;
     if constexpr (sizeof...(args))
@@ -36,9 +37,9 @@ nlohmann::json build_json_impl(nlohmann::json& json, Key&& key, Value&& value, A
 }
 
 template <typename... Args>
-nlohmann::json build_json(Args&&... args)
+json_t build_json(Args&&... args)
 {
-    auto json = nlohmann::json{};
+    auto json = json_t{};
     return build_json_impl(json, std::forward<Args>(args)...);
 }
 

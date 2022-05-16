@@ -22,8 +22,8 @@ namespace FLECS {
 class module_marketplace_t : public module_t
 {
 public:
-    http_status_e mp_login(const nlohmann::json& args, nlohmann::json& response);
-    http_status_e mp_logout(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e mp_login(const json_t& args, json_t& response);
+    http_status_e mp_logout(const json_t& args, json_t& response);
 
     auto& user() const noexcept { return _user; }
     auto& token() const noexcept { return _token; }

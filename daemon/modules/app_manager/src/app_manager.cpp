@@ -63,7 +63,7 @@ void module_app_manager_t::do_init()
     return _impl->do_init();
 }
 
-http_status_e module_app_manager_t::install(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::install(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, app);
     REQUIRED_JSON_VALUE(args, version);
@@ -71,21 +71,21 @@ http_status_e module_app_manager_t::install(const nlohmann::json& args, nlohmann
     return _impl->do_install(app, version, licenseKey, response);
 }
 
-http_status_e module_app_manager_t::sideload(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::sideload(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, appYaml);
     OPTIONAL_JSON_VALUE(args, licenseKey);
     return _impl->do_sideload(appYaml, licenseKey, response);
 }
 
-http_status_e module_app_manager_t::uninstall(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::uninstall(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, app);
     REQUIRED_JSON_VALUE(args, version);
     return _impl->do_uninstall(app, version, response);
 }
 
-http_status_e module_app_manager_t::create_instance(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::create_instance(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, app);
     REQUIRED_JSON_VALUE(args, version);
@@ -93,7 +93,7 @@ http_status_e module_app_manager_t::create_instance(const nlohmann::json& args, 
     return _impl->do_create_instance(app, version, instanceName, response);
 }
 
-http_status_e module_app_manager_t::delete_instance(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::delete_instance(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, instanceId);
     OPTIONAL_JSON_VALUE(args, app);
@@ -101,7 +101,7 @@ http_status_e module_app_manager_t::delete_instance(const nlohmann::json& args, 
     return _impl->do_delete_instance(instanceId, app, version, response);
 }
 
-http_status_e module_app_manager_t::start_instance(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::start_instance(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, instanceId);
     OPTIONAL_JSON_VALUE(args, app);
@@ -109,7 +109,7 @@ http_status_e module_app_manager_t::start_instance(const nlohmann::json& args, n
     return _impl->do_start_instance(instanceId, app, version, response);
 }
 
-http_status_e module_app_manager_t::stop_instance(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::stop_instance(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, instanceId);
     OPTIONAL_JSON_VALUE(args, app);
@@ -117,30 +117,30 @@ http_status_e module_app_manager_t::stop_instance(const nlohmann::json& args, nl
     return _impl->do_stop_instance(instanceId, app, version, response);
 }
 
-http_status_e module_app_manager_t::instance_details(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::instance_details(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, instanceId);
     return _impl->do_instance_details(instanceId, response);
 }
 
-http_status_e module_app_manager_t::instance_log(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::instance_log(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, instanceId);
     return _impl->do_instance_log(instanceId, response);
 }
 
-http_status_e module_app_manager_t::list_apps(const nlohmann::json& /*args*/, nlohmann::json& response)
+http_status_e module_app_manager_t::list_apps(const json_t& /*args*/, json_t& response)
 {
     return _impl->do_list_apps(response);
 }
 
-http_status_e module_app_manager_t::list_versions(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::list_versions(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, app_name);
     return _impl->do_list_versions(app_name, response);
 }
 
-http_status_e module_app_manager_t::list_instances(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_app_manager_t::list_instances(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, app_name);
     OPTIONAL_JSON_VALUE(args, version);

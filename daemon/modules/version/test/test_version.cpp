@@ -26,8 +26,8 @@ TEST(module_version, print_version)
     const auto out_expected = std::string{"{\"core\":\""} + FLECS_VERSION + "-" + FLECS_GIT_SHA + "\"}";
 
     auto mod = module_version_test_t{};
-    auto response = nlohmann::json{};
-    const auto res = mod.print_version(nlohmann::json{}, response);
+    auto response = json_t{};
+    const auto res = mod.print_version(json_t{}, response);
 
     response.dump();
 

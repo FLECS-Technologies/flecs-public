@@ -19,12 +19,12 @@
 
 #include <map>
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <tuple>
 #include <variant>
 #include <vector>
 
 #include "flunder_client.h"
+#include "util/json/json.h"
 
 namespace FLECS {
 namespace Private {

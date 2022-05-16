@@ -29,7 +29,7 @@ module_help_t::module_help_t()
     api::register_endpoint("/help", HTTP_GET, std::bind(&module_help_t::print_help, this, _1));
 }
 
-http_status_e module_help_t::print_help(const nlohmann::json& /*args*/)
+http_status_e module_help_t::print_help(const json_t& /*args*/)
 {
     return http_status_e::Ok;
 }

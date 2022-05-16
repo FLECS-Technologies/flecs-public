@@ -26,8 +26,8 @@ TEST(module_version, ping)
     const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
 
     auto mod = module_system_test_t{};
-    auto response = nlohmann::json{};
-    const auto res = mod.ping(nlohmann::json{}, response);
+    auto response = json_t{};
+    const auto res = mod.ping(json_t{}, response);
 
     response.dump();
 

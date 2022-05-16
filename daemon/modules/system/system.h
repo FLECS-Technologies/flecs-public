@@ -22,7 +22,7 @@ namespace FLECS {
 class module_system_t : public module_t
 {
 public:
-    http_status_e ping(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e ping(const json_t& args, json_t& response);
 
 protected:
     friend class module_factory_t;

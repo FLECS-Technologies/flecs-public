@@ -18,12 +18,12 @@
 #include <sys/un.h>
 
 #include <filesystem>
-#include <nlohmann/json.hpp>
 #include <sstream>
 #include <thread>
 
 #include "gtest/gtest.h"
 #include "libflecs.h"
+#include "util/json/json.h"
 #include "util/llhttp_ext/llhttp_ext.h"
 #include "util/socket/tcp_server.h"
 #include "util/socket/unix_server.h"
@@ -62,11 +62,6 @@ echo_server_t::echo_server_t()
     unix_thread.detach();
 }
 
-auto parse_json(const std::string& str)
-{
-    return nlohmann::json::parse(str, nullptr, false);
-}
-
 template <typename Socket>
 void echo_server_t::loop(FLECS::socket_t& socket)
 {
@@ -97,7 +92,7 @@ void echo_server_t::loop(FLECS::socket_t& socket)
             {
                 exit(EXIT_FAILURE);
             }
-            auto json = nlohmann::json{};
+            auto json = json_t{};
             auto response = std::stringstream{};
             response << response_header;
             if (llhttp_ext.method == HTTP_POST || llhttp_ext.method == HTTP_PUT)

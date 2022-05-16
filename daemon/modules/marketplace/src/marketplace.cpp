@@ -30,7 +30,7 @@ module_marketplace_t::module_marketplace_t()
     api::register_endpoint("/marketplace/logout", HTTP_POST, std::bind(&module_marketplace_t::mp_logout, this, _1, _2));
 }
 
-http_status_e module_marketplace_t::mp_login(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_marketplace_t::mp_login(const json_t& args, json_t& response)
 {
     REQUIRED_JSON_VALUE(args, user);
     REQUIRED_JSON_VALUE(args, token);
@@ -43,7 +43,7 @@ http_status_e module_marketplace_t::mp_login(const nlohmann::json& args, nlohman
     return http_status_e::Ok;
 }
 
-http_status_e module_marketplace_t::mp_logout(const nlohmann::json& args, nlohmann::json& response)
+http_status_e module_marketplace_t::mp_logout(const json_t& args, json_t& response)
 {
     OPTIONAL_JSON_VALUE(args, user);
 
