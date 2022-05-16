@@ -28,11 +28,11 @@ TEST(module_marketplace, login)
     const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
 
     auto mod = module_marketplace_test_t{};
-    auto request = json_t{};
+    auto request = FLECS::json_t{};
     request["user"] = user;
     request["token"] = token;
 
-    auto response = json_t{};
+    auto response = FLECS::json_t{};
     const auto res = mod.mp_login(request, response);
 
     ASSERT_EQ(res, FLECS::http_status_e::Ok);
@@ -48,14 +48,14 @@ TEST(module_marketplace, logout)
     const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
 
     auto mod = module_marketplace_test_t{};
-    auto login_request = json_t{};
+    auto login_request = FLECS::json_t{};
     login_request["user"] = user;
     login_request["token"] = token;
 
-    auto logout_request = json_t{};
+    auto logout_request = FLECS::json_t{};
     logout_request["user"] = user;
 
-    auto response = json_t{};
+    auto response = FLECS::json_t{};
     (void)mod.mp_login(login_request, response);
     const auto res = mod.mp_logout(logout_request, response);
 
