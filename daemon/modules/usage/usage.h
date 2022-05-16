@@ -28,7 +28,7 @@ protected:
     module_usage_t();
 
 private:
-    http_status_e print_usage(const nlohmann::json& args, nlohmann::json& response);
+    http_status_e print_usage(const json_t& args, json_t& response);
 };
 
 } // namespace FLECS

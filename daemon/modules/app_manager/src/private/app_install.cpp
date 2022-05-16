@@ -14,12 +14,11 @@
 
 #include <cpr/cpr.h>
 
-#include <nlohmann/json.hpp>
-
 #include "app/app.h"
 #include "factory/factory.h"
 #include "marketplace/marketplace.h"
 #include "private/app_manager_private.h"
+#include "util/json/json.h"
 #include "util/process/process.h"
 
 namespace FLECS {
@@ -37,7 +36,7 @@ std::string acquire_download_token(const std::string& license_key)
 
     const auto wc_user_token = mp_api->token();
 
-    auto post_json = nlohmann::json{};
+    auto post_json = json_t{};
     post_json["wc_user_token"] = wc_user_token;
     post_json["license_key"] = license_key;
 
@@ -55,8 +54,8 @@ std::string acquire_download_token(const std::string& license_key)
         return "";
     }
 
-    const auto response_json = nlohmann::json::parse(http_res.text, nullptr, false);
-    if (response_json.is_discarded())
+    const auto response_json = parse_json(http_res.text);
+    if (!is_valid_json(response_json))
     {
         return "";
     }
@@ -76,7 +75,7 @@ std::string acquire_download_token(const std::string& license_key)
 
 bool expire_download_token(const std::string& user_token, const std::string& access_token)
 {
-    auto post_json = nlohmann::json{};
+    auto post_json = json_t{};
     post_json["user_token"] = user_token;
     post_json["access_token"] = access_token;
 
@@ -94,8 +93,8 @@ bool expire_download_token(const std::string& user_token, const std::string& acc
         return false;
     }
 
-    const auto response_json = nlohmann::json::parse(http_res.text, nullptr, false);
-    if (response_json.is_discarded())
+    const auto response_json = parse_json(http_res.text);
+    if (!is_valid_json(response_json))
     {
         return false;
     }
@@ -106,7 +105,7 @@ bool expire_download_token(const std::string& user_token, const std::string& acc
 } // namespace
 
 http_status_e module_app_manager_private_t::do_install(
-    const std::string& app_name, const std::string& version, const std::string& license_key, nlohmann::json& response)
+    const std::string& app_name, const std::string& version, const std::string& license_key, json_t& response)
 {
     response["app"] = app_name;
     response["version"] = version;
@@ -123,7 +122,7 @@ http_status_e module_app_manager_private_t::do_install(
 }
 
 http_status_e module_app_manager_private_t::do_install(
-    const std::string& manifest, const std::string& license_key, nlohmann::json& response)
+    const std::string& manifest, const std::string& license_key, json_t& response)
 {
     const auto desired = INSTALLED;
 

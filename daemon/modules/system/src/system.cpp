@@ -31,7 +31,7 @@ module_system_t::module_system_t()
     api::register_endpoint("/system/ping", HTTP_GET, std::bind(&module_system_t::ping, this, _1, _2));
 }
 
-http_status_e module_system_t::ping(const nlohmann::json & /*args*/, nlohmann::json &response)
+http_status_e module_system_t::ping(const json_t & /*args*/, json_t &response)
 {
     response["additionalInfo"] = "OK";
     return http_status_e::Ok;

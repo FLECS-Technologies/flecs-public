@@ -13,31 +13,31 @@
 // limitations under the License.
 
 #include <cstdio>
-#include <nlohmann/json.hpp>
 
 #include "private/app_manager_private.h"
+#include "util/json/json.h"
 
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_list_apps(nlohmann::json& response)
+http_status_e module_app_manager_private_t::do_list_apps(json_t& response)
 {
-    response["appList"] = nlohmann::json::array();
+    response["appList"] = json_t::array();
 
     const auto apps = _app_db.all_apps();
     for (const auto& app : apps)
     {
-        auto json_app = nlohmann::json{};
+        auto json_app = json_t{};
         json_app["app"] = app.app.c_str();
         json_app["version"] = app.version.c_str();
         json_app["status"] = app_status_to_string(app.status);
         json_app["desired"] = app_status_to_string(app.desired);
         json_app["installedSize"] = app.installed_size;
-        json_app["instances"] = nlohmann::json::array();
+        json_app["instances"] = json_t::array();
         const auto instances = _app_db.instances(app.app, app.version);
         for (const auto& instance : instances)
         {
-            auto json_instance = nlohmann::json{};
+            auto json_instance = json_t{};
             json_instance["instanceId"] = instance.id;
             json_instance["instanceName"] = instance.description;
             if (instance.status == instance_status_e::CREATED)

@@ -17,13 +17,13 @@
 #include <poll.h>
 
 #include <cstdio>
-#include <nlohmann/json.hpp>
 #include <thread>
 #include <vector>
 
 #include "endpoints/endpoints.h"
 #include "util/http/response_headers.h"
 #include "util/http/version_strings.h"
+#include "util/json/json.h"
 #include "util/llhttp_ext/llhttp_ext.h"
 #include "util/signal_handler/signal_handler.h"
 #include "util/string/literals.h"
@@ -96,11 +96,11 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
         return http_status_e::BadRequest;
     }
 
-    auto args = nlohmann::json{};
+    auto args = json_t{};
     if (llhttp_ext.method == HTTP_POST || llhttp_ext.method == HTTP_PUT)
     {
-        args = nlohmann::json::parse(llhttp_ext._body, nullptr, false);
-        if (args.is_discarded())
+        args = parse_json(llhttp_ext._body);
+        if (!is_valid_json(args))
         {
             return http_status_e::BadRequest;
         }
@@ -113,7 +113,7 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
     http_status_e err = http_status_e::NotImplemented;
 
     const auto endpoint = api::query_endpoint(llhttp_ext._url.c_str(), static_cast<llhttp_method>(llhttp_ext.method));
-    auto json_response = nlohmann::json{};
+    auto json_response = json_t{};
     if (endpoint.has_value())
     {
         err = endpoint.value()(args, json_response);

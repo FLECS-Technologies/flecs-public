@@ -21,8 +21,7 @@ namespace FLECS {
 namespace Private {
 
 http_status_e module_app_manager_private_t::do_stop_instance(
-    const std::string& id, const std::string& app_name, const std::string& version, nlohmann::json& response,
-    bool internal)
+    const std::string& id, const std::string& app_name, const std::string& version, json_t& response, bool internal)
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};

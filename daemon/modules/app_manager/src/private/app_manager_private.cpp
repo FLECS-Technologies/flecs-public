@@ -105,7 +105,7 @@ module_app_manager_private_t::~module_app_manager_private_t()
         if (is_instance_running(instance.id))
         {
             std::fprintf(stdout, "\t%s\n", instance.id.c_str());
-            nlohmann::json _unused;
+            json_t _unused;
             do_stop_instance(instance.id, "", "", _unused, true);
         }
     }
@@ -135,7 +135,7 @@ void module_app_manager_private_t::do_init()
                     "Removing old version %s system app %s\n",
                     instance.version.c_str(),
                     instance.app.c_str());
-                auto response = nlohmann::json{};
+                auto response = json_t{};
                 do_uninstall(instance.app, instance.version, response, true);
             }
         }
@@ -154,7 +154,7 @@ void module_app_manager_private_t::do_init()
             auto app = app_t::from_file(build_manifest_path(system_apps[i], system_apps_versions[i]));
             if (app.yaml_loaded())
             {
-                auto response = nlohmann::json{};
+                auto response = json_t{};
                 _app_db.insert_app({{app.name(), app.version()}, {INSTALLED, INSTALLED, app.category(), 0, "", ""}});
                 do_create_instance(app.name(), app.version(), system_apps_desc[i], response);
                 const auto app_instances = _app_db.instances(system_apps[i], system_apps_versions[i]);
@@ -175,7 +175,7 @@ void module_app_manager_private_t::do_init()
         if (instance.desired == instance_status_e::RUNNING)
         {
             std::fprintf(stdout, "\t%s\n", instance.id.c_str());
-            nlohmann::json _unused;
+            json_t _unused;
             do_start_instance(instance.id, "", "", _unused, true);
         }
     }

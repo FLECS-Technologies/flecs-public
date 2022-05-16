@@ -18,7 +18,7 @@ namespace FLECS {
 namespace Private {
 
 http_status_e module_app_manager_private_t::do_list_instances(
-    const std::string& /*app_name*/, const std::string& /*version*/, nlohmann::json& /*response*/)
+    const std::string& /*app_name*/, const std::string& /*version*/, json_t& /*response*/)
 {
     return http_status_e::Ok;
 }

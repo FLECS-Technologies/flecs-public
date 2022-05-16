@@ -12,33 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "data_layer.h"
+#ifndef C794C40B_C58D_43F0_8EDC_97D509E67767
+#define C794C40B_C58D_43F0_8EDC_97D509E67767
 
-#include "factory/factory.h"
-#include "private/data_layer_private.h"
+#include <nlohmann/json.hpp>
 
 namespace FLECS {
 
-namespace {
-register_module_t<module_data_layer_t> _reg("data-layer");
+using json_t = nlohmann::json;
+
+inline auto parse_json(const std::string& str)
+{
+    return nlohmann::json::parse(str, nullptr, false, false);
 }
 
-module_data_layer_t::module_data_layer_t()
-    : _impl{new Private::module_data_layer_private_t{}}
+inline auto is_valid_json(const json_t& json)
 {
-    using namespace std::placeholders;
-
-    api::register_endpoint("/data-layer/browse", HTTP_GET, std::bind(&module_data_layer_t::browse, this, _1, _2));
-}
-
-module_data_layer_t::~module_data_layer_t()
-{}
-
-http_status_e module_data_layer_t::browse(const json_t& args, json_t& response)
-{
-    OPTIONAL_JSON_VALUE(args, path);
-
-    return _impl->do_browse(path, response);
+    return !json.is_discarded();
 }
 
 } // namespace FLECS
+
+#endif // C794C40B_C58D_43F0_8EDC_97D509E67767

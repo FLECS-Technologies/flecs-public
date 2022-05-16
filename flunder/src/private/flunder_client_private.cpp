@@ -227,8 +227,8 @@ auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std
     }
 
     decltype(auto) str = res.text;
-    const auto json = nlohmann::json::parse(res.text, nullptr, false);
-    if (json.is_discarded())
+    const auto json = parse_json(res.text);
+    if (!is_valid_json(json))
     {
         return {-1, vars};
     }

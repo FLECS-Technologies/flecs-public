@@ -21,7 +21,7 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_instance_details(const std::string& id, nlohmann::json& response)
+http_status_e module_app_manager_private_t::do_instance_details(const std::string& id, json_t& response)
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
@@ -43,35 +43,35 @@ http_status_e module_app_manager_private_t::do_instance_details(const std::strin
     response["app"] = instance.app;
     response["version"] = instance.version;
     response["IPAddress"] = instance.ips[0];
-    response["conffiles"] = nlohmann::json::array();
+    response["conffiles"] = json_t::array();
     response["hostname"] = app.hostname().empty() ? (std::string{"flecs-"}.append(instance.id)) : app.hostname();
     for (const auto& conffile : app.conffiles())
     {
-        auto json_conffile = nlohmann::json{};
+        auto json_conffile = json_t{};
         json_conffile["host"] = std::string{"/var/lib/flecs/instances/"} + instance.id + "/conf/" + conffile.local();
         json_conffile["container"] = conffile.container();
         response["conffiles"].push_back(json_conffile);
     }
-    response["ports"] = nlohmann::json::array();
+    response["ports"] = json_t::array();
     for (const auto& port : app.ports())
     {
-        auto json_port = nlohmann::json{};
+        auto json_port = json_t{};
         json_port["host"] = stringify(port.host_port_range());
         json_port["container"] = stringify(port.container_port_range());
         response["ports"].push_back(json_port);
     }
-    response["volumes"] = nlohmann::json::array();
+    response["volumes"] = json_t::array();
     for (const auto& volume : app.volumes())
     {
-        auto json_volume = nlohmann::json{};
+        auto json_volume = json_t{};
         json_volume["name"] = volume.first;
         json_volume["path"] = volume.second;
         response["volumes"].push_back(json_volume);
     }
-    response["mounts"] = nlohmann::json::array();
+    response["mounts"] = json_t::array();
     for (const auto& bind_mount : app.bind_mounts())
     {
-        auto json_mount = nlohmann::json{};
+        auto json_mount = json_t{};
         json_mount["host"] = bind_mount.first;
         json_mount["container"] = bind_mount.second;
         response["mounts"].push_back(json_mount);
