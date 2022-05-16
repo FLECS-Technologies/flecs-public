@@ -29,38 +29,8 @@ set (YAMLCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set (ZENOH_C_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
 
 # cpr
-FetchContent_Declare(
-    cpr
-    GIT_REPOSITORY https://github.com/libcpr/cpr/
-    GIT_TAG        db351ff
-)
-
-set_property(
-    DIRECTORY ${cpr_SOURCE_DIR}
-    APPEND
-    PROPERTY COMPILE_OPTIONS -Wno-error -fPIC
-)
-
-set (BUILD_SHARED_LIBS NO CACHE BOOL "" FORCE)
-set (OPENSSL_ROOT_DIR ${OPENSSL_DIR}/out/${MACHINE} CACHE PATH "" FORCE)
-set (OPENSSL_INCLUDE_DIR ${OPENSSL_DIR}/out/${MACHINE}/include CACHE PATH "" FORCE)
-
-FetchContent_MakeAvailable(cpr)
-
-add_library(FLECS.external.cpr INTERFACE)
-target_link_libraries(FLECS.external.cpr INTERFACE cpr::cpr)
-
-# nlohmann/json
-FetchContent_Declare(
-    external.nlohmann.json
-    GIT_REPOSITORY https://github.com/nlohmann/json/
-    GIT_TAG        4f8fba1 # v3.10.5
-)
-
-FetchContent_MakeAvailable(external.nlohmann.json)
-
-add_library(FLECS.external.json INTERFACE)
-target_include_directories(FLECS.external.json INTERFACE ${external.nlohmann.json_SOURCE_DIR}/include)
+add_subdirectory(cpr)
+add_subdirectory(json)
 
 # custom build rules
 # libsodium
