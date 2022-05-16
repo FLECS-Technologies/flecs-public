@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "gtest/gtest.h"
+#include "util/json/json.h"
 #include "version/version.h"
 
 class module_version_test_t : public FLECS::module_version_t
@@ -26,8 +27,8 @@ TEST(module_version, print_version)
     const auto out_expected = std::string{"{\"core\":\""} + FLECS_VERSION + "-" + FLECS_GIT_SHA + "\"}";
 
     auto mod = module_version_test_t{};
-    auto response = json_t{};
-    const auto res = mod.print_version(json_t{}, response);
+    auto response = FLECS::json_t{};
+    const auto res = mod.print_version(FLECS::json_t{}, response);
 
     response.dump();
 
