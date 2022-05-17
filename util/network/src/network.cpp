@@ -59,8 +59,7 @@ std::string ipv4_to_network(const std::string& ip, const std::string& subnet_mas
     const auto ip_addr = ipv4_to_bits(ip).s_addr;
     const auto subnet_addr = ipv4_to_bits(subnet_mask).s_addr;
 
-    auto network_addr = in_addr{};
-    network_addr.s_addr = (ip_addr & subnet_addr);
+    const auto network_addr = in_addr{.s_addr = (ip_addr & subnet_addr)};
 
     return ipv4_to_string(network_addr) + "/" + stringify(subnet_to_cidr_v4(subnet_mask));
 }
