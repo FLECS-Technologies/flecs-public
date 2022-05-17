@@ -315,7 +315,7 @@ std::string module_app_manager_private_t::generate_ip(const std::string& cidr_su
     {
         for (decltype(auto) ip : instance.ips)
         {
-            used_ips.emplace(ipv4_to_bits(ip).s_addr);
+            used_ips.emplace(ntohl(ipv4_to_bits(ip).s_addr));
         }
     }
 
@@ -333,7 +333,7 @@ std::string module_app_manager_private_t::generate_ip(const std::string& cidr_su
         return std::string{};
     }
 
-    return inet_ntoa(in_addr{.s_addr = htonl(instance_ip)});
+    return ipv4_to_string(in_addr{.s_addr = htonl(instance_ip)});
 }
 
 } // namespace Private
