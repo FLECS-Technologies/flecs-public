@@ -63,6 +63,11 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
 
     while (ifa)
     {
+        if (!ifa->ifa_addr)
+        {
+            ifa = ifa->ifa_next;
+            continue;
+        }
         switch (ifa->ifa_addr->sa_family)
         {
             case AF_PACKET: {
