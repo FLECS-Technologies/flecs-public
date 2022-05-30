@@ -31,8 +31,6 @@ target_link_libraries(FLECS.daemon.lib PRIVATE
     FLECS.daemon.modules.module_base
     FLECS.external.cpr
     FLECS.external.json
-    stdc++fs
-    pthread
 )
 
 add_subdirectory(test)

@@ -14,7 +14,7 @@
 
 #include <cstdio>
 
-#include "app/app.h"
+#include "app/manifest/manifest.h"
 #include "private/app_manager_private.h"
 #include "util/process/process.h"
 

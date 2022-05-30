@@ -12,27 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.util.sqlite3_ext)
+if (BUILD_TESTING)
+    set(PROJECT_NAME FLECS.daemon.common.app.manifest.test)
+    project(${PROJECT_NAME})
 
-set(SRC_ARCHIVE
-    src/sqlite3_db.cpp
-    src/sqlite3_table.cpp
-)
+    add_executable(${PROJECT_NAME}
+        test_app_manifest.cpp
+    )
 
-set (HEADER_ARCHIVE
-    sqlite3_column.h
-    sqlite3_db.h
-    sqlite3_primary.h
-    sqlite3_statements.h
-    sqlite3_table.h
-)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_app_manifest)
 
-add_library(FLECS.util.sqlite3_ext OBJECT ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.daemon.common.app.manifest
+    )
 
-target_link_libraries(FLECS.util.sqlite3_ext PUBLIC
-    FLECS.external.sqlite3
-)
-
-target_include_directories(FLECS.util.sqlite3_ext PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+endif()

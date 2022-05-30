@@ -15,9 +15,7 @@
 project(FLECS.daemon)
 
 add_subdirectory(api)
-add_subdirectory(app)
-add_subdirectory(db)
-add_subdirectory(instance)
+add_subdirectory(common)
 add_subdirectory(modules)
 
 # configure package
@@ -61,7 +59,7 @@ target_include_directories(FLECS.daemon PRIVATE
 target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.api
     FLECS.daemon.api.endpoints
-    FLECS.daemon.app
+    FLECS.daemon.common
     FLECS.daemon.modules.app_manager
     FLECS.daemon.modules.data_layer
     FLECS.daemon.modules.factory

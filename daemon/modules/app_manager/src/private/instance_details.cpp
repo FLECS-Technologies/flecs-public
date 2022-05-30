@@ -14,7 +14,7 @@
 
 #include <cstdio>
 
-#include "app/app.h"
+#include "app/manifest/manifest.h"
 #include "private/app_manager_private.h"
 #include "util/process/process.h"
 
@@ -37,7 +37,7 @@ http_status_e module_app_manager_private_t::do_instance_details(const std::strin
     // Step 2: Obtain instance and corresponsing app
     const auto instance = _app_db.query_instance({id}).value();
     const auto manifest_path = build_manifest_path(instance.app, instance.version);
-    const auto app = app_t::from_file(manifest_path);
+    const auto app = app_manifest_t::from_yaml_file(manifest_path);
 
     // Build response
     response["app"] = instance.app;
@@ -61,20 +61,23 @@ http_status_e module_app_manager_private_t::do_instance_details(const std::strin
         response["ports"].push_back(json_port);
     }
     response["volumes"] = json_t::array();
+    response["mounts"] = json_t::array();
     for (const auto& volume : app.volumes())
     {
-        auto json_volume = json_t{};
-        json_volume["name"] = volume.first;
-        json_volume["path"] = volume.second;
-        response["volumes"].push_back(json_volume);
-    }
-    response["mounts"] = json_t::array();
-    for (const auto& bind_mount : app.bind_mounts())
-    {
-        auto json_mount = json_t{};
-        json_mount["host"] = bind_mount.first;
-        json_mount["container"] = bind_mount.second;
-        response["mounts"].push_back(json_mount);
+        if (volume.type() == volume_t::VOLUME)
+        {
+            auto json_volume = json_t{};
+            json_volume["name"] = volume.host();
+            json_volume["path"] = volume.container();
+            response["volumes"].push_back(json_volume);
+        }
+        else if (volume.type() == volume_t::BIND_MOUNT)
+        {
+            auto json_mount = json_t{};
+            json_mount["host"] = volume.host();
+            json_mount["container"] = volume.container();
+            response["mounts"].push_back(json_mount);
+        }
     }
 
     return http_status_e::Ok;

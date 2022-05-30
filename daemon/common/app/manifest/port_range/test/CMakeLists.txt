@@ -12,27 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.util.sqlite3_ext)
+if (BUILD_TESTING)
+    project(FLECS.daemon.app.port_range.test)
 
-set(SRC_ARCHIVE
-    src/sqlite3_db.cpp
-    src/sqlite3_table.cpp
-)
+    add_executable(FLECS.daemon.app.port_range.test
+        test_port_range.cpp
+    )
 
-set (HEADER_ARCHIVE
-    sqlite3_column.h
-    sqlite3_db.h
-    sqlite3_primary.h
-    sqlite3_statements.h
-    sqlite3_table.h
-)
+    set_target_properties(FLECS.daemon.app.port_range.test PROPERTIES OUTPUT_NAME test_daemon_app_port_range)
 
-add_library(FLECS.util.sqlite3_ext OBJECT ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
+    target_link_libraries(FLECS.daemon.app.port_range.test PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.daemon.common.app.manifest.port_range
+    )
 
-target_link_libraries(FLECS.util.sqlite3_ext PUBLIC
-    FLECS.external.sqlite3
-)
-
-target_include_directories(FLECS.util.sqlite3_ext PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+    add_test(NAME FLECS.daemon.app.port_range.test COMMAND FLECS.daemon.app.port_range.test)
+endif()
