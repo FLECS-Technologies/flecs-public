@@ -25,7 +25,7 @@
 #include <sstream>
 #include <thread>
 
-#include "app/app.h"
+#include "app/manifest/manifest.h"
 #include "factory/factory.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
@@ -152,12 +152,12 @@ void module_app_manager_private_t::do_init()
         {
             std::fprintf(stdout, "Installing system app %s\n", system_apps[i]);
             download_manifest(system_apps[i], system_apps_versions[i]);
-            auto app = app_t::from_file(build_manifest_path(system_apps[i], system_apps_versions[i]));
+            auto app = app_manifest_t::from_yaml_file(build_manifest_path(system_apps[i], system_apps_versions[i]));
             if (app.yaml_loaded())
             {
                 auto response = json_t{};
-                _app_db.insert_app({{app.name(), app.version()}, {INSTALLED, INSTALLED, app.category(), 0, "", ""}});
-                do_create_instance(app.name(), app.version(), system_apps_desc[i], response);
+                _app_db.insert_app({{app.app(), app.version()}, {INSTALLED, INSTALLED, app.category(), 0, "", ""}});
+                do_create_instance(app.app(), app.version(), system_apps_desc[i], response);
                 const auto app_instances = _app_db.instances(system_apps[i], system_apps_versions[i]);
                 if (!app_instances.empty())
                 {

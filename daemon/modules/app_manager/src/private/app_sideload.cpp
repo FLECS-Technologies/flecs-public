@@ -16,7 +16,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "app/app.h"
+#include "app/manifest/manifest.h"
 #include "private/app_manager_private.h"
 
 namespace FLECS {
@@ -26,7 +26,7 @@ http_status_e module_app_manager_private_t::do_sideload(
     const std::string& yaml, const std::string& license_key, json_t& response)
 {
     // Step 1: Parse transferred manifest
-    auto app = app_t::from_string(yaml);
+    auto app = app_manifest_t::from_yaml_string(yaml);
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not parse manifest";
@@ -34,7 +34,7 @@ http_status_e module_app_manager_private_t::do_sideload(
     }
 
     // Step 2: Copy manifest to local storage
-    const auto manifest_path = build_manifest_path(app.name(), app.version());
+    const auto manifest_path = build_manifest_path(app.app(), app.version());
 
     {
         auto file = std::fstream{manifest_path, std::fstream::out};
@@ -54,7 +54,7 @@ http_status_e module_app_manager_private_t::do_sideload(
     const std::filesystem::path& manifest_path, const std::string& license_key, json_t& response)
 {
     // Step 1: Parse transferred manifest
-    auto app = app_t::from_file(manifest_path);
+    auto app = app_manifest_t::from_yaml_file(manifest_path);
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open manifest " + manifest_path.string();
@@ -62,7 +62,7 @@ http_status_e module_app_manager_private_t::do_sideload(
     }
 
     // Step 2: Copy manifest to local storage
-    const auto path = build_manifest_path(app.name(), app.version());
+    const auto path = build_manifest_path(app.app(), app.version());
 
     std::error_code ec;
     std::filesystem::remove(path, ec);

@@ -14,7 +14,7 @@
 
 #include <cpr/cpr.h>
 
-#include "app/app.h"
+#include "app/manifest/manifest.h"
 #include "factory/factory.h"
 #include "marketplace/marketplace.h"
 #include "private/app_manager_private.h"
@@ -127,20 +127,20 @@ http_status_e module_app_manager_private_t::do_install(
     const auto desired = INSTALLED;
 
     // Step 1: Load app manifest
-    const auto app = app_t::from_file(manifest);
+    const auto app = app_manifest_t::from_yaml_file(manifest);
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open app manifest " + manifest;
         return http_status_e::InternalServerError;
     }
     response["additionalInfo"] = std::string{};
-    response["app"] = app.name();
+    response["app"] = app.app();
     response["version"] = app.version();
 
     // Step 2: Determine current app status to decide where to continue
-    auto app_entry = _app_db.query_app({app.name(), app.version()})
+    auto app_entry = _app_db.query_app({app.app(), app.version()})
                          .value_or(apps_table_entry_t{
-                             apps_table_primary_t{app.name(), app.version()},
+                             apps_table_primary_t{app.app(), app.version()},
                              apps_table_data_t{MANIFEST_DOWNLOADED, desired, app.category(), 0, license_key, ""}});
 
     // Step 3: Add database entry for app. At this point the existence of the requested app is guaranteed as its

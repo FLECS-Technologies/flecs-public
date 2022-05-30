@@ -15,8 +15,9 @@
 #include <cstdio>
 #include <filesystem>
 
-#include "app/app.h"
+#include "app/manifest/manifest.h"
 #include "private/app_manager_private.h"
+#include "util/cxx20/string.h"
 #include "util/process/process.h"
 
 namespace FLECS {
@@ -39,7 +40,7 @@ http_status_e module_app_manager_private_t::do_uninstall(
     // Step 2: Load app manifest
     const auto path = build_manifest_path(app_name, version);
 
-    auto app = app_t::from_file(path);
+    auto app = app_manifest_t::from_yaml_file(path);
     if (!app.yaml_loaded())
     {
         // Manifest missing or invalid - persist removal of app into db
@@ -53,7 +54,7 @@ http_status_e module_app_manager_private_t::do_uninstall(
     // Step 2a: Prevent removal of system apps
     if (cxx20::contains(app.category(), "system") && !force)
     {
-        response["additionalInfo"] = "Not removing system app " + app.name() + "(" + app.version() + ")";
+        response["additionalInfo"] = "Not removing system app " + app.app() + "(" + app.version() + ")";
         return http_status_e::InternalServerError;
     }
 

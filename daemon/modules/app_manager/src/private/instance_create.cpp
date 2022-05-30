@@ -18,7 +18,7 @@
 #include <limits>
 #include <random>
 
-#include "app/app.h"
+#include "app/manifest/manifest.h"
 #include "private/app_manager_private.h"
 #include "util/process/process.h"
 #include "util/string/string_utils.h"
@@ -46,7 +46,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
 
     // Step 2: Load app manifest
     const auto path = build_manifest_path(app_name, version);
-    auto app = app_t::from_file(path);
+    auto app = app_manifest_t::from_yaml_file(path);
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open manifest " + path;
@@ -56,14 +56,14 @@ http_status_e module_app_manager_private_t::do_create_instance(
     // Step 3: Ensure there is only one instance of single-instance apps
     if (!app.multi_instance())
     {
-        decltype(auto) instances = _app_db.instances(app.name(), app.version());
+        decltype(auto) instances = _app_db.instances(app.app(), app.version());
         if (instances.size() > 1)
         {
             std::fprintf(
                 stderr,
                 "Warning: Multiple instances found for single-instance app %s (%s). Please consider uninstalling and "
                 "reinstalling the app.\n",
-                app.name().c_str(),
+                app.app().c_str(),
                 app.version().c_str());
         }
         if (instances.size() > 0)
@@ -93,13 +93,17 @@ http_status_e module_app_manager_private_t::do_create_instance(
 
     status = instance_status_e::REQUESTED;
 
-    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, {""}, {""}, 0});
+    _app_db.insert_instance({hex_id, app.app(), app.version(), description, status, desired, {""}, {""}, 0});
 
     // Step 5: Create Docker volumes
     for (const auto& volume : app.volumes())
     {
+        if (volume.type() != volume_t::VOLUME)
+        {
+            continue;
+        }
         auto docker_process = process_t{};
-        const auto name = std::string{"flecs-"} + hex_id + "-" + volume.first;
+        const auto name = std::string{"flecs-"} + hex_id + "-" + volume.host();
         docker_process.spawnp("docker", "volume", "create", name);
         docker_process.wait(false, true);
         if (docker_process.exit_code() != 0)
@@ -172,7 +176,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
     }
 
     status = instance_status_e::RESOURCES_READY;
-    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, {""}, {""}, 0});
+    _app_db.insert_instance({hex_id, app.app(), app.version(), description, status, desired, {""}, {""}, 0});
 
     // Step 8: Create Docker container
     auto docker_process = process_t{};
@@ -192,12 +196,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
     for (const auto& volume : app.volumes())
     {
         docker_process.arg("--volume");
-        docker_process.arg("flecs-" + hex_id + "-" + volume.first + ":" + volume.second);
-    }
-    for (const auto& bind_mount : app.bind_mounts())
-    {
-        docker_process.arg("--volume");
-        docker_process.arg(bind_mount.first + ":" + bind_mount.second);
+        docker_process.arg("flecs-" + hex_id + "-" + volume.host() + ":" + volume.container());
     }
 
     for (const auto& network : app.networks())
@@ -255,7 +254,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
 
     // Final step: Persist successful creation into db
 
-    _app_db.insert_instance({hex_id, app.name(), app.version(), description, status, desired, app.networks(), {ip}, 0});
+    _app_db.insert_instance({hex_id, app.app(), app.version(), description, status, desired, app.networks(), {ip}, 0});
     _app_db.persist();
 
     response["instanceId"] = hex_id;

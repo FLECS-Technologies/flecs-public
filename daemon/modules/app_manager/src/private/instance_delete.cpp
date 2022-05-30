@@ -14,7 +14,7 @@
 
 #include <cstdio>
 
-#include "app/app.h"
+#include "app/manifest/manifest.h"
 #include "private/app_manager_private.h"
 #include "util/process/process.h"
 
@@ -72,7 +72,7 @@ http_status_e module_app_manager_private_t::do_delete_instance(
 
     // Step 5: Attempt to load app manifest
     const auto path = build_manifest_path(instance.app, instance.version);
-    auto app = app_t::from_file(path);
+    auto app = app_manifest_t::from_yaml_file(path);
     if (!app.yaml_loaded())
     {
         std::fprintf(
@@ -86,8 +86,12 @@ http_status_e module_app_manager_private_t::do_delete_instance(
     {
         for (const auto& volume : app.volumes())
         {
+            if (volume.type() != volume_t::VOLUME)
+            {
+                continue;
+            }
             auto docker_process = process_t{};
-            const auto name = std::string{"flecs-"} + id + "-" + volume.first;
+            const auto name = std::string{"flecs-"} + id + "-" + volume.host();
             docker_process.spawnp("docker", "volume", "rm", name);
             docker_process.wait(false, true);
             if (docker_process.exit_code() != 0)

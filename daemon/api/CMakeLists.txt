@@ -34,7 +34,7 @@ target_link_libraries(FLECS.daemon.api PUBLIC
 )
 
 target_link_libraries(FLECS.daemon.api PRIVATE
-    FLECS.daemon.app
+    FLECS.daemon.common
     FLECS.external.json
     FLECS.util.sqlite3_ext
 )
