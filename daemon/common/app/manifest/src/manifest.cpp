@@ -55,6 +55,7 @@ namespace FLECS {
 
 app_manifest_t::app_manifest_t()
     : _yaml_loaded{}
+    , _yaml_valid{}
     , _app{}
     , _args{}
     , _author{}
@@ -162,12 +163,57 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
         }
 
         _yaml_loaded = true;
+
+        validate_yaml();
     }
     catch (const std::exception& ex)
     {
         std::fprintf(stderr, "Could not open manifest: Invalid YAML (%s)\n", ex.what());
         *this = app_manifest_t{};
     }
+}
+
+void app_manifest_t::validate_yaml()
+{
+    _yaml_valid = false;
+    for (const auto& conffile : _conffiles)
+    {
+        if (!conffile.is_valid())
+        {
+            return;
+        }
+    }
+
+    for (const auto& env : _env)
+    {
+        if (!env.is_valid())
+        {
+            return;
+        }
+    }
+
+    for (const auto& port : _ports)
+    {
+        if (!port.is_valid())
+        {
+            return;
+        }
+    }
+
+    for (const auto& volume : _volumes)
+    {
+        if (!volume.is_valid())
+        {
+            return;
+        }
+    }
+
+    if (!_hostname.empty() && _multi_instance)
+    {
+        return;
+    }
+
+    _yaml_valid = true;
 }
 
 void to_json(json_t& j, const app_manifest_t& app_manifest)

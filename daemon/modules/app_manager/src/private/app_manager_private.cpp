@@ -170,6 +170,12 @@ void module_app_manager_private_t::do_init()
         }
     }
 
+    for (decltype(auto) app : _app_db.all_apps())
+    {
+        const auto manifest_path = build_manifest_path(app.app, app.version);
+        _installed_apps.emplace_back(app_t{manifest_path, app.status, app.desired});
+    }
+
     std::fprintf(stdout, "Starting all app instances...\n");
     for (decltype(auto) instance : _app_db.all_instances())
     {
