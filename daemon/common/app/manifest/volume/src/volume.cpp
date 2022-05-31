@@ -69,6 +69,11 @@ volume_t::volume_t(const std::string& volume_str) noexcept
     _container = parts[1];
 }
 
+bool volume_t::is_valid() const noexcept
+{
+    return (!_host.empty() && !_container.empty() && (_type != volume_t::NONE));
+}
+
 void to_json(json_t& j, const volume_t& volume)
 {
     j = json_t{{"host", volume._host}, {"container", volume._container}, {"type", stringify(volume._type)}};

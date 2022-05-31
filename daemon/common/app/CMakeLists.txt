@@ -19,13 +19,20 @@ project(${PROJECT_NAME})
 add_subdirectory(manifest)
 
 add_library(
-    ${PROJECT_NAME} INTERFACE
+    ${PROJECT_NAME} STATIC
+    app.h src/app.cpp
 )
 
 target_include_directories(
-    ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
+    ${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/
 )
 
-target_link_libraries(${PROJECT_NAME} INTERFACE
+target_include_directories(
+    ${PROJECT_NAME} INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
     FLECS.daemon.common.app.manifest
 )

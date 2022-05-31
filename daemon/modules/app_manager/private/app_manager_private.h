@@ -17,7 +17,9 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
+#include "common/app/app.h"
 #include "db/app_db.h"
 #include "module_base/module.h"
 #include "util/http/status_codes.h"
@@ -260,6 +262,7 @@ private:
     std::string generate_ip(const std::string& cidr_subnet);
 
     app_db_t _app_db;
+    std::vector<app_t> _installed_apps;
 };
 
 std::string build_manifest_path(const std::string& app_name, const std::string& version);

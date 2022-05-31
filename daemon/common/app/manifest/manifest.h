@@ -45,6 +45,7 @@ public:
     static app_manifest_t from_yaml_file(const std::filesystem::path& path);
 
     auto& yaml_loaded() const noexcept { return _yaml_loaded; }
+    auto& yaml_valid() const noexcept { return _yaml_valid; }
 
     auto& app() const noexcept { return _app; }
     auto& args() const noexcept { return _args; }
@@ -71,8 +72,10 @@ private:
     friend void to_json(json_t& json, const app_manifest_t& app_manifest);
 
     void parse_yaml(const yaml_t& yaml);
+    void validate_yaml();
 
     bool _yaml_loaded;
+    bool _yaml_valid;
 
     std::string _app;
     args_t _args;

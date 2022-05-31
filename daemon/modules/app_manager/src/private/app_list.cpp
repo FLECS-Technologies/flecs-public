@@ -24,17 +24,12 @@ http_status_e module_app_manager_private_t::do_list_apps(json_t& response)
 {
     response["appList"] = json_t::array();
 
-    const auto apps = _app_db.all_apps();
-    for (const auto& app : apps)
+    for (decltype(auto) app : _installed_apps)
     {
-        auto json_app = json_t{};
-        json_app["app"] = app.app.c_str();
-        json_app["version"] = app.version.c_str();
-        json_app["status"] = app_status_to_string(app.status);
-        json_app["desired"] = app_status_to_string(app.desired);
-        json_app["installedSize"] = app.installed_size;
-        json_app["instances"] = json_t::array();
-        const auto instances = _app_db.instances(app.app, app.version);
+        auto j = json_t{};
+        to_json(j, app);
+        j["instances"] = json_t::array();
+        const auto instances = _app_db.instances(app.app(), app.version());
         for (const auto& instance : instances)
         {
             auto json_instance = json_t{};
@@ -51,9 +46,9 @@ http_status_e module_app_manager_private_t::do_list_apps(json_t& response)
             }
             json_instance["desired"] = instance_status_to_string(instance.desired);
             json_instance["version"] = instance.version;
-            json_app["instances"].push_back(json_instance);
+            j["instances"].push_back(json_instance);
         }
-        response["appList"].push_back(json_app);
+        response["appList"].push_back(j);
     }
 
     return http_status_e::Ok;

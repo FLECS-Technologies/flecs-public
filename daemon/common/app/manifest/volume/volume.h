@@ -26,6 +26,7 @@ class volume_t
 public:
     enum volume_type_t
     {
+        NONE,
         BIND_MOUNT,
         VOLUME,
     };
@@ -33,6 +34,8 @@ public:
     volume_t() noexcept;
 
     explicit volume_t(const std::string& volume_str) noexcept;
+
+    bool is_valid() const noexcept;
 
     auto& host() const noexcept { return _host; }
     auto& container() const noexcept { return _container; }
