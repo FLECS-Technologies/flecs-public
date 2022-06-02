@@ -41,7 +41,7 @@ http_status_e module_app_manager_private_t::do_sideload(
         file << yaml;
         if (!file)
         {
-            response["additionalInfo"] = "Could not place manifest in " + manifest_path;
+            response["additionalInfo"] = "Could not place manifest in " + manifest_path.string();
             return http_status_e::InternalServerError;
         }
     }
@@ -69,7 +69,7 @@ http_status_e module_app_manager_private_t::do_sideload(
     std::filesystem::copy(manifest_path, path, ec);
     if (ec)
     {
-        response["additionalInfo"] = "Could not copy manifest to " + path;
+        response["additionalInfo"] = "Could not copy manifest to " + path.string();
         return http_status_e::InternalServerError;
     }
 

@@ -49,7 +49,7 @@ http_status_e module_app_manager_private_t::do_uninstall(
         _app_db.delete_app({app_name, version});
         _app_db.persist();
 
-        response["additionalInfo"] = "Could not open manifest " + path;
+        response["additionalInfo"] = "Could not open manifest " + path.string();
         return http_status_e::InternalServerError;
     }
 
