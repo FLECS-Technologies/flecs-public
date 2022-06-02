@@ -261,8 +261,10 @@ private:
     std::string generate_instance_ip();
     std::string generate_ip(const std::string& cidr_subnet);
 
+    using installed_apps_t = std::map<std::tuple<std::string, std::string>, app_t>;
+
     app_db_t _app_db;
-    std::vector<app_t> _installed_apps;
+    installed_apps_t _installed_apps;
 };
 
 std::string build_manifest_path(const std::string& app_name, const std::string& version);

@@ -20,6 +20,11 @@ add_subdirectory(instance)
 
 add_library(FLECS.daemon.common INTERFACE)
 
+target_include_directories(
+    FLECS.daemon.common INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 target_link_libraries(
     FLECS.daemon.common INTERFACE
     FLECS.daemon.common.app

@@ -22,10 +22,21 @@ app_t::app_t()
     , _desired{}
 {}
 
-app_t::app_t(const std::string& manifest_path, app_status_e status, app_status_e desired)
+app_t::app_t(const std::filesystem::path& manifest_path, app_status_e status, app_status_e desired)
     : _manifest{app_manifest_t::from_yaml_file(manifest_path)}
     , _status{status}
     , _desired{desired}
+{
+    if (!_manifest.yaml_valid())
+    {
+        *this = app_t{};
+    }
+}
+
+app_t::app_t(const std::string& manifest_string, app_status_e status, app_status_e desired)
+    : _manifest{app_manifest_t::from_yaml_string(manifest_string)}
+    , _status{status}
+    , _desired(desired)
 {
     if (!_manifest.yaml_valid())
     {

@@ -122,47 +122,57 @@ http_status_e module_app_manager_private_t::do_install(
 }
 
 http_status_e module_app_manager_private_t::do_install(
-    const std::string& manifest, const std::string& license_key, json_t& response)
+    const std::string& manifest_path, const std::string& license_key, json_t& response)
 {
     const auto desired = INSTALLED;
 
     // Step 1: Load app manifest
-    const auto app = app_manifest_t::from_yaml_file(manifest);
-    if (!app.yaml_loaded())
+    auto tmp = app_t{manifest_path, MANIFEST_DOWNLOADED, desired};
+    if (tmp.app().empty())
     {
-        response["additionalInfo"] = "Could not open app manifest " + manifest;
+        response["additionalInfo"] = "Could not open app manifest " + manifest_path;
         return http_status_e::InternalServerError;
     }
+
     response["additionalInfo"] = std::string{};
-    response["app"] = app.app();
-    response["version"] = app.version();
+    response["app"] = tmp.app();
+    response["version"] = tmp.version();
 
     // Step 2: Determine current app status to decide where to continue
-    auto app_entry = _app_db.query_app({app.app(), app.version()})
-                         .value_or(apps_table_entry_t{
-                             apps_table_primary_t{app.app(), app.version()},
-                             apps_table_data_t{MANIFEST_DOWNLOADED, desired, app.category(), 0, license_key, ""}});
+    auto it = _installed_apps.find(std::forward_as_tuple(tmp.app(), tmp.version()));
+
+    if (it == _installed_apps.end())
+    {
+        it = _installed_apps
+                 .emplace(
+                     std::piecewise_construct,
+                     std::forward_as_tuple(tmp.app(), tmp.version()),
+                     std::forward_as_tuple(tmp))
+                 .first;
+    }
+
+    auto& app = it->second;
 
     // Step 3: Add database entry for app. At this point the existence of the requested app is guaranteed as its
     // manifest was transferred to the local storage, so it is safe to add it to the local app database
-    _app_db.insert_app(app_entry);
+    _app_db.insert_app(app);
 
-    switch (app_entry.status)
+    switch (app.status())
     {
         case MANIFEST_DOWNLOADED: {
             // Step 4: Acquire download token for app
-            app_entry.download_token = acquire_download_token(license_key);
+            app.download_token(acquire_download_token(license_key));
 
-            if (app_entry.download_token.empty())
+            if (app.download_token().empty())
             {
                 response["additionalInfo"] = "Could not acquire download token";
             }
             else
             {
-                app_entry.status = TOKEN_ACQUIRED;
+                app.status(TOKEN_ACQUIRED);
             }
 
-            _app_db.insert_app(app_entry);
+            _app_db.insert_app(app);
             [[fallthrough]];
         }
         case TOKEN_ACQUIRED: {
@@ -170,7 +180,7 @@ http_status_e module_app_manager_private_t::do_install(
             auto docker_login_process = process_t{};
             auto docker_pull_process = process_t{};
             auto docker_logout_process = process_t{};
-            const auto args = split(app_entry.download_token, ';');
+            const auto args = split(app.download_token(), ';');
 
             if (args.size() == 3)
             {
@@ -215,20 +225,20 @@ http_status_e module_app_manager_private_t::do_install(
                 _app_db.persist();
                 return http_status_e::InternalServerError;
             }
-            app_entry.status = IMAGE_DOWNLOADED;
-            _app_db.insert_app(app_entry);
+            app.status(IMAGE_DOWNLOADED);
+            _app_db.insert_app(app);
             [[fallthrough]];
         }
         case IMAGE_DOWNLOADED: {
             // Step 6: Expire download token
-            const auto args = split(app_entry.download_token, ';');
+            const auto args = split(app.download_token(), ';');
             if (args.size() == 3)
             {
                 const auto success = expire_download_token(args[0], args[2]);
                 if (success)
                 {
-                    app_entry.download_token.clear();
-                    app_entry.status = INSTALLED;
+                    app.download_token("");
+                    app.status(INSTALLED);
                 }
                 else
                 {
@@ -237,10 +247,10 @@ http_status_e module_app_manager_private_t::do_install(
             }
             else
             {
-                app_entry.download_token.clear();
-                app_entry.status = INSTALLED;
+                app.download_token("");
+                app.status(INSTALLED);
             }
-            _app_db.insert_app(app_entry);
+            _app_db.insert_app(app);
             break;
         }
         default: {

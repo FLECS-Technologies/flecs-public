@@ -20,7 +20,7 @@
 #include <optional>
 #include <vector>
 
-#include "app/app_status.h"
+#include "app/app.h"
 #include "instance/instance_status.h"
 #include "util/sqlite3_ext/sqlite3_db.h"
 
@@ -111,7 +111,7 @@ public:
      *
      * @return error code
      */
-    void insert_app(const apps_table_entry_t& entry);
+    void insert_app(const app_t& app);
 
     /*! @brief Deletes an app from the app database
      *
