@@ -267,7 +267,7 @@ private:
     installed_apps_t _installed_apps;
 };
 
-std::string build_manifest_path(const std::string& app_name, const std::string& version);
+std::filesystem::path build_manifest_path(const std::string& app_name, const std::string& version);
 std::string build_manifest_url(const std::string& app_name, const std::string& version);
 int download_manifest(const std::string& app_name, const std::string& version);
 

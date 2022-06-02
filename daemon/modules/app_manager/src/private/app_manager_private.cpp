@@ -34,7 +34,7 @@
 namespace FLECS {
 namespace Private {
 
-std::string build_manifest_path(const std::string& app_name, const std::string& version)
+std::filesystem::path build_manifest_path(const std::string& app_name, const std::string& version)
 {
     auto path = std::string{"/var/lib/flecs/apps"};
 

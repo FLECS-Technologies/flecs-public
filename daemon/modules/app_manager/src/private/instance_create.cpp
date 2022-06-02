@@ -49,7 +49,7 @@ http_status_e module_app_manager_private_t::do_create_instance(
     auto app = app_manifest_t::from_yaml_file(path);
     if (!app.yaml_loaded())
     {
-        response["additionalInfo"] = "Could not open manifest " + path;
+        response["additionalInfo"] = "Could not open manifest " + path.string();
         return http_status_e::InternalServerError;
     }
 
