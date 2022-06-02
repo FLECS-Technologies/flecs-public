@@ -224,10 +224,16 @@ int app_db_t::query_user_version()
     return exec("PRAGMA user_version;", user_version_callback, &_user_version);
 }
 
-void app_db_t::insert_app(const apps_table_entry_t& entry)
+void app_db_t::insert_app(const app_t& app)
 {
-    decltype(auto) primary = static_cast<const apps_table_primary_t&>(entry);
-    decltype(auto) data = static_cast<const apps_table_data_t&>(entry);
+    const auto primary = apps_table_primary_t{app.app(), app.version()};
+    const auto data = apps_table_data_t{
+        app.status(),
+        app.desired(),
+        app.category(),
+        app.installed_size(),
+        app.license_key(),
+        app.download_token()};
     if (has_app(primary))
     {
         _apps.at(primary) = data;

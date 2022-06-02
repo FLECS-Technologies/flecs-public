@@ -27,9 +27,9 @@ http_status_e module_app_manager_private_t::do_list_apps(json_t& response)
     for (decltype(auto) app : _installed_apps)
     {
         auto j = json_t{};
-        to_json(j, app);
+        to_json(j, app.second);
         j["instances"] = json_t::array();
-        const auto instances = _app_db.instances(app.app(), app.version());
+        const auto instances = _app_db.instances(app.second.app(), app.second.version());
         for (const auto& instance : instances)
         {
             auto json_instance = json_t{};

@@ -38,11 +38,13 @@ http_status_e module_app_manager_private_t::do_uninstall(
     }
 
     // Step 2: Load app manifest
+    const auto app =
+        app_t{build_manifest_path(app_name, version), app_status_e::INSTALLED, app_status_e::NOT_INSTALLED};
     const auto path = build_manifest_path(app_name, version);
 
-    auto app = app_manifest_t::from_yaml_file(path);
-    if (!app.yaml_loaded())
+    if (app.app().empty())
     {
+        _installed_apps.erase(std::forward_as_tuple(app.app(), app.version()));
         // Manifest missing or invalid - persist removal of app into db
         _app_db.delete_app({app_name, version});
         _app_db.persist();
@@ -81,6 +83,7 @@ http_status_e module_app_manager_private_t::do_uninstall(
     }
 
     // Step 5: Persist removal of app into db
+    _installed_apps.erase(std::forward_as_tuple(app.app(), app.version()));
     _app_db.delete_app({app_name, version});
     _app_db.persist();
 

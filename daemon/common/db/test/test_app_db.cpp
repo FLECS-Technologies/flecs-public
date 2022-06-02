@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <filesystem>
+#include <sstream>
 
 #include "daemon/common/db/app_db.h"
 #include "gtest/gtest.h"
@@ -21,24 +22,24 @@ namespace {
 
 auto make_app_entry(std::string app = "tech.flecs.test", std::string version = "1.0.0.0")
 {
-    return FLECS::apps_table_entry_t{
-        FLECS::apps_table_primary_t{app, version},
-        FLECS::apps_table_data_t{
-            FLECS::NOT_INSTALLED,
-            FLECS::INSTALLED,
-            "test",
-            2134,
-            "license-key",
-            "download-token"}};
+    auto manifest_string = std::stringstream{};
+    manifest_string << "app: \"" << app << "\"\n";
+    manifest_string << "title: \"FLECS Test App\"\n";
+    manifest_string << "version: \"" << version << "\"\n";
+    manifest_string << "author: \"FLECS Technologies GmbH\"\n";
+    manifest_string << "category: \"test\"\n";
+    manifest_string << "image: \"flecs/" << app << "\"\n";
+
+    return FLECS::app_t{manifest_string.str(), FLECS::NOT_INSTALLED, FLECS::INSTALLED};
 }
 
-auto make_instance_entry(std::string id = "789abcde", FLECS::apps_table_primary_t app = {"tech.flecs.test", "1.0.0.0"})
+auto make_instance_entry(std::string id = "789abcde", const FLECS::app_t& app = make_app_entry())
 {
     return FLECS::instances_table_entry_t{
         FLECS::instances_table_primary_t{id},
         FLECS::instances_table_data_t{
-            app.app,
-            app.version,
+            app.app(),
+            app.version(),
             "Test instance",
             FLECS::NOT_CREATED,
             FLECS::CREATED,
@@ -49,10 +50,16 @@ auto make_instance_entry(std::string id = "789abcde", FLECS::apps_table_primary_
 
 } // namespace
 
-void assert_db_has_app(const FLECS::app_db_t& app_db, const FLECS::apps_table_entry_t& app)
+void assert_db_has_app(const FLECS::app_db_t& app_db, const FLECS::app_t& app)
 {
-    decltype(auto) primary = static_cast<const FLECS::apps_table_primary_t&>(app);
-    decltype(auto) data = static_cast<const FLECS::apps_table_data_t&>(app);
+    const auto primary = FLECS::apps_table_primary_t{app.app(), app.version()};
+    const auto data = FLECS::apps_table_data_t{
+        app.status(),
+        app.desired(),
+        app.category(),
+        app.installed_size(),
+        app.license_key(),
+        app.download_token()};
 
     ASSERT_TRUE(app_db.has_app(primary));
 
@@ -107,7 +114,7 @@ TEST(service_app_manager_app_db, InsertAndDeleteApp)
 {
     auto app_db = FLECS::app_db_t{app_db_path};
     const auto app = make_app_entry();
-    decltype(auto) primary = static_cast<const FLECS::apps_table_primary_t&>(app);
+    decltype(auto) primary = FLECS::apps_table_primary_t{app.app(), app.version()};
 
     ASSERT_FALSE(app_db.has_app(primary));
     ASSERT_FALSE(app_db.query_app(primary).has_value());
@@ -172,7 +179,7 @@ TEST(service_app_manager_app_db, UpdateAppAndInstance)
 
     auto app = make_app_entry();
     app_db.insert_app(app);
-    app.installed_size = 8888;
+    app.installed_size(8888);
     app_db.insert_app(app);
     assert_db_has_app(app_db, app);
 
@@ -213,15 +220,15 @@ TEST(service_app_manager_app_db, GetAllInstances)
         app_db.insert_instance(instance);
     }
 
-    auto test_instances1 = app_db.instances(std::data(apps)[0].app, std::data(apps)[0].version);
+    auto test_instances1 = app_db.instances(std::data(apps)[0].app(), std::data(apps)[0].version());
     ASSERT_EQ(test_instances1.size(), 3);
 
-    auto test_instances2 = app_db.instances(std::data(apps)[0].app);
+    auto test_instances2 = app_db.instances(std::data(apps)[0].app());
     ASSERT_EQ(test_instances2.size(), 5);
 
-    auto test_instances3 = app_db.instances(std::data(apps)[2].app, std::data(apps)[2].version);
+    auto test_instances3 = app_db.instances(std::data(apps)[2].app(), std::data(apps)[2].version());
     ASSERT_EQ(test_instances3.size(), 2);
 
-    auto test_instances4 = app_db.instances(std::data(apps)[2].app);
+    auto test_instances4 = app_db.instances(std::data(apps)[2].app());
     ASSERT_EQ(test_instances4.size(), 2);
 }

@@ -152,11 +152,14 @@ void module_app_manager_private_t::do_init()
         {
             std::fprintf(stdout, "Installing system app %s\n", system_apps[i]);
             download_manifest(system_apps[i], system_apps_versions[i]);
-            auto app = app_manifest_t::from_yaml_file(build_manifest_path(system_apps[i], system_apps_versions[i]));
-            if (app.yaml_loaded())
+            const auto app = app_t{
+                build_manifest_path(system_apps[i], system_apps_versions[i]),
+                app_status_e::INSTALLED,
+                app_status_e::INSTALLED};
+            if (!app.app().empty())
             {
                 auto response = json_t{};
-                _app_db.insert_app({{app.app(), app.version()}, {INSTALLED, INSTALLED, app.category(), 0, "", ""}});
+                _app_db.insert_app(app);
                 do_create_instance(app.app(), app.version(), system_apps_desc[i], response);
                 const auto app_instances = _app_db.instances(system_apps[i], system_apps_versions[i]);
                 if (!app_instances.empty())
@@ -173,7 +176,10 @@ void module_app_manager_private_t::do_init()
     for (decltype(auto) app : _app_db.all_apps())
     {
         const auto manifest_path = build_manifest_path(app.app, app.version);
-        _installed_apps.emplace_back(app_t{manifest_path, app.status, app.desired});
+        _installed_apps.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(app.app, app.version),
+            std::forward_as_tuple(app_t{manifest_path, app.status, app.desired}));
     }
 
     std::fprintf(stdout, "Starting all app instances...\n");
@@ -198,8 +204,8 @@ void module_app_manager_private_t::do_init()
 
 bool module_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version)
 {
-    return _app_db.has_app({app_name, version}) &&
-           (_app_db.query_app({app_name, version}).value().status == app_status_e::INSTALLED);
+    return (_installed_apps.count(std::forward_as_tuple(app_name, version)) == 1) &&
+           (_installed_apps[std::forward_as_tuple(app_name, version)].status() == app_status_e::INSTALLED);
 }
 
 bool module_app_manager_private_t::is_instance_runnable(const std::string& id)
