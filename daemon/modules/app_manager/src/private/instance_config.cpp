@@ -27,7 +27,7 @@ auto build_network_adapters_json(const instances_table_entry_t& instance)
             auto adapter_json = json_t{};
             adapter_json["name"] = adapter.first;
             adapter_json["active"] = false;
-            auto network = std::string{"flecs-macvlan-"} + adapter.first;
+            auto network = std::string{"flecs-ipvlan-"} + adapter.first;
             auto it = std::find(instance.networks.cbegin(), instance.networks.cend(), network);
             if (it != instance.networks.cend())
             {
@@ -83,7 +83,7 @@ http_status_e module_app_manager_private_t::do_put_config_instance(
 
     for (const auto& network : config.networkAdapters)
     {
-        const auto docker_network = std::string{"flecs-macvlan-"} + network.name;
+        const auto docker_network = std::string{"flecs-ipvlan-"} + network.name;
         if (network.active)
         {
             // ensure network adapter exists
@@ -98,7 +98,7 @@ http_status_e module_app_manager_private_t::do_put_config_instance(
                 continue;
             }
 
-            // create macvlan network, if not exists
+            // create ipvlan network, if not exists
             const auto subnet =
                 ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
             auto docker_process = process_t{};
@@ -107,7 +107,7 @@ http_status_e module_app_manager_private_t::do_put_config_instance(
                 "network",
                 "create",
                 "-d",
-                "macvlan",
+                "ipvlan",
                 "--subnet",
                 subnet,
                 "--gateway",
@@ -180,7 +180,7 @@ http_status_e module_app_manager_private_t::do_put_config_instance(
                 }
                 else
                 {
-                    response["additionalInfo"] = "Could not connect to macvlan network";
+                    response["additionalInfo"] = "Could not connect to ipvlan network";
                     for (auto& adapter_json : response["networkAdapters"])
                     {
                         if (adapter_json["name"] == netif->first)
