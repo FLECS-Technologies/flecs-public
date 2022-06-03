@@ -258,6 +258,8 @@ private:
     int xcheck_app_instance(
         const instances_table_entry_t& instance, const std::string& app_name, const std::string& version);
 
+    void migrate_macvlan_to_ipvlan();
+
     std::string generate_instance_ip();
     std::string generate_ip(const std::string& cidr_subnet);
 
