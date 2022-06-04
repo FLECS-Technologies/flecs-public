@@ -14,6 +14,7 @@
 
 #define __STDC_FORMAT_MACROS 1
 
+#include <chrono>
 #include <cinttypes>
 #include <csignal>
 #include <thread>
@@ -31,23 +32,27 @@ void signal_handler(int)
 
 void flunder_receive_callback(FLECS::flunder_client_t* client, FLECS::flunder_data_t* msg)
 {
+    const auto timestamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     std::fprintf(
         stdout,
-        "Received flunder message for topic %s on client %p with length %" PRIu64 "\n",
+        "Received flunder message for topic %s on client %p with length %" PRIu64 " @%" PRIi64 "\n",
         msg->_path,
         client,
-        msg->_len);
+        msg->_len,
+        timestamp);
 }
 
 void flunder_receive_callback_userp(FLECS::flunder_client_t* client, FLECS::flunder_data_t* msg, const void* userp)
 {
+    const auto timestamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     std::fprintf(
         stdout,
-        "Received flunder message for topic %s on client %p with length %" PRIu64 " and userdata %s\n",
+        "Received flunder message for topic %s on client %p with length %" PRIu64 " and userdata %s @%" PRIi64 "\n",
         msg->_path,
         client,
         msg->_len,
-        (const char*)userp);
+        (const char*)userp,
+        timestamp);
 }
 
 int main()
@@ -60,14 +65,20 @@ int main()
     flunder_client.connect();
     flunder_client.add_mem_storage("flunder-cpp", "/flecs/flunder/**");
 
-    flunder_client.subscribe("/flecs/flunder/cpp", &flunder_receive_callback);
+    flunder_client.subscribe("/flecs/flunder/cpp/**", &flunder_receive_callback);
     const char* userdata = "Hello, world!";
     flunder_client.subscribe("/flecs/flunder/external", &flunder_receive_callback_userp, (const void*)userdata);
 
     while (!g_stop)
     {
-        int i = 1234;
-        flunder_client.publish("/flecs/flunder/cpp", i);
+        const auto i = 1234;
+        const auto d = 3.14159;
+        const auto str = "Hello, world!";
+        const auto t = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        flunder_client.publish("/flecs/flunder/cpp/int", i);
+        flunder_client.publish("/flecs/flunder/cpp/double", d);
+        flunder_client.publish("/flecs/flunder/cpp/string", str);
+        flunder_client.publish("/flecs/flunder/cpp/timestamp", t);
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 }
