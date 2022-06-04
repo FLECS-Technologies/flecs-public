@@ -235,11 +235,56 @@ auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std
 
     for (decltype(auto) it = json.begin(); it != json.end(); ++it)
     {
-        vars.emplace_back(flunder_variable_t{
-            (*it)["key"].get<std::string>().c_str(),
-            (*it)["value"].get<std::string>().c_str(),
-            (*it)["encoding"].get<std::string>().c_str(),
-            (*it)["time"].get<std::string>().c_str()});
+        switch ((*it)["value"].type())
+        {
+            case json_t::value_t::boolean: {
+                const auto val = stringify((*it)["value"].get<json_t::boolean_t>());
+                vars.emplace_back(flunder_variable_t{
+                    (*it)["key"].get<std::string>().c_str(),
+                    val.c_str(),
+                    (*it)["encoding"].get<std::string>().c_str(),
+                    (*it)["time"].get<std::string>().c_str()});
+                break;
+            }
+            case json_t::value_t::number_float: {
+                const auto val = stringify((*it)["value"].get<json_t::number_float_t>());
+                vars.emplace_back(flunder_variable_t{
+                    (*it)["key"].get<std::string>().c_str(),
+                    val.c_str(),
+                    (*it)["encoding"].get<std::string>().c_str(),
+                    (*it)["time"].get<std::string>().c_str()});
+                break;
+            }
+            case json_t::value_t::number_integer: {
+                const auto val = stringify((*it)["value"].get<json_t::number_integer_t>());
+                vars.emplace_back(flunder_variable_t{
+                    (*it)["key"].get<std::string>().c_str(),
+                    val.c_str(),
+                    (*it)["encoding"].get<std::string>().c_str(),
+                    (*it)["time"].get<std::string>().c_str()});
+                break;
+            }
+            case json_t::value_t::number_unsigned: {
+                const auto val = stringify((*it)["value"].get<json_t::number_unsigned_t>());
+                vars.emplace_back(flunder_variable_t{
+                    (*it)["key"].get<std::string>().c_str(),
+                    val.c_str(),
+                    (*it)["encoding"].get<std::string>().c_str(),
+                    (*it)["time"].get<std::string>().c_str()});
+                break;
+            }
+            case json_t::value_t::string: {
+                vars.emplace_back(flunder_variable_t{
+                    (*it)["key"].get<std::string>().c_str(),
+                    (*it)["value"].get<std::string>().c_str(),
+                    (*it)["encoding"].get<std::string>().c_str(),
+                    (*it)["time"].get<std::string>().c_str()});
+                break;
+            }
+            default: {
+                std::fprintf(stderr, "Unsupported data type %s\n", (*it)["value"].type_name());
+            }
+        }
     }
 
     return {0, vars};
