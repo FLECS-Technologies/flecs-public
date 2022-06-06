@@ -17,6 +17,9 @@
 #include <chrono>
 #include <cinttypes>
 #include <csignal>
+#include <cstring>
+#include <string>
+#include <string_view>
 #include <thread>
 
 #include "flunder/flunder_client.h"
@@ -32,14 +35,38 @@ void signal_handler(int)
 
 void flunder_receive_callback(FLECS::flunder_client_t* client, FLECS::flunder_data_t* msg)
 {
-    const auto timestamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     std::fprintf(
         stdout,
         "Received flunder message for topic %s on client %p with length %" PRIu64 " @%" PRIi64 "\n",
         msg->_path,
         client,
         msg->_len,
-        timestamp);
+        now);
+
+    const auto path = std::string_view{msg->_path};
+    const auto data = std::string{(const char*)msg->_data, (std::size_t)msg->_len};
+
+    if (path == "/flecs/flunder/cpp/int")
+    {
+        const auto i = std::atoll(data.c_str());
+        std::fprintf(stdout, "\tValue: %lld\n", i);
+    }
+    else if (path == "/flecs/flunder/cpp/double")
+    {
+        const auto d = std::atof(data.c_str());
+        std::fprintf(stdout, "\tValue: %lf\n", d);
+    }
+    else if (path == "/flecs/flunder/cpp/string")
+    {
+        std::fprintf(stdout, "\tValue: %s\n", data.c_str());
+    }
+    else if (path == "/flecs/flunder/cpp/timestamp")
+    {
+        const auto t1 = std::stoll(data.c_str());
+        const auto diff = now - t1;
+        std::fprintf(stdout, "\tMessage sent @%lld (%lld ns ago)\n", t1, diff);
+    }
 }
 
 void flunder_receive_callback_userp(FLECS::flunder_client_t* client, FLECS::flunder_data_t* msg, const void* userp)
