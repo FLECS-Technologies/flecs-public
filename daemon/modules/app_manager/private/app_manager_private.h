@@ -70,7 +70,7 @@ public:
      * @return FLECS_YAML: Error parsing manifest
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
-    http_status_e do_install(const std::string& manifest, const std::string& license_key, json_t& response);
+    http_status_e do_install(const std::filesystem::path& manifest, const std::string& license_key, json_t& response);
 
     /*! @brief Sideloads an app from its YAML manifest
      *
