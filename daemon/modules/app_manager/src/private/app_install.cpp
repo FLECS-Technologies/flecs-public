@@ -122,7 +122,9 @@ http_status_e module_app_manager_private_t::do_install(
 }
 
 http_status_e module_app_manager_private_t::do_install(
-    const std::string& manifest_path, const std::string& license_key, json_t& response)
+    const std::filesystem::path& manifest_path,
+    const std::string& license_key,
+    json_t& response)
 {
     const auto desired = INSTALLED;
 
@@ -130,7 +132,7 @@ http_status_e module_app_manager_private_t::do_install(
     auto tmp = app_t{manifest_path, MANIFEST_DOWNLOADED, desired};
     if (tmp.app().empty())
     {
-        response["additionalInfo"] = "Could not open app manifest " + manifest_path;
+        response["additionalInfo"] = "Could not open app manifest " + manifest_path.string();
         return http_status_e::InternalServerError;
     }
 
