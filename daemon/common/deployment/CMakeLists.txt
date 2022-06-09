@@ -12,24 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.common)
+set(PROJECT_NAME FLECS.daemon.common.deployment)
 
-add_subdirectory(app)
-add_subdirectory(db)
-add_subdirectory(deployment)
-add_subdirectory(instance)
+project(${PROJECT_NAME})
 
-add_library(FLECS.daemon.common INTERFACE)
+add_library(
+    ${PROJECT_NAME} STATIC
+    src/deployment.cpp src/deployment_docker.cpp
+    deployment.h deployment_docker.h
+)
 
 target_include_directories(
-    FLECS.daemon.common INTERFACE
+    ${PROJECT_NAME} INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../
+)
+
+target_include_directories(
+    ${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(
-    FLECS.daemon.common INTERFACE
+    ${PROJECT_NAME} PRIVATE
     FLECS.daemon.common.app
-    FLECS.daemon.common.db
-    FLECS.daemon.common.deployment
-    FLECS.daemon.common.instance
+    FLECS.util.network
+    FLECS.util.process
 )
+
+target_link_libraries(
+    ${PROJECT_NAME} INTERFACE
+)
+
+# add_subdirectory(test)
