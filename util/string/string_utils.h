@@ -15,6 +15,7 @@
 #ifndef E3107886_7E4E_4556_9EDD_91B48A8DF4D9
 #define E3107886_7E4E_4556_9EDD_91B48A8DF4D9
 
+#include <algorithm>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -110,6 +111,27 @@ template <typename CharT>
 inline auto split(const CharT* s, CharT delim)
 {
     return split(std::basic_string<CharT>{s}, delim);
+}
+
+template <typename CharT, typename Traits>
+inline auto ltrim(std::basic_string<CharT, Traits>& str) //
+{
+    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](CharT c) { return !std::isspace(c); }));
+    return str;
+}
+
+template <typename CharT, typename Traits>
+inline auto rtrim(std::basic_string<CharT, Traits>& str) //
+{
+    str.erase(std::find_if(str.rbegin(), str.rend(), [](CharT c) { return !std::isspace(c); }).base(), str.end());
+    return str;
+}
+
+template <typename CharT, typename Traits>
+inline auto trim(std::basic_string<CharT, Traits>& str) //
+{
+    ltrim(str);
+    return rtrim(str);
 }
 
 } // namespace FLECS
