@@ -17,28 +17,34 @@
 namespace FLECS {
 
 app_t::app_t()
-    : _manifest{}
+    : app_manifest_t{}
+    , _license_key{}
+    , _download_token{}
+    , _installed_size{}
     , _status{}
     , _desired{}
 {}
 
 app_t::app_t(const std::filesystem::path& manifest_path, app_status_e status, app_status_e desired)
-    : _manifest{app_manifest_t::from_yaml_file(manifest_path)}
+    : app_manifest_t{app_manifest_t::from_yaml_file(manifest_path)}
+    , _license_key{}
+    , _download_token{}
+    , _installed_size{}
     , _status{status}
     , _desired{desired}
 {
-    if (!_manifest.yaml_valid())
+    if (!yaml_valid())
     {
         *this = app_t{};
     }
 }
 
 app_t::app_t(const std::string& manifest_string, app_status_e status, app_status_e desired)
-    : _manifest{app_manifest_t::from_yaml_string(manifest_string)}
+    : app_manifest_t{app_manifest_t::from_yaml_string(manifest_string)}
     , _status{status}
     , _desired(desired)
 {
-    if (!_manifest.yaml_valid())
+    if (!yaml_valid())
     {
         *this = app_t{};
     }
@@ -46,7 +52,8 @@ app_t::app_t(const std::string& manifest_string, app_status_e status, app_status
 
 void to_json(json_t& j, const app_t& app)
 {
-    to_json(j, app._manifest);
+    const auto& parent = static_cast<const app_manifest_t&>(app);
+    to_json(j, parent);
     j.push_back({"status", app_status_to_string(app._status)});
     j.push_back({"desired", app_status_to_string(app._desired)});
 }
