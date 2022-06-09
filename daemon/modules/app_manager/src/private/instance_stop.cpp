@@ -20,24 +20,29 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_stop_instance(
-    const std::string& id, const std::string& app_name, const std::string& version, json_t& response, bool internal)
+auto module_app_manager_private_t::do_stop_instance(
+    const std::string& instance_id,
+    const std::string& app_name,
+    const std::string& version,
+    json_t& response,
+    bool internal) //
+    -> http_status_e
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
-    response["instanceId"] = id;
+    response["instanceId"] = instance_id;
     response["version"] = version;
 
     // Step 1: Verify instance does actually exist
-    if (!_app_db.has_instance({id}))
+    if (!_app_db.has_instance({instance_id}))
     {
-        response["additionalInfo"] = "Could not stop instance " + id + ", which does not exist";
+        response["additionalInfo"] = "Could not stop instance " + instance_id + ", which does not exist";
         return http_status_e::BadRequest;
     }
 
     // get instance details from database
-    auto instance = _app_db.query_instance({id}).value();
+    auto instance = _app_db.query_instance({instance_id}).value();
     // correct response based on actual instance
     response["app"] = instance.app;
     response["version"] = instance.version;
@@ -51,9 +56,9 @@ http_status_e module_app_manager_private_t::do_stop_instance(
     }
 
     // Step 3: Return if instance is not running
-    if (!is_instance_running(id) && !internal)
+    if (!is_instance_running(instance_id) && !internal)
     {
-        response["additionalInfo"] = "Instance " + id + " is not running";
+        response["additionalInfo"] = "Instance " + instance_id + " is not running";
         return http_status_e::Ok;
     }
 
@@ -67,7 +72,7 @@ http_status_e module_app_manager_private_t::do_stop_instance(
 
     // Step 5: Stop instance through Docker
     auto docker_process = process_t{};
-    const auto name = std::string{"flecs-"} + id;
+    const auto name = std::string{"flecs-"} + instance_id;
     docker_process.spawnp("docker", "stop", name);
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0)

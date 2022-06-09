@@ -34,7 +34,8 @@
 namespace FLECS {
 namespace Private {
 
-std::filesystem::path build_manifest_path(const std::string& app_name, const std::string& version)
+auto build_manifest_path(const std::string& app_name, const std::string& version) //
+    -> std::filesystem::path
 {
     auto path = std::string{"/var/lib/flecs/apps"};
 
@@ -49,7 +50,8 @@ std::filesystem::path build_manifest_path(const std::string& app_name, const std
     return path;
 }
 
-std::string build_manifest_url(const std::string& app_name, const std::string& version)
+auto build_manifest_url(const std::string& app_name, const std::string& version) //
+    -> std::string
 {
 #ifndef NDEBUG
     auto url = std::string{"https://marketplace.flecs.tech:8443/manifests/apps/"};
@@ -66,7 +68,8 @@ std::string build_manifest_url(const std::string& app_name, const std::string& v
     return url;
 }
 
-int download_manifest(const std::string& app_name, const std::string& version)
+auto download_manifest(const std::string& app_name, const std::string& version) //
+    -> int
 {
     const auto path = build_manifest_path(app_name, version);
     const auto manifest = fopen(path.c_str(), "w");
@@ -204,13 +207,15 @@ void module_app_manager_private_t::do_init()
     hosts_thread.detach();
 }
 
-bool module_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version)
+auto module_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version) //
+    -> bool
 {
     return (_installed_apps.count(std::forward_as_tuple(app_name, version)) == 1) &&
            (_installed_apps[std::forward_as_tuple(app_name, version)].status() == app_status_e::INSTALLED);
 }
 
-bool module_app_manager_private_t::is_instance_runnable(const std::string& id)
+auto module_app_manager_private_t::is_instance_runnable(const std::string& id) //
+    -> bool
 {
     if (!_app_db.has_instance({id}))
     {
@@ -226,7 +231,8 @@ bool module_app_manager_private_t::is_instance_runnable(const std::string& id)
     return true;
 }
 
-bool module_app_manager_private_t::is_instance_running(const std::string& id)
+auto module_app_manager_private_t::is_instance_running(const std::string& id) //
+    -> bool
 {
     auto docker_process = process_t{};
 
@@ -241,8 +247,11 @@ bool module_app_manager_private_t::is_instance_running(const std::string& id)
     return false;
 }
 
-int module_app_manager_private_t::xcheck_app_instance(
-    const instances_table_entry_t& instance, const std::string& app_name, const std::string& version)
+auto module_app_manager_private_t::xcheck_app_instance(
+    const instances_table_entry_t& instance,
+    const std::string& app_name,
+    const std::string& version) //
+    -> int
 {
     // Is app installed?
     if (!app_name.empty() && !version.empty() && !is_app_installed(app_name, version))
@@ -284,7 +293,8 @@ int module_app_manager_private_t::xcheck_app_instance(
     return 0;
 }
 
-void module_app_manager_private_t::migrate_macvlan_to_ipvlan()
+auto module_app_manager_private_t::migrate_macvlan_to_ipvlan() //
+    -> void
 {
     // detect flecs-macvlan networks
     auto networks = std::string{};
@@ -421,7 +431,8 @@ void module_app_manager_private_t::migrate_macvlan_to_ipvlan()
     _app_db.persist();
 }
 
-std::string module_app_manager_private_t::generate_instance_ip()
+auto module_app_manager_private_t::generate_instance_ip() //
+    -> std::string
 {
     // Get base IP and subnet of FLECS network as "a.b.c.d/x"
     auto docker_process = FLECS::process_t{};
@@ -430,7 +441,8 @@ std::string module_app_manager_private_t::generate_instance_ip()
     return generate_ip(docker_process.stdout());
 }
 
-std::string module_app_manager_private_t::generate_ip(const std::string& cidr_subnet)
+auto module_app_manager_private_t::generate_ip(const std::string& cidr_subnet) //
+    -> std::string
 {
     // parse a.b.c.d
     auto base_ip = in_addr_t{};

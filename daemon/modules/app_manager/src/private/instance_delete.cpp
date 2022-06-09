@@ -21,24 +21,28 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_delete_instance(
-    const std::string& id, const std::string& app_name, const std::string& version, json_t& response)
+auto module_app_manager_private_t::do_delete_instance(
+    const std::string& instance_id,
+    const std::string& app_name,
+    const std::string& version,
+    json_t& response) //
+    -> http_status_e
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
-    response["instanceId"] = id;
+    response["instanceId"] = instance_id;
     response["version"] = version;
 
     // Step 1: Verify instance does actually exist
-    if (!_app_db.has_instance({id}))
+    if (!_app_db.has_instance({instance_id}))
     {
-        response["additionalInfo"] = "Could not delete instance " + id + ", which does not exist";
+        response["additionalInfo"] = "Could not delete instance " + instance_id + ", which does not exist";
         return http_status_e::BadRequest;
     }
 
     // Step 2: Do some cross-checks if app_name and version are provided
-    auto instance = _app_db.query_instance({id}).value();
+    auto instance = _app_db.query_instance({instance_id}).value();
 
     // correct response based on actual instance
     response["app"] = instance.app;
@@ -52,16 +56,17 @@ http_status_e module_app_manager_private_t::do_delete_instance(
     }
 
     // Step 3: Attempt to stop instance
-    const auto res = do_stop_instance(id, app_name, version, response, true);
+    const auto res = do_stop_instance(instance_id, app_name, version, response, true);
+
     if (res != http_status_e::Ok)
     {
-        std::fprintf(stderr, "Could not stop instance %s: %d\n", id.c_str(), static_cast<int>(res));
+        std::fprintf(stderr, "Could not stop instance %s: %d\n", instance_id.c_str(), static_cast<int>(res));
     }
 
     // Step 4: Remove Docker container for instance
     {
         auto docker_process = process_t{};
-        const auto name = std::string{"flecs-"} + id;
+        const auto name = std::string{"flecs-"} + instance_id;
         docker_process.spawnp("docker", "rm", "-f", name);
         docker_process.wait(false, true);
         if (docker_process.exit_code() != 0)
@@ -91,7 +96,7 @@ http_status_e module_app_manager_private_t::do_delete_instance(
                 continue;
             }
             auto docker_process = process_t{};
-            const auto name = std::string{"flecs-"} + id + "-" + volume.host();
+            const auto name = std::string{"flecs-"} + instance_id + "-" + volume.host();
             docker_process.spawnp("docker", "volume", "rm", name);
             docker_process.wait(false, true);
             if (docker_process.exit_code() != 0)
@@ -102,7 +107,7 @@ http_status_e module_app_manager_private_t::do_delete_instance(
     }
 
     // Final step: Persist removal of instance into db
-    _app_db.delete_instance({id});
+    _app_db.delete_instance({instance_id});
     _app_db.persist();
 
     return http_status_e::Ok;
