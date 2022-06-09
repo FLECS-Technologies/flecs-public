@@ -37,14 +37,14 @@ http_status_e module_app_manager_private_t::do_list_apps(json_t& response)
             json_instance["instanceName"] = instance.description;
             if (instance.status == instance_status_e::CREATED)
             {
-                json_instance["status"] = instance_status_to_string(
+                json_instance["status"] = to_string(
                     is_instance_running(instance.id) ? instance_status_e::RUNNING : instance_status_e::STOPPED);
             }
             else
             {
-                json_instance["status"] = instance_status_to_string(instance.status);
+                json_instance["status"] = to_string(instance.status);
             }
-            json_instance["desired"] = instance_status_to_string(instance.desired);
+            json_instance["desired"] = to_string(instance.desired);
             json_instance["version"] = instance.version;
             j["instances"].push_back(json_instance);
         }

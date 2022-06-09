@@ -18,7 +18,7 @@ project(${PROJECT_NAME} )
 
 add_library(
     ${PROJECT_NAME} STATIC
-    src/instance.cpp
+    src/instance.cpp src/instance_status.cpp
     instance.h instance_status.h
 )
 
