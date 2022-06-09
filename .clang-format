@@ -28,7 +28,7 @@ AllowShortFunctionsOnASingleLine: InlineOnly
 #AttributeMacros:
 #  - __capability
 BinPackArguments: false
-BinPackParameters: true
+BinPackParameters: false
 BraceWrapping:
   #  AfterCaseLabel:  false
   AfterClass: true
