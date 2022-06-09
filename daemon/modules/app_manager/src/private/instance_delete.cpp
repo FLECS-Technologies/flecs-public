@@ -106,6 +106,9 @@ auto module_app_manager_private_t::do_delete_instance(
         }
     }
 
+    // @todo: move functionality to deployment
+    _deployment->delete_instance(instance_id);
+
     // Final step: Persist removal of instance into db
     _app_db.delete_instance({instance_id});
     _app_db.persist();

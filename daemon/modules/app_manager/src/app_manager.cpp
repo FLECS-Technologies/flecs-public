@@ -14,6 +14,7 @@
 
 #include "app_manager.h"
 
+#include "deployment/deployment_docker.h"
 #include "factory/factory.h"
 #include "instance/instance_config.h"
 #include "private/app_manager_private.h"

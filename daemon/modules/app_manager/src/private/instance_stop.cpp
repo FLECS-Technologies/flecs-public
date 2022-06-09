@@ -70,18 +70,11 @@ auto module_app_manager_private_t::do_stop_instance(
         _app_db.persist();
     }
 
-    // Step 5: Stop instance through Docker
-    auto docker_process = process_t{};
-    const auto name = std::string{"flecs-"} + instance_id;
-    docker_process.spawnp("docker", "stop", name);
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0)
-    {
-        response["additionalInfo"] = docker_process.stderr();
-        return http_status_e::InternalServerError;
-    }
+    // Final step: Forward to deployment
+    const auto [res, additional_info] = _deployment->stop_instance(instance_id);
 
-    return http_status_e::Ok;
+    response["additionalInfo"] = additional_info;
+    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
 } // namespace Private
