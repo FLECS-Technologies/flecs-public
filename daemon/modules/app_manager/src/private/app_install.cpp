@@ -26,7 +26,8 @@ namespace Private {
 
 namespace {
 
-std::string acquire_download_token(const std::string& license_key)
+auto acquire_download_token(const std::string& license_key) //
+    -> std::string
 {
     const auto mp_api = dynamic_cast<const module_marketplace_t*>(api::query_module("mp").get());
     if (!mp_api)
@@ -73,7 +74,8 @@ std::string acquire_download_token(const std::string& license_key)
     return stringify_delim(';', user_token, access_token, uuid);
 }
 
-bool expire_download_token(const std::string& user_token, const std::string& access_token)
+auto expire_download_token(const std::string& user_token, const std::string& access_token) //
+    -> bool
 {
     auto post_json = json_t{};
     post_json["user_token"] = user_token;
@@ -104,8 +106,12 @@ bool expire_download_token(const std::string& user_token, const std::string& acc
 
 } // namespace
 
-http_status_e module_app_manager_private_t::do_install(
-    const std::string& app_name, const std::string& version, const std::string& license_key, json_t& response)
+auto module_app_manager_private_t::do_install(
+    const std::string& app_name,
+    const std::string& version,
+    const std::string& license_key,
+    json_t& response) //
+    -> http_status_e
 {
     response["app"] = app_name;
     response["version"] = version;
@@ -121,10 +127,11 @@ http_status_e module_app_manager_private_t::do_install(
     return do_install(build_manifest_path(app_name, version), license_key, response);
 }
 
-http_status_e module_app_manager_private_t::do_install(
+auto module_app_manager_private_t::do_install(
     const std::filesystem::path& manifest_path,
     const std::string& license_key,
-    json_t& response)
+    json_t& response) //
+    -> http_status_e
 {
     const auto desired = INSTALLED;
 

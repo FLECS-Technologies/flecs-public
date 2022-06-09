@@ -21,30 +21,35 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_start_instance(
-    const std::string& id, const std::string& app_name, const std::string& version, json_t& response, bool internal)
+auto module_app_manager_private_t::do_start_instance(
+    const std::string& instance_id,
+    const std::string& app_name,
+    const std::string& version,
+    json_t& response,
+    bool internal) //
+    -> http_status_e
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
-    response["instanceId"] = id;
+    response["instanceId"] = instance_id;
     response["version"] = version;
 
     // Step 1: Verify instance does actually exist and is fully created
-    if (!_app_db.has_instance({id}))
+    if (!_app_db.has_instance({instance_id}))
     {
-        response["additionalInfo"] = "Could not start instance " + id + ", which does not exist";
+        response["additionalInfo"] = "Could not start instance " + instance_id + ", which does not exist";
         return http_status_e::BadRequest;
     }
 
-    if (!is_instance_runnable(id))
+    if (!is_instance_runnable(instance_id))
     {
-        response["additionalInfo"] = "Could not start instance " + id + ", which is not fully created";
+        response["additionalInfo"] = "Could not start instance " + instance_id + ", which is not fully created";
         return http_status_e::BadRequest;
     }
 
     // get instance details from database
-    auto instance = _app_db.query_instance({id}).value();
+    auto instance = _app_db.query_instance({instance_id}).value();
     // correct response based on actual instance
     response["app"] = instance.app;
     response["version"] = instance.version;
@@ -58,9 +63,9 @@ http_status_e module_app_manager_private_t::do_start_instance(
     }
 
     // Step 3: Return if instance is already running
-    if (is_instance_running(id))
+    if (is_instance_running(instance_id))
     {
-        response["additionalInfo"] = "Instance " + id + " already running";
+        response["additionalInfo"] = "Instance " + instance_id + " already running";
         return http_status_e::Ok;
     }
 
@@ -83,7 +88,7 @@ http_status_e module_app_manager_private_t::do_start_instance(
 
     // Step 5: Launch app through Docker
     auto docker_process = process_t{};
-    const auto name = std::string{"flecs-"} + id;
+    const auto name = std::string{"flecs-"} + instance_id;
 
     docker_process.spawnp("docker", "start", name);
     docker_process.wait(false, true);
