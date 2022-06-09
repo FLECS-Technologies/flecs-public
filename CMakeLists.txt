@@ -36,6 +36,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 add_compile_options(-Wall -Wextra -Werror -Wfatal-errors)
 link_libraries(dl pthread stdc++fs)
 
+execute_process(
+    COMMAND ccache -s
+    OUTPUT_QUIET
+    ERROR_QUIET
+    RESULT_VARIABLE CCACHE_FOUND
+)
+if (CCACHE_FOUND EQUAL 0)
+set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
+endif()
+
 # hide all symbols by default
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 add_link_options(-Wl,--exclude-libs,ALL)
