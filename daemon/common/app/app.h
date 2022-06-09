@@ -23,7 +23,7 @@
 
 namespace FLECS {
 
-class app_t
+class app_t : public app_manifest_t
 {
 public:
     app_t();
@@ -31,15 +31,11 @@ public:
     app_t(const std::filesystem::path& manifest_path, app_status_e status, app_status_e desired);
     app_t(const std::string& manifest_string, app_status_e status, app_status_e desired);
 
-    auto& app() const noexcept { return _manifest.app(); }
-    auto& category() const noexcept { return _manifest.category(); }
     auto& download_token() const noexcept { return _download_token; }
-    auto image_with_tag() const { return _manifest.image_with_tag(); }
     auto installed_size() const noexcept { return _installed_size; }
     auto& license_key() const noexcept { return _license_key; }
     auto status() const noexcept { return _status; }
     auto desired() const noexcept { return _desired; }
-    auto& version() const noexcept { return _manifest.version(); }
 
     void download_token(std::string download_token) { _download_token = download_token; }
     void installed_size(std::int32_t installed_size) { _installed_size = installed_size; }
@@ -49,7 +45,6 @@ public:
 private:
     friend void to_json(json_t& j, const app_t& app);
 
-    app_manifest_t _manifest;
     std::string _license_key;
     std::string _download_token;
     std::int32_t _installed_size;
