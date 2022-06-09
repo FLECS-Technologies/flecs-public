@@ -16,11 +16,13 @@
 #define A26C3D22_DE7E_4EF2_BA44_CB50A45E8C9B
 
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "app/app.h"
 #include "db/app_db.h"
+#include "deployment/deployment_docker.h"
 #include "module_base/module.h"
 #include "util/http/status_codes.h"
 
@@ -305,6 +307,7 @@ private:
 
     app_db_t _app_db;
     installed_apps_t _installed_apps;
+    std::unique_ptr<deployment_t> _deployment;
 };
 
 auto build_manifest_path(const std::string& app_name, const std::string& version) //

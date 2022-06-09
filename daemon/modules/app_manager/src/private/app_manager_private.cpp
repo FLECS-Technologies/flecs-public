@@ -99,6 +99,7 @@ auto download_manifest(const std::string& app_name, const std::string& version) 
 
 module_app_manager_private_t::module_app_manager_private_t()
     : _app_db{}
+    , _deployment{new deployment_docker_t{}}
 {}
 
 module_app_manager_private_t::~module_app_manager_private_t()
@@ -115,8 +116,36 @@ module_app_manager_private_t::~module_app_manager_private_t()
     }
 }
 
-void module_app_manager_private_t::do_init()
+auto module_app_manager_private_t::do_init() //
+    -> void
 {
+    // cache installed apps and instances
+    for (decltype(auto) app : _app_db.all_apps())
+    {
+        const auto manifest_path = build_manifest_path(app.app, app.version);
+        _installed_apps.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(app.app, app.version),
+            std::forward_as_tuple(app_t{manifest_path, app.status, app.desired}));
+    }
+
+    for (const auto& instance : _app_db.all_instances())
+    {
+        auto tmp = instance_t{
+            instance.id,
+            instance.app,
+            instance.version,
+            instance.description,
+            instance.status,
+            instance.desired};
+        for (std::size_t i = 0; i < instance.networks.size(); ++i)
+        {
+            tmp.config().networks.emplace_back(
+                instance_config_t::network_t{.network = instance.networks[i], .ip = instance.ips[i]});
+        }
+        _deployment->insert_instance(tmp);
+    }
+
     // "install" system apps on first start
     constexpr auto system_apps = std::array<const char*, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
     constexpr auto system_apps_desc = std::array<const char*, 2>{"FLECS MQTT Bridge", "FLECS Service Mesh"};
@@ -174,15 +203,6 @@ void module_app_manager_private_t::do_init()
             }
             _app_db.persist();
         }
-    }
-
-    for (decltype(auto) app : _app_db.all_apps())
-    {
-        const auto manifest_path = build_manifest_path(app.app, app.version);
-        _installed_apps.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(app.app, app.version),
-            std::forward_as_tuple(app_t{manifest_path, app.status, app.desired}));
     }
 
     migrate_macvlan_to_ipvlan();

@@ -86,19 +86,11 @@ auto module_app_manager_private_t::do_start_instance(
         return http_status_e::InternalServerError;
     }
 
-    // Step 5: Launch app through Docker
-    auto docker_process = process_t{};
-    const auto name = std::string{"flecs-"} + instance_id;
+    // Final step: Forward to deployment
+    const auto [res, additional_info] = _deployment->start_instance(instance_id);
 
-    docker_process.spawnp("docker", "start", name);
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0)
-    {
-        response["additionalInfo"] = docker_process.stderr();
-        return http_status_e::InternalServerError;
-    }
-
-    return http_status_e::Ok;
+    response["additionalInfo"] = additional_info;
+    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
 }
 
 } // namespace Private
