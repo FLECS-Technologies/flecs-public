@@ -35,7 +35,7 @@ public:
     using conffiles_t = std::vector<conffile_t>;
     using devices_t = std::set<std::string>;
     using envs_t = std::set<mapped_env_var_t>;
-    using networks_t = std::vector<std::string>;
+    using network_t = std::vector<std::string>;
     using ports_t = std::vector<mapped_port_range_t>;
     using volumes_t = std::vector<volume_t>;
 
@@ -91,7 +91,7 @@ private:
     std::string _image;
     bool _interactive;
     bool _multi_instance;
-    networks_t _networks;
+    network_t _networks;
     ports_t _ports;
     std::string _title;
     std::string _version;
