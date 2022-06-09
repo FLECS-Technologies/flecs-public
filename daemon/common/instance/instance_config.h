@@ -16,13 +16,14 @@
 #define E8E3AE12_7249_481B_B47C_5682C1BBADE2
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace FLECS {
 
 struct instance_config_t
 {
-    struct network_adapters_t
+    struct network_adapter_t
     {
         std::string name;
         std::string ipAddress;
@@ -30,7 +31,14 @@ struct instance_config_t
         std::string gateway;
         bool active;
     };
-    std::vector<network_adapters_t> networkAdapters;
+    std::vector<network_adapter_t> networkAdapters;
+
+    struct network_t
+    {
+        std::string network;
+        std::string ip;
+    };
+    std::vector<network_t> networks;
 };
 
 } // namespace FLECS
