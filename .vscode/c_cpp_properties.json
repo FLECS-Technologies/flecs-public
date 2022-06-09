@@ -30,6 +30,8 @@
                 "${workspaceFolder}/daemon/common/app/manifest/env_var",
                 "${workspaceFolder}/daemon/common/app/manifest/port_range",
                 "${workspaceFolder}/daemon/common/app/manifest/volume",
+                "${workspaceFolder}/daemon/common/deployment",
+                "${workspaceFolder}/daemon/common/instance",
                 "${workspaceFolder}/daemon/modules",
                 "${workspaceFolder}/daemon/modules/app_manager",
                 "${workspaceFolder}/daemon/modules/factory",

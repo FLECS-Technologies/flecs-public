@@ -81,7 +81,8 @@
         "codecvt": "cpp",
         "condition_variable": "cpp",
         "mutex": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "valarray": "cpp"
     },
     "cSpell.words": [
         "flecs"
