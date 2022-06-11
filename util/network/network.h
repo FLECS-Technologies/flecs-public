@@ -31,10 +31,12 @@ auto ipv4_to_string(const in_addr& ip) //
 auto ipv6_to_string(const in6_addr& ip) //
     -> std::string;
 
-auto subnet_to_cidr_v4(const std::string& subnet_mask) //
+auto subnet_mask_to_cidr_v4(std::string_view subnet_mask) //
     -> std::size_t;
+auto cidr_to_subnet_mask_v4(std::string_view cidr_subnet) //
+    -> std::string;
 
-auto ipv4_to_network(const std::string& ip, const std::string& subnet_mask) //
+auto ipv4_to_network(std::string_view ip, std::string_view subnet_mask) //
     -> std::string;
 
 } // namespace FLECS
