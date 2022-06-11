@@ -137,15 +137,13 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
         OPTIONAL_TYPED_YAML_VALUE(yaml, interactive, _interactive);
         OPTIONAL_TYPED_YAML_VALUE(yaml, multiInstance, _multi_instance);
 
-        _networks.emplace_back("flecs");
-
-#if 0  // Disable network support for now
         OPTIONAL_YAML_NODE(yaml, networks, networks);
         for (const auto& network : networks)
         {
-            _networks.emplace_back(network.as<std::string>());
+            _networks.emplace_back(network_t{network.as<std::string>()});
         }
-#endif // 0
+
+        _networks.emplace_back("flecs");
 
         OPTIONAL_YAML_NODE(yaml, ports, ports);
         for (const auto& port_range : ports)

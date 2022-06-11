@@ -15,7 +15,7 @@
 project(FLECS.daemon.modules.factory)
 
 add_library(
-    FLECS.daemon.modules.factory OBJECT
+    FLECS.daemon.modules.factory STATIC
     src/factory.cpp
     factory.h
 )

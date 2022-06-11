@@ -46,10 +46,10 @@ private:
         std::string_view gateway,
         std::string_view parent_adapter) //
         -> result_t override;
-    auto do_delete_network(std::string_view network) //
-        -> result_t override;
     auto do_query_network(std::string_view network) //
         -> std::optional<network_t> override;
+    auto do_delete_network(std::string_view network) //
+        -> result_t override;
     auto do_connect_network(
         std::string_view instance_id,
         std::string_view network,

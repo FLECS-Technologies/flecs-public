@@ -30,6 +30,8 @@ class app_t;
 
 enum class network_type_t
 {
+    NONE,
+    INTERNAL,
     BRIDGE,
     MACVLAN,
     IPVLAN,
@@ -74,10 +76,10 @@ public:
         std::string_view gateway,
         std::string_view parent_adapter) //
         -> result_t;
-    auto delete_network(std::string_view network) //
-        -> result_t;
     auto query_network(std::string_view network) //
         -> std::optional<network_t>;
+    auto delete_network(std::string_view network) //
+        -> result_t;
     auto connect_network(
         std::string_view instance_id,
         std::string_view network,
@@ -114,10 +116,10 @@ private:
         std::string_view gateway,
         std::string_view parent_adapter) //
         -> result_t = 0;
-    virtual auto do_delete_network(std::string_view network) //
-        -> result_t = 0;
     virtual auto do_query_network(std::string_view network) //
         -> std::optional<network_t> = 0;
+    virtual auto do_delete_network(std::string_view network) //
+        -> result_t = 0;
     virtual auto do_connect_network(
         std::string_view instance_id,
         std::string_view network,

@@ -21,6 +21,7 @@
 
 #include "conffile/conffile.h"
 #include "env_var/env_var.h"
+#include "network/network.h"
 #include "port_range/port_range.h"
 #include "util/json/json.h"
 #include "util/yaml/yaml.h"
@@ -35,7 +36,7 @@ public:
     using conffiles_t = std::vector<conffile_t>;
     using devices_t = std::set<std::string>;
     using envs_t = std::set<mapped_env_var_t>;
-    using networks_t = std::vector<std::string>;
+    using networks_t = std::vector<network_t>;
     using ports_t = std::vector<mapped_port_range_t>;
     using volumes_t = std::vector<volume_t>;
 
