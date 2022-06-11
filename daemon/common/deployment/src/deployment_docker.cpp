@@ -16,8 +16,12 @@
 
 #include <filesystem>
 #include <fstream>
+#include <regex>
 
 #include "app/app.h"
+#include "factory/factory.h"
+#include "system/system.h"
+#include "util/network/network.h"
 #include "util/process/process.h"
 #include "util/string/string_utils.h"
 
@@ -53,25 +57,33 @@ auto deployment_docker_t::do_create_instance(const app_t& app) //
     }
 
     // Step 2: Create Docker networks
+    // query and create flecs network, if not exists
+    auto network = query_network("flecs");
+    if (!network.has_value())
+    {
+        const auto [res, err] = create_network(network_type_t::BRIDGE, "flecs", "172.21.0.0/16", "172.21.0.1", "");
+        if (res != 0)
+        {
+            return {-1, instance->first};
+        }
+        network = query_network("flecs");
+        if (!network.has_value())
+        {
+            return {-1, instance->first};
+        }
+    }
+
+    // query and create remaining networks
     for (const auto& network : app.networks())
     {
-        // @todo encapsulate network type detection in app
+        auto network_exists = query_network(network.name()).has_value();
+        if (!network_exists)
         {
-            auto docker_process = process_t{};
-
-            docker_process.arg("network");
-            docker_process.arg("inspect");
-            docker_process.arg(std::string{network});
-
-            docker_process.spawnp("docker");
-            docker_process.wait(false, false);
-            if (docker_process.exit_code() == 0)
+            const auto [res, err] = create_network(network.type(), network.name(), "", "", network.parent());
+            if (res != 0)
             {
-                continue;
+                return {-1, instance->first};
             }
-        }
-        {
-            // @todo create network
         }
     }
 
@@ -183,6 +195,9 @@ auto deployment_docker_t::do_create_instance(const app_t& app) //
         docker_process.arg(device);
     }
 
+    docker_process.arg("--network");
+    docker_process.arg("none");
+
     docker_process.arg(app.image_with_tag());
 
     for (const auto& arg : app.args())
@@ -197,33 +212,29 @@ auto deployment_docker_t::do_create_instance(const app_t& app) //
         return {-1, instance->first};
     }
 
-    // query and create flecs network, if not exists
-    auto network = query_network("flecs");
-    if (!network.has_value())
-    {
-        const auto [res, err] = create_network(network_type_t::BRIDGE, "flecs", "172.21.0.0/16", "172.21.0.1", "");
-        if (res != 0)
-        {
-            return {-1, instance->first};
-        }
-        network = query_network("flecs");
-        if (!network.has_value())
-        {
-            return {-1, instance->first};
-        }
-    }
+    // allow networking
+    disconnect_network(instance->first, "none");
 
-    // assign static ip
-    const auto ip = generate_instance_ip(network.value().cidr_subnet, network.value().gateway);
+    // assign static ips
+    for (const auto& network : app.networks())
     {
-        // @todo allow additional networks
-        const auto [res, additional_info] = connect_network(instance->first, "flecs", ip);
-        if (res != 0)
+        const auto net = query_network(network.name());
+        const auto ip = generate_instance_ip(net->cidr_subnet, net->gateway);
+        if (ip.empty())
         {
             return {-1, instance->first};
         }
+        instance->second.config().networks.emplace_back(instance_config_t::network_t{.network = net->name, .ip = ip});
+        if (network.type() == network_type_t::IPVLAN || network.type() == network_type_t::MACVLAN)
+        {
+            instance->second.config().networkAdapters.emplace_back(instance_config_t::network_adapter_t{
+                .name = network.parent(),
+                .ipAddress = ip,
+                .subnetMask = cidr_to_subnet_mask_v4(net->cidr_subnet),
+                .gateway = net->gateway,
+                .active = true});
+        }
     }
-    instance->second.config().networks.emplace_back(instance_config_t::network_t{.network = "flecs", .ip = ip});
 
     instance->second.status(instance_status_e::CREATED);
 
@@ -240,7 +251,15 @@ auto deployment_docker_t::do_delete_instance(std::string_view instance_id) //
 auto deployment_docker_t::do_start_instance(std::string_view instance_id) //
     -> result_t
 {
+    auto res = int{};
+    auto errmsg = std::string{};
+
     const auto container_name = std::string{"flecs-"} + std::string{instance_id};
+
+    for (const auto& network : _instances.at(instance_id.data()).config().networks)
+    {
+        disconnect_network(instance_id, network.network);
+    }
 
     auto docker_process = process_t{};
 
@@ -254,12 +273,26 @@ auto deployment_docker_t::do_start_instance(std::string_view instance_id) //
         return {-1, docker_process.stderr()};
     }
 
-    return {0, ""};
+    for (const auto& network : _instances.at(instance_id.data()).config().networks)
+    {
+        disconnect_network(instance_id, network.network);
+        const auto [net_res, net_err] = connect_network(instance_id, network.network, network.ip);
+        if (net_res != 0)
+        {
+            res = -1;
+            errmsg += '\n' + net_err;
+        }
+    }
+
+    return {res, errmsg};
 }
 
 auto deployment_docker_t::do_stop_instance(std::string_view instance_id) //
     -> result_t
 {
+    auto res = int{};
+    auto errmsg = std::string{};
+
     const auto container_name = std::string{"flecs-"} + std::string{instance_id};
 
     auto docker_process = process_t{};
@@ -274,7 +307,17 @@ auto deployment_docker_t::do_stop_instance(std::string_view instance_id) //
         return {-1, docker_process.stderr()};
     }
 
-    return {0, ""};
+    for (const auto& network : _instances.at(instance_id.data()).config().networks)
+    {
+        const auto [net_res, net_err] = disconnect_network(instance_id, network.network);
+        if (net_res != 0)
+        {
+            res = -1;
+            errmsg += '\n' + net_err;
+        }
+    }
+
+    return {res, errmsg};
 }
 
 auto deployment_docker_t::do_create_network(
@@ -285,16 +328,60 @@ auto deployment_docker_t::do_create_network(
     std::string_view parent_adapter) //
     -> result_t
 {
+    // @todo review and cleanup
     auto docker_process = process_t{};
 
+    auto subnet = std::string{cidr_subnet};
+    auto gw = std::string{gateway};
+
+    switch (network_type)
+    {
+        case network_type_t::BRIDGE: {
+            break;
+        }
+        case network_type_t::IPVLAN: {
+            if (parent_adapter.empty())
+            {
+                return {-1, "cannot create ipvlan network without parent"};
+            }
+            if (cidr_subnet.empty() || gateway.empty())
+            {
+                const auto system_api = dynamic_cast<const module_system_t*>(api::query_module("system").get());
+                const auto adapters = system_api->get_network_adapters();
+                const auto netif = adapters.find(parent_adapter.data());
+                if (netif == adapters.cend())
+                {
+                    return {-1, "network adapter does not exist"};
+                }
+                if (netif->second.ipv4_addr.empty())
+                {
+                    return {-1, "network adapter is not ready"};
+                }
+
+                // create ipvlan network, if not exists
+                subnet = ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
+                gw = netif->second.gateway;
+            }
+            break;
+        }
+        case network_type_t::MACVLAN: {
+            break;
+        }
+        case network_type_t::INTERNAL: {
+            break;
+        }
+        default: {
+            break;
+        }
+    }
     docker_process.arg("network");
     docker_process.arg("create");
     docker_process.arg("--driver");
     docker_process.arg(stringify(network_type));
     docker_process.arg("--subnet");
-    docker_process.arg(std::string{cidr_subnet});
+    docker_process.arg(subnet);
     docker_process.arg("--gateway");
-    docker_process.arg(std::string{gateway});
+    docker_process.arg(gw);
     if (!parent_adapter.empty())
     {
         docker_process.arg("--opt");
@@ -309,12 +396,6 @@ auto deployment_docker_t::do_create_network(
         return {-1, docker_process.stderr()};
     }
 
-    return {0, ""};
-}
-
-auto deployment_docker_t::do_delete_network(std::string_view /*network*/) //
-    -> result_t
-{
     return {0, ""};
 }
 
@@ -383,6 +464,12 @@ auto deployment_docker_t::do_query_network(std::string_view network) //
     }
 
     return res;
+}
+
+auto deployment_docker_t::do_delete_network(std::string_view /*network*/) //
+    -> result_t
+{
+    return {0, ""};
 }
 
 auto deployment_docker_t::do_connect_network(

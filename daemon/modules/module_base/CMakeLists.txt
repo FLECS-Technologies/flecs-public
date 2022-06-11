@@ -14,7 +14,7 @@
 
 project(FLECS.daemon.modules.module_base)
 
-add_library(FLECS.daemon.modules.module_base OBJECT
+add_library(FLECS.daemon.modules.module_base STATIC
     src/module.cpp
     module.h
 )
