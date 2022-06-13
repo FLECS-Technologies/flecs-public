@@ -275,7 +275,6 @@ auto deployment_docker_t::do_start_instance(std::string_view instance_id) //
 
     for (const auto& network : _instances.at(instance_id.data()).config().networks)
     {
-        disconnect_network(instance_id, network.network);
         const auto [net_res, net_err] = connect_network(instance_id, network.network, network.ip);
         if (net_res != 0)
         {
