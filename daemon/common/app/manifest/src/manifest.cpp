@@ -124,10 +124,15 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
         }
 
         OPTIONAL_TYPED_YAML_VALUE(yaml, description, _description);
+        OPTIONAL_YAML_NODE(yaml, devices, devices);
+        for (const auto& device : devices)
+        {
+            _devices.emplace(device.as<std::string>());
+        }
         OPTIONAL_TYPED_YAML_VALUE(yaml, editor, _editor);
 
         OPTIONAL_YAML_NODE(yaml, env, envs);
-        for (const auto env : envs)
+        for (const auto& env : envs)
         {
             _env.emplace(mapped_env_var_t{env.as<std::string>()});
         }
