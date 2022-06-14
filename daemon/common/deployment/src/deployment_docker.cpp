@@ -21,6 +21,7 @@
 #include "app/app.h"
 #include "factory/factory.h"
 #include "system/system.h"
+#include "util/cxx20/string.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
 #include "util/string/string_utils.h"
@@ -44,7 +45,13 @@ auto deployment_docker_t::do_create_instance(const app_t& app) //
         tmp.regenerate_id();
     }
 
+    // @todo do this differently
     auto instance = _instances.emplace(tmp.id(), tmp).first;
+    for (const auto& startup_option : app.startup_options())
+    {
+        instance->second.config().startup_options.emplace_back(
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
+    }
 
     // Step 1: Create Docker volumes
     for (const auto& volume : app.volumes())
@@ -198,6 +205,62 @@ auto deployment_docker_t::do_create_instance(const app_t& app) //
     docker_process.arg("--network");
     docker_process.arg("none");
 
+    if (std::count(
+            app.startup_options().cbegin(),
+            app.startup_options().cend(),
+            startup_option_t::INIT_NETWORK_AFTER_START))
+    {
+        instance->second.config().startup_options.emplace_back(
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START));
+        docker_process.arg("--mount");
+        docker_process.arg("type=tmpfs,destination=/flecs-tmp");
+
+        auto cmd = std::string{};
+        {
+            auto docker_process = process_t{};
+
+            docker_process.arg("inspect");
+            docker_process.arg("--format");
+            docker_process.arg("{{.Config.Cmd}}");
+            docker_process.arg(app.image_with_tag());
+
+            docker_process.spawnp("docker");
+            docker_process.wait(false, true);
+            if (docker_process.exit_code() != 0)
+            {
+                return {-1, instance->first};
+            }
+
+            cmd = docker_process.stdout();
+        }
+        trim(cmd);
+        cmd.erase(cmd.find_first_of('['), 1);
+        cmd.erase(cmd.find_last_of(']'), 1);
+        if (cxx20::starts_with(cmd, "sh -c"))
+        {
+            cmd.erase(0, 5);
+        }
+
+        const auto entrypoint_path =
+            std::string{"/var/lib/flecs/instances/"} + instance->first + std::string{"/scripts/"};
+
+        auto ec = std::error_code{};
+        if (!std::filesystem::create_directories(entrypoint_path, ec))
+        {
+            return {-1, instance->first};
+        }
+
+        auto entrypoint = std::ofstream{entrypoint_path + "entrypoint.sh"};
+        entrypoint << "#!/bin/sh\n\n";
+        entrypoint << "while [ ! -f /flecs-tmp/ready ]; do\n\n";
+        entrypoint << "    sleep 1;\n";
+        entrypoint << "done\n\n";
+        entrypoint << cmd << std::endl;
+
+        docker_process.arg("--entrypoint");
+        docker_process.arg("/flecs-entrypoint.sh");
+    }
+
     docker_process.arg(app.image_with_tag());
 
     for (const auto& arg : app.args())
@@ -212,6 +275,40 @@ auto deployment_docker_t::do_create_instance(const app_t& app) //
         return {-1, instance->first};
     }
 
+    if (std::count(
+            app.startup_options().cbegin(),
+            app.startup_options().cend(),
+            startup_option_t::INIT_NETWORK_AFTER_START))
+    {
+        const auto entrypoint_path =
+            std::string{"/var/lib/flecs/instances/"} + instance->first + std::string{"/scripts/entrypoint.sh"};
+
+        auto ec = std::error_code{};
+
+        namespace fs = std::filesystem;
+        fs::permissions(entrypoint_path, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, ec);
+
+        if (ec)
+        {
+            return {-1, instance->first};
+        }
+
+        {
+            auto docker_process = process_t{};
+
+            docker_process.arg("cp");
+            docker_process.arg(entrypoint_path);
+            docker_process.arg(container_name + ":/flecs-entrypoint.sh");
+
+            docker_process.spawnp("docker");
+            docker_process.wait(false, true);
+            if (docker_process.exit_code() != 0)
+            {
+                return {-1, instance->first};
+            }
+        }
+    }
+
     // allow networking
     disconnect_network(instance->first, "none");
 
@@ -223,6 +320,13 @@ auto deployment_docker_t::do_create_instance(const app_t& app) //
         if (ip.empty())
         {
             return {-1, instance->first};
+        }
+        if (!std::count(
+                app.startup_options().cbegin(),
+                app.startup_options().cend(),
+                startup_option_t::INIT_NETWORK_AFTER_START))
+        {
+            connect_network(instance->first, net->name, ip);
         }
         instance->second.config().networks.emplace_back(instance_config_t::network_t{.network = net->name, .ip = ip});
         if (network.type() == network_type_t::IPVLAN || network.type() == network_type_t::MACVLAN)
@@ -251,15 +355,7 @@ auto deployment_docker_t::do_delete_instance(std::string_view instance_id) //
 auto deployment_docker_t::do_start_instance(std::string_view instance_id) //
     -> result_t
 {
-    auto res = int{};
-    auto errmsg = std::string{};
-
     const auto container_name = std::string{"flecs-"} + std::string{instance_id};
-
-    for (const auto& network : _instances.at(instance_id.data()).config().networks)
-    {
-        disconnect_network(instance_id, network.network);
-    }
 
     auto docker_process = process_t{};
 
@@ -273,17 +369,29 @@ auto deployment_docker_t::do_start_instance(std::string_view instance_id) //
         return {-1, docker_process.stderr()};
     }
 
-    for (const auto& network : _instances.at(instance_id.data()).config().networks)
+    return {0, {}};
+}
+
+auto deployment_docker_t::do_ready_instance(std::string_view instance_id) //
+    -> result_t
+{
+    const auto container_name = std::string{"flecs-"} + std::string{instance_id};
+
+    auto docker_process = process_t{};
+
+    docker_process.arg("exec");
+    docker_process.arg(container_name);
+    docker_process.arg("touch");
+    docker_process.arg("/flecs-tmp/ready");
+
+    docker_process.spawnp("docker");
+    docker_process.wait(false, true);
+    if (docker_process.exit_code() != 0)
     {
-        const auto [net_res, net_err] = connect_network(instance_id, network.network, network.ip);
-        if (net_res != 0)
-        {
-            res = -1;
-            errmsg += '\n' + net_err;
-        }
+        return {0, docker_process.stderr()};
     }
 
-    return {res, errmsg};
+    return {0, {}};
 }
 
 auto deployment_docker_t::do_stop_instance(std::string_view instance_id) //
@@ -304,16 +412,6 @@ auto deployment_docker_t::do_stop_instance(std::string_view instance_id) //
     if (docker_process.exit_code() != 0)
     {
         return {-1, docker_process.stderr()};
-    }
-
-    for (const auto& network : _instances.at(instance_id.data()).config().networks)
-    {
-        const auto [net_res, net_err] = disconnect_network(instance_id, network.network);
-        if (net_res != 0)
-        {
-            res = -1;
-            errmsg += '\n' + net_err;
-        }
     }
 
     return {res, errmsg};

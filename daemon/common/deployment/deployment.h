@@ -67,6 +67,8 @@ public:
         -> result_t;
     auto start_instance(std::string_view instance_id) //
         -> result_t;
+    auto ready_instance(std::string_view instance_id) //
+        -> result_t;
     auto stop_instance(std::string_view instance_id) //
         -> result_t;
     auto create_network(
@@ -106,6 +108,8 @@ private:
     virtual auto do_delete_instance(std::string_view instance_id) //
         -> result_t = 0;
     virtual auto do_start_instance(std::string_view instance_id) //
+        -> result_t = 0;
+    virtual auto do_ready_instance(std::string_view instance_id) //
         -> result_t = 0;
     virtual auto do_stop_instance(std::string_view instance_id) //
         -> result_t = 0;
@@ -151,22 +155,16 @@ inline auto deployment_t::create_instance(const app_t& app) //
     return do_create_instance(app);
 }
 
+inline auto deployment_t::ready_instance(std::string_view instance_id) //
+    -> result_t
+{
+    return do_ready_instance(instance_id);
+}
+
 inline auto deployment_t::delete_instance(std::string_view instance_id) //
     -> result_t
 {
     return do_delete_instance(instance_id);
-}
-
-inline auto deployment_t::start_instance(std::string_view instance_id) //
-    -> result_t
-{
-    return do_start_instance(instance_id);
-}
-
-inline auto deployment_t::stop_instance(std::string_view instance_id) //
-    -> result_t
-{
-    return do_stop_instance(instance_id);
 }
 
 inline auto deployment_t::create_network(

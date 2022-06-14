@@ -37,6 +37,8 @@ private:
         -> result_t override;
     auto do_start_instance(std::string_view instance_id) //
         -> result_t override;
+    auto do_ready_instance(std::string_view instance_id) //
+        -> result_t override;
     auto do_stop_instance(std::string_view instance_id) //
         -> result_t override;
     auto do_create_network(

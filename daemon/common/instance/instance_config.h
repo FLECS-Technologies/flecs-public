@@ -39,6 +39,8 @@ struct instance_config_t
         std::string ip;
     };
     std::vector<network_t> networks;
+
+    std::vector<unsigned> startup_options;
 };
 
 } // namespace FLECS
