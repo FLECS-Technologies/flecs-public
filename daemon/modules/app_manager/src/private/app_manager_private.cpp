@@ -138,6 +138,7 @@ auto module_app_manager_private_t::do_init() //
             instance.description,
             instance.status,
             instance.desired};
+        tmp.config().startup_options.emplace_back(instance.flags);
         for (std::size_t i = 0; i < instance.networks.size(); ++i)
         {
             tmp.config().networks.emplace_back(

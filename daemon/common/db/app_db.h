@@ -79,7 +79,7 @@ struct instances_table_data_t
     instance_status_e desired;
     std::vector<std::string> networks;
     std::vector<std::string> ips;
-    std::int32_t flags;
+    std::uint32_t flags;
 };
 struct instances_table_entry_t : public instances_table_primary_t, public instances_table_data_t
 {

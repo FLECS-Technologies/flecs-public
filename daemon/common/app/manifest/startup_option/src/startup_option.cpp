@@ -21,11 +21,11 @@ namespace FLECS {
 auto startup_option_from_string(std::string_view str) //
     -> startup_option_t
 {
-    const auto options = std::map<const char*, startup_option_t>{
+    const auto options = std::map<std::string_view, startup_option_t>{
         {"initNetworkAfterStart", startup_option_t::INIT_NETWORK_AFTER_START},
     };
 
-    return options.count(str.data()) ? options.at(str.data()) : startup_option_t::INVALID;
+    return options.count(str) ? options.at(str) : startup_option_t::INVALID;
 }
 
 } // namespace FLECS

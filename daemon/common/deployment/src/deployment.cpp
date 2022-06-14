@@ -19,6 +19,7 @@
 #include <regex>
 #include <set>
 
+#include "app/app.h"
 #include "util/network/network.h"
 
 namespace FLECS {
@@ -46,6 +47,71 @@ auto network_type_from_string(std::string_view str) //
     };
 
     return types.at(str);
+}
+
+auto deployment_t::start_instance(std::string_view instance_id) //
+    -> result_t
+{
+    const auto& instance = _instances.at(instance_id.data());
+    const auto& startup_options = instance.config().startup_options;
+
+    if (std::count(
+            startup_options.cbegin(),
+            startup_options.cend(),
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START)))
+    {
+        for (const auto& network : instance.config().networks)
+        {
+            disconnect_network(instance_id, network.network);
+        }
+    }
+
+    const auto [res, additional_info] = do_start_instance(instance_id);
+
+    if (res != 0)
+    {
+        return {res, additional_info};
+    }
+
+    if (std::count(
+            startup_options.cbegin(),
+            startup_options.cend(),
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START)))
+    {
+        for (const auto& network : _instances.at(instance_id.data()).config().networks)
+        {
+            connect_network(instance_id, network.network, network.ip);
+        }
+    }
+
+    return ready_instance(instance_id);
+}
+
+auto deployment_t::stop_instance(std::string_view instance_id) //
+    -> result_t
+{
+    auto [res, additional_info] = do_stop_instance(instance_id);
+
+    const auto& instance = _instances.at(instance_id.data());
+    const auto& startup_options = instance.config().startup_options;
+
+    if (std::count(
+            startup_options.cbegin(),
+            startup_options.cend(),
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START)))
+    {
+        for (const auto& network : _instances.at(instance_id.data()).config().networks)
+        {
+            const auto [net_res, net_err] = disconnect_network(instance_id, network.network);
+            if (net_res != 0)
+            {
+                res = -1;
+                additional_info += '\n' + net_err;
+            }
+        }
+    }
+
+    return {res, additional_info};
 }
 
 auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::string_view gateway) const //

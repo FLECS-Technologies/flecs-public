@@ -100,7 +100,7 @@ auto module_app_manager_private_t::do_create_instance(
          instance.desired(),
          networks,
          ips,
-         0});
+         instance.config().startup_options.empty() ? 0 : instance.config().startup_options[0]});
 
     // Final step: Persist creation into db
     _app_db.persist();
