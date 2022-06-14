@@ -156,6 +156,12 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
             _ports.emplace_back(mapped_port_range_t{port_range.as<std::string>()});
         }
 
+        OPTIONAL_YAML_NODE(yaml, startup_options, startup_options);
+        for (const auto& startup_option : startup_options)
+        {
+            _startup_options.emplace_back(startup_option_from_string(startup_option.as<std::string>()));
+        }
+
         REQUIRED_TYPED_YAML_VALUE(yaml, title, _title);
         REQUIRED_TYPED_YAML_VALUE(yaml, version, _version);
 

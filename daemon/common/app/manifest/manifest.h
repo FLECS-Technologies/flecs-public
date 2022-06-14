@@ -23,6 +23,7 @@
 #include "env_var/env_var.h"
 #include "network/network.h"
 #include "port_range/port_range.h"
+#include "startup_option/startup_option.h"
 #include "util/json/json.h"
 #include "util/yaml/yaml.h"
 #include "volume/volume.h"
@@ -37,6 +38,7 @@ public:
     using devices_t = std::set<std::string>;
     using envs_t = std::set<mapped_env_var_t>;
     using networks_t = std::vector<network_t>;
+    using startup_options_t = std::vector<startup_option_t>;
     using ports_t = std::vector<mapped_port_range_t>;
     using volumes_t = std::vector<volume_t>;
 
@@ -65,6 +67,7 @@ public:
     auto multi_instance() const noexcept { return _multi_instance; }
     auto& networks() const noexcept { return _networks; }
     auto& ports() const noexcept { return _ports; }
+    auto& startup_options() const noexcept { return _startup_options; }
     auto& title() const noexcept { return _title; }
     auto& version() const noexcept { return _version; }
     auto& volumes() const noexcept { return _volumes; }
@@ -94,6 +97,7 @@ private:
     bool _multi_instance;
     networks_t _networks;
     ports_t _ports;
+    startup_options_t _startup_options;
     std::string _title;
     std::string _version;
     volumes_t _volumes;
