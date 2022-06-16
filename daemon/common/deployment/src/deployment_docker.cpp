@@ -236,9 +236,9 @@ auto deployment_docker_t::do_create_instance(const app_t& app) //
         trim(cmd);
         cmd.erase(cmd.find_first_of('['), 1);
         cmd.erase(cmd.find_last_of(']'), 1);
-        if (cxx20::starts_with(cmd, "sh -c"))
+        if (cxx20::starts_with(cmd, "/bin/sh -c "))
         {
-            cmd.erase(0, 5);
+            cmd.erase(0, 11);
         }
 
         const auto entrypoint_path =
