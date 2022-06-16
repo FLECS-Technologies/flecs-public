@@ -23,7 +23,7 @@ set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-v6.0.6)
 set (MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.14)
 set (OPENSSL_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1o)
 set (PYBIND11_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.9.1)
-set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.38.2)
+set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.38.5)
 set (YAMLCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set (ZENOH_C_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
 
@@ -172,7 +172,7 @@ target_include_directories(FLECS.external.pybind11 INTERFACE
 
 # SQLite3
 add_library(FLECS.external.sqlite3 STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.sqlite3 PROPERTY IMPORTED_LOCATION ${SQLITE3_DIR}/out/${MACHINE}/lib/libsqlite3.a)
+set_property(TARGET FLECS.external.sqlite3 PROPERTY IMPORTED_LOCATION ${SQLITE3_DIR}/out/${ARCH}/lib/libsqlite3.a)
 set_property(TARGET FLECS.external.sqlite3 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${SQLITE3_DIR})
 
 # yaml-cpp
