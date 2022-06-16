@@ -143,7 +143,7 @@ set_property(TARGET FLECS.external.libsodium PROPERTY INTERFACE_INCLUDE_DIRECTOR
 
 # llhttp
 add_library(FLECS.external.llhttp STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.llhttp PROPERTY IMPORTED_LOCATION ${LLHTTP_DIR}/out/${MACHINE}/lib/libllhttp.a)
+set_property(TARGET FLECS.external.llhttp PROPERTY IMPORTED_LOCATION ${LLHTTP_DIR}/out/${ARCH}/lib/libllhttp.a)
 set_property(TARGET FLECS.external.llhttp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LLHTTP_DIR}/include)
 
 # mosquitto
