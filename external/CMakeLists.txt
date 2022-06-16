@@ -148,7 +148,7 @@ set_property(TARGET FLECS.external.llhttp PROPERTY INTERFACE_INCLUDE_DIRECTORIES
 
 # mosquitto
 add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.mosquitto PROPERTY IMPORTED_LOCATION ${MOSQUITTO_DIR}/out/${MACHINE}/lib/libmosquitto_static.a)
+set_property(TARGET FLECS.external.mosquitto PROPERTY IMPORTED_LOCATION ${MOSQUITTO_DIR}/out/${ARCH}/lib/libmosquitto_static.a)
 set_property(TARGET FLECS.external.mosquitto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${MOSQUITTO_DIR}/include)
 target_link_libraries(FLECS.external.mosquitto INTERFACE
     FLECS.external.ssl
