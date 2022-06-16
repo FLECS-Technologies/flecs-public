@@ -63,7 +63,7 @@ execute_process(
     OUTPUT_VARIABLE MACHINE
 )
 
-if("${MACHINE}" STREQUAL x86_64-linux-gnu)
+if("${MACHINE}" MATCHES ".*x86_64.*")
     set(ARCH amd64)
     set(DOCKER_ARCH linux/amd64)
 elseif("${MACHINE}" STREQUAL arm-linux-gnueabihf)

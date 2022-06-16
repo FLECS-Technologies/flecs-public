@@ -7,8 +7,8 @@ flunder_client_example_c: flunder_client_example.c
 	$(CC) -g -Wall -Wextra -Werror \
 		-I $(GIT_ROOT) \
 		-o $@ \
-		-Wl,-rpath $(GIT_ROOT)/out/x86_64-linux-gnu/flunder \
-		-L $(GIT_ROOT)/out/x86_64-linux-gnu/flunder -lFLECS.flunder \
+		-Wl,-rpath $(GIT_ROOT)/out/amd64/flunder \
+		-L $(GIT_ROOT)/out/amd64/flunder -lFLECS.flunder \
 		$^
 
 .PHONY: cpp
@@ -20,8 +20,8 @@ flunder_client_example_cpp: flunder_client_example.cpp
 	$(CXX) -g -Wall -Wextra -Werror -std=c++17 \
 		-I $(GIT_ROOT) \
 		-o $@ \
-		-Wl,-rpath $(GIT_ROOT)/out/x86_64-linux-gnu/flunder \
-		-L $(GIT_ROOT)/out/x86_64-linux-gnu/flunder -lFLECS.flunder \
+		-Wl,-rpath $(GIT_ROOT)/out/amd64/flunder \
+		-L $(GIT_ROOT)/out/amd64/flunder -lFLECS.flunder \
 		$^
 
 .PHONY: all
