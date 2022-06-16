@@ -21,7 +21,7 @@ set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
 set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-v6.0.6)
 set (MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.14)
-set (OPENSSL_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1m)
+set (OPENSSL_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1o)
 set (PYBIND11_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.9.1)
 set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.38.2)
 set (YAMLCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
@@ -71,10 +71,10 @@ add_custom_target(
 add_custom_target(
     FLECS.external.openssl.build
     WORKING_DIRECTORY ${OPENSSL_DIR}
-    COMMAND flecs-configure/Configure.${MACHINE}.sh ${OPENSSL_DIR} --cross-compile-prefix= --prefix=${OPENSSL_DIR}/out/${ARCH} no-shared
-	COMMAND ${CMAKE_MAKE_PROGRAM} CROSS_COMPILE= all
-	COMMAND ${CMAKE_MAKE_PROGRAM} CROSS_COMPILE= install_sw
-	COMMAND ${CMAKE_MAKE_PROGRAM} clean
+    COMMAND flecs-configure/Configure.${MACHINE}.sh ${OPENSSL_DIR} --cross-compile-prefix=${MACHINE}- --prefix=${OPENSSL_DIR}/out/${ARCH} no-shared
+	COMMAND make all
+	COMMAND make install_sw
+	COMMAND make clean
 )
 
 # SQLite3
@@ -157,12 +157,12 @@ target_link_libraries(FLECS.external.mosquitto INTERFACE
 
 # OpenSSL
 add_library(FLECS.external.crypto STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/out/${MACHINE}/lib/libcrypto.a)
-set_property(TARGET FLECS.external.crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_DIR}/out/${MACHINE}/include)
+set_property(TARGET FLECS.external.crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/out/${ARCH}/lib/libcrypto.a)
+set_property(TARGET FLECS.external.crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_DIR}/out/${ARCH}/include)
 
 add_library(FLECS.external.ssl STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.ssl PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/out/${MACHINE}/lib/libssl.a)
-set_property(TARGET FLECS.external.ssl PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_DIR}/out/${MACHINE}/include)
+set_property(TARGET FLECS.external.ssl PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/out/${ARCH}/lib/libssl.a)
+set_property(TARGET FLECS.external.ssl PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_DIR}/out/${ARCH}/include)
 
 # pybind11
 add_library(FLECS.external.pybind11 INTERFACE)
