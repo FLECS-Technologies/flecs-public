@@ -15,7 +15,7 @@
 project(FLECS.external)
 
 # define source directories
-set (CMAKE_ARGS    -B build/${MACHINE} -DCMAKE_INSTALL_PREFIX=out/${MACHINE} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
+set (CMAKE_ARGS    -B build/${MACHINE} -DCMAKE_INSTALL_PREFIX=out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
 set (CPR_DIR       ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.8.1)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
@@ -44,7 +44,7 @@ add_custom_target(
 add_custom_target(
     FLECS.external.libsodium.build
     WORKING_DIRECTORY ${LIBSODIUM_DIR}
-    COMMAND ./configure --prefix=${LIBSODIUM_DIR}/out/${MACHINE} --host=${CROSS_COMPILE}
+    COMMAND ./configure --prefix=${LIBSODIUM_DIR}/out/${ARCH} --host=${CROSS_COMPILE}
     COMMAND ${CMAKE_MAKE_PROGRAM} install
     COMMAND ${CMAKE_MAKE_PROGRAM} clean
 )
@@ -71,7 +71,7 @@ add_custom_target(
 add_custom_target(
     FLECS.external.openssl.build
     WORKING_DIRECTORY ${OPENSSL_DIR}
-    COMMAND flecs-configure/Configure.${MACHINE}.sh ${OPENSSL_DIR} --cross-compile-prefix= --prefix=${OPENSSL_DIR}/out/${MACHINE} no-shared
+    COMMAND flecs-configure/Configure.${MACHINE}.sh ${OPENSSL_DIR} --cross-compile-prefix= --prefix=${OPENSSL_DIR}/out/${ARCH} no-shared
 	COMMAND ${CMAKE_MAKE_PROGRAM} CROSS_COMPILE= all
 	COMMAND ${CMAKE_MAKE_PROGRAM} CROSS_COMPILE= install_sw
 	COMMAND ${CMAKE_MAKE_PROGRAM} clean
@@ -82,7 +82,7 @@ add_custom_target(
     FLECS.external.sqlite3.build
     WORKING_DIRECTORY ${SQLITE3_DIR}
     COMMAND autoreconf
-    COMMAND ./configure --prefix=${SQLITE3_DIR}/out/${MACHINE} --host=${CROSS_COMPILE}
+    COMMAND ./configure --prefix=${SQLITE3_DIR}/out/${ARCH} --host=${CROSS_COMPILE}
     COMMAND make install
     COMMAND make clean
 )
