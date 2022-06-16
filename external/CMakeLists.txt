@@ -15,7 +15,7 @@
 project(FLECS.external)
 
 # define source directories
-set (CMAKE_ARGS    -B build/${MACHINE} -DCMAKE_INSTALL_PREFIX=out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
+set (CMAKE_ARGS    -B build/${ARCH} -DCMAKE_INSTALL_PREFIX=out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
 set (CPR_DIR       ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.8.3)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
@@ -35,9 +35,9 @@ add_subdirectory(json)
 add_custom_target(
     FLECS.external.cpr.build
     WORKING_DIRECTORY ${CPR_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${MACHINE} -DOPENSSL_INCLUDE_DIR=${OPENSSL_DIR}/out/${MACHINE}/include
-    COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
-    COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${ARCH} -DOPENSSL_INCLUDE_DIR=${OPENSSL_DIR}/out/${ARCH}/include
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
 
 # libsodium
@@ -54,24 +54,24 @@ add_custom_target(
     FLECS.external.llhttp.build
     WORKING_DIRECTORY ${LLHTTP_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
-    COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
-    COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
 
 # mosquitto
 add_custom_target(
     FLECS.external.mosquitto.build
     WORKING_DIRECTORY ${MOSQUITTO_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DDOCUMENTATION=NO -DWITH_STATIC_LIBRARIES=YES -DWITH_PIC=YES -DWITH_APPS=NO -DWITH_BROKER=NO -DWITH_CLIENTS=NO -DWITH_PLUGINS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${MACHINE}
-    COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
-    COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DDOCUMENTATION=NO -DWITH_STATIC_LIBRARIES=YES -DWITH_PIC=YES -DWITH_APPS=NO -DWITH_BROKER=NO -DWITH_CLIENTS=NO -DWITH_PLUGINS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
 
 # OpenSSL
 add_custom_target(
     FLECS.external.openssl.build
     WORKING_DIRECTORY ${OPENSSL_DIR}
-    COMMAND flecs-configure/Configure.${MACHINE}.sh ${OPENSSL_DIR} --cross-compile-prefix=${MACHINE}- --prefix=${OPENSSL_DIR}/out/${ARCH} no-shared
+    COMMAND flecs-configure/Configure.${ARCH}.sh ${OPENSSL_DIR} --cross-compile-prefix=${MACHINE}- --prefix=${OPENSSL_DIR}/out/${ARCH} no-shared
 	COMMAND make all
 	COMMAND make install_sw
 	COMMAND make clean
@@ -92,8 +92,8 @@ add_custom_target(
     FLECS.external.yaml-cpp.build
     WORKING_DIRECTORY ${YAMLCPP_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DYAML_CPP_BUILD_TESTS=NO
-    COMMAND ${CMAKE_COMMAND} --build build/${MACHINE}
-    COMMAND ${CMAKE_COMMAND} --install build/${MACHINE}
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
 
 # Zenoh-C

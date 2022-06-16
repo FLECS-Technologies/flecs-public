@@ -30,13 +30,13 @@ while [ "$1" != "" ]; do
       shift
       case $1 in
         armhf|arm-linux-gnueabihf)
-          ARCH=arm-linux-gnueabihf
+          ARCH=armhf
           ;;
         aarch64|arm64|aarch64-linux-gnu)
-          ARCH=aarch64-linux-gnu
+          ARCH=arm64
           ;;
         amd64|x86_64|x64|x86_64-linux-gnu)
-          ARCH=x86_64-linux-gnu
+          ARCH=amd64
           ;;
         *)
           echo "Unknown architecture $1" 1>&2
@@ -53,7 +53,7 @@ if [ "${BUILD_TYPE}" = "" ]; then
 fi
 
 if [ "${ARCH}" = "" ]; then
-  ARCH=x86_64-linux-gnu
+  ARCH=amd64
 fi
 
 echo "Building ${BUILD_TYPE} for ${ARCH} with options ${CMAKE_OPTIONS}"
