@@ -5,9 +5,9 @@
             "includePath": [
                 "${workspaceFolder}",
                 "${workspaceFolder}/apps/tech.flecs.mqtt-bridge",
-                "${workspaceFolder}/external/cpr-1.8.1/out/x86_64-linux-gnu/include",
-                "${workspaceFolder}/external/cpr-1.8.1/out/x86_64-linux-gnu/include/cpr",
-                "${workspaceFolder}/external/cpr-1.8.1/out/x86_64-linux-gnu/include/curl",
+                "${workspaceFolder}/external/cpr-1.8.3/out/x86_64-linux-gnu/include",
+                "${workspaceFolder}/external/cpr-1.8.3/out/x86_64-linux-gnu/include/cpr",
+                "${workspaceFolder}/external/cpr-1.8.3/out/x86_64-linux-gnu/include/curl",
                 "${workspaceFolder}/external/gtest-1.11.0",
                 "${workspaceFolder}/external/llhttp-v6.0.6/out/x86_64-linux-gnu/include",
                 "${workspaceFolder}/external/mosquitto-2.0.14/out/x86_64-linux-gnu/include",
