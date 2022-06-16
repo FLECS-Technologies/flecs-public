@@ -138,8 +138,8 @@ set_property(TARGET FLECS.external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES 
 
 # libsodium
 add_library(FLECS.external.libsodium STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.libsodium PROPERTY IMPORTED_LOCATION ${LIBSODIUM_DIR}/out/${MACHINE}/lib/libsodium.a)
-set_property(TARGET FLECS.external.libsodium PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LIBSODIUM_DIR}/out/${MACHINE}/include)
+set_property(TARGET FLECS.external.libsodium PROPERTY IMPORTED_LOCATION ${LIBSODIUM_DIR}/out/${ARCH}/lib/libsodium.a)
+set_property(TARGET FLECS.external.libsodium PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LIBSODIUM_DIR}/out/${ARCH}/include)
 
 # llhttp
 add_library(FLECS.external.llhttp STATIC IMPORTED GLOBAL)
