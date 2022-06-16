@@ -182,6 +182,6 @@ set_property(TARGET FLECS.external.yaml-cpp PROPERTY INTERFACE_INCLUDE_DIRECTORI
 
 # Zenoh-C
 add_library(FLECS.external.zenoh-c SHARED IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_LOCATION ${ZENOH_C_DIR}/out/${MACHINE}/lib/libzenohc.so)
+set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_LOCATION ${ZENOH_C_DIR}/out/${ARCH}/lib/libzenohc.so)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_NO_SONAME TRUE)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZENOH_C_DIR}/include)
