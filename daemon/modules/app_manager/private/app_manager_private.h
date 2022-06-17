@@ -140,7 +140,7 @@ public:
     auto do_create_instance(
         const std::string& app_name,
         const std::string& version,
-        const std::string& description,
+        const std::string& instance_name,
         json_t& response) //
         -> http_status_e;
 

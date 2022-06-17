@@ -31,7 +31,7 @@ public:
 private:
     auto do_insert_instance(instance_t instance) //
         -> result_t override;
-    auto do_create_instance(const app_t& app) //
+    auto do_create_instance(const app_t& app, std::string instance_name) //
         -> result_t override;
     auto do_delete_instance(std::string_view instance_id) //
         -> result_t override;

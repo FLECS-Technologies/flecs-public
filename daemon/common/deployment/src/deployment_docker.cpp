@@ -36,10 +36,11 @@ auto deployment_docker_t::do_insert_instance(instance_t instance) //
     return {0, ""};
 }
 
-auto deployment_docker_t::do_create_instance(const app_t& app) //
+auto deployment_docker_t::do_create_instance(const app_t& app, std::string instance_name) //
     -> result_t
 {
-    auto tmp = instance_t{app.app(), app.version(), instance_status_e::REQUESTED, instance_status_e::CREATED};
+    auto tmp =
+        instance_t{app.app(), app.version(), instance_name, instance_status_e::REQUESTED, instance_status_e::CREATED};
     while (_instances.count(tmp.id()))
     {
         tmp.regenerate_id();

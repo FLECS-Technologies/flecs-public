@@ -35,21 +35,26 @@ std::string generate_instance_id()
     return res;
 }
 
-instance_t::instance_t(std::string app, std::string version, instance_status_e status, instance_status_e desired)
-    : instance_t{generate_instance_id(), app, version, std::string{}, status, desired}
+instance_t::instance_t(
+    std::string app,
+    std::string version,
+    std::string instance_name,
+    instance_status_e status,
+    instance_status_e desired)
+    : instance_t{generate_instance_id(), app, version, instance_name, status, desired}
 {}
 
 instance_t::instance_t(
     std::string id,
     std::string app,
     std::string version,
-    std::string description,
+    std::string instance_name,
     instance_status_e status,
     instance_status_e desired)
     : _id{id}
     , _app{app}
     , _version{version}
-    , _description{description}
+    , _instance_name{instance_name}
     , _status{status}
     , _desired{desired}
 {}

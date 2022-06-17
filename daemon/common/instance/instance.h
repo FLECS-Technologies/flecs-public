@@ -26,13 +26,18 @@ namespace FLECS {
 class instance_t
 {
 public:
-    instance_t(std::string app, std::string version, instance_status_e status, instance_status_e desired);
+    instance_t(
+        std::string app,
+        std::string version,
+        std::string instance_name,
+        instance_status_e status,
+        instance_status_e desired);
 
     instance_t(
         std::string id,
         std::string app,
         std::string version,
-        std::string description,
+        std::string instance_name,
         instance_status_e status,
         instance_status_e desired);
 
@@ -42,7 +47,7 @@ public:
         -> const std::string&;
     auto version() const noexcept //
         -> const std::string&;
-    auto description() const noexcept //
+    auto instance_name() const noexcept //
         -> const std::string&;
     auto status() const noexcept //
         -> instance_status_e;
@@ -55,7 +60,7 @@ public:
 
     auto regenerate_id() //
         -> void;
-    auto description(std::string description) //
+    auto instance_name(std::string instance_name) //
         -> void;
     auto status(instance_status_e instance_status) //
         -> void;
@@ -66,7 +71,7 @@ private:
     std::string _id;
     std::string _app;
     std::string _version;
-    std::string _description;
+    std::string _instance_name;
     instance_status_e _status;
     instance_status_e _desired;
     instance_config_t _config;
@@ -89,10 +94,10 @@ inline auto instance_t::version() const noexcept //
     return _version;
 }
 
-inline auto instance_t::description() const noexcept //
+inline auto instance_t::instance_name() const noexcept //
     -> const std::string&
 {
-    return _description;
+    return _instance_name;
 }
 
 inline auto instance_t::status() const noexcept //
@@ -119,10 +124,10 @@ inline auto instance_t::config() const noexcept //
     return _config;
 }
 
-inline auto instance_t::description(std::string description) //
+inline auto instance_t::instance_name(std::string instance_name) //
     -> void
 {
-    _description = description;
+    _instance_name = instance_name;
 }
 inline auto instance_t::status(instance_status_e status) //
     -> void
