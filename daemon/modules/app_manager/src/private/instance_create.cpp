@@ -30,13 +30,13 @@ namespace Private {
 auto module_app_manager_private_t::do_create_instance(
     const std::string& app_name,
     const std::string& version,
-    const std::string& description,
+    const std::string& instance_name,
     json_t& response) //
     -> http_status_e
 {
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
-    response["instanceName"] = description;
+    response["instanceName"] = instance_name;
     response["version"] = version;
 
     // Step 1: Ensure app is actually installed
@@ -77,7 +77,7 @@ auto module_app_manager_private_t::do_create_instance(
     }
 
     // Step 4: Forward to deployment
-    const auto [res, instance_id] = _deployment->create_instance(app);
+    const auto [res, instance_id] = _deployment->create_instance(app, instance_name);
 
     response["instanceId"] = instance_id;
 
@@ -95,7 +95,7 @@ auto module_app_manager_private_t::do_create_instance(
         {instance_id,
          instance.app(),
          instance.version(),
-         instance.description(),
+         instance.instance_name(),
          instance.status(),
          instance.desired(),
          networks,

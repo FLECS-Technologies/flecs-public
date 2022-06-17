@@ -61,7 +61,7 @@ public:
         -> const std::map<std::string, instance_t>&;
     auto insert_instance(instance_t instance) //
         -> result_t;
-    auto create_instance(const app_t& app) //
+    auto create_instance(const app_t& app, std::string instance_name) //
         -> result_t;
     auto delete_instance(std::string_view instance_id) //
         -> result_t;
@@ -103,7 +103,7 @@ protected:
 private:
     virtual auto do_insert_instance(instance_t instance) //
         -> result_t = 0;
-    virtual auto do_create_instance(const app_t& app) //
+    virtual auto do_create_instance(const app_t& app, std::string instance_name) //
         -> result_t = 0;
     virtual auto do_delete_instance(std::string_view instance_id) //
         -> result_t = 0;
@@ -149,10 +149,10 @@ inline auto deployment_t::insert_instance(instance_t instance) //
     return do_insert_instance(instance);
 }
 
-inline auto deployment_t::create_instance(const app_t& app) //
+inline auto deployment_t::create_instance(const app_t& app, std::string instance_name) //
     -> result_t
 {
-    return do_create_instance(app);
+    return do_create_instance(app, instance_name);
 }
 
 inline auto deployment_t::ready_instance(std::string_view instance_id) //
