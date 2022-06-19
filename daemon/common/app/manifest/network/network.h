@@ -25,7 +25,7 @@ namespace FLECS {
 class network_t
 {
 public:
-    network_t() {}
+    network_t();
 
     explicit network_t(std::string_view str);
 
@@ -33,8 +33,19 @@ public:
         -> const std::string&;
     auto parent() const noexcept //
         -> const std::string&;
+    auto mac_address() const noexcept //
+        -> const std::string&;
     auto type() const noexcept //
         -> network_type_t;
+
+    auto name(std::string name) //
+        -> void;
+    auto parent(std::string parent) //
+        -> void;
+    auto mac_address(std::string mac_address) //
+        -> void;
+    auto type(network_type_t type) noexcept //
+        -> void;
 
     auto is_valid() const noexcept //
         -> bool;
@@ -45,6 +56,7 @@ private:
 
     std::string _name;
     std::string _parent;
+    std::string _mac_address;
     network_type_t _type;
 };
 

@@ -38,7 +38,8 @@ namespace FLECS {
             target = yaml[#value].as<decltype(target)>(); \
         }                                                 \
         catch (const YAML::Exception& ex)                 \
-        {}                                                \
+        {                                                 \
+        }                                                 \
     } while (false)
 
 #define OPTIONAL_YAML_NODE(yaml, value, target) \
@@ -50,7 +51,8 @@ namespace FLECS {
             target = yaml[#value];              \
         }                                       \
         catch (const YAML::Exception& ex)       \
-        {}                                      \
+        {                                       \
+        }                                       \
     } while (false)
 
 app_manifest_t::app_manifest_t()
@@ -142,13 +144,18 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
         OPTIONAL_TYPED_YAML_VALUE(yaml, interactive, _interactive);
         OPTIONAL_TYPED_YAML_VALUE(yaml, multiInstance, _multi_instance);
 
-        OPTIONAL_YAML_NODE(yaml, networks, networks);
-        for (const auto& network : networks)
-        {
-            _networks.emplace_back(network_t{network.as<std::string>()});
-        }
-
         _networks.emplace_back("flecs");
+
+        OPTIONAL_YAML_NODE(yaml, networkSettings, network_settings);
+        for (const auto& setting : network_settings)
+        {
+            auto mac_address = std::string{};
+            OPTIONAL_TYPED_YAML_VALUE(setting, macAddress, mac_address);
+            if (!mac_address.empty())
+            {
+                _networks.rbegin()->mac_address(mac_address);
+            }
+        }
 
         OPTIONAL_YAML_NODE(yaml, ports, ports);
         for (const auto& port_range : ports)
