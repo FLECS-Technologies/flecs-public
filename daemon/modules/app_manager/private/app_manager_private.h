@@ -295,9 +295,6 @@ private:
         const std::string& version) //
         -> int;
 
-    auto migrate_macvlan_to_ipvlan() //
-        -> void;
-
     auto generate_instance_ip() //
         -> std::string;
     auto generate_ip(const std::string& cidr_subnet) //
