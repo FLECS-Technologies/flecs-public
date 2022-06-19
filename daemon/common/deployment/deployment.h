@@ -59,6 +59,8 @@ public:
 
     auto instances() const noexcept //
         -> const std::map<std::string, instance_t>&;
+    auto instances() noexcept //
+        -> std::map<std::string, instance_t>&;
     auto insert_instance(instance_t instance) //
         -> result_t;
     auto create_instance(const app_t& app, std::string instance_name) //
@@ -139,6 +141,12 @@ private:
 
 inline auto deployment_t::instances() const noexcept //
     -> const std::map<std::string, instance_t>&
+{
+    return _instances;
+}
+
+inline auto deployment_t::instances() noexcept //
+    -> std::map<std::string, instance_t>&
 {
     return _instances;
 }
