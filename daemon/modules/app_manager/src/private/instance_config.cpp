@@ -63,7 +63,9 @@ http_status_e module_app_manager_private_t::do_post_config_instance(const std::s
 }
 
 http_status_e module_app_manager_private_t::do_put_config_instance(
-    const std::string& instanceId, const instance_config_t& config, json_t& response)
+    const std::string& instanceId,
+    const instance_config_t& config,
+    json_t& response)
 {
     response["additionalInfo"] = std::string{};
     response["instanceId"] = instanceId;
@@ -167,6 +169,36 @@ http_status_e module_app_manager_private_t::do_put_config_instance(
                         instance.networks.emplace_back(docker_network);
                         instance.ips.emplace_back(network.ipAddress);
                     }
+                    const auto it2 = std::find_if(
+                        _deployment->instances().at(instanceId).config().networks.begin(),
+                        _deployment->instances().at(instanceId).config().networks.end(),
+                        [&](const instance_config_t::network_t& network) { return network.network == docker_network; });
+                    if (it2 != _deployment->instances().at(instanceId).config().networks.end())
+                    {
+                        it2->ip = network.ipAddress;
+                    }
+                    else
+                    {
+                        _deployment->instances()
+                            .at(instanceId)
+                            .config()
+                            .networks.emplace_back(
+                                instance_config_t::network_t{.network = docker_network, .ip = network.ipAddress});
+                    }
+                    const auto it3 = std::find_if(
+                        _deployment->instances().at(instanceId).config().networkAdapters.begin(),
+                        _deployment->instances().at(instanceId).config().networkAdapters.end(),
+                        [&](const instance_config_t::network_adapter_t& adapter) {
+                            return adapter.name == network.name;
+                        });
+                    if (it3 != _deployment->instances().at(instanceId).config().networkAdapters.end())
+                    {
+                        *it3 = network;
+                    }
+                    else
+                    {
+                        _deployment->instances().at(instanceId).config().networkAdapters.emplace_back(network);
+                    }
                     _app_db.insert_instance(instance);
                     _app_db.persist();
                     for (auto& adapter_json : response["networkAdapters"])
@@ -208,6 +240,22 @@ http_status_e module_app_manager_private_t::do_put_config_instance(
                 instance.ips.erase(instance.ips.cbegin() + pos);
                 _app_db.insert_instance(instance);
                 _app_db.persist();
+            }
+            const auto it2 = std::find_if(
+                _deployment->instances().at(instanceId).config().networks.cbegin(),
+                _deployment->instances().at(instanceId).config().networks.cend(),
+                [&](const instance_config_t::network_t network) { return network.network == docker_network; });
+            if (it2 != _deployment->instances().at(instanceId).config().networks.cend())
+            {
+                _deployment->instances().at(instanceId).config().networks.erase(it2);
+            }
+            const auto it3 = std::find_if(
+                _deployment->instances().at(instanceId).config().networkAdapters.cbegin(),
+                _deployment->instances().at(instanceId).config().networkAdapters.cend(),
+                [&](const instance_config_t::network_adapter_t& adapter) { return adapter.name == network.name; });
+            if (it3 != _deployment->instances().at(instanceId).config().networkAdapters.cend())
+            {
+                _deployment->instances().at(instanceId).config().networkAdapters.erase(it3);
             }
             for (auto& adapter_json : response["networkAdapters"])
             {
