@@ -20,9 +20,17 @@
 
 namespace FLECS {
 
+network_t::network_t()
+    : _name{}
+    , _parent{}
+    , _mac_address{}
+    , _type{network_type_t::BRIDGE}
+{}
+
 network_t::network_t(std::string_view str)
     : _name{str}
     , _parent{}
+    , _mac_address{}
     , _type{network_type_t::NONE}
 {
     if (cxx20::contains(str, "-internal-"))
@@ -64,15 +72,47 @@ auto network_t::name() const noexcept //
 {
     return _name;
 }
+
 auto network_t::parent() const noexcept //
     -> const std::string&
 {
     return _parent;
 }
+
+auto network_t::mac_address() const noexcept //
+    -> const std::string&
+{
+    return _mac_address;
+}
+
 auto network_t::type() const noexcept //
     -> network_type_t
 {
     return _type;
+}
+
+auto network_t::name(std::string name) //
+    -> void
+{
+    _name = name;
+}
+
+auto network_t::parent(std::string parent) //
+    -> void
+{
+    _parent = parent;
+}
+
+auto network_t::mac_address(std::string mac_address) //
+    -> void
+{
+    _mac_address = mac_address;
+}
+
+auto network_t::type(network_type_t type) noexcept //
+    -> void
+{
+    _type = type;
 }
 
 auto network_t::is_valid() const noexcept //

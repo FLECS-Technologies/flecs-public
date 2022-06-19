@@ -203,8 +203,56 @@ auto deployment_docker_t::do_create_instance(const app_t& app, std::string insta
         docker_process.arg(device);
     }
 
-    docker_process.arg("--network");
-    docker_process.arg("none");
+    if (!app.networks().empty())
+    {
+        const auto& network = app.networks()[0];
+
+        const auto net = query_network(network.name());
+        const auto ip = generate_instance_ip(net->cidr_subnet, net->gateway);
+        if (ip.empty())
+        {
+            return {-1, instance->first};
+        }
+
+        docker_process.arg("--network");
+        docker_process.arg(app.networks()[0].name());
+
+        docker_process.arg("--ip");
+        docker_process.arg(ip);
+
+        if (!network.mac_address().empty())
+        {
+            docker_process.arg("--mac-address");
+
+            if (cxx20::starts_with(network.mac_address(), "clone:"))
+            {
+                const auto parts = split(network.mac_address(), ':');
+                if (parts.size() != 2)
+                {
+                    return {-1, "invalid MAC address format"};
+                }
+
+                const auto system_api = dynamic_cast<const module_system_t*>(api::query_module("system").get());
+                const auto adapters = system_api->get_network_adapters();
+                const auto netif = adapters.find(parts[1]);
+                if (netif == adapters.cend())
+                {
+                    return {-1, "network adapter does not exist"};
+                }
+                if (netif->second.ipv4_addr.empty())
+                {
+                    return {-1, "network adapter is not ready"};
+                }
+                docker_process.arg(netif->second.mac);
+            }
+            else
+            {
+                docker_process.arg(network.mac_address());
+            }
+        }
+
+        instance->second.config().networks.emplace_back(instance_config_t::network_t{.network = net->name, .ip = ip});
+    }
 
     if (std::count(
             app.startup_options().cbegin(),
@@ -310,12 +358,10 @@ auto deployment_docker_t::do_create_instance(const app_t& app, std::string insta
         }
     }
 
-    // allow networking
-    disconnect_network(instance->first, "none");
-
-    // assign static ips
-    for (const auto& network : app.networks())
+    // assign static ips to remaining networks
+    for (size_t i = 1; i < app.networks().size(); ++i)
     {
+        const auto& network = app.networks()[i];
         const auto net = query_network(network.name());
         const auto ip = generate_instance_ip(net->cidr_subnet, net->gateway);
         if (ip.empty())
