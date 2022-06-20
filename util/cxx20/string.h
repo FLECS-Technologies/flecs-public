@@ -22,18 +22,17 @@ namespace FLECS {
 namespace cxx20 {
 
 template <typename CharT, typename Traits>
-constexpr bool contains(
-    const std::basic_string_view<CharT, Traits>& sv, std::basic_string_view<CharT, Traits> sv_cmp) noexcept
+constexpr bool contains(std::basic_string_view<CharT, Traits> sv, std::basic_string_view<CharT, Traits> sv_cmp) noexcept
 {
     return sv.find(sv_cmp) != std::basic_string_view<CharT, Traits>::npos;
 }
 template <typename CharT, typename Traits>
-constexpr bool contains(const std::basic_string_view<CharT, Traits>& sv, CharT c) noexcept
+constexpr bool contains(std::basic_string_view<CharT, Traits> sv, CharT c) noexcept
 {
     return sv.find(c) != std::basic_string_view<CharT, Traits>::npos;
 }
 template <typename CharT, typename Traits>
-constexpr bool contains(const std::basic_string_view<CharT, Traits>& sv, const CharT* s)
+constexpr bool contains(std::basic_string_view<CharT, Traits> sv, const CharT* s)
 {
     return contains(sv, std::basic_string_view<CharT, Traits>{s});
 }
@@ -54,26 +53,44 @@ constexpr bool contains(const std::basic_string<CharT, Traits>& str, const CharT
     return contains(std::basic_string_view<CharT, Traits>{str}, s);
 }
 
+template <typename CharT>
+constexpr bool contains(const CharT* str, std::basic_string_view<CharT> sv)
+{
+    return contains(std::basic_string_view<CharT>{str}, sv);
+}
+template <typename CharT>
+constexpr bool contains(const CharT* str, CharT c)
+{
+    return contains(std::basic_string_view<CharT>{str}, c);
+}
+template <typename CharT>
+constexpr bool contains(const CharT* str, const CharT* s)
+{
+    return contains(std::basic_string_view<CharT>{str}, s);
+}
+
 template <typename CharT, typename Traits>
 constexpr bool starts_with(
-    const std::basic_string_view<CharT, Traits>& sv, std::basic_string_view<CharT, Traits> sv_cmp) noexcept
+    std::basic_string_view<CharT, Traits> sv,
+    std::basic_string_view<CharT, Traits> sv_cmp) noexcept
 {
     return sv.substr(0, sv_cmp.size()) == sv_cmp;
 }
 template <typename CharT, typename Traits>
-constexpr bool starts_with(const std::basic_string_view<CharT, Traits>& sv, CharT c) noexcept
+constexpr bool starts_with(std::basic_string_view<CharT, Traits> sv, CharT c) noexcept
 {
     return !sv.empty() && Traits::eq(sv.front(), c);
 }
 template <typename CharT, typename Traits>
-constexpr bool starts_with(const std::basic_string_view<CharT, Traits>& sv, const CharT* s)
+constexpr bool starts_with(std::basic_string_view<CharT, Traits> sv, const CharT* s)
 {
     return starts_with(sv, std::basic_string_view<CharT, Traits>{s});
 }
 
 template <typename CharT, typename Traits>
 constexpr bool starts_with(
-    const std::basic_string<CharT, Traits>& str, std::basic_string_view<CharT, Traits> sv) noexcept
+    const std::basic_string<CharT, Traits>& str,
+    std::basic_string_view<CharT, Traits> sv) noexcept
 {
     return starts_with(std::basic_string_view<CharT, Traits>{str}, sv);
 }
@@ -86,6 +103,24 @@ template <typename CharT, typename Traits>
 constexpr bool starts_with(const std::basic_string<CharT, Traits>& str, const CharT* s)
 {
     return starts_with(std::basic_string_view<CharT, Traits>{str}, s);
+}
+
+template <typename CharT>
+constexpr bool starts_with(const CharT* str, std::basic_string_view<CharT> sv) noexcept
+{
+    return starts_with(std::basic_string_view<CharT>{str}, sv);
+}
+
+template <typename CharT>
+constexpr bool starts_with(const CharT* str, CharT c) noexcept
+{
+    return starts_with(std::basic_string_view<CharT>{str}, c);
+}
+
+template <typename CharT>
+constexpr bool starts_with(const CharT* str, const CharT* s) noexcept
+{
+    return starts_with(std::basic_string_view<CharT>{str}, s);
 }
 
 } // namespace cxx20

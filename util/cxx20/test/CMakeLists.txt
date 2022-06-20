@@ -12,11 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(cxx20)
-add_subdirectory(datetime)
-add_subdirectory(llhttp_ext)
-add_subdirectory(network)
-add_subdirectory(process)
-add_subdirectory(signal_handler)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
+if(BUILD_TESTING)
+    project(FLECS.util.cxx20.test)
+
+    add_executable(FLECS.util.cxx20.test
+        test_cxx20.cpp
+    )
+
+    set_target_properties(FLECS.util.cxx20.test PROPERTIES OUTPUT_NAME test_util_string_utils)
+
+    target_link_libraries(FLECS.util.cxx20.test PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+    )
+
+    add_test(NAME FLECS.util.cxx20.test COMMAND FLECS.util.cxx20.test)
+endif()
