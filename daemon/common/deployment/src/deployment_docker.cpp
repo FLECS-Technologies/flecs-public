@@ -229,7 +229,7 @@ auto deployment_docker_t::do_create_instance(const app_t& app, std::string insta
                 const auto parts = split(network.mac_address(), ':');
                 if (parts.size() != 2)
                 {
-                    return {-1, "invalid MAC address format"};
+                    return {-1, instance->first};
                 }
 
                 const auto system_api = dynamic_cast<const module_system_t*>(api::query_module("system").get());
@@ -237,11 +237,11 @@ auto deployment_docker_t::do_create_instance(const app_t& app, std::string insta
                 const auto netif = adapters.find(parts[1]);
                 if (netif == adapters.cend())
                 {
-                    return {-1, "network adapter does not exist"};
+                    return {-1, instance->first};
                 }
                 if (netif->second.ipv4_addr.empty())
                 {
-                    return {-1, "network adapter is not ready"};
+                    return {-1, instance->first};
                 }
                 docker_process.arg(netif->second.mac);
             }
