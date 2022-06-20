@@ -81,7 +81,7 @@ auto cidr_to_subnet_mask_v4(std::string_view cidr_subnet) //
         subnet_bits.set(subnet_bits.size() - i - 1);
     }
 
-    const auto addr = in_addr{.s_addr = static_cast<in_addr_t>(subnet_bits.to_ulong())};
+    const auto addr = in_addr{.s_addr = htonl(static_cast<in_addr_t>(subnet_bits.to_ulong()))};
 
     return ipv4_to_string(addr);
 }
