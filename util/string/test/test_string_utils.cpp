@@ -106,3 +106,30 @@ TEST(string_utils, split3)
     ASSERT_EQ(actual[1], "test");
     ASSERT_EQ(actual[2], "case");
 }
+
+TEST(string_utils, ltrim)
+{
+    using std::operator""s;
+
+    auto str = "\r\n\t    String with leading whitespaces    \t\r\n"s;
+
+    ASSERT_EQ(FLECS::ltrim(str), "String with leading whitespaces    \t\r\n");
+}
+
+TEST(string_utils, rtrim)
+{
+    using std::operator""s;
+
+    auto str = "\r\n\t    String with trailing whitespaces    \t\r\n"s;
+
+    ASSERT_EQ(FLECS::rtrim(str), "\r\n\t    String with trailing whitespaces");
+}
+
+TEST(string_utils, trim)
+{
+    using std::operator""s;
+
+    auto str = "\r\n\t    String with leading and trailing whitespaces    \t\r\n"s;
+
+    ASSERT_EQ(FLECS::trim(str), "String with leading and trailing whitespaces");
+}
