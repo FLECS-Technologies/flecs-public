@@ -12,15 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.util.network)
+if(BUILD_TESTING)
+    project(FLECS.util.network.test)
 
-add_library(FLECS.util.network STATIC
-    src/network.cpp
-    network.h
-)
+    add_executable(FLECS.test.util.network
+        test_network.cpp
+    )
 
-target_include_directories(FLECS.util.network PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+    set_target_properties(FLECS.test.util.network PROPERTIES OUTPUT_NAME test_util_network)
 
-add_subdirectory(test)
+    target_link_libraries(FLECS.test.util.network PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.util.network
+    )
+
+    add_test(NAME FLECS.test.util.network COMMAND FLECS.test.util.network)
+endif()
