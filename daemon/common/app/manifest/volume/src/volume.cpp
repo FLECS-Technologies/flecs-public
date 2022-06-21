@@ -23,12 +23,13 @@
 namespace FLECS {
 
 volume_t::volume_t() noexcept
-    : _host{}
-    , _container{}
-    , _type{}
+    : volume_t{""}
 {}
 
 volume_t::volume_t(const std::string& volume_str) noexcept
+    : _host{}
+    , _container{}
+    , _type{volume_type_t::NONE}
 {
     const auto parts = split(volume_str, ':');
 
@@ -59,6 +60,18 @@ volume_t::volume_t(const std::string& volume_str) noexcept
         // volume
         const auto volume_regex = std::regex{R"(^[a-zA-Z0-9\-_.]+[a-zA-Z0-9]$)"};
         if (!std::regex_match(parts[0], volume_regex))
+        {
+            return;
+        }
+        try
+        {
+            const auto path = std::filesystem::path{parts[1]};
+            if (!path.is_absolute())
+            {
+                return;
+            }
+        }
+        catch (const std::exception&)
         {
             return;
         }
