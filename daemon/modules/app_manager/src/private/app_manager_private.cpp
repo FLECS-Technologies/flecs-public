@@ -193,15 +193,34 @@ auto module_app_manager_private_t::do_init() //
             {
                 auto response = json_t{};
                 _app_db.insert_app(app);
+                _installed_apps.emplace(
+                    std::piecewise_construct,
+                    std::forward_as_tuple(system_apps[i], system_apps_versions[i]),
+                    std::forward_as_tuple(app));
                 do_create_instance(app.app(), app.version(), system_apps_desc[i], response);
                 const auto app_instances = _app_db.instances(system_apps[i], system_apps_versions[i]);
                 if (!app_instances.empty())
                 {
                     auto instance = *app_instances.begin();
                     instance.desired = RUNNING;
+                    auto tmp = instance_t{
+                        instance.id,
+                        instance.app,
+                        instance.version,
+                        instance.description,
+                        instance.status,
+                        instance.desired};
+                    tmp.config().startup_options.emplace_back(instance.flags);
+                    for (std::size_t i = 0; i < instance.networks.size(); ++i)
+                    {
+                        tmp.config().networks.emplace_back(
+                            instance_config_t::network_t{.network = instance.networks[i], .ip = instance.ips[i]});
+                    }
+                    _deployment->insert_instance(tmp);
                     _app_db.insert_instance(instance);
                 }
             }
+
             _app_db.persist();
         }
     }
