@@ -239,10 +239,6 @@ auto deployment_docker_t::do_create_instance(const app_t& app, std::string insta
                 {
                     return {-1, instance->first};
                 }
-                if (netif->second.ipv4_addr.empty())
-                {
-                    return {-1, instance->first};
-                }
                 docker_process.arg(netif->second.mac);
             }
             else
