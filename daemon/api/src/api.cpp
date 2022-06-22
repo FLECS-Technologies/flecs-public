@@ -17,6 +17,7 @@
 #include <poll.h>
 
 #include <cstdio>
+#include <sstream>
 #include <thread>
 #include <vector>
 
@@ -30,9 +31,15 @@
 
 namespace FLECS {
 
+#ifdef FLECS_UNIT_TEST
+constexpr auto FLECS_UNIX_SOCKET_PATH = "flecs.sock";
+#else
+constexpr auto FLECS_UNIX_SOCKET_PATH = "/run/flecs/flecs.sock";
+#endif
+
 flecs_api_t::flecs_api_t()
     : _tcp_server{8951, INADDR_ANY, 10}
-    , _unix_server{"/var/run/flecs/flecs.sock", 10}
+    , _unix_server{FLECS_UNIX_SOCKET_PATH, 10}
 {
     if (!_tcp_server.is_running() || !_unix_server.is_running())
     {
@@ -75,7 +82,25 @@ int flecs_api_t::run()
     return 0;
 }
 
-http_status_e flecs_api_t::process(socket_t& conn_socket)
+void send_reply(socket_t& conn_socket, http_status_e status_code, std::string_view body)
+{
+    auto ss = std::stringstream{};
+
+    // HTTP header
+    ss << http_version_1_1 << " " << http_response_header_map.at(status_code).second;
+    // Content-Type
+    ss << "Content-Type: application/json\r\n";
+    // Content-Length
+    ss << "Content-Length: " << body.length() << "\r\n";
+    // Separator
+    ss << "\r\n";
+    // Body
+    ss << body;
+
+    conn_socket.send(ss.str().c_str(), ss.str().length(), 0);
+}
+
+void flecs_api_t::process(socket_t& conn_socket)
 {
     // Receive data from the connected client
     using FLECS::operator""_kiB;
@@ -84,7 +109,7 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
     auto n_bytes = conn_socket.recv(buf, sizeof(buf), 0);
     if (n_bytes <= 0)
     {
-        return http_status_e::BadRequest;
+        return send_reply(conn_socket, http_status_e::BadRequest, "");
     }
 
     auto llhttp_ext = llhttp_ext_t{};
@@ -93,7 +118,7 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
     llhttp_init(&llhttp_ext, HTTP_REQUEST, &llhttp_ext_settings);
     if (llhttp_execute(&llhttp_ext, buf, n_bytes) != HPE_OK)
     {
-        return http_status_e::BadRequest;
+        return send_reply(conn_socket, http_status_e::BadRequest, "");
     }
 
     auto args = json_t{};
@@ -102,12 +127,12 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
         args = parse_json(llhttp_ext._body);
         if (!is_valid_json(args))
         {
-            return http_status_e::BadRequest;
+            return send_reply(conn_socket, http_status_e::BadRequest, "");
         }
     }
     else if (llhttp_ext.method != HTTP_GET)
     {
-        return http_status_e::MethodNotAllowed;
+        return send_reply(conn_socket, http_status_e::MethodNotAllowed, "");
     }
 
     http_status_e err = http_status_e::NotImplemented;
@@ -119,22 +144,7 @@ http_status_e flecs_api_t::process(socket_t& conn_socket)
         err = endpoint.value()(args, json_response);
     }
 
-    decltype(auto) body = json_response.dump();
-    std::stringstream ss;
-    // HTTP header
-    ss << http_version_1_1 << " " << http_response_header_map.at(err).second;
-    // Content-Type
-    ss << "Content-Type: application/json\r\n";
-    // Content-Length
-    ss << "Content-Length: " << body.length() << "\r\n";
-    // Separator
-    ss << "\r\n";
-    // Body
-    ss << body;
-
-    conn_socket.send(ss.str().c_str(), ss.str().length(), 0);
-
-    return err;
+    return send_reply(conn_socket, err, json_response.dump());
 }
 
 } // namespace FLECS

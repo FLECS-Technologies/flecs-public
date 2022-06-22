@@ -50,7 +50,7 @@ private:
      *      500: Internal Server Error - an error occurred while the endpoint processed the request
      *      501: Not Implemented - requested endpoint is not available
      */
-    http_status_e process(socket_t& conn_socket);
+    void process(socket_t& conn_socket);
 
     tcp_server_t _tcp_server;
     unix_server_t _unix_server;

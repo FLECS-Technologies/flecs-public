@@ -25,10 +25,11 @@ set(CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/build/cmake
 )
 
-if (FLECS_BUILD_TESTS)
-include (CTest)
-add_compile_options(-fprofile-arcs -ftest-coverage)
-add_link_options(-lgcov --coverage)
+if(FLECS_BUILD_TESTS)
+    include(CTest)
+    add_compile_options(-fprofile-arcs -ftest-coverage)
+    add_link_options(-lgcov --coverage)
+    add_definitions(-DFLECS_UNIT_TEST)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
