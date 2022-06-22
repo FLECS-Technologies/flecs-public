@@ -6,8 +6,6 @@
                 "${workspaceFolder}",
                 "${workspaceFolder}/apps/tech.flecs.mqtt-bridge",
                 "${workspaceFolder}/external/cpr-1.8.3/out/amd64/include",
-                "${workspaceFolder}/external/cpr-1.8.3/out/amd64/include/cpr",
-                "${workspaceFolder}/external/cpr-1.8.3/out/amd64/include/curl",
                 "${workspaceFolder}/external/gtest-1.11.0",
                 "${workspaceFolder}/external/llhttp-v6.0.6/out/amd64/include",
                 "${workspaceFolder}/external/mosquitto-2.0.14/out/amd64/include",

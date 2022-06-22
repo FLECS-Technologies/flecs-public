@@ -12,29 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.api)
+if(BUILD_TESTING)
+    set(PROJECT_NAME FLECS.daemon.api.test)
+    project(${PROJECT_NAME})
 
-add_library(
-    FLECS.daemon.api OBJECT
-    src/api.cpp
-    api.h
-)
+    add_executable(${PROJECT_NAME}
+        test_api.cpp
+    )
 
-target_include_directories(
-    FLECS.daemon.api INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_api)
 
-target_include_directories(
-    FLECS.daemon.api PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        FLECS.external.cpr
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.daemon.api
+        FLECS.daemon.api.endpoints
+        FLECS.util.signal_handler
+    )
 
-target_link_libraries(FLECS.daemon.api PRIVATE
-    FLECS.daemon.api.endpoints
-    FLECS.external.json
-    FLECS.util.llhttp_ext
-)
-
-add_subdirectory(endpoints)
-add_subdirectory(lib)
-
-add_subdirectory(test)
+    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+endif()

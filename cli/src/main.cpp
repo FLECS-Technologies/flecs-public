@@ -17,7 +17,11 @@
 int main(int argc, char** argv)
 {
     auto lib = FLECS::libflecs_t{};
-    const auto host = "/var/run/flecs/flecs.sock";
+#ifdef FLECS_UNIT_TEST
+    const auto host = "flecs.sock";
+#else
+    const auto host = "/run/flecs/flecs.sock";
+#endif // FLECS_UNIT_TEST
     if (lib.connect(host) != 0)
     {
         std::fprintf(stderr, "Could not connect to FLECS at %s. Is the FLECS daemon running?\n", host);
