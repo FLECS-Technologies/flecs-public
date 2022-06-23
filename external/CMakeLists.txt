@@ -17,6 +17,7 @@ project(FLECS.external)
 # define source directories
 set (CMAKE_ARGS    -B build/${ARCH} -DCMAKE_INSTALL_PREFIX=out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
 set (CPR_DIR       ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.8.3)
+set (CROW_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/crow-1.0+3)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
 set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-v6.0.6)
@@ -117,6 +118,12 @@ set_property(TARGET FLECS.external.cpr PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${
 target_link_libraries(FLECS.external.cpr INTERFACE
     FLECS.external.cpr.curl
     FLECS.external.cpr.zlib
+)
+
+# crow
+add_library(FLECS.external.crow INTERFACE)
+target_include_directories(FLECS.external.crow INTERFACE
+    ${CROW_DIR}/include
 )
 
 # gtest
