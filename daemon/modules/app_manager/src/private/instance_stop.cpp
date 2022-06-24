@@ -26,7 +26,7 @@ auto module_app_manager_private_t::do_stop_instance(
     const std::string& version,
     json_t& response,
     bool internal) //
-    -> http_status_e
+    -> crow::status
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
@@ -38,7 +38,7 @@ auto module_app_manager_private_t::do_stop_instance(
     if (!_app_db.has_instance({instance_id}))
     {
         response["additionalInfo"] = "Could not stop instance " + instance_id + ", which does not exist";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // get instance details from database
@@ -52,14 +52,14 @@ auto module_app_manager_private_t::do_stop_instance(
     if (xcheck < 0)
     {
         response["additionalInfo"] = "Could not stop instance: instance/app mismatch";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // Step 3: Return if instance is not running
     if (!is_instance_running(instance_id) && !internal)
     {
         response["additionalInfo"] = "Instance " + instance_id + " is not running";
-        return http_status_e::Ok;
+        return crow::status::OK;
     }
 
     // Step 4: Persist desired status into db, if triggered externally
@@ -74,7 +74,7 @@ auto module_app_manager_private_t::do_stop_instance(
     const auto [res, additional_info] = _deployment->stop_instance(instance_id);
 
     response["additionalInfo"] = additional_info;
-    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
+    return (res == 0) ? crow::status::OK : crow::status::INTERNAL_SERVER_ERROR;
 }
 
 } // namespace Private

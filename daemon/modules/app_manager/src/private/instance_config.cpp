@@ -44,7 +44,8 @@ auto build_network_adapters_json(const instances_table_entry_t& instance)
 }
 } // namespace
 
-http_status_e module_app_manager_private_t::do_post_config_instance(const std::string& instanceId, json_t& response)
+auto module_app_manager_private_t::do_post_config_instance(const std::string& instanceId, json_t& response) //
+    -> crow::status
 {
     response["additionalInfo"] = std::string{};
     response["instanceId"] = instanceId;
@@ -53,19 +54,20 @@ http_status_e module_app_manager_private_t::do_post_config_instance(const std::s
     if (!_app_db.has_instance({instanceId}))
     {
         response["additionalInfo"] = "Could not configure instance " + instanceId + ", which does not exist";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     const auto instance = _app_db.query_instance({instanceId}).value();
     response["networkAdapters"] = build_network_adapters_json(instance);
 
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
-http_status_e module_app_manager_private_t::do_put_config_instance(
+auto module_app_manager_private_t::do_put_config_instance(
     const std::string& instanceId,
     const instance_config_t& config,
-    json_t& response)
+    json_t& response) //
+    -> crow::status
 {
     response["additionalInfo"] = std::string{};
     response["instanceId"] = instanceId;
@@ -74,7 +76,7 @@ http_status_e module_app_manager_private_t::do_put_config_instance(
     if (!_app_db.has_instance({instanceId}))
     {
         response["additionalInfo"] = "Could not configure instance " + instanceId + ", which does not exist";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     auto instance = _app_db.query_instance({instanceId}).value();
@@ -266,7 +268,7 @@ http_status_e module_app_manager_private_t::do_put_config_instance(
             }
         }
     }
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private

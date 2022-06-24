@@ -47,6 +47,12 @@ if (CCACHE_FOUND EQUAL 0)
 set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
 endif()
 
+set(BOOST_ROOT /opt/boost_1_79_0)
+find_package(Boost
+    1.78.0
+    REQUIRED
+)
+
 # hide all symbols by default
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 add_link_options(-Wl,--exclude-libs,ALL)

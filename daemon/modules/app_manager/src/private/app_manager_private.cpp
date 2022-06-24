@@ -81,7 +81,7 @@ auto download_manifest(const std::string& app_name, const std::string& version) 
 
     const auto url = build_manifest_url(app_name, version);
     auto response = cpr::Get(cpr::Url{url.c_str()});
-    if (response.status_code != static_cast<long>(http_status_e::Ok))
+    if (response.status_code != 200)
     {
         std::fprintf(stderr, "Could not download app manifest: HTTP return code %ld\n", response.status_code);
         return -1;

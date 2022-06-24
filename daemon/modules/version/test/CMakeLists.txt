@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     project(FLECS.daemon.modules.version.test)
 
     add_executable(FLECS.daemon.modules.version.test
@@ -24,7 +24,7 @@ if (BUILD_TESTING)
     target_link_libraries(FLECS.daemon.modules.version.test PRIVATE
         FLECS.external.gtest
         FLECS.external.gtest_main
-        FLECS.daemon.api.endpoints
+        FLECS.daemon.lib
         FLECS.daemon.modules.factory
         FLECS.daemon.modules.module_base
         FLECS.daemon.modules.version

@@ -39,15 +39,9 @@ add_custom_target(
 include(package)
 
 # build executable flecsd
-set(SRC_BINARY
-    src/daemon.cpp
+add_executable(FLECS.daemon
+    src/main.cpp
 )
-
-set(HEADER_BINARY
-    daemon.h
-)
-
-add_executable(FLECS.daemon ${SRC_BINARY} ${HEADER_BINARY})
 set_target_properties(FLECS.daemon PROPERTIES OUTPUT_NAME flecsd)
 
 # own includes
@@ -58,7 +52,6 @@ target_include_directories(FLECS.daemon PRIVATE
 # FLECS link libraries
 target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.api
-    FLECS.daemon.api.endpoints
     FLECS.daemon.common
     FLECS.daemon.modules.app_manager
     FLECS.daemon.modules.data_layer
@@ -104,7 +97,6 @@ install(
     FILES $<TARGET_FILE:FLECS.external.zenoh-c>
     DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/lib
 )
-
 
 # install FLECS cli for packaging
 install(

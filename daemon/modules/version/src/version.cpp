@@ -25,17 +25,23 @@ register_module_t<module_version_t> _reg("version");
 }
 
 module_version_t::module_version_t()
-{
-    using namespace std::placeholders;
+{}
 
-    api::register_endpoint("/system/version", HTTP_GET, std::bind(&module_version_t::print_version, this, _1, _2));
-}
-
-http_status_e module_version_t::print_version(const json_t& /*args*/, json_t& response)
+auto module_version_t::version(json_t& response) const //
+    -> crow::response
 {
     response["core"] = std::string{FLECS_VERSION} + "-" + std::string{FLECS_GIT_SHA};
 
-    return http_status_e::Ok;
+    return crow::response{crow::status::OK, response.dump()};
+}
+
+auto module_version_t::do_init() //
+    -> void
+{
+    FLECS_ROUTE("/system/version").methods("GET"_method)([=]() {
+        auto response = json_t{};
+        return version(response);
+    });
 }
 
 } // namespace FLECS

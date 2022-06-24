@@ -25,20 +25,19 @@ register_module_t<module_data_layer_t> _reg("data-layer");
 
 module_data_layer_t::module_data_layer_t()
     : _impl{new Private::module_data_layer_private_t{}}
-{
-    using namespace std::placeholders;
-
-    api::register_endpoint("/data-layer/browse", HTTP_GET, std::bind(&module_data_layer_t::browse, this, _1, _2));
-}
+{}
 
 module_data_layer_t::~module_data_layer_t()
 {}
 
-http_status_e module_data_layer_t::browse(const json_t& args, json_t& response)
+auto module_data_layer_t::do_init() //
+    -> void
 {
-    OPTIONAL_JSON_VALUE(args, path);
-
-    return _impl->do_browse(path, response);
+    FLECS_ROUTE("/data-layer/browse").methods("GET"_method)([=]() {
+        auto response = json_t{};
+        const auto status = _impl->do_browse("", response);
+        return crow::response{status, response.dump()};
+    });
 }
 
 } // namespace FLECS

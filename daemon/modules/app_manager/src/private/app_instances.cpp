@@ -17,10 +17,12 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_list_instances(
-    const std::string& /*app_name*/, const std::string& /*version*/, json_t& /*response*/)
+auto module_app_manager_private_t::do_list_instances(
+    const std::string& /*app_name*/,
+    const std::string& /*version*/,
+    json_t& /*response*/) -> crow::status
 {
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private

@@ -22,15 +22,18 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_sideload(
-    const std::string& yaml, const std::string& license_key, json_t& response)
+auto module_app_manager_private_t::do_sideload(
+    const std::string& yaml,
+    const std::string& license_key,
+    json_t& response) //
+    -> crow::status
 {
     // Step 1: Parse transferred manifest
     auto app = app_manifest_t::from_yaml_string(yaml);
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not parse manifest";
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     // Step 2: Copy manifest to local storage
@@ -42,7 +45,7 @@ http_status_e module_app_manager_private_t::do_sideload(
         if (!file)
         {
             response["additionalInfo"] = "Could not place manifest in " + manifest_path.string();
-            return http_status_e::InternalServerError;
+            return crow::status::INTERNAL_SERVER_ERROR;
         }
     }
 
@@ -50,15 +53,18 @@ http_status_e module_app_manager_private_t::do_sideload(
     return do_install(manifest_path, license_key, response);
 }
 
-http_status_e module_app_manager_private_t::do_sideload(
-    const std::filesystem::path& manifest_path, const std::string& license_key, json_t& response)
+auto module_app_manager_private_t::do_sideload(
+    const std::filesystem::path& manifest_path,
+    const std::string& license_key,
+    json_t& response) //
+    -> crow::status
 {
     // Step 1: Parse transferred manifest
     auto app = app_manifest_t::from_yaml_file(manifest_path);
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open manifest " + manifest_path.string();
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     // Step 2: Copy manifest to local storage
@@ -70,7 +76,7 @@ http_status_e module_app_manager_private_t::do_sideload(
     if (ec)
     {
         response["additionalInfo"] = "Could not copy manifest to " + path.string();
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     // Step 3: Forward to manifest installation

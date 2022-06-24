@@ -26,8 +26,8 @@ if(BUILD_TESTING)
         FLECS.external.cpr
         FLECS.external.gtest
         FLECS.external.gtest_main
+        FLECS.external.json
         FLECS.daemon.api
-        FLECS.daemon.api.endpoints
         FLECS.util.signal_handler
     )
 

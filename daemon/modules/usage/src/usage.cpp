@@ -25,29 +25,30 @@ register_module_t<module_usage_t> _reg("usage");
 }
 
 module_usage_t::module_usage_t()
+{}
+
+auto module_usage_t::do_init() //
+    -> void
 {
-    using namespace std::placeholders;
+    FLECS_ROUTE("/usage").methods("GET"_method)([]() {
+        auto response = json_t{};
+        response["usage"] =
+            "Usage: flecs [OPTIONS] COMMAND\n\n"
+            "Options:\n"
+            "    --json         Produce output in JSON format\n"
+            "\n"
+            "Commands:\n"
+            "    app-manager    Manage apps and instances\n"
+            "    help           Display help for specific COMMAND\n"
+            "    mp             Interact with FLECS marketplace\n"
+            "    rpc            Issue RPC for running app\n"
+            "    usage          Print this help\n"
+            "    version        Print version and exit\n"
+            "\n";
 
-    api::register_endpoint("/usage", HTTP_GET, std::bind(&module_usage_t::print_usage, this, _1, _2));
-}
-
-http_status_e module_usage_t::print_usage(const json_t& /*args*/, json_t& response)
-{
-    response["usage"] =
-        "Usage: flecs [OPTIONS] COMMAND\n\n"
-        "Options:\n"
-        "    --json         Produce output in JSON format\n"
-        "\n"
-        "Commands:\n"
-        "    app-manager    Manage apps and instances\n"
-        "    help           Display help for specific COMMAND\n"
-        "    mp             Interact with FLECS marketplace\n"
-        "    rpc            Issue RPC for running app\n"
-        "    usage          Print this help\n"
-        "    version        Print version and exit\n"
-        "\n";
-
-    return http_status_e::Ok;
+        const auto status = crow::status::OK;
+        return crow::response{status, response.dump()};
+    });
 }
 
 } // namespace FLECS

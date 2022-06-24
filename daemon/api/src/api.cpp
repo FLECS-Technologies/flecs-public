@@ -14,137 +14,20 @@
 
 #include "api.h"
 
-#include <poll.h>
-
-#include <cstdio>
-#include <sstream>
-#include <thread>
-#include <vector>
-
-#include "endpoints/endpoints.h"
-#include "util/http/response_headers.h"
-#include "util/http/version_strings.h"
-#include "util/json/json.h"
-#include "util/llhttp_ext/llhttp_ext.h"
-#include "util/signal_handler/signal_handler.h"
-#include "util/string/literals.h"
-
 namespace FLECS {
 
-#ifdef FLECS_UNIT_TEST
-constexpr auto FLECS_UNIX_SOCKET_PATH = "flecs.sock";
-#else
-constexpr auto FLECS_UNIX_SOCKET_PATH = "/run/flecs/flecs.sock";
-#endif
-
 flecs_api_t::flecs_api_t()
-    : _tcp_server{8951, INADDR_ANY, 10}
-    , _unix_server{FLECS_UNIX_SOCKET_PATH, 10}
-{
-    if (!_tcp_server.is_running() || !_unix_server.is_running())
-    {
-        std::terminate();
-    }
-}
+    : _app{}
+{}
 
 flecs_api_t::~flecs_api_t()
 {}
 
-int flecs_api_t::run()
+auto flecs_api_t::instance() noexcept //
+    -> flecs_api_t&
 {
-    do
-    {
-        pollfd pollfds[2] = {{_unix_server.fd(), POLLIN, 0}, {_tcp_server.fd(), POLLIN, 0}};
-
-        auto res = poll(pollfds, sizeof(pollfds) / (sizeof(pollfds[0])), -1);
-
-        if (res > 0)
-        {
-            if (pollfds[0].revents == POLLIN)
-            {
-                auto conn_socket = unix_socket_t{_unix_server.accept(nullptr, nullptr)};
-                if (conn_socket.is_valid())
-                {
-                    process(conn_socket);
-                }
-            }
-            if (pollfds[1].revents == POLLIN)
-            {
-                auto conn_socket = tcp_socket_t{_tcp_server.accept(nullptr, nullptr)};
-                if (conn_socket.is_valid())
-                {
-                    process(conn_socket);
-                }
-            }
-        }
-    } while (!g_stop);
-
-    return 0;
-}
-
-void send_reply(socket_t& conn_socket, http_status_e status_code, std::string_view body)
-{
-    auto ss = std::stringstream{};
-
-    // HTTP header
-    ss << http_version_1_1 << " " << http_response_header_map.at(status_code).second;
-    // Content-Type
-    ss << "Content-Type: application/json\r\n";
-    // Content-Length
-    ss << "Content-Length: " << body.length() << "\r\n";
-    // Separator
-    ss << "\r\n";
-    // Body
-    ss << body;
-
-    conn_socket.send(ss.str().c_str(), ss.str().length(), 0);
-}
-
-void flecs_api_t::process(socket_t& conn_socket)
-{
-    // Receive data from the connected client
-    using FLECS::operator""_kiB;
-    char buf[128_kiB];
-
-    auto n_bytes = conn_socket.recv(buf, sizeof(buf), 0);
-    if (n_bytes <= 0)
-    {
-        return send_reply(conn_socket, http_status_e::BadRequest, "");
-    }
-
-    auto llhttp_ext = llhttp_ext_t{};
-    auto llhttp_ext_settings = llhttp_settings_t{};
-    llhttp_ext_settings_init(&llhttp_ext_settings);
-    llhttp_init(&llhttp_ext, HTTP_REQUEST, &llhttp_ext_settings);
-    if (llhttp_execute(&llhttp_ext, buf, n_bytes) != HPE_OK)
-    {
-        return send_reply(conn_socket, http_status_e::BadRequest, "");
-    }
-
-    auto args = json_t{};
-    if (llhttp_ext.method == HTTP_POST || llhttp_ext.method == HTTP_PUT)
-    {
-        args = parse_json(llhttp_ext._body);
-        if (!is_valid_json(args))
-        {
-            return send_reply(conn_socket, http_status_e::BadRequest, "");
-        }
-    }
-    else if (llhttp_ext.method != HTTP_GET)
-    {
-        return send_reply(conn_socket, http_status_e::MethodNotAllowed, "");
-    }
-
-    http_status_e err = http_status_e::NotImplemented;
-
-    const auto endpoint = api::query_endpoint(llhttp_ext._url.c_str(), static_cast<llhttp_method>(llhttp_ext.method));
-    auto json_response = json_t{};
-    if (endpoint.has_value())
-    {
-        err = endpoint.value()(args, json_response);
-    }
-
-    return send_reply(conn_socket, err, json_response.dump());
+    static auto instance = flecs_api_t{};
+    return instance;
 }
 
 } // namespace FLECS

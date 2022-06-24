@@ -38,22 +38,6 @@ protected:
 private:
     void do_init() override;
 
-    /*! Endpoints - parse arguments and forward to implementation */
-    http_status_e install(const json_t& args, json_t& response);
-    http_status_e sideload(const json_t& args, json_t& response);
-    http_status_e uninstall(const json_t& args, json_t& response);
-    http_status_e create_instance(const json_t& args, json_t& response);
-    http_status_e delete_instance(const json_t& args, json_t& response);
-    http_status_e start_instance(const json_t& args, json_t& response);
-    http_status_e stop_instance(const json_t& args, json_t& response);
-    http_status_e instance_details(const json_t& args, json_t& response);
-    http_status_e instance_log(const json_t& args, json_t& response);
-    http_status_e list_apps(const json_t& args, json_t& response);
-    http_status_e list_versions(const json_t& args, json_t& response);
-    http_status_e list_instances(const json_t& args, json_t& response);
-    http_status_e post_config_instance(const json_t& args, json_t& response);
-    http_status_e put_config_instance(const json_t& args, json_t& response);
-
     std::unique_ptr<Private::module_app_manager_private_t> _impl;
 };
 
