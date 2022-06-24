@@ -51,8 +51,6 @@ struct netif_t
 class module_system_t : public module_t
 {
 public:
-    http_status_e ping(const json_t& args, json_t& response);
-
     auto get_network_adapters() const -> std::map<std::string, netif_t>;
 
 protected:
@@ -60,7 +58,12 @@ protected:
 
     module_system_t();
 
+    auto ping(json_t& response) const //
+        -> crow::response;
+
 private:
+    auto do_init() //
+        -> void override;
 };
 
 } // namespace FLECS

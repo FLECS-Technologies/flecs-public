@@ -124,6 +124,7 @@ target_link_libraries(FLECS.external.cpr INTERFACE
 add_library(FLECS.external.crow INTERFACE)
 target_include_directories(FLECS.external.crow INTERFACE
     ${CROW_DIR}/include
+    ${Boost_INCLUDE_DIRS}
 )
 
 # gtest

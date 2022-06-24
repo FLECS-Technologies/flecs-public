@@ -24,7 +24,6 @@
 #include "db/app_db.h"
 #include "deployment/deployment_docker.h"
 #include "module_base/module.h"
-#include "util/http/status_codes.h"
 
 namespace FLECS {
 
@@ -66,7 +65,7 @@ public:
         const std::string& version,
         const std::string& license_key,
         json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Installs an app from its YAML manifest
      *
@@ -78,7 +77,7 @@ public:
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
     auto do_install(const std::filesystem::path& manifest, const std::string& license_key, json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Sideloads an app from its YAML manifest
      *
@@ -93,7 +92,7 @@ public:
      * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
      */
     auto do_sideload(const std::string& yaml, const std::string& license_key, json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Sideloads an app from its YAML manifest
      *
@@ -108,7 +107,7 @@ public:
      * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
      */
     auto do_sideload(const std::filesystem::path& manifest_path, const std::string& license_key, json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Uninstalls an application
      *
@@ -123,7 +122,7 @@ public:
      * @return FLECS_IOW: Error deleting manifest from disk
      */
     auto do_uninstall(const std::string& app_name, const std::string& version, json_t& response, bool force = false) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Creates a new instance of an installed app
      *
@@ -142,7 +141,7 @@ public:
         const std::string& version,
         const std::string& instance_name,
         json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Deletes an existing instance
      *
@@ -160,7 +159,7 @@ public:
         const std::string& app_name,
         const std::string& version,
         json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Starts an existing instance. If the instance is already running, no action is performed and the function
      * call is considered successful. app_name and version can be provided as additional arguments, in which case these
@@ -184,7 +183,7 @@ public:
         const std::string& version,
         json_t& response,
         bool internal = false) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Stops a running instance. If the instance is not running, no action is performed and the function call is
      * considered successful. app_name and version can be provided as additional arguments, in which case these
@@ -205,7 +204,7 @@ public:
         const std::string& version,
         json_t& response,
         bool internal = false) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Returns details of an app instance, such as IP address, hostname or exposed ports
      *
@@ -214,7 +213,7 @@ public:
      * @return error code
      */
     auto do_instance_details(const std::string& id, json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Returns logfile of an app instance
      *
@@ -223,7 +222,7 @@ public:
      * @return error code
      */
     auto do_instance_log(const std::string& id, json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Prints all installed apps and their instances in JSON format
      *
@@ -232,23 +231,23 @@ public:
      * @return FLECS_OK
      */
     auto do_list_apps(json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Prints all available versions for a given app. Not yet implemented
      */
     auto do_list_versions(const std::string& app_name, json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     /*! @brief Prints all available instances for a given app and version. Not yet implemented
      */
     auto do_list_instances(const std::string& app_name, const std::string& version, json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     auto do_post_config_instance(const std::string& instanceId, json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
     auto do_put_config_instance(const std::string& instanceId, const instance_config_t& config, json_t& response) //
-        -> http_status_e;
+        -> crow::status;
 
 private:
     /*! @brief Helper function to determine whether a given app is installed in a given version

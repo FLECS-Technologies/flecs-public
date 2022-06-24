@@ -32,7 +32,7 @@ auto module_app_manager_private_t::do_create_instance(
     const std::string& version,
     const std::string& instance_name,
     json_t& response) //
-    -> http_status_e
+    -> crow::status
 {
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
@@ -43,7 +43,7 @@ auto module_app_manager_private_t::do_create_instance(
     if (!is_app_installed(app_name, version))
     {
         response["additionalInfo"] = "Could not create instance of " + app_name + " (" + version + "): not installed";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // Step 2: Load app manifest
@@ -52,7 +52,7 @@ auto module_app_manager_private_t::do_create_instance(
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open manifest " + path.string();
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     // Step 3: Ensure there is only one instance of single-instance apps
@@ -72,7 +72,7 @@ auto module_app_manager_private_t::do_create_instance(
         {
             decltype(auto) instance = instances[0];
             response["instanceId"] = instance.id;
-            return http_status_e::Ok;
+            return crow::status::OK;
         }
     }
 
@@ -108,10 +108,10 @@ auto module_app_manager_private_t::do_create_instance(
     if (res != 0)
     {
         response["additionalInfo"] = "Failed to create instance";
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private

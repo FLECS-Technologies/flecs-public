@@ -22,9 +22,6 @@ namespace FLECS {
 class module_marketplace_t : public module_t
 {
 public:
-    http_status_e mp_login(const json_t& args, json_t& response);
-    http_status_e mp_logout(const json_t& args, json_t& response);
-
     auto& user() const noexcept { return _user; }
     auto& token() const noexcept { return _token; }
 
@@ -33,7 +30,15 @@ protected:
 
     module_marketplace_t();
 
+    auto login(std::string user, std::string token, json_t& response) //
+        -> crow::response;
+    auto logout(std::string_view user, json_t& response) //
+        -> crow::response;
+
 private:
+    auto do_init() //
+        -> void override;
+
     std::string _user;
     std::string _token;
 };

@@ -20,7 +20,8 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_list_apps(json_t& response)
+auto module_app_manager_private_t::do_list_apps(json_t& response) //
+    -> crow::status
 {
     response["appList"] = json_t::array();
 
@@ -51,7 +52,7 @@ http_status_e module_app_manager_private_t::do_list_apps(json_t& response)
         response["appList"].push_back(j);
     }
 
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private

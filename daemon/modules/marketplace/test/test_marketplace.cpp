@@ -19,6 +19,16 @@ class module_marketplace_test_t : public FLECS::module_marketplace_t
 {
 public:
     module_marketplace_test_t() = default;
+
+    auto login(std::string user, std::string token, FLECS::json_t& response)
+    {
+        return FLECS::module_marketplace_t::login(std::move(user), std::move(token), response);
+    }
+
+    auto logout(std::string_view user, FLECS::json_t& response)
+    {
+        return FLECS::module_marketplace_t::logout(std::move(user), response);
+    }
 };
 
 TEST(module_marketplace, login)
@@ -28,14 +38,11 @@ TEST(module_marketplace, login)
     const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
 
     auto mod = module_marketplace_test_t{};
-    auto request = FLECS::json_t{};
-    request["user"] = user;
-    request["token"] = token;
 
     auto response = FLECS::json_t{};
-    const auto res = mod.mp_login(request, response);
+    const auto res = mod.login(user, token, response);
 
-    ASSERT_EQ(res, FLECS::http_status_e::Ok);
+    ASSERT_EQ(res.code, crow::status::OK);
     ASSERT_EQ(response.dump(), out_expected);
     ASSERT_EQ(mod.user(), user);
     ASSERT_EQ(mod.token(), token);
@@ -48,18 +55,12 @@ TEST(module_marketplace, logout)
     const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
 
     auto mod = module_marketplace_test_t{};
-    auto login_request = FLECS::json_t{};
-    login_request["user"] = user;
-    login_request["token"] = token;
-
-    auto logout_request = FLECS::json_t{};
-    logout_request["user"] = user;
 
     auto response = FLECS::json_t{};
-    (void)mod.mp_login(login_request, response);
-    const auto res = mod.mp_logout(logout_request, response);
+    (void)mod.login(user, token, response);
+    const auto res = mod.logout(user, response);
 
-    ASSERT_EQ(res, FLECS::http_status_e::Ok);
+    ASSERT_EQ(res.code, crow::status::OK);
     ASSERT_EQ(response.dump(), out_expected);
     ASSERT_TRUE(mod.user().empty());
     ASSERT_TRUE(mod.token().empty());

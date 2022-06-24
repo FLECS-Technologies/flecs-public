@@ -28,7 +28,8 @@ protected:
     module_usage_t();
 
 private:
-    http_status_e print_usage(const json_t& args, json_t& response);
+    auto do_init() //
+        -> void override;
 };
 
 } // namespace FLECS

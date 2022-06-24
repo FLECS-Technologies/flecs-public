@@ -22,12 +22,17 @@ namespace FLECS {
 class module_version_t : public module_t
 {
 public:
-    http_status_e print_version(const json_t& args, json_t& response);
-
-protected:
     friend class module_factory_t;
 
+protected:
     module_version_t();
+
+    auto version(json_t& response) const //
+        -> crow::response;
+
+private:
+    auto do_init() //
+        -> void override;
 };
 
 } // namespace FLECS

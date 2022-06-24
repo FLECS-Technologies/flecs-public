@@ -11,7 +11,7 @@ COPY build-utils/docker/scripts/debian/install-packages.sh /tmp/
 
 RUN /tmp/install-packages.sh automake build-essential cmake/buster-backports gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf \
     g++-aarch64-linux-gnu g++-arm-linux-gnueabihf git libtool npm ca-certificates curl gnupg lsb-release gcovr \
-    pkg-config python3-pip python3-pybind11 libpython3.7-dev:armhf libpython3.7-dev:arm64 ninja-build
+    pkg-config python3-pip python3-pybind11 libpython3.7-dev:armhf libpython3.7-dev:arm64 ninja-build wget
 
 COPY scripts/setup-docker-repo.sh /tmp/
 
@@ -24,3 +24,5 @@ RUN /tmp/install-packages.sh docker-ce docker-ce-cli containerd.io
 RUN git clone https://git.yoctoproject.org/opkg-utils /opt/opkg-utils
 
 RUN find /opt/opkg-utils -maxdepth 1 -name "opkg-*" -executable -exec ln -s '{}' /usr/local/bin/ \;
+
+RUN wget -qO- https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz | tar -C /opt -xz

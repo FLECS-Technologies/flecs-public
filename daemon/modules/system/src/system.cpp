@@ -36,16 +36,23 @@ register_module_t<module_system_t> _reg("system");
 }
 
 module_system_t::module_system_t()
-{
-    using namespace std::placeholders;
+{}
 
-    api::register_endpoint("/system/ping", HTTP_GET, std::bind(&module_system_t::ping, this, _1, _2));
+auto module_system_t::do_init() //
+    -> void
+{
+    FLECS_ROUTE("/system/ping").methods("GET"_method)([=]() {
+        auto response = json_t{};
+        return ping(response);
+    });
 }
 
-http_status_e module_system_t::ping(const json_t & /*args*/, json_t &response)
+auto module_system_t::ping(json_t &response) const //
+    -> crow::response
 {
     response["additionalInfo"] = "OK";
-    return http_status_e::Ok;
+
+    return crow::response{crow::status::OK, response.dump()};
 }
 
 auto module_system_t::get_network_adapters() const -> std::map<std::string, netif_t>

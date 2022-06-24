@@ -15,11 +15,9 @@
 #ifndef D409ED4F_76EC_4E01_B2EB_9DCBCF588B5E
 #define D409ED4F_76EC_4E01_B2EB_9DCBCF588B5E
 
-#include <memory>
+#include <crow.h>
 
-#include "util/http/status_codes.h"
-#include "util/socket/tcp_server.h"
-#include "util/socket/unix_server.h"
+#define FLECS_ROUTE(url) CROW_ROUTE(FLECS::flecs_api_t::instance().app(), url)
 
 namespace FLECS {
 
@@ -28,32 +26,26 @@ namespace FLECS {
 class flecs_api_t
 {
 public:
-    /*! @brief Default constructor. Initializes TCP server for API requests on Port 8951.
-     */
-    flecs_api_t();
+    static auto instance() noexcept //
+        -> flecs_api_t&;
 
-    ~flecs_api_t();
+    auto app() noexcept //
+        -> crow::SimpleApp&
+    {
+        return _app;
+    }
 
-    /*! @brief Cyclically accepts pending connections and processes a single command
-     */
-    int run();
+    auto app() const noexcept //
+        -> const crow::SimpleApp&
+    {
+        return _app;
+    }
 
 private:
-    /*! @brief Processes a single command read from a connected client.
-     *
-     * Receives up to 128kiB of data from the connected socket, parses the request and passes it to the desired
-     * endpoint, if available.
-     *
-     * @return HTTP status code
-     *      200: OK - endpoint was found and handled command successfully
-     *      400: Bad Request - no or invalid data was received
-     *      500: Internal Server Error - an error occurred while the endpoint processed the request
-     *      501: Not Implemented - requested endpoint is not available
-     */
-    void process(socket_t& conn_socket);
+    flecs_api_t();
+    ~flecs_api_t();
 
-    tcp_server_t _tcp_server;
-    unix_server_t _unix_server;
+    crow::SimpleApp _app;
 };
 
 } // namespace FLECS

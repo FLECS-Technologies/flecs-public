@@ -23,8 +23,12 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_uninstall(
-    const std::string& app_name, const std::string& version, json_t& response, bool force)
+auto module_app_manager_private_t::do_uninstall(
+    const std::string& app_name,
+    const std::string& version,
+    json_t& response,
+    bool force) //
+    -> crow::status
 {
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
@@ -34,7 +38,7 @@ http_status_e module_app_manager_private_t::do_uninstall(
     if (!is_app_installed(app_name, version))
     {
         response["additionalInfo"] = "Could not uninstall " + app_name + " (" + version + "): not installed";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // Step 2: Load app manifest
@@ -50,14 +54,14 @@ http_status_e module_app_manager_private_t::do_uninstall(
         _app_db.persist();
 
         response["additionalInfo"] = "Could not open manifest " + path.string();
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     // Step 2a: Prevent removal of system apps
     if (cxx20::contains(app.category(), "system") && !force)
     {
         response["additionalInfo"] = "Not removing system app " + app.app() + "(" + app.version() + ")";
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     // Step 3: Stop and delete all instances of the app
@@ -100,7 +104,7 @@ http_status_e module_app_manager_private_t::do_uninstall(
             version.c_str());
     }
 
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private

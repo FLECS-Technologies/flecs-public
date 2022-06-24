@@ -27,7 +27,7 @@ auto module_app_manager_private_t::do_start_instance(
     const std::string& version,
     json_t& response,
     bool internal) //
-    -> http_status_e
+    -> crow::status
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
@@ -39,13 +39,13 @@ auto module_app_manager_private_t::do_start_instance(
     if (!_app_db.has_instance({instance_id}))
     {
         response["additionalInfo"] = "Could not start instance " + instance_id + ", which does not exist";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     if (!is_instance_runnable(instance_id))
     {
         response["additionalInfo"] = "Could not start instance " + instance_id + ", which is not fully created";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // get instance details from database
@@ -59,14 +59,14 @@ auto module_app_manager_private_t::do_start_instance(
     if (xcheck < 0)
     {
         response["additionalInfo"] = "Could not start instance: instance/app mismatch";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // Step 3: Return if instance is already running
     if (is_instance_running(instance_id))
     {
         response["additionalInfo"] = "Instance " + instance_id + " already running";
-        return http_status_e::Ok;
+        return crow::status::OK;
     }
 
     // Step 3: Persist desired status into db, if triggered externally
@@ -83,14 +83,14 @@ auto module_app_manager_private_t::do_start_instance(
     if (!app.yaml_loaded())
     {
         response["additionalInfo"] = "Could not open manifest " + path.string();
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     // Final step: Forward to deployment
     const auto [res, additional_info] = _deployment->start_instance(instance_id);
 
     response["additionalInfo"] = additional_info;
-    return (res == 0) ? http_status_e::Ok : http_status_e::InternalServerError;
+    return (res == 0) ? crow::status::OK : crow::status::INTERNAL_SERVER_ERROR;
 }
 
 } // namespace Private

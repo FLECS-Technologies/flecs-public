@@ -28,13 +28,18 @@ target_include_directories(
     FLECS.daemon.api PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(FLECS.daemon.api PRIVATE
-    FLECS.daemon.api.endpoints
-    FLECS.external.json
-    FLECS.util.llhttp_ext
+target_link_libraries(FLECS.daemon.api PUBLIC
+    FLECS.external.crow
 )
 
-add_subdirectory(endpoints)
+target_link_libraries(FLECS.daemon.api PRIVATE
+    FLECS.external.json
+)
+
+target_compile_options(FLECS.daemon.api PUBLIC
+    -Wno-type-limits
+)
+
 add_subdirectory(lib)
 
 add_subdirectory(test)

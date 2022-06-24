@@ -15,7 +15,7 @@
 #ifndef DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B
 #define DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B
 
-#include "endpoints/endpoints.h"
+#include "api/api.h"
 #include "util/http/status_codes.h"
 #include "util/json/json.h"
 
@@ -26,7 +26,7 @@ namespace FLECS {
     if (!json.contains(#val))                                                                \
     {                                                                                        \
         response["additionalInfo"] = std::string{"Missing field "} + #val + " in request";   \
-        return http_status_e::BadRequest;                                                    \
+        return crow::response{crow::status::BAD_REQUEST, response.dump()};                   \
     }                                                                                        \
     auto val = type{};                                                                       \
     try                                                                                      \
@@ -36,7 +36,7 @@ namespace FLECS {
     catch (const nlohmann::detail::exception& ex)                                            \
     {                                                                                        \
         response["additionalInfo"] = std::string{"Malformed field "} + #val + " in request"; \
-        return http_status_e::BadRequest;                                                    \
+        return crow::response{crow::status::BAD_REQUEST, response.dump()};                   \
     }
 
 #define REQUIRED_JSON_VALUE(json, val) REQUIRED_TYPED_JSON_VALUE(json, val, std::string)
@@ -50,7 +50,8 @@ namespace FLECS {
             val = json[#val].get<std::string>();      \
         }                                             \
         catch (const nlohmann::detail::exception& ex) \
-        {}                                            \
+        {                                             \
+        }                                             \
     }
 
 #define OPTIONAL_JSON_VALUE(json, val) OPTIONAL_TYPED_JSON_VALUE(json, val, std::string)
@@ -61,11 +62,13 @@ class module_t
 public:
     virtual ~module_t() = default;
 
-    void init();
+    auto init() -> //
+        void;
     // std::string usage();
 
 private:
-    virtual void do_init(){};
+    virtual auto do_init() //
+        -> void = 0;
     // virtual std::string do_usage() = 0;
 };
 

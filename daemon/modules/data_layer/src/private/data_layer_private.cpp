@@ -25,7 +25,8 @@ module_data_layer_private_t::module_data_layer_private_t()
 module_data_layer_private_t::~module_data_layer_private_t()
 {}
 
-http_status_e module_data_layer_private_t::do_browse(const std::string& path, json_t& response)
+auto module_data_layer_private_t::do_browse(std::string_view path, json_t& response) //
+    -> crow::status
 {
     response["additionalInfo"] = "";
 
@@ -34,7 +35,7 @@ http_status_e module_data_layer_private_t::do_browse(const std::string& path, js
     if (std::get<0>(res) != 0)
     {
         response["additionalInfo"] = "Could not get data from client";
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     decltype(auto) vars = std::get<1>(res);
@@ -51,7 +52,7 @@ http_status_e module_data_layer_private_t::do_browse(const std::string& path, js
         response["data"].push_back(data);
     }
 
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private

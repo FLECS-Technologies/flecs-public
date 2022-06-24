@@ -21,7 +21,8 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_instance_details(const std::string& id, json_t& response)
+auto module_app_manager_private_t::do_instance_details(const std::string& id, json_t& response) //
+    -> crow::status
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
@@ -31,7 +32,7 @@ http_status_e module_app_manager_private_t::do_instance_details(const std::strin
     if (!_app_db.has_instance({id}))
     {
         response["additionalInfo"] = "Could not query details of instance " + id + ", which does not exist";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // Step 2: Obtain instance and corresponsing app
@@ -80,7 +81,7 @@ http_status_e module_app_manager_private_t::do_instance_details(const std::strin
         }
     }
 
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private

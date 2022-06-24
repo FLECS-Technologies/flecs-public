@@ -23,15 +23,15 @@ register_module_t<module_help_t> _reg("help");
 }
 
 module_help_t::module_help_t()
-{
-    using namespace std::placeholders;
+{}
 
-    api::register_endpoint("/help", HTTP_GET, std::bind(&module_help_t::print_help, this, _1));
-}
-
-http_status_e module_help_t::print_help(const json_t& /*args*/)
+auto module_help_t::do_init() //
+    -> void
 {
-    return http_status_e::Ok;
+    FLECS_ROUTE("/help").methods("GET"_method)([]() {
+        const auto status = crow::status::OK;
+        return crow::response{status, ""};
+    });
 }
 
 } // namespace FLECS

@@ -20,6 +20,8 @@ class module_version_test_t : public FLECS::module_version_t
 {
 public:
     module_version_test_t() = default;
+
+    auto version(FLECS::json_t& response) const { return FLECS::module_version_t::version(response); }
 };
 
 TEST(module_version, print_version)
@@ -28,10 +30,10 @@ TEST(module_version, print_version)
 
     auto mod = module_version_test_t{};
     auto response = FLECS::json_t{};
-    const auto res = mod.print_version(FLECS::json_t{}, response);
+    const auto res = mod.version(response);
 
     response.dump();
 
-    ASSERT_EQ(res, FLECS::http_status_e::Ok);
+    ASSERT_EQ(res.code, crow::status::OK);
     ASSERT_EQ(response.dump(), out_expected);
 }

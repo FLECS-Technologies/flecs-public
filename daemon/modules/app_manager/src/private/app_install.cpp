@@ -111,7 +111,7 @@ auto module_app_manager_private_t::do_install(
     const std::string& version,
     const std::string& license_key,
     json_t& response) //
-    -> http_status_e
+    -> crow::status
 {
     response["app"] = app_name;
     response["version"] = version;
@@ -121,7 +121,7 @@ auto module_app_manager_private_t::do_install(
     if (res != 0)
     {
         response["additionalInfo"] = "Could not download manifest for " + app_name + " (" + version + ")";
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     };
 
     return do_install(build_manifest_path(app_name, version), license_key, response);
@@ -131,7 +131,7 @@ auto module_app_manager_private_t::do_install(
     const std::filesystem::path& manifest_path,
     const std::string& license_key,
     json_t& response) //
-    -> http_status_e
+    -> crow::status
 {
     const auto desired = INSTALLED;
 
@@ -140,7 +140,7 @@ auto module_app_manager_private_t::do_install(
     if (tmp.app().empty())
     {
         response["additionalInfo"] = "Could not open app manifest " + manifest_path.string();
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     response["additionalInfo"] = std::string{};
@@ -210,7 +210,7 @@ auto module_app_manager_private_t::do_install(
             {
                 response["additionalInfo"] = docker_login_process.stderr();
                 _app_db.persist();
-                return http_status_e::InternalServerError;
+                return crow::status::INTERNAL_SERVER_ERROR;
             }
 
             auto pull_attempts = 3;
@@ -232,7 +232,7 @@ auto module_app_manager_private_t::do_install(
             {
                 response["additionalInfo"] = docker_pull_process.stderr();
                 _app_db.persist();
-                return http_status_e::InternalServerError;
+                return crow::status::INTERNAL_SERVER_ERROR;
             }
             app.status(IMAGE_DOWNLOADED);
             _app_db.insert_app(app);
@@ -269,7 +269,7 @@ auto module_app_manager_private_t::do_install(
     // Final step: Persist successful installation into db
     _app_db.persist();
 
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private

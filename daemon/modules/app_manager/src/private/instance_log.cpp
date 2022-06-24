@@ -21,7 +21,8 @@
 namespace FLECS {
 namespace Private {
 
-http_status_e module_app_manager_private_t::do_instance_log(const std::string& id, json_t& response)
+auto module_app_manager_private_t::do_instance_log(const std::string& id, json_t& response) //
+    -> crow::status
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
@@ -31,7 +32,7 @@ http_status_e module_app_manager_private_t::do_instance_log(const std::string& i
     if (!_app_db.has_instance({id}))
     {
         response["additionalInfo"] = "Could not query details of instance " + id + ", which does not exist";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // Step 2: Obtain log from Docker
@@ -43,12 +44,12 @@ http_status_e module_app_manager_private_t::do_instance_log(const std::string& i
     if (docker_process.exit_code() != 0)
     {
         response["additionalInfo"] = "Could not get logs for instance " + id;
-        return http_status_e::InternalServerError;
+        return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     response["log"] = "--- stdout\n" + docker_process.stdout() + "\n--- stderr\n" + docker_process.stderr();
 
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private

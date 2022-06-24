@@ -23,36 +23,48 @@ register_module_t<module_marketplace_t> _reg("mp");
 }
 
 module_marketplace_t::module_marketplace_t()
-{
-    using namespace std::placeholders;
+{}
 
-    api::register_endpoint("/marketplace/login", HTTP_POST, std::bind(&module_marketplace_t::mp_login, this, _1, _2));
-    api::register_endpoint("/marketplace/logout", HTTP_POST, std::bind(&module_marketplace_t::mp_logout, this, _1, _2));
+auto module_marketplace_t::do_init() //
+    -> void
+{
+    FLECS_ROUTE("/marketplace/login").methods("POST"_method)([=](const crow::request& req) {
+        auto response = json_t{};
+        const auto args = parse_json(req.body);
+        REQUIRED_JSON_VALUE(args, user);
+        REQUIRED_JSON_VALUE(args, token);
+
+        return login(user, token, response);
+    });
+
+    FLECS_ROUTE("/marketplace/logout").methods("POST"_method)([=](const crow::request& req) {
+        auto response = json_t{};
+        const auto args = parse_json(req.body);
+        OPTIONAL_JSON_VALUE(args, user);
+
+        return logout(user, response);
+    });
 }
 
-http_status_e module_marketplace_t::mp_login(const json_t& args, json_t& response)
+auto module_marketplace_t::login(std::string user, std::string token, json_t& response) //
+    -> crow::response
 {
-    REQUIRED_JSON_VALUE(args, user);
-    REQUIRED_JSON_VALUE(args, token);
-
     _user = user;
     _token = token;
 
     response["additionalInfo"] = "OK";
-
-    return http_status_e::Ok;
+    return crow::response{crow::status::OK, response.dump()};
 }
 
-http_status_e module_marketplace_t::mp_logout(const json_t& args, json_t& response)
+auto module_marketplace_t::logout(std::string_view /*user*/, json_t& response) //
+    -> crow::response
 {
-    OPTIONAL_JSON_VALUE(args, user);
-
     _user.clear();
     _token.clear();
 
     response["additionalInfo"] = "OK";
 
-    return http_status_e::Ok;
+    return crow::response{crow::status::OK, response.dump()};
 }
 
 } // namespace FLECS

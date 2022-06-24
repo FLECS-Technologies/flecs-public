@@ -12,26 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef AFCCCBEF_238B_4510_B85C_E967FD439F4B
-#define AFCCCBEF_238B_4510_B85C_E967FD439F4B
-
-#include <thread>
-
 #include "api/api.h"
+#include "factory/factory.h"
 
-namespace FLECS {
-
-class daemon_t
+int main(int /*argc*/, char** /*argv*/)
 {
-public:
-    daemon_t();
-    int detach();
+    FLECS::api::init_modules();
+    FLECS::flecs_api_t::instance().app().multithreaded().port(8951).run();
 
-private:
-    flecs_api_t _api;
-    std::thread _api_thread;
-};
-
-} // namespace FLECS
-
-#endif // AFCCCBEF_238B_4510_B85C_E967FD439F4B
+    return 0;
+}

@@ -26,7 +26,7 @@ auto module_app_manager_private_t::do_delete_instance(
     const std::string& app_name,
     const std::string& version,
     json_t& response) //
-    -> http_status_e
+    -> crow::status
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
@@ -38,7 +38,7 @@ auto module_app_manager_private_t::do_delete_instance(
     if (!_app_db.has_instance({instance_id}))
     {
         response["additionalInfo"] = "Could not delete instance " + instance_id + ", which does not exist";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // Step 2: Do some cross-checks if app_name and version are provided
@@ -52,13 +52,13 @@ auto module_app_manager_private_t::do_delete_instance(
     if (xcheck < 0)
     {
         response["additionalInfo"] = "Could not delete instance: instance/app mismatch";
-        return http_status_e::BadRequest;
+        return crow::status::BAD_REQUEST;
     }
 
     // Step 3: Attempt to stop instance
     const auto res = do_stop_instance(instance_id, app_name, version, response, true);
 
-    if (res != http_status_e::Ok)
+    if (res != crow::status::OK)
     {
         std::fprintf(stderr, "Could not stop instance %s: %d\n", instance_id.c_str(), static_cast<int>(res));
     }
@@ -113,7 +113,7 @@ auto module_app_manager_private_t::do_delete_instance(
     _app_db.delete_instance({instance_id});
     _app_db.persist();
 
-    return http_status_e::Ok;
+    return crow::status::OK;
 }
 
 } // namespace Private
