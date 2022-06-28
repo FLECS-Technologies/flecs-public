@@ -89,10 +89,10 @@ bool conffile_t::is_valid() const noexcept
 void to_json(json_t& j, const conffile_t& conffile)
 {
     j = json_t{
-        {"local", conffile._local},
         {"container", conffile._container},
-        {"ro", conffile._ro},
         {"init", conffile._init},
+        {"local", conffile._local},
+        {"ro", conffile._ro},
     };
 }
 

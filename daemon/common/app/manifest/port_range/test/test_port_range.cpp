@@ -176,3 +176,14 @@ TEST(port_range, port_range_invalid)
     ASSERT_FALSE(mapped_range2.is_valid());
     ASSERT_FALSE(mapped_range3.is_valid());
 }
+
+TEST(port_range, to_json)
+{
+    const auto mapped_range_1 = FLECS::mapped_port_range_t{"8000-8005:10000-10005"};
+
+    const auto json = FLECS::json_t(mapped_range_1);
+    const auto json_expected = R"({"container":"10000-10005","host":"8000-8005"})";
+
+    ASSERT_TRUE(mapped_range_1.is_valid());
+    ASSERT_EQ(json.dump(), json_expected);
+}
