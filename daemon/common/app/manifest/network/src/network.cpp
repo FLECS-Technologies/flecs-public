@@ -21,10 +21,7 @@
 namespace FLECS {
 
 network_t::network_t()
-    : _name{}
-    , _parent{}
-    , _mac_address{}
-    , _type{network_type_t::BRIDGE}
+    : network_t{""}
 {}
 
 network_t::network_t(std::string_view str)
@@ -61,7 +58,7 @@ network_t::network_t(std::string_view str)
             _parent = m[1];
         }
     }
-    else
+    else if (!str.empty())
     {
         _type = network_type_t::BRIDGE;
     }

@@ -12,28 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME FLECS.daemon.common.app.manifest.network)
+if(BUILD_TESTING)
+    project(FLECS.daemon.app.network.test)
 
-project(${PROJECT_NAME})
+    add_executable(FLECS.daemon.app.network.test
+        test_network.cpp
+    )
 
-add_library(
-    ${PROJECT_NAME} STATIC
-    src/network.cpp
-    network.h
-)
+    set_target_properties(FLECS.daemon.app.network.test PROPERTIES OUTPUT_NAME test_network)
 
-target_include_directories(
-    ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
+    target_link_libraries(FLECS.daemon.app.network.test PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.daemon.common.app.manifest.network
+    )
 
-target_include_directories(
-    ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(
-    ${PROJECT_NAME} PUBLIC
-    FLECS.daemon.common.deployment
-    FLECS.external.json
-)
-
-add_subdirectory(test)
+    add_test(NAME FLECS.daemon.app.network.test COMMAND FLECS.daemon.app.network.test)
+endif()
