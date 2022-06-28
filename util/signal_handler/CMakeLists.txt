@@ -22,3 +22,5 @@ add_library(FLECS.util.signal_handler OBJECT
 target_include_directories(FLECS.util.signal_handler PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+add_subdirectory(test)
