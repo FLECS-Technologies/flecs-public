@@ -26,7 +26,6 @@ if (BUILD_TESTING)
         FLECS.external.gtest_main
         FLECS.external.json
         FLECS.daemon.lib
-        FLECS.util.llhttp_ext
     )
 
     add_test(NAME FLECS.daemon.api.lib.test COMMAND FLECS.daemon.api.lib.test)

@@ -16,7 +16,6 @@
 #define DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B
 
 #include "api/api.h"
-#include "util/http/status_codes.h"
 #include "util/json/json.h"
 
 namespace FLECS {

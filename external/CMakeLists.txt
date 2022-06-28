@@ -20,7 +20,6 @@ set (CPR_DIR       ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.8.3)
 set (CROW_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/crow-1.0+3)
 set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
 set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
-set (LLHTTP_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/llhttp-v6.0.6)
 set (MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.14)
 set (OPENSSL_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1o)
 set (PYBIND11_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.9.1)
@@ -48,15 +47,6 @@ add_custom_target(
     COMMAND ./configure --prefix=${LIBSODIUM_DIR}/out/${ARCH} --host=${CROSS_COMPILE}
     COMMAND ${CMAKE_MAKE_PROGRAM} install
     COMMAND ${CMAKE_MAKE_PROGRAM} clean
-)
-
-# llhttp
-add_custom_target(
-    FLECS.external.llhttp.build
-    WORKING_DIRECTORY ${LLHTTP_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
-    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
-    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
 
 # mosquitto
@@ -148,11 +138,6 @@ set_property(TARGET FLECS.external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES 
 add_library(FLECS.external.libsodium STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.libsodium PROPERTY IMPORTED_LOCATION ${LIBSODIUM_DIR}/out/${ARCH}/lib/libsodium.a)
 set_property(TARGET FLECS.external.libsodium PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LIBSODIUM_DIR}/out/${ARCH}/include)
-
-# llhttp
-add_library(FLECS.external.llhttp STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.llhttp PROPERTY IMPORTED_LOCATION ${LLHTTP_DIR}/out/${ARCH}/lib/libllhttp.a)
-set_property(TARGET FLECS.external.llhttp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LLHTTP_DIR}/include)
 
 # mosquitto
 add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)

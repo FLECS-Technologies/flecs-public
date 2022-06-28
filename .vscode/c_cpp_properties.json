@@ -8,7 +8,6 @@
                 "${workspaceFolder}/external/cpr-1.8.3/out/amd64/include",
                 "${workspaceFolder}/external/crow-1.0+3/include",
                 "${workspaceFolder}/external/gtest-1.11.0",
-                "${workspaceFolder}/external/llhttp-v6.0.6/out/amd64/include",
                 "${workspaceFolder}/external/mosquitto-2.0.14/out/amd64/include",
                 "${workspaceFolder}/external/openssl-1.1.1o/out/amd64/include",
                 "${workspaceFolder}/external/sqlite-3.38.5",

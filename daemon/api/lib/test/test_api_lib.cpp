@@ -24,7 +24,6 @@
 #include "gtest/gtest.h"
 #include "libflecs.h"
 #include "util/json/json.h"
-#include "util/llhttp_ext/llhttp_ext.h"
 #include "util/socket/tcp_server.h"
 #include "util/socket/unix_server.h"
 
