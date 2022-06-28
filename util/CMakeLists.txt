@@ -14,7 +14,6 @@
 
 add_subdirectory(cxx20)
 add_subdirectory(datetime)
-add_subdirectory(llhttp_ext)
 add_subdirectory(network)
 add_subdirectory(process)
 add_subdirectory(signal_handler)
