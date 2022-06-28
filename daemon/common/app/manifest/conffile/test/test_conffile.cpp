@@ -159,3 +159,14 @@ TEST(conffile, invalid_properties_3)
     ASSERT_TRUE(conffile.ro());
     ASSERT_FALSE(conffile.init());
 }
+
+TEST(conffile, to_json)
+{
+    const auto conffile = FLECS::conffile_t{std::string{"file.cfg:/etc/file.cfg:rw,init"}};
+
+    const auto json = FLECS::json_t(conffile);
+    const auto json_expected = R"({"container":"/etc/file.cfg","init":true,"local":"file.cfg","ro":false})";
+
+    ASSERT_TRUE(conffile.is_valid());
+    ASSERT_EQ(json.dump(), json_expected);
+}

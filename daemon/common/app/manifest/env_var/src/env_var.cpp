@@ -48,7 +48,7 @@ mapped_env_var_t::mapped_env_var_t(const std::string& str)
 
 void to_json(json_t& j, const mapped_env_var_t& mapped_env_var)
 {
-    j = json_t{{"var", mapped_env_var._env_var.var()}, {"value", mapped_env_var._value}};
+    j = json_t{{"value", mapped_env_var._value}, {"var", mapped_env_var._env_var.var()}};
 }
 
 } // namespace FLECS

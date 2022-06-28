@@ -12,26 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME FLECS.daemon.common.app.manifest.startup_option)
+if(BUILD_TESTING)
+    project(FLECS.daemon.app.startup_option.test)
 
-project(${PROJECT_NAME})
+    add_executable(FLECS.daemon.app.startup_option.test
+        test_startup_option.cpp
+    )
 
-add_library(
-    ${PROJECT_NAME} OBJECT
-    src/startup_option.cpp
-    startup_option.h
-)
+    set_target_properties(FLECS.daemon.app.startup_option.test PROPERTIES OUTPUT_NAME test_daemon_app_startup_option)
 
-target_include_directories(
-    ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
+    target_link_libraries(FLECS.daemon.app.startup_option.test PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        FLECS.daemon.common.app.manifest.startup_option
+    )
 
-target_include_directories(
-    ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(
-    ${PROJECT_NAME} PUBLIC FLECS.external.json
-)
-
-add_subdirectory(test)
+    add_test(NAME FLECS.daemon.app.startup_option.test COMMAND FLECS.daemon.app.startup_option.test)
+endif()

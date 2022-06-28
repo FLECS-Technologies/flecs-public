@@ -104,8 +104,9 @@ mapped_port_range_t::mapped_port_range_t(const std::string& map_str)
 void to_json(json_t& j, const mapped_port_range_t& mapped_port_range)
 {
     j = json_t{
+        {"container", stringify(mapped_port_range.container_port_range())},
         {"host", stringify(mapped_port_range.host_port_range())},
-        {"container", stringify(mapped_port_range.container_port_range())}};
+    };
 }
 
 } // namespace FLECS

@@ -17,6 +17,8 @@
 #include "daemon/common/app/manifest/env_var/env_var.h"
 #include "util/string/string_utils.h"
 
+using std::operator""s;
+
 TEST(env_var, valid)
 {
     auto env_var1 = FLECS::env_var_t{"VALID_ENV_VAR1"};
@@ -43,10 +45,10 @@ TEST(env_var, invalid)
 
 TEST(env_var, mapped_valid)
 {
-    auto mapped_env_var1 = FLECS::mapped_env_var_t(std::string{"VALID_ENV_VAR"}, "VALUE");
-    auto mapped_env_var2 = FLECS::mapped_env_var_t(std::string{"VALID_ENV_VAR"}, "VALUE");
-    auto mapped_env_var3 = FLECS::mapped_env_var_t(std::string{"VALID_ENV_VAR"}, "ANOTHER_VALUE");
-    auto another_mapped_env_var1 = FLECS::mapped_env_var_t(std::string{"ANOTHER_VALID_ENV_VAR"}, "VALUE");
+    auto mapped_env_var1 = FLECS::mapped_env_var_t("VALID_ENV_VAR"s, "VALUE"s);
+    auto mapped_env_var2 = FLECS::mapped_env_var_t("VALID_ENV_VAR"s, "VALUE"s);
+    auto mapped_env_var3 = FLECS::mapped_env_var_t("VALID_ENV_VAR"s, "ANOTHER_VALUE"s);
+    auto another_mapped_env_var1 = FLECS::mapped_env_var_t("ANOTHER_VALID_ENV_VAR"s, "VALUE"s);
 
     ASSERT_TRUE(mapped_env_var1.is_valid());
     ASSERT_EQ(FLECS::stringify(mapped_env_var1), "VALID_ENV_VAR=VALUE");
@@ -55,10 +57,29 @@ TEST(env_var, mapped_valid)
     ASSERT_NE(mapped_env_var1, another_mapped_env_var1);
 }
 
-TEST(env_var, mapped_invalid)
+TEST(env_var, mapped_invalid_1)
 {
-    auto mapped_env_var1 = FLECS::mapped_env_var_t{std::string{"_INVALID ENV_VAR"}, "val"};
+    auto mapped_env_var1 = FLECS::mapped_env_var_t{"_INVALID ENV_VAR"s, "val"s};
 
     ASSERT_FALSE(mapped_env_var1.is_valid());
     ASSERT_EQ(FLECS::stringify(mapped_env_var1), "");
+}
+
+TEST(env_var, mapped_invalid_2)
+{
+    auto mapped_env_var1 = FLECS::mapped_env_var_t{"_INVALID ENV_VAR"s};
+
+    ASSERT_FALSE(mapped_env_var1.is_valid());
+    ASSERT_EQ(FLECS::stringify(mapped_env_var1), "");
+}
+
+TEST(env_var, to_json)
+{
+    const auto mapped_env_var_1 = FLECS::mapped_env_var_t{"ENV_VAR"s, "VALUE"s};
+
+    const auto json = FLECS::json_t(mapped_env_var_1);
+    const auto json_expected = R"({"value":"VALUE","var":"ENV_VAR"})";
+
+    ASSERT_TRUE(mapped_env_var_1.is_valid());
+    ASSERT_EQ(json.dump(), json_expected);
 }
