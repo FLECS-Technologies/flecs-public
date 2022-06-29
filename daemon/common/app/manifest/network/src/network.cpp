@@ -118,10 +118,15 @@ auto network_t::is_valid() const noexcept //
     return !(_type == network_type_t::NONE);
 }
 
-auto to_json(json_t& j, const network_t& /*network*/) //
+auto to_json(json_t& j, const network_t& network) //
     -> void
 {
-    j = json_t{};
+    j = json_t{
+        {"mac_address", network.mac_address()},
+        {"name", network.name()},
+        {"parent", network.parent()},
+        {"type", to_string(network.type())},
+    };
 }
 
 } // namespace FLECS
