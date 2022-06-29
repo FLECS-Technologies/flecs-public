@@ -22,6 +22,7 @@ if (BUILD_TESTING)
     set_target_properties(FLECS.daemon.api.lib.test PROPERTIES OUTPUT_NAME test_api_lib)
 
     target_link_libraries(FLECS.daemon.api.lib.test PRIVATE
+        FLECS.external.crow
         FLECS.external.gtest
         FLECS.external.gtest_main
         FLECS.external.json

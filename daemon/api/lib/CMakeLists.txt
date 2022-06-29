@@ -33,4 +33,4 @@ target_link_libraries(FLECS.daemon.lib PRIVATE
     FLECS.external.json
 )
 
-# add_subdirectory(test)
+add_subdirectory(test)

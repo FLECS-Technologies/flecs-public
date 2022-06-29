@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+#include <crow.h>
 
 #include <filesystem>
 #include <sstream>
@@ -24,8 +21,6 @@
 #include "gtest/gtest.h"
 #include "libflecs.h"
 #include "util/json/json.h"
-#include "util/socket/tcp_server.h"
-#include "util/socket/unix_server.h"
 
 #define TEST_PORT 18951
 
@@ -34,75 +29,43 @@ class echo_server_t
 public:
     echo_server_t();
 
-    template <typename Socket>
-    void loop(FLECS::socket_t& socket);
+    auto stop() //
+        -> void;
 
 private:
-    FLECS::tcp_server_t _tcp_server;
-    FLECS::unix_server_t _unix_server;
+    std::thread _server_thread;
 };
 
-echo_server_t::echo_server_t()
-    : _tcp_server{TEST_PORT, inet_addr("127.0.0.1"), 1}
-    , _unix_server("flecs.socket", 1)
+static auto crow_app() //
+    -> crow::SimpleApp&
 {
-    if (!_tcp_server.is_running())
-    {
-        exit(1);
-    }
-
-    if (!_unix_server.is_running())
-    {
-        exit(1);
-    }
-    std::thread tcp_thread{&echo_server_t::loop<FLECS::tcp_socket_t>, this, std::ref(_tcp_server)};
-    std::thread unix_thread{&echo_server_t::loop<FLECS::unix_socket_t>, this, std::ref(_unix_server)};
-    tcp_thread.detach();
-    unix_thread.detach();
+    static auto app = crow::SimpleApp{};
+    return app;
 }
 
-template <typename Socket>
-void echo_server_t::loop(FLECS::socket_t& socket)
+echo_server_t::echo_server_t()
+    : _server_thread{}
 {
-    using FLECS::llhttp_ext_settings_init;
-    using FLECS::llhttp_ext_t;
-
-    auto shutdown = bool{};
-    const char* response_header = "HTTP/1.1 200 OK \r\n\r\n";
-
-    while (!shutdown)
-    {
-        auto conn_socket = static_cast<Socket>(socket.accept(nullptr, nullptr));
-
-        char buf[4096] = {};
-        auto bytes_rcv = conn_socket.recv(buf, 4096, 0);
-        if (strcmp(buf, "shutdown") == 0)
-        {
-            shutdown = true;
-            conn_socket.send(buf, bytes_rcv, 0);
-        }
-        else
-        {
-            auto llhttp_ext = llhttp_ext_t{};
-            auto llhttp_ext_settings = llhttp_settings_t{};
-            llhttp_ext_settings_init(&llhttp_ext_settings);
-            llhttp_init(&llhttp_ext, HTTP_REQUEST, &llhttp_ext_settings);
-            if (llhttp_execute(&llhttp_ext, buf, bytes_rcv) != HPE_OK)
+    _server_thread = std::thread{[]() {
+        CROW_CATCHALL_ROUTE(crow_app())
+        ([](const crow::request& req) {
+            auto response = crow::json::wvalue{};
+            if ((req.method == crow::HTTPMethod::POST) || (req.method == crow::HTTPMethod::PUT))
             {
-                exit(EXIT_FAILURE);
+                response = crow::json::load(req.body);
             }
-            auto json = FLECS::json_t{};
-            auto response = std::stringstream{};
-            response << response_header;
-            if (llhttp_ext.method == HTTP_POST || llhttp_ext.method == HTTP_PUT)
-            {
-                json = FLECS::parse_json(llhttp_ext._body);
-            }
-            json["endpoint"] = llhttp_ext._url;
-            response << json.dump();
-            conn_socket.send(response.str().c_str(), response.str().length(), 0);
-        }
-    }
+            response["endpoint"] = req.url;
+            return crow::response(crow::status::OK, response.dump());
+        });
+        crow_app().port(TEST_PORT).loglevel(crow::LogLevel::Critical).run();
+    }};
+}
+
+auto echo_server_t::stop() //
+    -> void
+{
+    crow_app().stop();
+    _server_thread.join();
 }
 
 static echo_server_t echo_server;
@@ -114,18 +77,7 @@ static const std::string instanceId{"56789abc"};
 
 void stop_test_server()
 {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-    auto addr = sockaddr_in{};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(TEST_PORT);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-    int connfd = connect(sockfd, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
-
-    const char* shutdown = "shutdown";
-
-    send(connfd, shutdown, strlen(shutdown), 0);
+    echo_server.stop();
 }
 
 TEST(api_lib, connect_tcp_success)
@@ -136,18 +88,7 @@ TEST(api_lib, connect_tcp_success)
 
     ASSERT_EQ(res, 0);
     ASSERT_EQ(response["endpoint"], "/system/ping");
-    ASSERT_EQ(lib.response_code(), static_cast<int>(FLECS::http_status_e::Ok));
-}
-
-TEST(api_lib, connect_unix_success)
-{
-    auto lib = FLECS::libflecs_t{};
-    const auto res = lib.connect("flecs.socket");
-    const auto response = FLECS::parse_json(lib.json_response());
-
-    ASSERT_EQ(res, 0);
-    ASSERT_EQ(response["endpoint"], "/system/ping");
-    ASSERT_EQ(lib.response_code(), static_cast<int>(FLECS::http_status_e::Ok));
+    ASSERT_EQ(lib.response_code(), crow::status::OK);
 }
 
 TEST(api_lib, connect_fail)
@@ -166,7 +107,7 @@ TEST(api_lib, connect_fail)
 TEST(api_lib, version)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto res = lib.version();
     const auto response = FLECS::parse_json(lib.json_response());
 
@@ -177,7 +118,7 @@ TEST(api_lib, version)
 TEST(api_lib, app_install)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto res = lib.install_app(app, version, licenseKey);
     const auto response = FLECS::parse_json(lib.json_response());
 
@@ -191,7 +132,7 @@ TEST(api_lib, app_install)
 TEST(api_lib, app_uninstall)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto res = lib.uninstall_app(app, version);
     const auto response = FLECS::parse_json(lib.json_response());
 
@@ -204,7 +145,7 @@ TEST(api_lib, app_uninstall)
 TEST(api_lib, app_sideload_file_success)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto app_manifest = "app: tech.flecs.sideloaded-app\r\ntitle: Sideloaded FLECS app\r\n";
     const auto filename = "test-manifest.yml";
 
@@ -224,8 +165,7 @@ TEST(api_lib, app_sideload_file_success)
 TEST(api_lib, app_sideload_string_success)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
-    // const auto app_manifest = "app: \"tech.flecs.sideloaded-app\"\r\ntitle: \"Sideloaded FLECS app\"\r\n";
+    (void)lib.connect("localhost", TEST_PORT);
     const auto app_manifest =
         "\"app\":\"ch.inasoft.sql4automation\",\"title\":\"SQL4AUTOMATION\",\"version\":\"v4.0.0.6\"";
 
@@ -243,7 +183,7 @@ TEST(api_lib, app_sideload_fail)
     testing::internal::CaptureStderr();
 
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto filename = "non-existent-manifest.yml";
 
     const auto res = lib.sideload_app_from_file(filename);
@@ -258,7 +198,7 @@ TEST(api_lib, app_sideload_fail)
 TEST(api_lib, app_list)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto res = lib.list_apps();
 
     const auto response = FLECS::parse_json(lib.json_response());
@@ -270,7 +210,7 @@ TEST(api_lib, app_list)
 TEST(api_lib, instance_create)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto res = lib.create_instance(app, version, instanceName);
 
     const auto response = FLECS::parse_json(lib.json_response());
@@ -285,7 +225,7 @@ TEST(api_lib, instance_create)
 TEST(api_lib, instance_start)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto res = lib.start_instance(instanceId, app, version);
 
     const auto response = FLECS::parse_json(lib.json_response());
@@ -300,7 +240,7 @@ TEST(api_lib, instance_start)
 TEST(api_lib, instance_stop)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto res = lib.stop_instance(instanceId, app, version);
 
     const auto response = FLECS::parse_json(lib.json_response());
@@ -315,7 +255,7 @@ TEST(api_lib, instance_stop)
 TEST(api_lib, delete_instance)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto res = lib.delete_instance(instanceId, app, version);
     const auto response = FLECS::parse_json(lib.json_response());
 
@@ -329,7 +269,7 @@ TEST(api_lib, delete_instance)
 TEST(api_lib, ping)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
     const auto res = lib.ping();
     const auto response = FLECS::parse_json(lib.json_response());
 
@@ -340,7 +280,7 @@ TEST(api_lib, ping)
 TEST(api_lib, cmdline_version)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     auto argc = 2;
     char* argv[] = {(char*)"flecs", (char*)"version", nullptr};
@@ -354,7 +294,7 @@ TEST(api_lib, cmdline_version)
 TEST(api_lib, cmdline_app_install)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     auto argc = 6;
     char* argv[] = {
@@ -379,7 +319,7 @@ TEST(api_lib, cmdline_app_install)
 TEST(api_lib, cmdline_app_uninstall)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     auto args = std::vector<std::string>{"uninstall", app, version};
     const auto res = lib.run_command("app-manager", args);
@@ -394,7 +334,7 @@ TEST(api_lib, cmdline_app_uninstall)
 TEST(api_lib, cmdline_app_sideload)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("flecs.socket");
+    (void)lib.connect("localhost", TEST_PORT);
     const auto app_manifest = "app: tech.flecs.sideloaded-app\r\ntitle: Sideloaded FLECS app\r\n";
     const auto filename = "test-manifest.yml";
 
@@ -414,7 +354,7 @@ TEST(api_lib, cmdline_app_sideload)
 TEST(api_lib, cmdline_app_list)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     const auto res = lib.run_command("app-manager", {"list-apps"});
     const auto response = FLECS::parse_json(lib.json_response());
@@ -426,7 +366,7 @@ TEST(api_lib, cmdline_app_list)
 TEST(api_lib, cmdline_instance_create)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     const auto res = lib.run_command("app-manager", {"create-instance", app, version, instanceName});
     const auto response = FLECS::parse_json(lib.json_response());
@@ -441,7 +381,7 @@ TEST(api_lib, cmdline_instance_create)
 TEST(api_lib, cmdline_instance_start)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     const auto res = lib.run_command("app-manager", {"start-instance", instanceId, app, version});
     const auto response = FLECS::parse_json(lib.json_response());
@@ -456,7 +396,7 @@ TEST(api_lib, cmdline_instance_start)
 TEST(api_lib, cmdline_instance_stop)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     const auto res = lib.run_command("app-manager", {"stop-instance", instanceId, app, version});
     const auto response = FLECS::parse_json(lib.json_response());
@@ -471,7 +411,7 @@ TEST(api_lib, cmdline_instance_stop)
 TEST(api_lib, cmdline_delete_instance)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("flecs.socket");
+    (void)lib.connect("localhost", TEST_PORT);
 
     const auto res = lib.run_command("app-manager", {"delete-instance", instanceId, app, version});
     const auto response = FLECS::parse_json(lib.json_response());
@@ -486,7 +426,7 @@ TEST(api_lib, cmdline_delete_instance)
 TEST(api_lib, cmdline_ping)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     const auto res = lib.run_command("system", {"ping"});
     const auto response = FLECS::parse_json(lib.json_response());
@@ -498,7 +438,7 @@ TEST(api_lib, cmdline_ping)
 TEST(api_lib, cmdline_unknown_1)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     const auto res = lib.run_command("unknown-command", {});
 
@@ -508,7 +448,7 @@ TEST(api_lib, cmdline_unknown_1)
 TEST(api_lib, cmdline_unknown_2)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     const auto res = lib.run_command("app-manager", {"unknown-command"});
 
@@ -518,7 +458,7 @@ TEST(api_lib, cmdline_unknown_2)
 TEST(api_lib, cmdline_incomplete)
 {
     auto lib = FLECS::libflecs_t{};
-    lib.connect("localhost", TEST_PORT);
+    (void)lib.connect("localhost", TEST_PORT);
 
     const auto res = lib.run_command("app-manager", {});
 

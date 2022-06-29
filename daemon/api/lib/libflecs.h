@@ -37,7 +37,6 @@ public:
 
     FLECS_EXPORT ~libflecs_t();
 
-    FLECS_EXPORT int connect(const std::string& path);
     FLECS_EXPORT int connect(const std::string& host, int port);
 
     FLECS_EXPORT int disconnect();
@@ -52,8 +51,8 @@ public:
     FLECS_EXPORT int list_versions(const std::string& app);
 
     // instance management
-    FLECS_EXPORT int create_instance(
-        const std::string& app, const std::string& version, const std::string& instanceName);
+    FLECS_EXPORT int
+    create_instance(const std::string& app, const std::string& version, const std::string& instanceName);
     FLECS_EXPORT int delete_instance(const std::string& instanceId, const std::string& app, const std::string& version);
     FLECS_EXPORT int start_instance(const std::string& instanceId, const std::string& app, const std::string& version);
     FLECS_EXPORT int stop_instance(const std::string& instanceId, const std::string& app, const std::string& version);

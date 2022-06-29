@@ -33,12 +33,6 @@ libflecs_t<Impl>::~libflecs_t()
 }
 
 template <typename Impl>
-int libflecs_t<Impl>::connect(const std::string& path)
-{
-    return _impl->do_connect(path);
-}
-
-template <typename Impl>
 int libflecs_t<Impl>::connect(const std::string& host, int port)
 {
     return _impl->do_connect(host, port);
@@ -96,7 +90,9 @@ int libflecs_t<Impl>::list_versions(const std::string& app)
 // instance management
 template <typename Impl>
 int libflecs_t<Impl>::create_instance(
-    const std::string& app, const std::string& version, const std::string& instanceName)
+    const std::string& app,
+    const std::string& version,
+    const std::string& instanceName)
 {
     return _impl->do_create_instance(app, version, instanceName);
 }
