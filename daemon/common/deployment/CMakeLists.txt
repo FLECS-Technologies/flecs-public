@@ -46,4 +46,4 @@ target_link_libraries(
     ${PROJECT_NAME} INTERFACE
 )
 
-# add_subdirectory(test)
+add_subdirectory(test)
