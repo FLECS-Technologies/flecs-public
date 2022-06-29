@@ -28,11 +28,9 @@
 
 namespace FLECS {
 
-auto deployment_docker_t::do_insert_instance(instance_t instance) //
+auto deployment_docker_t::do_insert_instance(instance_t /*instance*/) //
     -> result_t
 {
-    _instances.emplace(instance.id(), std::move(instance));
-
     return {0, ""};
 }
 

@@ -154,25 +154,26 @@ inline auto deployment_t::instances() noexcept //
 inline auto deployment_t::insert_instance(instance_t instance) //
     -> result_t
 {
-    return do_insert_instance(instance);
+    _instances.emplace(instance.id(), instance);
+    return do_insert_instance(std::move(instance));
 }
 
 inline auto deployment_t::create_instance(const app_t& app, std::string instance_name) //
     -> result_t
 {
-    return do_create_instance(app, instance_name);
+    return do_create_instance(app, std::move(instance_name));
 }
 
 inline auto deployment_t::ready_instance(std::string_view instance_id) //
     -> result_t
 {
-    return do_ready_instance(instance_id);
+    return do_ready_instance(std::move(instance_id));
 }
 
 inline auto deployment_t::delete_instance(std::string_view instance_id) //
     -> result_t
 {
-    return do_delete_instance(instance_id);
+    return do_delete_instance(std::move(instance_id));
 }
 
 inline auto deployment_t::create_network(
@@ -183,19 +184,24 @@ inline auto deployment_t::create_network(
     std::string_view parent_adapter) //
     -> result_t
 {
-    return do_create_network(network_type, network, cidr_subnet, gateway, parent_adapter);
+    return do_create_network(
+        std::move(network_type),
+        std::move(network),
+        std::move(cidr_subnet),
+        std::move(gateway),
+        std::move(parent_adapter));
 }
 
 inline auto deployment_t::delete_network(std::string_view network) //
     -> result_t
 {
-    return do_delete_network(network);
+    return do_delete_network(std::move(network));
 }
 
 inline auto deployment_t::query_network(std::string_view network) //
     -> std::optional<network_t>
 {
-    return do_query_network(network);
+    return do_query_network(std::move(network));
 }
 
 inline auto deployment_t::connect_network(
@@ -204,25 +210,25 @@ inline auto deployment_t::connect_network(
     std::string_view ip) //
     -> result_t
 {
-    return do_connect_network(instance_id, network, ip);
+    return do_connect_network(std::move(instance_id), std::move(network), std::move(ip));
 }
 
 inline auto deployment_t::disconnect_network(std::string_view instance_id, std::string_view network) //
     -> result_t
 {
-    return do_disconnect_network(instance_id, network);
+    return do_disconnect_network(std::move(instance_id), std::move(network));
 }
 
 inline auto deployment_t::create_volume(std::string_view instance_id, std::string_view volume_name) //
     -> result_t
 {
-    return do_create_volume(instance_id, volume_name);
+    return do_create_volume(std::move(instance_id), std::move(volume_name));
 }
 
 inline auto deployment_t::delete_volume(std::string_view instance_id, std::string_view volume_name) //
     -> result_t
 {
-    return do_delete_volume(instance_id, volume_name);
+    return do_delete_volume(std::move(instance_id), std::move(volume_name));
 }
 
 } // namespace FLECS

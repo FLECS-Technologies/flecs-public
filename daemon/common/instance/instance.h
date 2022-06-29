@@ -77,6 +77,12 @@ private:
     instance_config_t _config;
 };
 
+inline auto operator==(const instance_t& lhs, const instance_t& rhs) //
+    -> bool
+{
+    return (lhs.id() == rhs.id());
+}
+
 inline auto instance_t::id() const noexcept //
     -> const std::string&
 {
