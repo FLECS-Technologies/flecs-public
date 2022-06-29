@@ -45,22 +45,11 @@ json_t build_json(Args&&... args)
 
 libflecs_private_t::libflecs_private_t()
     : _base_url{}
-    , _path{}
     , _response{}
 {}
 
 libflecs_private_t::~libflecs_private_t()
 {}
-
-int libflecs_private_t::do_connect(std::string path)
-{
-    do_disconnect();
-
-    _base_url = cpr::Url{std::string{"http:/flecs"}};
-    _path = path;
-
-    return do_ping();
-}
 
 int libflecs_private_t::do_connect(std::string host, int port)
 {
@@ -74,7 +63,6 @@ int libflecs_private_t::do_connect(std::string host, int port)
 int libflecs_private_t::do_disconnect()
 {
     _base_url = cpr::Url{""};
-    _path.clear();
 
     return 0;
 }
@@ -149,28 +137,36 @@ int libflecs_private_t::do_list_versions(const std::string& /*app*/)
 
 // instance management
 int libflecs_private_t::do_create_instance(
-    const std::string& app, const std::string& version, const std::string& instanceName)
+    const std::string& app,
+    const std::string& version,
+    const std::string& instanceName)
 {
     auto body = build_json("app", app, "version", version, "instanceName", instanceName);
     return post("/instance/create", body.dump().c_str());
 }
 
 int libflecs_private_t::do_delete_instance(
-    const std::string& instanceId, const std::string& app, const std::string& version)
+    const std::string& instanceId,
+    const std::string& app,
+    const std::string& version)
 {
     auto body = build_json("instanceId", instanceId, "app", app, "version", version);
     return post("/instance/delete", body.dump().c_str());
 }
 
 int libflecs_private_t::do_start_instance(
-    const std::string& instanceId, const std::string& app, const std::string& version)
+    const std::string& instanceId,
+    const std::string& app,
+    const std::string& version)
 {
     auto body = build_json("instanceId", instanceId, "app", app, "version", version);
     return post("/instance/start", body.dump().c_str());
 }
 
 int libflecs_private_t::do_stop_instance(
-    const std::string& instanceId, const std::string& app, const std::string& version)
+    const std::string& instanceId,
+    const std::string& app,
+    const std::string& version)
 {
     auto body = build_json("instanceId", instanceId, "app", app, "version", version);
     return post("/instance/stop", body.dump().c_str());
@@ -335,15 +331,7 @@ int libflecs_private_t::get(const std::string& endpoint)
         return -1;
     }
 
-    if (!_path.empty())
-    {
-        auto path = _path;
-        _response = cpr::Get(build_url(endpoint), cpr::UnixSocket{std::move(path)});
-    }
-    else
-    {
-        _response = cpr::Get(build_url(endpoint));
-    }
+    _response = cpr::Get(build_url(endpoint));
 
     return !_response.error ? 0 : -1;
 }
@@ -355,19 +343,7 @@ int libflecs_private_t::post(const std::string& endpoint, const char* data)
         return -1;
     }
 
-    if (!_path.empty())
-    {
-        auto path = _path;
-        _response = cpr::Post(
-            build_url(endpoint),
-            cpr::Header{{"Content-type", "application/json"}},
-            cpr::Body{data},
-            cpr::UnixSocket{std::move(path)});
-    }
-    else
-    {
-        _response = cpr::Post(build_url(endpoint), cpr::Header{{"Content-type", "application/json"}}, cpr::Body{data});
-    }
+    _response = cpr::Post(build_url(endpoint), cpr::Header{{"Content-type", "application/json"}}, cpr::Body{data});
 
     return !_response.error ? 0 : -1;
 }
@@ -379,19 +355,7 @@ int libflecs_private_t::put(const std::string& endpoint, const char* data)
         return -1;
     }
 
-    if (!_path.empty())
-    {
-        auto path = _path;
-        _response = cpr::Put(
-            build_url(endpoint),
-            cpr::Header{{"Content-type", "application/x-yaml"}},
-            cpr::Body{data},
-            cpr::UnixSocket{std::move(path)});
-    }
-    else
-    {
-        _response = cpr::Put(build_url(endpoint), cpr::Header{{"Content-type", "application/x-yaml"}}, cpr::Body{data});
-    }
+    _response = cpr::Put(build_url(endpoint), cpr::Header{{"Content-type", "application/x-yaml"}}, cpr::Body{data});
 
     return !_response.error ? 0 : -1;
 }
