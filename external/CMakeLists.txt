@@ -15,17 +15,17 @@
 project(FLECS.external)
 
 # define source directories
-set (CMAKE_ARGS    -B build/${ARCH} -DCMAKE_INSTALL_PREFIX=out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
-set (CPR_DIR       ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.8.3)
-set (CROW_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/crow-1.0+3)
-set (GTEST_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.11.0)
-set (LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
-set (MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.14)
-set (OPENSSL_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1o)
-set (PYBIND11_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.9.1)
-set (SQLITE3_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.38.5)
-set (YAMLCPP_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
-set (ZENOH_C_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
+set(CMAKE_ARGS -B build/${ARCH} -DCMAKE_INSTALL_PREFIX=out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
+set(CPR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.8.3)
+set(CROW_DIR ${CMAKE_CURRENT_SOURCE_DIR}/crow-1.0+3)
+set(GTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.12.0)
+set(LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
+set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.14)
+set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1o)
+set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.9.1)
+set(SQLITE3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.38.5)
+set(YAMLCPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
+set(ZENOH_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
 
 # external projects
 add_subdirectory(json)
@@ -36,6 +36,15 @@ add_custom_target(
     FLECS.external.cpr.build
     WORKING_DIRECTORY ${CPR_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${ARCH} -DOPENSSL_INCLUDE_DIR=${OPENSSL_DIR}/out/${ARCH}/include
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
+)
+
+# gtest
+add_custom_target(
+    FLECS.external.gtest.build
+    WORKING_DIRECTORY ${GTEST_DIR}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
     COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
@@ -119,20 +128,20 @@ target_include_directories(FLECS.external.crow INTERFACE
 
 # gtest
 add_library(FLECS.external.gmock_main STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gmock_main PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgmock_main.a)
-set_property(TARGET FLECS.external.gmock_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR})
+set_property(TARGET FLECS.external.gmock_main PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgmock_main.a)
+set_property(TARGET FLECS.external.gmock_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
 
 add_library(FLECS.external.gmock STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gmock PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgmock.a)
-set_property(TARGET FLECS.external.gmock PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR})
+set_property(TARGET FLECS.external.gmock PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgmock.a)
+set_property(TARGET FLECS.external.gmock PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
 
 add_library(FLECS.external.gtest_main STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gtest_main PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgtest_main.a)
-set_property(TARGET FLECS.external.gtest_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR})
+set_property(TARGET FLECS.external.gtest_main PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgtest_main.a)
+set_property(TARGET FLECS.external.gtest_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
 
 add_library(FLECS.external.gtest STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gtest PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/lib/libgtest.a)
-set_property(TARGET FLECS.external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR})
+set_property(TARGET FLECS.external.gtest PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgtest.a)
+set_property(TARGET FLECS.external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
 
 # libsodium
 add_library(FLECS.external.libsodium STATIC IMPORTED GLOBAL)
