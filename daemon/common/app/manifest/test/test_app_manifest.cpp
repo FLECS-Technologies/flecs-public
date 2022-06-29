@@ -35,22 +35,97 @@ private:
     std::string _filename;
 };
 
-auto g_app = "tech.flecs.test-app";
-auto g_title = "FLECS test app";
-auto g_version = "1.2.3.4-f1";
-auto g_description = "FLECS test app for unit tests";
-auto g_author = "FLECS Technologies GmbH (info@flecs.tech)";
-auto g_category = "test";
-auto g_image = "flecs/test-app";
+#define G_YAML_ITEM(I) "- " I "\n"
+#define G_YAML_KEY(KEY) KEY ":\n"
+#define G_YAML_KEY_VALUE(KEY, VALUE) KEY ": " VALUE "\n"
+#define G_YAML_MAPPING(FROM, TO) "- " FROM ":" TO "\n"
+#define G_YAML_INDENT "  "
 
-std::string manifest_header()
+#define G_APP "tech.flecs.test-app"
+#define G_ARG_1 "--launch-arg1"
+#define G_ARG_2 "--launch-arg2"
+#define G_ARG_3 "launch-arg3"
+#define G_ARGS                         \
+    G_YAML_KEY("args")                 \
+    G_YAML_INDENT G_YAML_ITEM(G_ARG_1) \
+    G_YAML_INDENT G_YAML_ITEM(G_ARG_2) \
+    G_YAML_INDENT G_YAML_ITEM(G_ARG_3)
+#define G_AUTHOR "FLECS Technologies GmbH (info@flecs.tech)"
+#define G_CATEGORY "test"
+#define G_CONFFILE_LOCAL "/path/to/local.conf"
+#define G_CONFFILE_CONTAINER "/etc/container.conf"
+#define G_CONFFILES         \
+    G_YAML_KEY("conffiles") \
+    G_YAML_INDENT G_YAML_MAPPING(G_CONFFILE_LOCAL, G_CONFFILE_CONTAINER)
+#define G_DESCRIPTION "FLECS test app for unit tests"
+#define G_DEVICE "/dev/device0"
+#define G_DEVICES         \
+    G_YAML_KEY("devices") \
+    G_YAML_INDENT G_YAML_ITEM(G_DEVICE)
+#define G_ENV_VAR_KEY "MY_ENV_VAR"
+#define G_ENV_VAR_VALUE "ENV_VAR_VALUE"
+#define G_ENVS        \
+    G_YAML_KEY("env") \
+    G_YAML_INDENT G_YAML_MAPPING(G_ENV_VAR_KEY, G_ENV_VAR_VALUE)
+#define G_IMAGE "flecs/test-app"
+#define G_NETWORK_SETTINGS_KEY_1 "macAddress"
+#define G_NETWORK_SETTINGS_VALUE_1 "clone:eth0"
+#define G_NETWORK_SETTINGS        \
+    G_YAML_KEY("networkSettings") \
+    G_YAML_INDENT G_YAML_MAPPING(G_NETWORK_SETTINGS_KEY_1, G_NETWORK_SETTINGS_VALUE_1)
+#define G_PORT_CONTAINER_1 "1234"
+#define G_PORT_CONTAINER_2 "10000-10005"
+#define G_PORT_LOCAL_1 "1234"
+#define G_PORT_LOCAL_2 "8000-8005"
+#define G_PORTS                                                      \
+    G_YAML_KEY("ports")                                              \
+    G_YAML_INDENT G_YAML_MAPPING(G_PORT_LOCAL_1, G_PORT_CONTAINER_1) \
+    G_YAML_INDENT G_YAML_MAPPING(G_PORT_LOCAL_2, G_PORT_CONTAINER_2)
+#define G_STARTUP_OPTION_1 "initNetworkAfterStart"
+#define G_STARTUP_OPTIONS        \
+    G_YAML_KEY("startupOptions") \
+    G_YAML_INDENT G_YAML_ITEM(G_STARTUP_OPTION_1)
+#define G_TITLE "FLECS test app"
+#define G_VERSION "1.2.3.4-f1"
+#define G_VOLUME_CONTAINER_1 "/var/"
+#define G_VOLUME_CONTAINER_2 "/etc/"
+#define G_VOLUME_CONTAINER_3 "/home/"
+#define G_VOLUME_LOCAL_1 "var"
+#define G_VOLUME_LOCAL_2 "etc"
+#define G_VOLUME_LOCAL_3 "/home/app1/dir"
+#define G_VOLUMES                                                        \
+    G_YAML_KEY("volumes")                                                \
+    G_YAML_INDENT G_YAML_MAPPING(G_VOLUME_LOCAL_1, G_VOLUME_CONTAINER_1) \
+    G_YAML_INDENT G_YAML_MAPPING(G_VOLUME_LOCAL_2, G_VOLUME_CONTAINER_2) \
+    G_YAML_INDENT G_YAML_MAPPING(G_VOLUME_LOCAL_3, G_VOLUME_CONTAINER_3)
+
+auto manifest_header() //
+    -> std::string
 {
-    return std::string{
-        "app: tech.flecs.test-app\n"
-        "title: FLECS test app\n"
-        "version: 1.2.3.4-f1\n"
-        "author: FLECS Technologies GmbH (info@flecs.tech)\n"
-        "image: flecs/test-app\n"};
+    return std::string{                                       //
+                       G_YAML_KEY_VALUE("app", G_APP)         //
+                       G_YAML_KEY_VALUE("title", G_TITLE)     //
+                       G_YAML_KEY_VALUE("version", G_VERSION) //
+                       G_YAML_KEY_VALUE("author", G_AUTHOR)   //
+                       G_YAML_KEY_VALUE("image", G_IMAGE)};
+}
+
+auto extend_manifest(std::string& yaml) //
+    -> void
+{
+    yaml.append(G_ARGS);
+    yaml.append(G_YAML_KEY_VALUE("category", G_CATEGORY));
+    yaml.append(G_CONFFILES);
+    yaml.append(G_YAML_KEY_VALUE("description", G_DESCRIPTION));
+    yaml.append(G_DEVICES);
+    yaml.append(G_ENVS);
+    yaml.append(G_YAML_KEY_VALUE("hostname", "flecs-unit-test"));
+    yaml.append(G_YAML_KEY_VALUE("interactive", "true"));
+    yaml.append(G_YAML_KEY_VALUE("multiInstance", "false"));
+    yaml.append(G_NETWORK_SETTINGS);
+    yaml.append(G_PORTS);
+    yaml.append(G_STARTUP_OPTIONS);
+    yaml.append(G_VOLUMES);
 }
 
 TEST(daemon_app, minimal_app)
@@ -60,11 +135,12 @@ TEST(daemon_app, minimal_app)
     auto app = FLECS::app_manifest_t::from_yaml_file(manifest.filename());
 
     ASSERT_TRUE(app.yaml_loaded());
-    ASSERT_EQ(app.app(), g_app);
-    ASSERT_EQ(app.title(), g_title);
-    ASSERT_EQ(app.version(), g_version);
-    ASSERT_EQ(app.author(), g_author);
-    ASSERT_EQ(app.image(), g_image);
+    ASSERT_EQ(app.app(), G_APP);
+    ASSERT_EQ(app.title(), G_TITLE);
+    ASSERT_EQ(app.version(), G_VERSION);
+    ASSERT_EQ(app.author(), G_AUTHOR);
+    ASSERT_EQ(app.image(), G_IMAGE);
+    ASSERT_EQ(app.image_with_tag(), G_IMAGE ":" G_VERSION);
 }
 
 TEST(daemon_app, empty_app)
@@ -79,79 +155,88 @@ TEST(daemon_app, empty_app)
 TEST(daemon_app, complex_app)
 {
     auto yaml = manifest_header();
-    yaml.append("description: FLECS Test application\n");
-    yaml.append("category: test\n");
-    yaml.append(
-        "args:\n"
-        "  - --launch-arg1\n"
-        "  - --launch-arg2\n"
-        "  - launch-arg3\n");
-    yaml.append(
-        "env:\n"
-        "  - MY_ENV_VAR:ENV_VALUE\n");
-    yaml.append(
-        "ports:\n"
-        "  - 1234:1234\n"
-        "  - 8000-8005:10000-10005\n");
-    yaml.append(
-        "volumes:\n"
-        "  - var:/var/\n"
-        "  - etc:/etc/\n"
-        "  - /home/app1/dir:/home/\n");
-    yaml.append("multiInstance: false\n");
-    yaml.append("hostname: flecs-unit-test\n");
-    yaml.append("interactive: true\n");
+    extend_manifest(yaml);
 
     auto app = FLECS::app_manifest_t::from_yaml_string(yaml);
 
     ASSERT_TRUE(app.yaml_loaded());
-    ASSERT_EQ(app.description(), "FLECS Test application");
-    ASSERT_EQ(app.category(), "test");
+    ASSERT_EQ(app.description(), G_DESCRIPTION);
+    ASSERT_EQ(app.category(), G_CATEGORY);
     ASSERT_EQ(app.hostname(), "flecs-unit-test");
     ASSERT_EQ(app.multi_instance(), false);
     ASSERT_EQ(app.interactive(), true);
-    ASSERT_EQ((*app.env().cbegin()), (FLECS::mapped_env_var_t{FLECS::env_var_t{"MY_ENV_VAR"}, "ENV_VALUE"}));
+    ASSERT_EQ((*app.env().cbegin()), (FLECS::mapped_env_var_t{FLECS::env_var_t{G_ENV_VAR_KEY}, G_ENV_VAR_VALUE}));
     ASSERT_EQ(
         (std::find_if(
              app.volumes().cbegin(),
              app.volumes().cend(),
-             [](const FLECS::volume_t& v) { return v.host() == "var"; })
+             [](const FLECS::volume_t& v) { return v.host() == G_VOLUME_LOCAL_1; })
              ->container()),
-        "/var/");
+        G_VOLUME_CONTAINER_1);
     ASSERT_EQ(
         (std::find_if(
              app.volumes().cbegin(),
              app.volumes().cend(),
-             [](const FLECS::volume_t& v) { return v.host() == "etc"; })
+             [](const FLECS::volume_t& v) { return v.host() == G_VOLUME_LOCAL_2; })
              ->container()),
-        "/etc/");
+        G_VOLUME_CONTAINER_2);
     ASSERT_EQ(
         (std::find_if(
              app.volumes().cbegin(),
              app.volumes().cend(),
-             [](const FLECS::volume_t& v) { return v.host() == "/home/app1/dir"; })
+             [](const FLECS::volume_t& v) { return v.host() == G_VOLUME_LOCAL_3; })
              ->container()),
-        "/home/");
-    ASSERT_EQ((app.args()[0]), "--launch-arg1");
-    ASSERT_EQ((app.args()[1]), "--launch-arg2");
-    ASSERT_EQ((app.args()[2]), "launch-arg3");
-    ASSERT_EQ((app.ports()[0]), FLECS::mapped_port_range_t{"1234:1234"});
-    ASSERT_EQ((app.ports()[1]), FLECS::mapped_port_range_t{"8000-8005:10000-10005"});
+        G_VOLUME_CONTAINER_3);
+    ASSERT_EQ((app.args()[0]), G_ARG_1);
+    ASSERT_EQ((app.args()[1]), G_ARG_2);
+    ASSERT_EQ((app.args()[2]), G_ARG_3);
+    ASSERT_EQ((app.networks()[0].name()), "flecs");
+    ASSERT_EQ((app.networks()[0].type()), FLECS::network_type_t::BRIDGE);
+    ASSERT_EQ((app.ports()[0].host_port_range()), FLECS::port_range_t{G_PORT_LOCAL_1});
+    ASSERT_EQ((app.ports()[0].container_port_range()), FLECS::port_range_t{G_PORT_CONTAINER_1});
+    ASSERT_EQ((app.ports()[1].host_port_range()), FLECS::port_range_t{G_PORT_LOCAL_2});
+    ASSERT_EQ((app.ports()[1].container_port_range()), FLECS::port_range_t{G_PORT_CONTAINER_2});
+    ASSERT_EQ((app.conffiles()[0].local()), G_CONFFILE_LOCAL);
+    ASSERT_EQ((app.conffiles()[0].container()), G_CONFFILE_CONTAINER);
+    ASSERT_EQ((*app.devices().begin()), G_DEVICE);
+    ASSERT_EQ((app.startup_options()[0]), FLECS::startup_option_t::INIT_NETWORK_AFTER_START);
 }
 
-#if 0  // changed behavior - reactivate test case later
-TEST(daemon_app, invalid_apps)
+TEST(daemon_app, invalid_file)
 {
-    {
-        auto yaml = manifest_header();
-        yaml.append("hostname: flecs-unit-test\n");
-        yaml.append("multiInstance: true\n");
+    const auto app_manifest = FLECS::app_manifest_t::from_yaml_file("/no/such/manifest.yml");
 
-        auto manifest = manifest_writer_t{"invalid_app.yml", yaml};
-
-        auto app = FLECS::app_manifest_t::from_yaml_file(manifest.filename());
-        ASSERT_FALSE(app.yaml_loaded());
-        ASSERT_EQ(app.app(), "");
-    }
+    ASSERT_FALSE(app_manifest.yaml_valid());
 }
-#endif // 0
+
+TEST(daemon_app, to_json)
+{
+    auto yaml = manifest_header();
+    extend_manifest(yaml);
+
+    const auto app_manifest = FLECS::app_manifest_t::from_yaml_string(yaml);
+
+    const auto json = FLECS::json_t(app_manifest);
+    const auto json_expected =
+        R"-({"app":"tech.flecs.test-app",)-"
+        R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
+        R"-("author":"FLECS Technologies GmbH (info@flecs.tech)",)-"
+        R"-("avatar":"",)-"
+        R"-("category":"test",)-"
+        R"-("conffiles":[{"container":"/etc/container.conf","init":false,"local":"/path/to/local.conf","ro":false}],)-"
+        R"-("description":"FLECS test app for unit tests",)-"
+        R"-("devices":["/dev/device0"],)-"
+        R"-("editor":"",)-"
+        R"-("env":[{"value":"ENV_VAR_VALUE","var":"MY_ENV_VAR"}],)-"
+        R"-("hostname":"flecs-unit-test",)-"
+        R"-("image":"flecs/test-app",)-"
+        R"-("interactive":true,)-"
+        R"-("multiInstance":false,)-"
+        R"-("networks":[{"mac_address":"","name":"flecs","parent":"","type":"bridge"}],)-"
+        R"-("ports":[{"container":"1234","host":"1234"},{"container":"10000-10005","host":"8000-8005"}],)-"
+        R"-("title":"FLECS test app",)-"
+        R"-("version":"1.2.3.4-f1",)-"
+        R"-("volumes":[{"container":"/var/","host":"var","type":"volume"},{"container":"/etc/","host":"etc","type":"volume"},{"container":"/home/","host":"/home/app1/dir","type":"bind mount"}]})-";
+
+    ASSERT_EQ(json.dump(), json_expected);
+}
