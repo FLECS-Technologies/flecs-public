@@ -66,7 +66,7 @@ ConstructorInitializerAllOnOneLineOrOnePerLine: false
 #ContinuationIndentWidth: 4
 #Cpp11BracedListStyle: true
 #DeriveLineEnding: true
-#DerivePointerAlignment: true
+DerivePointerAlignment: false
 #DisableFormat:   false
 #EmptyLineAfterAccessModifier: Never
 #EmptyLineBeforeAccessModifier: LogicalBlock
@@ -130,7 +130,7 @@ IndentWidth: 4
 #PenaltyExcessCharacter: 1000000
 #PenaltyReturnTypeOnItsOwnLine: 200
 #PenaltyIndentedWhitespace: 0
-#PointerAlignment: Left
+PointerAlignment: Left
 #PPIndentWidth:   -1
 #RawStringFormats:
 #  - Language:        Cpp
