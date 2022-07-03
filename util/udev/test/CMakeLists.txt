@@ -17,6 +17,7 @@ if(BUILD_TESTING)
     project(${PROJECT_NAME})
 
     add_executable(${PROJECT_NAME}
+        test_hwdb.cpp
         test_udev.cpp
     )
 
