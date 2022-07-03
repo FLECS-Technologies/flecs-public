@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(cxx20)
-add_subdirectory(datetime)
-add_subdirectory(network)
-add_subdirectory(process)
-add_subdirectory(signal_handler)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
-add_subdirectory(udev)
+set(PROJECT_NAME FLECS.util.udev)
+project(${PROJECT_NAME})
+
+add_library(${PROJECT_NAME} STATIC
+    src/udev.cpp
+    udev.h
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    udev
+)
+
+add_subdirectory(test)
