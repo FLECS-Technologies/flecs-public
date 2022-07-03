@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "udev.h"
+#include "util/udev/udev.h"
 
 #include <libudev.h>
 
@@ -34,13 +34,10 @@ udev_t::udev_t(const udev_t& other)
 }
 
 udev_t::udev_t(udev_t&& other)
-    : _handle{std::move(other._handle)}
-    , _owner{std::move(other._owner)}
+    : _handle{}
+    , _owner{std::this_thread::get_id()}
 {
-    other._handle = nullptr;
-    other._owner = std::thread::id{};
-
-    validate_owner();
+    swap(*this, other);
 }
 
 udev_t& udev_t::operator=(udev_t other)
