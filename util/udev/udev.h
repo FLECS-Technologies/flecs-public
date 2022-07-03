@@ -38,6 +38,9 @@ public:
 
     ~udev_t();
 
+    friend auto swap(udev_t& lhs, udev_t& rhs) //
+        -> void;
+
     auto operator*() noexcept //
         -> value_type&
     {
@@ -51,9 +54,6 @@ public:
     }
 
 private:
-    friend auto swap(udev_t& lhs, udev_t& rhs) //
-        -> void;
-
     auto validate_owner() const //
         -> void;
 
