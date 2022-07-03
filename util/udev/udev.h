@@ -54,7 +54,7 @@ public:
     }
 
 private:
-    auto validate_owner() const //
+    auto validate_owner() //
         -> void;
 
     value_type _handle;

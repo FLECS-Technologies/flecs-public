@@ -66,11 +66,12 @@ auto swap(udev_t& lhs, udev_t& rhs) //
     swap(lhs._owner, rhs._owner);
 }
 
-auto udev_t::validate_owner() const //
+auto udev_t::validate_owner() //
     -> void
 {
-    if (_owner != std::this_thread::get_id())
+    if (_handle && _owner != std::this_thread::get_id())
     {
+        udev_unref(**this);
         throw std::runtime_error{"Cannot re-use udev handle in different thread"};
     }
 }
