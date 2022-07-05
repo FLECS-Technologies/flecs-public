@@ -52,8 +52,6 @@ auto usb_device(std::string_view port) //
     -> std::optional<std::string>
 {
     const auto path = std::string{base_path}.append(port).append("/product");
-
-    auto file = std::ifstream{path};
     return read_file(path);
 }
 
