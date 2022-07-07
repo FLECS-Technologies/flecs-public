@@ -11,8 +11,8 @@ COPY build-utils/docker/scripts/debian/install-packages.sh /tmp/
 
 RUN /tmp/install-packages.sh automake build-essential cmake/buster-backports gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf \
     g++-aarch64-linux-gnu g++-arm-linux-gnueabihf git libtool npm ca-certificates curl gnupg lsb-release gcovr \
-    pkg-config python3-pip python3-pybind11 libpython3.7-dev:armhf libpython3.7-dev:arm64 ninja-build wget libudev-dev udev \
-    libusb-1.0-0-dev libusb-1.0-0-dev:armhf libusb-1.0-0-dev:arm64
+    pkg-config python3-pip python3-pybind11 libpython3.7-dev:armhf libpython3.7-dev:arm64 ninja-build wget libudev-dev \
+    libudev-dev:armhf libudev-dev:arm64 udev libusb-1.0-0-dev libusb-1.0-0-dev:armhf libusb-1.0-0-dev:arm64
 
 COPY scripts/setup-docker-repo.sh /tmp/
 
