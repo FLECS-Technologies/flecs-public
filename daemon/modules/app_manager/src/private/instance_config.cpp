@@ -103,23 +103,14 @@ auto module_app_manager_private_t::do_put_config_instance(
             }
 
             // create macvlan network, if not exists
-            const auto subnet =
+            const auto cidr_subnet =
                 ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
-            auto docker_process = process_t{};
-            docker_process.spawnp(
-                "docker",
-                "network",
-                "create",
-                "-d",
-                "macvlan",
-                "--subnet",
-                subnet,
-                "--gateway",
+            _deployment->create_network(
+                network_type_t::MACVLAN,
+                docker_network,
+                cidr_subnet,
                 netif->second.gateway,
-                "-o",
-                std::string{"parent="} + netif->first,
-                docker_network);
-            docker_process.wait(false, false);
+                netif->first);
 
             // process instance configuration
             if (network.ipAddress.empty())
@@ -130,7 +121,7 @@ auto module_app_manager_private_t::do_put_config_instance(
                     if (adapter_json["name"] == netif->first)
                     {
                         adapter_json["active"] = true;
-                        adapter_json["ipAddress"] = generate_ip(subnet);
+                        adapter_json["ipAddress"] = generate_ip(cidr_subnet);
                         adapter_json["subnetMask"] = netif->second.ipv4_addr[0].subnet_mask;
                         adapter_json["gateway"] = netif->second.gateway;
                         break;
@@ -141,24 +132,12 @@ auto module_app_manager_private_t::do_put_config_instance(
             {
                 // apply settings
                 // @todo verify validity of IP address
-                {
-                    auto docker_process = process_t{};
-                    docker_process
-                        .spawnp("docker", "network", "disconnect", docker_network, std::string{"flecs-"} + instanceId);
-                    docker_process.wait(false, false);
-                }
+                _deployment->disconnect_network(instanceId, docker_network);
 
-                auto docker_process = process_t{};
-                docker_process.spawnp(
-                    "docker",
-                    "network",
-                    "connect",
-                    "--ip",
-                    network.ipAddress,
-                    docker_network,
-                    std::string{"flecs-"} + instanceId);
-                docker_process.wait(false, false);
-                if (docker_process.exit_code() == 0)
+                const auto [res, additional_info] =
+                    _deployment->connect_network(instanceId, docker_network, network.ipAddress);
+
+                if (res == 0)
                 {
                     const auto it = std::find(instance.networks.cbegin(), instance.networks.cend(), docker_network);
                     if (it != instance.networks.end())
@@ -214,7 +193,7 @@ auto module_app_manager_private_t::do_put_config_instance(
                 }
                 else
                 {
-                    response["additionalInfo"] = "Could not connect to macvlan network";
+                    response["additionalInfo"] = additional_info;
                     for (auto& adapter_json : response["networkAdapters"])
                     {
                         if (adapter_json["name"] == netif->first)
@@ -227,10 +206,8 @@ auto module_app_manager_private_t::do_put_config_instance(
         }
         else
         {
-            auto docker_process = process_t{};
-            docker_process
-                .spawnp("docker", "network", "disconnect", docker_network, std::string{"flecs-"} + instanceId);
-            docker_process.wait(false, false);
+            _deployment->disconnect_network(instanceId, docker_network);
+            _deployment->delete_network(docker_network);
             const auto it =
                 std::find_if(instance.networks.cbegin(), instance.networks.cend(), [&](const std::string& str) {
                     return str == docker_network;
