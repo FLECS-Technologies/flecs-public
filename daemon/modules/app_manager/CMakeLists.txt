@@ -31,5 +31,5 @@ flecs_add_module(
         src/private/instance_stop.cpp
     ADDITIONAL_HEADERS private/app_manager_private.h
     LIBS_PUBLIC FLECS.daemon.common
-    LIBS_PRIVATE FLECS.external.cpr FLECS.external.json FLECS.daemon.common FLECS.external.yaml-cpp
+    LIBS_PRIVATE FLECS.external.cpr FLECS.external.json FLECS.daemon.common FLECS.external.yaml-cpp FLECS.util.usb
 )
