@@ -10,6 +10,7 @@
 #include "system/system.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
+#include "util/usb/usb.h"
 
 namespace FLECS {
 namespace Private {
@@ -59,6 +60,10 @@ auto module_app_manager_private_t::do_post_config_instance(const std::string& in
 
     const auto instance = _app_db.query_instance({instanceId}).value();
     response["networkAdapters"] = build_network_adapters_json(instance);
+
+    const auto usb_devices = usb::get_devices();
+    response["devices"] = FLECS::json_t::object();
+    response["devices"]["usb"] = json_t(usb_devices);
 
     return crow::status::OK;
 }
