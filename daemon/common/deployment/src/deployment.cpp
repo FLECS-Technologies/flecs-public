@@ -49,7 +49,27 @@ auto network_type_from_string(std::string_view str) //
     return types.at(str);
 }
 
-auto deployment_t::start_instance(std::string_view instance_id) //
+auto deployment_t::create_instance(const app_t& app, std::string instance_name) //
+    -> result_t
+{
+    auto tmp =
+        instance_t{app.app(), app.version(), instance_name, instance_status_e::REQUESTED, instance_status_e::CREATED};
+    while (_instances.count(tmp.id()))
+    {
+        tmp.regenerate_id();
+    }
+
+    auto instance = _instances.emplace(tmp.id(), tmp).first;
+    for (const auto& startup_option : app.startup_options())
+    {
+        instance->second.config().startup_options.emplace_back(
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
+    }
+
+    return do_create_instance(app, instance->second);
+}
+
+auto deployment_t::start_instance(const app_t& app, std::string_view instance_id) //
     -> result_t
 {
     const auto& instance = _instances.at(instance_id.data());
@@ -66,7 +86,7 @@ auto deployment_t::start_instance(std::string_view instance_id) //
         }
     }
 
-    const auto [res, additional_info] = do_start_instance(instance_id);
+    const auto [res, additional_info] = do_start_instance(app, instance);
 
     if (res != 0)
     {
@@ -87,13 +107,20 @@ auto deployment_t::start_instance(std::string_view instance_id) //
     return ready_instance(instance_id);
 }
 
+auto deployment_t::ready_instance(std::string_view instance_id) //
+    -> result_t
+{
+    const auto& instance = _instances.at(instance_id.data());
+    return do_ready_instance(instance);
+}
+
 auto deployment_t::stop_instance(std::string_view instance_id) //
     -> result_t
 {
-    auto [res, additional_info] = do_stop_instance(instance_id);
-
     const auto& instance = _instances.at(instance_id.data());
     const auto& startup_options = instance.config().startup_options;
+
+    auto [res, additional_info] = do_stop_instance(instance);
 
     if (std::count(
             startup_options.cbegin(),

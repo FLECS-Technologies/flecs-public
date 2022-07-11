@@ -78,7 +78,8 @@ auto module_app_manager_private_t::do_start_instance(
     }
 
     // Final step: Forward to deployment
-    const auto [res, additional_info] = _deployment->start_instance(instance_id);
+    const auto& app = _installed_apps.at(std::forward_as_tuple(instance.app, instance.version));
+    const auto [res, additional_info] = _deployment->start_instance(app, instance_id);
 
     response["additionalInfo"] = additional_info;
     return (res == 0) ? crow::status::OK : crow::status::INTERNAL_SERVER_ERROR;

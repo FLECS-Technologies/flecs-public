@@ -26,11 +26,11 @@ class mock_deployment_t : public deployment_t
 {
 public:
     MOCK_METHOD(result_t, do_insert_instance, (instance_t instance), (override));
-    MOCK_METHOD(result_t, do_create_instance, ((const app_t& app), (std::string instance_name)), (override));
+    MOCK_METHOD(result_t, do_create_instance, ((const app_t& app), (instance_t & instance)), (override));
     MOCK_METHOD(result_t, do_delete_instance, (std::string_view instance_id), (override));
-    MOCK_METHOD(result_t, do_start_instance, (std::string_view instance_id), (override));
-    MOCK_METHOD(result_t, do_ready_instance, (std::string_view instance_id), (override));
-    MOCK_METHOD(result_t, do_stop_instance, (std::string_view instance_id), (override));
+    MOCK_METHOD(result_t, do_start_instance, ((const app_t& app), (const instance_t& instance)), (override));
+    MOCK_METHOD(result_t, do_ready_instance, (const instance_t& instance), (override));
+    MOCK_METHOD(result_t, do_stop_instance, (const instance_t& instance), (override));
     MOCK_METHOD(
         result_t,
         do_create_network,
@@ -112,13 +112,13 @@ TEST(deployment, interface)
     EXPECT_CALL(test_deployment, do_delete_instance(instance.id())).Times(1);
     deployment->delete_instance(instance.id());
 
-    EXPECT_CALL(test_deployment, do_start_instance(instance.id())).Times(1);
-    deployment->start_instance(instance.id());
+    EXPECT_CALL(test_deployment, do_start_instance(testing::_, instance)).Times(1);
+    deployment->start_instance(app, instance.id());
 
-    EXPECT_CALL(test_deployment, do_ready_instance(instance.id())).Times(1);
+    EXPECT_CALL(test_deployment, do_ready_instance(instance)).Times(1);
     deployment->ready_instance(instance.id());
 
-    EXPECT_CALL(test_deployment, do_stop_instance(instance.id())).Times(1);
+    EXPECT_CALL(test_deployment, do_stop_instance(instance)).Times(1);
     deployment->stop_instance(instance.id());
 
     EXPECT_CALL(
