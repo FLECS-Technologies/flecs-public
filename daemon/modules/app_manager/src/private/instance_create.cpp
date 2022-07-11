@@ -59,15 +59,6 @@ auto module_app_manager_private_t::do_create_instance(
     if (!app.multi_instance())
     {
         decltype(auto) instances = _app_db.instances(app.app(), app.version());
-        if (instances.size() > 1)
-        {
-            std::fprintf(
-                stderr,
-                "Warning: Multiple instances found for single-instance app %s (%s). Please consider uninstalling and "
-                "reinstalling the app.\n",
-                app.app().c_str(),
-                app.version().c_str());
-        }
         if (instances.size() > 0)
         {
             decltype(auto) instance = instances[0];
