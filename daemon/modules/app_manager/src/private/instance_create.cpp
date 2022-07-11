@@ -47,13 +47,7 @@ auto module_app_manager_private_t::do_create_instance(
     }
 
     // Step 2: Load app manifest
-    const auto path = build_manifest_path(app_name, version);
-    const auto app = app_t{path, app_status_e::INSTALLED, app_status_e::INSTALLED};
-    if (!app.yaml_loaded())
-    {
-        response["additionalInfo"] = "Could not open manifest " + path.string();
-        return crow::status::INTERNAL_SERVER_ERROR;
-    }
+    const auto& app = _installed_apps.at(std::forward_as_tuple(app_name, version));
 
     // Step 3: Ensure there is only one instance of single-instance apps
     if (!app.multi_instance())

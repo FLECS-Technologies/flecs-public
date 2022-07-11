@@ -41,6 +41,7 @@ public:
     void installed_size(std::int32_t installed_size) { _installed_size = installed_size; }
     void license_key(std::string license_key) { _license_key = license_key; }
     void status(app_status_e status) { _status = status; }
+    void desired(app_status_e desired) { _desired = desired; }
 
 private:
     friend void to_json(json_t& j, const app_t& app);

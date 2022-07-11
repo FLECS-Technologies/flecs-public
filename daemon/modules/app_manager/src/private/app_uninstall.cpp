@@ -42,20 +42,8 @@ auto module_app_manager_private_t::do_uninstall(
     }
 
     // Step 2: Load app manifest
-    const auto app =
-        app_t{build_manifest_path(app_name, version), app_status_e::INSTALLED, app_status_e::NOT_INSTALLED};
-    const auto path = build_manifest_path(app_name, version);
-
-    if (app.app().empty())
-    {
-        _installed_apps.erase(std::forward_as_tuple(app.app(), app.version()));
-        // Manifest missing or invalid - persist removal of app into db
-        _app_db.delete_app({app_name, version});
-        _app_db.persist();
-
-        response["additionalInfo"] = "Could not open manifest " + path.string();
-        return crow::status::INTERNAL_SERVER_ERROR;
-    }
+    auto& app = _installed_apps.at(std::forward_as_tuple(app_name, version));
+    app.desired(app_status_e::NOT_INSTALLED);
 
     // Step 2a: Prevent removal of system apps
     if (cxx20::contains(app.category(), "system") && !force)
@@ -92,6 +80,7 @@ auto module_app_manager_private_t::do_uninstall(
     _app_db.persist();
 
     // Step 6: Remove app manifest
+    const auto path = build_manifest_path(app_name, version);
     auto ec = std::error_code{};
     const auto res = std::filesystem::remove(path, ec);
     if (!res)

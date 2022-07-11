@@ -77,15 +77,6 @@ auto module_app_manager_private_t::do_start_instance(
         _app_db.persist();
     }
 
-    // Step 4: Load app manifest
-    const auto path = build_manifest_path(instance.app, instance.version);
-    auto app = app_manifest_t::from_yaml_file(path);
-    if (!app.yaml_loaded())
-    {
-        response["additionalInfo"] = "Could not open manifest " + path.string();
-        return crow::status::INTERNAL_SERVER_ERROR;
-    }
-
     // Final step: Forward to deployment
     const auto [res, additional_info] = _deployment->start_instance(instance_id);
 
