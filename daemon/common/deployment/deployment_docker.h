@@ -31,15 +31,15 @@ public:
 private:
     auto do_insert_instance(instance_t instance) //
         -> result_t override;
-    auto do_create_instance(const app_t& app, std::string instance_name) //
+    auto do_create_instance(const app_t& app, instance_t& instance) //
         -> result_t override;
     auto do_delete_instance(std::string_view instance_id) //
         -> result_t override;
-    auto do_start_instance(std::string_view instance_id) //
+    auto do_start_instance(const app_t& app, const instance_t& instance) //
         -> result_t override;
-    auto do_ready_instance(std::string_view instance_id) //
+    auto do_ready_instance(const instance_t& instance) //
         -> result_t override;
-    auto do_stop_instance(std::string_view instance_id) //
+    auto do_stop_instance(const instance_t& instance) //
         -> result_t override;
     auto do_create_network(
         network_type_t network_type,

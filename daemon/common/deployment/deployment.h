@@ -67,7 +67,7 @@ public:
         -> result_t;
     auto delete_instance(std::string_view instance_id) //
         -> result_t;
-    auto start_instance(std::string_view instance_id) //
+    auto start_instance(const app_t& app, std::string_view instance_id) //
         -> result_t;
     auto ready_instance(std::string_view instance_id) //
         -> result_t;
@@ -105,15 +105,15 @@ protected:
 private:
     virtual auto do_insert_instance(instance_t instance) //
         -> result_t = 0;
-    virtual auto do_create_instance(const app_t& app, std::string instance_name) //
+    virtual auto do_create_instance(const app_t& app, instance_t& instance) //
         -> result_t = 0;
     virtual auto do_delete_instance(std::string_view instance_id) //
         -> result_t = 0;
-    virtual auto do_start_instance(std::string_view instance_id) //
+    virtual auto do_start_instance(const app_t& app, const instance_t& instance) //
         -> result_t = 0;
-    virtual auto do_ready_instance(std::string_view instance_id) //
+    virtual auto do_ready_instance(const instance_t& instance) //
         -> result_t = 0;
-    virtual auto do_stop_instance(std::string_view instance_id) //
+    virtual auto do_stop_instance(const instance_t& instance) //
         -> result_t = 0;
     virtual auto do_create_network(
         network_type_t network_type,
@@ -156,18 +156,6 @@ inline auto deployment_t::insert_instance(instance_t instance) //
 {
     _instances.emplace(instance.id(), instance);
     return do_insert_instance(std::move(instance));
-}
-
-inline auto deployment_t::create_instance(const app_t& app, std::string instance_name) //
-    -> result_t
-{
-    return do_create_instance(app, std::move(instance_name));
-}
-
-inline auto deployment_t::ready_instance(std::string_view instance_id) //
-    -> result_t
-{
-    return do_ready_instance(std::move(instance_id));
 }
 
 inline auto deployment_t::delete_instance(std::string_view instance_id) //

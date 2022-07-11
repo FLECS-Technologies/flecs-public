@@ -76,9 +76,7 @@ auto module_app_manager_private_t::do_delete_instance(
     }
 
     // Step 5: Attempt to load app manifest
-    const auto path = build_manifest_path(instance.app, instance.version);
-    auto app = app_manifest_t::from_yaml_file(path);
-    if (!app.yaml_loaded())
+    if (!is_app_installed(app_name, version))
     {
         std::fprintf(
             stderr,
@@ -89,6 +87,7 @@ auto module_app_manager_private_t::do_delete_instance(
     // Step 6: Remove volumes of instance, if manifest loaded successfully
     else
     {
+        const auto& app = _installed_apps.at(std::forward_as_tuple(app_name, version));
         for (const auto& volume : app.volumes())
         {
             if (volume.type() != volume_t::VOLUME)
