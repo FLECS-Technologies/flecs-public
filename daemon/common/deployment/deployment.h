@@ -103,6 +103,16 @@ public:
         -> result_t;
     auto delete_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t;
+    auto copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
+        -> result_t;
+    auto default_network_name() const //
+        -> std::string_view;
+    auto default_network_type() const //
+        -> network_type_t;
+    auto default_network_cidr_subnet() const //
+        -> std::string_view;
+    auto default_network_gateway() const //
+        -> std::string_view;
 
     auto generate_instance_ip(std::string_view cidr_subnet, std::string_view gateway) const //
         -> std::string;
@@ -118,7 +128,7 @@ private:
         -> result_t = 0;
     virtual auto do_delete_instance(std::string_view instance_id) //
         -> result_t = 0;
-    virtual auto do_start_instance(const app_t& app, const instance_t& instance) //
+    virtual auto do_start_instance(const app_t& app, instance_t& instance) //
         -> result_t = 0;
     virtual auto do_ready_instance(const instance_t& instance) //
         -> result_t = 0;
@@ -146,6 +156,16 @@ private:
         -> result_t = 0;
     virtual auto do_delete_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t = 0;
+    virtual auto do_copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
+        -> result_t = 0;
+    virtual auto do_default_network_name() const //
+        -> std::string_view = 0;
+    virtual auto do_default_network_type() const //
+        -> network_type_t = 0;
+    virtual auto do_default_network_cidr_subnet() const //
+        -> std::string_view = 0;
+    virtual auto do_default_network_gateway() const //
+        -> std::string_view = 0;
 };
 
 inline auto deployment_t::instances() const noexcept //
@@ -204,7 +224,9 @@ inline auto deployment_t::insert_instance(instance_t instance) //
 inline auto deployment_t::delete_instance(std::string_view instance_id) //
     -> result_t
 {
-    return do_delete_instance(std::move(instance_id));
+    const auto [res, additional_info] = do_delete_instance(std::move(instance_id));
+    _instances.erase(instance_id.data());
+    return {res, additional_info};
 }
 
 inline auto deployment_t::create_network(
@@ -260,6 +282,36 @@ inline auto deployment_t::delete_volume(std::string_view instance_id, std::strin
     -> result_t
 {
     return do_delete_volume(std::move(instance_id), std::move(volume_name));
+}
+
+inline auto deployment_t::copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
+    -> result_t
+{
+    return do_copy_file_from_image(image, file, dest);
+}
+
+inline auto deployment_t::default_network_name() const //
+    -> std::string_view
+{
+    return do_default_network_name();
+}
+
+inline auto deployment_t::default_network_type() const //
+    -> network_type_t
+{
+    return do_default_network_type();
+}
+
+inline auto deployment_t::default_network_cidr_subnet() const //
+    -> std::string_view
+{
+    return do_default_network_cidr_subnet();
+}
+
+inline auto deployment_t::default_network_gateway() const //
+    -> std::string_view
+{
+    return do_default_network_gateway();
 }
 
 } // namespace FLECS

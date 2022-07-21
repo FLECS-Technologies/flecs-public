@@ -35,7 +35,7 @@ private:
         -> result_t override;
     auto do_delete_instance(std::string_view instance_id) //
         -> result_t override;
-    auto do_start_instance(const app_t& app, const instance_t& instance) //
+    auto do_start_instance(const app_t& app, instance_t& instance) //
         -> result_t override;
     auto do_ready_instance(const instance_t& instance) //
         -> result_t override;
@@ -63,6 +63,21 @@ private:
         -> result_t override;
     auto do_delete_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t override;
+    auto do_copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
+        -> result_t override;
+    auto do_default_network_name() const //
+        -> std::string_view override;
+    auto do_default_network_type() const //
+        -> network_type_t override;
+    auto do_default_network_cidr_subnet() const //
+        -> std::string_view override;
+    auto do_default_network_gateway() const //
+        -> std::string_view override;
+
+    auto create_container(const app_t& app, instance_t& instance) //
+        -> result_t;
+    auto delete_container(const instance_t& instance) //
+        -> result_t;
 };
 
 } // namespace FLECS

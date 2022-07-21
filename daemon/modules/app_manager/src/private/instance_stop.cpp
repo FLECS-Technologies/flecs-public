@@ -66,13 +66,16 @@ auto module_app_manager_private_t::do_stop_instance(
     if (!internal)
     {
         instance.desired(instance_status_e::STOPPED);
-        persist_instances();
     }
 
-    // Final step: Forward to deployment
+    // Step 5: Forward to deployment
     const auto [res, additional_info] = _deployment->stop_instance(instance_id);
 
     response["additionalInfo"] = additional_info;
+
+    // Final step: Persist instance status into deployment
+    persist_instances();
+
     return (res == 0) ? crow::status::OK : crow::status::INTERNAL_SERVER_ERROR;
 }
 

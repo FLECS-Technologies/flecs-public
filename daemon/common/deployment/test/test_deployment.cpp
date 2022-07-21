@@ -28,7 +28,7 @@ public:
     MOCK_METHOD(result_t, do_insert_instance, (instance_t instance), (override));
     MOCK_METHOD(result_t, do_create_instance, ((const app_t& app), (instance_t & instance)), (override));
     MOCK_METHOD(result_t, do_delete_instance, (std::string_view instance_id), (override));
-    MOCK_METHOD(result_t, do_start_instance, ((const app_t& app), (const instance_t& instance)), (override));
+    MOCK_METHOD(result_t, do_start_instance, ((const app_t& app), (instance_t & instance)), (override));
     MOCK_METHOD(result_t, do_ready_instance, (const instance_t& instance), (override));
     MOCK_METHOD(result_t, do_stop_instance, (const instance_t& instance), (override));
     MOCK_METHOD(
@@ -62,6 +62,15 @@ public:
         do_delete_volume,
         ((std::string_view instance_id), (std::string_view volume_name)),
         (override));
+    MOCK_METHOD(
+        result_t,
+        do_copy_file_from_image,
+        ((std::string_view image), (fs::path file), (fs::path dest)),
+        (override));
+    MOCK_METHOD(std::string_view, do_default_network_name, (), (const, override));
+    MOCK_METHOD(network_type_t, do_default_network_type, (), (const, override));
+    MOCK_METHOD(std::string_view, do_default_network_cidr_subnet, (), (const, override));
+    MOCK_METHOD(std::string_view, do_default_network_gateway, (), (const, override));
 };
 } // namespace FLECS
 
@@ -84,14 +93,14 @@ TEST(deployment, interface)
     using std::operator""s;
     const auto manifest =
         "app: tech.flecs.test-app\n"
-        "title: FLECS test app for unit tests"
-        "version: 1.2.3.4-f1"
-        "author: FLECS Technologies GmbH (info@flecs.tech)"
-        "image: flecs/test-app"s;
+        "title: FLECS test app for unit tests\n"
+        "version: 1.2.3.4-f1\n"
+        "author: FLECS Technologies GmbH (info@flecs.tech)\n"
+        "image: flecs/test-app\n"s;
 
     const auto app = FLECS::app_t{manifest, FLECS::app_status_e::INSTALLED, FLECS::app_status_e::INSTALLED};
 
-    const auto instance = FLECS::instance_t{
+    auto instance = FLECS::instance_t{
         G_INSTANCE_ID,
         G_APP,
         G_VERSION,
@@ -109,9 +118,6 @@ TEST(deployment, interface)
     EXPECT_CALL(test_deployment, do_create_instance).Times(1);
     deployment->create_instance(app, "test instance");
 
-    EXPECT_CALL(test_deployment, do_delete_instance(instance.id())).Times(1);
-    deployment->delete_instance(instance.id());
-
     EXPECT_CALL(test_deployment, do_start_instance(testing::_, instance)).Times(1);
     deployment->start_instance(app, instance.id());
 
@@ -120,6 +126,11 @@ TEST(deployment, interface)
 
     EXPECT_CALL(test_deployment, do_stop_instance(instance)).Times(1);
     deployment->stop_instance(instance.id());
+
+    EXPECT_CALL(test_deployment, do_delete_instance(instance.id())).Times(1);
+    deployment->delete_instance(instance.id());
+
+    EXPECT_EQ(test_deployment.instances().count(G_INSTANCE_ID), 0);
 
     EXPECT_CALL(
         test_deployment,
@@ -161,7 +172,8 @@ TEST(deployment, generate_ip_success)
         G_NAME,
         FLECS::instance_status_e::CREATED,
         FLECS::instance_status_e::CREATED};
-    instance.networks().emplace_back(FLECS::instance_t::network_t{.network_name = "flecs-network", .ip_address = G_IP});
+    instance.networks().emplace_back(
+        FLECS::instance_t::network_t{.network_name = "flecs-network", .mac_address = {}, .ip_address = G_IP});
 
     deployment->insert_instance(instance);
 

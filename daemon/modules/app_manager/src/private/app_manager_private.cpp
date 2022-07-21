@@ -148,8 +148,10 @@ auto module_app_manager_private_t::do_init() //
             tmp.startup_options().emplace_back(instance.flags);
             for (std::size_t i = 0; i < instance.networks.size(); ++i)
             {
-                tmp.networks().emplace_back(
-                    instance_t::network_t{.network_name = instance.networks[i], .ip_address = instance.ips[i]});
+                tmp.networks().emplace_back(instance_t::network_t{
+                    .network_name = instance.networks[i],
+                    .mac_address = {},
+                    .ip_address = instance.ips[i]});
             }
             _deployment->insert_instance(tmp);
         }
