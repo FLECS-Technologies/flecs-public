@@ -19,6 +19,7 @@ set(CMAKE_ARGS -B build/${ARCH} -DCMAKE_INSTALL_PREFIX=out/${ARCH} -DCMAKE_TOOLC
 set(CPR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.9.0)
 set(CROW_DIR ${CMAKE_CURRENT_SOURCE_DIR}/crow-1.0+4)
 set(GTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.12.1)
+set(JSON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/json-3.10.5)
 set(LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
 set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.14)
 set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1q)
@@ -26,9 +27,6 @@ set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.10.0)
 set(SQLITE3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.39.1)
 set(YAMLCPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set(ZENOH_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.5.0-beta.9)
-
-# external projects
-add_subdirectory(json)
 
 # custom build rules
 # cpr
@@ -142,6 +140,12 @@ set_property(TARGET FLECS.external.gtest_main PROPERTY INTERFACE_INCLUDE_DIRECTO
 add_library(FLECS.external.gtest STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.gtest PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgtest.a)
 set_property(TARGET FLECS.external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
+
+# json
+add_library(FLECS.external.json INTERFACE)
+target_include_directories(FLECS.external.json INTERFACE
+    ${JSON_DIR}/include
+)
 
 # libsodium
 add_library(FLECS.external.libsodium STATIC IMPORTED GLOBAL)
