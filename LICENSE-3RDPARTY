@@ -91,7 +91,7 @@ Copyright:  Frank Denis
 
 ================================================================================
 Project:    pybind11
-Version:    2.9.1
+Version:    v2.10.0
 License:    BSD-style license
 URL:        https://github.com/pybind/pybind11
 Copyright:  Wenzel Jakob
