@@ -30,6 +30,7 @@ public:
     struct network_t
     {
         std::string network_name;
+        std::string mac_address;
         std::string ip_address;
     };
 

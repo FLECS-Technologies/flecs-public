@@ -15,6 +15,7 @@
 #include "deployment.h"
 
 #include <cassert>
+#include <fstream>
 #include <map>
 #include <regex>
 #include <set>
@@ -52,6 +53,7 @@ auto network_type_from_string(std::string_view str) //
 auto deployment_t::create_instance(const app_t& app, std::string instance_name) //
     -> result_t
 {
+    // Step 1: Create unique id and insert instance
     auto tmp =
         instance_t{app.app(), app.version(), instance_name, instance_status_e::REQUESTED, instance_status_e::CREATED};
     while (_instances.count(tmp.id()))
@@ -59,20 +61,107 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
         tmp.regenerate_id();
     }
 
-    auto instance = _instances.emplace(tmp.id(), tmp).first;
+    auto& instance = _instances.emplace(tmp.id(), tmp).first->second;
     for (const auto& startup_option : app.startup_options())
     {
-        instance->second.startup_options().emplace_back(
-            static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
+        instance.startup_options().emplace_back(static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
     }
 
-    return do_create_instance(app, instance->second);
+    // Step 2: Create volumes
+    for (const auto& volume : app.volumes())
+    {
+        if (volume.type() != volume_t::VOLUME)
+        {
+            continue;
+        }
+        create_volume(instance.id(), volume.host());
+    }
+
+    // Step 3: Create networks
+    // query and create default network, if required
+    const auto network_name = default_network_name();
+    if (!network_name.empty())
+    {
+        const auto network = query_network(network_name);
+        if (!network.has_value())
+        {
+            const auto [res, additional_info] = create_network(
+                default_network_type(),
+                default_network_name(),
+                default_network_cidr_subnet(),
+                default_network_gateway(),
+                {});
+            if (res != 0)
+            {
+                return {-1, instance.id()};
+            }
+        }
+        instance.networks().emplace_back(instance_t::network_t{
+            .network_name = default_network_name().data(),
+            .mac_address = app.networks()[0].mac_address(),
+            .ip_address = {},
+        });
+    }
+
+#if 0  // Additional networks are experimental and untested - disable for now
+    // query and create remaining networks
+    for (const auto& network : app.networks())
+    {
+        const auto network_exists = query_network(network.name()).has_value();
+        if (!network_exists)
+        {
+            const auto [res, err] = create_network(network.type(), network.name(), "", "", network.parent());
+            if (res != 0)
+            {
+                return {-1, instance.id()};
+            }
+        }
+    }
+#endif // 0
+
+    // Step 4: Create conffiles
+    const auto container_name = std::string{"flecs-"} + instance.id();
+    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
+    if (!app.conffiles().empty())
+    {
+        auto ec = std::error_code{};
+        if (!std::filesystem::create_directories(conf_path, ec))
+        {
+            return {-1, instance.id()};
+        }
+    }
+
+    for (const auto& conffile : app.conffiles())
+    {
+        const auto local_path = conf_path + conffile.local();
+        if (conffile.init())
+        {
+            const auto [res, additional_info] =
+                copy_file_from_image(app.image_with_tag(), conffile.container(), local_path);
+            if (res != 0)
+            {
+                return {-1, instance.id()};
+            }
+        }
+        else
+        {
+            auto f = std::ofstream{local_path};
+            if (!f.good())
+            {
+                return {-1, instance.id()};
+            }
+        }
+    }
+
+    instance.status(instance_status_e::RESOURCES_READY);
+
+    return do_create_instance(app, instance);
 }
 
 auto deployment_t::start_instance(const app_t& app, std::string_view instance_id) //
     -> result_t
 {
-    const auto& instance = _instances.at(instance_id.data());
+    auto& instance = _instances.at(instance_id.data());
     const auto& startup_options = instance.startup_options();
 
     if (std::count(

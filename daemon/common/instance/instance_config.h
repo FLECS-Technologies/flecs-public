@@ -35,6 +35,14 @@ struct instance_config_t
     };
     std::vector<network_adapter_t> networkAdapters;
 
+    struct network_t
+    {
+        std::string network;
+        std::string mac;
+        std::string ip;
+    };
+    std::vector<network_t> networks;
+
     std::vector<unsigned> startup_options;
 };
 

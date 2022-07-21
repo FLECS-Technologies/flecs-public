@@ -48,7 +48,7 @@ auto module_app_manager_private_t::do_start_instance(
         return crow::status::BAD_REQUEST;
     }
 
-    // get instance details from database
+    // get instance details from deployment
     auto& instance = _deployment->instances().at(instance_id);
     // correct response based on actual instance
     response["app"] = instance.app();
@@ -69,18 +69,21 @@ auto module_app_manager_private_t::do_start_instance(
         return crow::status::OK;
     }
 
-    // Step 3: Persist desired status into db, if triggered externally
+    // Step 3: Persist desired status into deployment, if triggered externally
     if (!internal)
     {
         instance.desired(instance_status_e::RUNNING);
-        persist_instances();
     }
 
-    // Final step: Forward to deployment
+    // Step 4: Forward to deployment
     const auto& app = _installed_apps.at(std::forward_as_tuple(instance.app(), instance.version()));
     const auto [res, additional_info] = _deployment->start_instance(app, instance_id);
 
     response["additionalInfo"] = additional_info;
+
+    // Final step: Persist instance status into deployment
+    persist_instances();
+
     return (res == 0) ? crow::status::OK : crow::status::INTERNAL_SERVER_ERROR;
 }
 

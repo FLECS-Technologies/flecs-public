@@ -156,8 +156,10 @@ auto module_app_manager_private_t::do_put_config_instance(
                     }
                     else
                     {
-                        instance.networks().emplace_back(
-                            instance_t::network_t{.network_name = docker_network, .ip_address = network.ipAddress});
+                        instance.networks().emplace_back(instance_t::network_t{
+                            .network_name = docker_network,
+                            .mac_address = {},
+                            .ip_address = network.ipAddress});
                     }
                     persist_instances();
                     for (auto& adapter_json : response["networkAdapters"])

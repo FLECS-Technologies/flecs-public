@@ -76,6 +76,7 @@ auto to_json(json_t& json, const instance_t::network_t& network) //
 {
     json = json_t{
         {"ipAddress", network.ip_address},
+        {"macAddress", network.mac_address},
         {"network", network.network_name},
     };
 }
@@ -84,6 +85,7 @@ auto from_json(const json_t& json, instance_t::network_t& network) //
     -> void
 {
     json.at("ipAddress").get_to(network.ip_address);
+    json.at("macAddress").get_to(network.mac_address);
     json.at("network").get_to(network.network_name);
 }
 
