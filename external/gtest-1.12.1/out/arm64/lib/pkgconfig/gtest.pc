@@ -1,0 +1,9 @@
+libdir=/home/alex/git/flecs-public/external/gtest-1.12.1/out/arm64/lib
+includedir=/home/alex/git/flecs-public/external/gtest-1.12.1/out/arm64/include
+
+Name: gtest
+Description: GoogleTest (without main() function)
+Version: 1.12.1
+URL: https://github.com/google/googletest
+Libs: -L${libdir} -lgtest -lpthread
+Cflags: -I${includedir} -DGTEST_HAS_PTHREAD=1
