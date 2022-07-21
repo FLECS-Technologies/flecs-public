@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}",
                 "${workspaceFolder}/apps/tech.flecs.mqtt-bridge",
-                "${workspaceFolder}/external/cpr-1.8.3/out/amd64/include",
+                "${workspaceFolder}/external/cpr-1.9.0/out/amd64/include",
                 "${workspaceFolder}/external/crow-1.0+3/include",
                 "${workspaceFolder}/external/gtest-1.12.0/out/amd64/include",
                 "${workspaceFolder}/external/mosquitto-2.0.14/out/amd64/include",
