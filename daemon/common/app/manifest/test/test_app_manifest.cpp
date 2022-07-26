@@ -52,7 +52,7 @@ private:
     G_YAML_INDENT G_YAML_ITEM(G_ARG_3)
 #define G_AUTHOR "FLECS Technologies GmbH (info@flecs.tech)"
 #define G_CATEGORY "test"
-#define G_CONFFILE_LOCAL "/path/to/local.conf"
+#define G_CONFFILE_LOCAL "local.conf"
 #define G_CONFFILE_CONTAINER "/etc/container.conf"
 #define G_CONFFILES         \
     G_YAML_KEY("conffiles") \
@@ -223,7 +223,7 @@ TEST(daemon_app, to_json)
         R"-("author":"FLECS Technologies GmbH (info@flecs.tech)",)-"
         R"-("avatar":"",)-"
         R"-("category":"test",)-"
-        R"-("conffiles":[{"container":"/etc/container.conf","init":false,"local":"/path/to/local.conf","ro":false}],)-"
+        R"-("conffiles":[{"container":"/etc/container.conf","init":false,"local":"local.conf","ro":false}],)-"
         R"-("description":"FLECS test app for unit tests",)-"
         R"-("devices":["/dev/device0"],)-"
         R"-("editor":"",)-"
@@ -236,7 +236,9 @@ TEST(daemon_app, to_json)
         R"-("ports":[{"container":"1234","host":"1234"},{"container":"10000-10005","host":"8000-8005"}],)-"
         R"-("title":"FLECS test app",)-"
         R"-("version":"1.2.3.4-f1",)-"
-        R"-("volumes":[{"container":"/var/","host":"var","type":"volume"},{"container":"/etc/","host":"etc","type":"volume"},{"container":"/home/","host":"/home/app1/dir","type":"bind mount"}]})-";
+        R"-("volumes":[{"container":"/var/","host":"var","type":"volume"},{"container":"/etc/","host":"etc","type":"volume"},{"container":"/home/","host":"/home/app1/dir","type":"bind mount"}],)-"
+        R"-("yamlLoaded":true,)-"
+        R"-("yamlValid":true})-";
 
     ASSERT_EQ(json.dump(), json_expected);
 }

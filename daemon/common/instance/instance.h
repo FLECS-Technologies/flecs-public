@@ -20,12 +20,21 @@
 
 #include "instance_config.h"
 #include "instance_status.h"
+#include "util/json/json.h"
 
 namespace FLECS {
 
 class instance_t
 {
 public:
+    struct network_t
+    {
+        std::string network_name;
+        std::string ip_address;
+    };
+
+    instance_t();
+
     instance_t(
         std::string app,
         std::string version,
@@ -53,10 +62,14 @@ public:
         -> instance_status_e;
     auto desired() const noexcept //
         -> instance_status_e;
-    auto config() const noexcept //
-        -> const instance_config_t&;
-    auto config() noexcept //
-        -> instance_config_t&;
+    auto networks() const noexcept //
+        -> const std::vector<network_t>&;
+    auto networks() noexcept //
+        -> std::vector<network_t>&;
+    auto startup_options() const noexcept //
+        -> const std::vector<unsigned>&;
+    auto startup_options() noexcept //
+        -> std::vector<unsigned>&;
 
     auto regenerate_id() //
         -> void;
@@ -68,13 +81,24 @@ public:
         -> void;
 
 private:
+    friend auto to_json(json_t& json, const network_t& network) //
+        -> void;
+    friend auto from_json(const json_t& json, network_t& network) //
+        -> void;
+
+    friend auto to_json(json_t& json, const instance_t& instance) //
+        -> void;
+    friend auto from_json(const json_t& json, instance_t& instance) //
+        -> void;
+
     std::string _id;
     std::string _app;
     std::string _version;
     std::string _instance_name;
     instance_status_e _status;
     instance_status_e _desired;
-    instance_config_t _config;
+    std::vector<network_t> _networks;
+    std::vector<unsigned> _startup_options;
 };
 
 inline auto operator==(const instance_t& lhs, const instance_t& rhs) //
@@ -118,16 +142,28 @@ inline auto instance_t::desired() const noexcept //
     return _desired;
 }
 
-inline auto instance_t::config() noexcept //
-    -> instance_config_t&
+inline auto instance_t::networks() const noexcept //
+    -> const std::vector<instance_t::network_t>&
 {
-    return _config;
+    return _networks;
 }
 
-inline auto instance_t::config() const noexcept //
-    -> const instance_config_t&
+inline auto instance_t::networks() noexcept //
+    -> std::vector<instance_t::network_t>&
 {
-    return _config;
+    return _networks;
+}
+
+inline auto instance_t::startup_options() const noexcept //
+    -> const std::vector<unsigned>&
+{
+    return _startup_options;
+}
+
+inline auto instance_t::startup_options() noexcept //
+    -> std::vector<unsigned>&
+{
+    return _startup_options;
 }
 
 inline auto instance_t::instance_name(std::string instance_name) //

@@ -82,7 +82,12 @@
         "condition_variable": "cpp",
         "mutex": "cpp",
         "future": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "strstream": "cpp",
+        "source_location": "cpp",
+        "typeindex": "cpp",
+        "*.ipp": "cpp",
+        "coroutine": "cpp"
     },
     "cSpell.words": [
         "flecs"

@@ -14,11 +14,11 @@
 
 set(PROJECT_NAME FLECS.daemon.common.instance)
 
-project(${PROJECT_NAME} )
+project(${PROJECT_NAME})
 
 add_library(
     ${PROJECT_NAME} STATIC
-    src/instance.cpp src/instance_status.cpp
+    src/instance.cpp src/instance_config.cpp src/instance_status.cpp
     instance.h instance_status.h
 )
 
@@ -28,4 +28,8 @@ target_include_directories(
 
 target_include_directories(
     ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    FLECS.external.json
 )

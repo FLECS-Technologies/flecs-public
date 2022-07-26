@@ -101,12 +101,25 @@ mapped_port_range_t::mapped_port_range_t(const std::string& map_str)
     }
 }
 
-void to_json(json_t& j, const mapped_port_range_t& mapped_port_range)
+auto to_json(json_t& json, const mapped_port_range_t& mapped_port_range) //
+    -> void
 {
-    j = json_t{
+    json = json_t{
         {"container", stringify(mapped_port_range.container_port_range())},
         {"host", stringify(mapped_port_range.host_port_range())},
     };
+}
+
+auto from_json(const json_t& json, mapped_port_range_t& mapped_port_range) //
+    -> void
+{
+    auto host = std::string{};
+    auto container = std::string{};
+
+    json.at("host").get_to(host);
+    json.at("container").get_to(container);
+
+    mapped_port_range = mapped_port_range_t{host + ":" + container};
 }
 
 } // namespace FLECS

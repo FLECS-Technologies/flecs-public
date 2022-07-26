@@ -21,35 +21,35 @@
 namespace FLECS {
 namespace Private {
 
-auto module_app_manager_private_t::do_instance_details(const std::string& id, json_t& response) //
+auto module_app_manager_private_t::do_instance_details(const std::string& instance_id, json_t& response) //
     -> crow::status
 {
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
-    response["instanceId"] = id;
+    response["instanceId"] = instance_id;
 
     // Step 1: Verify instance does actually exist
-    if (!_app_db.has_instance({id}))
+    if (!_deployment->has_instance(instance_id))
     {
-        response["additionalInfo"] = "Could not query details of instance " + id + ", which does not exist";
+        response["additionalInfo"] = "Could not query details of instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
     // Step 2: Obtain instance and corresponsing app
-    const auto instance = _app_db.query_instance({id}).value();
-    const auto manifest_path = build_manifest_path(instance.app, instance.version);
+    const auto& instance = _deployment->instances().at(instance_id);
+    const auto manifest_path = build_manifest_path(instance.app(), instance.version());
     const auto app = app_manifest_t::from_yaml_file(manifest_path);
 
     // Build response
-    response["app"] = instance.app;
-    response["version"] = instance.version;
-    response["IPAddress"] = instance.ips.empty() ? "" : instance.ips[0];
+    response["app"] = instance.app();
+    response["version"] = instance.version();
+    response["IPAddress"] = instance.networks().empty() ? "" : instance.networks()[0].ip_address;
     response["conffiles"] = json_t::array();
-    response["hostname"] = app.hostname().empty() ? (std::string{"flecs-"}.append(instance.id)) : app.hostname();
+    response["hostname"] = app.hostname().empty() ? (std::string{"flecs-"}.append(instance.id())) : app.hostname();
     for (const auto& conffile : app.conffiles())
     {
         auto json_conffile = json_t{};
-        json_conffile["host"] = std::string{"/var/lib/flecs/instances/"} + instance.id + "/conf/" + conffile.local();
+        json_conffile["host"] = std::string{"/var/lib/flecs/instances/"} + instance.id() + "/conf/" + conffile.local();
         json_conffile["container"] = conffile.container();
         response["conffiles"].push_back(json_conffile);
     }

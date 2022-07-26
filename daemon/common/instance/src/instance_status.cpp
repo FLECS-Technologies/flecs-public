@@ -39,4 +39,19 @@ auto to_string(const instance_status_e& instance_status) //
     return strings.at(instance_status);
 }
 
+auto instance_status_from_string(std::string_view str) //
+    -> instance_status_e
+{
+    const auto status = std::map<std::string_view, instance_status_e>{
+        {"created", instance_status_e::CREATED},
+        {"not created", instance_status_e::NOT_CREATED},
+        {"requested", instance_status_e::REQUESTED},
+        {"resources ready", instance_status_e::RESOURCES_READY},
+        {"running", instance_status_e::RUNNING},
+        {"stopped", instance_status_e::STOPPED},
+    };
+
+    return status.count(str) ? status.at(str) : instance_status_e::UNKNOWN;
+}
+
 } // namespace FLECS

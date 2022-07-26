@@ -62,7 +62,7 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     auto instance = _instances.emplace(tmp.id(), tmp).first;
     for (const auto& startup_option : app.startup_options())
     {
-        instance->second.config().startup_options.emplace_back(
+        instance->second.startup_options().emplace_back(
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
     }
 
@@ -73,16 +73,16 @@ auto deployment_t::start_instance(const app_t& app, std::string_view instance_id
     -> result_t
 {
     const auto& instance = _instances.at(instance_id.data());
-    const auto& startup_options = instance.config().startup_options;
+    const auto& startup_options = instance.startup_options();
 
     if (std::count(
             startup_options.cbegin(),
             startup_options.cend(),
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START)))
     {
-        for (const auto& network : instance.config().networks)
+        for (const auto& network : instance.networks())
         {
-            disconnect_network(instance_id, network.network);
+            disconnect_network(instance_id, network.network_name);
         }
     }
 
@@ -98,9 +98,9 @@ auto deployment_t::start_instance(const app_t& app, std::string_view instance_id
             startup_options.cend(),
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START)))
     {
-        for (const auto& network : _instances.at(instance_id.data()).config().networks)
+        for (const auto& network : _instances.at(instance_id.data()).networks())
         {
-            connect_network(instance_id, network.network, network.ip);
+            connect_network(instance_id, network.network_name, network.ip_address);
         }
     }
 
@@ -118,7 +118,7 @@ auto deployment_t::stop_instance(std::string_view instance_id) //
     -> result_t
 {
     const auto& instance = _instances.at(instance_id.data());
-    const auto& startup_options = instance.config().startup_options;
+    const auto& startup_options = instance.startup_options();
 
     auto [res, additional_info] = do_stop_instance(instance);
 
@@ -127,9 +127,9 @@ auto deployment_t::stop_instance(std::string_view instance_id) //
             startup_options.cend(),
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START)))
     {
-        for (const auto& network : _instances.at(instance_id.data()).config().networks)
+        for (const auto& network : _instances.at(instance_id.data()).networks())
         {
-            const auto [net_res, net_err] = disconnect_network(instance_id, network.network);
+            const auto [net_res, net_err] = disconnect_network(instance_id, network.network_name);
             if (net_res != 0)
             {
                 res = -1;
@@ -184,9 +184,9 @@ auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::strin
     }
     for (const auto& instance : _instances)
     {
-        for (const auto& network : instance.second.config().networks)
+        for (const auto& network : instance.second.networks())
         {
-            used_ips.emplace(ntohl(ipv4_to_bits(network.ip).s_addr));
+            used_ips.emplace(ntohl(ipv4_to_bits(network.ip_address).s_addr));
         }
     }
 

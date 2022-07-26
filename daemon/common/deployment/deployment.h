@@ -50,6 +50,7 @@ public:
         std::string name;
         std::string cidr_subnet;
         std::string gateway;
+        std::string parent;
         network_type_t type;
     };
 
@@ -59,6 +60,12 @@ public:
 
     auto instances() const noexcept //
         -> const std::map<std::string, instance_t>&;
+    auto instance_ids(std::string_view app) const //
+        -> std::vector<std::string>;
+    auto instance_ids(std::string_view app, std::string_view version) const //
+        -> std::vector<std::string>;
+    auto has_instance(std::string_view instance_id) const noexcept //
+        -> bool;
     auto instances() noexcept //
         -> std::map<std::string, instance_t>&;
     auto insert_instance(instance_t instance) //
@@ -101,6 +108,7 @@ public:
 
 protected:
     std::map<std::string, instance_t> _instances;
+    std::map<std::string, network_t> _networks;
 
 private:
     virtual auto do_insert_instance(instance_t instance) //
@@ -149,6 +157,40 @@ inline auto deployment_t::instances() noexcept //
     -> std::map<std::string, instance_t>&
 {
     return _instances;
+}
+
+inline auto deployment_t::instance_ids(std::string_view app) const //
+    -> std::vector<std::string>
+{
+    auto ids = std::vector<std::string>{};
+    for (const auto& instance : instances())
+    {
+        if (app == instance.second.app())
+        {
+            ids.emplace_back(instance.first);
+        }
+    }
+    return ids;
+}
+
+inline auto deployment_t::instance_ids(std::string_view app, std::string_view version) const //
+    -> std::vector<std::string>
+{
+    auto ids = std::vector<std::string>{};
+    for (const auto& instance : instances())
+    {
+        if ((app == instance.second.app()) && (version == instance.second.version()))
+        {
+            ids.emplace_back(instance.first);
+        }
+    }
+    return ids;
+}
+
+inline auto deployment_t::has_instance(std::string_view instance_id) const noexcept //
+    -> bool
+{
+    return _instances.count(instance_id.data());
 }
 
 inline auto deployment_t::insert_instance(instance_t instance) //

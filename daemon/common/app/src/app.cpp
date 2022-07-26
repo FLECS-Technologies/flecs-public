@@ -50,12 +50,25 @@ app_t::app_t(const std::string& manifest_string, app_status_e status, app_status
     }
 }
 
-void to_json(json_t& j, const app_t& app)
+auto to_json(json_t& json, const app_t& app) //
+    -> void
 {
     const auto& parent = static_cast<const app_manifest_t&>(app);
-    to_json(j, parent);
-    j.push_back({"status", app_status_to_string(app._status)});
-    j.push_back({"desired", app_status_to_string(app._desired)});
+    to_json(json, parent);
+    json.push_back({"status", to_string(app._status)});
+    json.push_back({"desired", to_string(app._desired)});
+}
+
+auto from_json(const json_t& json, app_t& app) //
+    -> void
+{
+    from_json(json, static_cast<app_manifest_t&>(app));
+    auto status = std::string{};
+    json.at("status").get_to(status);
+    app._status = app_status_from_string(status);
+    auto desired = std::string{};
+    json.at("desired").get_to(desired);
+    app._desired = app_status_from_string(desired);
 }
 
 } // namespace FLECS
