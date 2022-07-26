@@ -35,18 +35,18 @@ auto module_app_manager_private_t::do_delete_instance(
     response["version"] = version;
 
     // Step 1: Verify instance does actually exist
-    if (!_app_db.has_instance({instance_id}))
+    if (!_deployment->has_instance(instance_id))
     {
         response["additionalInfo"] = "Could not delete instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
     // Step 2: Do some cross-checks if app_name and version are provided
-    auto instance = _app_db.query_instance({instance_id}).value();
+    auto& instance = _deployment->instances().at(instance_id);
 
     // correct response based on actual instance
-    response["app"] = instance.app;
-    response["version"] = instance.version;
+    response["app"] = instance.app();
+    response["version"] = instance.version();
 
     auto xcheck = xcheck_app_instance(instance, app_name, version);
     if (xcheck < 0)
@@ -109,8 +109,7 @@ auto module_app_manager_private_t::do_delete_instance(
     _deployment->delete_instance(instance_id);
 
     // Final step: Persist removal of instance into db
-    _app_db.delete_instance({instance_id});
-    _app_db.persist();
+    persist_apps();
 
     return crow::status::OK;
 }

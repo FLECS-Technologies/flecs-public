@@ -51,7 +51,9 @@ public:
         -> bool;
 
 private:
-    friend auto to_json(json_t& j, const network_t& conffile) //
+    friend auto to_json(json_t& json, const network_t& network) //
+        -> void;
+    friend auto from_json(const json_t& json, network_t& network) //
         -> void;
 
     std::string _name;

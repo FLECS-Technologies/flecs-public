@@ -35,6 +35,10 @@ std::string generate_instance_id()
     return res;
 }
 
+instance_t::instance_t()
+    : instance_t{generate_instance_id(), {}, {}, {}, {}, {}}
+{}
+
 instance_t::instance_t(
     std::string app,
     std::string version,
@@ -57,12 +61,61 @@ instance_t::instance_t(
     , _instance_name{instance_name}
     , _status{status}
     , _desired{desired}
+    , _networks{}
+    , _startup_options{}
 {}
 
 auto instance_t::regenerate_id() //
     -> void
 {
     _id = generate_instance_id();
+}
+
+auto to_json(json_t& json, const instance_t::network_t& network) //
+    -> void
+{
+    json = json_t{
+        {"ipAddress", network.ip_address},
+        {"network", network.network_name},
+    };
+}
+
+auto from_json(const json_t& json, instance_t::network_t& network) //
+    -> void
+{
+    json.at("ipAddress").get_to(network.ip_address);
+    json.at("network").get_to(network.network_name);
+}
+
+auto to_json(json_t& json, const instance_t& instance) //
+    -> void
+{
+    json = json_t(
+        {{"app", instance._app},
+         {"desired", to_string(instance._desired)},
+         {"id", instance._id},
+         {"instanceName", instance._instance_name},
+         {"networks", instance._networks},
+         {"startupOptions", instance._startup_options},
+         {"status", to_string(instance._status)},
+         {"version", instance._version}});
+}
+
+auto from_json(const json_t& json, instance_t& instance) //
+    -> void
+{
+    json.at("app").get_to(instance._app);
+    auto desired = std::string{};
+    json.at("desired").get_to(desired);
+    instance._desired = instance_status_from_string(desired);
+    json.at("id").get_to(instance._id);
+    json.at("instanceName").get_to(instance._instance_name);
+    json.at("networks").get_to(instance._networks);
+    json.at("startupOptions").get_to(instance._startup_options);
+    auto status = std::string{};
+    json.at("status").get_to(status);
+    instance._status = instance_status_from_string(status);
+    json.at("version").get_to(instance._version);
 }
 
 } // namespace FLECS

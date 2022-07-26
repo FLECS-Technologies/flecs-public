@@ -115,6 +115,11 @@ inline std::string to_string(const port_range_t& port_range)
 class mapped_port_range_t
 {
 public:
+    constexpr mapped_port_range_t() noexcept
+        : _host_port_range{}
+        , _container_port_range{}
+    {}
+
     constexpr explicit mapped_port_range_t(port_range_t host_port_range) noexcept
         : _host_port_range{host_port_range}
         , _container_port_range{host_port_range}
@@ -147,7 +152,10 @@ public:
     constexpr port_range_t container_port_range() const noexcept { return _container_port_range; }
 
 private:
-    friend void to_json(json_t& j, const mapped_port_range_t& mapped_port_range);
+    friend auto to_json(json_t& json, const mapped_port_range_t& mapped_port_range) //
+        -> void;
+    friend auto from_json(const json_t& json, mapped_port_range_t& mapped_port_range) //
+        -> void;
 
     port_range_t _host_port_range;
     port_range_t _container_port_range;

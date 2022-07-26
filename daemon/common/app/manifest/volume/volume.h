@@ -42,7 +42,10 @@ public:
     auto& type() const noexcept { return _type; }
 
 private:
-    friend void to_json(json_t& j, const volume_t& volume);
+    friend auto to_json(json_t& json, const volume_t& volume) //
+        -> void;
+    friend auto from_json(const json_t& json, volume_t& volume) //
+        -> void;
 
     std::string _host;
     std::string _container;
@@ -75,6 +78,16 @@ inline std::string to_string(const volume_t::volume_type_t& volume_type)
         default:
             return "unknown";
     }
+}
+
+inline volume_t::volume_type_t volume_type_from_string(std::string_view str)
+{
+    const auto volume_types = std::map<std::string_view, volume_t::volume_type_t>{
+        {"bind mount", volume_t::volume_type_t::BIND_MOUNT},
+        {"volume", volume_t::volume_type_t::VOLUME},
+    };
+
+    return volume_types.count(str) ? volume_types.at(str) : volume_t::volume_type_t::NONE;
 }
 
 } // namespace FLECS

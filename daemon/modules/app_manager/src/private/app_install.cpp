@@ -133,10 +133,10 @@ auto module_app_manager_private_t::do_install(
     json_t& response) //
     -> crow::status
 {
-    const auto desired = INSTALLED;
+    const auto desired = app_status_e::INSTALLED;
 
     // Step 1: Load app manifest
-    auto tmp = app_t{manifest_path, MANIFEST_DOWNLOADED, desired};
+    auto tmp = app_t{manifest_path, app_status_e::MANIFEST_DOWNLOADED, desired};
     if (tmp.app().empty())
     {
         response["additionalInfo"] = "Could not open app manifest " + manifest_path.string();
@@ -149,7 +149,6 @@ auto module_app_manager_private_t::do_install(
 
     // Step 2: Determine current app status to decide where to continue
     auto it = _installed_apps.find(std::forward_as_tuple(tmp.app(), tmp.version()));
-
     if (it == _installed_apps.end())
     {
         it = _installed_apps
@@ -161,15 +160,10 @@ auto module_app_manager_private_t::do_install(
     }
 
     auto& app = it->second;
-
-    // Step 3: Add database entry for app. At this point the existence of the requested app is guaranteed as its
-    // manifest was transferred to the local storage, so it is safe to add it to the local app database
-    _app_db.insert_app(app);
-
     switch (app.status())
     {
-        case MANIFEST_DOWNLOADED: {
-            // Step 4: Acquire download token for app
+        case app_status_e::MANIFEST_DOWNLOADED: {
+            // Step 3: Acquire download token for app
             app.download_token(acquire_download_token(license_key));
 
             if (app.download_token().empty())
@@ -178,14 +172,12 @@ auto module_app_manager_private_t::do_install(
             }
             else
             {
-                app.status(TOKEN_ACQUIRED);
+                app.status(app_status_e::TOKEN_ACQUIRED);
             }
-
-            _app_db.insert_app(app);
             [[fallthrough]];
         }
-        case TOKEN_ACQUIRED: {
-            // Step 5: Pull Docker image for this app
+        case app_status_e::TOKEN_ACQUIRED: {
+            // Step 4: Pull Docker image for this app
             auto docker_login_process = process_t{};
             auto docker_pull_process = process_t{};
             auto docker_logout_process = process_t{};
@@ -209,7 +201,7 @@ auto module_app_manager_private_t::do_install(
             if (docker_login_process.exit_code() != 0)
             {
                 response["additionalInfo"] = docker_login_process.stderr();
-                _app_db.persist();
+                persist_apps();
                 return crow::status::INTERNAL_SERVER_ERROR;
             }
 
@@ -231,15 +223,14 @@ auto module_app_manager_private_t::do_install(
             if (docker_pull_process.exit_code() != 0)
             {
                 response["additionalInfo"] = docker_pull_process.stderr();
-                _app_db.persist();
+                persist_apps();
                 return crow::status::INTERNAL_SERVER_ERROR;
             }
-            app.status(IMAGE_DOWNLOADED);
-            _app_db.insert_app(app);
+            app.status(app_status_e::IMAGE_DOWNLOADED);
             [[fallthrough]];
         }
-        case IMAGE_DOWNLOADED: {
-            // Step 6: Expire download token
+        case app_status_e::IMAGE_DOWNLOADED: {
+            // Step 5: Expire download token
             const auto args = split(app.download_token(), ';');
             if (args.size() == 3)
             {
@@ -247,7 +238,7 @@ auto module_app_manager_private_t::do_install(
                 if (success)
                 {
                     app.download_token("");
-                    app.status(INSTALLED);
+                    app.status(app_status_e::INSTALLED);
                 }
                 else
                 {
@@ -257,9 +248,8 @@ auto module_app_manager_private_t::do_install(
             else
             {
                 app.download_token("");
-                app.status(INSTALLED);
+                app.status(app_status_e::INSTALLED);
             }
-            _app_db.insert_app(app);
             break;
         }
         default: {
@@ -267,7 +257,7 @@ auto module_app_manager_private_t::do_install(
     }
 
     // Final step: Persist successful installation into db
-    _app_db.persist();
+    persist_apps();
 
     return crow::status::OK;
 }

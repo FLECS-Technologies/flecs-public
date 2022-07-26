@@ -19,7 +19,7 @@
 
 namespace FLECS {
 
-enum instance_status_e : char
+enum class instance_status_e : char
 {
     NOT_CREATED = 'n',
     REQUESTED = 'q',
@@ -27,6 +27,7 @@ enum instance_status_e : char
     CREATED = 'c',
     STOPPED = 's',
     RUNNING = 'r',
+    UNKNOWN = 'u',
 };
 
 auto to_char(const instance_status_e& instance_status) //
@@ -34,6 +35,9 @@ auto to_char(const instance_status_e& instance_status) //
 
 auto to_string(const instance_status_e& instance_status) //
     -> std::string;
+
+auto instance_status_from_string(std::string_view str) //
+    -> instance_status_e;
 
 } // namespace FLECS
 

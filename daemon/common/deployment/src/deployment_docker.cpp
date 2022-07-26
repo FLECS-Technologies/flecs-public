@@ -64,20 +64,6 @@ auto deployment_docker_t::do_create_instance(const app_t& app, instance_t& insta
         }
     }
 
-    // query and create remaining networks
-    for (const auto& network : app.networks())
-    {
-        auto network_exists = query_network(network.name()).has_value();
-        if (!network_exists)
-        {
-            const auto [res, err] = create_network(network.type(), network.name(), "", "", network.parent());
-            if (res != 0)
-            {
-                return {-1, instance.id()};
-            }
-        }
-    }
-
     // Step 3: Create conffiles
     const auto container_name = std::string{"flecs-"} + instance.id();
     const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
@@ -230,7 +216,7 @@ auto deployment_docker_t::do_create_instance(const app_t& app, instance_t& insta
             }
         }
 
-        instance.config().networks.emplace_back(instance_config_t::network_t{.network = net->name, .ip = ip});
+        instance.networks().emplace_back(instance_t::network_t{.network_name = net->name, .ip_address = ip});
     }
 
     if (std::count(
@@ -238,7 +224,7 @@ auto deployment_docker_t::do_create_instance(const app_t& app, instance_t& insta
             app.startup_options().cend(),
             startup_option_t::INIT_NETWORK_AFTER_START))
     {
-        instance.config().startup_options.emplace_back(
+        instance.startup_options().emplace_back(
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START));
         docker_process.arg("--mount");
         docker_process.arg("type=tmpfs,destination=/flecs-tmp");
@@ -354,16 +340,7 @@ auto deployment_docker_t::do_create_instance(const app_t& app, instance_t& insta
         {
             connect_network(instance.id(), net->name, ip);
         }
-        instance.config().networks.emplace_back(instance_config_t::network_t{.network = net->name, .ip = ip});
-        if (network.type() == network_type_t::IPVLAN || network.type() == network_type_t::MACVLAN)
-        {
-            instance.config().networkAdapters.emplace_back(instance_config_t::network_adapter_t{
-                .name = network.parent(),
-                .ipAddress = ip,
-                .subnetMask = cidr_to_subnet_mask_v4(net->cidr_subnet),
-                .gateway = net->gateway,
-                .active = true});
-        }
+        instance.networks().emplace_back(instance_t::network_t{.network_name = net->name, .ip_address = ip});
     }
 
     instance.status(instance_status_e::CREATED);

@@ -187,3 +187,17 @@ TEST(port_range, to_json)
     ASSERT_TRUE(mapped_range_1.is_valid());
     ASSERT_EQ(json.dump(), json_expected);
 }
+
+TEST(port_range, from_json)
+{
+    const auto json_string = R"({"container":"10000-10005","host":"8000-8005"})";
+    auto json = FLECS::parse_json(json_string);
+
+    const auto mapped_range_1 = json.get<FLECS::mapped_port_range_t>();
+
+    ASSERT_TRUE(mapped_range_1.is_valid());
+    ASSERT_EQ(mapped_range_1.host_port_range().start_port(), 8000);
+    ASSERT_EQ(mapped_range_1.host_port_range().end_port(), 8005);
+    ASSERT_EQ(mapped_range_1.container_port_range().start_port(), 10000);
+    ASSERT_EQ(mapped_range_1.container_port_range().end_port(), 10005);
+}

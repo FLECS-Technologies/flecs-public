@@ -17,11 +17,9 @@
 
 #include <string>
 
-#include "util/container/map_constexpr.h"
-
 namespace FLECS {
 
-enum app_status_e : char
+enum class app_status_e : char
 {
     NOT_INSTALLED = 'n',
     MANIFEST_DOWNLOADED = 'm',
@@ -30,34 +28,20 @@ enum app_status_e : char
     INSTALLED = 'i',
     REMOVED = 'r',
     PURGED = 'p',
+    UNKNOWN = 'u',
 };
 
-inline std::string to_string(app_status_e val)
+inline auto to_char(app_status_e val) //
+    -> char
 {
-    auto res = std::string{};
-    return res.append(1, val);
+    return static_cast<std::underlying_type_t<app_status_e>>(val);
 }
 
-using app_status_to_string_t = map_c<app_status_e, const char*, 7>;
-constexpr app_status_to_string_t app_status_to_string_table = {{
-    std::make_pair(app_status_e::NOT_INSTALLED, "not installed"),
-    std::make_pair(app_status_e::MANIFEST_DOWNLOADED, "manifest downloaded"),
-    std::make_pair(app_status_e::TOKEN_ACQUIRED, "token acquired"),
-    std::make_pair(app_status_e::IMAGE_DOWNLOADED, "image downloaded"),
-    std::make_pair(app_status_e::INSTALLED, "installed"),
-    std::make_pair(app_status_e::REMOVED, "removed"),
-    std::make_pair(app_status_e::PURGED, "purged"),
-}};
+auto to_string(app_status_e app_status) //
+    -> std::string;
 
-constexpr const char* app_status_to_string(app_status_e status)
-{
-    if (app_status_to_string_table.find(status) != app_status_to_string_table.end())
-    {
-        return app_status_to_string_table.at(status).second;
-    }
-
-    return "unknown";
-}
+auto app_status_from_string(std::string_view str) //
+    -> app_status_e;
 
 } // namespace FLECS
 

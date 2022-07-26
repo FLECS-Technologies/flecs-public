@@ -52,11 +52,10 @@ auto module_app_manager_private_t::do_create_instance(
     // Step 3: Ensure there is only one instance of single-instance apps
     if (!app.multi_instance())
     {
-        decltype(auto) instances = _app_db.instances(app.app(), app.version());
-        if (instances.size() > 0)
+        const auto instance_ids = _deployment->instance_ids(app.app(), app.version());
+        if (!instance_ids.empty())
         {
-            decltype(auto) instance = instances[0];
-            response["instanceId"] = instance.id;
+            response["instanceId"] = instance_ids[0];
             return crow::status::OK;
         }
     }
@@ -66,29 +65,8 @@ auto module_app_manager_private_t::do_create_instance(
 
     response["instanceId"] = instance_id;
 
-    const auto& instance = _deployment->instances().at(instance_id);
-    auto networks = std::vector<std::string>{};
-    auto ips = std::vector<std::string>{};
-
-    // @todo do this differently
-    for (std::size_t i = 0; i < instance.config().networks.size(); ++i)
-    {
-        networks.emplace_back(instance.config().networks[i].network);
-        ips.emplace_back(instance.config().networks[i].ip);
-    }
-    _app_db.insert_instance(
-        {instance_id,
-         instance.app(),
-         instance.version(),
-         instance.instance_name(),
-         instance.status(),
-         instance.desired(),
-         networks,
-         ips,
-         instance.config().startup_options.empty() ? 0 : instance.config().startup_options[0]});
-
     // Final step: Persist creation into db
-    _app_db.persist();
+    persist_instances();
 
     if (res != 0)
     {

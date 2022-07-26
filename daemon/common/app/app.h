@@ -44,7 +44,10 @@ public:
     void desired(app_status_e desired) { _desired = desired; }
 
 private:
-    friend void to_json(json_t& j, const app_t& app);
+    friend auto to_json(json_t& json, const app_t& app) //
+        -> void;
+    friend auto from_json(const json_t& json, app_t& app) //
+        -> void;
 
     std::string _license_key;
     std::string _download_token;

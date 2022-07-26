@@ -30,23 +30,24 @@ auto module_app_manager_private_t::do_list_apps(json_t& response) //
         auto j = json_t{};
         to_json(j, app.second);
         j["instances"] = json_t::array();
-        const auto instances = _app_db.instances(app.second.app(), app.second.version());
-        for (const auto& instance : instances)
+        const auto instance_ids = _deployment->instance_ids(app.second.app(), app.second.version());
+        for (const auto& instance_id : instance_ids)
         {
+            const auto& instance = _deployment->instances().at(instance_id);
             auto json_instance = json_t{};
-            json_instance["instanceId"] = instance.id;
-            json_instance["instanceName"] = instance.description;
-            if (instance.status == instance_status_e::CREATED)
+            json_instance["instanceId"] = instance.id();
+            json_instance["instanceName"] = instance.instance_name();
+            if (instance.status() == instance_status_e::CREATED)
             {
                 json_instance["status"] = to_string(
-                    is_instance_running(instance.id) ? instance_status_e::RUNNING : instance_status_e::STOPPED);
+                    is_instance_running(instance.id()) ? instance_status_e::RUNNING : instance_status_e::STOPPED);
             }
             else
             {
-                json_instance["status"] = to_string(instance.status);
+                json_instance["status"] = to_string(instance.status());
             }
-            json_instance["desired"] = to_string(instance.desired);
-            json_instance["version"] = instance.version;
+            json_instance["desired"] = to_string(instance.desired());
+            json_instance["version"] = instance.version();
             j["instances"].push_back(json_instance);
         }
         response["appList"].push_back(j);

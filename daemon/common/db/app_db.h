@@ -101,97 +101,37 @@ public:
 
     explicit app_db_t(std::string path);
 
-    ~app_db_t() override;
+    auto is_open() const noexcept //
+        -> bool
+    {
+        return _ok;
+    }
 
-    int user_version() const noexcept;
+    auto close() //
+        -> int
+    {
+        return sqlite3_db_t::close();
+    }
 
-    /*! @brief Inserts an app into the app database
-     *
-     * @param[in] entry
-     *
-     * @return error code
-     */
-    void insert_app(const app_t& app);
-
-    /*! @brief Deletes an app from the app database
-     *
-     * @param[in] primary
-     *
-     * @return error code
-     */
-    void delete_app(const apps_table_primary_t& primary);
-
-    /*! @brief Queries if an app is in the database
-     *
-     * @param[in] primary
-     *
-     * @return error code
-     */
-    bool has_app(const apps_table_primary_t& primary) const noexcept;
+    auto path() const noexcept //
+        -> const std::string&
+    {
+        return _path;
+    }
 
     /*! @brief Returns all apps in the database
      *
      *  @return std::vector containing all apps; empty if none are in the database
      */
-    std::vector<apps_table_entry_t> all_apps() const;
-
-    /*! @brief Inserts an instance of an app into the app database
-     *
-     * @param[in] entry
-     *
-     * @return error code
-     */
-    void insert_instance(const instances_table_entry_t& entry);
-
-    /*! @brief Deletes an instance of an app from the app database
-     *
-     * @param[in] primary
-     */
-    void delete_instance(const instances_table_primary_t& primary);
-
-    /*! @brief Queries if an instance with a given ID is in the app database
-     */
-    bool has_instance(const instances_table_primary_t& primary) const noexcept;
+    auto all_apps() //
+        -> std::vector<apps_table_entry_t>;
 
     /*! @brief Returns all instances in the app database
      */
-    std::vector<instances_table_entry_t> all_instances() const;
-
-    /*! @brief Returns all instances for a given app in all versions in the app database
-     */
-    std::vector<instances_table_entry_t> instances(const std::string& app) const;
-
-    /*! @brief Returns all instances for a given app and version in the app database
-     */
-    std::vector<instances_table_entry_t> instances(const std::string& app, const std::string& version) const;
-
-    /*! @brief */
-    std::optional<apps_table_entry_t> query_app(const apps_table_primary_t& primary) const noexcept;
-
-    /*! @brief */
-    std::optional<instances_table_entry_t> query_instance(const instances_table_primary_t& primary) const noexcept;
-
-    int persist();
-
-    const char* errmsg() const noexcept { return static_cast<const sqlite3_db_t*>(this)->errmsg(); }
-
-    static constexpr int CURRENT_USER_VERSION = 4;
+    auto all_instances() //
+        -> std::vector<instances_table_entry_t>;
 
 private:
-    void cache_db();
-    void migrate_db();
-
-    int create_app_table();
-    int create_instances_table();
-    int set_user_version();
-    int query_user_version();
-
-    using apps_table_t = std::map<apps_table_primary_t, apps_table_data_t, apps_table_primary_comparator_t>;
-    using instances_table_t =
-        std::map<instances_table_primary_t, instances_table_data_t, instances_table_primary_comparator_t>;
-    apps_table_t _apps;
-    instances_table_t _instances;
-    int _user_version;
     std::string _path;
 };
 
