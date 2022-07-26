@@ -38,8 +38,7 @@ namespace FLECS {
             target = yaml[#value].as<decltype(target)>(); \
         }                                                 \
         catch (const YAML::Exception& ex)                 \
-        {                                                 \
-        }                                                 \
+        {}                                                \
     } while (false)
 
 #define OPTIONAL_YAML_NODE(yaml, value, target) \
@@ -51,8 +50,7 @@ namespace FLECS {
             target = yaml[#value];              \
         }                                       \
         catch (const YAML::Exception& ex)       \
-        {                                       \
-        }                                       \
+        {}                                      \
     } while (false)
 
 app_manifest_t::app_manifest_t()
@@ -232,9 +230,10 @@ void app_manifest_t::validate_yaml()
     _yaml_valid = true;
 }
 
-void to_json(json_t& j, const app_manifest_t& app_manifest)
+auto to_json(json_t& json, const app_manifest_t& app_manifest) //
+    -> void
 {
-    j = json_t{
+    json = json_t{
         {"app", app_manifest._app},
         {"args", app_manifest._args},
         {"author", app_manifest._author},
@@ -254,7 +253,35 @@ void to_json(json_t& j, const app_manifest_t& app_manifest)
         {"title", app_manifest._title},
         {"version", app_manifest._version},
         {"volumes", app_manifest._volumes},
+        {"yamlLoaded", app_manifest._yaml_loaded},
+        {"yamlValid", app_manifest._yaml_valid},
     };
+}
+
+auto from_json(const json_t& json, app_manifest_t& app_manifest) //
+    -> void
+{
+    json.at("app").get_to(app_manifest._app);
+    json.at("args").get_to(app_manifest._args);
+    json.at("author").get_to(app_manifest._author);
+    json.at("avatar").get_to(app_manifest._avatar);
+    json.at("category").get_to(app_manifest._category);
+    json.at("conffiles").get_to(app_manifest._conffiles);
+    json.at("description").get_to(app_manifest._description);
+    json.at("devices").get_to(app_manifest._devices);
+    json.at("editor").get_to(app_manifest._editor);
+    json.at("env").get_to(app_manifest._env);
+    json.at("hostname").get_to(app_manifest._hostname);
+    json.at("image").get_to(app_manifest._image);
+    json.at("interactive").get_to(app_manifest._interactive);
+    json.at("multiInstance").get_to(app_manifest._multi_instance);
+    json.at("networks").get_to(app_manifest._networks);
+    json.at("ports").get_to(app_manifest._ports);
+    json.at("title").get_to(app_manifest._title);
+    json.at("version").get_to(app_manifest._version);
+    json.at("volumes").get_to(app_manifest._volumes);
+    json.at("yamlLoaded").get_to(app_manifest._yaml_loaded);
+    json.at("yamlValid").get_to(app_manifest._yaml_valid);
 }
 
 } // namespace FLECS

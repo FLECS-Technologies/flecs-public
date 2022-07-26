@@ -161,7 +161,7 @@ TEST(deployment, generate_ip_success)
         G_NAME,
         FLECS::instance_status_e::CREATED,
         FLECS::instance_status_e::CREATED};
-    instance.config().networks.emplace_back(FLECS::instance_config_t::network_t{"flecs-network", G_IP});
+    instance.networks().emplace_back(FLECS::instance_t::network_t{.network_name = "flecs-network", .ip_address = G_IP});
 
     deployment->insert_instance(instance);
 

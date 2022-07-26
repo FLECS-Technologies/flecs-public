@@ -64,20 +64,6 @@ auto deployment_docker_t::do_create_instance(const app_t& app, instance_t& insta
         }
     }
 
-    // query and create remaining networks
-    for (const auto& network : app.networks())
-    {
-        auto network_exists = query_network(network.name()).has_value();
-        if (!network_exists)
-        {
-            const auto [res, err] = create_network(network.type(), network.name(), "", "", network.parent());
-            if (res != 0)
-            {
-                return {-1, instance.id()};
-            }
-        }
-    }
-
     // Step 3: Create conffiles
     const auto container_name = std::string{"flecs-"} + instance.id();
     const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
@@ -230,7 +216,7 @@ auto deployment_docker_t::do_create_instance(const app_t& app, instance_t& insta
             }
         }
 
-        instance.config().networks.emplace_back(instance_config_t::network_t{.network = net->name, .ip = ip});
+        instance.networks().emplace_back(instance_t::network_t{.network_name = net->name, .ip_address = ip});
     }
 
     if (std::count(
@@ -354,7 +340,7 @@ auto deployment_docker_t::do_create_instance(const app_t& app, instance_t& insta
         {
             connect_network(instance.id(), net->name, ip);
         }
-        instance.config().networks.emplace_back(instance_config_t::network_t{.network = net->name, .ip = ip});
+        instance.networks().emplace_back(instance_t::network_t{.network_name = net->name, .ip_address = ip});
         if (network.type() == network_type_t::IPVLAN || network.type() == network_type_t::MACVLAN)
         {
             instance.config().networkAdapters.emplace_back(instance_config_t::network_adapter_t{

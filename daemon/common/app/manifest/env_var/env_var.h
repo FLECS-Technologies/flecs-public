@@ -71,7 +71,11 @@ public:
     auto& value() const noexcept { return _value; }
 
 private:
-    friend void to_json(json_t& j, const mapped_env_var_t& mapped_env_var);
+    friend auto to_json(json_t& json, const mapped_env_var_t& mapped_env_var) //
+        -> void;
+
+    friend auto from_json(const json_t& json, mapped_env_var_t& mapped_env_var) //
+        -> void;
 
     env_var_t _env_var;
     std::string _value;

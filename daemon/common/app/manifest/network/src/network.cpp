@@ -118,15 +118,26 @@ auto network_t::is_valid() const noexcept //
     return !(_type == network_type_t::NONE);
 }
 
-auto to_json(json_t& j, const network_t& network) //
+auto to_json(json_t& json, const network_t& network) //
     -> void
 {
-    j = json_t{
+    json = json_t{
         {"mac_address", network.mac_address()},
         {"name", network.name()},
         {"parent", network.parent()},
         {"type", to_string(network.type())},
     };
+}
+
+auto from_json(const json_t& json, network_t& network) //
+    -> void
+{
+    json.at("mac_address").get_to(network._mac_address);
+    json.at("name").get_to(network._name);
+    json.at("parent").get_to(network._parent);
+    auto type = std::string{};
+    json.at("type").get_to(type);
+    network._type = network_type_from_string(type);
 }
 
 } // namespace FLECS

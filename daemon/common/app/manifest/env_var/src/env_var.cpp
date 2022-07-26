@@ -46,9 +46,18 @@ mapped_env_var_t::mapped_env_var_t(const std::string& str)
     _value = parts[1];
 }
 
-void to_json(json_t& j, const mapped_env_var_t& mapped_env_var)
+void to_json(json_t& json, const mapped_env_var_t& mapped_env_var)
 {
-    j = json_t{{"value", mapped_env_var._value}, {"var", mapped_env_var._env_var.var()}};
+    json = json_t{{"value", mapped_env_var._value}, {"var", mapped_env_var._env_var.var()}};
+}
+
+void from_json(const json_t& json, mapped_env_var_t& mapped_env_var)
+{
+    auto value = std::string{};
+    auto var = std::string{};
+    json.at("value").get_to(value);
+    json.at("var").get_to(var);
+    mapped_env_var = mapped_env_var_t{var + ":" + value};
 }
 
 } // namespace FLECS

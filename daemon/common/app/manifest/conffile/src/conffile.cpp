@@ -86,14 +86,24 @@ bool conffile_t::is_valid() const noexcept
     return true;
 }
 
-void to_json(json_t& j, const conffile_t& conffile)
+auto to_json(json_t& json, const conffile_t& conffile) //
+    -> void
 {
-    j = json_t{
+    json = json_t{
         {"container", conffile._container},
         {"init", conffile._init},
         {"local", conffile._local},
         {"ro", conffile._ro},
     };
+}
+
+auto from_json(const json_t& json, conffile_t& conffile) //
+    -> void
+{
+    json.at("container").get_to(conffile._container);
+    json.at("init").get_to(conffile._init);
+    json.at("local").get_to(conffile._local);
+    json.at("ro").get_to(conffile._ro);
 }
 
 } // namespace FLECS

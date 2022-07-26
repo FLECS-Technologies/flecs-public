@@ -48,7 +48,10 @@ public:
     bool is_valid() const noexcept;
 
 private:
-    friend void to_json(json_t& j, const conffile_t& conffile);
+    friend auto to_json(json_t& json, const conffile_t& conffile) //
+        -> void;
+    friend auto from_json(const json_t& json, conffile_t& conffile) //
+        -> void;
 
     std::string _local;
     std::string _container;

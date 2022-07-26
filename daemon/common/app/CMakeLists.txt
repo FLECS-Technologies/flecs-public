@@ -20,7 +20,7 @@ add_subdirectory(manifest)
 
 add_library(
     ${PROJECT_NAME} STATIC
-    app.h src/app.cpp
+    app.h src/app.cpp src/app_status.cpp
 )
 
 target_include_directories(

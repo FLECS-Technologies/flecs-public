@@ -212,7 +212,7 @@ public:
      *
      * @return error code
      */
-    auto do_instance_details(const std::string& id, json_t& response) //
+    auto do_instance_details(const std::string& instance_id, json_t& response) //
         -> crow::status;
 
     /*! @brief Returns logfile of an app instance
@@ -221,7 +221,7 @@ public:
      *
      * @return error code
      */
-    auto do_instance_log(const std::string& id, json_t& response) //
+    auto do_instance_log(const std::string& instance_id, json_t& response) //
         -> crow::status;
 
     /*! @brief Prints all installed apps and their instances in JSON format
@@ -243,10 +243,10 @@ public:
     auto do_list_instances(const std::string& app_name, const std::string& version, json_t& response) //
         -> crow::status;
 
-    auto do_post_config_instance(const std::string& instanceId, json_t& response) //
+    auto do_post_config_instance(const std::string& instance_id, json_t& response) //
         -> crow::status;
 
-    auto do_put_config_instance(const std::string& instanceId, const instance_config_t& config, json_t& response) //
+    auto do_put_config_instance(const std::string& instance_id, const instance_config_t& config, json_t& response) //
         -> crow::status;
 
 private:
@@ -266,7 +266,7 @@ private:
      *
      * @return true if instance is runnable, false otherwise
      */
-    auto is_instance_runnable(const std::string& id) //
+    auto is_instance_runnable(const std::string& instance_id) //
         -> bool;
 
     /*! @brief Helper function to determine whether a given instance is running. Queries Docker to determine the status.
@@ -275,7 +275,7 @@ private:
      *
      * @return true if instance is running, false otherwise
      */
-    auto is_instance_running(const std::string& id) //
+    auto is_instance_running(const std::string& instance_id) //
         -> bool;
 
     /*! @brief Helper function to perform some cross-checks between an instance and a given app_name and version. For
@@ -289,10 +289,19 @@ private:
      * @return 0 if check is ok, -1 otherwise
      */
     auto xcheck_app_instance(
-        const instances_table_entry_t& instance,
+        const instance_t& instance,
         const std::string& app_name,
         const std::string& version) //
         -> int;
+
+    auto persist_apps() const //
+        -> void;
+    auto load_apps() //
+        -> void;
+    auto persist_instances() const //
+        -> void;
+    auto load_instances() //
+        -> void;
 
     auto generate_instance_ip() //
         -> std::string;
@@ -301,7 +310,6 @@ private:
 
     using installed_apps_t = std::map<std::tuple<std::string, std::string>, app_t>;
 
-    app_db_t _app_db;
     installed_apps_t _installed_apps;
     std::unique_ptr<deployment_t> _deployment;
 };

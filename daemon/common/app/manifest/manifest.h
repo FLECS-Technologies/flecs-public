@@ -73,7 +73,10 @@ public:
     auto& volumes() const noexcept { return _volumes; }
 
 private:
-    friend void to_json(json_t& json, const app_manifest_t& app_manifest);
+    friend auto to_json(json_t& json, const app_manifest_t& app_manifest) //
+        -> void;
+    friend auto from_json(const json_t& json, app_manifest_t& app_manifest) //
+        -> void;
 
     void parse_yaml(const yaml_t& yaml);
     void validate_yaml();

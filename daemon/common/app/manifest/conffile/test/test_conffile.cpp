@@ -170,3 +170,17 @@ TEST(conffile, to_json)
     ASSERT_TRUE(conffile.is_valid());
     ASSERT_EQ(json.dump(), json_expected);
 }
+
+TEST(conffile, from_json)
+{
+    const auto json_string = R"({"container":"/etc/file.cfg","init":true,"local":"file.cfg","ro":false})";
+    const auto json = FLECS::parse_json(json_string);
+
+    const auto conffile = json.get<FLECS::conffile_t>();
+
+    ASSERT_TRUE(conffile.is_valid());
+    ASSERT_EQ(conffile.container(), "/etc/file.cfg");
+    ASSERT_EQ(conffile.init(), true);
+    ASSERT_EQ(conffile.local(), "file.cfg");
+    ASSERT_EQ(conffile.ro(), false);
+}

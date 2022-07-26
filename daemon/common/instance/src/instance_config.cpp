@@ -12,37 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef E8E3AE12_7249_481B_B47C_5682C1BBADE2
-#define E8E3AE12_7249_481B_B47C_5682C1BBADE2
-
-#include <string>
-#include <unordered_map>
-#include <vector>
-
-#include "util/json/json.h"
+#include "instance_config.h"
 
 namespace FLECS {
 
-struct instance_config_t
-{
-    struct network_adapter_t
-    {
-        std::string name;
-        std::string ipAddress;
-        std::string subnetMask;
-        std::string gateway;
-        bool active;
-    };
-    std::vector<network_adapter_t> networkAdapters;
-
-    std::vector<unsigned> startup_options;
-};
-
+#if 0
 auto to_json(json_t& json, const instance_config_t& instance_config) //
-    -> void;
+    -> void
+{
+    json = json_t{
+        {"networkAdapters", instance_config.networkAdapters},
+    }; //{"networks", instance_config.networks},
+       //   {"startupOptions", instance_config.startup_options}};
+}
+
 auto from_json(const json_t& json, instance_config_t& instance_config) //
-    -> void;
+    -> void
+{}
+#endif // 0
 
 } // namespace FLECS
-
-#endif // E8E3AE12_7249_481B_B47C_5682C1BBADE2

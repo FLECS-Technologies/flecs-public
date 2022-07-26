@@ -53,10 +53,10 @@ auto module_app_manager_private_t::do_uninstall(
     }
 
     // Step 3: Stop and delete all instances of the app
-    const auto instances = _app_db.instances(app_name, version);
-    for (auto& instance : instances)
+    const auto instance_ids = _deployment->instance_ids(app_name, version);
+    for (const auto& instance_id : instance_ids)
     {
-        do_delete_instance(instance.id, app_name, version, response);
+        do_delete_instance(instance_id, app_name, version, response);
     }
 
     // Step 4: Remove Docker image of the app
@@ -76,8 +76,7 @@ auto module_app_manager_private_t::do_uninstall(
 
     // Step 5: Persist removal of app into db
     _installed_apps.erase(std::forward_as_tuple(app.app(), app.version()));
-    _app_db.delete_app({app_name, version});
-    _app_db.persist();
+    persist_apps();
 
     // Step 6: Remove app manifest
     const auto path = build_manifest_path(app_name, version);

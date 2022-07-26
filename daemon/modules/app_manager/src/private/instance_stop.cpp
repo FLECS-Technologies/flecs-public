@@ -35,17 +35,17 @@ auto module_app_manager_private_t::do_stop_instance(
     response["version"] = version;
 
     // Step 1: Verify instance does actually exist
-    if (!_app_db.has_instance({instance_id}))
+    if (!_deployment->has_instance(instance_id))
     {
         response["additionalInfo"] = "Could not stop instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
     // get instance details from database
-    auto instance = _app_db.query_instance({instance_id}).value();
+    auto& instance = _deployment->instances().at(instance_id);
     // correct response based on actual instance
-    response["app"] = instance.app;
-    response["version"] = instance.version;
+    response["app"] = instance.app();
+    response["version"] = instance.version();
 
     // Step 2: Do some cross-checks if app_name and version are provided
     auto xcheck = xcheck_app_instance(instance, app_name, version);
@@ -65,9 +65,8 @@ auto module_app_manager_private_t::do_stop_instance(
     // Step 4: Persist desired status into db, if triggered externally
     if (!internal)
     {
-        instance.desired = instance_status_e::STOPPED;
-        _app_db.insert_instance(instance);
-        _app_db.persist();
+        instance.desired(instance_status_e::STOPPED);
+        persist_instances();
     }
 
     // Final step: Forward to deployment

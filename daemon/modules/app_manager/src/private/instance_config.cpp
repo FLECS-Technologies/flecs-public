@@ -16,7 +16,7 @@ namespace FLECS {
 namespace Private {
 
 namespace {
-auto build_network_adapters_json(const instances_table_entry_t& instance)
+auto build_network_adapters_json(const instance_t& instance)
 {
     const auto system_api = dynamic_cast<const module_system_t*>(api::query_module("system").get());
     const auto adapters = system_api->get_network_adapters();
@@ -29,12 +29,14 @@ auto build_network_adapters_json(const instances_table_entry_t& instance)
             adapter_json["name"] = adapter.first;
             adapter_json["active"] = false;
             auto network = std::string{"flecs-macvlan-"} + adapter.first;
-            auto it = std::find(instance.networks.cbegin(), instance.networks.cend(), network);
-            if (it != instance.networks.cend())
+            auto it = std::find_if(
+                instance.networks().cbegin(),
+                instance.networks().cend(),
+                [&](const instance_t::network_t& n) { return n.network_name == network; });
+            if (it != instance.networks().cend())
             {
-                const auto pos = std::distance(instance.networks.cbegin(), it);
                 adapter_json["active"] = true;
-                adapter_json["ipAddress"] = instance.ips[pos];
+                adapter_json["ipAddress"] = it->ip_address;
                 adapter_json["subnetMask"] = adapter.second.ipv4_addr.begin()->subnet_mask;
                 adapter_json["gateway"] = adapter.second.gateway;
             }
@@ -45,20 +47,20 @@ auto build_network_adapters_json(const instances_table_entry_t& instance)
 }
 } // namespace
 
-auto module_app_manager_private_t::do_post_config_instance(const std::string& instanceId, json_t& response) //
+auto module_app_manager_private_t::do_post_config_instance(const std::string& instance_id, json_t& response) //
     -> crow::status
 {
     response["additionalInfo"] = std::string{};
-    response["instanceId"] = instanceId;
+    response["instanceId"] = instance_id;
 
     // Step 1: Verify instance does actually exist
-    if (!_app_db.has_instance({instanceId}))
+    if (!_deployment->has_instance(instance_id))
     {
-        response["additionalInfo"] = "Could not configure instance " + instanceId + ", which does not exist";
+        response["additionalInfo"] = "Could not configure instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
-    const auto instance = _app_db.query_instance({instanceId}).value();
+    const auto& instance = _deployment->instances().at(instance_id);
     response["networkAdapters"] = build_network_adapters_json(instance);
 
     const auto usb_devices = usb::get_devices();
@@ -69,22 +71,22 @@ auto module_app_manager_private_t::do_post_config_instance(const std::string& in
 }
 
 auto module_app_manager_private_t::do_put_config_instance(
-    const std::string& instanceId,
+    const std::string& instance_id,
     const instance_config_t& config,
     json_t& response) //
     -> crow::status
 {
     response["additionalInfo"] = std::string{};
-    response["instanceId"] = instanceId;
+    response["instanceId"] = instance_id;
 
     // Step 1: Verify instance does actually exist
-    if (!_app_db.has_instance({instanceId}))
+    if (!_deployment->has_instance(instance_id))
     {
-        response["additionalInfo"] = "Could not configure instance " + instanceId + ", which does not exist";
+        response["additionalInfo"] = "Could not configure instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
-    auto instance = _app_db.query_instance({instanceId}).value();
+    auto& instance = _deployment->instances().at(instance_id);
     response["networkAdapters"] = build_network_adapters_json(instance);
 
     const auto system_api = dynamic_cast<const module_system_t*>(api::query_module("system").get());
@@ -137,56 +139,41 @@ auto module_app_manager_private_t::do_put_config_instance(
             {
                 // apply settings
                 // @todo verify validity of IP address
-                _deployment->disconnect_network(instanceId, docker_network);
+                _deployment->disconnect_network(instance_id, docker_network);
 
                 const auto [res, additional_info] =
-                    _deployment->connect_network(instanceId, docker_network, network.ipAddress);
+                    _deployment->connect_network(instance_id, docker_network, network.ipAddress);
 
                 if (res == 0)
                 {
-                    const auto it = std::find(instance.networks.cbegin(), instance.networks.cend(), docker_network);
-                    if (it != instance.networks.end())
+                    auto it = std::find_if(
+                        instance.networks().begin(),
+                        instance.networks().end(),
+                        [&](const instance_t::network_t& n) { return n.network_name == docker_network; });
+                    if (it != instance.networks().end())
                     {
-                        const auto pos = std::distance(instance.networks.cbegin(), it);
-                        instance.ips[pos] = network.ipAddress;
+                        it->ip_address = network.ipAddress;
                     }
                     else
                     {
-                        instance.networks.emplace_back(docker_network);
-                        instance.ips.emplace_back(network.ipAddress);
+                        instance.networks().emplace_back(
+                            instance_t::network_t{.network_name = docker_network, .ip_address = network.ipAddress});
                     }
                     const auto it2 = std::find_if(
-                        _deployment->instances().at(instanceId).config().networks.begin(),
-                        _deployment->instances().at(instanceId).config().networks.end(),
-                        [&](const instance_config_t::network_t& network) { return network.network == docker_network; });
-                    if (it2 != _deployment->instances().at(instanceId).config().networks.end())
-                    {
-                        it2->ip = network.ipAddress;
-                    }
-                    else
-                    {
-                        _deployment->instances()
-                            .at(instanceId)
-                            .config()
-                            .networks.emplace_back(
-                                instance_config_t::network_t{.network = docker_network, .ip = network.ipAddress});
-                    }
-                    const auto it3 = std::find_if(
-                        _deployment->instances().at(instanceId).config().networkAdapters.begin(),
-                        _deployment->instances().at(instanceId).config().networkAdapters.end(),
+                        instance.config().networkAdapters.begin(),
+                        instance.config().networkAdapters.end(),
                         [&](const instance_config_t::network_adapter_t& adapter) {
                             return adapter.name == network.name;
                         });
-                    if (it3 != _deployment->instances().at(instanceId).config().networkAdapters.end())
+                    if (it2 != instance.config().networkAdapters.end())
                     {
-                        *it3 = network;
+                        *it2 = network;
                     }
                     else
                     {
-                        _deployment->instances().at(instanceId).config().networkAdapters.emplace_back(network);
+                        instance.config().networkAdapters.emplace_back(network);
                     }
-                    _app_db.insert_instance(instance);
-                    _app_db.persist();
+                    persist_instances();
                     for (auto& adapter_json : response["networkAdapters"])
                     {
                         if (adapter_json.contains("name") && (adapter_json["name"] == netif->first))
@@ -211,36 +198,23 @@ auto module_app_manager_private_t::do_put_config_instance(
         }
         else
         {
-            _deployment->disconnect_network(instanceId, docker_network);
+            _deployment->disconnect_network(instance_id, docker_network);
             _deployment->delete_network(docker_network);
-            const auto it =
-                std::find_if(instance.networks.cbegin(), instance.networks.cend(), [&](const std::string& str) {
-                    return str == docker_network;
-                });
-            if (it != instance.networks.cend())
-            {
-                const auto pos = std::distance(instance.networks.cbegin(), it);
-                instance.networks.erase(instance.networks.cbegin() + pos);
-                instance.ips.erase(instance.ips.cbegin() + pos);
-                _app_db.insert_instance(instance);
-                _app_db.persist();
-            }
-            const auto it2 = std::find_if(
-                _deployment->instances().at(instanceId).config().networks.cbegin(),
-                _deployment->instances().at(instanceId).config().networks.cend(),
-                [&](const instance_config_t::network_t network) { return network.network == docker_network; });
-            if (it2 != _deployment->instances().at(instanceId).config().networks.cend())
-            {
-                _deployment->instances().at(instanceId).config().networks.erase(it2);
-            }
-            const auto it3 = std::find_if(
-                _deployment->instances().at(instanceId).config().networkAdapters.cbegin(),
-                _deployment->instances().at(instanceId).config().networkAdapters.cend(),
-                [&](const instance_config_t::network_adapter_t& adapter) { return adapter.name == network.name; });
-            if (it3 != _deployment->instances().at(instanceId).config().networkAdapters.cend())
-            {
-                _deployment->instances().at(instanceId).config().networkAdapters.erase(it3);
-            }
+
+            instance.networks().erase(
+                std::remove_if(
+                    instance.networks().begin(),
+                    instance.networks().end(),
+                    [&](const instance_t::network_t& net) { return net.network_name == docker_network; }),
+                instance.networks().end());
+
+            instance.config().networkAdapters.erase(
+                std::remove_if(
+                    instance.config().networkAdapters.begin(),
+                    instance.config().networkAdapters.end(),
+                    [&](const instance_config_t::network_adapter_t& adapter) { return adapter.name == network.name; }),
+                instance.config().networkAdapters.end());
+
             for (auto& adapter_json : response["networkAdapters"])
             {
                 if (adapter_json.contains("name") && (adapter_json["name"] == network.name))

@@ -43,4 +43,4 @@ target_link_libraries(
     FLECS.util.sqlite3_ext
 )
 
-add_subdirectory(test)
+# add_subdirectory(test)
