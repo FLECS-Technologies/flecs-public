@@ -19,7 +19,6 @@
 #include <unistd.h>
 
 #include <array>
-#include <filesystem>
 #include <fstream>
 #include <regex>
 #include <set>
@@ -28,6 +27,7 @@
 
 #include "app/manifest/manifest.h"
 #include "factory/factory.h"
+#include "util/fs/fs.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
 #include "version/version.h"
@@ -36,7 +36,7 @@ namespace FLECS {
 namespace Private {
 
 auto build_manifest_path(const std::string& app_name, const std::string& version) //
-    -> std::filesystem::path
+    -> fs::path
 {
     auto path = std::string{"/var/lib/flecs/apps"};
 
@@ -44,7 +44,7 @@ auto build_manifest_path(const std::string& app_name, const std::string& version
     path.append("/" + version);
 
     auto ec = std::error_code{};
-    std::filesystem::create_directories(path, ec);
+    fs::create_directories(path, ec);
 
     path.append("/manifest.yml");
 
@@ -159,7 +159,7 @@ auto module_app_manager_private_t::do_init() //
         const auto db_backup_path = db_path + ".migration";
         app_db.close();
         auto ec = std::error_code{};
-        std::filesystem::rename(db_path, db_backup_path, ec);
+        fs::rename(db_path, db_backup_path, ec);
     }
 
     load_apps();
@@ -339,7 +339,7 @@ auto module_app_manager_private_t::persist_apps() const //
 {
     const auto path = "/var/lib/flecs/apps/";
     auto ec = std::error_code{};
-    std::filesystem::create_directories(path, ec);
+    fs::create_directories(path, ec);
     if (ec)
     {
         return;
@@ -365,7 +365,7 @@ auto module_app_manager_private_t::persist_instances() const //
 {
     const auto path = "/var/lib/flecs/instances/";
     auto ec = std::error_code{};
-    std::filesystem::create_directories(path, ec);
+    fs::create_directories(path, ec);
     if (ec)
     {
         return;

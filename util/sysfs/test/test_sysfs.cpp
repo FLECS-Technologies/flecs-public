@@ -14,13 +14,11 @@
 
 #include <gtest/gtest.h>
 
-#include <filesystem>
 #include <fstream>
 #include <string>
 
+#include "util/fs/fs.h"
 #include "util/sysfs/sysfs.h"
-
-namespace fs = std::filesystem;
 
 constexpr auto port = "2-1";
 
@@ -34,8 +32,8 @@ TEST(sysfs, prepare)
     constexpr auto base_path = "flecs-sysfs/";
     const auto port_path = std::string{base_path}.append("2-1/");
 
-    ASSERT_NO_THROW(fs::remove_all(base_path));
-    ASSERT_NO_THROW(fs::create_directories(port_path));
+    ASSERT_NO_THROW(FLECS::fs::remove_all(base_path));
+    ASSERT_NO_THROW(FLECS::fs::create_directories(port_path));
 
     auto file_device = std::ofstream{port_path + "product"};
     file_device << USB_DEVICE;

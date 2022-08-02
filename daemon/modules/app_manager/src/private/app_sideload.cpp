@@ -13,11 +13,11 @@
 // limitations under the License.
 
 #include <cstdio>
-#include <filesystem>
 #include <fstream>
 
 #include "app/manifest/manifest.h"
 #include "private/app_manager_private.h"
+#include "util/fs/fs.h"
 
 namespace FLECS {
 namespace Private {
@@ -54,7 +54,7 @@ auto module_app_manager_private_t::do_sideload(
 }
 
 auto module_app_manager_private_t::do_sideload(
-    const std::filesystem::path& manifest_path,
+    const fs::path& manifest_path,
     const std::string& license_key,
     json_t& response) //
     -> crow::status
@@ -71,8 +71,8 @@ auto module_app_manager_private_t::do_sideload(
     const auto path = build_manifest_path(app.app(), app.version());
 
     std::error_code ec;
-    std::filesystem::remove(path, ec);
-    std::filesystem::copy(manifest_path, path, ec);
+    fs::remove(path, ec);
+    fs::copy(manifest_path, path, ec);
     if (ec)
     {
         response["additionalInfo"] = "Could not copy manifest to " + path.string();

@@ -14,10 +14,10 @@
 
 #include "volume.h"
 
-#include <filesystem>
 #include <regex>
 
 #include "util/cxx20/string.h"
+#include "util/fs/fs.h"
 #include "util/string/string_utils.h"
 
 namespace FLECS {
@@ -43,7 +43,7 @@ volume_t::volume_t(const std::string& volume_str) noexcept
         // bind mount
         try
         {
-            const auto path = std::filesystem::path{parts[0]};
+            const auto path = fs::path{parts[0]};
             if (!path.is_absolute())
             {
                 return;
@@ -65,7 +65,7 @@ volume_t::volume_t(const std::string& volume_str) noexcept
         }
         try
         {
-            const auto path = std::filesystem::path{parts[1]};
+            const auto path = fs::path{parts[1]};
             if (!path.is_absolute())
             {
                 return;

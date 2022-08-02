@@ -23,6 +23,7 @@
 
 #include "core/flecs.h"
 #include "instance/instance.h"
+#include "util/fs/fs.h"
 
 namespace FLECS {
 

@@ -38,7 +38,7 @@ public:
     FLECS_EXPORT int do_install_app(const std::string& app, const std::string& version, const std::string& license);
     FLECS_EXPORT int do_uninstall_app(const std::string& app, const std::string& version);
     FLECS_EXPORT int do_sideload_app_from_yaml(const std::string& yaml);
-    FLECS_EXPORT int do_sideload_app_from_file(const std::filesystem::path& manifest_path);
+    FLECS_EXPORT int do_sideload_app_from_file(const fs::path& manifest_path);
     FLECS_EXPORT int do_list_apps();
     FLECS_EXPORT int do_list_instances(const std::string& app, const std::string& version);
     FLECS_EXPORT int do_list_versions(const std::string& app);

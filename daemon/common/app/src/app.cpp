@@ -25,7 +25,7 @@ app_t::app_t()
     , _desired{}
 {}
 
-app_t::app_t(const std::filesystem::path& manifest_path, app_status_e status, app_status_e desired)
+app_t::app_t(const fs::path& manifest_path, app_status_e status, app_status_e desired)
     : app_manifest_t{app_manifest_t::from_yaml_file(manifest_path)}
     , _license_key{}
     , _download_token{}

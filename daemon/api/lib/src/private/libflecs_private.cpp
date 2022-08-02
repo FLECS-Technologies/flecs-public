@@ -16,10 +16,10 @@
 
 #include <cpr/cpr.h>
 
-#include <filesystem>
 #include <fstream>
 #include <mutex>
 
+#include "util/fs/fs.h"
 #include "util/json/json.h"
 
 namespace FLECS {
@@ -86,16 +86,16 @@ int libflecs_private_t::do_sideload_app_from_yaml(const std::string& yaml)
     return put("/app/sideload", body.dump().c_str());
 }
 
-int libflecs_private_t::do_sideload_app_from_file(const std::filesystem::path& manifest_path)
+int libflecs_private_t::do_sideload_app_from_file(const fs::path& manifest_path)
 {
-    if (!std::filesystem::exists(manifest_path))
+    if (!fs::exists(manifest_path))
     {
         std::fprintf(stderr, "Specified manifest %s does not exist\n", manifest_path.c_str());
         return -1;
     }
 
     auto ec = std::error_code{};
-    const auto file_size = std::filesystem::file_size(manifest_path, ec);
+    const auto file_size = fs::file_size(manifest_path, ec);
     if (ec)
     {
         std::fprintf(stderr, "Could not determine size of %s: %d\n", manifest_path.c_str(), ec.value());

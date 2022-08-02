@@ -15,7 +15,6 @@
 #ifndef A26C3D22_DE7E_4EF2_BA44_CB50A45E8C9B
 #define A26C3D22_DE7E_4EF2_BA44_CB50A45E8C9B
 
-#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -24,6 +23,7 @@
 #include "db/app_db.h"
 #include "deployment/deployment_docker.h"
 #include "module_base/module.h"
+#include "util/fs/fs.h"
 
 namespace FLECS {
 
@@ -76,7 +76,7 @@ public:
      * @return FLECS_YAML: Error parsing manifest
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      */
-    auto do_install(const std::filesystem::path& manifest, const std::string& license_key, json_t& response) //
+    auto do_install(const fs::path& manifest, const std::string& license_key, json_t& response) //
         -> crow::status;
 
     /*! @brief Sideloads an app from its YAML manifest
@@ -106,7 +106,7 @@ public:
      * @return FLECS_IOW: Error writing manifest to FLECS application directory
      * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
      */
-    auto do_sideload(const std::filesystem::path& manifest_path, const std::string& license_key, json_t& response) //
+    auto do_sideload(const fs::path& manifest_path, const std::string& license_key, json_t& response) //
         -> crow::status;
 
     /*! @brief Uninstalls an application
@@ -315,7 +315,7 @@ private:
 };
 
 auto build_manifest_path(const std::string& app_name, const std::string& version) //
-    -> std::filesystem::path;
+    -> fs::path;
 auto build_manifest_url(const std::string& app_name, const std::string& version) //
     -> std::string;
 auto download_manifest(const std::string& app_name, const std::string& version) //
