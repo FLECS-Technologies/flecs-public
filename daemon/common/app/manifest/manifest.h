@@ -15,7 +15,6 @@
 #ifndef C32351A7_25BD_434A_AEDF_7031E4878C37
 #define C32351A7_25BD_434A_AEDF_7031E4878C37
 
-#include <filesystem>
 #include <set>
 #include <string>
 
@@ -24,6 +23,7 @@
 #include "network/network.h"
 #include "port_range/port_range.h"
 #include "startup_option/startup_option.h"
+#include "util/fs/fs.h"
 #include "util/json/json.h"
 #include "util/yaml/yaml.h"
 #include "volume/volume.h"
@@ -45,7 +45,7 @@ public:
     app_manifest_t();
 
     static app_manifest_t from_yaml_string(const std::string& yaml);
-    static app_manifest_t from_yaml_file(const std::filesystem::path& path);
+    static app_manifest_t from_yaml_file(const fs::path& path);
 
     auto& yaml_loaded() const noexcept { return _yaml_loaded; }
     auto& yaml_valid() const noexcept { return _yaml_valid; }

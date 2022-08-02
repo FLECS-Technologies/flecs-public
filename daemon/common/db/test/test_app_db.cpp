@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <filesystem>
 #include <sstream>
 
 #include "daemon/common/db/app_db.h"
 #include "gtest/gtest.h"
+#include "util/fs/fs.h"
 
 namespace {
 
@@ -101,13 +101,13 @@ void assert_db_has_instance(const FLECS::app_db_t& app_db, const FLECS::instance
     ASSERT_EQ(instance_val.flags, data.flags);
 }
 
-const auto app_db_path = std::filesystem::current_path().string() + "/apps.db";
+const auto app_db_path = fs::current_path().string() + "/apps.db";
 
 TEST(service_app_manager_app_db, CreateDatabase)
 {
-    std::filesystem::remove(app_db_path);
+    fs::remove(app_db_path);
     auto app_db = FLECS::app_db_t{app_db_path};
-    ASSERT_TRUE(std::filesystem::exists(app_db_path));
+    ASSERT_TRUE(fs::exists(app_db_path));
 }
 
 TEST(service_app_manager_app_db, InsertAndDeleteApp)
@@ -192,7 +192,7 @@ TEST(service_app_manager_app_db, UpdateAppAndInstance)
 
 TEST(service_app_manager_app_db, GetAllInstances)
 {
-    std::filesystem::remove(app_db_path);
+    fs::remove(app_db_path);
     auto app_db = FLECS::app_db_t{app_db_path};
 
     const auto apps = {

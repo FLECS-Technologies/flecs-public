@@ -64,7 +64,7 @@ int libflecs_t<Impl>::sideload_app_from_yaml(const std::string& yaml)
 }
 
 template <typename Impl>
-int libflecs_t<Impl>::sideload_app_from_file(const std::filesystem::path& manifest_path)
+int libflecs_t<Impl>::sideload_app_from_file(const fs::path& manifest_path)
 {
     return _impl->do_sideload_app_from_file(manifest_path);
 }

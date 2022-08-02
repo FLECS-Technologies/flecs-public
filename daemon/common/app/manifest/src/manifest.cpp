@@ -77,7 +77,7 @@ app_manifest_t::app_manifest_t()
     , _volumes{}
 {}
 
-app_manifest_t app_manifest_t::from_yaml_file(const std::filesystem::path& path)
+app_manifest_t app_manifest_t::from_yaml_file(const fs::path& path)
 {
     auto res = app_manifest_t{};
     try

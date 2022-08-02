@@ -299,7 +299,6 @@ auto deployment_docker_t::do_create_instance(const app_t& app, instance_t& insta
 
         auto ec = std::error_code{};
 
-        namespace fs = std::filesystem;
         fs::permissions(entrypoint_path, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, ec);
 
         if (ec)

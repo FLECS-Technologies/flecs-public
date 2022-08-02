@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <filesystem>
 #include <fstream>
 
 #include "daemon/common/app/manifest/manifest.h"
 #include "gtest/gtest.h"
+#include "util/fs/fs.h"
 
 class manifest_writer_t
 {
@@ -27,7 +27,7 @@ public:
         std::ofstream{filename} << content;
     }
 
-    ~manifest_writer_t() { std::filesystem::remove(_filename); }
+    ~manifest_writer_t() { FLECS::fs::remove(_filename); }
 
     auto& filename() const noexcept { return _filename; }
 

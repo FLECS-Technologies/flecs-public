@@ -15,7 +15,6 @@
 #ifndef E02D9ED5_6E61_4F4F_B9B2_C94F79443A61
 #define E02D9ED5_6E61_4F4F_B9B2_C94F79443A61
 
-#include <filesystem>
 #include <string>
 
 #include "app_status.h"
@@ -28,7 +27,7 @@ class app_t : public app_manifest_t
 public:
     app_t();
 
-    app_t(const std::filesystem::path& manifest_path, app_status_e status, app_status_e desired);
+    app_t(const fs::path& manifest_path, app_status_e status, app_status_e desired);
     app_t(const std::string& manifest_string, app_status_e status, app_status_e desired);
 
     auto& download_token() const noexcept { return _download_token; }

@@ -13,11 +13,11 @@
 // limitations under the License.
 
 #include <cstdio>
-#include <filesystem>
 
 #include "app/manifest/manifest.h"
 #include "private/app_manager_private.h"
 #include "util/cxx20/string.h"
+#include "util/fs/fs.h"
 #include "util/process/process.h"
 
 namespace FLECS {
@@ -81,7 +81,7 @@ auto module_app_manager_private_t::do_uninstall(
     // Step 6: Remove app manifest
     const auto path = build_manifest_path(app_name, version);
     auto ec = std::error_code{};
-    const auto res = std::filesystem::remove(path, ec);
+    const auto res = fs::remove(path, ec);
     if (!res)
     {
         std::fprintf(

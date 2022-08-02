@@ -128,7 +128,7 @@ auto module_app_manager_private_t::do_install(
 }
 
 auto module_app_manager_private_t::do_install(
-    const std::filesystem::path& manifest_path,
+    const fs::path& manifest_path,
     const std::string& license_key,
     json_t& response) //
     -> crow::status

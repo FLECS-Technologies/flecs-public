@@ -14,12 +14,12 @@
 
 #include <crow.h>
 
-#include <filesystem>
 #include <sstream>
 #include <thread>
 
 #include "gtest/gtest.h"
 #include "libflecs.h"
+#include "util/fs/fs.h"
 #include "util/json/json.h"
 
 #define TEST_PORT 18951
@@ -153,7 +153,7 @@ TEST(api_lib, app_sideload_file_success)
     fwrite(app_manifest, 1, strlen(app_manifest), manifest_file);
     fclose(manifest_file);
     const auto res = lib.sideload_app_from_file(filename);
-    std::filesystem::remove(filename);
+    FLECS::fs::remove(filename);
 
     const auto response = FLECS::parse_json(lib.json_response());
 
@@ -342,7 +342,7 @@ TEST(api_lib, cmdline_app_sideload)
     fwrite(app_manifest, 1, strlen(app_manifest), manifest_file);
     fclose(manifest_file);
     const auto res = lib.run_command("app-manager", {"sideload", filename});
-    std::filesystem::remove(filename);
+    FLECS::fs::remove(filename);
 
     const auto response = FLECS::parse_json(lib.json_response());
 

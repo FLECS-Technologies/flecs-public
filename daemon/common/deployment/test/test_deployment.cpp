@@ -15,11 +15,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <filesystem>
 #include <sstream>
 
 #include "daemon/common/app/app.h"
 #include "daemon/common/deployment/deployment.h"
+#include "util/fs/fs.h"
 
 namespace FLECS {
 class mock_deployment_t : public deployment_t
