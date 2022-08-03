@@ -40,11 +40,26 @@ auto to_json(json_t& json, const instance_config_t& instance_config) //
 auto from_json(const json_t& json, instance_config_t::network_adapter_t& network_adapter) //
     -> void
 {
-    json.at("name").get_to(network_adapter.name);
-    json.at("ipAddress").get_to(network_adapter.ipAddress);
-    json.at("subnetMask").get_to(network_adapter.subnetMask);
-    json.at("gateway").get_to(network_adapter.gateway);
-    json.at("active").get_to(network_adapter.active);
+    if (json.contains("name"))
+    {
+        json.at("name").get_to(network_adapter.name);
+    }
+    if (json.contains("ipAddress"))
+    {
+        json.at("ipAddress").get_to(network_adapter.ipAddress);
+    }
+    if (json.contains("subnetMask"))
+    {
+        json.at("subnetMask").get_to(network_adapter.subnetMask);
+    }
+    if (json.contains("gateway"))
+    {
+        json.at("gateway").get_to(network_adapter.gateway);
+    }
+    if (json.contains("active"))
+    {
+        json.at("active").get_to(network_adapter.active);
+    }
 }
 
 auto from_json(const json_t& json, instance_config_t& instance_config) //

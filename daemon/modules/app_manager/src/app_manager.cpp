@@ -102,12 +102,7 @@ auto module_app_manager_t::do_init() //
         auto config = instance_config_t{};
         for (decltype(auto) it : args["networkAdapters"])
         {
-            REQUIRED_TYPED_JSON_VALUE(it, name, std::string);
-            REQUIRED_TYPED_JSON_VALUE(it, active, bool);
-            OPTIONAL_JSON_VALUE(it, ipAddress);
-            OPTIONAL_JSON_VALUE(it, subnetMask);
-            OPTIONAL_JSON_VALUE(it, gateway);
-            config.networkAdapters.push_back({name, ipAddress, subnetMask, gateway, active});
+            config.networkAdapters.emplace_back(static_cast<instance_config_t::network_adapter_t>(it));
         }
 
         const auto status = _impl->do_put_config_instance(instanceId, config, response);
