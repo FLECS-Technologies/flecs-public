@@ -35,18 +35,15 @@ struct instance_config_t
     };
     std::vector<network_adapter_t> networkAdapters;
 
-    struct network_t
-    {
-        std::string network;
-        std::string mac;
-        std::string ip;
-    };
-    std::vector<network_t> networks;
-
     std::vector<unsigned> startup_options;
 };
 
+auto to_json(json_t& json, const instance_config_t::network_adapter_t& network_adapter) //
+    -> void;
 auto to_json(json_t& json, const instance_config_t& instance_config) //
+    -> void;
+
+auto from_json(const json_t& json, instance_config_t::network_adapter_t& network_adapter) //
     -> void;
 auto from_json(const json_t& json, instance_config_t& instance_config) //
     -> void;
