@@ -243,7 +243,7 @@ public:
     auto do_list_instances(const std::string& app_name, const std::string& version, json_t& response) //
         -> crow::status;
 
-    auto do_post_config_instance(const std::string& instance_id, json_t& response) //
+    auto do_get_config_instance(const std::string& instance_id, json_t& response) //
         -> crow::status;
 
     auto do_put_config_instance(const std::string& instance_id, const instance_config_t& config, json_t& response) //

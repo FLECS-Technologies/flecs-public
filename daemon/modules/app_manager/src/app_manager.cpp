@@ -91,7 +91,13 @@ auto module_app_manager_t::do_init() //
         auto response = json_t{};
         const auto args = parse_json(req.body);
         REQUIRED_JSON_VALUE(args, instanceId);
-        const auto status = _impl->do_post_config_instance(instanceId, response);
+        const auto status = _impl->do_get_config_instance(instanceId, response);
+        return crow::response{status, response.dump()};
+    });
+
+    FLECS_ROUTE("/v2/instance/<string>/config").methods("GET"_method)([=](const std::string& instance_id) {
+        auto response = json_t{};
+        const auto status = _impl->do_get_config_instance(instance_id, response);
         return crow::response{status, response.dump()};
     });
 
@@ -108,6 +114,20 @@ auto module_app_manager_t::do_init() //
         const auto status = _impl->do_put_config_instance(instanceId, config, response);
         return crow::response{status, response.dump()};
     });
+
+    FLECS_ROUTE("/v2/instance/<string>/config")
+        .methods("PUT"_method)([=](const crow::request& req, const std::string& instance_id) {
+            auto response = json_t{};
+            const auto args = parse_json(req.body);
+            auto config = instance_config_t{};
+            if (args.contains("networkAdapters"))
+            {
+                args["networkAdapters"].get_to(config.networkAdapters);
+            }
+
+            const auto status = _impl->do_put_config_instance(instance_id, config, response);
+            return crow::response{status, response.dump()};
+        });
 
     FLECS_ROUTE("/instance/create").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};

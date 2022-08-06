@@ -47,7 +47,7 @@ auto build_network_adapters_json(const instance_t& instance)
 }
 } // namespace
 
-auto module_app_manager_private_t::do_post_config_instance(const std::string& instance_id, json_t& response) //
+auto module_app_manager_private_t::do_get_config_instance(const std::string& instance_id, json_t& response) //
     -> crow::status
 {
     response["additionalInfo"] = std::string{};
