@@ -18,6 +18,7 @@
 
 #include "util/usb/usb.h"
 
+#define USB_ADDR 0x0001
 #define USB_PID 0x1234
 #define USB_VID 0xabcd
 #define USB_DEVICE "FLECS Test Device"
@@ -27,6 +28,7 @@
 TEST(usb, to_json)
 {
     const auto usb_device = FLECS::usb::device_t{
+        .addr = USB_ADDR,
         .pid = USB_PID,
         .vid = USB_VID,
         .device = USB_DEVICE,
@@ -37,6 +39,7 @@ TEST(usb, to_json)
     to_json(json, usb_device);
 
     ASSERT_TRUE(FLECS::is_valid_json(json));
+    ASSERT_EQ(json["addr"], USB_ADDR);
     ASSERT_EQ(json["pid"], USB_PID);
     ASSERT_EQ(json["vid"], USB_VID);
     ASSERT_EQ(json["device"], USB_DEVICE);
