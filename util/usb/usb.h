@@ -26,6 +26,7 @@ namespace usb {
 
 struct device_t
 {
+    std::uint16_t addr;
     std::uint16_t pid;
     std::uint16_t vid;
     std::string device;

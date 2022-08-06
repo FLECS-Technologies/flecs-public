@@ -38,7 +38,8 @@ auto to_json(json_t& json, const device_t& device) //
     -> void
 {
     json = json_t(
-        {{"device", device.device},
+        {{"addr", device.addr},
+         {"device", device.device},
          {"pid", device.pid},
          {"port", device.port},
          {"vendor", device.vendor},
@@ -71,6 +72,7 @@ auto get_devices() //
 
         std::uint8_t port_numbers[NUM_USB_PORTS] = {};
         const auto bus = libusb_get_bus_number(usb_devices[i]);
+        const auto addr = libusb_get_device_address(usb_devices[i]);
         const auto num_ports = libusb_get_port_numbers(usb_devices[i], port_numbers, NUM_USB_PORTS);
 
         if (num_ports == 0)
@@ -85,16 +87,13 @@ auto get_devices() //
                 port += "." + std::to_string(port_numbers[i]);
             }
         }
-        const auto vendor = hwdb.usb_vendor(desc.idVendor).has_value() ? hwdb.usb_vendor(desc.idVendor).value()
-                            : sysfs::usb_vendor(port).has_value()      ? sysfs::usb_vendor(port).value()
-                                                                       : std::string{};
+        const auto vendor = hwdb.usb_vendor(desc.idVendor).value_or(sysfs::usb_vendor(port).value_or(std::string{}));
 
-        const auto device = hwdb.usb_device(desc.idVendor, desc.idProduct).has_value()
-                                ? hwdb.usb_device(desc.idVendor, desc.idProduct).value()
-                            : sysfs::usb_device(port).has_value() ? sysfs::usb_device(port).value()
-                                                                  : std::string{};
+        const auto device =
+            hwdb.usb_device(desc.idVendor, desc.idProduct).value_or(sysfs::usb_device(port).value_or(std::string{}));
 
         devices.emplace_back(device_t{
+            .addr = addr,
             .pid = desc.idProduct,
             .vid = desc.idVendor,
             .device = std::move(device),
