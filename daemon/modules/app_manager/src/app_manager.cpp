@@ -95,39 +95,49 @@ auto module_app_manager_t::do_init() //
         return crow::response{status, response.dump()};
     });
 
-    FLECS_ROUTE("/v2/instance/<string>/config").methods("GET"_method)([=](const std::string& instance_id) {
-        auto response = json_t{};
-        const auto status = _impl->do_get_config_instance(instance_id, response);
-        return crow::response{status, response.dump()};
-    });
+    FLECS_ROUTE("/<string>/instance/<string>/config")
+        .methods("GET"_method)([=](const std::string& /*api_version*/, const std::string& instance_id) {
+            auto response = json_t{};
+            const auto status = _impl->do_get_config_instance(instance_id, response);
+            return crow::response{status, response.dump()};
+        });
 
     FLECS_ROUTE("/instance/config").methods("PUT"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
         REQUIRED_JSON_VALUE(args, instanceId);
         auto config = instance_config_t{};
-        for (decltype(auto) it : args["networkAdapters"])
+        if (args.contains("networkAdapters"))
         {
-            config.networkAdapters.emplace_back(static_cast<instance_config_t::network_adapter_t>(it));
+            args["networkAdapters"].get_to(config.networkAdapters);
+        }
+        if (args.contains("devices") && args["devices"].contains("usb"))
+        {
+            args["devices"]["usb"].get_to(config.usbDevices);
         }
 
         const auto status = _impl->do_put_config_instance(instanceId, config, response);
         return crow::response{status, response.dump()};
     });
 
-    FLECS_ROUTE("/v2/instance/<string>/config")
-        .methods("PUT"_method)([=](const crow::request& req, const std::string& instance_id) {
-            auto response = json_t{};
-            const auto args = parse_json(req.body);
-            auto config = instance_config_t{};
-            if (args.contains("networkAdapters"))
-            {
-                args["networkAdapters"].get_to(config.networkAdapters);
-            }
+    FLECS_ROUTE("/<path>/instance/<path>/config")
+        .methods("PUT"_method)(
+            [=](const crow::request& req, const std::string& /*api_version*/, const std::string& instance_id) {
+                auto response = json_t{};
+                const auto args = parse_json(req.body);
+                auto config = instance_config_t{};
+                if (args.contains("networkAdapters"))
+                {
+                    args["networkAdapters"].get_to(config.networkAdapters);
+                }
+                if (args.contains("devices") && args["devices"].contains("usb"))
+                {
+                    args["devices"]["usb"].get_to(config.usbDevices);
+                }
 
-            const auto status = _impl->do_put_config_instance(instance_id, config, response);
-            return crow::response{status, response.dump()};
-        });
+                const auto status = _impl->do_put_config_instance(instance_id, config, response);
+                return crow::response{status, response.dump()};
+            });
 
     FLECS_ROUTE("/instance/create").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};

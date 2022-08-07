@@ -35,15 +35,28 @@ struct instance_config_t
     };
     std::vector<network_adapter_t> networkAdapters;
 
+    struct usb_device_t
+    {
+        std::string vid;
+        std::string pid;
+        std::string port;
+        bool active;
+    };
+    std::vector<usb_device_t> usbDevices;
+
     std::vector<unsigned> startup_options;
 };
 
 auto to_json(json_t& json, const instance_config_t::network_adapter_t& network_adapter) //
     -> void;
+auto to_json(json_t& json, const instance_config_t::usb_device_t& usb_device) //
+    -> void;
 auto to_json(json_t& json, const instance_config_t& instance_config) //
     -> void;
 
 auto from_json(const json_t& json, instance_config_t::network_adapter_t& network_adapter) //
+    -> void;
+auto from_json(const json_t& json, instance_config_t::usb_device_t& usb_device) //
     -> void;
 auto from_json(const json_t& json, instance_config_t& instance_config) //
     -> void;
