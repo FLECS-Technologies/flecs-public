@@ -43,7 +43,7 @@ bool operator<(const device_t& lhs, const device_t& rhs)
 
 bool operator<=(const device_t& lhs, const device_t& rhs)
 {
-    return !(rhs > lhs);
+    return !(lhs > rhs);
 }
 
 bool operator>(const device_t& lhs, const device_t& rhs)
