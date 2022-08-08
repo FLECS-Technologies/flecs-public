@@ -16,6 +16,8 @@
 
 #include <libusb-1.0/libusb.h>
 
+#include <tuple>
+
 #include "util/sysfs/sysfs.h"
 #include "util/udev/hwdb.h"
 
@@ -32,6 +34,36 @@ static auto __attribute__((destructor)) exit() //
     -> void
 {
     libusb_exit(nullptr);
+}
+
+bool operator<(const device_t& lhs, const device_t& rhs)
+{
+    return std::tie(lhs.vid, lhs.pid, lhs.bus, lhs.addr) < std::tie(rhs.vid, rhs.pid, rhs.bus, rhs.addr);
+}
+
+bool operator<=(const device_t& lhs, const device_t& rhs)
+{
+    return !(rhs > lhs);
+}
+
+bool operator>(const device_t& lhs, const device_t& rhs)
+{
+    return rhs < lhs;
+}
+
+bool operator>=(const device_t& lhs, const device_t& rhs)
+{
+    return !(lhs < rhs);
+}
+
+bool operator==(const device_t& lhs, const device_t& rhs)
+{
+    return std::tie(lhs.vid, lhs.pid, lhs.bus, lhs.addr) == std::tie(rhs.vid, rhs.pid, rhs.bus, rhs.addr);
+}
+
+bool operator!=(const device_t& lhs, const device_t& rhs)
+{
+    return !(lhs == rhs);
 }
 
 auto to_json(json_t& json, const device_t& device) //

@@ -35,6 +35,13 @@ struct device_t
     std::string vendor;
 };
 
+bool operator<(const device_t& lhs, const device_t& rhs);
+bool operator<=(const device_t& lhs, const device_t& rhs);
+bool operator>(const device_t& lhs, const device_t& rhs);
+bool operator>=(const device_t& lhs, const device_t& rhs);
+bool operator==(const device_t& lhs, const device_t& rhs);
+bool operator!=(const device_t& lhs, const device_t& rhs);
+
 auto to_json(json_t& json, const device_t& device) //
     -> void;
 
