@@ -39,6 +39,7 @@ auto to_json(json_t& json, const device_t& device) //
 {
     json = json_t(
         {{"addr", device.addr},
+         {"bus", device.bus},
          {"device", device.device},
          {"pid", device.pid},
          {"port", device.port},
@@ -93,6 +94,7 @@ auto get_devices() //
             hwdb.usb_device(desc.idVendor, desc.idProduct).value_or(sysfs::usb_device(port).value_or(std::string{}));
 
         devices.emplace_back(device_t{
+            .bus = bus,
             .addr = addr,
             .pid = desc.idProduct,
             .vid = desc.idVendor,
