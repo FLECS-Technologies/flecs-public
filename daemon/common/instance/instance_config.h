@@ -15,11 +15,13 @@
 #ifndef E8E3AE12_7249_481B_B47C_5682C1BBADE2
 #define E8E3AE12_7249_481B_B47C_5682C1BBADE2
 
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "util/json/json.h"
+#include "util/usb/usb.h"
 
 namespace FLECS {
 
@@ -35,14 +37,11 @@ struct instance_config_t
     };
     std::vector<network_adapter_t> networkAdapters;
 
-    struct usb_device_t
+    struct usb_device_t : usb::device_t
     {
-        std::string vid;
-        std::string pid;
-        std::string port;
         bool active;
     };
-    std::vector<usb_device_t> usbDevices;
+    std::vector<usb_device_t> usb_devices;
 
     std::vector<unsigned> startup_options;
 };

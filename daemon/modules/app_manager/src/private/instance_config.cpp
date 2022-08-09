@@ -45,6 +45,24 @@ auto build_network_adapters_json(const instance_t& instance)
     }
     return adapters_json;
 }
+
+auto build_usb_devices_json(const instance_t& instance)
+{
+    auto usb_devices_json = json_t::array();
+    const auto usb_devices = usb::get_devices();
+    for (decltype(auto) usb_device : usb_devices)
+    {
+        auto usb_device_json = json_t(usb_device);
+        usb_device_json["active"] = false;
+        auto it = std::find(instance.usb_devices().cbegin(), instance.usb_devices().cend(), usb_device);
+        if (it != instance.usb_devices().cend())
+        {
+            usb_device_json["active"] = true;
+        }
+        usb_devices_json.push_back(std::move(usb_device_json));
+    }
+    return usb_devices_json;
+}
 } // namespace
 
 auto module_app_manager_private_t::do_get_config_instance(const std::string& instance_id, json_t& response) //
@@ -62,10 +80,7 @@ auto module_app_manager_private_t::do_get_config_instance(const std::string& ins
 
     const auto& instance = _deployment->instances().at(instance_id);
     response["networkAdapters"] = build_network_adapters_json(instance);
-
-    const auto usb_devices = usb::get_devices();
-    response["devices"] = FLECS::json_t::object();
-    response["devices"]["usb"] = json_t(usb_devices);
+    response["devices"]["usb"] = build_usb_devices_json(instance);
 
     return crow::status::OK;
 }
@@ -205,6 +220,26 @@ auto module_app_manager_private_t::do_put_config_instance(
             }
         }
     }
+
+    for (const auto& usb_device : config.usb_devices)
+    {
+        if (usb_device.active)
+        {
+            auto it = std::find(instance.usb_devices().cbegin(), instance.usb_devices().cend(), usb_device);
+            if (it == instance.usb_devices().cend())
+            {
+                instance.usb_devices().emplace_back(usb_device);
+            }
+        }
+        else
+        {
+            instance.usb_devices().erase(
+                std::remove(instance.usb_devices().begin(), instance.usb_devices().end(), usb_device),
+                instance.usb_devices().end());
+        }
+    }
+    response["devices"]["usb"] = build_usb_devices_json(instance);
+
     return crow::status::OK;
 }
 

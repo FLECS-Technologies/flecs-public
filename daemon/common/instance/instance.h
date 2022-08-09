@@ -21,6 +21,7 @@
 #include "instance_config.h"
 #include "instance_status.h"
 #include "util/json/json.h"
+#include "util/usb/usb.h"
 
 namespace FLECS {
 
@@ -71,6 +72,10 @@ public:
         -> const std::vector<unsigned>&;
     auto startup_options() noexcept //
         -> std::vector<unsigned>&;
+    auto usb_devices() const noexcept //
+        -> const std::vector<usb::device_t>&;
+    auto usb_devices() noexcept //
+        -> std::vector<usb::device_t>&;
 
     auto regenerate_id() //
         -> void;
@@ -100,6 +105,7 @@ private:
     instance_status_e _desired;
     std::vector<network_t> _networks;
     std::vector<unsigned> _startup_options;
+    std::vector<usb::device_t> _usb_devices;
 };
 
 inline auto operator==(const instance_t& lhs, const instance_t& rhs) //
@@ -165,6 +171,18 @@ inline auto instance_t::startup_options() noexcept //
     -> std::vector<unsigned>&
 {
     return _startup_options;
+}
+
+inline auto instance_t::usb_devices() const noexcept //
+    -> const std::vector<usb::device_t>&
+{
+    return _usb_devices;
+}
+
+inline auto instance_t::usb_devices() noexcept //
+    -> std::vector<usb::device_t>&
+{
+    return _usb_devices;
 }
 
 inline auto instance_t::instance_name(std::string instance_name) //
