@@ -21,6 +21,7 @@
 #include "util/network/network.h"
 #include "util/process/process.h"
 #include "util/string/string_utils.h"
+#include "util/sysfs/sysfs.h"
 
 namespace FLECS {
 
@@ -140,6 +141,29 @@ auto deployment_docker_t::create_container(const app_t& app, instance_t& instanc
                 network.mac_address = network.mac_address;
             }
             docker_process.arg(network.mac_address);
+        }
+    }
+
+    for (const auto& usb_device : instance.usb_devices())
+    {
+        const auto busnum = sysfs::usb_busnum(usb_device.port);
+        const auto devnum = sysfs::usb_devnum(usb_device.port);
+        if (busnum.has_value() && devnum.has_value())
+        {
+            auto path = std::string{"/dev/bus/usb/***/***"};
+            std::snprintf(
+                path.data(),
+                path.size() + 1,
+                "/dev/bus/usb/%03d/%03d",
+                sysfs::usb_busnum(usb_device.port).value(),
+                sysfs::usb_devnum(usb_device.port).value());
+
+            auto ec = std::error_code{};
+            if (std::filesystem::exists(path, ec))
+            {
+                docker_process.arg("--device");
+                docker_process.arg(path);
+            }
         }
     }
 

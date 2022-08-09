@@ -113,7 +113,7 @@ auto module_app_manager_t::do_init() //
         }
         if (args.contains("devices") && args["devices"].contains("usb"))
         {
-            args["devices"]["usb"].get_to(config.usbDevices);
+            args["devices"]["usb"].get_to(config.usb_devices);
         }
 
         const auto status = _impl->do_put_config_instance(instanceId, config, response);
@@ -132,7 +132,7 @@ auto module_app_manager_t::do_init() //
                 }
                 if (args.contains("devices") && args["devices"].contains("usb"))
                 {
-                    args["devices"]["usb"].get_to(config.usbDevices);
+                    args["devices"]["usb"].get_to(config.usb_devices);
                 }
 
                 const auto status = _impl->do_put_config_instance(instance_id, config, response);

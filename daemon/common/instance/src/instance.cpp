@@ -100,6 +100,7 @@ auto to_json(json_t& json, const instance_t& instance) //
          {"networks", instance._networks},
          {"startupOptions", instance._startup_options},
          {"status", to_string(instance._status)},
+         {"usbDevices", instance._usb_devices},
          {"version", instance._version}});
 }
 
@@ -117,6 +118,7 @@ auto from_json(const json_t& json, instance_t& instance) //
     auto status = std::string{};
     json.at("status").get_to(status);
     instance._status = instance_status_from_string(status);
+    json.at("usbDevices").get_to(instance._usb_devices);
     json.at("version").get_to(instance._version);
 }
 

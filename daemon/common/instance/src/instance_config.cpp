@@ -31,12 +31,8 @@ auto to_json(json_t& json, const instance_config_t::network_adapter_t& network_a
 auto to_json(json_t& json, const instance_config_t::usb_device_t& usb_device) //
     -> void
 {
-    json = json_t({
-        {"active", usb_device.active},
-        {"pid", usb_device.pid},
-        {"port", usb_device.port},
-        {"vid", usb_device.vid},
-    });
+    json = json_t(static_cast<const usb::device_t&>(usb_device));
+    json["active"] = usb_device.active;
 }
 
 auto to_json(json_t& json, const instance_config_t& instance_config) //
@@ -47,7 +43,7 @@ auto to_json(json_t& json, const instance_config_t& instance_config) //
         {"startupOptions", instance_config.startup_options},
     };
     json["devices"] = json_t::array();
-    json["device"]["usb"] = instance_config.usbDevices;
+    json["device"]["usb"] = instance_config.usb_devices;
 }
 
 auto from_json(const json_t& json, instance_config_t::network_adapter_t& network_adapter) //
@@ -78,10 +74,8 @@ auto from_json(const json_t& json, instance_config_t::network_adapter_t& network
 auto from_json(const json_t& json, instance_config_t::usb_device_t& usb_device) //
     -> void
 {
+    static_cast<usb::device_t&>(usb_device) = json.get<usb::device_t>();
     json.at("active").get_to(usb_device.active);
-    json.at("pid").get_to(usb_device.pid);
-    json.at("port").get_to(usb_device.port);
-    json.at("vid").get_to(usb_device.vid);
 }
 
 auto from_json(const json_t& json, instance_config_t& instance_config) //
