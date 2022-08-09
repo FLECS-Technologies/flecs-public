@@ -26,8 +26,6 @@ namespace usb {
 
 struct device_t
 {
-    std::uint16_t bus;
-    std::uint16_t addr;
     std::uint16_t pid;
     std::uint16_t vid;
     std::string device;
@@ -43,6 +41,9 @@ bool operator==(const device_t& lhs, const device_t& rhs);
 bool operator!=(const device_t& lhs, const device_t& rhs);
 
 auto to_json(json_t& json, const device_t& device) //
+    -> void;
+
+auto from_json(const json_t& json, device_t& device) //
     -> void;
 
 auto get_devices() //
