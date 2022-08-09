@@ -55,5 +55,29 @@ auto usb_device(std::string_view port) //
     return read_file(path);
 }
 
+auto usb_busnum(std::string_view port) //
+    -> std::optional<std::uint16_t>
+{
+    const auto path = std::string{base_path}.append(port).append("/busnum");
+    const auto busnum = read_file(path);
+    if (busnum.has_value())
+    {
+        return std::stoi(busnum.value());
+    }
+    return {};
+}
+
+auto usb_devnum(std::string_view port) //
+    -> std::optional<std::uint16_t>
+{
+    const auto path = std::string{base_path}.append(port).append("/devnum");
+    const auto devnum = read_file(path);
+    if (devnum.has_value())
+    {
+        return std::stoi(devnum.value());
+    }
+    return {};
+}
+
 } // namespace sysfs
 } // namespace FLECS
