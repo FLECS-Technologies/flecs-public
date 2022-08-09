@@ -38,7 +38,7 @@ static auto __attribute__((destructor)) exit() //
 
 bool operator<(const device_t& lhs, const device_t& rhs)
 {
-    return std::tie(lhs.vid, lhs.pid, lhs.bus, lhs.addr) < std::tie(rhs.vid, rhs.pid, rhs.bus, rhs.addr);
+    return std::tie(lhs.vid, lhs.pid, lhs.port) < std::tie(rhs.vid, rhs.pid, rhs.port);
 }
 
 bool operator<=(const device_t& lhs, const device_t& rhs)
@@ -58,7 +58,7 @@ bool operator>=(const device_t& lhs, const device_t& rhs)
 
 bool operator==(const device_t& lhs, const device_t& rhs)
 {
-    return std::tie(lhs.vid, lhs.pid, lhs.bus, lhs.addr) == std::tie(rhs.vid, rhs.pid, rhs.bus, rhs.addr);
+    return std::tie(lhs.vid, lhs.pid, lhs.port) == std::tie(rhs.vid, rhs.pid, rhs.port);
 }
 
 bool operator!=(const device_t& lhs, const device_t& rhs)
@@ -70,13 +70,21 @@ auto to_json(json_t& json, const device_t& device) //
     -> void
 {
     json = json_t(
-        {{"addr", device.addr},
-         {"bus", device.bus},
-         {"device", device.device},
+        {{"device", device.device},
          {"pid", device.pid},
          {"port", device.port},
          {"vendor", device.vendor},
          {"vid", device.vid}});
+}
+
+auto from_json(const json_t& json, device_t& device) //
+    -> void
+{
+    json.at("device").get_to(device.device);
+    json.at("pid").get_to(device.pid);
+    json.at("port").get_to(device.port);
+    json.at("vendor").get_to(device.vendor);
+    json.at("vid").get_to(device.vid);
 }
 
 auto get_devices() //
@@ -105,7 +113,6 @@ auto get_devices() //
 
         std::uint8_t port_numbers[NUM_USB_PORTS] = {};
         const auto bus = libusb_get_bus_number(usb_devices[i]);
-        const auto addr = libusb_get_device_address(usb_devices[i]);
         const auto num_ports = libusb_get_port_numbers(usb_devices[i], port_numbers, NUM_USB_PORTS);
 
         if (num_ports == 0)
@@ -126,8 +133,6 @@ auto get_devices() //
             hwdb.usb_device(desc.idVendor, desc.idProduct).value_or(sysfs::usb_device(port).value_or(std::string{}));
 
         devices.emplace_back(device_t{
-            .bus = bus,
-            .addr = addr,
             .pid = desc.idProduct,
             .vid = desc.idVendor,
             .device = std::move(device),
