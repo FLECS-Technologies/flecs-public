@@ -15,6 +15,7 @@
 #ifndef D79653EB_6825_4DCA_A8AD_CFC77A04CACF
 #define D79653EB_6825_4DCA_A8AD_CFC77A04CACF
 
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -26,6 +27,12 @@ auto usb_vendor(std::string_view port) //
 
 auto usb_device(std::string_view port) //
     -> std::optional<std::string>;
+
+auto usb_busnum(std::string_view port) //
+    -> std::optional<std::uint16_t>;
+
+auto usb_devnum(std::string_view port) //
+    -> std::optional<std::uint16_t>;
 
 } // namespace sysfs
 } // namespace FLECS
