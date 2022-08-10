@@ -230,6 +230,12 @@ auto deployment_t::stop_instance(std::string_view instance_id) //
     return {res, additional_info};
 }
 
+auto deployment_t::is_instance_runnable(std::string_view instance_id) const //
+    -> bool
+{
+    return has_instance(instance_id) && (instances().at(instance_id.data()).status() == instance_status_e::CREATED);
+}
+
 auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::string_view gateway) const //
     -> std::string
 {

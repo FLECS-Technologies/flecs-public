@@ -42,7 +42,7 @@ auto module_app_manager_private_t::do_start_instance(
         return crow::status::BAD_REQUEST;
     }
 
-    if (!is_instance_runnable(instance_id))
+    if (!_deployment->is_instance_runnable(instance_id))
     {
         response["additionalInfo"] = "Could not start instance " + instance_id + ", which is not fully created";
         return crow::status::BAD_REQUEST;
@@ -63,7 +63,7 @@ auto module_app_manager_private_t::do_start_instance(
     }
 
     // Step 3: Return if instance is already running
-    if (is_instance_running(instance_id))
+    if (_deployment->is_instance_running(instance_id))
     {
         response["additionalInfo"] = "Instance " + instance_id + " already running";
         return crow::status::OK;

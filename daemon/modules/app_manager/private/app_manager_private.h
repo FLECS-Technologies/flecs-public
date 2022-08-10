@@ -260,24 +260,6 @@ private:
     auto is_app_installed(const std::string& app_name, const std::string& version) //
         -> bool;
 
-    /*! @brief Helper function to determine whether a given instance is runnable, i.e. successfully created
-     *
-     * @param[in] id Unique instance id assigned by @sa do_create_instance
-     *
-     * @return true if instance is runnable, false otherwise
-     */
-    auto is_instance_runnable(const std::string& instance_id) //
-        -> bool;
-
-    /*! @brief Helper function to determine whether a given instance is running. Queries Docker to determine the status.
-     *
-     * @param[in] id Unique instance id assigned by @sa do_create_instance
-     *
-     * @return true if instance is running, false otherwise
-     */
-    auto is_instance_running(const std::string& instance_id) //
-        -> bool;
-
     /*! @brief Helper function to perform some cross-checks between an instance and a given app_name and version. For
      * some functions, app_name and versions are optional, but if provided these checks will be performed. Used
      * especially for actions triggered through the WebApp to ensure user actions are consistently packed into requests.

@@ -41,6 +41,8 @@ private:
         -> result_t override;
     auto do_stop_instance(const instance_t& instance) //
         -> result_t override;
+    auto do_is_instance_running(const instance_t& instance) const //
+        -> bool override;
     auto do_create_network(
         network_type_t network_type,
         std::string_view network,

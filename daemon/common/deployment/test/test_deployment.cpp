@@ -40,6 +40,7 @@ public:
          (std::string_view gateway),
          (std::string_view parent_adapter)),
         (override));
+    MOCK_METHOD(bool, do_is_instance_running, (const instance_t& instance), (const, override));
     MOCK_METHOD(std::optional<network_t>, do_query_network, (std::string_view network), (override));
     MOCK_METHOD(result_t, do_delete_network, (std::string_view network), (override));
     MOCK_METHOD(

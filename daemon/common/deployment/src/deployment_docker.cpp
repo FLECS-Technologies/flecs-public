@@ -396,6 +396,22 @@ auto deployment_docker_t::do_stop_instance(const instance_t& instance) //
     return delete_container(instance);
 }
 
+auto deployment_docker_t::do_is_instance_running(const instance_t& instance) const //
+    -> bool
+{
+    auto docker_process = process_t{};
+
+    docker_process.spawnp("docker", "ps", "--quiet", "--filter", std::string{"name=flecs-" + instance.id()});
+    docker_process.wait(false, false);
+    // Consider instance running if Docker call was successful and returned a container id
+    if (docker_process.exit_code() == 0 && !docker_process.stdout().empty())
+    {
+        return true;
+    }
+
+    return false;
+}
+
 auto deployment_docker_t::do_create_network(
     network_type_t network_type,
     std::string_view network,

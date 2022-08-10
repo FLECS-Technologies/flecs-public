@@ -81,6 +81,10 @@ public:
         -> result_t;
     auto stop_instance(std::string_view instance_id) //
         -> result_t;
+    auto is_instance_runnable(std::string_view instance_id) const //
+        -> bool;
+    auto is_instance_running(std::string_view instance_id) const //
+        -> bool;
     auto create_network(
         network_type_t network_type,
         std::string_view network,
@@ -134,6 +138,8 @@ private:
         -> result_t = 0;
     virtual auto do_stop_instance(const instance_t& instance) //
         -> result_t = 0;
+    virtual auto do_is_instance_running(const instance_t& instance) const //
+        -> bool = 0;
     virtual auto do_create_network(
         network_type_t network_type,
         std::string_view network,
@@ -227,6 +233,16 @@ inline auto deployment_t::delete_instance(std::string_view instance_id) //
     const auto [res, additional_info] = do_delete_instance(std::move(instance_id));
     _instances.erase(instance_id.data());
     return {res, additional_info};
+}
+
+inline auto deployment_t::is_instance_running(std::string_view instance_id) const //
+    -> bool
+{
+    if (!has_instance(instance_id))
+    {
+        return false;
+    }
+    return do_is_instance_running(instances().at(instance_id.data()));
 }
 
 inline auto deployment_t::create_network(
