@@ -28,6 +28,7 @@ auto build_network_adapters_json(const instance_t& instance)
             auto adapter_json = json_t{};
             adapter_json["name"] = adapter.first;
             adapter_json["active"] = false;
+            adapter_json["connected"] = !adapter.second.ipv4_addr.empty();
             auto network = std::string{"flecs-macvlan-"} + adapter.first;
             auto it = std::find_if(
                 instance.networks().cbegin(),
@@ -37,8 +38,16 @@ auto build_network_adapters_json(const instance_t& instance)
             {
                 adapter_json["active"] = true;
                 adapter_json["ipAddress"] = it->ip_address;
-                adapter_json["subnetMask"] = adapter.second.ipv4_addr.begin()->subnet_mask;
-                adapter_json["gateway"] = adapter.second.gateway;
+                if (adapter.second.ipv4_addr.empty())
+                {
+                    adapter_json["subnetMask"] = "0.0.0.0";
+                    adapter_json["gateway"] = "0.0.0.0";
+                }
+                else
+                {
+                    adapter_json["subnetMask"] = adapter.second.ipv4_addr.begin()->subnet_mask;
+                    adapter_json["gateway"] = adapter.second.gateway;
+                }
             }
             adapters_json.push_back(adapter_json);
         }
