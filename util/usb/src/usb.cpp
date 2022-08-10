@@ -88,18 +88,16 @@ auto from_json(const json_t& json, device_t& device) //
 }
 
 auto get_devices() //
-    -> std::vector<device_t>
+    -> std::set<device_t>
 {
     constexpr auto NUM_USB_PORTS = 7;
 
-    auto devices = std::vector<device_t>{};
+    auto devices = std::set<device_t>{};
 
     auto hwdb = udev::hwdb_t{};
 
     auto usb_devices = static_cast<libusb_device**>(nullptr);
     const auto device_count = libusb_get_device_list(nullptr, &usb_devices);
-
-    devices.reserve(device_count);
 
     for (ssize_t i = 0; i < device_count; ++i)
     {
@@ -132,7 +130,7 @@ auto get_devices() //
         const auto device =
             hwdb.usb_device(desc.idVendor, desc.idProduct).value_or(sysfs::usb_device(port).value_or(std::string{}));
 
-        devices.emplace_back(device_t{
+        devices.emplace(device_t{
             .pid = desc.idProduct,
             .vid = desc.idVendor,
             .device = std::move(device),
