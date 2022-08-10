@@ -59,6 +59,16 @@ public:
 
     virtual ~deployment_t() = default;
 
+    auto deployment_id() const noexcept //
+        -> std::string_view;
+
+    auto load() //
+        -> result_t;
+    auto save() //
+        -> result_t;
+
+    auto instances() noexcept //
+        -> std::map<std::string, instance_t>&;
     auto instances() const noexcept //
         -> const std::map<std::string, instance_t>&;
     auto instance_ids(std::string_view app) const //
@@ -67,8 +77,6 @@ public:
         -> std::vector<std::string>;
     auto has_instance(std::string_view instance_id) const noexcept //
         -> bool;
-    auto instances() noexcept //
-        -> std::map<std::string, instance_t>&;
     auto insert_instance(instance_t instance) //
         -> result_t;
     auto create_instance(const app_t& app, std::string instance_name) //
@@ -126,6 +134,9 @@ protected:
     std::map<std::string, network_t> _networks;
 
 private:
+    virtual auto do_deployment_id() const noexcept //
+        -> std::string_view = 0;
+
     virtual auto do_insert_instance(instance_t instance) //
         -> result_t = 0;
     virtual auto do_create_instance(const app_t& app, instance_t& instance) //

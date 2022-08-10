@@ -29,6 +29,9 @@ public:
     ~deployment_docker_t() override = default;
 
 private:
+    auto do_deployment_id() const noexcept //
+        -> std::string_view override;
+
     auto do_insert_instance(instance_t instance) //
         -> result_t override;
     auto do_create_instance(const app_t& app, instance_t& instance) //

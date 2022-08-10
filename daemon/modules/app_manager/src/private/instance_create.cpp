@@ -65,7 +65,7 @@ auto module_app_manager_private_t::do_create_instance(
     response["instanceId"] = instance_id;
 
     // Final step: Persist creation into db
-    persist_instances();
+    _deployment->save();
 
     if (res != 0)
     {

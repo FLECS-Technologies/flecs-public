@@ -116,7 +116,7 @@ module_app_manager_private_t::~module_app_manager_private_t()
     }
 
     persist_apps();
-    persist_instances();
+    _deployment->save();
 }
 
 auto module_app_manager_private_t::do_init() //
@@ -155,7 +155,7 @@ auto module_app_manager_private_t::do_init() //
             }
             _deployment->insert_instance(tmp);
         }
-        persist_instances();
+        _deployment->save();
 
         const auto db_path = app_db.path();
         const auto db_backup_path = db_path + ".migration";
@@ -165,7 +165,7 @@ auto module_app_manager_private_t::do_init() //
     }
 
     load_apps();
-    load_instances();
+    _deployment->load();
 
     // "install" system apps on first start
     constexpr auto system_apps = std::array<const char*, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
@@ -326,33 +326,6 @@ auto module_app_manager_private_t::load_apps() //
     {
         auto apps_json = parse_json(json_file);
         _installed_apps = apps_json.get<decltype(_installed_apps)>();
-    }
-}
-
-auto module_app_manager_private_t::persist_instances() const //
-    -> void
-{
-    const auto path = "/var/lib/flecs/instances/";
-    auto ec = std::error_code{};
-    fs::create_directories(path, ec);
-    if (ec)
-    {
-        return;
-    }
-
-    auto instances_json =
-        std::ofstream{"/var/lib/flecs/instances/instances.json", std::ios_base::out | std::ios_base::trunc};
-    instances_json << json_t(_deployment->instances());
-}
-
-auto module_app_manager_private_t::load_instances() //
-    -> void
-{
-    auto json_file = std::ifstream{"/var/lib/flecs/instances/instances.json"};
-    if (json_file.good())
-    {
-        auto instances_json = parse_json(json_file);
-        _deployment->instances() = instances_json.get<std::remove_reference_t<decltype(_deployment->instances())>>();
     }
 }
 

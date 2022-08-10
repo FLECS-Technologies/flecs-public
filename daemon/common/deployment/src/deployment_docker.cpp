@@ -325,6 +325,12 @@ auto deployment_docker_t::delete_container(const instance_t& instance) //
     return {0, {}};
 }
 
+auto deployment_docker_t::do_deployment_id() const noexcept //
+    -> std::string_view
+{
+    return "docker";
+}
+
 auto deployment_docker_t::do_insert_instance(instance_t /*instance*/) //
     -> result_t
 {

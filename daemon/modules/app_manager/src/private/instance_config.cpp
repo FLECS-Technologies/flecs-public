@@ -196,7 +196,7 @@ auto module_app_manager_private_t::do_put_config_instance(
                             .mac_address = {},
                             .ip_address = network.ipAddress});
                     }
-                    persist_instances();
+                    _deployment->save();
                     for (auto& adapter_json : response["networkAdapters"])
                     {
                         if (adapter_json.contains("name") && (adapter_json["name"] == netif->first))

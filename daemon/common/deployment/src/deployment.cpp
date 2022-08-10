@@ -50,6 +50,52 @@ auto network_type_from_string(std::string_view str) //
     return types.at(str);
 }
 
+auto deployment_t::deployment_id() const noexcept //
+    -> std::string_view
+{
+    return do_deployment_id();
+}
+
+auto deployment_t::load() //
+    -> result_t
+{
+    using std::operator""s;
+
+    auto json_file = std::ifstream{"/var/lib/flecs/deployment/"s + deployment_id().data() + ".json"};
+    if (!json_file.good())
+    {
+        return {-1, "Could not open json"};
+    }
+
+    auto instances_json = parse_json(json_file);
+    instances_json.get_to(_instances);
+
+    return {0, {}};
+}
+
+auto deployment_t::save() //
+    -> result_t
+{
+    using std::operator""s;
+
+    auto path = "/var/lib/flecs/deployment/"s;
+
+    auto ec = std::error_code{};
+    fs::create_directories(path, ec);
+    if (ec)
+    {
+        return {-1, "Could not create directory"};
+    }
+
+    path += deployment_id().data();
+    path += ".json";
+
+    auto instances_json = std::ofstream{path, std::ios_base::out | std::ios_base::trunc};
+    instances_json << json_t(instances());
+
+    return {0, {}};
+}
+
 auto deployment_t::create_instance(const app_t& app, std::string instance_name) //
     -> result_t
 {

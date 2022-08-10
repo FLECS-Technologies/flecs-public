@@ -280,10 +280,6 @@ private:
         -> void;
     auto load_apps() //
         -> void;
-    auto persist_instances() const //
-        -> void;
-    auto load_instances() //
-        -> void;
 
     auto generate_instance_ip() //
         -> std::string;
