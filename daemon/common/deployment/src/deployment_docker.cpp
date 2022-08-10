@@ -577,10 +577,23 @@ auto deployment_docker_t::do_query_network(std::string_view network) //
     return res;
 }
 
-auto deployment_docker_t::do_delete_network(std::string_view /*network*/) //
+auto deployment_docker_t::do_delete_network(std::string_view network) //
     -> result_t
 {
-    return {0, ""};
+    auto docker_process = process_t{};
+
+    docker_process.arg("network");
+    docker_process.arg("rm");
+    docker_process.arg(network.data());
+
+    docker_process.spawnp("docker");
+    docker_process.wait(false, false);
+    if (docker_process.exit_code() != 0)
+    {
+        return {-1, docker_process.stderr()};
+    }
+
+    return {0, {}};
 }
 
 auto deployment_docker_t::do_connect_network(

@@ -147,12 +147,6 @@ auto module_app_manager_private_t::do_put_config_instance(
             // create macvlan network, if not exists
             const auto cidr_subnet =
                 ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
-            _deployment->create_network(
-                network_type_t::MACVLAN,
-                docker_network,
-                cidr_subnet,
-                netif->second.gateway,
-                netif->first);
 
             // process instance configuration
             if (network.ipAddress.empty())
@@ -174,6 +168,13 @@ auto module_app_manager_private_t::do_put_config_instance(
             {
                 // apply settings
                 // @todo verify validity of IP address
+                _deployment->create_network(
+                    network_type_t::MACVLAN,
+                    docker_network,
+                    cidr_subnet,
+                    netif->second.gateway,
+                    netif->first);
+
                 _deployment->disconnect_network(instance_id, docker_network);
 
                 const auto [res, additional_info] =
