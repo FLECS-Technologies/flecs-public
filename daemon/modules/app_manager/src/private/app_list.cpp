@@ -40,7 +40,8 @@ auto module_app_manager_private_t::do_list_apps(json_t& response) //
             if (instance.status() == instance_status_e::CREATED)
             {
                 json_instance["status"] = to_string(
-                    is_instance_running(instance.id()) ? instance_status_e::RUNNING : instance_status_e::STOPPED);
+                    _deployment->is_instance_running(instance.id()) ? instance_status_e::RUNNING
+                                                                    : instance_status_e::STOPPED);
             }
             else
             {

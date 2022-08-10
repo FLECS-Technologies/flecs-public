@@ -107,7 +107,7 @@ module_app_manager_private_t::~module_app_manager_private_t()
     std::fprintf(stdout, "Stopping all running app instances...\n");
     for (decltype(auto) instance : _deployment->instances())
     {
-        if (is_instance_running(instance.first))
+        if (_deployment->is_instance_running(instance.first))
         {
             std::fprintf(stdout, "\t%s\n", instance.first.c_str());
             json_t _unused;
@@ -255,39 +255,6 @@ auto module_app_manager_private_t::is_app_installed(const std::string& app_name,
 {
     return (_installed_apps.count(std::forward_as_tuple(app_name, version)) == 1) &&
            (_installed_apps[std::forward_as_tuple(app_name, version)].status() == app_status_e::INSTALLED);
-}
-
-auto module_app_manager_private_t::is_instance_runnable(const std::string& instance_id) //
-    -> bool
-{
-    if (!_deployment->has_instance(instance_id))
-    {
-        return false;
-    }
-
-    const auto& instance = _deployment->instances().at(instance_id);
-    if (instance.status() != instance_status_e::CREATED)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-auto module_app_manager_private_t::is_instance_running(const std::string& instance_id) //
-    -> bool
-{
-    auto docker_process = process_t{};
-
-    docker_process.spawnp("docker", "ps", "--quiet", "--filter", std::string{"name=flecs-" + instance_id});
-    docker_process.wait(false, false);
-    // Consider instance running if Docker call was successful and returned a container id
-    if (docker_process.exit_code() == 0 && !docker_process.stdout().empty())
-    {
-        return true;
-    }
-
-    return false;
 }
 
 auto module_app_manager_private_t::xcheck_app_instance(

@@ -56,7 +56,7 @@ auto module_app_manager_private_t::do_stop_instance(
     }
 
     // Step 3: Return if instance is not running
-    if (!is_instance_running(instance_id) && !internal)
+    if (!_deployment->is_instance_running(instance_id) && !internal)
     {
         response["additionalInfo"] = "Instance " + instance_id + " is not running";
         return crow::status::OK;
