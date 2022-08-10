@@ -30,6 +30,12 @@ auto deployment_docker_t::create_container(const app_t& app, instance_t& instanc
 {
     const auto container_name = std::string{"flecs-"} + instance.id();
 
+    // cleanup after possible unclean shutdown
+    if (!is_instance_running(instance.id()))
+    {
+        delete_container(instance);
+    }
+
     {
         auto docker_process = process_t{};
         docker_process.arg("ps");
@@ -98,19 +104,22 @@ auto deployment_docker_t::create_container(const app_t& app, instance_t& instanc
         docker_process.arg(device);
     }
 
-    if (!instance.networks().empty() && instance.networks()[0].ip_address.empty())
+    if (!instance.networks().empty())
     {
         auto& network = instance.networks()[0];
 
-        const auto net = query_network(network.network_name);
-        network.ip_address = generate_instance_ip(net->cidr_subnet, net->gateway);
         if (network.ip_address.empty())
         {
-            return {-1, "Could not generate instance IP"};
+            const auto net = query_network(network.network_name);
+            network.ip_address = generate_instance_ip(net->cidr_subnet, net->gateway);
+            if (network.ip_address.empty())
+            {
+                return {-1, "Could not generate instance IP"};
+            }
         }
 
         docker_process.arg("--network");
-        docker_process.arg(app.networks()[0].name());
+        docker_process.arg(instance.networks()[0].network_name);
 
         docker_process.arg("--ip");
         docker_process.arg(network.ip_address);
@@ -274,6 +283,10 @@ auto deployment_docker_t::create_container(const app_t& app, instance_t& instanc
     {
         auto& network = instance.networks()[i];
         const auto net = query_network(network.network_name);
+        if (!net.has_value())
+        {
+            return {-1, "Requested network does not exist"};
+        }
         network.ip_address = generate_instance_ip(net->cidr_subnet, net->gateway);
         if (network.ip_address.empty())
         {
