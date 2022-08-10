@@ -36,8 +36,6 @@ int sqlite3_db_t::open(const char* filename, int flags, const char* zVfs)
 {
     const auto file_path = fs::path{filename};
     const auto dir = file_path.parent_path();
-    auto ec = std::error_code{};
-    fs::create_directories(dir, ec);
     int res = sqlite3_open_v2(filename, &_db, flags, zVfs);
     if (res != SQLITE_OK)
     {
