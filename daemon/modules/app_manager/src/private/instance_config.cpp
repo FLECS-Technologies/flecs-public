@@ -48,20 +48,31 @@ auto build_network_adapters_json(const instance_t& instance)
 
 auto build_usb_devices_json(const instance_t& instance)
 {
-    auto usb_devices_json = json_t::array();
+    auto ret = json_t::array();
     const auto usb_devices = usb::get_devices();
+
+    // insert connected usb device
     for (decltype(auto) usb_device : usb_devices)
     {
-        auto usb_device_json = json_t(usb_device);
-        usb_device_json["active"] = false;
-        auto it = std::find(instance.usb_devices().cbegin(), instance.usb_devices().cend(), usb_device);
-        if (it != instance.usb_devices().cend())
-        {
-            usb_device_json["active"] = true;
-        }
-        usb_devices_json.push_back(std::move(usb_device_json));
+        auto device_json = json_t(usb_device);
+        device_json["active"] = static_cast<bool>(instance.usb_devices().count(usb_device));
+        device_json["connected"] = true;
+        ret.push_back(std::move(device_json));
     }
-    return usb_devices_json;
+
+    // insert configured, but disconnected usb devices
+    for (decltype(auto) usb_device : instance.usb_devices())
+    {
+        if (!usb_devices.count(usb_device))
+        {
+            auto device_json = json_t(usb_device);
+            device_json["active"] = true;
+            device_json["connected"] = false;
+            ret.push_back(std::move(device_json));
+        }
+    }
+
+    return ret;
 }
 } // namespace
 
@@ -225,17 +236,11 @@ auto module_app_manager_private_t::do_put_config_instance(
     {
         if (usb_device.active)
         {
-            auto it = std::find(instance.usb_devices().cbegin(), instance.usb_devices().cend(), usb_device);
-            if (it == instance.usb_devices().cend())
-            {
-                instance.usb_devices().emplace_back(usb_device);
-            }
+            instance.usb_devices().emplace(usb_device);
         }
         else
         {
-            instance.usb_devices().erase(
-                std::remove(instance.usb_devices().begin(), instance.usb_devices().end(), usb_device),
-                instance.usb_devices().end());
+            instance.usb_devices().erase(usb_device);
         }
     }
     response["devices"]["usb"] = build_usb_devices_json(instance);

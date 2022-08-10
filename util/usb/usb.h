@@ -16,8 +16,8 @@
 #define D583A2CB_B0C5_41BF_B7A4_478C82A15ABE
 
 #include <cstdint>
+#include <set>
 #include <string>
-#include <vector>
 
 #include "util/json/json.h"
 
@@ -47,7 +47,7 @@ auto from_json(const json_t& json, device_t& device) //
     -> void;
 
 auto get_devices() //
-    -> std::vector<device_t>;
+    -> std::set<device_t>;
 
 } // namespace usb
 } // namespace FLECS
