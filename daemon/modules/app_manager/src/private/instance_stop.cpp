@@ -74,7 +74,7 @@ auto module_app_manager_private_t::do_stop_instance(
     response["additionalInfo"] = additional_info;
 
     // Final step: Persist instance status into deployment
-    persist_instances();
+    _deployment->save();
 
     return (res == 0) ? crow::status::OK : crow::status::INTERNAL_SERVER_ERROR;
 }

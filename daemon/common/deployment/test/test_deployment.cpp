@@ -25,6 +25,7 @@ namespace FLECS {
 class mock_deployment_t : public deployment_t
 {
 public:
+    MOCK_METHOD(std::string_view, do_deployment_id, (), (const, noexcept, override));
     MOCK_METHOD(result_t, do_insert_instance, (instance_t instance), (override));
     MOCK_METHOD(result_t, do_create_instance, ((const app_t& app), (instance_t & instance)), (override));
     MOCK_METHOD(result_t, do_delete_instance, (std::string_view instance_id), (override));
