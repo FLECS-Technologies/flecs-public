@@ -157,7 +157,8 @@ auto module_app_manager_private_t::do_put_config_instance(
                     if (adapter_json["name"] == netif->first)
                     {
                         adapter_json["active"] = true;
-                        adapter_json["ipAddress"] = generate_ip(cidr_subnet);
+                        adapter_json["ipAddress"] =
+                            _deployment->generate_instance_ip(cidr_subnet, netif->second.gateway);
                         adapter_json["subnetMask"] = netif->second.ipv4_addr[0].subnet_mask;
                         adapter_json["gateway"] = netif->second.gateway;
                         break;
