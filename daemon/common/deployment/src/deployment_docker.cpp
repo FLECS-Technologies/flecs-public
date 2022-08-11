@@ -287,10 +287,13 @@ auto deployment_docker_t::create_container(const app_t& app, instance_t& instanc
         {
             return {-1, "Requested network does not exist"};
         }
-        network.ip_address = generate_instance_ip(net->cidr_subnet, net->gateway);
         if (network.ip_address.empty())
         {
-            return {-1, "Could not generate IP for additional networks"};
+            network.ip_address = generate_instance_ip(net->cidr_subnet, net->gateway);
+            if (network.ip_address.empty())
+            {
+                return {-1, "Could not generate IP for additional networks"};
+            }
         }
         if (std::find(
                 instance.startup_options().cbegin(),
