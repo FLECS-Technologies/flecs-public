@@ -281,11 +281,6 @@ private:
     auto load_apps() //
         -> void;
 
-    auto generate_instance_ip() //
-        -> std::string;
-    auto generate_ip(const std::string& cidr_subnet) //
-        -> std::string;
-
     using installed_apps_t = std::map<std::tuple<std::string, std::string>, app_t>;
 
     installed_apps_t _installed_apps;
