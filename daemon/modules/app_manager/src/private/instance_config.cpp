@@ -8,6 +8,7 @@
 #include "factory/factory.h"
 #include "private/app_manager_private.h"
 #include "system/system.h"
+#include "util/cxx20/string.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
 #include "util/usb/usb.h"
@@ -50,6 +51,25 @@ auto build_network_adapters_json(const instance_t& instance)
                 }
             }
             adapters_json.push_back(adapter_json);
+        }
+    }
+    for (decltype(auto) network : instance.networks())
+    {
+        if (cxx20::starts_with(network.network_name, "flecs-macvlan-"))
+        {
+            const auto adapter = network.network_name.substr(14);
+            if (!adapters.count(adapter))
+            {
+                auto adapter_json = json_t{};
+                adapter_json["name"] = adapter;
+                adapter_json["active"] = true;
+                adapter_json["connected"] = false;
+                adapter_json["ipAddress"] = network.ip_address;
+                adapter_json["subnetMask"] = "0.0.0.0";
+                adapter_json["gateway"] = "0.0.0.0";
+
+                adapters_json.push_back(std::move(adapter_json));
+            }
         }
     }
     return adapters_json;
