@@ -1,0 +1,18 @@
+FROM debian:bullseye-slim
+
+ARG ARCH
+
+RUN groupadd docker
+
+COPY build-utils/docker/scripts/debian/install-packages.sh /tmp/
+
+RUN /tmp/install-packages.sh ca-certificates
+
+ADD fs/ /
+
+COPY build-utils/docker/scripts/debian/install-packages.sh /tmp/
+
+RUN /tmp/install-packages.sh containerd.io docker-ce-cli git iptables libusb-1.0-0 \
+    procps xz-utils
+
+ENTRYPOINT [ "/entrypoint.sh" ]
