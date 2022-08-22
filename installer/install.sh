@@ -48,6 +48,16 @@ remove_program() {
   fi
 }
 
+install_libseccomp () {
+  LSB_RELEASE=$(lsb_release -cs)
+  if [ "${LSB_RELEASE}" == "buster" ]; then
+    echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/00_buster-backports.list
+    if ! install_program "libseccomp2/buster-backports"; then
+      exit 1;
+    fi
+  fi
+}
+
 install_docker() {
   # remove conflicting packages
   remove_program docker docker-engine docker.io containerd runc
@@ -80,6 +90,9 @@ fi
 
 # detect OS (Debian or Ubuntu)
 OS=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
+
+# workaround for Debian < bullseye
+install_libseccomp
 
 # install Docker engine
 install_docker
