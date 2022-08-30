@@ -19,7 +19,7 @@ run () {
 }
 
 run apt-get update
-run apt-get --yes install $@
+run apt-get --yes --no-install-recommends install $@
 run apt-get --yes clean
 
 run rm -rf /var/lib/apt/lists/*
