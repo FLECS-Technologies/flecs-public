@@ -87,7 +87,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(apps)
 add_subdirectory(cli)
-add_subdirectory(develop)
 add_subdirectory(external)
 add_subdirectory(flunder)
 add_subdirectory(mqtt)
