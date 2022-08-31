@@ -229,6 +229,7 @@ auto module_app_manager_private_t::do_init() //
             }
         }
     }
+    persist_apps();
 
     std::fprintf(stdout, "Starting all app instances...\n");
     for (decltype(auto) instance : _deployment->instances())
@@ -237,7 +238,7 @@ auto module_app_manager_private_t::do_init() //
         {
             std::fprintf(stdout, "\t%s\n", instance.first.c_str());
             json_t _unused;
-            do_start_instance(instance.first, "", "", _unused, true);
+            do_start_instance(instance.first, instance.second.app(), instance.second.version(), _unused, true);
         }
     }
 
