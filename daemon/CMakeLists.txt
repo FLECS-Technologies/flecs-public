@@ -21,6 +21,7 @@ add_subdirectory(modules)
 # configure package
 set(PACKAGE flecs)
 set(PACKAGE_DESC FLECS)
+set(PACKAGE_DEPENDS docker-ce libudev libusb-1.0-0)
 
 add_custom_target(
     flecs_deb-pkg-copy

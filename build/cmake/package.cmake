@@ -74,6 +74,7 @@ add_custom_target(
     COMMAND sed -i "s/##PACKAGE##/${PACKAGE}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/*
     COMMAND sed -i "s/##VERSION##/${VERSION}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/*
     COMMAND sed -i "s/##DESCRIPTION##/${PACKAGE_DESC}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/*
+    COMMAND sed -i "s/##DEPENDS##/${PACKAGES_DEPENDS}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/*
     COMMAND chmod 755 ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/p* || true
     COMMAND chmod 644 ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/control
 )

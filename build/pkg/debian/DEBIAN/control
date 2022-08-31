@@ -2,5 +2,6 @@ Package: ##PACKAGE##
 Version: ##VERSION##
 Description: ##DESCRIPTION##
 Architecture: ##ARCH##
+Depends: ##DEPENDS##
 Priority: optional
 Maintainer: FLECS Technologies GmbH <alex@flecs.tech>
