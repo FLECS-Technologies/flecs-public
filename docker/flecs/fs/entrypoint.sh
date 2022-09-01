@@ -25,7 +25,7 @@ while ! docker version >/dev/null 2>&1; do
 done
 
 # load FLECS system app images
-docker load --input /opt/flecs/assets/tech.flecs.mqtt-bridge_1.3.0-porpoise_*.tar.gz >/dev/null
-docker load --input /opt/flecs/assets/tech.flecs.service-mesh_1.3.0-porpoise_*.tar.gz >/dev/null
+docker load --input /opt/flecs/assets/tech.flecs.mqtt-bridge_1.3.1-porpoise_*.tar.gz >/dev/null
+docker load --input /opt/flecs/assets/tech.flecs.service-mesh_1.3.1-porpoise_*.tar.gz >/dev/null
 
 flecsd
