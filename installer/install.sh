@@ -48,9 +48,18 @@ remove_program() {
   fi
 }
 
-install_libseccomp () {
-  LSB_RELEASE=$(lsb_release -cs)
-  if [ "${LSB_RELEASE}" == "buster" ]; then
+add_debian_keys() {
+  gpg --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC >/dev/null 2>&1
+  gpg --keyserver keyserver.ubuntu.com --recv-keys 648ACFD622F3D138 >/dev/null 2>&1
+  gpg --export 04EE7237B7D453EC | apt-key add - >/dev/null 2>&1
+  gpg --export 648ACFD622F3D138 | apt-key add - >/dev/null 2>&1
+}
+
+install_libseccomp() {
+  if [ "${SUITE}" == "buster" ]; then
+    if [ "${OS}" == "raspbian" ]; then
+      add_debian_keys
+    fi
     echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/00_buster-backports.list
     if ! install_program "libseccomp2/buster-backports"; then
       exit 1;
@@ -60,7 +69,11 @@ install_libseccomp () {
 
 install_docker() {
   # remove conflicting packages
-  remove_program docker docker-engine docker.io containerd runc
+  remove_program docker
+  remove_program docker-engine
+  remove_program docker.io
+  remove_program containerd
+  remove_program runc
 
   # get Docker gpg keys
   run curl -fsSL https://download.docker.com/linux/${OS}/gpg | \
@@ -69,7 +82,7 @@ install_docker() {
   # add Docker package archive
   run echo \
     "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/${OS} \
-    $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+    ${SUITE} stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
   # install Docker
   if ! install_program "docker-ce docker-ce-cli containerd.io"; then
@@ -83,13 +96,21 @@ if [ ${EUID} -gt 0 ]; then
   exit 1
 fi
 
+# workaround for previously failed installations
+OS=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
+SUITE=$(lsb_release -sc | tr '[:upper:]' '[:lower:]')
+if [ ! -z "${OS}" ] && [ "${OS}" == "raspbian" ] && [ ! -z "${SUITE}" ] && [ "${SUITE}" == "buster" ]; then
+  add_debian_keys
+fi
+
 # install prerequisites
 if ! install_program "${DEPENDS}"; then
   exit 1
 fi
 
-# detect OS (Debian or Ubuntu)
+# detect OS (Debian or Ubuntu) and suite
 OS=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
+SUITE=$(lsb_release -sc | tr '[:upper:]' '[:lower:]')
 
 # workaround for Debian < bullseye
 install_libseccomp
