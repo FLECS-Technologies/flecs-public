@@ -32,7 +32,8 @@ struct overload : Ts...
 template <class... Ts>
 overload(Ts...) -> overload<Ts...>;
 
-static void lib_subscribe_callback(const zn_sample_t* sample, const void* arg)
+static auto lib_subscribe_callback(const zn_sample_t* sample, const void* arg) //
+    -> void
 {
     auto key = std::string{sample->key.val, sample->key.len};
     auto var = flunder_data_t{key.c_str(), sample->value.val, sample->value.len};
@@ -54,7 +55,8 @@ flunder_client_private_t::flunder_client_private_t()
 flunder_client_private_t::~flunder_client_private_t()
 {}
 
-int flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/)
+auto flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/) //
+    -> int
 {
     disconnect();
 
@@ -69,12 +71,14 @@ int flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/)
     return (res.status_code == 200 && _zn_session) ? 0 : -1;
 }
 
-int flunder_client_private_t::reconnect()
+auto flunder_client_private_t::reconnect() //
+    -> int
 {
     return connect("", 0);
 }
 
-int flunder_client_private_t::disconnect()
+auto flunder_client_private_t::disconnect() //
+    -> int
 {
     while (!_subscriptions.empty())
     {
@@ -92,15 +96,19 @@ int flunder_client_private_t::disconnect()
     return 0;
 }
 
-int flunder_client_private_t::publish(std::string_view topic, const std::string& type, const std::string& value)
+auto flunder_client_private_t::publish(std::string_view topic, const std::string& type, const std::string& value) //
+    -> int
 {
     const auto url = std::string{"http://flecs-flunder:8000"}.append(topic);
     const auto res = cpr::Put(cpr::Url{url}, cpr::Header{{"content-type", type}}, cpr::Body{value});
     return (res.status_code == 200) ? 0 : -1;
 }
 
-int flunder_client_private_t::subscribe(
-    flunder_client_t* client, std::string_view topic, flunder_client_t::subscribe_cbk_t cbk)
+auto flunder_client_private_t::subscribe(
+    flunder_client_t* client,
+    std::string_view topic,
+    flunder_client_t::subscribe_cbk_t cbk) //
+    -> int
 {
     if (_subscriptions.count(topic.data()) > 0)
     {
@@ -131,8 +139,12 @@ int flunder_client_private_t::subscribe(
     return 0;
 }
 
-int flunder_client_private_t::subscribe(
-    flunder_client_t* client, std::string_view topic, flunder_client_t::subscribe_cbk_userp_t cbk, const void* userp)
+auto flunder_client_private_t::subscribe(
+    flunder_client_t* client,
+    std::string_view topic,
+    flunder_client_t::subscribe_cbk_userp_t cbk,
+    const void* userp) //
+    -> int
 {
     if (_subscriptions.count(topic.data()) > 0)
     {
@@ -163,7 +175,8 @@ int flunder_client_private_t::subscribe(
     return 0;
 }
 
-int flunder_client_private_t::unsubscribe(std::string_view topic)
+auto flunder_client_private_t::unsubscribe(std::string_view topic) //
+    -> int
 {
     auto it = _subscriptions.find(topic.data());
     if (it == _subscriptions.cend())
@@ -177,7 +190,8 @@ int flunder_client_private_t::unsubscribe(std::string_view topic)
     return 0;
 }
 
-int flunder_client_private_t::add_mem_storage(std::string_view name, std::string_view topic)
+auto flunder_client_private_t::add_mem_storage(std::string_view name, std::string_view topic) //
+    -> int
 {
     auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
                             .append("/@/router/local/plugin/storages/backend/memory/storage/")
@@ -195,7 +209,8 @@ int flunder_client_private_t::add_mem_storage(std::string_view name, std::string
     return 0;
 }
 
-int flunder_client_private_t::remove_mem_storage(std::string_view name)
+auto flunder_client_private_t::remove_mem_storage(std::string_view name) //
+    -> int
 {
     auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
                             .append("/@/router/local/plugin/storages/backend/memory/storage/")
@@ -290,7 +305,8 @@ auto flunder_client_private_t::get(std::string_view topic) -> std::tuple<int, st
     return {0, vars};
 }
 
-int flunder_client_private_t::erase(std::string_view topic)
+auto flunder_client_private_t::erase(std::string_view topic) //
+    -> int
 {
     const auto url = std::string{"http://flecs-flunder:8000"}.append(topic);
     const auto res = cpr::Delete(cpr::Url{url});

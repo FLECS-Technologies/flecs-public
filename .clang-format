@@ -13,7 +13,7 @@ AlignAfterOpenBracket: AlwaysBreak
 #AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
-AllowAllParametersOfDeclarationOnNextLine: false
+#AllowAllParametersOfDeclarationOnNextLine: true
 #AllowShortEnumsOnASingleLine: true
 #AllowShortBlocksOnASingleLine: Never
 #AllowShortCaseLabelsOnASingleLine: false

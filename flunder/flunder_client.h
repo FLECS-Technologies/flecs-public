@@ -194,8 +194,8 @@ FLECS_EXPORT int flunder_reconnect(void* flunder);
 FLECS_EXPORT int flunder_disconnect(void* flunder);
 
 FLECS_EXPORT int flunder_subscribe(void* flunder, const char* topic, flunder_subscribe_cbk_t cbk);
-FLECS_EXPORT int
-flunder_subscribe_userp(void* flunder, const char* topic, flunder_subscribe_cbk_userp_t cbk, const void* userp);
+FLECS_EXPORT int flunder_subscribe_userp(
+    void* flunder, const char* topic, flunder_subscribe_cbk_userp_t cbk, const void* userp);
 
 FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* topic);
 
