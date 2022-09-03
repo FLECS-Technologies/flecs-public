@@ -28,7 +28,9 @@
 #include "flunder_data.h"
 #include "flunder_variable.h"
 
-#ifdef __cplusplus
+#ifndef __cplusplus
+#include <stdbool.h>
+#else
 
 #include <functional>
 #include <memory>
@@ -197,6 +199,7 @@ flunder_subscribe_userp(void* flunder, const char* path, flunder_subscribe_cbk_u
 
 FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* path);
 
+FLECS_EXPORT int flunder_publish_bool(void* flunder, const char* path, bool value);
 FLECS_EXPORT int flunder_publish_int(void* flunder, const char* path, int value);
 FLECS_EXPORT int flunder_publish_float(void* flunder, const char* path, float value);
 FLECS_EXPORT int flunder_publish_double(void* flunder, const char* path, double value);
