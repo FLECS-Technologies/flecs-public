@@ -41,19 +41,19 @@ public:
 
     FLECS_EXPORT int disconnect();
 
-    FLECS_EXPORT int publish(std::string_view path, const std::string& type, const std::string& value);
+    FLECS_EXPORT int publish(std::string_view topic, const std::string& type, const std::string& value);
 
-    FLECS_EXPORT int subscribe(flunder_client_t* client, std::string_view path, flunder_client_t::subscribe_cbk_t cbk);
+    FLECS_EXPORT int subscribe(flunder_client_t* client, std::string_view topic, flunder_client_t::subscribe_cbk_t cbk);
     FLECS_EXPORT int subscribe(
-        flunder_client_t* client, std::string_view path, flunder_client_t::subscribe_cbk_userp_t cbk,
+        flunder_client_t* client, std::string_view topic, flunder_client_t::subscribe_cbk_userp_t cbk,
         const void* userp);
-    FLECS_EXPORT int unsubscribe(std::string_view path);
+    FLECS_EXPORT int unsubscribe(std::string_view topic);
 
-    FLECS_EXPORT int add_mem_storage(std::string_view path, std::string_view name);
+    FLECS_EXPORT int add_mem_storage(std::string_view topic, std::string_view name);
     FLECS_EXPORT int remove_mem_storage(std::string_view name);
 
-    FLECS_EXPORT auto get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>;
-    FLECS_EXPORT int erase(std::string_view path);
+    FLECS_EXPORT auto get(std::string_view topic) -> std::tuple<int, std::vector<flunder_variable_t>>;
+    FLECS_EXPORT int erase(std::string_view topic);
 
     /*! Function pointer to receive callback */
     using subscribe_cbk_t = std::variant<flunder_client_t::subscribe_cbk_t, flunder_client_t::subscribe_cbk_userp_t>;

@@ -93,86 +93,86 @@ public:
     /* publish typed data to live subscribers */
     /* integer-types */
     template <typename T>
-    FLECS_EXPORT auto publish(std::string_view path, const T& value) //
+    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
         -> std::enable_if_t<std::is_integral_v<T>, int>;
 
     /* floating-point-types */
     template <typename T>
-    FLECS_EXPORT auto publish(std::string_view path, const T& value) //
+    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
         -> std::enable_if_t<std::is_floating_point_v<T>, int>;
 
     /* string-types */
     template <typename T>
-    FLECS_EXPORT auto publish(std::string_view path, const T& value) //
+    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
         -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>;
 
-    FLECS_EXPORT auto publish(std::string_view path, const char* value) //
+    FLECS_EXPORT auto publish(std::string_view topic, const char* value) //
         -> int;
 
     /* raw data */
-    FLECS_EXPORT auto publish(std::string_view path, const void* data, size_t len) //
+    FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len) //
         -> int;
 
     using subscribe_cbk_t = std::function<void(flunder_client_t*, flunder_data_t*)>;
     using subscribe_cbk_userp_t = std::function<void(flunder_client_t*, flunder_data_t*, const void*)>;
 
     /* subscribe to live data */
-    FLECS_EXPORT auto subscribe(std::string_view path, subscribe_cbk_t cbk) //
+    FLECS_EXPORT auto subscribe(std::string_view topic, subscribe_cbk_t cbk) //
         -> int;
     /* subscribe to live data with userdata */
-    FLECS_EXPORT auto subscribe(std::string_view path, subscribe_cbk_userp_t cbk, const void* userp) //
+    FLECS_EXPORT auto subscribe(std::string_view topic, subscribe_cbk_userp_t cbk, const void* userp) //
         -> int;
     /* unsubscribe from live data */
-    FLECS_EXPORT auto unsubscribe(std::string_view path) //
+    FLECS_EXPORT auto unsubscribe(std::string_view topic) //
         -> int;
 
-    FLECS_EXPORT auto add_mem_storage(std::string_view name, std::string_view path) //
+    FLECS_EXPORT auto add_mem_storage(std::string_view name, std::string_view topic) //
         -> int;
     FLECS_EXPORT auto remove_mem_storage(std::string_view name) //
         -> int;
 
     /* get data from storage */
-    FLECS_EXPORT auto get(std::string_view path) //
-        -> std::tuple<int, std::vector<flunder_variable_t>>;
+    FLECS_EXPORT auto get(std::string_view topic) //
+        -> std::tuple<int, std::vector<flunder_variable_t> >;
     /* delete data from storage */
-    FLECS_EXPORT auto erase(std::string_view path) //
+    FLECS_EXPORT auto erase(std::string_view topic) //
         -> int;
 
 private:
     FLECS_EXPORT friend auto swap(flunder_client_t& lhs, flunder_client_t& rhs) noexcept //
         -> void;
 
-    FLECS_EXPORT auto publish_int(std::string_view path, const std::string& value) //
+    FLECS_EXPORT auto publish_int(std::string_view topic, const std::string& value) //
         -> int;
-    FLECS_EXPORT auto publish_float(std::string_view path, const std::string& value) //
+    FLECS_EXPORT auto publish_float(std::string_view topic, const std::string& value) //
         -> int;
-    FLECS_EXPORT auto publish_string(std::string_view path, const std::string& value) //
+    FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) //
         -> int;
-    FLECS_EXPORT auto publish_raw(std::string_view path, const std::string& value) //
+    FLECS_EXPORT auto publish_raw(std::string_view topic, const std::string& value) //
         -> int;
 
     std::unique_ptr<Private::flunder_client_private_t> _impl;
 };
 
 template <typename T>
-auto flunder_client_t::publish(std::string_view path, const T& value) //
+auto flunder_client_t::publish(std::string_view topic, const T& value) //
     -> std::enable_if_t<std::is_integral_v<T>, int>
 {
-    return publish_int(path, stringify(value));
+    return publish_int(topic, stringify(value));
 }
 
 template <typename T>
-auto flunder_client_t::publish(std::string_view path, const T& value) //
+auto flunder_client_t::publish(std::string_view topic, const T& value) //
     -> std::enable_if_t<std::is_floating_point_v<T>, int>
 {
-    return publish_float(path, stringify(value));
+    return publish_float(topic, stringify(value));
 }
 
 template <typename T>
-auto flunder_client_t::publish(std::string_view path, const T& value) //
+auto flunder_client_t::publish(std::string_view topic, const T& value) //
     -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>
 {
-    return publish_string(path, value);
+    return publish_string(topic, value);
 }
 
 } // namespace FLECS
@@ -193,20 +193,20 @@ FLECS_EXPORT int flunder_reconnect(void* flunder);
 
 FLECS_EXPORT int flunder_disconnect(void* flunder);
 
-FLECS_EXPORT int flunder_subscribe(void* flunder, const char* path, flunder_subscribe_cbk_t cbk);
+FLECS_EXPORT int flunder_subscribe(void* flunder, const char* topic, flunder_subscribe_cbk_t cbk);
 FLECS_EXPORT int
-flunder_subscribe_userp(void* flunder, const char* path, flunder_subscribe_cbk_userp_t cbk, const void* userp);
+flunder_subscribe_userp(void* flunder, const char* topic, flunder_subscribe_cbk_userp_t cbk, const void* userp);
 
-FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* path);
+FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* topic);
 
-FLECS_EXPORT int flunder_publish_bool(void* flunder, const char* path, bool value);
-FLECS_EXPORT int flunder_publish_int(void* flunder, const char* path, int value);
-FLECS_EXPORT int flunder_publish_float(void* flunder, const char* path, float value);
-FLECS_EXPORT int flunder_publish_double(void* flunder, const char* path, double value);
-FLECS_EXPORT int flunder_publish_string(void* flunder, const char* path, const char* value);
-FLECS_EXPORT int flunder_publish_raw(void* flunder, const char* path, const void* value, size_t payloadlen);
+FLECS_EXPORT int flunder_publish_bool(void* flunder, const char* topic, bool value);
+FLECS_EXPORT int flunder_publish_int(void* flunder, const char* topic, int value);
+FLECS_EXPORT int flunder_publish_float(void* flunder, const char* topic, float value);
+FLECS_EXPORT int flunder_publish_double(void* flunder, const char* topic, double value);
+FLECS_EXPORT int flunder_publish_string(void* flunder, const char* topic, const char* value);
+FLECS_EXPORT int flunder_publish_raw(void* flunder, const char* topic, const void* value, size_t payloadlen);
 
-FLECS_EXPORT int flunder_add_mem_storage(void* flunder, const char* name, const char* path);
+FLECS_EXPORT int flunder_add_mem_storage(void* flunder, const char* name, const char* topic);
 FLECS_EXPORT int flunder_remove_mem_storage(void* flunder, const char* name);
 
 #ifdef __cplusplus

@@ -92,23 +92,23 @@ int flunder_client_private_t::disconnect()
     return 0;
 }
 
-int flunder_client_private_t::publish(std::string_view path, const std::string& type, const std::string& value)
+int flunder_client_private_t::publish(std::string_view topic, const std::string& type, const std::string& value)
 {
-    const auto url = std::string{"http://flecs-flunder:8000"}.append(path);
+    const auto url = std::string{"http://flecs-flunder:8000"}.append(topic);
     const auto res = cpr::Put(cpr::Url{url}, cpr::Header{{"content-type", type}}, cpr::Body{value});
     return (res.status_code == 200) ? 0 : -1;
 }
 
 int flunder_client_private_t::subscribe(
-    flunder_client_t* client, std::string_view path, flunder_client_t::subscribe_cbk_t cbk)
+    flunder_client_t* client, std::string_view topic, flunder_client_t::subscribe_cbk_t cbk)
 {
-    if (_subscriptions.count(path.data()) > 0)
+    if (_subscriptions.count(topic.data()) > 0)
     {
         return -1;
     }
 
     auto ctx = subscribe_ctx_t{client, nullptr, cbk, nullptr};
-    auto res = _subscriptions.emplace(path, ctx);
+    auto res = _subscriptions.emplace(topic, ctx);
     if (!res.second)
     {
         return -1;
@@ -116,7 +116,7 @@ int flunder_client_private_t::subscribe(
 
     auto sub = zn_declare_subscriber(
         _zn_session,
-        zn_rname(path.data()),
+        zn_rname(topic.data()),
         zn_subinfo_default(),
         lib_subscribe_callback,
         &res.first->second);
@@ -132,15 +132,15 @@ int flunder_client_private_t::subscribe(
 }
 
 int flunder_client_private_t::subscribe(
-    flunder_client_t* client, std::string_view path, flunder_client_t::subscribe_cbk_userp_t cbk, const void* userp)
+    flunder_client_t* client, std::string_view topic, flunder_client_t::subscribe_cbk_userp_t cbk, const void* userp)
 {
-    if (_subscriptions.count(path.data()) > 0)
+    if (_subscriptions.count(topic.data()) > 0)
     {
         return -1;
     }
 
     auto ctx = subscribe_ctx_t{client, nullptr, cbk, userp};
-    auto res = _subscriptions.emplace(path, ctx);
+    auto res = _subscriptions.emplace(topic, ctx);
     if (!res.second)
     {
         return -1;
@@ -148,7 +148,7 @@ int flunder_client_private_t::subscribe(
 
     auto sub = zn_declare_subscriber(
         _zn_session,
-        zn_rname(path.data()),
+        zn_rname(topic.data()),
         zn_subinfo_default(),
         lib_subscribe_callback,
         &res.first->second);
@@ -163,9 +163,9 @@ int flunder_client_private_t::subscribe(
     return 0;
 }
 
-int flunder_client_private_t::unsubscribe(std::string_view path)
+int flunder_client_private_t::unsubscribe(std::string_view topic)
 {
-    auto it = _subscriptions.find(path.data());
+    auto it = _subscriptions.find(topic.data());
     if (it == _subscriptions.cend())
     {
         return -1;
@@ -177,12 +177,12 @@ int flunder_client_private_t::unsubscribe(std::string_view path)
     return 0;
 }
 
-int flunder_client_private_t::add_mem_storage(std::string_view name, std::string_view path)
+int flunder_client_private_t::add_mem_storage(std::string_view name, std::string_view topic)
 {
     auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
                             .append("/@/router/local/plugin/storages/backend/memory/storage/")
                             .append(name)};
-    auto body = cpr::Body{std::string{"path_expr="}.append(path)};
+    auto body = cpr::Body{std::string{"path_expr="}.append(topic)};
     const auto res = cpr::Put(url, cpr::Header{{"content-type", "application/properties"}}, body);
 
     if (res.status_code != 200)
@@ -214,11 +214,11 @@ int flunder_client_private_t::remove_mem_storage(std::string_view name)
     return 0;
 }
 
-auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std::vector<flunder_variable_t>>
+auto flunder_client_private_t::get(std::string_view topic) -> std::tuple<int, std::vector<flunder_variable_t>>
 {
     auto vars = std::vector<flunder_variable_t>{};
 
-    const auto url = std::string{"http://flecs-flunder:8000"}.append(path);
+    const auto url = std::string{"http://flecs-flunder:8000"}.append(topic);
     const auto res = cpr::Get(cpr::Url{url});
 
     if (res.status_code != static_cast<long>(http_status_e::Ok))
@@ -290,9 +290,9 @@ auto flunder_client_private_t::get(std::string_view path) -> std::tuple<int, std
     return {0, vars};
 }
 
-int flunder_client_private_t::erase(std::string_view path)
+int flunder_client_private_t::erase(std::string_view topic)
 {
-    const auto url = std::string{"http://flecs-flunder:8000"}.append(path);
+    const auto url = std::string{"http://flecs-flunder:8000"}.append(topic);
     const auto res = cpr::Delete(cpr::Url{url});
     return (res.status_code == 200) ? 0 : -1;
 }
