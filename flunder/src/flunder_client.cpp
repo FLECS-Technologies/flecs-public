@@ -37,72 +37,86 @@ flunder_client_t::~flunder_client_t()
     disconnect();
 }
 
-int flunder_client_t::connect()
+auto flunder_client_t::connect() //
+    -> int
 {
     return connect(FLUNDER_HOST, FLUNDER_PORT);
 }
 
-int flunder_client_t::connect(std::string_view host, int port)
+auto flunder_client_t::connect(std::string_view host, int port) //
+    -> int
 {
     return _impl->connect(host, port);
 }
 
-int flunder_client_t::reconnect()
+auto flunder_client_t::reconnect() //
+    -> int
 {
     return _impl->reconnect();
 }
 
-int flunder_client_t::disconnect()
+auto flunder_client_t::disconnect() //
+    -> int
 {
     return _impl->disconnect();
 }
 
-int flunder_client_t::publish(std::string_view path, const char* value)
+auto flunder_client_t::publish(std::string_view path, const char* value) //
+    -> int
 {
     return publish_string(path, std::string{value});
 }
 
-int flunder_client_t::publish(std::string_view path, const void* data, size_t len)
+auto flunder_client_t::publish(std::string_view path, const void* data, size_t len) //
+    -> int
 {
     return _impl->publish(path, "application/octet-stream", std::string{(const char*)data, len});
 }
 
-int flunder_client_t::publish_int(std::string_view path, const std::string& value)
+auto flunder_client_t::publish_int(std::string_view path, const std::string& value) //
+    -> int
 {
     return _impl->publish(path, "application/integer", value);
 }
 
-int flunder_client_t::publish_float(std::string_view path, const std::string& value)
+auto flunder_client_t::publish_float(std::string_view path, const std::string& value) //
+    -> int
 {
     return _impl->publish(path, "application/float", value);
 }
 
-int flunder_client_t::publish_string(std::string_view path, const std::string& value)
+auto flunder_client_t::publish_string(std::string_view path, const std::string& value) //
+    -> int
 {
     return _impl->publish(path, "text/plain", value);
 }
 
-int flunder_client_t::subscribe(std::string_view path, subscribe_cbk_t cbk)
+auto flunder_client_t::subscribe(std::string_view path, subscribe_cbk_t cbk) //
+    -> int
 {
     return _impl->subscribe(this, path, cbk);
 }
 
-int flunder_client_t::subscribe(std::string_view path, subscribe_cbk_userp_t cbk, const void* userp)
+auto flunder_client_t::subscribe(std::string_view path, subscribe_cbk_userp_t cbk, const void* userp) //
+    -> int
 {
     return _impl->subscribe(this, path, cbk, userp);
 }
 
-int flunder_client_t::unsubscribe(std::string_view path)
+auto flunder_client_t::unsubscribe(std::string_view path) //
+    -> int
 {
     return _impl->unsubscribe(path);
 }
 
-int flunder_client_t::add_mem_storage(std::string_view name, std::string_view path)
+auto flunder_client_t::add_mem_storage(std::string_view name, std::string_view path) //
+    -> int
 {
     return _impl->add_mem_storage(name, path);
 }
 
-int flunder_client_t::remove_mem_storage(std::string_view name)
+auto flunder_client_t::remove_mem_storage(std::string_view name) //
+    -> int
 {
     return _impl->remove_mem_storage(name);
 }
@@ -112,12 +126,14 @@ auto flunder_client_t::get(std::string_view path) -> std::tuple<int, std::vector
     return _impl->get(path);
 }
 
-int flunder_client_t::erase(std::string_view path)
+auto flunder_client_t::erase(std::string_view path) //
+    -> int
 {
     return _impl->erase(path);
 }
 
-void swap(flunder_client_t& lhs, flunder_client_t& rhs) noexcept
+auto swap(flunder_client_t& lhs, flunder_client_t& rhs) noexcept //
+    -> void
 {
     using std::swap;
     swap(lhs._impl, rhs._impl);
@@ -155,8 +171,8 @@ FLECS_EXPORT int flunder_subscribe(void* flunder, const char* path, flunder_subs
     auto p = reinterpret_cast<void (*)(FLECS::flunder_client_t*, FLECS::flunder_data_t*)>(cbk);
     return static_cast<FLECS::flunder_client_t*>(flunder)->subscribe(path, p);
 }
-FLECS_EXPORT int flunder_subscribe_userp(
-    void* flunder, const char* path, flunder_subscribe_cbk_userp_t cbk, const void* userp)
+FLECS_EXPORT int
+flunder_subscribe_userp(void* flunder, const char* path, flunder_subscribe_cbk_userp_t cbk, const void* userp)
 {
     auto p = reinterpret_cast<void (*)(FLECS::flunder_client_t*, FLECS::flunder_data_t*, const void*)>(cbk);
     return static_cast<FLECS::flunder_client_t*>(flunder)->subscribe(path, p, userp);
