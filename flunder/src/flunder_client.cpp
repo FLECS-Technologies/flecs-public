@@ -183,6 +183,11 @@ FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* path)
     return static_cast<FLECS::flunder_client_t*>(flunder)->unsubscribe(path);
 }
 
+FLECS_EXPORT int flunder_publish_bool(void* flunder, const char* path, bool value)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(path, value);
+}
+
 FLECS_EXPORT int flunder_publish_int(void* flunder, const char* path, int value)
 {
     return static_cast<FLECS::flunder_client_t*>(flunder)->publish(path, value);
