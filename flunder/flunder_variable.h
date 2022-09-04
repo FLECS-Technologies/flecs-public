@@ -17,7 +17,7 @@
 
 #ifdef __cplusplus
 
-#include <string>
+#include <string_view>
 
 namespace FLECS {
 extern "C" {
@@ -27,7 +27,8 @@ struct flunder_variable_t
 {
 #ifdef __cplusplus
     flunder_variable_t();
-    flunder_variable_t(const char* key, const char* value, const char* encoding, const char* timestamp);
+    flunder_variable_t(
+        std::string_view key, std::string_view value, std::string_view encoding, std::string_view timestamp);
     flunder_variable_t(const flunder_variable_t& other);
     flunder_variable_t(flunder_variable_t&& other);
     flunder_variable_t operator=(flunder_variable_t other);
@@ -35,15 +36,15 @@ struct flunder_variable_t
 
     friend void swap(flunder_variable_t& lhs, flunder_variable_t& rhs);
 #endif //__cplusplus
-    const char* _key;
-    const char* _value;
-    const char* _encoding;
-    const char* _timestamp;
+    char* _key;
+    char* _value;
+    char* _encoding;
+    char* _timestamp;
 };
 
 struct flunder_variable_t* flunder_variable_new(
     const char* key, const char* value, const char* encoding, const char* timestamp);
-struct flunder_variable_t* flunder_variable_clone(struct flunder_variable_t* other);
+struct flunder_variable_t* flunder_variable_clone(const struct flunder_variable_t* other);
 struct flunder_variable_t* flunder_variable_move(struct flunder_variable_t* other);
 void flunder_variable_destroy(struct flunder_variable_t* var);
 
