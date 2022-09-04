@@ -26,22 +26,17 @@ flunder_variable_t::flunder_variable_t()
     , _timestamp{}
 {}
 
-flunder_variable_t::flunder_variable_t(const char* key, const char* value, const char* encoding, const char* timestamp)
+flunder_variable_t::flunder_variable_t(
+    std::string_view key, std::string_view value, std::string_view encoding, std::string_view timestamp)
+    : _key{new char[key.length() + 1]}
+    , _value{new char[value.length() + 1 + 1]}
+    , _encoding{new char[encoding.length() + 1]}
+    , _timestamp{new char[timestamp.length() + 1]}
 {
-    auto cp_key = new char[std::strlen(key) + 1]();
-    auto cp_value = new char[std::strlen(value) + 1]();
-    auto cp_encoding = new char[std::strlen(encoding) + 1]();
-    auto cp_timestamp = new char[std::strlen(timestamp) + 1]();
-
-    std::strcpy(cp_key, key);
-    std::strcpy(cp_value, value);
-    std::strcpy(cp_encoding, encoding);
-    std::strcpy(cp_timestamp, timestamp);
-
-    _key = cp_key;
-    _value = cp_value;
-    _encoding = cp_encoding;
-    _timestamp = cp_timestamp;
+    std::strcpy(_key, key.data());
+    std::strcpy(_value, value.data());
+    std::strcpy(_encoding, encoding.data());
+    std::strcpy(_timestamp, timestamp.data());
 }
 
 flunder_variable_t::flunder_variable_t(const flunder_variable_t& other)
@@ -49,15 +44,9 @@ flunder_variable_t::flunder_variable_t(const flunder_variable_t& other)
 {}
 
 flunder_variable_t::flunder_variable_t(flunder_variable_t&& other)
-    : _key{other._key}
-    , _value{other._value}
-    , _encoding{other._encoding}
-    , _timestamp{other._timestamp}
+    : flunder_variable_t{}
 {
-    other._key = nullptr;
-    other._value = nullptr;
-    other._encoding = nullptr;
-    other._timestamp = nullptr;
+    swap(*this, other);
 }
 
 flunder_variable_t flunder_variable_t::operator=(flunder_variable_t other)
@@ -74,22 +63,6 @@ flunder_variable_t::~flunder_variable_t()
     delete[] _timestamp;
 }
 
-flunder_variable_t* flunder_variable_new(
-    const char* key, const char* value, const char* encoding, const char* timestamp)
-{
-    return new flunder_variable_t{key, value, encoding, timestamp};
-}
-
-flunder_variable_t* flunder_variable_clone(flunder_variable_t* other)
-{
-    return new flunder_variable_t{*other};
-}
-
-flunder_variable_t* flunder_variable_move(flunder_variable_t* other)
-{
-    return new flunder_variable_t{std::move(*other)};
-}
-
 void swap(flunder_variable_t& lhs, flunder_variable_t& rhs)
 {
     using std::swap;
@@ -97,6 +70,22 @@ void swap(flunder_variable_t& lhs, flunder_variable_t& rhs)
     swap(lhs._value, rhs._value);
     swap(lhs._encoding, rhs._encoding);
     swap(lhs._timestamp, rhs._timestamp);
+}
+
+flunder_variable_t* flunder_variable_new(
+    const char* key, const char* value, const char* encoding, const char* timestamp)
+{
+    return new flunder_variable_t{key, value, encoding, timestamp};
+}
+
+flunder_variable_t* flunder_variable_clone(const flunder_variable_t* other)
+{
+    return new flunder_variable_t{*other};
+}
+
+flunder_variable_t* flunder_variable_move(flunder_variable_t* other)
+{
+    return new flunder_variable_t{std::move(*other)};
 }
 
 void flunder_variable_destroy(flunder_variable_t* var)
