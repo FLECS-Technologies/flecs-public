@@ -29,7 +29,7 @@ namespace FLECS {
 
 struct flunder_data_t
 {
-    const char* _path;
+    const char* _topic;
     const void* _data;
     uint64_t _len;
 };

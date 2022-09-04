@@ -35,14 +35,19 @@ overload(Ts...) -> overload<Ts...>;
 static auto lib_subscribe_callback(const zn_sample_t* sample, const void* arg) //
     -> void
 {
-    auto key = std::string{sample->key.val, sample->key.len};
-    auto var = flunder_data_t{key.c_str(), sample->value.val, sample->value.len};
     const auto* ctx = static_cast<const flunder_client_private_t::subscribe_ctx_t*>(arg);
+    if (!ctx->_once)
+    {
+        return;
+    }
+
+    auto topic = std::string{sample->key.val, sample->key.len};
+    auto data = flunder_data_t{topic.c_str(), sample->value.val, sample->value.len};
     std::visit(
         overload{// call callback without userdata
-                 [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx->_client, &var); },
+                 [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx->_client, &data); },
                  // call callback with userdata
-                 [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx->_client, &var, ctx->_userp); }},
+                 [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx->_client, &data, ctx->_userp); }},
         ctx->_cbk);
 }
 
@@ -110,33 +115,7 @@ auto flunder_client_private_t::subscribe(
     flunder_client_t::subscribe_cbk_t cbk) //
     -> int
 {
-    if (_subscriptions.count(topic.data()) > 0)
-    {
-        return -1;
-    }
-
-    auto ctx = subscribe_ctx_t{client, nullptr, cbk, nullptr};
-    auto res = _subscriptions.emplace(topic, ctx);
-    if (!res.second)
-    {
-        return -1;
-    }
-
-    auto sub = zn_declare_subscriber(
-        _zn_session,
-        zn_rname(topic.data()),
-        zn_subinfo_default(),
-        lib_subscribe_callback,
-        &res.first->second);
-    res.first->second._sub = sub;
-
-    if (!sub)
-    {
-        _subscriptions.erase(res.first);
-        return -1;
-    }
-
-    return 0;
+    return subscribe(client, topic, subscribe_cbk_t{cbk}, nullptr);
 }
 
 auto flunder_client_private_t::subscribe(
@@ -146,30 +125,45 @@ auto flunder_client_private_t::subscribe(
     const void* userp) //
     -> int
 {
+    return subscribe(client, topic, subscribe_cbk_t{cbk}, userp);
+}
+
+auto flunder_client_private_t::subscribe(
+    flunder_client_t* client, std::string_view topic, subscribe_cbk_t cbk, const void* userp) //
+    -> int
+{
     if (_subscriptions.count(topic.data()) > 0)
     {
         return -1;
     }
 
-    auto ctx = subscribe_ctx_t{client, nullptr, cbk, userp};
-    auto res = _subscriptions.emplace(topic, ctx);
+    auto res = _subscriptions.emplace(topic, subscribe_ctx_t{client, nullptr, cbk, userp, false});
     if (!res.second)
     {
         return -1;
     }
+    auto& ctx = res.first->second;
 
-    auto sub = zn_declare_subscriber(
-        _zn_session,
-        zn_rname(topic.data()),
-        zn_subinfo_default(),
-        lib_subscribe_callback,
-        &res.first->second);
-    res.first->second._sub = sub;
+    ctx._sub =
+        zn_declare_subscriber(_zn_session, zn_rname(topic.data()), zn_subinfo_default(), lib_subscribe_callback, &ctx);
 
-    if (!sub)
+    if (!ctx._sub)
     {
         _subscriptions.erase(res.first);
         return -1;
+    }
+
+    const auto [unused, vars] = get(topic);
+    for (const auto& var : vars)
+    {
+        auto data = flunder_data_t{._topic = var._key, ._data = var._value, ._len = std::strlen(var._value)};
+        std::visit(
+            overload{// call callback without userdata
+                     [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx._client, &data); },
+                     // call callback with userdata
+                     [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx._client, &data, ctx._userp); }},
+            ctx._cbk);
+        ctx._once = true;
     }
 
     return 0;
@@ -229,7 +223,8 @@ auto flunder_client_private_t::remove_mem_storage(std::string_view name) //
     return 0;
 }
 
-auto flunder_client_private_t::get(std::string_view topic) -> std::tuple<int, std::vector<flunder_variable_t>>
+auto flunder_client_private_t::get(std::string_view topic) //
+    -> std::tuple<int, std::vector<flunder_variable_t>>
 {
     auto vars = std::vector<flunder_variable_t>{};
 

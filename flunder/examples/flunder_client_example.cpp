@@ -39,12 +39,12 @@ void flunder_receive_callback(FLECS::flunder_client_t* client, FLECS::flunder_da
     std::fprintf(
         stdout,
         "Received flunder message for topic %s on client %p with length %" PRIu64 " @%" PRIi64 "\n",
-        msg->_path,
+        msg->_topic,
         client,
         msg->_len,
         now);
 
-    const auto path = std::string_view{msg->_path};
+    const auto path = std::string_view{msg->_topic};
     const auto data = std::string{(const char*)msg->_data, (std::size_t)msg->_len};
 
     if (path == "/flecs/flunder/cpp/int")
@@ -75,7 +75,7 @@ void flunder_receive_callback_userp(FLECS::flunder_client_t* client, FLECS::flun
     std::fprintf(
         stdout,
         "Received flunder message for topic %s on client %p with length %" PRIu64 " and userdata %s @%" PRIi64 "\n",
-        msg->_path,
+        msg->_topic,
         client,
         msg->_len,
         (const char*)userp,
@@ -99,13 +99,17 @@ int main()
     while (!g_stop)
     {
         const auto i = 1234;
-        const auto d = 3.14159;
-        const auto str = "Hello, world!";
-        const auto t = std::chrono::high_resolution_clock::now().time_since_epoch().count();
         flunder_client.publish("/flecs/flunder/cpp/int", i);
+
+        const auto d = 3.14159;
         flunder_client.publish("/flecs/flunder/cpp/double", d);
+
+        const auto str = "Hello, world!";
         flunder_client.publish("/flecs/flunder/cpp/string", str);
+
+        const auto t = std::chrono::high_resolution_clock::now().time_since_epoch().count();
         flunder_client.publish("/flecs/flunder/cpp/timestamp", t);
+
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 }

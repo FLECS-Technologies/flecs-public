@@ -82,9 +82,14 @@ public:
         zn_subscriber_t* _sub;
         subscribe_cbk_t _cbk;
         const void* _userp;
+        bool _once;
     };
 
 private:
+    FLECS_EXPORT auto subscribe(
+        flunder_client_t* client, std::string_view topic, subscribe_cbk_t cbk, const void* userp) //
+        -> int;
+
     std::vector<std::string> _mem_storages;
 
     zn_session_t* _zn_session;
