@@ -8,7 +8,7 @@
                 "${workspaceFolder}/external/cpr-1.9.2/out/amd64/include",
                 "${workspaceFolder}/external/crow-1.0+4/include",
                 "${workspaceFolder}/external/gtest-1.12.1/out/amd64/include",
-                "${workspaceFolder}/external/json-3.10.5/include",
+                "${workspaceFolder}/external/json-3.11.2/include",
                 "${workspaceFolder}/external/mosquitto-2.0.14/out/amd64/include",
                 "${workspaceFolder}/external/openssl-1.1.1q/out/amd64/include",
                 "${workspaceFolder}/external/sqlite-3.39.1",
