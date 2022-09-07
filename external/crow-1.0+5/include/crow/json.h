@@ -1800,7 +1800,7 @@ namespace crow
                                     case start:
                                         if (ch == '.')
                                         {
-                                            if (*(p + 1) == '0') p++;
+                                            if (p + 1 && *(p + 1) == '0') p++;
                                             f_state = decp;
                                         }
                                         p++;
