@@ -170,7 +170,6 @@ auto module_app_manager_private_t::do_init() //
     // "install" system apps on first start
     constexpr auto system_apps = std::array<const char*, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
     constexpr auto system_apps_desc = std::array<const char*, 2>{"FLECS MQTT Bridge", "FLECS Service Mesh"};
-    constexpr auto system_apps_versions = std::array<const char*, 2>{"1.0.0-porpoise", "1.0.0-porpoise"};
 
     for (size_t i = 0; i < system_apps.size(); ++i)
     {
@@ -183,7 +182,7 @@ auto module_app_manager_private_t::do_init() //
         for (const auto& instance_id : instance_ids)
         {
             const auto& instance = _deployment->instances().at(instance_id);
-            if (instance.version() != system_apps_versions[i])
+            if (instance.version() != FLECS_VERSION)
             {
                 std::fprintf(
                     stdout,
@@ -198,7 +197,7 @@ auto module_app_manager_private_t::do_init() //
 
     for (size_t i = 0; i < system_apps.size(); ++i)
     {
-        const auto instance_ids = _deployment->instance_ids(system_apps[i], system_apps_versions[i]);
+        const auto instance_ids = _deployment->instance_ids(system_apps[i], FLECS_VERSION);
         const auto instance_ready =
             instance_ids.empty()
                 ? false
@@ -207,9 +206,9 @@ auto module_app_manager_private_t::do_init() //
         if (!instance_ready)
         {
             std::fprintf(stdout, "Installing system app %s\n", system_apps[i]);
-            download_manifest(system_apps[i], system_apps_versions[i]);
+            download_manifest(system_apps[i], FLECS_VERSION);
             const auto app = app_t{
-                build_manifest_path(system_apps[i], system_apps_versions[i]),
+                build_manifest_path(system_apps[i], FLECS_VERSION),
                 app_status_e::INSTALLED,
                 app_status_e::INSTALLED};
             if (!app.app().empty())
@@ -217,10 +216,10 @@ auto module_app_manager_private_t::do_init() //
                 auto response = json_t{};
                 _installed_apps.emplace(
                     std::piecewise_construct,
-                    std::forward_as_tuple(system_apps[i], system_apps_versions[i]),
+                    std::forward_as_tuple(system_apps[i], FLECS_VERSION),
                     std::forward_as_tuple(app));
                 do_create_instance(app.app(), app.version(), system_apps_desc[i], response);
-                const auto instance_id = _deployment->instance_ids(system_apps[i], system_apps_versions[i]);
+                const auto instance_id = _deployment->instance_ids(system_apps[i], FLECS_VERSION);
                 if (!instance_id.empty())
                 {
                     auto& instance = _deployment->instances().at(instance_id[0]);
