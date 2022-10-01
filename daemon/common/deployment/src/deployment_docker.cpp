@@ -214,7 +214,8 @@ auto deployment_docker_t::create_container(const app_t& app, instance_t& instanc
             std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/scripts/"};
 
         auto ec = std::error_code{};
-        if (!fs::create_directories(entrypoint_path, ec))
+        fs::create_directories(entrypoint_path, ec);
+        if (ec)
         {
             return {-1, "Could not create entrypoint directory"};
         }
