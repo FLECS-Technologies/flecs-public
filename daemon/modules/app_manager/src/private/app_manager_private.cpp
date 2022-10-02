@@ -191,6 +191,7 @@ auto module_app_manager_private_t::do_init() //
                     instance.app().c_str());
                 auto response = json_t{};
                 do_uninstall(instance.app(), instance.version(), response, true);
+                do_delete_instance(instance_id, {}, {}, response);
             }
         }
     }
