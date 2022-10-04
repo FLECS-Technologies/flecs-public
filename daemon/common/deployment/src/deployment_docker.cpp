@@ -713,6 +713,23 @@ auto deployment_docker_t::do_copy_file_from_image(
     return {0, {}};
 }
 
+auto deployment_docker_t::do_copy_file_to_instance(
+    std::string_view instance_id,
+    fs::path file,
+    fs::path dest) //
+    -> result_t
+{
+    auto docker_process = process_t{};
+    docker_process.spawnp("docker", "cp", file.string(), dest.string());
+    docker_process.wait(false, true);
+    if (docker_process.exit_code() != 0)
+    {
+        using std::operator""s;
+        return {-1, "Could not copy "s.append(file).append(" to ").append(instance_id).append(":").append(dest)};
+    }
+    return {0, {}};
+}
+
 auto deployment_docker_t::do_default_network_name() const //
     -> std::string_view
 {

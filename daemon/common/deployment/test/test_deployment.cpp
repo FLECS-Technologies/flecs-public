@@ -69,6 +69,11 @@ public:
         do_copy_file_from_image,
         ((std::string_view image), (fs::path file), (fs::path dest)),
         (override));
+    MOCK_METHOD(
+        result_t,
+        do_copy_file_to_instance,
+        ((std::string_view instance_id), (fs::path file), (fs::path dest)),
+        (override));
     MOCK_METHOD(std::string_view, do_default_network_name, (), (const, override));
     MOCK_METHOD(network_type_t, do_default_network_type, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_cidr_subnet, (), (const, override));

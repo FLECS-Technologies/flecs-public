@@ -70,6 +70,8 @@ private:
         -> result_t override;
     auto do_copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
         -> result_t override;
+    auto do_copy_file_to_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+        -> result_t override;
     auto do_default_network_name() const //
         -> std::string_view override;
     auto do_default_network_type() const //
