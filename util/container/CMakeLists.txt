@@ -12,14 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(container)
-add_subdirectory(cxx20)
-add_subdirectory(datetime)
-add_subdirectory(network)
-add_subdirectory(process)
-add_subdirectory(signal_handler)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
-add_subdirectory(sysfs)
-add_subdirectory(udev)
-add_subdirectory(usb)
+add_subdirectory(test)
