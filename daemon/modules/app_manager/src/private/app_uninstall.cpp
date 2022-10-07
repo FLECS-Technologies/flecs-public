@@ -42,7 +42,7 @@ auto module_app_manager_private_t::do_uninstall(
     }
 
     // Step 2: Load app manifest
-    auto& app = _installed_apps.at(std::forward_as_tuple(app_name, version));
+    auto& app = _installed_apps.find(app_key_t{app_name, version})->second;
     app.desired(app_status_e::NOT_INSTALLED);
 
     // Step 2a: Prevent removal of system apps
@@ -75,7 +75,7 @@ auto module_app_manager_private_t::do_uninstall(
     }
 
     // Step 5: Persist removal of app into db
-    _installed_apps.erase(std::forward_as_tuple(app.app(), app.version()));
+    _installed_apps.erase(app_key_t{app_name, version});
     persist_apps();
 
     // Step 6: Remove app manifest

@@ -38,7 +38,7 @@ private:
         -> result_t override;
     auto do_delete_instance(std::string_view instance_id) //
         -> result_t override;
-    auto do_start_instance(const app_t& app, instance_t& instance) //
+    auto do_start_instance(instance_t& instance) //
         -> result_t override;
     auto do_ready_instance(const instance_t& instance) //
         -> result_t override;
@@ -81,7 +81,7 @@ private:
     auto do_default_network_gateway() const //
         -> std::string_view override;
 
-    auto create_container(const app_t& app, instance_t& instance) //
+    auto create_container(instance_t& instance) //
         -> result_t;
     auto delete_container(const instance_t& instance) //
         -> result_t;

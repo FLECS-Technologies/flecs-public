@@ -20,35 +20,9 @@
 #include <regex>
 #include <set>
 
-#include "app/app.h"
 #include "util/network/network.h"
 
 namespace FLECS {
-
-auto to_string(const network_type_t& network_type) //
-    -> std::string
-{
-    const auto strings = std::map<network_type_t, std::string>{
-        {network_type_t::BRIDGE, "bridge"},
-        {network_type_t::MACVLAN, "macvlan"},
-        {network_type_t::IPVLAN, "ipvlan"},
-    };
-
-    return strings.at(network_type);
-}
-
-auto network_type_from_string(std::string_view str) //
-    -> network_type_t
-{
-    const auto types = std::map<std::string_view, network_type_t>{
-        {"default", network_type_t::BRIDGE},
-        {"bridge", network_type_t::BRIDGE},
-        {"ipvlan", network_type_t::IPVLAN},
-        {"macvlan", network_type_t::MACVLAN},
-    };
-
-    return types.at(str);
-}
 
 auto deployment_t::deployment_id() const noexcept //
     -> std::string_view
@@ -56,52 +30,98 @@ auto deployment_t::deployment_id() const noexcept //
     return do_deployment_id();
 }
 
+#ifdef FLECS_UNIT_TEST
+auto deployment_t::load(fs::path base_path) //
+    -> result_t
+{
+    return do_load(base_path);
+}
+
+auto deployment_t::save(fs::path base_path) //
+    -> result_t
+{
+    return do_save(base_path);
+}
+#endif // FLECS_UNIT_TEST
+
 auto deployment_t::load() //
     -> result_t
 {
-    using std::operator""s;
-
-    auto json_file = std::ifstream{"/var/lib/flecs/deployment/"s + deployment_id().data() + ".json"};
-    if (!json_file.good())
-    {
-        return {-1, "Could not open json"};
-    }
-
-    auto instances_json = parse_json(json_file);
-    instances_json.get_to(_instances);
-
-    return {0, {}};
+    const auto base_path = "/var/lib/flecs/deployment/";
+    return do_load(base_path);
 }
 
 auto deployment_t::save() //
     -> result_t
 {
-    using std::operator""s;
+    const auto base_path = "/var/lib/flecs/deployment/";
+    return do_save(base_path);
+}
 
-    auto path = "/var/lib/flecs/deployment/"s;
+auto deployment_t::instances() const noexcept //
+    -> const std::map<std::string, instance_t>&
+{
+    return _instances;
+}
 
-    auto ec = std::error_code{};
-    fs::create_directories(path, ec);
-    if (ec)
+auto deployment_t::instances() noexcept //
+    -> std::map<std::string, instance_t>&
+{
+    return _instances;
+}
+
+auto deployment_t::instance_ids(std::string_view app) const //
+    -> std::vector<std::string>
+{
+    return instance_ids(app_key_t{app, ""}, AllVersions);
+}
+
+auto deployment_t::instance_ids(std::string_view app, std::string_view version) const //
+    -> std::vector<std::string>
+{
+    return instance_ids(app_key_t{app, version}, MatchVersion);
+}
+
+auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e version_filter) const //
+    -> std::vector<std::string>
+{
+    auto ids = std::vector<std::string>{};
+    for (const auto& instance : instances())
     {
-        return {-1, "Could not create directory"};
+        if ((instance.second.app_name() == std::get<0>(app_key)) &&
+            ((version_filter == AllVersions) || (instance.second.app_version() == std::get<1>(app_key))))
+        {
+            ids.emplace_back(instance.first);
+        }
     }
 
-    path += deployment_id().data();
-    path += ".json";
+    return ids;
+}
 
-    auto instances_json = std::ofstream{path, std::ios_base::out | std::ios_base::trunc};
-    instances_json << json_t(instances());
+auto deployment_t::instance_ids(const app_t& app, version_filter_e version_filter) const //
+    -> std::vector<std::string>
+{
+    return instance_ids(app_key_t{app.app(), app.version()}, version_filter);
+}
 
-    return {0, {}};
+auto deployment_t::has_instance(std::string_view instance_id) const noexcept //
+    -> bool
+{
+    return _instances.count(instance_id.data());
+}
+
+auto deployment_t::insert_instance(instance_t instance) //
+    -> result_t
+{
+    _instances.emplace(instance.id(), instance);
+    return do_insert_instance(std::move(instance));
 }
 
 auto deployment_t::create_instance(const app_t& app, std::string instance_name) //
     -> result_t
 {
     // Step 1: Create unique id and insert instance
-    auto tmp =
-        instance_t{app.app(), app.version(), instance_name, instance_status_e::REQUESTED, instance_status_e::CREATED};
+    auto tmp = instance_t{&app, instance_name, instance_status_e::REQUESTED, instance_status_e::CREATED};
     while (_instances.count(tmp.id()))
     {
         tmp.regenerate_id();
@@ -204,7 +224,15 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     return do_create_instance(app, instance);
 }
 
-auto deployment_t::start_instance(const app_t& app, std::string_view instance_id) //
+auto deployment_t::delete_instance(std::string_view instance_id) //
+    -> result_t
+{
+    const auto [res, additional_info] = do_delete_instance(std::move(instance_id));
+    _instances.erase(instance_id.data());
+    return {res, additional_info};
+}
+
+auto deployment_t::start_instance(std::string_view instance_id) //
     -> result_t
 {
     auto& instance = _instances.at(instance_id.data());
@@ -221,7 +249,7 @@ auto deployment_t::start_instance(const app_t& app, std::string_view instance_id
         }
     }
 
-    const auto [res, additional_info] = do_start_instance(app, instance);
+    const auto [res, additional_info] = do_start_instance(instance);
 
     if (res != 0)
     {
@@ -280,6 +308,107 @@ auto deployment_t::is_instance_runnable(std::string_view instance_id) const //
     -> bool
 {
     return has_instance(instance_id) && (instances().at(instance_id.data()).status() == instance_status_e::CREATED);
+}
+
+auto deployment_t::is_instance_running(std::string_view instance_id) const //
+    -> bool
+{
+    if (!has_instance(instance_id))
+    {
+        return false;
+    }
+    return do_is_instance_running(instances().at(instance_id.data()));
+}
+
+auto deployment_t::create_network(
+    network_type_t network_type,
+    std::string_view network,
+    std::string_view cidr_subnet,
+    std::string_view gateway,
+    std::string_view parent_adapter) //
+    -> result_t
+{
+    return do_create_network(
+        std::move(network_type),
+        std::move(network),
+        std::move(cidr_subnet),
+        std::move(gateway),
+        std::move(parent_adapter));
+}
+
+auto deployment_t::query_network(std::string_view network) //
+    -> std::optional<network_t>
+{
+    return do_query_network(std::move(network));
+}
+
+auto deployment_t::delete_network(std::string_view network) //
+    -> result_t
+{
+    return do_delete_network(std::move(network));
+}
+
+auto deployment_t::connect_network(
+    std::string_view instance_id,
+    std::string_view network,
+    std::string_view ip) //
+    -> result_t
+{
+    return do_connect_network(std::move(instance_id), std::move(network), std::move(ip));
+}
+
+auto deployment_t::disconnect_network(std::string_view instance_id, std::string_view network) //
+    -> result_t
+{
+    return do_disconnect_network(std::move(instance_id), std::move(network));
+}
+
+auto deployment_t::create_volume(std::string_view instance_id, std::string_view volume_name) //
+    -> result_t
+{
+    return do_create_volume(std::move(instance_id), std::move(volume_name));
+}
+
+auto deployment_t::delete_volume(std::string_view instance_id, std::string_view volume_name) //
+    -> result_t
+{
+    return do_delete_volume(std::move(instance_id), std::move(volume_name));
+}
+
+auto deployment_t::copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
+    -> result_t
+{
+    return do_copy_file_from_image(image, file, dest);
+}
+
+auto deployment_t::copy_file_to_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+    -> result_t
+{
+    return do_copy_file_to_instance(instance_id, file, dest);
+}
+
+auto deployment_t::default_network_name() const //
+    -> std::string_view
+{
+    return do_default_network_name();
+}
+
+auto deployment_t::default_network_type() const //
+    -> network_type_t
+{
+    return do_default_network_type();
+}
+
+auto deployment_t::default_network_cidr_subnet() const //
+    -> std::string_view
+{
+    return do_default_network_cidr_subnet();
+}
+
+auto deployment_t::default_network_gateway() const //
+    -> std::string_view
+{
+    return do_default_network_gateway();
 }
 
 auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::string_view gateway) const //
@@ -346,6 +475,54 @@ auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::strin
     }
 
     return ipv4_to_string(in_addr{.s_addr = htonl(instance_ip)});
+}
+
+auto deployment_t::do_load(fs::path base_path) //
+    -> result_t
+{
+    using std::operator""sv;
+
+    auto json_file = std::ifstream{base_path / deployment_id().data() += ".json"sv};
+    if (!json_file.good())
+    {
+        return {-1, "Could not open json"};
+    }
+
+    auto instances_json = parse_json(json_file);
+    instances_json.get_to(_instances);
+
+    return {0, {}};
+}
+
+auto deployment_t::do_save(fs::path base_path) //
+    -> result_t
+{
+    auto ec = std::error_code{};
+    fs::create_directories(base_path, ec);
+    if (ec)
+    {
+        return {-1, "Could not create directory"};
+    }
+
+    base_path /= deployment_id().data();
+    base_path += ".json.new";
+
+    auto instances_json = std::ofstream{base_path, std::ios_base::out | std::ios_base::trunc};
+    try
+    {
+        instances_json << json_t(instances());
+        instances_json.flush();
+
+        const auto from = base_path;
+        const auto to = base_path.replace_extension();
+        fs::rename(from, to);
+    }
+    catch (const std::exception& ex)
+    {
+        return {-1, ex.what()};
+    }
+
+    return {0, {}};
 }
 
 } // namespace FLECS

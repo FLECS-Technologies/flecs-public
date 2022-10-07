@@ -14,6 +14,8 @@
 
 #include "instance.h"
 
+#include <app/app.h>
+
 #include <cstdio>
 #include <random>
 
@@ -36,28 +38,19 @@ std::string generate_instance_id()
 }
 
 instance_t::instance_t()
-    : instance_t{generate_instance_id(), {}, {}, {}, {}, {}}
+    : instance_t{generate_instance_id(), nullptr, "", instance_status_e::UNKNOWN, instance_status_e::UNKNOWN}
+{}
+
+instance_t::instance_t(const app_t* app, std::string instance_name, instance_status_e status, instance_status_e desired)
+    : instance_t{generate_instance_id(), app, instance_name, status, desired}
 {}
 
 instance_t::instance_t(
-    std::string app,
-    std::string version,
-    std::string instance_name,
-    instance_status_e status,
-    instance_status_e desired)
-    : instance_t{generate_instance_id(), app, version, instance_name, status, desired}
-{}
-
-instance_t::instance_t(
-    std::string id,
-    std::string app,
-    std::string version,
-    std::string instance_name,
-    instance_status_e status,
-    instance_status_e desired)
+    std::string id, const app_t* app, std::string instance_name, instance_status_e status, instance_status_e desired)
     : _id{id}
     , _app{app}
-    , _version{version}
+    , _app_name{app ? app->app() : ""}
+    , _app_version{app ? app->version() : ""}
     , _instance_name{instance_name}
     , _status{status}
     , _desired{desired}
@@ -65,10 +58,112 @@ instance_t::instance_t(
     , _startup_options{}
 {}
 
+auto instance_t::id() const noexcept //
+    -> const std::string&
+{
+    return _id;
+}
+
+auto instance_t::app() const noexcept //
+    -> const app_t&
+{
+    return *_app;
+}
+
+auto instance_t::app_name() const noexcept //
+    -> const std::string&
+{
+    return _app ? _app->app() : _app_name;
+}
+
+auto instance_t::app_version() const noexcept //
+    -> const std::string&
+{
+    return _app ? _app->version() : _app_version;
+}
+
+auto instance_t::instance_name() const noexcept //
+    -> const std::string&
+{
+    return _instance_name;
+}
+
+auto instance_t::status() const noexcept //
+    -> instance_status_e
+{
+    return _status;
+}
+
+auto instance_t::desired() const noexcept //
+    -> instance_status_e
+{
+    return _desired;
+}
+
+auto instance_t::networks() const noexcept //
+    -> const std::vector<instance_t::network_t>&
+{
+    return _networks;
+}
+
+auto instance_t::networks() noexcept //
+    -> std::vector<instance_t::network_t>&
+{
+    return _networks;
+}
+
+auto instance_t::startup_options() const noexcept //
+    -> const std::vector<unsigned>&
+{
+    return _startup_options;
+}
+
+auto instance_t::startup_options() noexcept //
+    -> std::vector<unsigned>&
+{
+    return _startup_options;
+}
+
+auto instance_t::usb_devices() const noexcept //
+    -> const std::set<usb::device_t>&
+{
+    return _usb_devices;
+}
+
+auto instance_t::usb_devices() noexcept //
+    -> std::set<usb::device_t>&
+{
+    return _usb_devices;
+}
+
 auto instance_t::regenerate_id() //
     -> void
 {
     _id = generate_instance_id();
+}
+
+auto instance_t::app(const app_t* app) //
+    -> void
+{
+    _app = app;
+}
+
+auto instance_t::instance_name(std::string instance_name) //
+    -> void
+{
+    _instance_name = instance_name;
+}
+
+auto instance_t::status(instance_status_e status) //
+    -> void
+{
+    _status = status;
+}
+
+auto instance_t::desired(instance_status_e desired) //
+    -> void
+{
+    _desired = desired;
 }
 
 auto to_json(json_t& json, const instance_t::network_t& network) //
@@ -93,7 +188,7 @@ auto to_json(json_t& json, const instance_t& instance) //
     -> void
 {
     json = json_t(
-        {{"app", instance._app},
+        {{"app", instance._app_name},
          {"desired", to_string(instance._desired)},
          {"id", instance._id},
          {"instanceName", instance._instance_name},
@@ -101,13 +196,13 @@ auto to_json(json_t& json, const instance_t& instance) //
          {"startupOptions", instance._startup_options},
          {"status", to_string(instance._status)},
          {"usbDevices", instance._usb_devices},
-         {"version", instance._version}});
+         {"version", instance._app_version}});
 }
 
 auto from_json(const json_t& json, instance_t& instance) //
     -> void
 {
-    json.at("app").get_to(instance._app);
+    json.at("app").get_to(instance._app_name);
     auto desired = std::string{};
     json.at("desired").get_to(desired);
     instance._desired = instance_status_from_string(desired);
@@ -119,7 +214,13 @@ auto from_json(const json_t& json, instance_t& instance) //
     json.at("status").get_to(status);
     instance._status = instance_status_from_string(status);
     json.at("usbDevices").get_to(instance._usb_devices);
-    json.at("version").get_to(instance._version);
+    json.at("version").get_to(instance._app_version);
+}
+
+auto operator==(const instance_t& lhs, const instance_t& rhs) //
+    -> bool
+{
+    return (lhs.id() == rhs.id());
 }
 
 } // namespace FLECS

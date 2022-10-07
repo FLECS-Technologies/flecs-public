@@ -25,7 +25,7 @@
 
 namespace FLECS {
 
-auto deployment_docker_t::create_container(const app_t& app, instance_t& instance) //
+auto deployment_docker_t::create_container(instance_t& instance) //
     -> result_t
 {
     const auto container_name = std::string{"flecs-"} + instance.id();
@@ -58,6 +58,7 @@ auto deployment_docker_t::create_container(const app_t& app, instance_t& instanc
     auto docker_process = process_t{};
     docker_process.arg("create");
 
+    const auto& app = instance.app();
     for (const auto& env : app.env())
     {
         docker_process.arg("--env");
@@ -355,10 +356,10 @@ auto deployment_docker_t::do_delete_instance(std::string_view /*instance_id*/) /
     return {0, ""};
 }
 
-auto deployment_docker_t::do_start_instance(const app_t& app, instance_t& instance) //
+auto deployment_docker_t::do_start_instance(instance_t& instance) //
     -> result_t
 {
-    const auto [res, additional_info] = create_container(app, instance);
+    const auto [res, additional_info] = create_container(instance);
     if (res != 0)
     {
         return {res, additional_info};

@@ -30,7 +30,7 @@ auto module_app_manager_private_t::do_list_apps(json_t& response) //
         auto j = json_t{};
         to_json(j, app.second);
         j["instances"] = json_t::array();
-        const auto instance_ids = _deployment->instance_ids(app.second.app(), app.second.version());
+        const auto instance_ids = _deployment->instance_ids(app.first, deployment_t::MatchVersion);
         for (const auto& instance_id : instance_ids)
         {
             const auto& instance = _deployment->instances().at(instance_id);
@@ -48,7 +48,7 @@ auto module_app_manager_private_t::do_list_apps(json_t& response) //
                 json_instance["status"] = to_string(instance.status());
             }
             json_instance["desired"] = to_string(instance.desired());
-            json_instance["version"] = instance.version();
+            json_instance["version"] = instance.app_version();
             j["instances"].push_back(json_instance);
         }
         response["appList"].push_back(j);

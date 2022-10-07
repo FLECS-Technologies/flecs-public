@@ -37,12 +37,12 @@ auto module_app_manager_private_t::do_instance_details(const std::string& instan
 
     // Step 2: Obtain instance and corresponsing app
     const auto& instance = _deployment->instances().at(instance_id);
-    const auto manifest_path = build_manifest_path(instance.app(), instance.version());
+    const auto manifest_path = build_manifest_path(instance.app().app(), instance.app().version());
     const auto app = app_manifest_t::from_yaml_file(manifest_path);
 
     // Build response
-    response["app"] = instance.app();
-    response["version"] = instance.version();
+    response["app"] = instance.app_name();
+    response["version"] = instance.app_version();
     response["IPAddress"] = instance.networks().empty() ? "" : instance.networks()[0].ip_address;
     response["conffiles"] = json_t::array();
     response["hostname"] = app.hostname().empty() ? (std::string{"flecs-"}.append(instance.id())) : app.hostname();

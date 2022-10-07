@@ -51,8 +51,8 @@ auto module_app_manager_private_t::do_start_instance(
     // get instance details from deployment
     auto& instance = _deployment->instances().at(instance_id);
     // correct response based on actual instance
-    response["app"] = instance.app();
-    response["version"] = instance.version();
+    response["app"] = instance.app_name();
+    response["version"] = instance.app_version();
 
     // Step 2: Do some cross-checks if app_name and version are provided
     auto xcheck = xcheck_app_instance(instance, app_name, version);
@@ -76,8 +76,7 @@ auto module_app_manager_private_t::do_start_instance(
     }
 
     // Step 4: Forward to deployment
-    const auto& app = _installed_apps.at(std::forward_as_tuple(instance.app(), instance.version()));
-    const auto [res, additional_info] = _deployment->start_instance(app, instance_id);
+    const auto [res, additional_info] = _deployment->start_instance(instance_id);
 
     response["additionalInfo"] = additional_info;
 

@@ -44,8 +44,8 @@ auto module_app_manager_private_t::do_stop_instance(
     // get instance details from database
     auto& instance = _deployment->instances().at(instance_id);
     // correct response based on actual instance
-    response["app"] = instance.app();
-    response["version"] = instance.version();
+    response["app"] = instance.app_name();
+    response["version"] = instance.app_version();
 
     // Step 2: Do some cross-checks if app_name and version are provided
     auto xcheck = xcheck_app_instance(instance, app_name, version);
