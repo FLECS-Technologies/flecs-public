@@ -26,6 +26,8 @@
 
 namespace FLECS {
 
+class app_t;
+
 class instance_t
 {
 public:
@@ -38,17 +40,11 @@ public:
 
     instance_t();
 
-    instance_t(
-        std::string app,
-        std::string version,
-        std::string instance_name,
-        instance_status_e status,
-        instance_status_e desired);
+    instance_t(const app_t* app, std::string instance_name, instance_status_e status, instance_status_e desired);
 
     instance_t(
         std::string id,
-        std::string app,
-        std::string version,
+        const app_t* app,
         std::string instance_name,
         instance_status_e status,
         instance_status_e desired);
@@ -56,8 +52,10 @@ public:
     auto id() const noexcept //
         -> const std::string&;
     auto app() const noexcept //
+        -> const app_t&;
+    auto app_name() const noexcept //
         -> const std::string&;
-    auto version() const noexcept //
+    auto app_version() const noexcept //
         -> const std::string&;
     auto instance_name() const noexcept //
         -> const std::string&;
@@ -80,6 +78,8 @@ public:
 
     auto regenerate_id() //
         -> void;
+    auto app(const app_t* app) //
+        -> void;
     auto instance_name(std::string instance_name) //
         -> void;
     auto status(instance_status_e instance_status) //
@@ -99,8 +99,9 @@ private:
         -> void;
 
     std::string _id;
-    std::string _app;
-    std::string _version;
+    const app_t* _app;
+    std::string _app_name;
+    std::string _app_version;
     std::string _instance_name;
     instance_status_e _status;
     instance_status_e _desired;
@@ -109,99 +110,8 @@ private:
     std::set<usb::device_t> _usb_devices;
 };
 
-inline auto operator==(const instance_t& lhs, const instance_t& rhs) //
-    -> bool
-{
-    return (lhs.id() == rhs.id());
-}
-
-inline auto instance_t::id() const noexcept //
-    -> const std::string&
-{
-    return _id;
-}
-
-inline auto instance_t::app() const noexcept //
-    -> const std::string&
-{
-    return _app;
-}
-inline auto instance_t::version() const noexcept //
-    -> const std::string&
-{
-    return _version;
-}
-
-inline auto instance_t::instance_name() const noexcept //
-    -> const std::string&
-{
-    return _instance_name;
-}
-
-inline auto instance_t::status() const noexcept //
-    -> instance_status_e
-{
-    return _status;
-}
-
-inline auto instance_t::desired() const noexcept //
-    -> instance_status_e
-{
-    return _desired;
-}
-
-inline auto instance_t::networks() const noexcept //
-    -> const std::vector<instance_t::network_t>&
-{
-    return _networks;
-}
-
-inline auto instance_t::networks() noexcept //
-    -> std::vector<instance_t::network_t>&
-{
-    return _networks;
-}
-
-inline auto instance_t::startup_options() const noexcept //
-    -> const std::vector<unsigned>&
-{
-    return _startup_options;
-}
-
-inline auto instance_t::startup_options() noexcept //
-    -> std::vector<unsigned>&
-{
-    return _startup_options;
-}
-
-inline auto instance_t::usb_devices() const noexcept //
-    -> const std::set<usb::device_t>&
-{
-    return _usb_devices;
-}
-
-inline auto instance_t::usb_devices() noexcept //
-    -> std::set<usb::device_t>&
-{
-    return _usb_devices;
-}
-
-inline auto instance_t::instance_name(std::string instance_name) //
-    -> void
-{
-    _instance_name = instance_name;
-}
-inline auto instance_t::status(instance_status_e status) //
-    -> void
-{
-    _status = status;
-}
-
-inline auto instance_t::desired(instance_status_e desired) //
-    -> void
-{
-    _desired = desired;
-}
+auto operator==(const instance_t& lhs, const instance_t& rhs) //
+    -> bool;
 
 } // namespace FLECS
 

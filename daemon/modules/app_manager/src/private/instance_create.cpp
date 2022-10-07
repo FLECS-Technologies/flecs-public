@@ -46,12 +46,12 @@ auto module_app_manager_private_t::do_create_instance(
     }
 
     // Step 2: Load app manifest
-    const auto& app = _installed_apps.at(std::forward_as_tuple(app_name, version));
+    const auto& app = _installed_apps.find(app_key_t{app_name, version})->second;
 
     // Step 3: Ensure there is only one instance of single-instance apps
     if (!app.multi_instance())
     {
-        const auto instance_ids = _deployment->instance_ids(app.app(), app.version());
+        const auto instance_ids = _deployment->instance_ids(app, deployment_t::MatchVersion);
         if (!instance_ids.empty())
         {
             response["instanceId"] = instance_ids[0];

@@ -148,7 +148,7 @@ auto module_app_manager_private_t::do_install(
     response["version"] = tmp.version();
 
     // Step 2: Determine current app status to decide where to continue
-    auto it = _installed_apps.find(std::forward_as_tuple(tmp.app(), tmp.version()));
+    auto it = _installed_apps.find(app_key_t{tmp.app(), tmp.version()});
     if (it == _installed_apps.end())
     {
         it = _installed_apps

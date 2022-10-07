@@ -45,8 +45,8 @@ auto module_app_manager_private_t::do_delete_instance(
     auto& instance = _deployment->instances().at(instance_id);
 
     // correct response based on actual instance
-    response["app"] = instance.app();
-    response["version"] = instance.version();
+    response["app"] = instance.app_name();
+    response["version"] = instance.app_version();
 
     auto xcheck = xcheck_app_instance(instance, app_name, version);
     if (xcheck < 0)
@@ -87,7 +87,7 @@ auto module_app_manager_private_t::do_delete_instance(
     // Step 6: Remove volumes of instance, if manifest loaded successfully
     else
     {
-        const auto& app = _installed_apps.at(std::forward_as_tuple(app_name, version));
+        const auto& app = _installed_apps.find(app_key_t{app_name, version})->second;
         for (const auto& volume : app.volumes())
         {
             if (volume.type() != volume_t::VOLUME)

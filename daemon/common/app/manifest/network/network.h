@@ -17,7 +17,7 @@
 
 #include <string_view>
 
-#include "deployment/deployment.h"
+#include "types/network_type.h"
 #include "util/json/json.h"
 
 namespace FLECS {

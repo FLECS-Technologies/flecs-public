@@ -16,8 +16,8 @@
 #define A26C3D22_DE7E_4EF2_BA44_CB50A45E8C9B
 
 #include <memory>
+#include <set>
 #include <string>
-#include <vector>
 
 #include "app/app.h"
 #include "db/app_db.h"
@@ -260,6 +260,9 @@ private:
     auto is_app_installed(const std::string& app_name, const std::string& version) //
         -> bool;
 
+    auto app_versions(std::string_view app_name) const //
+        -> std::vector<std::string>;
+
     /*! @brief Helper function to perform some cross-checks between an instance and a given app_name and version. For
      * some functions, app_name and versions are optional, but if provided these checks will be performed. Used
      * especially for actions triggered through the WebApp to ensure user actions are consistently packed into requests.
@@ -281,7 +284,7 @@ private:
     auto load_apps() //
         -> void;
 
-    using installed_apps_t = std::map<std::tuple<std::string, std::string>, app_t>;
+    using installed_apps_t = std::map<app_key_t, app_t, std::less<>>;
 
     installed_apps_t _installed_apps;
     std::unique_ptr<deployment_t> _deployment;
