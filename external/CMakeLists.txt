@@ -47,6 +47,15 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
 
+# libmosquitto
+add_custom_target(
+    FLECS.external.mosquitto.build
+    WORKING_DIRECTORY ${MOSQUITTO_DIR}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DDOCUMENTATION=NO -DWITH_STATIC_LIBRARIES=YES -DWITH_PIC=YES -DWITH_APPS=NO -DWITH_BROKER=NO -DWITH_CLIENTS=NO -DWITH_PLUGINS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
+)
+
 # libsodium
 add_custom_target(
     FLECS.external.libsodium.build
@@ -56,26 +65,17 @@ add_custom_target(
     COMMAND ${CMAKE_MAKE_PROGRAM} clean
 )
 
-# mosquitto
-add_custom_target(
-    FLECS.external.mosquitto.build
-    WORKING_DIRECTORY ${MOSQUITTO_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DDOCUMENTATION=NO -DWITH_STATIC_LIBRARIES=YES -DWITH_PIC=YES -DWITH_APPS=NO -DWITH_BROKER=NO -DWITH_CLIENTS=NO -DWITH_PLUGINS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${ARCH}
-    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
-    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
-)
-
 # OpenSSL
 add_custom_target(
     FLECS.external.openssl.build
     WORKING_DIRECTORY ${OPENSSL_DIR}
     COMMAND flecs-configure/Configure.${ARCH}.sh ${OPENSSL_DIR} --cross-compile-prefix=${MACHINE}- --prefix=${OPENSSL_DIR}/out/${ARCH} no-shared
-	COMMAND make all
-	COMMAND make install_sw
-	COMMAND make clean
+    COMMAND make all
+    COMMAND make install_sw
+    COMMAND make clean
 )
 
-# SQLite3
+# sqlite3
 add_custom_target(
     FLECS.external.sqlite3.build
     WORKING_DIRECTORY ${SQLITE3_DIR}
@@ -141,18 +141,13 @@ add_library(FLECS.external.gtest STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.gtest PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgtest.a)
 set_property(TARGET FLECS.external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
 
-# json
+# nlohmann/json
 add_library(FLECS.external.json INTERFACE)
 target_include_directories(FLECS.external.json INTERFACE
     ${JSON_DIR}/include
 )
 
-# libsodium
-add_library(FLECS.external.libsodium STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.libsodium PROPERTY IMPORTED_LOCATION ${LIBSODIUM_DIR}/out/${ARCH}/lib/libsodium.a)
-set_property(TARGET FLECS.external.libsodium PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LIBSODIUM_DIR}/out/${ARCH}/include)
-
-# mosquitto
+# libmosquitto
 add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.mosquitto PROPERTY IMPORTED_LOCATION ${MOSQUITTO_DIR}/out/${ARCH}/lib/libmosquitto_static.a)
 set_property(TARGET FLECS.external.mosquitto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${MOSQUITTO_DIR}/include)
@@ -160,6 +155,11 @@ target_link_libraries(FLECS.external.mosquitto INTERFACE
     FLECS.external.ssl
     FLECS.external.crypto
 )
+
+# libsodium
+add_library(FLECS.external.libsodium STATIC IMPORTED GLOBAL)
+set_property(TARGET FLECS.external.libsodium PROPERTY IMPORTED_LOCATION ${LIBSODIUM_DIR}/out/${ARCH}/lib/libsodium.a)
+set_property(TARGET FLECS.external.libsodium PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LIBSODIUM_DIR}/out/${ARCH}/include)
 
 # OpenSSL
 add_library(FLECS.external.crypto STATIC IMPORTED GLOBAL)
@@ -176,7 +176,7 @@ target_include_directories(FLECS.external.pybind11 INTERFACE
     ${PYBIND11_DIR}/include
 )
 
-# SQLite3
+# sqlite3
 add_library(FLECS.external.sqlite3 STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.sqlite3 PROPERTY IMPORTED_LOCATION ${SQLITE3_DIR}/out/${ARCH}/lib/libsqlite3.a)
 set_property(TARGET FLECS.external.sqlite3 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${SQLITE3_DIR})
@@ -186,7 +186,7 @@ add_library(FLECS.external.yaml-cpp STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.yaml-cpp PROPERTY IMPORTED_LOCATION ${YAMLCPP_DIR}/out/${ARCH}/lib/libyaml-cpp.a)
 set_property(TARGET FLECS.external.yaml-cpp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${YAMLCPP_DIR}/include)
 
-# Zenoh-C
+# zenoh-c
 add_library(FLECS.external.zenoh-c SHARED IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_LOCATION ${ZENOH_C_DIR}/out/${ARCH}/lib/libzenohc.so)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_NO_SONAME TRUE)
