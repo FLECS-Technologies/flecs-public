@@ -18,8 +18,6 @@
 
 #include <thread>
 
-#include "util/http/status_codes.h"
-
 namespace FLECS {
 namespace Private {
 
@@ -231,7 +229,7 @@ auto flunder_client_private_t::get(std::string_view topic) //
     const auto url = std::string{"http://flecs-flunder:8000"}.append(topic);
     const auto res = cpr::Get(cpr::Url{url});
 
-    if (res.status_code != static_cast<long>(http_status_e::Ok))
+    if (res.status_code != static_cast<long>(cpr::status::HTTP_OK))
     {
         return {-1, vars};
     }
