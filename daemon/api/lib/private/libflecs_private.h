@@ -18,7 +18,6 @@
 #include <cpr/cpr.h>
 
 #include "libflecs.h"
-#include "util/http/status_codes.h"
 
 namespace FLECS {
 namespace Private {
@@ -44,14 +43,14 @@ public:
     FLECS_EXPORT int do_list_versions(const std::string& app);
 
     // instance management
-    FLECS_EXPORT int
-    do_create_instance(const std::string& app, const std::string& version, const std::string& instanceName);
-    FLECS_EXPORT int
-    do_delete_instance(const std::string& instanceId, const std::string& app, const std::string& version);
-    FLECS_EXPORT int
-    do_start_instance(const std::string& instanceId, const std::string& app, const std::string& version);
-    FLECS_EXPORT int
-    do_stop_instance(const std::string& instanceId, const std::string& app, const std::string& version);
+    FLECS_EXPORT int do_create_instance(
+        const std::string& app, const std::string& version, const std::string& instanceName);
+    FLECS_EXPORT int do_delete_instance(
+        const std::string& instanceId, const std::string& app, const std::string& version);
+    FLECS_EXPORT int do_start_instance(
+        const std::string& instanceId, const std::string& app, const std::string& version);
+    FLECS_EXPORT int do_stop_instance(
+        const std::string& instanceId, const std::string& app, const std::string& version);
 
     // system info
     FLECS_EXPORT int do_version();
