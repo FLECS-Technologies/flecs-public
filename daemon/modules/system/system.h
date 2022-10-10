@@ -23,8 +23,7 @@
 
 namespace FLECS {
 
-enum netif_type_t
-{
+enum netif_type_t {
     UNKNOWN,
     WIRED,
     WIRELESS,

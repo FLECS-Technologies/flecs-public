@@ -19,8 +19,7 @@
 
 namespace FLECS {
 
-enum class app_status_e : char
-{
+enum class app_status_e : char {
     NOT_INSTALLED = 'n',
     MANIFEST_DOWNLOADED = 'm',
     TOKEN_ACQUIRED = 't',

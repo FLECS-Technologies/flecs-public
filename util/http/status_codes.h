@@ -17,8 +17,7 @@
 
 namespace FLECS {
 
-enum class http_status_e : int
-{
+enum class http_status_e : int {
     Ok = 200,
     // Client errors
     BadRequest = 400,

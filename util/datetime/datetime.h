@@ -24,8 +24,7 @@ namespace FLECS {
 
 using system_clock_t = std::chrono::system_clock;
 
-enum class precision_e : std::size_t
-{
+enum class precision_e : std::size_t {
     nanoseconds,  ///!< nanosecond precision
     microseconds, ///!< microsecond precision
     milliseconds, ///!< millisecond precision

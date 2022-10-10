@@ -20,11 +20,10 @@ namespace FLECS {
 #endif //__cplusplus
 
 #ifdef __cplusplus
-enum mqtt_error_t : int
+enum mqtt_error_t : int {
 #else
-enum mqtt_error_t
+enum mqtt_error_t {
 #endif // __cplusplus
-{
     MQTT_ERR_OK = 0,
     MQTT_ERR_NOMEM = 1,
     MQTT_ERR_INVALID = 3,

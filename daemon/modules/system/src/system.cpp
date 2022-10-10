@@ -47,7 +47,7 @@ auto module_system_t::do_init() //
     });
 }
 
-auto module_system_t::ping(json_t &response) const //
+auto module_system_t::ping(json_t& response) const //
     -> crow::response
 {
     response["additionalInfo"] = "OK";
@@ -59,7 +59,7 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
 {
     auto adapters = std::map<std::string, netif_t>{};
 
-    auto ifa = (ifaddrs *){};
+    auto ifa = (ifaddrs*){};
     const auto res = getifaddrs(&ifa);
     if (res != 0)
     {
@@ -79,7 +79,7 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
         {
             case AF_PACKET: {
                 char buf[18];
-                struct sockaddr_ll *s = (struct sockaddr_ll *)ifa->ifa_addr;
+                struct sockaddr_ll* s = (struct sockaddr_ll*)ifa->ifa_addr;
                 sprintf(
                     buf,
                     "%02X:%02X:%02X:%02X:%02X:%02X",
@@ -96,8 +96,8 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
                 auto ip = ipaddr_t{};
 
                 // inet_ntop(AF_INET, &((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr, buf, INET_ADDRSTRLEN);
-                ip.addr = ipv4_to_string(((struct sockaddr_in *)ifa->ifa_addr)->sin_addr);
-                ip.subnet_mask = ipv4_to_string(((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr);
+                ip.addr = ipv4_to_string(((struct sockaddr_in*)ifa->ifa_addr)->sin_addr);
+                ip.subnet_mask = ipv4_to_string(((struct sockaddr_in*)ifa->ifa_netmask)->sin_addr);
 
                 adapters[ifa->ifa_name].ipv4_addr.emplace_back(ip);
                 break;
@@ -105,8 +105,8 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
             case AF_INET6: {
                 auto ip = ipaddr_t{};
 
-                ip.addr = ipv6_to_string(((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr);
-                ip.subnet_mask = ipv6_to_string(((struct sockaddr_in6 *)ifa->ifa_netmask)->sin6_addr);
+                ip.addr = ipv6_to_string(((struct sockaddr_in6*)ifa->ifa_addr)->sin6_addr);
+                ip.subnet_mask = ipv6_to_string(((struct sockaddr_in6*)ifa->ifa_netmask)->sin6_addr);
 
                 adapters[ifa->ifa_name].ipv6_addr.emplace_back(ip);
                 break;
@@ -125,8 +125,7 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
     auto line = std::string{};
     while (std::getline(route_file, line))
     {
-        enum route_columns_t
-        {
+        enum route_columns_t {
             IFACE,
             DESTINATION,
             GATEWAY,

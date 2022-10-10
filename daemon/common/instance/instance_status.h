@@ -19,8 +19,7 @@
 
 namespace FLECS {
 
-enum class instance_status_e : char
-{
+enum class instance_status_e : char {
     NOT_CREATED = 'n',
     REQUESTED = 'q',
     RESOURCES_READY = 'y',

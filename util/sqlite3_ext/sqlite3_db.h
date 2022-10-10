@@ -114,7 +114,10 @@ protected:
 
     template <std::size_t N, typename... Args>
     int select_all(
-        const char* table, select_callback_t cbk, void* cbk_arg, const select_conditions_t<N>& conditions,
+        const char* table,
+        select_callback_t cbk,
+        void* cbk_arg,
+        const select_conditions_t<N>& conditions,
         Args&&... args);
 
     int close();
