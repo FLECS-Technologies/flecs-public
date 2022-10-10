@@ -24,8 +24,7 @@ namespace FLECS {
 class volume_t
 {
 public:
-    enum volume_type_t
-    {
+    enum volume_type_t {
         NONE,
         BIND_MOUNT,
         VOLUME,

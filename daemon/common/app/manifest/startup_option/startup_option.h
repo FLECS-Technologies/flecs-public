@@ -19,8 +19,7 @@
 
 namespace FLECS {
 
-enum class startup_option_t : unsigned
-{
+enum class startup_option_t : unsigned {
     INVALID = 0x00000000,
     INIT_NETWORK_AFTER_START = 0x00000001,
 };
