@@ -28,6 +28,7 @@
 #include "util/cxx20/string.h"
 #include "util/network/network.h"
 #include "util/string/string_utils.h"
+#include "util/sysinfo/sysinfo.h"
 
 namespace FLECS {
 
@@ -45,6 +46,16 @@ auto module_system_t::do_init() //
         auto response = json_t{};
         return ping(response);
     });
+
+    FLECS_ROUTE("/<string>/system/ping").methods("GET"_method)([=](const std::string& /* api_version */) {
+        auto response = json_t{};
+        return ping(response);
+    });
+
+    FLECS_ROUTE("/<string>/system/info").methods("GET"_method)([=](const std::string& /* api_version */) {
+        auto response = json_t{};
+        return info(response);
+    });
 }
 
 auto module_system_t::ping(json_t& response) const //
@@ -53,6 +64,16 @@ auto module_system_t::ping(json_t& response) const //
     response["additionalInfo"] = "OK";
 
     return crow::response{crow::status::OK, response.dump()};
+}
+
+auto module_system_t::info(json_t& response) const //
+    -> crow::response
+{
+    const auto sysinfo = sysinfo_t{};
+
+    response = json_t(sysinfo);
+
+    return crow::response{crow::status::OK, {response.dump()}};
 }
 
 auto module_system_t::get_network_adapters() const -> std::map<std::string, netif_t>

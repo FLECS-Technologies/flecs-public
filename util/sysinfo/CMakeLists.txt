@@ -12,9 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-flecs_add_module(
-    MODULE_NAME system
-    LIBS_PRIVATE FLECS.util.network FLECS.util.sysinfo
+set(PROJECT_NAME FLECS.util.sysinfo)
+project(${PROJECT_NAME})
+
+add_library(${PROJECT_NAME} STATIC
+    src/sysinfo.cpp
+    sysinfo.h
 )
 
-add_subdirectory(test)
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    FLECS.external.json
+)
+
+# add_subdirectory(test)
