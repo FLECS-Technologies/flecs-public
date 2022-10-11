@@ -60,6 +60,9 @@ protected:
     auto ping(json_t& response) const //
         -> crow::response;
 
+    auto info(json_t& response) const //
+        -> crow::response;
+
 private:
     auto do_init() //
         -> void override;
