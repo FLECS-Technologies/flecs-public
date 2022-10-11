@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container: flecs/flecs-build
 
     strategy:
@@ -14,7 +14,7 @@ jobs:
         arch: ["amd64", "armhf", "arm64"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "CMake: Configure"
         run: |
           cmake -G Ninja -B out/${{ matrix.arch }} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${{ matrix.arch }}.cmake
@@ -26,7 +26,7 @@ jobs:
           cmake --build out/${{ matrix.arch }} --target install
 
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container: flecs/flecs-build
 
     strategy:
@@ -34,7 +34,7 @@ jobs:
         arch: ["amd64"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "CMake: Configure"
         run: |
           cmake -G Ninja -B out/${{ matrix.arch }} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${{ matrix.arch }}.cmake -DFLECS_BUILD_TESTS=Yes
