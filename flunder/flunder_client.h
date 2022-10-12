@@ -22,7 +22,7 @@
 
 #ifndef __cplusplus
 #define FLECS_FLUNDER_HOST "flecs-flunder"
-#define FLECS_FLUNDER_PORT 8000
+#define FLECS_FLUNDER_PORT 7447
 #endif // __cplusplus
 
 #include "flunder_data.h"
@@ -50,7 +50,7 @@ class flunder_client_private_t;
 /*! DNS name of the default flunder broker */
 constexpr const char* FLUNDER_HOST = "flecs-flunder";
 /*! Port of the default flunder broker */
-constexpr const int FLUNDER_PORT = 8000;
+constexpr const int FLUNDER_PORT = 7447;
 
 class flunder_client_t
 {
@@ -91,10 +91,14 @@ public:
         -> int;
 
     /* publish typed data to live subscribers */
+    /* bool */
+    FLECS_EXPORT auto publish(std::string_view topic, bool value) //
+        -> int;
+
     /* integer-types */
     template <typename T>
     FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
-        -> std::enable_if_t<std::is_integral_v<T>, int>;
+        -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>;
 
     /* floating-point-types */
     template <typename T>
@@ -142,13 +146,15 @@ private:
     FLECS_EXPORT friend auto swap(flunder_client_t& lhs, flunder_client_t& rhs) noexcept //
         -> void;
 
-    FLECS_EXPORT auto publish_int(std::string_view topic, const std::string& value) //
+    FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) //
         -> int;
-    FLECS_EXPORT auto publish_float(std::string_view topic, const std::string& value) //
+    FLECS_EXPORT auto publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+        -> int;
+    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) //
         -> int;
     FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) //
         -> int;
-    FLECS_EXPORT auto publish_raw(std::string_view topic, const std::string& value) //
+    FLECS_EXPORT auto publish_raw(std::string_view topic, const void* data, size_t len) //
         -> int;
 
     std::unique_ptr<Private::flunder_client_private_t> _impl;
@@ -156,16 +162,16 @@ private:
 
 template <typename T>
 auto flunder_client_t::publish(std::string_view topic, const T& value) //
-    -> std::enable_if_t<std::is_integral_v<T>, int>
+    -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>
 {
-    return publish_int(topic, stringify(value));
+    return publish_int(topic, sizeof(T), std::is_signed_v<T>, stringify(value));
 }
 
 template <typename T>
 auto flunder_client_t::publish(std::string_view topic, const T& value) //
     -> std::enable_if_t<std::is_floating_point_v<T>, int>
 {
-    return publish_float(topic, stringify(value));
+    return publish_float(topic, sizeof(T), stringify(value));
 }
 
 template <typename T>

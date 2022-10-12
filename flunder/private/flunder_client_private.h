@@ -18,7 +18,7 @@
 #include <zenoh.h>
 
 #include <map>
-#include <memory>
+#include <string>
 #include <tuple>
 #include <variant>
 #include <vector>
@@ -44,7 +44,19 @@ public:
     FLECS_EXPORT auto disconnect() //
         -> int;
 
-    FLECS_EXPORT auto publish(std::string_view topic, const std::string& type, const std::string& value) //
+    FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) //
+        -> int;
+
+    FLECS_EXPORT auto publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+        -> int;
+
+    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) //
+        -> int;
+
+    FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) //
+        -> int;
+
+    FLECS_EXPORT auto publish_raw(std::string_view topic, const void* payload, size_t payloadlen) //
         -> int;
 
     FLECS_EXPORT auto subscribe(
@@ -79,20 +91,23 @@ public:
     struct subscribe_ctx_t
     {
         flunder_client_t* _client;
-        zn_subscriber_t* _sub;
+        z_owned_subscriber_t _sub;
         subscribe_cbk_t _cbk;
         const void* _userp;
         bool _once;
     };
 
 private:
+    FLECS_EXPORT auto publish(std::string_view topic, z_encoding_t encoding, const std::string& value) //
+        -> int;
+
     FLECS_EXPORT auto subscribe(
         flunder_client_t* client, std::string_view topic, subscribe_cbk_t cbk, const void* userp) //
         -> int;
 
     std::vector<std::string> _mem_storages;
 
-    zn_session_t* _zn_session;
+    z_owned_session_t _z_session;
     std::map<std::string, subscribe_ctx_t> _subscriptions;
 };
 
