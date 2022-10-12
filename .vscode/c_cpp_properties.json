@@ -33,6 +33,7 @@
                 "${workspaceFolder}/daemon/common/instance",
                 "${workspaceFolder}/daemon/modules",
                 "${workspaceFolder}/daemon/modules/app_manager",
+                "${workspaceFolder}/daemon/modules/data_layer",
                 "${workspaceFolder}/daemon/modules/factory",
                 "${workspaceFolder}/daemon/modules/help",
                 "${workspaceFolder}/daemon/modules/module_base",

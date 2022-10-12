@@ -18,6 +18,8 @@
 
 #include <thread>
 
+#include "util/cxx20/string.h"
+
 namespace FLECS {
 namespace Private {
 
@@ -47,7 +49,7 @@ static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
                  [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx->_client, &data, ctx->_userp); }},
         ctx->_cbk);
 
-    free(const_cast<void*>(data._data));
+    free(const_cast<char*>(data._topic));
 }
 
 flunder_client_private_t::flunder_client_private_t()
@@ -62,20 +64,19 @@ flunder_client_private_t::~flunder_client_private_t()
 auto flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/) //
     -> int
 {
-    disconnect();
-
     auto config = z_config_default();
     zc_config_insert_json(z_config_loan(&config), Z_CONFIG_CONNECT_KEY, "tcp/flecs-flunder:7447");
     zc_config_insert_json(z_config_loan(&config), Z_CONFIG_MODE_KEY, "client");
 
     _z_session = z_open(z_move(config));
 
-    return z_session_check(z_move(_z_session)) ? 0 : -1;
+    return z_session_check(&_z_session) ? 0 : -1;
 }
 
 auto flunder_client_private_t::reconnect() //
     -> int
 {
+    disconnect();
     return connect("", 0);
 }
 
@@ -144,9 +145,11 @@ auto flunder_client_private_t::publish(std::string_view topic, z_encoding_t enco
     auto options = z_put_options_default();
     options.encoding = encoding;
 
+    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+
     const auto res = z_put(
-        z_session_loan(z_move(_z_session)),
-        z_keyexpr(topic.data()),
+        z_session_loan(&_z_session),
+        z_keyexpr(keyexpr),
         reinterpret_cast<const uint8_t*>(value.data()),
         value.size(),
         &options);
@@ -180,12 +183,14 @@ auto flunder_client_private_t::subscribe(
     const void* userp) //
     -> int
 {
-    if (_subscriptions.count(topic.data()) > 0)
+    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+
+    if (_subscriptions.count(keyexpr) > 0)
     {
         return -1;
     }
 
-    auto res = _subscriptions.emplace(topic, subscribe_ctx_t{client, {}, cbk, userp, false});
+    auto res = _subscriptions.emplace(keyexpr, subscribe_ctx_t{client, {}, cbk, userp, false});
     if (!res.second)
     {
         return -1;
@@ -193,16 +198,15 @@ auto flunder_client_private_t::subscribe(
     auto& ctx = res.first->second;
 
     auto closure = z_owned_closure_sample_t{.context = &ctx, .call = lib_subscribe_callback, .drop = nullptr};
-    ctx._sub =
-        z_declare_subscriber(z_session_loan(z_move(_z_session)), z_keyexpr(topic.data()), z_move(closure), nullptr);
+    ctx._sub = z_declare_subscriber(z_session_loan(&_z_session), z_keyexpr(keyexpr), z_move(closure), nullptr);
 
-    if (!z_subscriber_check(z_move(ctx._sub)))
+    if (!z_subscriber_check(&ctx._sub))
     {
         _subscriptions.erase(res.first);
         return -1;
     }
 
-    const auto [unused, vars] = get(topic);
+    const auto [unused, vars] = get(keyexpr);
     for (const auto& var : vars)
     {
         auto data = flunder_data_t{._topic = var._key, ._data = var._value, ._len = std::strlen(var._value)};
@@ -212,8 +216,8 @@ auto flunder_client_private_t::subscribe(
                      // call callback with userdata
                      [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx._client, &data, ctx._userp); }},
             ctx._cbk);
-        ctx._once = true;
     }
+    ctx._once = true;
 
     return 0;
 }
@@ -277,74 +281,44 @@ auto flunder_client_private_t::get(std::string_view topic) //
 {
     auto vars = std::vector<flunder_variable_t>{};
 
-    const auto url = std::string{"http://flecs-flunder:8000"}.append(topic);
-    const auto res = cpr::Get(cpr::Url{url});
-
-    if (res.status_code != static_cast<long>(cpr::status::HTTP_OK))
+    if (!z_session_check(&_z_session))
     {
         return {-1, vars};
     }
 
-    decltype(auto) str = res.text;
-    const auto json = parse_json(res.text);
-    if (!is_valid_json(json))
+    auto reply_channel = zc_reply_fifo_new(64);
+    auto options = z_get_options_default();
+    options.target = Z_QUERY_TARGET_ALL;
+
+    auto keyexpr = z_keyexpr(topic.data());
+    if (!z_keyexpr_is_initialized(&keyexpr))
     {
         return {-1, vars};
     }
 
-    for (decltype(auto) it = json.begin(); it != json.end(); ++it)
+    z_get(z_session_loan(&_z_session), keyexpr, "", z_move(reply_channel.send), &options);
+
+    z_owned_reply_t reply = z_reply_null();
+    for (z_reply_channel_closure_call(z_move(reply_channel.recv), &reply); z_reply_check(z_move(reply));
+         z_reply_channel_closure_call(z_move(reply_channel.recv), &reply))
     {
-        switch ((*it)["value"].type())
+        if (z_reply_is_ok(&reply))
         {
-            case json_t::value_t::boolean: {
-                const auto val = stringify((*it)["value"].get<json_t::boolean_t>());
-                vars.emplace_back(flunder_variable_t{
-                    (*it)["key"].get<std::string>().c_str(),
-                    val.c_str(),
-                    (*it)["encoding"].get<std::string>().c_str(),
-                    (*it)["time"].get<std::string>().c_str()});
-                break;
-            }
-            case json_t::value_t::number_float: {
-                const auto val = stringify((*it)["value"].get<json_t::number_float_t>());
-                vars.emplace_back(flunder_variable_t{
-                    (*it)["key"].get<std::string>().c_str(),
-                    val.c_str(),
-                    (*it)["encoding"].get<std::string>().c_str(),
-                    (*it)["time"].get<std::string>().c_str()});
-                break;
-            }
-            case json_t::value_t::number_integer: {
-                const auto val = stringify((*it)["value"].get<json_t::number_integer_t>());
-                vars.emplace_back(flunder_variable_t{
-                    (*it)["key"].get<std::string>().c_str(),
-                    val.c_str(),
-                    (*it)["encoding"].get<std::string>().c_str(),
-                    (*it)["time"].get<std::string>().c_str()});
-                break;
-            }
-            case json_t::value_t::number_unsigned: {
-                const auto val = stringify((*it)["value"].get<json_t::number_unsigned_t>());
-                vars.emplace_back(flunder_variable_t{
-                    (*it)["key"].get<std::string>().c_str(),
-                    val.c_str(),
-                    (*it)["encoding"].get<std::string>().c_str(),
-                    (*it)["time"].get<std::string>().c_str()});
-                break;
-            }
-            case json_t::value_t::string: {
-                vars.emplace_back(flunder_variable_t{
-                    (*it)["key"].get<std::string>().c_str(),
-                    (*it)["value"].get<std::string>().c_str(),
-                    (*it)["encoding"].get<std::string>().c_str(),
-                    (*it)["time"].get<std::string>().c_str()});
-                break;
-            }
-            default: {
-                std::fprintf(stderr, "Unsupported data type %s\n", (*it)["value"].type_name());
-            }
+            const auto sample = z_reply_ok(&reply);
+            const char* keystr = z_keyexpr_to_string(sample.keyexpr);
+
+            vars.emplace_back(
+                std::string_view{keystr},
+                std::string_view(reinterpret_cast<const char*>(sample.payload.start), sample.payload.len),
+                std::string_view{""},
+                stringify(sample.timestamp.time));
+
+            free(const_cast<char*>(keystr));
         }
     }
+
+    z_reply_drop(z_move(reply));
+    z_reply_channel_drop(z_move(reply_channel));
 
     return {0, vars};
 }
