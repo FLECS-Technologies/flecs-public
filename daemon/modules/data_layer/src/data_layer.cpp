@@ -33,6 +33,8 @@ module_data_layer_t::~module_data_layer_t()
 auto module_data_layer_t::do_init() //
     -> void
 {
+    _impl->do_init();
+
     FLECS_ROUTE("/data-layer/browse").methods("GET"_method)([=]() {
         auto response = json_t{};
         const auto status = _impl->do_browse("", response);

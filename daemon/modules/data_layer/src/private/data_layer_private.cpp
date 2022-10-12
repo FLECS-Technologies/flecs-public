@@ -25,12 +25,18 @@ module_data_layer_private_t::module_data_layer_private_t()
 module_data_layer_private_t::~module_data_layer_private_t()
 {}
 
+auto module_data_layer_private_t::do_init() //
+    -> void
+{
+    _client.connect(FLUNDER_HOST, FLUNDER_PORT);
+}
+
 auto module_data_layer_private_t::do_browse(std::string_view path, json_t& response) //
     -> crow::status
 {
     response["additionalInfo"] = "";
 
-    const auto res = _client.get(path.empty() ? "/**" : path);
+    const auto res = _client.get(path.empty() ? "**" : path);
 
     if (std::get<0>(res) != 0)
     {
@@ -47,8 +53,7 @@ auto module_data_layer_private_t::do_browse(std::string_view path, json_t& respo
         data["key"] = it->_key;
         data["value"] = it->_value;
         data["encoding"] = it->_encoding;
-        data["timestamp"] =
-            std::string{it->_timestamp, std::find(it->_timestamp, it->_timestamp + std::strlen(it->_timestamp), '/')};
+        data["timestamp"] = it->_timestamp;
         response["data"].push_back(data);
     }
 

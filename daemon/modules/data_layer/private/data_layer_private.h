@@ -30,6 +30,9 @@ public:
     auto do_browse(std::string_view path, json_t& response) //
         -> crow::status;
 
+    auto do_init() //
+        -> void;
+
 private:
     flunder_client_t _client;
 };
