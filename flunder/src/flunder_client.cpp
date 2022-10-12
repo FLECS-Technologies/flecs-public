@@ -61,6 +61,12 @@ auto flunder_client_t::disconnect() //
     return _impl->disconnect();
 }
 
+auto flunder_client_t::publish(std::string_view topic, bool value) //
+    -> int
+{
+    return publish_bool(topic, value ? "true" : "false");
+}
+
 auto flunder_client_t::publish(std::string_view topic, const char* value) //
     -> int
 {
@@ -70,25 +76,37 @@ auto flunder_client_t::publish(std::string_view topic, const char* value) //
 auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len) //
     -> int
 {
-    return _impl->publish(topic, "application/octet-stream", std::string{(const char*)data, len});
+    return publish_raw(topic, data, len);
 }
 
-auto flunder_client_t::publish_int(std::string_view topic, const std::string& value) //
+auto flunder_client_t::publish_bool(std::string_view topic, const std::string& value) //
     -> int
 {
-    return _impl->publish(topic, "application/integer", value);
+    return _impl->publish_bool(topic, value);
 }
 
-auto flunder_client_t::publish_float(std::string_view topic, const std::string& value) //
+auto flunder_client_t::publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
     -> int
 {
-    return _impl->publish(topic, "application/float", value);
+    return _impl->publish_int(topic, size, is_signed, value);
+}
+
+auto flunder_client_t::publish_float(std::string_view topic, size_t size, const std::string& value) //
+    -> int
+{
+    return _impl->publish_float(topic, size, value);
 }
 
 auto flunder_client_t::publish_string(std::string_view topic, const std::string& value) //
     -> int
 {
-    return _impl->publish(topic, "text/plain", value);
+    return _impl->publish_string(topic, value);
+}
+
+auto flunder_client_t::publish_raw(std::string_view topic, const void* data, size_t len) //
+    -> int
+{
+    return _impl->publish_raw(topic, data, len);
 }
 
 auto flunder_client_t::subscribe(std::string_view topic, subscribe_cbk_t cbk) //
@@ -171,8 +189,8 @@ FLECS_EXPORT int flunder_subscribe(void* flunder, const char* topic, flunder_sub
     auto p = reinterpret_cast<void (*)(FLECS::flunder_client_t*, FLECS::flunder_data_t*)>(cbk);
     return static_cast<FLECS::flunder_client_t*>(flunder)->subscribe(topic, p);
 }
-FLECS_EXPORT int
-flunder_subscribe_userp(void* flunder, const char* topic, flunder_subscribe_cbk_userp_t cbk, const void* userp)
+FLECS_EXPORT int flunder_subscribe_userp(
+    void* flunder, const char* topic, flunder_subscribe_cbk_userp_t cbk, const void* userp)
 {
     auto p = reinterpret_cast<void (*)(FLECS::flunder_client_t*, FLECS::flunder_data_t*, const void*)>(cbk);
     return static_cast<FLECS::flunder_client_t*>(flunder)->subscribe(topic, p, userp);

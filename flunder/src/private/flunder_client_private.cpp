@@ -30,7 +30,7 @@ struct overload : Ts...
 template <class... Ts>
 overload(Ts...) -> overload<Ts...>;
 
-static auto lib_subscribe_callback(const zn_sample_t* sample, const void* arg) //
+static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
     -> void
 {
     const auto* ctx = static_cast<const flunder_client_private_t::subscribe_ctx_t*>(arg);
@@ -39,19 +39,20 @@ static auto lib_subscribe_callback(const zn_sample_t* sample, const void* arg) /
         return;
     }
 
-    auto topic = std::string{sample->key.val, sample->key.len};
-    auto data = flunder_data_t{topic.c_str(), sample->value.val, sample->value.len};
+    auto data = flunder_data_t{z_keyexpr_to_string(sample->keyexpr), sample->payload.start, sample->payload.len};
     std::visit(
         overload{// call callback without userdata
                  [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx->_client, &data); },
                  // call callback with userdata
                  [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx->_client, &data, ctx->_userp); }},
         ctx->_cbk);
+
+    free(const_cast<void*>(data._data));
 }
 
 flunder_client_private_t::flunder_client_private_t()
     : _mem_storages{}
-    , _zn_session{}
+    , _z_session{}
     , _subscriptions{}
 {}
 
@@ -63,15 +64,13 @@ auto flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/) 
 {
     disconnect();
 
-    const auto url = std::string{"http://flecs-flunder:8000"};
-    const auto res = cpr::Get(cpr::Url{url});
+    auto config = z_config_default();
+    zc_config_insert_json(z_config_loan(&config), Z_CONFIG_CONNECT_KEY, "tcp/flecs-flunder:7447");
+    zc_config_insert_json(z_config_loan(&config), Z_CONFIG_MODE_KEY, "client");
 
-    auto zn_properties = zn_config_default();
-    zn_properties_insert(zn_properties, ZN_CONFIG_PEER_KEY, z_string_make("tcp/flecs-flunder:7447"));
-    zn_properties_insert(zn_properties, ZN_CONFIG_MODE_KEY, z_string_make("client"));
-    _zn_session = zn_open(zn_properties);
+    _z_session = z_open(z_move(config));
 
-    return (res.status_code == 200 && _zn_session) ? 0 : -1;
+    return z_session_check(z_move(_z_session)) ? 0 : -1;
 }
 
 auto flunder_client_private_t::reconnect() //
@@ -91,20 +90,68 @@ auto flunder_client_private_t::disconnect() //
     {
         remove_mem_storage(*_mem_storages.rbegin());
     }
-    if (_zn_session)
+    if (z_session_check(&_z_session))
     {
-        zn_close(_zn_session);
-        _zn_session = nullptr;
+        z_close(z_move(_z_session));
+        _z_session = {};
     }
     return 0;
 }
 
-auto flunder_client_private_t::publish(std::string_view topic, const std::string& type, const std::string& value) //
+auto flunder_client_private_t::publish_bool(std::string_view topic, const std::string& value) //
     -> int
 {
-    const auto url = std::string{"http://flecs-flunder:8000"}.append(topic);
-    const auto res = cpr::Put(cpr::Url{url}, cpr::Header{{"content-type", type}}, cpr::Body{value});
-    return (res.status_code == 200) ? 0 : -1;
+    return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, "bool"), value);
+}
+
+auto flunder_client_private_t::publish_int(
+    std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+    -> int
+{
+    using std::operator""s;
+
+    auto suffix = is_signed ? "s"s : "u"s;
+    suffix += stringify(size * 8);
+
+    return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_INTEGER, suffix.c_str()), value);
+}
+
+auto flunder_client_private_t::publish_float(std::string_view topic, size_t size, const std::string& value) //
+    -> int
+{
+    const auto size_str = stringify(size * 8);
+    return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_FLOAT, size_str.c_str()), value);
+}
+
+auto flunder_client_private_t::publish_string(std::string_view topic, const std::string& value) //
+    -> int
+{
+    return publish(topic, z_encoding(Z_ENCODING_PREFIX_TEXT_PLAIN, ""), value);
+}
+
+auto flunder_client_private_t::publish_raw(std::string_view topic, const void* payload, size_t payloadlen) //
+    -> int
+{
+    return publish(
+        topic,
+        z_encoding(Z_ENCODING_PREFIX_APP_OCTET_STREAM, ""),
+        std::string{reinterpret_cast<const char*>(payload), payloadlen});
+}
+
+auto flunder_client_private_t::publish(std::string_view topic, z_encoding_t encoding, const std::string& value) //
+    -> int
+{
+    auto options = z_put_options_default();
+    options.encoding = encoding;
+
+    const auto res = z_put(
+        z_session_loan(z_move(_z_session)),
+        z_keyexpr(topic.data()),
+        reinterpret_cast<const uint8_t*>(value.data()),
+        value.size(),
+        &options);
+
+    return (res == 0) ? 0 : -1;
 }
 
 auto flunder_client_private_t::subscribe(
@@ -127,7 +174,10 @@ auto flunder_client_private_t::subscribe(
 }
 
 auto flunder_client_private_t::subscribe(
-    flunder_client_t* client, std::string_view topic, subscribe_cbk_t cbk, const void* userp) //
+    flunder_client_t* client,
+    std::string_view topic,
+    subscribe_cbk_t cbk,
+    const void* userp) //
     -> int
 {
     if (_subscriptions.count(topic.data()) > 0)
@@ -135,17 +185,18 @@ auto flunder_client_private_t::subscribe(
         return -1;
     }
 
-    auto res = _subscriptions.emplace(topic, subscribe_ctx_t{client, nullptr, cbk, userp, false});
+    auto res = _subscriptions.emplace(topic, subscribe_ctx_t{client, {}, cbk, userp, false});
     if (!res.second)
     {
         return -1;
     }
     auto& ctx = res.first->second;
 
+    auto closure = z_owned_closure_sample_t{.context = &ctx, .call = lib_subscribe_callback, .drop = nullptr};
     ctx._sub =
-        zn_declare_subscriber(_zn_session, zn_rname(topic.data()), zn_subinfo_default(), lib_subscribe_callback, &ctx);
+        z_declare_subscriber(z_session_loan(z_move(_z_session)), z_keyexpr(topic.data()), z_move(closure), nullptr);
 
-    if (!ctx._sub)
+    if (!z_subscriber_check(z_move(ctx._sub)))
     {
         _subscriptions.erase(res.first);
         return -1;
@@ -176,7 +227,7 @@ auto flunder_client_private_t::unsubscribe(std::string_view topic) //
         return -1;
     }
 
-    zn_undeclare_subscriber(it->second._sub);
+    z_undeclare_subscriber(z_move(it->second._sub));
     _subscriptions.erase(it);
 
     return 0;
