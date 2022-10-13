@@ -33,6 +33,9 @@ public:
     auto do_init() //
         -> void;
 
+    auto do_deinit() //
+        -> void;
+
 private:
     flunder_client_t _client;
 };

@@ -38,6 +38,7 @@ public:
     void register_module(const char* module_name);
 
     void init_modules();
+    void deinit_modules();
     std::shared_ptr<module_t> query(const char* endpoint);
 
 private:
@@ -67,6 +68,7 @@ register_module_t<T>::register_module_t(const char* module_name)
 
 namespace api {
 void init_modules();
+void deinit_modules();
 std::shared_ptr<module_t> query_module(const char* module_name);
 } // namespace api
 

@@ -30,6 +30,9 @@ protected:
 private:
     auto do_init() //
         -> void override;
+    auto do_deinit() //
+        -> void override
+    {}
 };
 
 } // namespace FLECS

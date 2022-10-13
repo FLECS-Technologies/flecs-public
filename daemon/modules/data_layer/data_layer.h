@@ -45,6 +45,8 @@ protected:
 private:
     auto do_init() //
         -> void override;
+    auto do_deinit() //
+        -> void override;
 
     std::unique_ptr<Private::module_data_layer_private_t> _impl;
 };

@@ -19,6 +19,7 @@ int main(int /*argc*/, char** /*argv*/)
 {
     FLECS::api::init_modules();
     FLECS::flecs_api_t::instance().app().multithreaded().port(8951).run();
+    FLECS::api::deinit_modules();
 
     return 0;
 }
