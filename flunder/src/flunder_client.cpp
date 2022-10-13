@@ -33,9 +33,7 @@ flunder_client_t& flunder_client_t::operator=(flunder_client_t&& other)
 }
 
 flunder_client_t::~flunder_client_t()
-{
-    disconnect();
-}
+{}
 
 auto flunder_client_t::connect() //
     -> int

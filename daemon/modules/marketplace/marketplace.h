@@ -38,6 +38,9 @@ protected:
 private:
     auto do_init() //
         -> void override;
+    auto do_deinit() //
+        -> void override
+    {}
 
     std::string _user;
     std::string _token;

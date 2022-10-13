@@ -37,6 +37,7 @@ protected:
 
 private:
     void do_init() override;
+    void do_deinit() override {}
 
     std::unique_ptr<Private::module_app_manager_private_t> _impl;
 };

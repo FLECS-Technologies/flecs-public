@@ -30,6 +30,14 @@ void module_factory_t::init_modules()
     }
 }
 
+void module_factory_t::deinit_modules()
+{
+    for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it)
+    {
+        it->second->deinit();
+    }
+}
+
 std::shared_ptr<module_t> module_factory_t::query(const char* module_name)
 {
     decltype(auto) it = _module_table.find(module_name);
@@ -44,6 +52,10 @@ namespace api {
 void init_modules()
 {
     return module_factory_t::instance().init_modules();
+}
+void deinit_modules()
+{
+    return module_factory_t::instance().deinit_modules();
 }
 std::shared_ptr<module_t> query_module(const char* module_name)
 {

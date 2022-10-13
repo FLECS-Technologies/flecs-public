@@ -42,4 +42,10 @@ auto module_data_layer_t::do_init() //
     });
 }
 
+auto module_data_layer_t::do_deinit() //
+    -> void
+{
+    _impl->do_deinit();
+}
+
 } // namespace FLECS

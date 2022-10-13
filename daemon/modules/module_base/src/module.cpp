@@ -21,4 +21,9 @@ void module_t::init()
     return do_init();
 }
 
+void module_t::deinit()
+{
+    return do_deinit();
+}
+
 } // namespace FLECS

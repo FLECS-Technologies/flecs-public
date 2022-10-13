@@ -94,7 +94,6 @@ auto flunder_client_private_t::disconnect() //
     if (z_session_check(&_z_session))
     {
         z_close(z_move(_z_session));
-        _z_session = {};
     }
     return 0;
 }

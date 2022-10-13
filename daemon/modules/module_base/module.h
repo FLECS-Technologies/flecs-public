@@ -49,8 +49,7 @@ namespace FLECS {
             val = json[#val].get<std::string>();      \
         }                                             \
         catch (const nlohmann::detail::exception& ex) \
-        {                                             \
-        }                                             \
+        {}                                            \
     }
 
 #define OPTIONAL_JSON_VALUE(json, val) OPTIONAL_TYPED_JSON_VALUE(json, val, std::string)
@@ -63,10 +62,14 @@ public:
 
     auto init() -> //
         void;
+    auto deinit() -> //
+        void;
     // std::string usage();
 
 private:
     virtual auto do_init() //
+        -> void = 0;
+    virtual auto do_deinit() //
         -> void = 0;
     // virtual std::string do_usage() = 0;
 };

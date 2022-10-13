@@ -31,6 +31,12 @@ auto module_data_layer_private_t::do_init() //
     _client.connect(FLUNDER_HOST, FLUNDER_PORT);
 }
 
+auto module_data_layer_private_t::do_deinit() //
+    -> void
+{
+    _client.disconnect();
+}
+
 auto module_data_layer_private_t::do_browse(std::string_view path, json_t& response) //
     -> crow::status
 {
