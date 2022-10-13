@@ -56,10 +56,10 @@ auto module_data_layer_private_t::do_browse(std::string_view path, json_t& respo
     for (decltype(auto) it = vars.cbegin(); it != vars.cend(); ++it)
     {
         auto data = json_t{};
-        data["key"] = it->_key;
-        data["value"] = it->_value;
-        data["encoding"] = it->_encoding;
-        data["timestamp"] = it->_timestamp;
+        data["key"] = std::string{it->_key};
+        data["value"] = std::string{it->_value};
+        data["encoding"] = std::string{it->_encoding};
+        data["timestamp"] = std::string{it->_timestamp};
         response["data"].push_back(data);
     }
 

@@ -298,8 +298,8 @@ auto flunder_client_private_t::get(std::string_view topic) //
     z_get(z_session_loan(&_z_session), keyexpr, "", z_move(reply_channel.send), &options);
 
     z_owned_reply_t reply = z_reply_null();
-    for (z_reply_channel_closure_call(z_move(reply_channel.recv), &reply); z_reply_check(z_move(reply));
-         z_reply_channel_closure_call(z_move(reply_channel.recv), &reply))
+    for (z_reply_channel_closure_call(&reply_channel.recv, z_move(reply)); z_reply_check(&reply);
+         z_reply_channel_closure_call(&reply_channel.recv, z_move(reply)))
     {
         if (z_reply_is_ok(&reply))
         {

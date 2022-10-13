@@ -28,15 +28,15 @@ flunder_variable_t::flunder_variable_t()
 
 flunder_variable_t::flunder_variable_t(
     std::string_view key, std::string_view value, std::string_view encoding, std::string_view timestamp)
-    : _key{new char[key.length() + 1]}
-    , _value{new char[value.length() + 1 + 1]}
-    , _encoding{new char[encoding.length() + 1]}
-    , _timestamp{new char[timestamp.length() + 1]}
+    : _key{new char[key.length() + 1]()}
+    , _value{new char[value.length() + 1]()}
+    , _encoding{new char[encoding.length() + 1]()}
+    , _timestamp{new char[timestamp.length() + 1]()}
 {
-    std::strcpy(_key, key.data());
-    std::strcpy(_value, value.data());
-    std::strcpy(_encoding, encoding.data());
-    std::strcpy(_timestamp, timestamp.data());
+    std::strncpy(_key, key.data(), key.length());
+    std::strncpy(_value, value.data(), value.length());
+    std::strncpy(_encoding, encoding.data(), encoding.length());
+    std::strncpy(_timestamp, timestamp.data(), timestamp.length());
 }
 
 flunder_variable_t::flunder_variable_t(const flunder_variable_t& other)
