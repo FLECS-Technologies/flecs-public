@@ -239,11 +239,14 @@ auto flunder_client_private_t::unsubscribe(std::string_view topic) //
 auto flunder_client_private_t::add_mem_storage(std::string_view name, std::string_view topic) //
     -> int
 {
+    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+
     auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
-                            .append("/@/router/local/plugin/storages/backend/memory/storage/")
+                            .append("/@/router/local/config/plugins/storage_manager/storages/")
                             .append(name)};
-    auto body = cpr::Body{std::string{"path_expr="}.append(topic)};
-    const auto res = cpr::Put(url, cpr::Header{{"content-type", "application/properties"}}, body);
+
+    const auto req_json = json_t{{"key_expr", keyexpr}, {"volume", "memory"}};
+    const auto res = cpr::Put(url, cpr::Header{{"content-type", "application/json"}}, cpr::Body{req_json.dump()});
 
     if (res.status_code != 200)
     {
@@ -259,7 +262,7 @@ auto flunder_client_private_t::remove_mem_storage(std::string_view name) //
     -> int
 {
     auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
-                            .append("/@/router/local/plugin/storages/backend/memory/storage/")
+                            .append("/@/router/local/config/plugins/storage_manager/storages/")
                             .append(name)};
     const auto res = cpr::Delete(url);
 
@@ -325,9 +328,12 @@ auto flunder_client_private_t::get(std::string_view topic) //
 auto flunder_client_private_t::erase(std::string_view topic) //
     -> int
 {
-    const auto url = std::string{"http://flecs-flunder:8000"}.append(topic);
-    const auto res = cpr::Delete(cpr::Url{url});
-    return (res.status_code == 200) ? 0 : -1;
+    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+
+    auto options = z_delete_options_default();
+    const auto res = z_delete(z_session_loan(&_z_session), z_keyexpr(keyexpr), &options);
+
+    return (res == 0) ? 0 : -1;
 }
 
 } // namespace Private
