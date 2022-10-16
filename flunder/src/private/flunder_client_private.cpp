@@ -126,7 +126,7 @@ auto flunder_client_private_t::publish_float(std::string_view topic, size_t size
 auto flunder_client_private_t::publish_string(std::string_view topic, const std::string& value) //
     -> int
 {
-    return publish(topic, z_encoding(Z_ENCODING_PREFIX_TEXT_PLAIN, ""), value);
+    return publish(topic, z_encoding(Z_ENCODING_PREFIX_TEXT_PLAIN, nullptr), value);
 }
 
 auto flunder_client_private_t::publish_raw(std::string_view topic, const void* payload, size_t payloadlen) //
@@ -134,7 +134,7 @@ auto flunder_client_private_t::publish_raw(std::string_view topic, const void* p
 {
     return publish(
         topic,
-        z_encoding(Z_ENCODING_PREFIX_APP_OCTET_STREAM, ""),
+        z_encoding(Z_ENCODING_PREFIX_APP_OCTET_STREAM, nullptr),
         std::string{reinterpret_cast<const char*>(payload), payloadlen});
 }
 
@@ -153,7 +153,7 @@ auto flunder_client_private_t::publish(std::string_view topic, z_encoding_t enco
         value.size(),
         &options);
 
-    return (res == 0) ? 0 : -1;
+    return (res == 1) ? 0 : -1;
 }
 
 auto flunder_client_private_t::subscribe(
@@ -333,7 +333,7 @@ auto flunder_client_private_t::erase(std::string_view topic) //
     auto options = z_delete_options_default();
     const auto res = z_delete(z_session_loan(&_z_session), z_keyexpr(keyexpr), &options);
 
-    return (res == 0) ? 0 : -1;
+    return (res == 1) ? 0 : -1;
 }
 
 } // namespace Private
