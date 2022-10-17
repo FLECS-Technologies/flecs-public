@@ -308,12 +308,19 @@ auto flunder_client_private_t::get(std::string_view topic) //
         {
             const auto sample = z_reply_ok(&reply);
             const char* keystr = z_keyexpr_to_string(sample.keyexpr);
+            if (cxx20::starts_with(keystr, '@'))
+            {
+                continue;
+            }
+            const auto time = static_cast<uint64_t>(
+                (sample.timestamp.time & 0xffffffff) +
+                (sample.timestamp.time / static_cast<double>(std::numeric_limits<uint32_t>::max())) * 1'000'000'000);
 
             vars.emplace_back(
                 std::string_view{keystr},
                 std::string_view(reinterpret_cast<const char*>(sample.payload.start), sample.payload.len),
                 std::string_view{""},
-                stringify(sample.timestamp.time));
+                stringify(time));
 
             free(const_cast<char*>(keystr));
         }
