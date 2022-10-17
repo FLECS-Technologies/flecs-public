@@ -176,6 +176,7 @@ auto flunder_client_private_t::publish(std::string_view topic, z_encoding_t enco
 {
     auto options = z_put_options_default();
     options.encoding = encoding;
+    options.congestion_control = z_congestion_control_t::Z_CONGESTION_CONTROL_BLOCK;
 
     const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
 
@@ -229,8 +230,11 @@ auto flunder_client_private_t::subscribe(
     }
     auto& ctx = res.first->second;
 
+    auto options = z_subscriber_options_default();
+    options.reliability = Z_RELIABILITY_RELIABLE;
+
     auto closure = z_owned_closure_sample_t{.context = &ctx, .call = lib_subscribe_callback, .drop = nullptr};
-    ctx._sub = z_declare_subscriber(z_session_loan(&_z_session), z_keyexpr(keyexpr), z_move(closure), nullptr);
+    ctx._sub = z_declare_subscriber(z_session_loan(&_z_session), z_keyexpr(keyexpr), z_move(closure), &options);
 
     if (!z_subscriber_check(&ctx._sub))
     {
