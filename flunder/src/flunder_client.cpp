@@ -184,13 +184,13 @@ FLECS_EXPORT int flunder_disconnect(void* flunder)
 
 FLECS_EXPORT int flunder_subscribe(void* flunder, const char* topic, flunder_subscribe_cbk_t cbk)
 {
-    auto p = reinterpret_cast<void (*)(FLECS::flunder_client_t*, FLECS::flunder_data_t*)>(cbk);
+    auto p = reinterpret_cast<void (*)(flunder_client_t*, const flunder_variable_t*)>(cbk);
     return static_cast<FLECS::flunder_client_t*>(flunder)->subscribe(topic, p);
 }
 FLECS_EXPORT int flunder_subscribe_userp(
     void* flunder, const char* topic, flunder_subscribe_cbk_userp_t cbk, const void* userp)
 {
-    auto p = reinterpret_cast<void (*)(FLECS::flunder_client_t*, FLECS::flunder_data_t*, const void*)>(cbk);
+    auto p = reinterpret_cast<void (*)(flunder_client_t*, const flunder_variable_t*, const void*)>(cbk);
     return static_cast<FLECS::flunder_client_t*>(flunder)->subscribe(topic, p, userp);
 }
 

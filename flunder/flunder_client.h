@@ -25,7 +25,6 @@
 #define FLECS_FLUNDER_PORT 7447
 #endif // __cplusplus
 
-#include "flunder_data.h"
 #include "flunder_variable.h"
 
 #ifndef __cplusplus
@@ -117,8 +116,8 @@ public:
     FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len) //
         -> int;
 
-    using subscribe_cbk_t = std::function<void(flunder_client_t*, flunder_data_t*)>;
-    using subscribe_cbk_userp_t = std::function<void(flunder_client_t*, flunder_data_t*, const void*)>;
+    using subscribe_cbk_t = std::function<void(flunder_client_t*, const flunder_variable_t*)>;
+    using subscribe_cbk_userp_t = std::function<void(flunder_client_t*, const flunder_variable_t*, const void*)>;
 
     /* subscribe to live data */
     FLECS_EXPORT auto subscribe(std::string_view topic, subscribe_cbk_t cbk) //
@@ -181,13 +180,11 @@ auto flunder_client_t::publish(std::string_view topic, const T& value) //
     return publish_string(topic, value);
 }
 
-} // namespace FLECS
-
 extern "C" {
 #endif // __cplusplus
 
-typedef void (*flunder_subscribe_cbk_t)(void*, struct flunder_data_t*);
-typedef void (*flunder_subscribe_cbk_userp_t)(void*, struct flunder_data_t*, const void*);
+typedef void (*flunder_subscribe_cbk_t)(void*, const flunder_variable_t*);
+typedef void (*flunder_subscribe_cbk_userp_t)(void*, const flunder_variable_t*, void*);
 
 FLECS_EXPORT void* flunder_client_new(void);
 
@@ -217,6 +214,7 @@ FLECS_EXPORT int flunder_remove_mem_storage(void* flunder, const char* name);
 
 #ifdef __cplusplus
 } // extern "C"
+} // namespace FLECS
 #endif // __cplusplus
 
 #endif // C33E0442_0C18_433F_88A2_9738DDC82A5A

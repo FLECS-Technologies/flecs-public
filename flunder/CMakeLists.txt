@@ -22,7 +22,6 @@ set(SRC_LIB
 
 set(HEADER_LIB
     flunder_client.h
-    flunder_data.h
     flunder_variable.h
     private/flunder_client_private.h
 )
@@ -60,4 +59,5 @@ target_link_libraries(FLECS.flunder.shared PRIVATE
 )
 
 add_subdirectory(examples)
-#add_subdirectory(pybind)
+
+# add_subdirectory(pybind)

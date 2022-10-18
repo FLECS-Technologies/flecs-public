@@ -41,18 +41,27 @@ static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
         return;
     }
 
-    auto data = flunder_data_t{z_keyexpr_to_string(sample->keyexpr), sample->payload.start, sample->payload.len};
+    const auto keyexpr = z_keyexpr_to_string(sample->keyexpr);
+    const auto var = flunder_variable_t{
+        std::string{keyexpr},
+        std::string{reinterpret_cast<const char*>(sample->payload.start), sample->payload.len},
+        to_string(
+            sample->encoding.prefix,
+            std::string_view{
+                reinterpret_cast<const char*>(sample->encoding.suffix.start),
+                sample->encoding.suffix.len}),
+        stringify(ntp64_to_unix_time(sample->timestamp.time))};
+    free(keyexpr);
+
     std::visit(
         overload{// call callback without userdata
-                 [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx->_client, &data); },
+                 [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx->_client, &var); },
                  // call callback with userdata
-                 [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx->_client, &data, ctx->_userp); }},
+                 [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx->_client, &var, ctx->_userp); }},
         ctx->_cbk);
-
-    free(const_cast<char*>(data._topic));
 }
 
-static auto to_string(z_encoding_prefix_t prefix, std::string_view suffix) //
+auto to_string(z_encoding_prefix_t prefix, std::string_view suffix) //
     -> std::string
 {
     using std::operator""s;
@@ -245,12 +254,11 @@ auto flunder_client_private_t::subscribe(
     const auto [unused, vars] = get(keyexpr);
     for (const auto& var : vars)
     {
-        auto data = flunder_data_t{._topic = var._key, ._data = var._value, ._len = std::strlen(var._value)};
         std::visit(
             overload{// call callback without userdata
-                     [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx._client, &data); },
+                     [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx._client, &var); },
                      // call callback with userdata
-                     [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx._client, &data, ctx._userp); }},
+                     [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx._client, &var, ctx._userp); }},
             ctx._cbk);
     }
     ctx._once = true;
@@ -344,26 +352,23 @@ auto flunder_client_private_t::get(std::string_view topic) //
         if (z_reply_is_ok(&reply))
         {
             const auto sample = z_reply_ok(&reply);
-            const char* keystr = z_keyexpr_to_string(sample.keyexpr);
+            char* const keyexpr = z_keyexpr_to_string(sample.keyexpr);
+            auto keystr = std::string{keyexpr};
+            free(keyexpr);
             if (cxx20::starts_with(keystr, '@'))
             {
                 continue;
             }
-            const auto time = static_cast<uint64_t>(
-                (sample.timestamp.time & 0xffffffff) +
-                (sample.timestamp.time / static_cast<double>(std::numeric_limits<uint32_t>::max())) * 1'000'000'000);
 
             vars.emplace_back(
-                std::string_view{keystr},
-                std::string_view(reinterpret_cast<const char*>(sample.payload.start), sample.payload.len),
+                std::move(keystr),
+                std::string(reinterpret_cast<const char*>(sample.payload.start), sample.payload.len),
                 to_string(
                     sample.encoding.prefix,
                     std::string_view{
                         reinterpret_cast<const char*>(sample.encoding.suffix.start),
                         sample.encoding.suffix.len}),
-                stringify(time));
-
-            free(const_cast<char*>(keystr));
+                stringify(ntp64_to_unix_time(sample.timestamp.time)));
         }
     }
 
@@ -382,6 +387,30 @@ auto flunder_client_private_t::erase(std::string_view topic) //
     const auto res = z_delete(z_session_loan(&_z_session), z_keyexpr(keyexpr), &options);
 
     return (res == 1) ? 0 : -1;
+}
+
+auto ntp64_to_unix_time(std::uint64_t ntp_time) //
+    -> uint64_t
+{
+    //           ntp 64-bit time
+    // byte    7        6        5        4
+    //  -------- -------- -------- --------
+    // |             seconds               |
+    //  -------- -------- -------- --------
+    //
+    // byte    3        2        1        0
+    //  -------- -------- -------- --------
+    // |            fractions              |
+    //  -------- -------- -------- --------
+    //
+    // 1 fraction == 1/2^32 seconds (approx 232 ps)
+
+    const auto seconds = ntp_time >> 32;
+    const auto fractions = static_cast<double>(ntp_time & 0xffffffff);
+    const auto unix_time =
+        static_cast<uint64_t>((seconds + (fractions / std::numeric_limits<std::uint32_t>::max())) * 1'000'000'000);
+
+    return unix_time;
 }
 
 } // namespace Private

@@ -55,12 +55,12 @@ auto module_data_layer_private_t::do_browse(std::string_view path, json_t& respo
     response["data"] = json_t::array();
     for (decltype(auto) it = vars.cbegin(); it != vars.cend(); ++it)
     {
-        auto data = json_t{};
-        data["key"] = std::string{it->_key};
-        data["value"] = std::string{it->_value};
-        data["encoding"] = std::string{it->_encoding};
-        data["timestamp"] = std::string{it->_timestamp};
-        response["data"].push_back(data);
+        response["data"].push_back({
+            {"key", it->topic()},
+            {"value", it->value()},
+            {"encoding", it->encoding()},
+            {"timestamp", it->timestamp()},
+        });
     }
 
     return crow::status::OK;

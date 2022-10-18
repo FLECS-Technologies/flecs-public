@@ -17,40 +17,78 @@
 
 #ifdef __cplusplus
 
+#include <cstdlib>
+#include <string>
 #include <string_view>
+#include <variant>
 
 namespace FLECS {
-extern "C" {
-#endif // __cplusplus
 
-struct flunder_variable_t
+class flunder_variable_t
 {
-#ifdef __cplusplus
-    flunder_variable_t();
-    flunder_variable_t(
-        std::string_view key, std::string_view value, std::string_view encoding, std::string_view timestamp);
-    flunder_variable_t(const flunder_variable_t& other);
-    flunder_variable_t(flunder_variable_t&& other);
-    flunder_variable_t operator=(flunder_variable_t other);
-    ~flunder_variable_t();
+public:
+    FLECS_EXPORT flunder_variable_t();
 
-    friend void swap(flunder_variable_t& lhs, flunder_variable_t& rhs);
-#endif //__cplusplus
-    char* _key;
-    char* _value;
-    char* _encoding;
-    char* _timestamp;
+    FLECS_EXPORT flunder_variable_t(std::string topic, std::string value, std::string encoding, std::string timestamp);
+    FLECS_EXPORT flunder_variable_t(const char* topic, const char* value, const char* encoding, const char* timestamp);
+
+    FLECS_EXPORT auto topic() const noexcept //
+        -> std::string_view;
+    FLECS_EXPORT auto value() const noexcept //
+        -> std::string_view;
+    FLECS_EXPORT auto len() const noexcept //
+        -> std::size_t;
+    FLECS_EXPORT auto encoding() const noexcept //
+        -> std::string_view;
+    FLECS_EXPORT auto timestamp() const noexcept //
+        -> std::string_view;
+
+    FLECS_EXPORT auto own() //
+        -> void;
+    FLECS_EXPORT auto is_owned() const noexcept //
+        -> bool;
+
+private:
+    std::variant<std::string_view, std::string> _topic;
+    std::variant<std::string_view, std::string> _value;
+    std::variant<std::string_view, std::string> _encoding;
+    std::variant<std::string_view, std::string> _timestamp;
 };
 
-struct flunder_variable_t* flunder_variable_new(
+} // namespace FLECS
+
+#else // __cplusplus
+
+#include <stdbool.h>
+#include <stdlib.h>
+
+typedef struct flunder_variable_t flunder_variable_t;
+
+#endif //__cplusplus
+
+#ifdef __cplusplus
+extern "C" {
+
+using flunder_variable_t = FLECS::flunder_variable_t;
+#endif //__cplusplus
+
+FLECS_EXPORT flunder_variable_t* flunder_variable_new(
     const char* key, const char* value, const char* encoding, const char* timestamp);
-struct flunder_variable_t* flunder_variable_clone(const struct flunder_variable_t* other);
-struct flunder_variable_t* flunder_variable_move(struct flunder_variable_t* other);
-void flunder_variable_destroy(struct flunder_variable_t* var);
+
+FLECS_EXPORT flunder_variable_t* flunder_variable_clone(const flunder_variable_t* other);
+
+FLECS_EXPORT flunder_variable_t* flunder_variable_move(flunder_variable_t* other);
+
+FLECS_EXPORT const char* flunder_variable_topic(const flunder_variable_t* var);
+FLECS_EXPORT const char* flunder_variable_value(const flunder_variable_t* var);
+FLECS_EXPORT size_t flunder_variable_len(const flunder_variable_t* var);
+FLECS_EXPORT const char* flunder_variable_encoding(const flunder_variable_t* var);
+FLECS_EXPORT const char* flunder_variable_timestamp(const flunder_variable_t* var);
+
+FLECS_EXPORT void flunder_variable_destroy(flunder_variable_t* var);
 
 #ifdef __cplusplus
 } // extern "C"
-} // namespace FLECS
 #endif // __cplusplus
 
 #endif // ABC7B599_2593_43CC_856A_CDB2D9CF3D01
