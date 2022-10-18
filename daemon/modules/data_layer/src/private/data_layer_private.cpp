@@ -42,24 +42,22 @@ auto module_data_layer_private_t::do_browse(std::string_view path, json_t& respo
 {
     response["additionalInfo"] = "";
 
-    const auto res = _client.get(path.empty() ? "**" : path);
+    const auto [res, vars] = _client.get(path.empty() ? "**" : path);
 
-    if (std::get<0>(res) != 0)
+    if (res != 0)
     {
         response["additionalInfo"] = "Could not get data from client";
         return crow::status::INTERNAL_SERVER_ERROR;
     }
 
-    decltype(auto) vars = std::get<1>(res);
-
     response["data"] = json_t::array();
     for (decltype(auto) it = vars.cbegin(); it != vars.cend(); ++it)
     {
-        response["data"].push_back({
-            {"key", it->topic()},
-            {"value", it->value()},
-            {"encoding", it->encoding()},
-            {"timestamp", it->timestamp()},
+        response["data"].push_back(json_t{
+            {"key", std::string{it->topic()}},
+            {"value", std::string{it->value()}},
+            {"encoding", std::string{it->encoding()}},
+            {"timestamp", std::string{it->timestamp()}},
         });
     }
 
