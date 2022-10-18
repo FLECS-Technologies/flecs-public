@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.13)
 project(FLECS)
 
 # set version
-set(VERSION 1.4.1-porpoise)
+set(VERSION 1.5.0-porpoise)
 add_definitions(-DFLECS_VERSION="${VERSION}")
 
 set(CMAKE_MODULE_PATH
@@ -43,8 +43,9 @@ execute_process(
     ERROR_QUIET
     RESULT_VARIABLE CCACHE_FOUND
 )
-if (CCACHE_FOUND EQUAL 0)
-set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
+
+if(CCACHE_FOUND EQUAL 0)
+    set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
 endif()
 
 set(BOOST_ROOT /opt/boost_1_79_0)
@@ -74,10 +75,10 @@ if("${MACHINE}" MATCHES ".*x86_64.*")
     set(ARCH amd64)
     set(DOCKER_ARCH linux/amd64)
 elseif("${MACHINE}" STREQUAL arm-linux-gnueabihf)
-	set(ARCH armhf)
+    set(ARCH armhf)
     set(DOCKER_ARCH linux/arm/v7)
 elseif("${MACHINE}" STREQUAL aarch64-linux-gnu)
-	set(ARCH arm64)
+    set(ARCH arm64)
     set(DOCKER_ARCH linux/arm64)
 else()
     message(FATAL_ERROR "Could not determine architecture for ${MACHINE}")
