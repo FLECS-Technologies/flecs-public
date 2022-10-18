@@ -19,78 +19,145 @@
 
 namespace FLECS {
 
-flunder_variable_t::flunder_variable_t()
-    : _key{}
+/** @todo */
+template <class... Ts>
+struct overload : Ts...
+{
+    using Ts::operator()...;
+};
+template <class... Ts>
+overload(Ts...) -> overload<Ts...>;
+
+FLECS_EXPORT flunder_variable_t::flunder_variable_t()
+    : _topic{}
     , _value{}
     , _encoding{}
     , _timestamp{}
 {}
 
-flunder_variable_t::flunder_variable_t(
-    std::string_view key, std::string_view value, std::string_view encoding, std::string_view timestamp)
-    : _key{new char[key.length() + 1]()}
-    , _value{new char[value.length() + 1]()}
-    , _encoding{new char[encoding.length() + 1]()}
-    , _timestamp{new char[timestamp.length() + 1]()}
-{
-    std::strncpy(_key, key.data(), key.length());
-    std::strncpy(_value, value.data(), value.length());
-    std::strncpy(_encoding, encoding.data(), encoding.length());
-    std::strncpy(_timestamp, timestamp.data(), timestamp.length());
-}
-
-flunder_variable_t::flunder_variable_t(const flunder_variable_t& other)
-    : flunder_variable_t{other._key, other._value, other._encoding, other._timestamp}
+FLECS_EXPORT flunder_variable_t::flunder_variable_t(
+    std::string key, std::string value, std::string encoding, std::string timestamp)
+    : _topic(std::move(key))
+    , _value(std::move(value))
+    , _encoding(std::move(encoding))
+    , _timestamp(std::move(timestamp))
 {}
 
-flunder_variable_t::flunder_variable_t(flunder_variable_t&& other)
-    : flunder_variable_t{}
+FLECS_EXPORT flunder_variable_t::flunder_variable_t(
+    const char* key, const char* value, const char* encoding, const char* timestamp)
+    : _topic(std::string_view{key})
+    , _value(std::string_view{value})
+    , _encoding(std::string_view{encoding})
+    , _timestamp(std::string_view{timestamp})
+{}
+
+template <typename... Ts>
+auto as_string_view(std::variant<Ts...> var) //
+    -> std::string_view
 {
-    swap(*this, other);
+    return std::visit(
+        overload{
+            [&](const std::string& str) -> std::string_view { return str; },
+            [&](const std::string_view sv) -> std::string_view { return sv; }},
+        var);
 }
 
-flunder_variable_t flunder_variable_t::operator=(flunder_variable_t other)
+FLECS_EXPORT auto flunder_variable_t::topic() const noexcept //
+    -> std::string_view
 {
-    swap(*this, other);
-    return *this;
+    return as_string_view(_topic);
 }
 
-flunder_variable_t::~flunder_variable_t()
+FLECS_EXPORT auto flunder_variable_t::value() const noexcept //
+    -> std::string_view
 {
-    delete[] _key;
-    delete[] _value;
-    delete[] _encoding;
-    delete[] _timestamp;
+    return as_string_view(_topic);
 }
 
-void swap(flunder_variable_t& lhs, flunder_variable_t& rhs)
+FLECS_EXPORT auto flunder_variable_t::len() const noexcept //
+    -> std::size_t
 {
-    using std::swap;
-    swap(lhs._key, rhs._key);
-    swap(lhs._value, rhs._value);
-    swap(lhs._encoding, rhs._encoding);
-    swap(lhs._timestamp, rhs._timestamp);
+    return value().size();
 }
 
-flunder_variable_t* flunder_variable_new(
+FLECS_EXPORT auto flunder_variable_t::encoding() const noexcept //
+    -> std::string_view
+{
+    return as_string_view(_encoding);
+}
+
+FLECS_EXPORT auto flunder_variable_t::timestamp() const noexcept //
+    -> std::string_view
+{
+    return as_string_view(_timestamp);
+}
+
+FLECS_EXPORT auto flunder_variable_t::own() //
+    -> void
+{
+    if (!is_owned())
+    {
+        _topic = std::string{std::get<std::string_view>(_topic)};
+        _value = std::string{std::get<std::string_view>(_value)};
+        _encoding = std::string{std::get<std::string_view>(_encoding)};
+        _timestamp = std::string{std::get<std::string_view>(_timestamp)};
+    }
+}
+
+FLECS_EXPORT auto flunder_variable_t::is_owned() const noexcept //
+    -> bool
+{
+    return std::holds_alternative<std::string>(_topic);
+}
+
+} // namespace FLECS
+
+extern "C" {
+
+FLECS_EXPORT flunder_variable_t* flunder_variable_new(
     const char* key, const char* value, const char* encoding, const char* timestamp)
 {
     return new flunder_variable_t{key, value, encoding, timestamp};
 }
 
-flunder_variable_t* flunder_variable_clone(const flunder_variable_t* other)
+FLECS_EXPORT flunder_variable_t* flunder_variable_clone(const flunder_variable_t* other)
 {
     return new flunder_variable_t{*other};
 }
 
-flunder_variable_t* flunder_variable_move(flunder_variable_t* other)
+FLECS_EXPORT flunder_variable_t* flunder_variable_move(flunder_variable_t* other)
 {
     return new flunder_variable_t{std::move(*other)};
 }
 
-void flunder_variable_destroy(flunder_variable_t* var)
+FLECS_EXPORT const char* flunder_variable_topic(const flunder_variable_t* var)
+{
+    return var->topic().data();
+}
+
+FLECS_EXPORT const char* flunder_variable_value(const flunder_variable_t* var)
+{
+    return var->value().data();
+}
+
+FLECS_EXPORT size_t flunder_variable_len(const flunder_variable_t* var)
+{
+    return var->len();
+}
+
+FLECS_EXPORT const char* flunder_variable_encoding(const flunder_variable_t* var)
+{
+    return var->encoding().data();
+}
+
+FLECS_EXPORT const char* flunder_variable_timestamp(const flunder_variable_t* var)
+{
+    return var->timestamp().data();
+}
+
+FLECS_EXPORT void flunder_variable_destroy(flunder_variable_t* var)
 {
     delete var;
 }
 
-} // namespace FLECS
+} // extern "C"

@@ -18,8 +18,10 @@ add_executable(FLECS.flunder.examples.c
     flunder_client_example.c
 )
 
+set_target_properties(FLECS.flunder.examples.c PROPERTIES LINKER_LANGUAGE C)
+
 set_target_properties(FLECS.flunder.examples.c PROPERTIES OUTPUT_NAME
-flunder_client_example_c
+    flunder_client_example_c
 )
 
 target_link_libraries(FLECS.flunder.examples.c PRIVATE

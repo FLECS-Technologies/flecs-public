@@ -26,9 +26,9 @@ void signal_handler(int signum)
     g_stop = 1;
 }
 
-void flunder_subscribe_callback(void* client, struct flunder_data_t* msg)
+void flunder_subscribe_callback(void* client, const flunder_variable_t* var)
 {
-    fprintf(stdout, "Received flunder message for topic %s on client %p\n", msg->_topic, client);
+    fprintf(stdout, "Received flunder message for topic %s on client %p\n", flunder_variable_topic(var), client);
 }
 
 int main(void)

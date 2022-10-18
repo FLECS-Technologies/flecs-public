@@ -111,6 +111,12 @@ private:
     std::map<std::string, subscribe_ctx_t> _subscriptions;
 };
 
+auto to_string(z_encoding_prefix_t prefix, std::string_view suffix) //
+    -> std::string;
+
+auto ntp64_to_unix_time(std::uint64_t ntp_time) //
+    -> uint64_t;
+
 } // namespace Private
 } // namespace FLECS
 
