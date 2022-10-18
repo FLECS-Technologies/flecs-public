@@ -43,7 +43,7 @@ static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
 
     const auto keyexpr = z_keyexpr_to_string(sample->keyexpr);
     const auto var = flunder_variable_t{
-        std::string{keyexpr},
+        std::string{"/"} + std::string{keyexpr},
         std::string{reinterpret_cast<const char*>(sample->payload.start), sample->payload.len},
         to_string(
             sample->encoding.prefix,
@@ -109,6 +109,7 @@ auto flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/) 
     auto config = z_config_default();
     zc_config_insert_json(z_config_loan(&config), Z_CONFIG_CONNECT_KEY, "tcp/flecs-flunder:7447");
     zc_config_insert_json(z_config_loan(&config), Z_CONFIG_MODE_KEY, "client");
+    zc_config_insert_json(z_config_loan(&config), "timestamping/enabled", "true");
 
     _z_session = z_open(z_move(config));
 
@@ -152,7 +153,7 @@ auto flunder_client_private_t::publish_int(
 {
     using std::operator""s;
 
-    auto suffix = is_signed ? "s"s : "u"s;
+    auto suffix = is_signed ? "+s"s : "+u"s;
     suffix += stringify(size * 8);
 
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_INTEGER, suffix.c_str()), value);
@@ -161,7 +162,7 @@ auto flunder_client_private_t::publish_int(
 auto flunder_client_private_t::publish_float(std::string_view topic, size_t size, const std::string& value) //
     -> int
 {
-    const auto size_str = stringify(size * 8);
+    const auto size_str = stringify("+", size * 8);
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_FLOAT, size_str.c_str()), value);
 }
 
@@ -353,9 +354,9 @@ auto flunder_client_private_t::get(std::string_view topic) //
         {
             const auto sample = z_reply_ok(&reply);
             char* const keyexpr = z_keyexpr_to_string(sample.keyexpr);
-            auto keystr = std::string{keyexpr};
+            auto keystr = std::string{"/"} + std::string{keyexpr};
             free(keyexpr);
-            if (cxx20::starts_with(keystr, '@'))
+            if (cxx20::starts_with(keystr, "/@"))
             {
                 continue;
             }

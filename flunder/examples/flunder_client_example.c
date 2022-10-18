@@ -28,7 +28,18 @@ void signal_handler(int signum)
 
 void flunder_subscribe_callback(void* client, const flunder_variable_t* var)
 {
-    fprintf(stdout, "Received flunder message for topic %s on client %p\n", flunder_variable_topic(var), client);
+    fprintf(stdout, "Received flunder message on client %p!\n"
+        "\ttopic:     %s\n"
+        "\tlength:    %zu\n"
+        "\tvalue:     %s\n"
+        "\tencoding:  %s\n"
+        "\ttimestamp: %s ns\n",
+        client,
+        flunder_variable_topic(var),
+        flunder_variable_len(var),
+        flunder_variable_value(var),
+        flunder_variable_encoding(var),
+        flunder_variable_timestamp(var));
 }
 
 int main(void)
@@ -40,13 +51,16 @@ int main(void)
 
     flunder_connect(flunder_client, FLECS_FLUNDER_HOST, FLECS_FLUNDER_PORT);
     flunder_add_mem_storage(flunder_client, "flunder-c", "/flecs/flunder/**");
-    flunder_subscribe(flunder_client, "/flecs/flunder/c", &flunder_subscribe_callback);
+    flunder_subscribe(flunder_client, "/flecs/flunder/c/int", &flunder_subscribe_callback);
+    flunder_subscribe(flunder_client, "/flecs/flunder/c/float", &flunder_subscribe_callback);
     flunder_subscribe(flunder_client, "/flecs/flunder/external", &flunder_subscribe_callback);
 
     while (!g_stop)
     {
         int i = 1234;
-        flunder_publish_int(flunder_client, "/flecs/flunder/c", i);
+        float f = 3.14159;
+        flunder_publish_int(flunder_client, "/flecs/flunder/c/int", i);
+        flunder_publish_float(flunder_client, "/flecs/flunder/c/float", f);
         sleep(5);
     }
 

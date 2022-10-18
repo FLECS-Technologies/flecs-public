@@ -52,13 +52,13 @@ FLECS_EXPORT flunder_variable_t::flunder_variable_t(
 {}
 
 template <typename... Ts>
-auto as_string_view(std::variant<Ts...> var) //
+auto as_string_view(const std::variant<Ts...>& var) //
     -> std::string_view
 {
     return std::visit(
         overload{
-            [&](const std::string& str) -> std::string_view { return str; },
-            [&](const std::string_view sv) -> std::string_view { return sv; }},
+            [](const std::string& str) -> std::string_view { return str; },
+            [](const std::string_view& sv) -> std::string_view { return sv; }},
         var);
 }
 
@@ -71,7 +71,7 @@ FLECS_EXPORT auto flunder_variable_t::topic() const noexcept //
 FLECS_EXPORT auto flunder_variable_t::value() const noexcept //
     -> std::string_view
 {
-    return as_string_view(_topic);
+    return as_string_view(_value);
 }
 
 FLECS_EXPORT auto flunder_variable_t::len() const noexcept //
