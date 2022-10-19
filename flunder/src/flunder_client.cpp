@@ -128,13 +128,13 @@ auto flunder_client_t::unsubscribe(std::string_view topic) //
 auto flunder_client_t::add_mem_storage(std::string_view name, std::string_view topic) //
     -> int
 {
-    return _impl->add_mem_storage(name, topic);
+    return _impl->add_mem_storage(std::string{name}, topic);
 }
 
 auto flunder_client_t::remove_mem_storage(std::string_view name) //
     -> int
 {
-    return _impl->remove_mem_storage(name);
+    return _impl->remove_mem_storage(std::string{name});
 }
 
 auto flunder_client_t::get(std::string_view topic) -> std::tuple<int, std::vector<flunder_variable_t>>
