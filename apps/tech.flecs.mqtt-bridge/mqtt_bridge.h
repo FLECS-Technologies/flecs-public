@@ -4,7 +4,9 @@
 #include <flunder/flunder_client.h>
 #include <mqtt/mqtt_client.h>
 
-#include <string>
+#include <memory>
+#include <set>
+#include <thread>
 
 namespace FLECS {
 
@@ -16,37 +18,45 @@ public:
     mqtt_bridge_t(mqtt_bridge_t&& other) noexcept;
     mqtt_bridge_t& operator=(const mqtt_bridge_t&) = delete;
     mqtt_bridge_t& operator=(mqtt_bridge_t&& other) noexcept;
-    ~mqtt_bridge_t();
+    ~mqtt_bridge_t() = default;
 
-    int loop();
-    void expire_values();
+    auto exec() //
+        -> int;
 
-    void connect_mqtt();
-    void connect_flunder();
+    auto mqtt_client() const noexcept //
+        -> const mqtt_client_t&
+    {
+        return *_mqtt_client.get();
+    }
 
-    void disconnect_mqtt();
-    void disconnect_flunder();
-
-    mqtt_client_t& mqtt_client() noexcept { return _mqtt_client; }
-    flunder_client_t& flunder_client() noexcept { return _flunder_client; }
-
-    bool mqtt_connected() const noexcept { return _mqtt_connected; }
-    bool flunder_connected() const noexcept { return _flunder_connected; }
-
-    void mqtt_connected(bool mqtt_connected) { _mqtt_connected = mqtt_connected; }
-    void flunder_connected(bool flunder_connected) { _flunder_connected = flunder_connected; }
+    auto flunder_client() const noexcept //
+        -> const flunder_client_t&
+    {
+        return *_flunder_client.get();
+    }
 
 private:
-    static void mqtt_receive_callback(FLECS::mqtt_client_t* client, FLECS::mqtt_message_t* msg, void* userp);
-    static void mqtt_disconnect_callback(FLECS::mqtt_client_t* client, void* userp);
-
     friend void swap(mqtt_bridge_t& lhs, mqtt_bridge_t& rhs) noexcept;
 
-    bool _mqtt_connected;
-    bool _flunder_connected;
+    auto mqtt_loop() //
+        -> void;
+    auto flunder_loop() //
+        -> void;
 
-    mqtt_client_t _mqtt_client;
-    flunder_client_t _flunder_client;
+    static auto flunder_receive_callback(flunder_client_t*, const flunder_variable_t*, const void*) //
+        -> void;
+
+    static auto mqtt_receive_callback(mqtt_client_t*, mqtt_message_t*, void*) //
+        -> void;
+    static auto mqtt_disconnect_callback(mqtt_client_t*, void*) //
+        -> void;
+
+    std::unique_ptr<mqtt_client_t> _mqtt_client;
+    std::unique_ptr<flunder_client_t> _flunder_client;
+    std::set<int> _pending_mids;
+
+    std::thread _mqtt_thread;
+    std::thread _flunder_thread;
 };
 
 } // namespace FLECS
