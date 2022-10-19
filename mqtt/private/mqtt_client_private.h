@@ -53,7 +53,7 @@ public:
 
     /*! @brief returns internal flag that keeps track of broker connection *
      */
-    bool is_connected();
+    bool is_connected() const noexcept;
 
     /*! @brief Forwards to mosquitto_subscribe(_mosq, nullptr, sub, qos)
      */
@@ -63,9 +63,9 @@ public:
      */
     int unsubscribe(const char* sub);
 
-    /*! @brief Forwards to mosquitto_publish(_mosq, nullptr, topic, payloadlen, payload, qos, retain)
+    /*! @brief Forwards to mosquitto_publish(_mosq, mid, topic, payloadlen, payload, qos, retain)
      */
-    int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain);
+    int publish(const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const;
 
     int receive_callback_set(mqtt_client_t::mqtt_receive_callback_t cbk, void* client);
     int receive_callback_set(mqtt_client_t::mqtt_receive_callback_userp_t cbk, void* client, void* userp);

@@ -88,7 +88,7 @@ int mqtt_client_private_t::disconnect()
     return mosquitto_disconnect(_mosq);
 }
 
-bool mqtt_client_private_t::is_connected()
+bool mqtt_client_private_t::is_connected() const noexcept
 {
     return _connected;
 }
@@ -103,9 +103,10 @@ int mqtt_client_private_t::unsubscribe(const char* sub)
     return mosquitto_unsubscribe(_mosq, nullptr, sub);
 }
 
-int mqtt_client_private_t::publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain)
+int mqtt_client_private_t::publish(
+    const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const
 {
-    return mosquitto_publish(_mosq, nullptr, topic, payloadlen, (const void*)payload, qos, retain);
+    return mosquitto_publish(_mosq, mid, topic, payloadlen, (const void*)payload, qos, retain);
 }
 
 int mqtt_client_private_t::receive_callback_set(mqtt_client_t::mqtt_receive_callback_t cbk, void* client)

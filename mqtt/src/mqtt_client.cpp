@@ -61,7 +61,7 @@ int mqtt_client_t::disconnect()
     return _impl->disconnect();
 }
 
-bool mqtt_client_t::is_connected()
+bool mqtt_client_t::is_connected() const noexcept
 {
     return _impl->is_connected();
 }
@@ -76,9 +76,14 @@ int mqtt_client_t::unsubscribe(const char* sub)
     return _impl->unsubscribe(sub);
 }
 
-int mqtt_client_t::publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain)
+int mqtt_client_t::publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain) const
 {
-    return _impl->publish(topic, payloadlen, payload, qos, retain);
+    return _impl->publish(topic, nullptr, payloadlen, payload, qos, retain);
+}
+
+int mqtt_client_t::publish(const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const
+{
+    return _impl->publish(topic, mid, payloadlen, payload, qos, retain);
 }
 
 int mqtt_client_t::receive_callback_set(mqtt_receive_callback_t cbk)
@@ -160,9 +165,15 @@ FLECS_EXPORT int flecs_mqtt_unsubscribe(void* mqtt, const char* sub)
 }
 
 FLECS_EXPORT int flecs_mqtt_publish(
-    void* mqtt, const char* topic, int payloadlen, const void* payload, int qos, bool retain)
+    const void* mqtt, const char* topic, int payloadlen, const void* payload, int qos, bool retain)
 {
-    return static_cast<FLECS::mqtt_client_t*>(mqtt)->publish(topic, payloadlen, payload, qos, retain);
+    return static_cast<const FLECS::mqtt_client_t*>(mqtt)->publish(topic, payloadlen, payload, qos, retain);
+}
+
+FLECS_EXPORT int flecs_mqtt_publish_mid(
+    const void* mqtt, const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain)
+{
+    return static_cast<const FLECS::mqtt_client_t*>(mqtt)->publish(topic, mid, payloadlen, payload, qos, retain);
 }
 
 FLECS_EXPORT int flecs_mqtt_receive_callback_set(void* mqtt, flecs_mqtt_callback cbk, void* userp)

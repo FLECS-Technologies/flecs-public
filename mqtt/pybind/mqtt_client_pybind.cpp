@@ -14,9 +14,17 @@ PYBIND11_MODULE(mqtt_client, m)
         .def("connect", (int(FLECS::mqtt_client_t::*)(const char*, int, int))(&FLECS::mqtt_client_t::connect))
         .def("reconnect", &FLECS::mqtt_client_t::reconnect)
         .def("disconnect", &FLECS::mqtt_client_t::disconnect)
+        .def("is_connected", &FLECS::mqtt_client_t::is_connected)
         .def("subscribe", &FLECS::mqtt_client_t::subscribe)
         .def("unsubscribe", &FLECS::mqtt_client_t::unsubscribe)
-        .def("publish", &FLECS::mqtt_client_t::publish)
+        .def(
+            "publish",
+            (int(FLECS::mqtt_client_t::*)(const char*, int, const void*, int, bool)
+                 const)(&FLECS::mqtt_client_t::publish))
+        .def(
+            "publish",
+            (int(FLECS::mqtt_client_t::*)(const char*, int*, int, const void*, int, bool)
+                 const)(&FLECS::mqtt_client_t::publish))
         .def("receive_callback_set", (receive_callback_set_t)(&FLECS::mqtt_client_t::receive_callback_set))
         .def("receive_callback_clear", &FLECS::mqtt_client_t::receive_callback_clear);
 }
