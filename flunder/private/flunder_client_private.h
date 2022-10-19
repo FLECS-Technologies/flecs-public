@@ -18,10 +18,10 @@
 #include <zenoh.h>
 
 #include <map>
+#include <set>
 #include <string>
 #include <tuple>
 #include <variant>
-#include <vector>
 
 #include "flunder_client.h"
 #include "util/json/json.h"
@@ -73,10 +73,10 @@ public:
     FLECS_EXPORT auto unsubscribe(std::string_view topic) //
         -> int;
 
-    FLECS_EXPORT auto add_mem_storage(std::string_view topic, std::string_view name) //
+    FLECS_EXPORT auto add_mem_storage(std::string topic, std::string_view name) //
         -> int;
 
-    FLECS_EXPORT auto remove_mem_storage(std::string_view name) //
+    FLECS_EXPORT auto remove_mem_storage(std::string name) //
         -> int;
 
     FLECS_EXPORT auto get(std::string_view topic) //
@@ -105,7 +105,7 @@ private:
         flunder_client_t* client, std::string_view topic, subscribe_cbk_t cbk, const void* userp) //
         -> int;
 
-    std::vector<std::string> _mem_storages;
+    std::set<std::string> _mem_storages;
 
     z_owned_session_t _z_session;
     std::map<std::string, subscribe_ctx_t> _subscriptions;

@@ -282,9 +282,14 @@ auto flunder_client_private_t::unsubscribe(std::string_view topic) //
     return 0;
 }
 
-auto flunder_client_private_t::add_mem_storage(std::string_view name, std::string_view topic) //
+auto flunder_client_private_t::add_mem_storage(std::string name, std::string_view topic) //
     -> int
 {
+    if (_mem_storages.count(name))
+    {
+        return -1;
+    }
+
     const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
 
     auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
@@ -299,14 +304,19 @@ auto flunder_client_private_t::add_mem_storage(std::string_view name, std::strin
         return -1;
     }
 
-    _mem_storages.emplace_back(name);
+    _mem_storages.insert(std::move(name));
 
     return 0;
 }
 
-auto flunder_client_private_t::remove_mem_storage(std::string_view name) //
+auto flunder_client_private_t::remove_mem_storage(std::string name) //
     -> int
 {
+    if (!_mem_storages.count(name))
+    {
+        return -1;
+    }
+
     auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
                             .append("/@/router/local/config/plugins/storage_manager/storages/")
                             .append(name)};
@@ -317,9 +327,7 @@ auto flunder_client_private_t::remove_mem_storage(std::string_view name) //
         return -1;
     }
 
-    _mem_storages.erase(
-        std::remove_if(_mem_storages.begin(), _mem_storages.end(), [&](const std::string& str) { return str == name; }),
-        _mem_storages.end());
+    _mem_storages.erase(name);
 
     return 0;
 }
