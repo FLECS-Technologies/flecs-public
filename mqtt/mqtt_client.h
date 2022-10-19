@@ -134,7 +134,7 @@ public:
      *      true if client is connected to a broker
      *      false otherwise
      */
-    FLECS_EXPORT bool is_connected();
+    FLECS_EXPORT bool is_connected() const noexcept;
 
     /*! @brief Subscribe to an MQTT topic
      *
@@ -178,7 +178,21 @@ public:
      *
      * @return MQTT error code
      */
-    FLECS_EXPORT int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain);
+    FLECS_EXPORT int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain) const;
+
+    /*! @brief Publish a topic on the currently connected MQTT broker
+     *
+     * @param[in] topic Name of the topic to publish to
+     * @param[out] mid Message ID which has been assigned to this message
+     * @param[in] payloadlen Size of the payload in bytes
+     * @param[in] payload Pointer to the payload; must be valid if payloadlen > 0
+     * @param[in] qos Quality-of-Service to use for this message
+     * @param[in] retain True if message should be retained in the broker
+     *
+     * @return MQTT error code
+     */
+    FLECS_EXPORT int publish(
+        const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const;
 
     /*! @brief Type for MQTT message callbacks
      *
@@ -292,7 +306,10 @@ FLECS_EXPORT int flecs_mqtt_subscribe(void* mqtt, const char* sub, int qos);
 FLECS_EXPORT int flecs_mqtt_unsubscribe(void* mqtt, const char* sub);
 
 FLECS_EXPORT int flecs_mqtt_publish(
-    void* mqtt, const char* topic, int payloadlen, const void* payload, int qos, bool retain);
+    const void* mqtt, const char* topic, int payloadlen, const void* payload, int qos, bool retain);
+
+FLECS_EXPORT int flecs_mqtt_publish_mid(
+    const void* mqtt, const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain);
 
 FLECS_EXPORT int flecs_mqtt_receive_callback_set(void* mqtt, flecs_mqtt_callback cbk, void* userp);
 
