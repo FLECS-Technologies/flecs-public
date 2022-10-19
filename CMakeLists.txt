@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.13)
 project(FLECS)
 
 # set version
-set(VERSION 1.5.0-porpoise)
+set(VERSION 1.5.1-porpoise)
 add_definitions(-DFLECS_VERSION="${VERSION}")
 
 set(CMAKE_MODULE_PATH
