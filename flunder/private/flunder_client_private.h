@@ -44,19 +44,24 @@ public:
     FLECS_EXPORT auto disconnect() //
         -> int;
 
-    FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) //
+    FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) const //
         -> int;
 
-    FLECS_EXPORT auto publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+    FLECS_EXPORT auto publish_int(
+        std::string_view topic, size_t size, bool is_signed, const std::string& value) const //
         -> int;
 
-    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) //
+    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) const //
         -> int;
 
-    FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) //
+    FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) const //
         -> int;
 
-    FLECS_EXPORT auto publish_raw(std::string_view topic, const void* payload, size_t payloadlen) //
+    FLECS_EXPORT auto publish_raw(std::string_view topic, const void* payload, size_t payloadlen) const //
+        -> int;
+
+    FLECS_EXPORT auto publish_custom(
+        std::string_view topic, const void* payload, size_t payloadlen, std::string_view encoding) const //
         -> int;
 
     FLECS_EXPORT auto subscribe(
@@ -79,7 +84,7 @@ public:
     FLECS_EXPORT auto remove_mem_storage(std::string name) //
         -> int;
 
-    FLECS_EXPORT auto get(std::string_view topic) //
+    FLECS_EXPORT auto get(std::string_view topic) const //
         -> std::tuple<int, std::vector<flunder_variable_t>>;
 
     FLECS_EXPORT auto erase(std::string_view topic) //
@@ -98,7 +103,7 @@ public:
     };
 
 private:
-    FLECS_EXPORT auto publish(std::string_view topic, z_encoding_t encoding, const std::string& value) //
+    FLECS_EXPORT auto publish(std::string_view topic, z_encoding_t encoding, const std::string& value) const //
         -> int;
 
     FLECS_EXPORT auto subscribe(

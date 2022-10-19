@@ -59,52 +59,66 @@ auto flunder_client_t::disconnect() //
     return _impl->disconnect();
 }
 
-auto flunder_client_t::publish(std::string_view topic, bool value) //
+auto flunder_client_t::publish(std::string_view topic, bool value) const //
     -> int
 {
     return publish_bool(topic, value ? "true" : "false");
 }
 
-auto flunder_client_t::publish(std::string_view topic, const char* value) //
+auto flunder_client_t::publish(std::string_view topic, const char* value) const //
     -> int
 {
     return publish_string(topic, std::string{value});
 }
 
-auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len) //
+auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len) const //
     -> int
 {
     return publish_raw(topic, data, len);
 }
 
-auto flunder_client_t::publish_bool(std::string_view topic, const std::string& value) //
+auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
+    -> int
+{
+    return publish_custom(topic, data, len, encoding);
+}
+
+auto flunder_client_t::publish_bool(std::string_view topic, const std::string& value) const //
     -> int
 {
     return _impl->publish_bool(topic, value);
 }
 
-auto flunder_client_t::publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+auto flunder_client_t::publish_int(
+    std::string_view topic, size_t size, bool is_signed, const std::string& value) const //
     -> int
 {
     return _impl->publish_int(topic, size, is_signed, value);
 }
 
-auto flunder_client_t::publish_float(std::string_view topic, size_t size, const std::string& value) //
+auto flunder_client_t::publish_float(std::string_view topic, size_t size, const std::string& value) const //
     -> int
 {
     return _impl->publish_float(topic, size, value);
 }
 
-auto flunder_client_t::publish_string(std::string_view topic, const std::string& value) //
+auto flunder_client_t::publish_string(std::string_view topic, const std::string& value) const //
     -> int
 {
     return _impl->publish_string(topic, value);
 }
 
-auto flunder_client_t::publish_raw(std::string_view topic, const void* data, size_t len) //
+auto flunder_client_t::publish_raw(std::string_view topic, const void* data, size_t len) const //
     -> int
 {
     return _impl->publish_raw(topic, data, len);
+}
+
+auto flunder_client_t::publish_custom(
+    std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
+    -> int
+{
+    return _impl->publish_custom(topic, data, len, encoding);
 }
 
 auto flunder_client_t::subscribe(std::string_view topic, subscribe_cbk_t cbk) //
@@ -137,7 +151,8 @@ auto flunder_client_t::remove_mem_storage(std::string_view name) //
     return _impl->remove_mem_storage(std::string{name});
 }
 
-auto flunder_client_t::get(std::string_view topic) -> std::tuple<int, std::vector<flunder_variable_t>>
+auto flunder_client_t::get(std::string_view topic) const //
+    -> std::tuple<int, std::vector<flunder_variable_t>>
 {
     return _impl->get(topic);
 }
@@ -227,6 +242,13 @@ FLECS_EXPORT int flunder_publish_string(void* flunder, const char* topic, const 
 FLECS_EXPORT int flunder_publish_raw(void* flunder, const char* topic, const void* value, size_t payloadlen)
 {
     return static_cast<FLECS::flunder_client_t*>(flunder)->publish(topic, value, payloadlen);
+}
+
+FLECS_EXPORT int flunder_publish_custom(
+    void* flunder, const char* topic, const void* value, size_t payloadlen, const char* encoding)
+{
+    return static_cast<FLECS::flunder_client_t*>(flunder)
+        ->publish(topic, value, payloadlen, std::string_view{encoding});
 }
 
 FLECS_EXPORT int flunder_add_mem_storage(void* flunder, const char* name, const char* topic)
