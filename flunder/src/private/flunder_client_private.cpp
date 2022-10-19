@@ -64,12 +64,10 @@ static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
 auto to_string(z_encoding_prefix_t prefix, std::string_view suffix) //
     -> std::string
 {
-    using std::operator""s;
-
     const auto strings = std::map<z_encoding_prefix_t, std::string_view>{
         {Z_ENCODING_PREFIX_EMPTY, ""},
         {Z_ENCODING_PREFIX_APP_OCTET_STREAM, "application/octet-stream"},
-        {Z_ENCODING_PREFIX_APP_CUSTOM, "application/custom"},
+        {Z_ENCODING_PREFIX_APP_CUSTOM, "application/"},
         {Z_ENCODING_PREFIX_TEXT_PLAIN, "text/plain"},
         {Z_ENCODING_PREFIX_APP_PROPERTIES, "application/properties"},
         {Z_ENCODING_PREFIX_APP_JSON, "application/json"},
@@ -92,6 +90,51 @@ auto to_string(z_encoding_prefix_t prefix, std::string_view suffix) //
 
     const auto it = strings.find(prefix);
     return (it != strings.cend()) ? std::string{it->second.data()} + std::string{suffix} : std::string{suffix};
+}
+
+auto encoding_from_string(std::string_view encoding) //
+    -> std::tuple<z_encoding_prefix_t, std::string_view>
+{
+    const auto encodings = std::map<std::string_view, z_encoding_prefix_t>{
+        {"", Z_ENCODING_PREFIX_EMPTY},
+        {"application/octet-stream", Z_ENCODING_PREFIX_APP_OCTET_STREAM},
+        {"application/", Z_ENCODING_PREFIX_APP_CUSTOM},
+        {"text/plain", Z_ENCODING_PREFIX_TEXT_PLAIN},
+        {"application/properties", Z_ENCODING_PREFIX_APP_PROPERTIES},
+        {"application/json", Z_ENCODING_PREFIX_APP_JSON},
+        {"application/sql", Z_ENCODING_PREFIX_APP_SQL},
+        {"application/integer", Z_ENCODING_PREFIX_APP_INTEGER},
+        {"application/float", Z_ENCODING_PREFIX_APP_FLOAT},
+        {"application/xml", Z_ENCODING_PREFIX_APP_XML},
+        {"application/xhtml+xml", Z_ENCODING_PREFIX_APP_XHTML_XML},
+        {"application/x-www-form-urlencoded", Z_ENCODING_PREFIX_APP_X_WWW_FORM_URLENCODED},
+        {"text/json", Z_ENCODING_PREFIX_TEXT_JSON},
+        {"text/html", Z_ENCODING_PREFIX_TEXT_HTML},
+        {"text/xml", Z_ENCODING_PREFIX_TEXT_XML},
+        {"text/css", Z_ENCODING_PREFIX_TEXT_CSS},
+        {"text/csv", Z_ENCODING_PREFIX_TEXT_CSV},
+        {"text/javascript", Z_ENCODING_PREFIX_TEXT_JAVASCRIPT},
+        {"image/jpeg", Z_ENCODING_PREFIX_IMAGE_JPEG},
+        {"image/png", Z_ENCODING_PREFIX_IMAGE_PNG},
+        {"image/gif", Z_ENCODING_PREFIX_IMAGE_GIF},
+    };
+
+    const auto it = encodings.find(encoding);
+
+    if (it != encodings.cend())
+    {
+        return {it->second, std::string_view{}};
+    }
+
+    for (const auto& it : encodings)
+    {
+        if (!it.first.empty() && cxx20::starts_with(encoding, it.first))
+        {
+            return {it.second, encoding.substr(it.first.length())};
+        }
+    }
+
+    return {Z_ENCODING_PREFIX_EMPTY, encoding};
 }
 
 flunder_client_private_t::flunder_client_private_t()
@@ -141,14 +184,14 @@ auto flunder_client_private_t::disconnect() //
     return 0;
 }
 
-auto flunder_client_private_t::publish_bool(std::string_view topic, const std::string& value) //
+auto flunder_client_private_t::publish_bool(std::string_view topic, const std::string& value) const //
     -> int
 {
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, "bool"), value);
 }
 
 auto flunder_client_private_t::publish_int(
-    std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+    std::string_view topic, size_t size, bool is_signed, const std::string& value) const //
     -> int
 {
     using std::operator""s;
@@ -159,20 +202,20 @@ auto flunder_client_private_t::publish_int(
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_INTEGER, suffix.c_str()), value);
 }
 
-auto flunder_client_private_t::publish_float(std::string_view topic, size_t size, const std::string& value) //
+auto flunder_client_private_t::publish_float(std::string_view topic, size_t size, const std::string& value) const //
     -> int
 {
     const auto size_str = stringify("+", size * 8);
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_FLOAT, size_str.c_str()), value);
 }
 
-auto flunder_client_private_t::publish_string(std::string_view topic, const std::string& value) //
+auto flunder_client_private_t::publish_string(std::string_view topic, const std::string& value) const //
     -> int
 {
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_TEXT_PLAIN, nullptr), value);
 }
 
-auto flunder_client_private_t::publish_raw(std::string_view topic, const void* payload, size_t payloadlen) //
+auto flunder_client_private_t::publish_raw(std::string_view topic, const void* payload, size_t payloadlen) const //
     -> int
 {
     return publish(
@@ -181,7 +224,18 @@ auto flunder_client_private_t::publish_raw(std::string_view topic, const void* p
         std::string{reinterpret_cast<const char*>(payload), payloadlen});
 }
 
-auto flunder_client_private_t::publish(std::string_view topic, z_encoding_t encoding, const std::string& value) //
+auto flunder_client_private_t::publish_custom(
+    std::string_view topic, const void* payload, size_t payloadlen, std::string_view encoding) const //
+    -> int
+{
+    const auto [prefix, suffix] = encoding_from_string(encoding);
+    return publish(
+        topic,
+        z_encoding(prefix, suffix.data()),
+        std::string{reinterpret_cast<const char*>(payload), payloadlen});
+}
+
+auto flunder_client_private_t::publish(std::string_view topic, z_encoding_t encoding, const std::string& value) const //
     -> int
 {
     auto options = z_put_options_default();
@@ -332,7 +386,7 @@ auto flunder_client_private_t::remove_mem_storage(std::string name) //
     return 0;
 }
 
-auto flunder_client_private_t::get(std::string_view topic) //
+auto flunder_client_private_t::get(std::string_view topic) const //
     -> std::tuple<int, std::vector<flunder_variable_t>>
 {
     auto vars = std::vector<flunder_variable_t>{};
