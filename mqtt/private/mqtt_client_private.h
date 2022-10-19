@@ -51,6 +51,10 @@ public:
      */
     int disconnect();
 
+    /*! @brief returns internal flag that keeps track of broker connection *
+     */
+    bool is_connected();
+
     /*! @brief Forwards to mosquitto_subscribe(_mosq, nullptr, sub, qos)
      */
     int subscribe(const char* sub, int qos);
@@ -74,10 +78,12 @@ public:
 private:
     /*! Pointer to mosquitto MQTT implementation */
     mosquitto* _mosq;
+    /*! Flag to check if connected to a broker */
+    bool _connected;
 
     /*! Function pointer to receive callback */
-    using receive_cbk_t = std::variant<
-        std::nullptr_t, mqtt_client_t::mqtt_receive_callback_t, mqtt_client_t::mqtt_receive_callback_userp_t>;
+    using receive_cbk_t = std::
+        variant<std::nullptr_t, mqtt_client_t::mqtt_receive_callback_t, mqtt_client_t::mqtt_receive_callback_userp_t>;
     receive_cbk_t _rcv_cbk;
     /*! Pointer to mqtt_client_t associated with this instance */
     void* _rcv_cbk_client;
@@ -86,7 +92,9 @@ private:
 
     /*! Function pointer to disconnect callback */
     using disconnect_cbk_t = std::variant<
-        std::nullptr_t, mqtt_client_t::mqtt_disconnect_callback_t, mqtt_client_t::mqtt_disconnect_callback_userp_t>;
+        std::nullptr_t,
+        mqtt_client_t::mqtt_disconnect_callback_t,
+        mqtt_client_t::mqtt_disconnect_callback_userp_t>;
     disconnect_cbk_t _disconnect_cbk;
     /*! Pointer to mqtt_client_t tassociated with this instance */
     void* _disconnect_cbk_client;
@@ -95,11 +103,15 @@ private:
 
     /*! @brief Receive callback function registered with the underlying mosquitto client library.
      */
-    static void lib_receive_callback(mosquitto* _mosq, void* mqtt_client, const mosquitto_message* msg);
+    static void lib_receive_callback(mosquitto*, void*, const mosquitto_message*);
+
+    /*! @brief Connect callback function registered with the underlying mosquitto client library.
+     */
+    static void lib_connect_callback(mosquitto*, void*, int);
 
     /*! @brief Disconnect callback function registered with the underlying mosquitto client library.
      */
-    static void lib_disconnect_callback(mosquitto* _mosq, void* mqtt_client, int);
+    static void lib_disconnect_callback(mosquitto*, void*, int);
 };
 
 } // namespace Private

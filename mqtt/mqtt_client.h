@@ -128,6 +128,14 @@ public:
      */
     FLECS_EXPORT int disconnect();
 
+    /*! @brief Returns whether the client is connected to a broker
+     *
+     * @return bool
+     *      true if client is connected to a broker
+     *      false otherwise
+     */
+    FLECS_EXPORT bool is_connected();
+
     /*! @brief Subscribe to an MQTT topic
      *
      * @param[in] sub Pattern to subscribe to
@@ -276,6 +284,8 @@ FLECS_EXPORT int flecs_mqtt_connect(void* mqtt, const char* host, int port, int 
 FLECS_EXPORT int flecs_mqtt_reconnect(void* mqtt);
 
 FLECS_EXPORT int flecs_mqtt_disconnect(void* mqtt);
+
+FLECS_EXPORT bool flecs_mqtt_is_connected(void* mqtt);
 
 FLECS_EXPORT int flecs_mqtt_subscribe(void* mqtt, const char* sub, int qos);
 

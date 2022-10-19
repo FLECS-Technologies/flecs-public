@@ -59,7 +59,9 @@ mqtt_client_private_t::mqtt_client_private_t()
     _mosq = mosquitto_new(client_id.c_str(), true, this);
 
     mosquitto_message_callback_set(_mosq, &mqtt_client_private_t::lib_receive_callback);
+    mosquitto_connect_callback_set(_mosq, &mqtt_client_private_t::lib_connect_callback);
     mosquitto_disconnect_callback_set(_mosq, &mqtt_client_private_t::lib_disconnect_callback);
+    mosquitto_reconnect_delay_set(_mosq, 1, 10, true);
 
     mosquitto_loop_start(_mosq);
 }
@@ -84,6 +86,11 @@ int mqtt_client_private_t::reconnect()
 int mqtt_client_private_t::disconnect()
 {
     return mosquitto_disconnect(_mosq);
+}
+
+bool mqtt_client_private_t::is_connected()
+{
+    return _connected;
 }
 
 int mqtt_client_private_t::subscribe(const char* sub, const int qos)
@@ -154,6 +161,12 @@ void mqtt_client_private_t::lib_receive_callback(mosquitto*, void* mqtt_client, 
         c->_rcv_cbk);
 }
 
+void mqtt_client_private_t::lib_connect_callback(mosquitto*, void* mqtt_client, int rc)
+{
+    decltype(auto) c = static_cast<mqtt_client_private_t*>(mqtt_client);
+    c->_connected = (rc == 0);
+}
+
 int mqtt_client_private_t::disconnect_callback_set(mqtt_client_t::mqtt_disconnect_callback_t cbk, void* client)
 {
     _disconnect_cbk = cbk;
@@ -183,6 +196,7 @@ void mqtt_client_private_t::lib_disconnect_callback(mosquitto*, void* mqtt_clien
 {
     decltype(auto) c = static_cast<mqtt_client_private_t*>(mqtt_client);
 
+    c->_connected = false;
     std::visit(
         overload{// do nothing if no callback is set
                  [](std::nullptr_t&) {},
