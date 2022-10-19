@@ -61,6 +61,11 @@ int mqtt_client_t::disconnect()
     return _impl->disconnect();
 }
 
+bool mqtt_client_t::is_connected()
+{
+    return _impl->is_connected();
+}
+
 int mqtt_client_t::subscribe(const char* sub, int qos)
 {
     return _impl->subscribe(sub, qos);
@@ -137,6 +142,11 @@ FLECS_EXPORT int flecs_mqtt_reconnect(void* mqtt)
 FLECS_EXPORT int flecs_mqtt_disconnect(void* mqtt)
 {
     return static_cast<FLECS::mqtt_client_t*>(mqtt)->disconnect();
+}
+
+FLECS_EXPORT bool flecs_mqtt_is_connected(void* mqtt)
+{
+    return static_cast<FLECS::mqtt_client_t*>(mqtt)->is_connected();
 }
 
 FLECS_EXPORT int flecs_mqtt_subscribe(void* mqtt, const char* sub, int qos)
