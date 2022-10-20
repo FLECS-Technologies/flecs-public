@@ -102,6 +102,10 @@ add_custom_target(
     COMMAND echo ${PACKAGES}
 )
 
+add_custom_command(TARGET packages POST_BUILD
+    COMMAND echo -n ${VERSION} >latest_flecs-${ARCH}
+)
+
 get_property(DOCKER_IMAGES GLOBAL PROPERTY DOCKER_IMAGES)
 add_custom_target(
     docker
