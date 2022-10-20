@@ -81,9 +81,19 @@ int mqtt_client_t::publish(const char* topic, int payloadlen, const void* payloa
     return _impl->publish(topic, nullptr, payloadlen, payload, qos, retain);
 }
 
+int mqtt_client_t::publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain)
+{
+    return (static_cast<const mqtt_client_t*>(this))->publish(topic, payloadlen, payload, qos, retain);
+}
+
 int mqtt_client_t::publish(const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const
 {
     return _impl->publish(topic, mid, payloadlen, payload, qos, retain);
+}
+
+int mqtt_client_t::publish(const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain)
+{
+    return (static_cast<const mqtt_client_t*>(this))->publish(topic, mid, payloadlen, payload, qos, retain);
 }
 
 int mqtt_client_t::receive_callback_set(mqtt_receive_callback_t cbk)

@@ -179,6 +179,7 @@ public:
      * @return MQTT error code
      */
     FLECS_EXPORT int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain) const;
+    FLECS_EXPORT int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain);
 
     /*! @brief Publish a topic on the currently connected MQTT broker
      *
@@ -193,6 +194,7 @@ public:
      */
     FLECS_EXPORT int publish(
         const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const;
+    FLECS_EXPORT int publish(const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain);
 
     /*! @brief Type for MQTT message callbacks
      *
