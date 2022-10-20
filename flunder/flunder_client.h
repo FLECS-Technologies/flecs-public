@@ -94,9 +94,16 @@ public:
     FLECS_EXPORT auto publish(std::string_view topic, bool value) const //
         -> int;
 
+    FLECS_EXPORT auto publish(std::string_view topic, bool value) //
+        -> int;
+
     /* integer-types */
     template <typename T>
     FLECS_EXPORT auto publish(std::string_view topic, const T& value) const //
+        -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>;
+
+    template <typename T>
+    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
         -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>;
 
     /* floating-point-types */
@@ -104,20 +111,37 @@ public:
     FLECS_EXPORT auto publish(std::string_view topic, const T& value) const //
         -> std::enable_if_t<std::is_floating_point_v<T>, int>;
 
+    template <typename T>
+    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
+        -> std::enable_if_t<std::is_floating_point_v<T>, int>;
+
     /* string-types */
     template <typename T>
     FLECS_EXPORT auto publish(std::string_view topic, const T& value) const //
         -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>;
 
+    template <typename T>
+    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
+        -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>;
+
     FLECS_EXPORT auto publish(std::string_view topic, const char* value) const //
+        -> int;
+
+    FLECS_EXPORT auto publish(std::string_view topic, const char* value) //
         -> int;
 
     /* raw data */
     FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len) const //
         -> int;
 
+    FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len) //
+        -> int;
+
     /* custom data */
     FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
+        -> int;
+
+    FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) //
         -> int;
 
     using subscribe_cbk_t = std::function<void(flunder_client_t*, const flunder_variable_t*)>;
@@ -175,6 +199,13 @@ auto flunder_client_t::publish(std::string_view topic, const T& value) const //
 }
 
 template <typename T>
+auto flunder_client_t::publish(std::string_view topic, const T& value) //
+    -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>
+{
+    return (static_cast<const flunder_client_t*>(this))->publish(topic, value);
+}
+
+template <typename T>
 auto flunder_client_t::publish(std::string_view topic, const T& value) const //
     -> std::enable_if_t<std::is_floating_point_v<T>, int>
 {
@@ -182,10 +213,24 @@ auto flunder_client_t::publish(std::string_view topic, const T& value) const //
 }
 
 template <typename T>
+auto flunder_client_t::publish(std::string_view topic, const T& value) //
+    -> std::enable_if_t<std::is_floating_point_v<T>, int>
+{
+    return (static_cast<const flunder_client_t*>(this))->publish(topic, value);
+}
+
+template <typename T>
 auto flunder_client_t::publish(std::string_view topic, const T& value) const //
     -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>
 {
     return publish_string(topic, value);
+}
+
+template <typename T>
+auto flunder_client_t::publish(std::string_view topic, const T& value) //
+    -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>
+{
+    return (static_cast<const flunder_client_t*>(this))->publish(topic, value);
 }
 
 extern "C" {
@@ -210,14 +255,14 @@ FLECS_EXPORT int flunder_subscribe_userp(
 
 FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* topic);
 
-FLECS_EXPORT int flunder_publish_bool(void* flunder, const char* topic, bool value);
-FLECS_EXPORT int flunder_publish_int(void* flunder, const char* topic, int value);
-FLECS_EXPORT int flunder_publish_float(void* flunder, const char* topic, float value);
-FLECS_EXPORT int flunder_publish_double(void* flunder, const char* topic, double value);
-FLECS_EXPORT int flunder_publish_string(void* flunder, const char* topic, const char* value);
-FLECS_EXPORT int flunder_publish_raw(void* flunder, const char* topic, const void* value, size_t payloadlen);
+FLECS_EXPORT int flunder_publish_bool(const void* flunder, const char* topic, bool value);
+FLECS_EXPORT int flunder_publish_int(const void* flunder, const char* topic, int value);
+FLECS_EXPORT int flunder_publish_float(const void* flunder, const char* topic, float value);
+FLECS_EXPORT int flunder_publish_double(const void* flunder, const char* topic, double value);
+FLECS_EXPORT int flunder_publish_string(const void* flunder, const char* topic, const char* value);
+FLECS_EXPORT int flunder_publish_raw(const void* flunder, const char* topic, const void* value, size_t payloadlen);
 FLECS_EXPORT int flunder_publish_custom(
-    void* flunder, const char* topic, const void* value, size_t payloadlen, const char* encoding);
+    const void* flunder, const char* topic, const void* value, size_t payloadlen, const char* encoding);
 
 FLECS_EXPORT int flunder_add_mem_storage(void* flunder, const char* name, const char* topic);
 FLECS_EXPORT int flunder_remove_mem_storage(void* flunder, const char* name);

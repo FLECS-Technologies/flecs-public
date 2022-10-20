@@ -65,10 +65,22 @@ auto flunder_client_t::publish(std::string_view topic, bool value) const //
     return publish_bool(topic, value ? "true" : "false");
 }
 
+auto flunder_client_t::publish(std::string_view topic, bool value) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish(topic, value);
+}
+
 auto flunder_client_t::publish(std::string_view topic, const char* value) const //
     -> int
 {
     return publish_string(topic, std::string{value});
+}
+
+auto flunder_client_t::publish(std::string_view topic, const char* value) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish(topic, value);
 }
 
 auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len) const //
@@ -77,10 +89,22 @@ auto flunder_client_t::publish(std::string_view topic, const void* data, size_t 
     return publish_raw(topic, data, len);
 }
 
+auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish(topic, data, len);
+}
+
 auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
     -> int
 {
     return publish_custom(topic, data, len, encoding);
+}
+
+auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish(topic, data, len, encoding);
 }
 
 auto flunder_client_t::publish_bool(std::string_view topic, const std::string& value) const //
@@ -214,40 +238,40 @@ FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* topic)
     return static_cast<FLECS::flunder_client_t*>(flunder)->unsubscribe(topic);
 }
 
-FLECS_EXPORT int flunder_publish_bool(void* flunder, const char* topic, bool value)
+FLECS_EXPORT int flunder_publish_bool(const void* flunder, const char* topic, bool value)
 {
-    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(topic, value);
+    return static_cast<const FLECS::flunder_client_t*>(flunder)->publish(topic, value);
 }
 
-FLECS_EXPORT int flunder_publish_int(void* flunder, const char* topic, int value)
+FLECS_EXPORT int flunder_publish_int(const void* flunder, const char* topic, int value)
 {
-    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(topic, value);
+    return static_cast<const FLECS::flunder_client_t*>(flunder)->publish(topic, value);
 }
 
-FLECS_EXPORT int flunder_publish_float(void* flunder, const char* topic, float value)
+FLECS_EXPORT int flunder_publish_float(const void* flunder, const char* topic, float value)
 {
-    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(topic, value);
+    return static_cast<const FLECS::flunder_client_t*>(flunder)->publish(topic, value);
 }
 
-FLECS_EXPORT int flunder_publish_double(void* flunder, const char* topic, double value)
+FLECS_EXPORT int flunder_publish_double(const void* flunder, const char* topic, double value)
 {
-    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(topic, value);
+    return static_cast<const FLECS::flunder_client_t*>(flunder)->publish(topic, value);
 }
 
-FLECS_EXPORT int flunder_publish_string(void* flunder, const char* topic, const char* value)
+FLECS_EXPORT int flunder_publish_string(const void* flunder, const char* topic, const char* value)
 {
-    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(topic, value);
+    return static_cast<const FLECS::flunder_client_t*>(flunder)->publish(topic, value);
 }
 
-FLECS_EXPORT int flunder_publish_raw(void* flunder, const char* topic, const void* value, size_t payloadlen)
+FLECS_EXPORT int flunder_publish_raw(const void* flunder, const char* topic, const void* value, size_t payloadlen)
 {
-    return static_cast<FLECS::flunder_client_t*>(flunder)->publish(topic, value, payloadlen);
+    return static_cast<const FLECS::flunder_client_t*>(flunder)->publish(topic, value, payloadlen);
 }
 
 FLECS_EXPORT int flunder_publish_custom(
-    void* flunder, const char* topic, const void* value, size_t payloadlen, const char* encoding)
+    const void* flunder, const char* topic, const void* value, size_t payloadlen, const char* encoding)
 {
-    return static_cast<FLECS::flunder_client_t*>(flunder)
+    return static_cast<const FLECS::flunder_client_t*>(flunder)
         ->publish(topic, value, payloadlen, std::string_view{encoding});
 }
 
