@@ -47,6 +47,12 @@ auto flunder_client_t::connect(std::string_view host, int port) //
     return _impl->connect(host, port);
 }
 
+auto flunder_client_t::is_connected() const noexcept //
+    -> bool
+{
+    return _impl->is_connected();
+}
+
 auto flunder_client_t::reconnect() //
     -> int
 {

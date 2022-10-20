@@ -42,6 +42,12 @@ auto module_data_layer_private_t::do_browse(std::string_view path, json_t& respo
 {
     response["additionalInfo"] = "";
 
+    if (!_client.is_connected() && (_client.connect() < 0))
+    {
+        response["additionalInfo"] = "Could not establish connection to Service Mesh";
+        return crow::status::INTERNAL_SERVER_ERROR;
+    }
+
     const auto [res, vars] = _client.get(path.empty() ? "**" : path);
 
     if (res != 0)

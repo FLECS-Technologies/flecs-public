@@ -157,7 +157,20 @@ auto flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/) 
 
     _z_session = z_open(z_move(config));
 
-    return z_session_check(&_z_session) ? 0 : -1;
+    return is_connected() ? 0 : -1;
+}
+
+auto flunder_client_private_t::is_connected() const noexcept //
+    -> bool
+{
+    const auto invalid_session = z_owned_session_t{};
+
+    const auto session_initialized = !std::equal(
+        reinterpret_cast<const char*>(&_z_session),
+        reinterpret_cast<const char*>(&_z_session) + sizeof(decltype(_z_session)),
+        reinterpret_cast<const char*>(&invalid_session));
+
+    return session_initialized && z_session_check(&_z_session);
 }
 
 auto flunder_client_private_t::reconnect() //
@@ -178,7 +191,7 @@ auto flunder_client_private_t::disconnect() //
     {
         remove_mem_storage(*_mem_storages.rbegin());
     }
-    if (z_session_check(&_z_session))
+    if (is_connected())
     {
         z_close(z_move(_z_session));
     }
@@ -392,7 +405,7 @@ auto flunder_client_private_t::get(std::string_view topic) const //
 {
     auto vars = std::vector<flunder_variable_t>{};
 
-    if (!z_session_check(&_z_session))
+    if (!is_connected())
     {
         return {-1, vars};
     }
