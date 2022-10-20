@@ -135,8 +135,9 @@ esac
 
 # determine latest version
 BASE_URL=https://marketplace.flecs.tech/dl
-VERSION=`curl -s -f ${BASE_URL}/latest`
-echo "Installing FLECS v${VERSION} for ${ARCH}"
+VERSION_CORE=`curl -s -f ${BASE_URL}/latest_flecs_${ARCH}`
+VERSION_WEBAPP=`curl -s -f ${BASE_URL}/latest_flecs-webapp_${ARCH}`
+echo "Installing FLECS Core (${VERSION_CORE})/WebApp (${VERSION_WEBAPP}) for ${ARCH}"
 
 # create temporary directory for download
 DOWNLOAD_DIR=`mktemp -d`
@@ -145,27 +146,41 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# download packages
+# download flecs
+PACKAGE=flecs_${VERSION_CORE}_${ARCH}.deb
 cd ${DOWNLOAD_DIR} || exit 1
-PACKAGES=(flecs_${VERSION}_${ARCH}.deb flecs-webapp_${VERSION}_${ARCH}.deb)
-for PACKAGE in ${PACKAGES[*]}; do
-  cd ${DOWNLOAD_DIR} || exit 1
-  if ! curl -s -f -O ${BASE_URL}/deb/${PACKAGE}; then
-    echo "Could not download ${PACKAGE}" 1>&2
-    rm -rf ${DOWNLOAD_DIR} >/dev/null 2>&1
-    exit 1;
-  fi
-  cd - >/dev/null 2>&1
-done
+if ! curl -s -f -O ${BASE_URL}/deb/${PACKAGE}; then
+  echo "Could not download ${PACKAGE}" 1>&2
+  rm -rf ${DOWNLOAD_DIR} >/dev/null 2>&1
+  exit 1;
+fi
+cd - >/dev/null 2>&1
 
-# install packages
-for PACKAGE in ${PACKAGES[*]}; do
-  if ! dpkg -i ${DOWNLOAD_DIR}/${PACKAGE} >/dev/null 2>&1; then
-    echo "Could not install ${PACKAGE}" 1>&2
-    rm -rf ${DOWNLOAD_DIR} >/dev/null 2>&1
-    exit 1
-  fi
-done
+# download flecs-webapp
+PACKAGE=flecs-webapp_${VERSION_WEBAPP}_${ARCH}.deb
+cd ${DOWNLOAD_DIR} || exit 1
+if ! curl -s -f -O ${BASE_URL}/deb/${PACKAGE}; then
+  echo "Could not download ${PACKAGE}" 1>&2
+  rm -rf ${DOWNLOAD_DIR} >/dev/null 2>&1
+  exit 1;
+fi
+cd - >/dev/null 2>&1
+
+# install flecs
+PACKAGE=flecs_${VERSION_CORE}_${ARCH}.deb
+if ! dpkg -i ${DOWNLOAD_DIR}/${PACKAGE} >/dev/null 2>&1; then
+  echo "Could not install ${PACKAGE}" 1>&2
+  rm -rf ${DOWNLOAD_DIR} >/dev/null 2>&1
+  exit 1
+fi
+
+# install flecs-webapp
+PACKAGE=flecs-webapp_${VERSION_WEBAPP}_${ARCH}.deb
+if ! dpkg -i ${DOWNLOAD_DIR}/${PACKAGE} >/dev/null 2>&1; then
+  echo "Could not install ${PACKAGE}" 1>&2
+  rm -rf ${DOWNLOAD_DIR} >/dev/null 2>&1
+  exit 1
+fi
 
 # clean up
 rm -rf ${DOWNLOAD_DIR} >/dev/null 2>&1
