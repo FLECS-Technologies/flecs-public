@@ -16,14 +16,14 @@
 
 DIRNAME=$(dirname $(readlink -f ${0}))
 
-# determine latest version
-BASE_URL=https://marketplace.flecs.tech/dl
-VERSION_CORE=`curl -s -f ${BASE_URL}/latest_flecs_${ARCH}`
+rm -rf ${DIRNAME}/../tmp/
+mkdir -p ${DIRNAME}/../tmp/
 
-# download .deb package
-cd ${DIRNAME}/../tmp
-wget https://marketplace.flecs.tech/dl/deb/flecs_${VERSION_CORE}_${ARCH}.deb
+rm -rf ${DIRNAME}/../fs/opt/
+mkdir -p ${DIRNAME}/../fs/opt/
 
-ar x flecs_${VERSION_CORE}_${ARCH}.deb
-tar -C ${DIRNAME}/../fs/ -xf data.tar.gz
-rm -rf ${DIRNAME}/../fs/opt/flecs/assets
+rm -rf ${DIRNAME}/../fs/usr/
+mkdir -p ${DIRNAME}/../fs/usr/share/keyrings/
+
+rm -rf ${DIRNAME}/../fs/etc/
+mkdir -p ${DIRNAME}/../fs/etc/apt/sources.list.d/

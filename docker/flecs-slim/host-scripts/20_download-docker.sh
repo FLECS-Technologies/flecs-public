@@ -17,13 +17,12 @@
 DIRNAME=$(dirname $(readlink -f ${0}))
 
 # determine latest version
-BASE_URL=https://marketplace.flecs.tech/dl
-VERSION_CORE=`curl -s -f ${BASE_URL}/latest_flecs_${ARCH}`
+BASE_URL=https://marketplace.flecs.tech/dl/flecs-docker/debian/buster
+VERSION=`curl -s -f ${BASE_URL}/latest-docker-ce`
 
 # download .deb package
 cd ${DIRNAME}/../tmp
-wget https://marketplace.flecs.tech/dl/deb/flecs_${VERSION_CORE}_${ARCH}.deb
+wget https://marketplace.flecs.tech/dl/flecs-docker/debian/buster/flecs-docker-ce_${VERSION}~debian-buster_${ARCH}.deb
 
-ar x flecs_${VERSION_CORE}_${ARCH}.deb
+ar x flecs-docker-ce_${VERSION}~debian-buster_${ARCH}.deb
 tar -C ${DIRNAME}/../fs/ -xf data.tar.gz
-rm -rf ${DIRNAME}/../fs/opt/flecs/assets

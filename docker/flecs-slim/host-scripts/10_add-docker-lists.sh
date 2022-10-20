@@ -16,14 +16,10 @@
 
 DIRNAME=$(dirname $(readlink -f ${0}))
 
-# determine latest version
-BASE_URL=https://marketplace.flecs.tech/dl
-VERSION_CORE=`curl -s -f ${BASE_URL}/latest_flecs_${ARCH}`
+curl -fsSL https://download.docker.com/linux/debian/gpg |\
+  gpg --dearmor -o ${DIRNAME}/../fs/usr/share/keyrings/docker-archive-keyring.gpg
 
-# download .deb package
-cd ${DIRNAME}/../tmp
-wget https://marketplace.flecs.tech/dl/deb/flecs_${VERSION_CORE}_${ARCH}.deb
-
-ar x flecs_${VERSION_CORE}_${ARCH}.deb
-tar -C ${DIRNAME}/../fs/ -xf data.tar.gz
-rm -rf ${DIRNAME}/../fs/opt/flecs/assets
+echo \
+  "deb [arch=${ARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
+  https://download.docker.com/linux/debian bullseye stable" \
+  >${DIRNAME}/../fs/etc/apt/sources.list.d/docker.list
