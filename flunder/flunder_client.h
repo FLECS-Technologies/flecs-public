@@ -83,6 +83,9 @@ public:
     FLECS_EXPORT auto connect(std::string_view host, int port) //
         -> int;
 
+    FLECS_EXPORT auto is_connected() const noexcept //
+        -> bool;
+
     FLECS_EXPORT auto reconnect() //
         -> int;
 

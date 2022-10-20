@@ -41,6 +41,9 @@ public:
     FLECS_EXPORT auto reconnect() //
         -> int;
 
+    FLECS_EXPORT auto is_connected() const noexcept //
+        -> bool;
+
     FLECS_EXPORT auto disconnect() //
         -> int;
 
