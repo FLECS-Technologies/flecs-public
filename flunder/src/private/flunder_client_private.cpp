@@ -150,8 +150,9 @@ auto flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/) 
     -> int
 {
     auto config = z_config_default();
-    zc_config_insert_json(z_config_loan(&config), Z_CONFIG_CONNECT_KEY, "tcp/flecs-flunder:7447");
-    zc_config_insert_json(z_config_loan(&config), Z_CONFIG_MODE_KEY, "client");
+    zc_config_insert_json(z_config_loan(&config), Z_CONFIG_CONNECT_KEY, R"#(["tcp/flecs-flunder:7447"])#");
+    zc_config_insert_json(z_config_loan(&config), Z_CONFIG_MODE_KEY, R"#("client")#");
+    zc_config_insert_json(z_config_loan(&config), Z_CONFIG_MULTICAST_SCOUTING_KEY, "false");
     zc_config_insert_json(z_config_loan(&config), "timestamping/enabled", "true");
 
     _z_session = z_open(z_move(config));
