@@ -75,7 +75,9 @@ mqtt_client_private_t::~mqtt_client_private_t()
 
 int mqtt_client_private_t::connect(const char* host, const int port, const int keepalive)
 {
-    return mosquitto_connect(_mosq, host, port, keepalive);
+    const auto res = mosquitto_connect(_mosq, host, port, keepalive);
+    _connected = (res == MOSQ_ERR_SUCCESS);
+    return res;
 }
 
 int mqtt_client_private_t::reconnect()
