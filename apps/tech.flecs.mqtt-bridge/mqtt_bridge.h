@@ -23,14 +23,14 @@ public:
     auto exec() //
         -> int;
 
-    auto mqtt_client() const noexcept //
-        -> const mqtt_client_t&
+    auto mqtt_client() noexcept //
+        -> mqtt_client_t&
     {
         return *_mqtt_client.get();
     }
 
-    auto flunder_client() const noexcept //
-        -> const flunder_client_t&
+    auto flunder_client() noexcept //
+        -> flunder_client_t&
     {
         return *_flunder_client.get();
     }

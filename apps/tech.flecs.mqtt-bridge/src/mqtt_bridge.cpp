@@ -164,6 +164,7 @@ void mqtt_bridge_t::mqtt_receive_callback(FLECS::mqtt_client_t* /*client*/, FLEC
         return;
     }
 
+    mqtt_bridge->flunder_client().add_mem_storage("flecs-mqtt-bridge", "**");
     mqtt_bridge->flunder_client().publish(
         static_cast<std::string_view>(msg->topic),
         static_cast<const void*>(msg->payload),
