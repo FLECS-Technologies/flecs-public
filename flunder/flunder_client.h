@@ -178,17 +178,29 @@ private:
 
     FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) const //
         -> int;
+    FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) //
+        -> int;
     FLECS_EXPORT auto publish_int(
         std::string_view topic, size_t size, bool is_signed, const std::string& value) const //
         -> int;
+    FLECS_EXPORT auto publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+        -> int;
     FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) const //
+        -> int;
+    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) //
         -> int;
     FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) const //
         -> int;
+    FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) //
+        -> int;
     FLECS_EXPORT auto publish_raw(std::string_view topic, const void* data, size_t len) const //
+        -> int;
+    FLECS_EXPORT auto publish_raw(std::string_view topic, const void* data, size_t len) //
         -> int;
     FLECS_EXPORT auto publish_custom(
         std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
+        -> int;
+    FLECS_EXPORT auto publish_custom(std::string_view topic, const void* data, size_t len, std::string_view encoding) //
         -> int;
 
     std::unique_ptr<Private::flunder_client_private_t> _impl;

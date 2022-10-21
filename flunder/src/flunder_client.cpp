@@ -118,6 +118,11 @@ auto flunder_client_t::publish_bool(std::string_view topic, const std::string& v
 {
     return _impl->publish_bool(topic, value);
 }
+auto flunder_client_t::publish_bool(std::string_view topic, const std::string& value) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish_bool(topic, value);
+}
 
 auto flunder_client_t::publish_int(
     std::string_view topic, size_t size, bool is_signed, const std::string& value) const //
@@ -125,11 +130,21 @@ auto flunder_client_t::publish_int(
 {
     return _impl->publish_int(topic, size, is_signed, value);
 }
+auto flunder_client_t::publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish_int(topic, size, is_signed, value);
+}
 
 auto flunder_client_t::publish_float(std::string_view topic, size_t size, const std::string& value) const //
     -> int
 {
     return _impl->publish_float(topic, size, value);
+}
+auto flunder_client_t::publish_float(std::string_view topic, size_t size, const std::string& value) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish_float(topic, size, value);
 }
 
 auto flunder_client_t::publish_string(std::string_view topic, const std::string& value) const //
@@ -137,11 +152,21 @@ auto flunder_client_t::publish_string(std::string_view topic, const std::string&
 {
     return _impl->publish_string(topic, value);
 }
+auto flunder_client_t::publish_string(std::string_view topic, const std::string& value) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish_string(topic, value);
+}
 
 auto flunder_client_t::publish_raw(std::string_view topic, const void* data, size_t len) const //
     -> int
 {
     return _impl->publish_raw(topic, data, len);
+}
+auto flunder_client_t::publish_raw(std::string_view topic, const void* data, size_t len) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish_raw(topic, data, len);
 }
 
 auto flunder_client_t::publish_custom(
@@ -149,6 +174,12 @@ auto flunder_client_t::publish_custom(
     -> int
 {
     return _impl->publish_custom(topic, data, len, encoding);
+}
+auto flunder_client_t::publish_custom(
+    std::string_view topic, const void* data, size_t len, std::string_view encoding) //
+    -> int
+{
+    return (static_cast<const flunder_client_t*>(this))->publish_custom(topic, data, len, encoding);
 }
 
 auto flunder_client_t::subscribe(std::string_view topic, subscribe_cbk_t cbk) //
