@@ -1,6 +1,8 @@
 
 #include "mqtt_bridge.h"
 
+#include <unistd.h>
+
 #include <cstdio>
 #include <thread>
 
@@ -52,10 +54,11 @@ auto mqtt_bridge_t::exec() //
 template <typename Client, typename... Args>
 void connect(std::string_view proto, Client* client, Args&&... args)
 {
+    std::fprintf(stdout, "Connecting to %s...\n", proto.data());
     while (!g_stop && (client->connect(std::forward<Args>(args)...)) != 0)
     {
-        std::fprintf(stderr, "Could not connect %s - retrying in 10 seconds\n", proto.data());
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::fprintf(stderr, "Could not connect to %s - retrying in 10 seconds\n", proto.data());
+        sleep(10);
     }
     std::fprintf(stdout, "Connected to %s\n", proto.data());
 }
@@ -63,28 +66,40 @@ void connect(std::string_view proto, Client* client, Args&&... args)
 auto mqtt_bridge_t::mqtt_loop() //
     -> void
 {
-    connect("mqtt", _mqtt_client.get(), MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE);
-
-    _mqtt_client->receive_callback_set(mqtt_receive_callback, this);
-    _mqtt_client->subscribe("#", 1);
-
-    while (!g_stop)
+    do
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    };
+        connect("mqtt", _mqtt_client.get(), MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE);
+
+        _mqtt_client->receive_callback_set(mqtt_receive_callback, this);
+        _mqtt_client->subscribe("#", 1);
+
+        while (!g_stop && _mqtt_client->is_connected())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+
+        _mqtt_client->unsubscribe("#");
+        _mqtt_client->disconnect();
+    } while (!g_stop);
 }
 
 auto mqtt_bridge_t::flunder_loop() //
     -> void
 {
-    connect("flunder", _flunder_client.get(), FLUNDER_HOST, FLUNDER_PORT);
-
-    _flunder_client->subscribe("**", flunder_receive_callback, this);
-
-    while (!g_stop)
+    do
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    };
+        connect("flunder", _flunder_client.get(), FLUNDER_HOST, FLUNDER_PORT);
+
+        _flunder_client->subscribe("**", flunder_receive_callback, this);
+
+        while (!g_stop && _flunder_client->is_connected())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        };
+
+        _flunder_client->unsubscribe("**");
+        _flunder_client->disconnect();
+    } while (!g_stop);
 }
 
 auto mqtt_bridge_t::flunder_receive_callback(
@@ -103,6 +118,7 @@ auto mqtt_bridge_t::flunder_receive_callback(
             "-- dropping message %s due to encoding %s\n",
             var->topic().data(),
             var->encoding().data());
+        return;
     }
 
     decltype(auto) mqtt_bridge = const_cast<mqtt_bridge_t*>(static_cast<const mqtt_bridge_t*>(userp));
