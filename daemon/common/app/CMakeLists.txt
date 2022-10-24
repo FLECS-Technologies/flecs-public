@@ -20,7 +20,8 @@ add_subdirectory(manifest)
 
 add_library(
     ${PROJECT_NAME} STATIC
-    app.h src/app.cpp src/app_status.cpp
+    app.h app_key.h app_name.h app_status.h
+    src/app.cpp src/app_key.cpp src/app_name.cpp src/app_status.cpp
 )
 
 target_include_directories(
@@ -36,3 +37,5 @@ target_include_directories(
 target_link_libraries(${PROJECT_NAME} PUBLIC
     FLECS.daemon.common.app.manifest
 )
+
+add_subdirectory(test)

@@ -57,13 +57,13 @@ auto deployment_t::instances() noexcept //
 auto deployment_t::instance_ids(std::string_view app) const //
     -> std::vector<std::string>
 {
-    return instance_ids(app_key_t{app, ""}, AllVersions);
+    return instance_ids(app_key_t{app.data(), ""}, AllVersions);
 }
 
 auto deployment_t::instance_ids(std::string_view app, std::string_view version) const //
     -> std::vector<std::string>
 {
-    return instance_ids(app_key_t{app, version}, MatchVersion);
+    return instance_ids(app_key_t{app.data(), version.data()}, MatchVersion);
 }
 
 auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e version_filter) const //
@@ -71,8 +71,8 @@ auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e versi
 {
     auto ids = std::vector<std::string>{};
     for (const auto& instance : instances()) {
-        if ((instance.second.app_name() == std::get<0>(app_key)) &&
-            ((version_filter == AllVersions) || (instance.second.app_version() == std::get<1>(app_key)))) {
+        if ((instance.second.app_name() == app_key.name()) &&
+            ((version_filter == AllVersions) || (instance.second.app_version() == app_key.version()))) {
             ids.emplace_back(instance.first);
         }
     }

@@ -18,12 +18,11 @@
 #include <string>
 #include <tuple>
 
+#include "app_key.h"
 #include "app_status.h"
 #include "manifest/manifest.h"
 
 namespace FLECS {
-
-using app_key_t = std::tuple<std::string, std::string>;
 
 class app_t : public app_manifest_t
 {
