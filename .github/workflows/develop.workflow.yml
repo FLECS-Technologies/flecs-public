@@ -132,6 +132,6 @@ jobs:
           username: ${{ secrets.MP_GITHUB_USER }}
           key: ${{ secrets.MP_GITHUB_SSH_KEY }}
           passphrase: ${{ secrets.MP_GITHUB_SSH_KEY_PW }}
-          source: "out/${{ matrix.arch }}/latest_flecs-${{ matrix.arch }}"
+          source: "out/${{ matrix.arch }}/latest_flecs_${{ matrix.arch }}"
           target: "${{ secrets.MP_GITHUB_DEVELOP_DIR }}/"
           strip_components: 2
