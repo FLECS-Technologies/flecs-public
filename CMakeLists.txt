@@ -103,7 +103,7 @@ add_custom_target(
 )
 
 add_custom_command(TARGET packages POST_BUILD
-    COMMAND echo -n ${VERSION} >latest_flecs-${ARCH}
+    COMMAND echo -n ${VERSION} >latest_flecs_${ARCH}
 )
 
 get_property(DOCKER_IMAGES GLOBAL PROPERTY DOCKER_IMAGES)
