@@ -1,6 +1,7 @@
 
 #include "mqtt_bridge.h"
 
+#include <mqtt_protocol.h>
 #include <unistd.h>
 
 #include <cstdio>
@@ -11,8 +12,19 @@
 
 namespace FLECS {
 
+__attribute__((constructor)) void mqtt_bridge_init()
+{
+    mosquitto_lib_init();
+}
+
+__attribute__((destructor)) void mqtt_bridge_destroy()
+{
+    mosquitto_lib_cleanup();
+}
+
 mqtt_bridge_t::mqtt_bridge_t() noexcept
-    : _mqtt_client{std::make_unique<mqtt_client_t>()}
+    : _mosq{mosquitto_new(nullptr, true, this)}
+    , _mqtt_connected{}
     , _flunder_client{std::make_unique<flunder_client_t>()}
     , _mqtt_thread{}
     , _flunder_thread{}
@@ -30,10 +42,16 @@ mqtt_bridge_t& mqtt_bridge_t::operator=(mqtt_bridge_t&& other) noexcept
     return *this;
 }
 
-void swap(mqtt_bridge_t& lhs, mqtt_bridge_t& rhs) noexcept
+mqtt_bridge_t::~mqtt_bridge_t()
+{
+    mosquitto_destroy(_mosq);
+}
+
+auto swap(mqtt_bridge_t& lhs, mqtt_bridge_t& rhs) noexcept //
+    -> void
 {
     using std::swap;
-    swap(lhs._mqtt_client, rhs._mqtt_client);
+    swap(lhs._mosq, rhs._mosq);
     swap(lhs._flunder_client, rhs._flunder_client);
     swap(lhs._mqtt_thread, rhs._mqtt_thread);
     swap(lhs._flunder_thread, rhs._flunder_thread);
@@ -51,14 +69,15 @@ auto mqtt_bridge_t::exec() //
     return 0;
 }
 
-template <typename Client, typename... Args>
-void connect(std::string_view proto, Client* client, Args&&... args)
+template <typename Func, typename Handle, typename... Args>
+auto connect(std::string_view proto, Func f, Handle* h, Args&&... args) //
+    -> void
 {
     std::fprintf(stdout, "Connecting to %s...\n", proto.data());
-    while (!g_stop && (client->connect(std::forward<Args>(args)...)) != 0)
+    while (!g_stop && (std::invoke(f, h, std::forward<Args>(args)...)) != 0)
     {
-        std::fprintf(stderr, "Could not connect to %s - retrying in 10 seconds\n", proto.data());
-        sleep(10);
+        std::fprintf(stderr, "Could not connect to %s - retrying in 2 seconds\n", proto.data());
+        sleep(2);
     }
     std::fprintf(stdout, "Connected to %s\n", proto.data());
 }
@@ -66,20 +85,27 @@ void connect(std::string_view proto, Client* client, Args&&... args)
 auto mqtt_bridge_t::mqtt_loop() //
     -> void
 {
+    mosquitto_int_option(_mosq, MOSQ_OPT_PROTOCOL_VERSION, MQTT_PROTOCOL_V5);
+    mosquitto_connect_callback_set(_mosq, mosquitto_connect_callback);
+    mosquitto_disconnect_callback_set(_mosq, mosquitto_disconnect_callback);
+    mosquitto_message_callback_set(_mosq, mosquitto_receive_callback);
+    mosquitto_loop_start(_mosq);
     do
     {
-        connect("mqtt", _mqtt_client.get(), MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE);
+        _mqtt_connected = true;
+        connect("mqtt", &mosquitto_connect, _mosq, "flecs-mqtt", 1883, 60);
 
-        _mqtt_client->receive_callback_set(mqtt_receive_callback, this);
-        _mqtt_client->subscribe("#", 1);
+        int sub_options = 0;
+        sub_options |= MQTT_SUB_OPT_NO_LOCAL;
+        mosquitto_subscribe_v5(_mosq, nullptr, "#", 1, sub_options, nullptr);
 
-        while (!g_stop && _mqtt_client->is_connected())
+        while (!g_stop && _mqtt_connected)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
 
-        _mqtt_client->unsubscribe("#");
-        _mqtt_client->disconnect();
+        mosquitto_unsubscribe(_mosq, nullptr, "#");
+        mosquitto_disconnect(_mosq);
     } while (!g_stop);
 }
 
@@ -88,7 +114,12 @@ auto mqtt_bridge_t::flunder_loop() //
 {
     do
     {
-        connect("flunder", _flunder_client.get(), FLUNDER_HOST, FLUNDER_PORT);
+        connect(
+            "flunder",
+            (int(flunder_client_t::*)(std::string_view, int))(&flunder_client_t::connect),
+            _flunder_client.get(),
+            FLUNDER_HOST,
+            FLUNDER_PORT);
 
         _flunder_client->subscribe("**", flunder_receive_callback, this);
 
@@ -122,45 +153,47 @@ auto mqtt_bridge_t::flunder_receive_callback(
     }
 
     decltype(auto) mqtt_bridge = const_cast<mqtt_bridge_t*>(static_cast<const mqtt_bridge_t*>(userp));
+    if (!mqtt_bridge->mqtt_connected())
+    {
+        std::fprintf(stdout, "-- dropping flunder message %s as mqtt is not connected\n", var->topic().data());
+        return;
+    }
 
     flunder_client->add_mem_storage("flecs-mqtt-bridge", "**");
 
-    int mid = 0;
-    mqtt_bridge->mqtt_client().publish(
+    mosquitto_publish_v5(
+        mqtt_bridge->mosq(),
+        nullptr,
         var->topic().data(),
-        &mid,
         static_cast<int>(var->len()),
         static_cast<const void*>(var->value().data()),
         1,
-        false);
-    mqtt_bridge->_pending_mids.insert(mid);
-    std::fprintf(stdout, "++ forwarded flunder message for topic %s to mqtt (mid %d)\n", var->topic().data(), mid);
+        false,
+        nullptr);
+    std::fprintf(stdout, "++ forwarded flunder message for topic %s to mqtt\n", var->topic().data());
 }
 
-#if 0
-void mqtt_bridge_t::expire_values()
+auto mqtt_bridge_t::mosquitto_connect_callback(mosquitto*, void* userp, int rc) //
+    -> void
 {
-    auto res = _flunder_client.get("/**");
-    if (std::get<0>(res) != 0)
-    {
-        return;
-    }
-    decltype(auto) values = std::get<1>(res);
-    for (const auto& value : values)
-    {
-        const auto now = std::chrono::system_clock().now().time_since_epoch().count();
-    }
+    decltype(auto) mqtt_bridge = static_cast<mqtt_bridge_t*>(userp);
+    mqtt_bridge->_mqtt_connected = (rc == MOSQ_ERR_SUCCESS);
 }
-#endif // 0
 
-void mqtt_bridge_t::mqtt_receive_callback(FLECS::mqtt_client_t* /*client*/, FLECS::mqtt_message_t* msg, void* userp)
+auto mqtt_bridge_t::mosquitto_disconnect_callback(mosquitto*, void* userp, int) //
+    -> void
 {
-    decltype(auto) mqtt_bridge = const_cast<mqtt_bridge_t*>(static_cast<const mqtt_bridge_t*>(userp));
+    decltype(auto) mqtt_bridge = static_cast<mqtt_bridge_t*>(userp);
+    mqtt_bridge->_mqtt_connected = false;
+}
 
-    if (mqtt_bridge->_pending_mids.count(msg->id))
+void mqtt_bridge_t::mosquitto_receive_callback(mosquitto*, void* userp, const mosquitto_message* msg)
+{
+    decltype(auto) mqtt_bridge = static_cast<mqtt_bridge_t*>(userp);
+
+    if (!mqtt_bridge->flunder_client().is_connected())
     {
-        std::fprintf(stdout, "-- dropping mqtt message %s due to mid %d\n", msg->topic, msg->id);
-        mqtt_bridge->_pending_mids.erase(msg->id);
+        std::fprintf(stdout, "-- dropping mqtt message %s as flunder is not connected\n", msg->topic);
         return;
     }
 
