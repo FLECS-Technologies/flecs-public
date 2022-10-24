@@ -131,7 +131,7 @@ auto module_app_manager_private_t::do_init() //
             if (version < FLECS_VERSION) {
                 std::fprintf(stdout, "Removing old version %s system app %s\n", version.c_str(), system_apps[i].data());
                 auto response = json_t{};
-                for (const auto& instance_id : _deployment->instance_ids(app_key_t{system_apps[i], version})) {
+                for (const auto& instance_id : _deployment->instance_ids(app_key_t{system_apps[i].data(), version})) {
                     do_delete_instance(instance_id, {}, {}, response);
                 }
                 do_uninstall(system_apps[i].data(), version, response, true);
@@ -249,7 +249,7 @@ auto module_app_manager_private_t::app_versions(std::string_view app_name) const
 {
     auto res = std::vector<std::string>{};
     std::for_each(_installed_apps.cbegin(), _installed_apps.cend(), [&](installed_apps_t::const_reference app) {
-        if (std::get<0>(app.first) == app_name) {
+        if (app.first.name() == app_name) {
             res.push_back(app.second.version());
         }
     });
