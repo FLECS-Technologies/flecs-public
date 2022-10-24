@@ -258,7 +258,7 @@ auto module_app_manager_private_t::app_versions(std::string_view app_name) const
 {
     auto res = std::vector<std::string>{};
     std::for_each(_installed_apps.cbegin(), _installed_apps.cend(), [&](installed_apps_t::const_reference app) {
-        if (std::get<1>(app.first) == app_name)
+        if (std::get<0>(app.first) == app_name)
         {
             res.push_back(app.second.version());
         }

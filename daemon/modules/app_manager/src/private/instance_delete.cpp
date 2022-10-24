@@ -76,18 +76,18 @@ auto module_app_manager_private_t::do_delete_instance(
     }
 
     // Step 5: Attempt to load app manifest
-    if (!is_app_installed(app_name, version))
+    if (!is_app_installed(instance.app_name(), instance.app_version()))
     {
         std::fprintf(
             stderr,
             "Could not remove volumes of app %s (%s): manifest error\n",
-            app_name.c_str(),
-            version.c_str());
+            instance.app_name().c_str(),
+            instance.app_version().c_str());
     }
     // Step 6: Remove volumes of instance, if manifest loaded successfully
     else
     {
-        const auto& app = _installed_apps.find(app_key_t{app_name, version})->second;
+        const auto& app = _installed_apps.find(app_key_t{instance.app_name(), instance.app_version()})->second;
         for (const auto& volume : app.volumes())
         {
             if (volume.type() != volume_t::VOLUME)
