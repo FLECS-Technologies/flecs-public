@@ -174,55 +174,46 @@ auto module_app_manager_private_t::do_init() //
     }
 
     // "install" system apps on first start
-    constexpr auto system_apps = std::array<const char*, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
-    constexpr auto system_apps_desc = std::array<const char*, 2>{"FLECS MQTT Bridge", "FLECS Service Mesh"};
+    constexpr auto system_apps = std::array<std::string_view, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
+    constexpr auto system_apps_desc = std::array<std::string_view, 2>{"FLECS MQTT Bridge", "FLECS Service Mesh"};
 
     for (size_t i = 0; i < system_apps.size(); ++i)
     {
-        const auto instance_ids = _deployment->instance_ids(system_apps[i]);
-        if (instance_ids.empty())
+        auto newer_version_installed = false;
+        // delete old instances and uninstall old apps
+        const auto versions = app_versions(system_apps[i]);
+        for (const auto& version : versions)
         {
-            continue;
-        }
-
-        for (const auto& instance_id : instance_ids)
-        {
-            const auto& instance = _deployment->instances().at(instance_id);
-            if (instance.app_version() != FLECS_VERSION)
+            if (version < FLECS_VERSION)
             {
-                std::fprintf(
-                    stdout,
-                    "Removing old version %s system app %s\n",
-                    instance.app_version().c_str(),
-                    instance.app_name().c_str());
+                std::fprintf(stdout, "Removing old version %s system app %s\n", version.c_str(), system_apps[i].data());
                 auto response = json_t{};
-                do_uninstall(instance.app_name(), instance.app_version(), response, true);
-                do_delete_instance(instance_id, {}, {}, response);
+                for (const auto& instance_id : _deployment->instance_ids(app_key_t{system_apps[i], version}))
+                {
+                    do_delete_instance(instance_id, {}, {}, response);
+                }
+                do_uninstall(system_apps[i].data(), version, response, true);
+            }
+            if (version > FLECS_VERSION)
+            {
+                newer_version_installed = true;
             }
         }
-    }
 
-    for (size_t i = 0; i < system_apps.size(); ++i)
-    {
-        const auto instance_ids = _deployment->instance_ids(system_apps[i], FLECS_VERSION);
-        const auto instance_ready =
-            instance_ids.empty()
-                ? false
-                : (_deployment->instances().at(instance_ids[0]).status() == instance_status_e::CREATED);
-
-        if (!instance_ready)
+        // install current app and create an instance of it
+        if (!newer_version_installed && !is_app_installed(system_apps[i].data(), FLECS_VERSION))
         {
-            std::fprintf(stdout, "Installing system app %s\n", system_apps[i]);
-            download_manifest(system_apps[i], FLECS_VERSION);
+            std::fprintf(stdout, "Installing system app %s\n", system_apps[i].data());
+            download_manifest(system_apps[i].data(), FLECS_VERSION);
             auto app = app_t{
-                build_manifest_path(system_apps[i], FLECS_VERSION),
+                build_manifest_path(system_apps[i].data(), FLECS_VERSION),
                 app_status_e::INSTALLED,
                 app_status_e::INSTALLED};
             if (!app.app().empty())
             {
                 auto response = json_t{};
                 _installed_apps.insert_or_assign(app_key_t{app.app(), app.version()}, std::move(app));
-                do_create_instance(system_apps[i], FLECS_VERSION, system_apps_desc[i], response);
+                do_create_instance(system_apps[i].data(), FLECS_VERSION, system_apps_desc[i].data(), response);
                 const auto instance_id = _deployment->instance_ids(system_apps[i], FLECS_VERSION);
                 if (!instance_id.empty())
                 {
