@@ -16,10 +16,19 @@
 
 DIRNAME=$(dirname $(readlink -f ${0}))
 
-curl -fsSL https://download.docker.com/linux/debian/gpg |\
-  gpg --dearmor -o ${DIRNAME}/../fs/usr/share/keyrings/docker-archive-keyring.gpg
+# download .tar.gz archive
+cd ${DIRNAME}/../tmp
 
-echo \
-  "deb [arch=${ARCH} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
-  https://download.docker.com/linux/debian bullseye stable" \
-  >${DIRNAME}/../fs/etc/apt/sources.list.d/docker.list
+case ${ARCH} in
+  amd64)
+    wget https://download.docker.com/linux/static/stable/x86_64/docker-20.10.21.tgz
+    ;;
+  armhf)
+    wget https://download.docker.com/linux/static/stable/armhf/docker-20.10.21.tgz
+    ;;
+  arm64)
+    wget https://download.docker.com/linux/static/stable/aarch64/docker-20.10.21.tgz
+    ;;
+esac
+
+tar -C ${DIRNAME}/../fs/usr/bin --strip-components=1 -xf docker-20.10.21.tgz docker/docker
