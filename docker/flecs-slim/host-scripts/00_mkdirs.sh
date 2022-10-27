@@ -23,7 +23,4 @@ rm -rf ${DIRNAME}/../fs/opt/
 mkdir -p ${DIRNAME}/../fs/opt/
 
 rm -rf ${DIRNAME}/../fs/usr/
-mkdir -p ${DIRNAME}/../fs/usr/share/keyrings/
-
-rm -rf ${DIRNAME}/../fs/etc/
-mkdir -p ${DIRNAME}/../fs/etc/apt/sources.list.d/
+mkdir -p ${DIRNAME}/../fs/usr/bin
