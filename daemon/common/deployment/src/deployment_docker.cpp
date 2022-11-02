@@ -53,8 +53,6 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         }
     }
 
-    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
-
     auto docker_process = process_t{};
     docker_process.arg("create");
 
@@ -63,12 +61,6 @@ auto deployment_docker_t::create_container(instance_t& instance) //
     {
         docker_process.arg("--env");
         docker_process.arg(stringify(env));
-    }
-    for (const auto& conffile : app.conffiles())
-    {
-        docker_process.arg("--volume");
-        const auto arg = conf_path + conffile.local() + ":" + conffile.container() + (conffile.ro() ? ":ro" : "");
-        docker_process.arg(arg);
     }
     for (const auto& volume : app.volumes())
     {
@@ -246,6 +238,23 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         return {-1, "Could not create Docker container"};
     }
 
+    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
+    for (const auto& conffile : app.conffiles())
+    {
+        const auto [res, err] =
+            copy_file_to_instance(instance.id(), conf_path + conffile.local(), conffile.container());
+        if (res != 0)
+        {
+            std::fprintf(
+                stderr,
+                "Warning: Could not copy file %s to %s of instance %s: %s\n",
+                conffile.local().c_str(),
+                conffile.container().c_str(),
+                instance.id().c_str(),
+                err.c_str());
+        }
+    }
+
     if (std::find(
             instance.startup_options().cbegin(),
             instance.startup_options().cend(),
@@ -314,6 +323,12 @@ auto deployment_docker_t::delete_container(const instance_t& instance) //
     -> result_t
 {
     const auto container_name = "flecs-" + instance.id();
+
+    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
+    for (const auto& conffile : instance.app().conffiles())
+    {
+        copy_file_from_instance(instance.id(), conffile.container(), conf_path + conffile.local());
+    }
 
     auto docker_process = process_t{};
 
