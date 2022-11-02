@@ -10,7 +10,7 @@
                 "${workspaceFolder}/external/gtest-1.12.1/out/amd64/include",
                 "${workspaceFolder}/external/json-3.11.2/include",
                 "${workspaceFolder}/external/mosquitto-2.0.15/out/amd64/include",
-                "${workspaceFolder}/external/openssl-1.1.1q/out/amd64/include",
+                "${workspaceFolder}/external/openssl-1.1.1s/out/amd64/include",
                 "${workspaceFolder}/external/sqlite-3.39.3",
                 "${workspaceFolder}/external/yaml-cpp-0.7.0/out/amd64/include",
                 "${workspaceFolder}/external/zenoh-c-0.6.0-beta.1/out/amd64/include",
