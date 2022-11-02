@@ -273,19 +273,10 @@ auto deployment_docker_t::create_container(instance_t& instance) //
             return {-1, "Could not make entrypoint executable"};
         }
 
+        const auto [res, err_msg] = copy_file_to_instance(instance.id(), entrypoint_path, "/flecs-entrypoint.sh");
+        if (res != 0)
         {
-            auto docker_process = process_t{};
-
-            docker_process.arg("cp");
-            docker_process.arg(entrypoint_path);
-            docker_process.arg(container_name + ":/flecs-entrypoint.sh");
-
-            docker_process.spawnp("docker");
-            docker_process.wait(false, true);
-            if (docker_process.exit_code() != 0)
-            {
-                return {-1, "Could not copy entrypoint to container"};
-            }
+            return {-1, "Could not copy entrypoint to container"};
         }
     }
 
