@@ -62,6 +62,11 @@ public:
         do_copy_file_to_instance,
         ((std::string_view instance_id), (fs::path file), (fs::path dest)),
         (override));
+    MOCK_METHOD(
+        result_t,
+        do_copy_file_from_instance,
+        ((std::string_view instance_id), (fs::path file), (fs::path dest)),
+        (override));
     MOCK_METHOD(std::string_view, do_default_network_name, (), (const, override));
     MOCK_METHOD(network_type_t, do_default_network_type, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_cidr_subnet, (), (const, override));
@@ -227,6 +232,12 @@ TEST(deployment, interface)
         do_copy_file_to_instance(G_INSTANCE_ID_1, FLECS::fs::path{G_FILE_LOCAL}, FLECS::fs::path{G_FILE_CONTAINER}))
         .Times(1);
     deployment->copy_file_to_instance(G_INSTANCE_ID_1, G_FILE_LOCAL, G_FILE_CONTAINER);
+
+    EXPECT_CALL(
+        test_deployment,
+        do_copy_file_from_instance(G_INSTANCE_ID_1, FLECS::fs::path{G_FILE_CONTAINER}, FLECS::fs::path{G_FILE_LOCAL}))
+        .Times(1);
+    deployment->copy_file_from_instance(G_INSTANCE_ID_1, G_FILE_CONTAINER, G_FILE_LOCAL);
 
     EXPECT_CALL(test_deployment, do_default_network_name()).Times(1);
     deployment->default_network_name();

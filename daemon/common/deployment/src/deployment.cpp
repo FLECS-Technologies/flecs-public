@@ -387,6 +387,12 @@ auto deployment_t::copy_file_to_instance(std::string_view instance_id, fs::path 
     return do_copy_file_to_instance(instance_id, file, dest);
 }
 
+auto deployment_t::copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+    -> result_t
+{
+    return do_copy_file_from_instance(instance_id, file, dest);
+}
+
 auto deployment_t::default_network_name() const //
     -> std::string_view
 {
