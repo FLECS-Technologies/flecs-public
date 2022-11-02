@@ -721,12 +721,35 @@ auto deployment_docker_t::do_copy_file_to_instance(
     -> result_t
 {
     auto docker_process = process_t{};
-    docker_process.spawnp("docker", "cp", file.string(), dest.string());
+    docker_process.arg("cp");
+    docker_process.arg(file.string());
+    docker_process.arg(std::string{"flecs-"} + instance_id.data() + ":" + dest.string());
+    docker_process.spawnp("docker");
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0)
     {
         using std::operator""s;
         return {-1, "Could not copy "s.append(file).append(" to ").append(instance_id).append(":").append(dest)};
+    }
+    return {0, {}};
+}
+
+auto deployment_docker_t::do_copy_file_from_instance(
+    std::string_view instance_id,
+    fs::path file,
+    fs::path dest) //
+    -> result_t
+{
+    auto docker_process = process_t{};
+    docker_process.arg("cp");
+    docker_process.arg(std::string{"flecs-"} + instance_id.data() + ":" + file.string());
+    docker_process.arg(dest.string());
+    docker_process.spawnp("docker");
+    docker_process.wait(false, true);
+    if (docker_process.exit_code() != 0)
+    {
+        using std::operator""s;
+        return {-1, "Could not copy "s.append(instance_id).append(":").append(file).append(" to ").append(file)};
     }
     return {0, {}};
 }

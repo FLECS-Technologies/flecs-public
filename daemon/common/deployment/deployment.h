@@ -120,6 +120,8 @@ public:
         -> result_t;
     auto copy_file_to_instance(std::string_view instance_id, fs::path file, fs::path dest) //
         -> result_t;
+    auto copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+        -> result_t;
     auto default_network_name() const //
         -> std::string_view;
     auto default_network_type() const //
@@ -185,6 +187,8 @@ private:
     virtual auto do_copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
         -> result_t = 0;
     virtual auto do_copy_file_to_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+        -> result_t = 0;
+    virtual auto do_copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) //
         -> result_t = 0;
     virtual auto do_default_network_name() const //
         -> std::string_view = 0;
