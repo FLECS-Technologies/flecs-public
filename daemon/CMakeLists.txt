@@ -30,13 +30,6 @@ add_custom_target(
     COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/
 )
 
-add_custom_target(
-    flecs_opkg-pkg-copy
-    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/opt/assets/
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/opt/flecs/assets/
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/opt/flecs/assets/
-)
-
 include(package)
 
 # build executable flecsd
@@ -75,28 +68,16 @@ install(
     TARGETS FLECS.daemon RUNTIME
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )
-install(
-    TARGETS FLECS.daemon RUNTIME
-    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/bin
-)
 
 # install shared objects for packaging
 install(
     TARGETS FLECS.daemon.lib FLECS.mqtt.shared LIBRARY
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
 )
-install(
-    TARGETS FLECS.daemon.lib FLECS.mqtt.shared LIBRARY
-    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/lib
-)
 
 install(
     FILES $<TARGET_FILE:FLECS.external.zenoh-c>
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
-)
-install(
-    FILES $<TARGET_FILE:FLECS.external.zenoh-c>
-    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/lib
 )
 
 # install FLECS cli for packaging
@@ -104,17 +85,9 @@ install(
     TARGETS FLECS.cli RUNTIME
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )
-install(
-    TARGETS FLECS.cli RUNTIME
-    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/bin
-)
 
 # install hosts script for packaging
 install(
     PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
-)
-install(
-    PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
-    DESTINATION ${PACKAGE_DIR}/opkg/${FLECS_INSTALL_DIR}/bin
 )

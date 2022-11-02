@@ -38,31 +38,14 @@ install(
     OPTIONAL
 )
 
-install(
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pkg/fs/
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg
-    USE_SOURCE_PERMISSIONS
-    OPTIONAL
-)
-
 # command for building .deb packages
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE}_${VERSION}_${ARCH}.deb
     COMMAND dpkg-deb --root-owner-group -Z gzip --build ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian ${CMAKE_BINARY_DIR}/${PACKAGE}_${VERSION}_${ARCH}.deb
 )
 
-# command for building .ipk packages
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE}_${VERSION}_${ARCH}.ipk
-    COMMAND opkg-build -c -o root -g root ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg ${CMAKE_BINARY_DIR}
-)
-
-if (NOT TARGET ${PACKAGE}_deb-pkg-copy)
+if(NOT TARGET ${PACKAGE}_deb-pkg-copy)
     add_custom_target(${PACKAGE}_deb-pkg-copy)
-endif()
-
-if (NOT TARGET ${PACKAGE}_opkg-pkg-copy)
-    add_custom_target(${PACKAGE}_opkg-pkg-copy)
 endif()
 
 # prepare package control fields with target information
@@ -79,24 +62,11 @@ add_custom_target(
     COMMAND chmod 644 ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/DEBIAN/control
 )
 
-add_custom_target(
-    ${PACKAGE}_opkg-pkg-prepare
-    DEPENDS ${PACKAGE}_opkg-pkg-copy
-    COMMAND sed -i "s/##ARCH##/${ARCH}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/control
-    COMMAND sed -i "s/##PACKAGE##/${PACKAGE}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/*
-    COMMAND sed -i "s/##VERSION##/${VERSION}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/*
-    COMMAND sed -i "s/##DESCRIPTION##/${PACKAGE_DESC}/g" ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/*
-    COMMAND chmod 755 ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/p* || true
-    COMMAND chmod 644 ${CMAKE_CURRENT_BINARY_DIR}/pkg/opkg/DEBIAN/control
-)
-
-# generic package rule, depends on .deb/.ipk builds
+# generic package rule, depends on .deb builds
 add_custom_target(
     ${PACKAGE}_package
     DEPENDS ${PACKAGE}_deb-pkg-prepare
-    #DEPENDS ${PACKAGE}_opkg-pkg-prepare
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE}_${VERSION}_${ARCH}.deb
-    #DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE}_${VERSION}_${ARCH}.ipk
 )
 
 set_property(GLOBAL APPEND PROPERTY PACKAGES ${PACKAGE}_package)

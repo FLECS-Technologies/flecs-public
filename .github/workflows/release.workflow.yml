@@ -111,7 +111,6 @@ jobs:
           name: packages
           path: |
             out/**/*.deb
-            out/**/*.ipk
           retention-days: 3
 
       - name: Deploy packages
