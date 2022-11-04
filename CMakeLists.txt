@@ -48,7 +48,7 @@ if(CCACHE_FOUND EQUAL 0)
     set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
 endif()
 
-set(BOOST_ROOT /opt/boost_1_79_0)
+set(BOOST_ROOT /opt/boost_1_80_0)
 find_package(Boost
     1.78.0
     REQUIRED
