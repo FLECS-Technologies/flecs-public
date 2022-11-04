@@ -26,4 +26,4 @@ install(
     USE_SOURCE_PERMISSIONS
 )
 
-include(docker)
+include(flecs-docker)

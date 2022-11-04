@@ -14,16 +14,13 @@
 
 cmake_minimum_required(VERSION 3.13)
 
+include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
+
 project(FLECS)
 
 # set version
 set(VERSION 1.5.4-porpoise)
 add_definitions(-DFLECS_VERSION="${VERSION}")
-
-set(CMAKE_MODULE_PATH
-    ${CMAKE_MODULE_PATH}
-    ${CMAKE_SOURCE_DIR}/build/cmake
-)
 
 if(FLECS_BUILD_TESTS)
     include(CTest)
@@ -32,57 +29,14 @@ if(FLECS_BUILD_TESTS)
     add_definitions(-DFLECS_UNIT_TEST)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED true)
-add_compile_options(-Wall -Wextra -Werror -Wfatal-errors)
-link_libraries(dl pthread stdc++fs)
-
-execute_process(
-    COMMAND ccache -s
-    OUTPUT_QUIET
-    ERROR_QUIET
-    RESULT_VARIABLE CCACHE_FOUND
-)
-
-if(CCACHE_FOUND EQUAL 0)
-    set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
-endif()
-
 set(BOOST_ROOT /opt/boost_1_80_0)
 find_package(Boost
     1.78.0
     REQUIRED
 )
 
-# hide all symbols by default
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-add_link_options(-Wl,--exclude-libs,ALL)
-
 # add install directory to rpath
 set(CMAKE_INSTALL_RPATH "/opt/flecs/lib")
-
-# provide macro to export symbols
-add_definitions("-DFLECS_EXPORT=__attribute__\(\(visibility\(\"default\"\)\)\)")
-
-# set MACHINE and ARCH variables
-execute_process(
-    COMMAND ${CMAKE_CXX_COMPILER} -dumpmachine
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    OUTPUT_VARIABLE MACHINE
-)
-
-if("${MACHINE}" MATCHES ".*x86_64.*")
-    set(ARCH amd64)
-    set(DOCKER_ARCH linux/amd64)
-elseif("${MACHINE}" STREQUAL arm-linux-gnueabihf)
-    set(ARCH armhf)
-    set(DOCKER_ARCH linux/arm/v7)
-elseif("${MACHINE}" STREQUAL aarch64-linux-gnu)
-    set(ARCH arm64)
-    set(DOCKER_ARCH linux/arm64)
-else()
-    message(FATAL_ERROR "Could not determine architecture for ${MACHINE}")
-endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -94,23 +48,10 @@ add_subdirectory(mqtt)
 add_subdirectory(util)
 add_subdirectory(daemon)
 
-get_property(PACKAGES GLOBAL PROPERTY PACKAGES)
-
-add_custom_target(
-    packages
-    DEPENDS ${PACKAGES}
-    COMMAND echo ${PACKAGES}
-)
+include(flecs-rules)
 
 add_custom_command(TARGET packages POST_BUILD
     COMMAND echo -n ${VERSION} >latest_flecs_${ARCH}
-)
-
-get_property(DOCKER_IMAGES GLOBAL PROPERTY DOCKER_IMAGES)
-add_custom_target(
-    docker
-    DEPENDS ${DOCKER_IMAGES}
-    COMMAND echo ${DOCKER_IMAGES}
 )
 
 add_custom_target(

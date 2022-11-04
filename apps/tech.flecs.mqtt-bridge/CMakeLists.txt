@@ -47,4 +47,4 @@ install(
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docker
 )
 
-include(docker)
+include(flecs-docker)

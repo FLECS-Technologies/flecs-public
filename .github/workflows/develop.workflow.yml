@@ -15,9 +15,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - name: "CMake: Configure"
         run: |
-          cmake -G Ninja -B out/${{ matrix.arch }} -DCMAKE_TOOLCHAIN_FILE=build/cmake/toolchains/${{ matrix.arch }}.cmake
+          cmake -G Ninja -B out/${{ matrix.arch }} -DARCH=${{ matrix.arch }}
       - name: "CMake: Build"
         run: |
           cmake --build out/${{ matrix.arch }}
@@ -45,7 +47,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
+        with:
+          submodules: recursive
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -93,7 +96,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
+        with:
+          submodules: recursive
       - name: Download workflow artifacts
         uses: actions/download-artifact@v3
         with:
