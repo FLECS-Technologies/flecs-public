@@ -30,7 +30,7 @@ add_custom_target(
     COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${VERSION}_${ARCH}.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/
 )
 
-include(package)
+include(flecs-package)
 
 # build executable flecsd
 add_executable(FLECS.daemon
@@ -72,6 +72,11 @@ install(
 # install shared objects for packaging
 install(
     TARGETS FLECS.daemon.lib FLECS.mqtt.shared LIBRARY
+    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
+)
+
+install(
+    TARGETS FLECS.daemon.lib FLECS.flunder.shared LIBRARY
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
 )
 
