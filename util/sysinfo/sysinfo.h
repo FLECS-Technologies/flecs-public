@@ -48,6 +48,7 @@ private:
 
     // additional info t.b.d.
     std::string _arch;
+    std::string _platform;
 };
 
 auto machine_to_arch(std::string_view machine) //
