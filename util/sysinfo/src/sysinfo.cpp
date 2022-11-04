@@ -20,6 +20,8 @@
 #include <map>
 #include <regex>
 
+#include "util/cxx20/string.h"
+
 namespace FLECS {
 
 sysinfo_t::sysinfo_t()
@@ -27,6 +29,12 @@ sysinfo_t::sysinfo_t()
     , _kernel_version{}
     , _kernel_build{}
     , _machine{}
+    , _distro_id{}
+    , _distro_code{}
+    , _distro_name{}
+    , _distro_version{}
+    , _arch{}
+    , _platform{}
 {
     auto buf = utsname{};
     const auto res = uname(&buf);
@@ -48,6 +56,10 @@ sysinfo_t::sysinfo_t()
     else if (fs::exists("/usr/lib/os-release"))
     {
         parse_os_release("/usr/lib/os-release");
+    }
+    if (cxx20::contains(_kernel_version, "weidmueller"))
+    {
+        _platform = "weidmueller";
     }
 }
 
@@ -96,6 +108,7 @@ auto to_json(json_t& j, const sysinfo_t& sysinfo) //
           {"version", sysinfo._distro_version}}},
         {"kernel",
          {{"build", sysinfo._kernel_build}, {"machine", sysinfo._machine}, {"version", sysinfo._kernel_version}}},
+        {"platform", sysinfo._platform},
     };
 }
 
