@@ -28,6 +28,7 @@
 #include "flunder_variable.h"
 
 #ifndef __cplusplus
+#include <inttypes.h>
 #include <stdbool.h>
 #else
 
@@ -271,7 +272,17 @@ FLECS_EXPORT int flunder_subscribe_userp(
 FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* topic);
 
 FLECS_EXPORT int flunder_publish_bool(const void* flunder, const char* topic, bool value);
+
 FLECS_EXPORT int flunder_publish_int(const void* flunder, const char* topic, int value);
+FLECS_EXPORT int flunder_publish_int8(const void* flunder, const char* topic, int8_t value);
+FLECS_EXPORT int flunder_publish_int16(const void* flunder, const char* topic, int16_t value);
+FLECS_EXPORT int flunder_publish_int32(const void* flunder, const char* topic, int32_t value);
+FLECS_EXPORT int flunder_publish_int64(const void* flunder, const char* topic, int64_t value);
+FLECS_EXPORT int flunder_publish_uint8(const void* flunder, const char* topic, uint8_t value);
+FLECS_EXPORT int flunder_publish_uint16(const void* flunder, const char* topic, uint16_t value);
+FLECS_EXPORT int flunder_publish_uint32(const void* flunder, const char* topic, uint32_t value);
+FLECS_EXPORT int flunder_publish_uint64(const void* flunder, const char* topic, uint64_t value);
+
 FLECS_EXPORT int flunder_publish_float(const void* flunder, const char* topic, float value);
 FLECS_EXPORT int flunder_publish_double(const void* flunder, const char* topic, double value);
 FLECS_EXPORT int flunder_publish_string(const void* flunder, const char* topic, const char* value);
