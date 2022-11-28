@@ -29,7 +29,7 @@ if(FLECS_BUILD_TESTS)
     add_definitions(-DFLECS_UNIT_TEST)
 endif()
 
-set(BOOST_ROOT /opt/boost_1_80_0)
+set(BOOST_ROOT /opt/boost)
 find_package(Boost
     1.78.0
     REQUIRED
