@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     project(FLECS.util.string.utils.test)
 
     add_executable(FLECS.util.string.utils.test
         test_comparator.cpp
+        test_format.cpp
         test_string_utils.cpp
     )
 
