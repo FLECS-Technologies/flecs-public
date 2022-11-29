@@ -12,16 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(container)
-add_subdirectory(cxx20)
-add_subdirectory(datetime)
-add_subdirectory(network)
-add_subdirectory(process)
-add_subdirectory(random)
-add_subdirectory(signal_handler)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
-add_subdirectory(sysfs)
-add_subdirectory(sysinfo)
-add_subdirectory(udev)
-add_subdirectory(usb)
+if(BUILD_TESTING)
+    set(PROJECT_NAME FLECS.util.random.test)
+    project(${PROJECT_NAME})
+
+    add_executable(${PROJECT_NAME}
+        test_random.cpp
+    )
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_random)
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+    )
+
+    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+endif()
