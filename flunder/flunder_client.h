@@ -97,54 +97,43 @@ public:
     /* bool */
     FLECS_EXPORT auto publish(std::string_view topic, bool value) const //
         -> int;
-
-    FLECS_EXPORT auto publish(std::string_view topic, bool value) //
-        -> int;
-
     /* integer-types */
     template <typename T>
     FLECS_EXPORT auto publish(std::string_view topic, const T& value) const //
         -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>;
-
-    template <typename T>
-    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
-        -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>;
-
     /* floating-point-types */
     template <typename T>
     FLECS_EXPORT auto publish(std::string_view topic, const T& value) const //
         -> std::enable_if_t<std::is_floating_point_v<T>, int>;
-
-    template <typename T>
-    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
-        -> std::enable_if_t<std::is_floating_point_v<T>, int>;
-
     /* string-types */
     template <typename T>
     FLECS_EXPORT auto publish(std::string_view topic, const T& value) const //
         -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>;
-
-    template <typename T>
-    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
-        -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>;
-
     FLECS_EXPORT auto publish(std::string_view topic, const char* value) const //
         -> int;
-
-    FLECS_EXPORT auto publish(std::string_view topic, const char* value) //
-        -> int;
-
     /* raw data */
     FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len) const //
         -> int;
-
-    FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len) //
-        -> int;
-
     /* custom data */
     FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
         -> int;
 
+    /** @todo: non-const binary-compatibility hell: remove for 2.0.0 */
+    FLECS_EXPORT auto publish(std::string_view topic, bool value) //
+        -> int;
+    template <typename T>
+    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
+        -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>;
+    template <typename T>
+    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
+        -> std::enable_if_t<std::is_floating_point_v<T>, int>;
+    template <typename T>
+    FLECS_EXPORT auto publish(std::string_view topic, const T& value) //
+        -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>;
+    FLECS_EXPORT auto publish(std::string_view topic, const char* value) //
+        -> int;
+    FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len) //
+        -> int;
     FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) //
         -> int;
 
@@ -179,27 +168,29 @@ private:
 
     FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) const //
         -> int;
-    FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) //
-        -> int;
     FLECS_EXPORT auto publish_int(
         std::string_view topic, size_t size, bool is_signed, const std::string& value) const //
         -> int;
-    FLECS_EXPORT auto publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
-        -> int;
     FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) const //
-        -> int;
-    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) //
         -> int;
     FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) const //
         -> int;
-    FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) //
-        -> int;
     FLECS_EXPORT auto publish_raw(std::string_view topic, const void* data, size_t len) const //
-        -> int;
-    FLECS_EXPORT auto publish_raw(std::string_view topic, const void* data, size_t len) //
         -> int;
     FLECS_EXPORT auto publish_custom(
         std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
+        -> int;
+
+    /** @todo: non-const binary-compatibility hell: remove for 2.0.0 */
+    FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) //
+        -> int;
+    FLECS_EXPORT auto publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+        -> int;
+    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) //
+        -> int;
+    FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) //
+        -> int;
+    FLECS_EXPORT auto publish_raw(std::string_view topic, const void* data, size_t len) //
         -> int;
     FLECS_EXPORT auto publish_custom(std::string_view topic, const void* data, size_t len, std::string_view encoding) //
         -> int;
@@ -215,13 +206,6 @@ auto flunder_client_t::publish(std::string_view topic, const T& value) const //
 }
 
 template <typename T>
-auto flunder_client_t::publish(std::string_view topic, const T& value) //
-    -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>
-{
-    return (static_cast<const flunder_client_t*>(this))->publish(topic, value);
-}
-
-template <typename T>
 auto flunder_client_t::publish(std::string_view topic, const T& value) const //
     -> std::enable_if_t<std::is_floating_point_v<T>, int>
 {
@@ -229,19 +213,25 @@ auto flunder_client_t::publish(std::string_view topic, const T& value) const //
 }
 
 template <typename T>
+auto flunder_client_t::publish(std::string_view topic, const T& value) const //
+    -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>
+{
+    return publish_string(topic, std::string{value});
+}
+
+/** @todo: non-const binary-compatibility hell: remove for 2.0.0 */
+template <typename T>
+auto flunder_client_t::publish(std::string_view topic, const T& value) //
+    -> std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, int>
+{
+    return (static_cast<const flunder_client_t*>(this))->publish(topic, value);
+}
+template <typename T>
 auto flunder_client_t::publish(std::string_view topic, const T& value) //
     -> std::enable_if_t<std::is_floating_point_v<T>, int>
 {
     return (static_cast<const flunder_client_t*>(this))->publish(topic, value);
 }
-
-template <typename T>
-auto flunder_client_t::publish(std::string_view topic, const T& value) const //
-    -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>
-{
-    return publish_string(topic, value);
-}
-
 template <typename T>
 auto flunder_client_t::publish(std::string_view topic, const T& value) //
     -> std::enable_if_t<is_std_string_v<T> || is_std_string_view_v<T>, int>
