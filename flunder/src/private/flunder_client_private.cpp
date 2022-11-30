@@ -351,7 +351,9 @@ auto flunder_client_private_t::subscribe(
 auto flunder_client_private_t::unsubscribe(std::string_view topic) //
     -> int
 {
-    auto it = _subscriptions.find(topic.data());
+    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+
+    auto it = _subscriptions.find(keyexpr);
     if (it == _subscriptions.cend())
     {
         return -1;
@@ -431,7 +433,7 @@ auto flunder_client_private_t::get(std::string_view topic) const //
     auto options = z_get_options_default();
     options.target = Z_QUERY_TARGET_ALL;
 
-    auto keyexpr = z_keyexpr(topic.data());
+    auto keyexpr = z_keyexpr(cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data());
     if (!z_keyexpr_is_initialized(&keyexpr))
     {
         return {-1, vars};
@@ -440,8 +442,8 @@ auto flunder_client_private_t::get(std::string_view topic) const //
     z_get(z_session_loan(&_z_session), keyexpr, "", z_move(reply_channel.send), &options);
 
     z_owned_reply_t reply = z_reply_null();
-    for (z_reply_channel_closure_call(&reply_channel.recv, z_move(reply)); z_reply_check(&reply);
-         z_reply_channel_closure_call(&reply_channel.recv, z_move(reply)))
+    for (z_reply_channel_closure_call(&reply_channel.recv, &reply); z_reply_check(&reply);
+         z_reply_channel_closure_call(&reply_channel.recv, &reply))
     {
         if (z_reply_is_ok(&reply))
         {
