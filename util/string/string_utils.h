@@ -28,10 +28,19 @@
 namespace FLECS {
 
 template <typename T>
-std::enable_if_t<!std::is_convertible_v<T, std::string>, std::string> stringify_impl(T&& val)
+std::enable_if_t<!std::is_convertible_v<T, std::string> && !std::is_same_v<std::decay_t<T>, bool>, std::string>
+stringify_impl(T&& val)
 {
     using std::to_string;
     return to_string(val);
+}
+
+template <typename T>
+std::enable_if_t<!std::is_convertible_v<T, std::string> && std::is_same_v<std::decay_t<T>, bool>, std::string>
+stringify_impl(T&& val)
+{
+    using std::operator""s;
+    return val ? "true"s : "false"s;
 }
 
 template <typename T>
