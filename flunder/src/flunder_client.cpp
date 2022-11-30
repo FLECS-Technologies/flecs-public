@@ -23,8 +23,10 @@ flunder_client_t::flunder_client_t()
 {}
 
 flunder_client_t::flunder_client_t(flunder_client_t&& other)
-    : _impl{std::move(other._impl)}
-{}
+    : flunder_client_t{}
+{
+    swap(*this, other);
+}
 
 flunder_client_t& flunder_client_t::operator=(flunder_client_t&& other)
 {
@@ -33,7 +35,9 @@ flunder_client_t& flunder_client_t::operator=(flunder_client_t&& other)
 }
 
 flunder_client_t::~flunder_client_t()
-{}
+{
+    disconnect();
+}
 
 auto flunder_client_t::connect() //
     -> int
