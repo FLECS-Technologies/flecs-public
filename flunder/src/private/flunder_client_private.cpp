@@ -146,11 +146,18 @@ flunder_client_private_t::flunder_client_private_t()
 flunder_client_private_t::~flunder_client_private_t()
 {}
 
-auto flunder_client_private_t::connect(std::string_view /*host*/, int /*port*/) //
+auto flunder_client_private_t::connect(std::string_view host, int port) //
     -> int
 {
+    _host = host;
+    _port = port;
+
+    const auto len = std::snprintf(nullptr, 0, "[\"tcp/%s:%d\"]", host.data(), port);
+    auto remote = std::string(len, '0');
+    std::snprintf(remote.data(), remote.length() + 1, "[\"tcp/%s:%d\"]", host.data(), port);
+
     auto config = z_config_default();
-    zc_config_insert_json(z_config_loan(&config), Z_CONFIG_CONNECT_KEY, R"#(["tcp/flecs-flunder:7447"])#");
+    zc_config_insert_json(z_config_loan(&config), Z_CONFIG_CONNECT_KEY, remote.c_str());
     zc_config_insert_json(z_config_loan(&config), Z_CONFIG_MODE_KEY, R"#("client")#");
     zc_config_insert_json(z_config_loan(&config), Z_CONFIG_MULTICAST_SCOUTING_KEY, "false");
     zc_config_insert_json(z_config_loan(&config), "timestamping/enabled", "true");
@@ -176,8 +183,11 @@ auto flunder_client_private_t::is_connected() const noexcept //
 auto flunder_client_private_t::reconnect() //
     -> int
 {
+    const auto host = _host;
+    const auto port = _port;
+
     disconnect();
-    return connect("", 0);
+    return connect(host, port);
 }
 
 auto flunder_client_private_t::disconnect() //
@@ -195,6 +205,9 @@ auto flunder_client_private_t::disconnect() //
     {
         z_close(z_move(_z_session));
     }
+    _host.clear();
+    _port = 0;
+
     return 0;
 }
 
@@ -360,7 +373,9 @@ auto flunder_client_private_t::add_mem_storage(std::string name, std::string_vie
 
     const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
 
-    auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
+    auto url = cpr::Url{std::string{"http://"}
+                            .append(_host)
+                            .append(":8000")
                             .append("/@/router/local/config/plugins/storage_manager/storages/")
                             .append(name)};
 
@@ -385,7 +400,9 @@ auto flunder_client_private_t::remove_mem_storage(std::string name) //
         return -1;
     }
 
-    auto url = cpr::Url{std::string{"http://flecs-flunder:8000"}
+    auto url = cpr::Url{std::string{"http://"}
+                            .append(_host)
+                            .append(":8000")
                             .append("/@/router/local/config/plugins/storage_manager/storages/")
                             .append(name)};
     const auto res = cpr::Delete(url);
