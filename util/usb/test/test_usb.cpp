@@ -123,3 +123,20 @@ TEST(usb, to_json)
     ASSERT_EQ(json["port"], USB_PORT);
     ASSERT_EQ(json["vendor"], USB_VENDOR);
 }
+
+TEST(usb, from_json)
+{
+    const auto json_string =
+        R"({"pid":4660,"vid":43981,"device":"FLECS Test Device","port":"2.1-1","vendor":"FLECS Technologies GmbH"})";
+    const auto json = FLECS::parse_json(json_string);
+
+    auto usb_device = FLECS::usb::device_t{};
+    from_json(json, usb_device);
+
+    ASSERT_TRUE(FLECS::is_valid_json(json));
+    ASSERT_EQ(usb_device.pid, USB_PID);
+    ASSERT_EQ(usb_device.vid, USB_VID);
+    ASSERT_EQ(usb_device.device, USB_DEVICE);
+    ASSERT_EQ(usb_device.port, USB_PORT);
+    ASSERT_EQ(usb_device.vendor, USB_VENDOR);
+}
