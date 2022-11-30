@@ -17,24 +17,15 @@
 #include <app/app.h>
 
 #include <cstdio>
-#include <random>
+
+#include "util/random/random.h"
+#include "util/string/format.h"
 
 namespace FLECS {
 
 std::string generate_instance_id()
 {
-    auto res = std::string(8, '\0');
-
-    auto seed = std::random_device{};
-    auto generator = std::mt19937{seed()};
-    auto distribution = std::uniform_int_distribution{
-        std::numeric_limits<std::uint32_t>::min(),
-        std::numeric_limits<std::uint32_t>::max()};
-
-    auto id = distribution(generator);
-    std::snprintf(res.data(), res.length() + 1, "%.8x", id);
-
-    return res;
+    return int_to_hex(rnd(), fmt::Lowercase, fmt::NoPrefix, fmt::LeadingZeroes);
 }
 
 instance_t::instance_t()
