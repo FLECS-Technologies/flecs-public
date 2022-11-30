@@ -115,6 +115,8 @@ private:
 
     std::set<std::string> _mem_storages;
 
+    std::string _host;
+    std::uint16_t _port;
     z_owned_session_t _z_session;
     std::map<std::string, subscribe_ctx_t> _subscriptions;
 };
