@@ -118,7 +118,7 @@ auto module_app_manager_t::do_init() //
         return crow::response{status, response.dump()};
     });
 
-    FLECS_ROUTE("/<path>/instance/<path>/config")
+    FLECS_ROUTE("/<string>/instance/<string>/config")
         .methods("PUT"_method)(
             [=](const crow::request& req, const std::string& /*api_version*/, const std::string& instance_id) {
                 auto response = json_t{};
