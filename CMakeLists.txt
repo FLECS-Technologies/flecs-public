@@ -19,7 +19,7 @@ include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
 project(FLECS)
 
 # set version
-set(VERSION 1.5.4-porpoise)
+set(VERSION 1.6.0-porpoise)
 add_definitions(-DFLECS_VERSION="${VERSION}")
 
 if(FLECS_BUILD_TESTS)
