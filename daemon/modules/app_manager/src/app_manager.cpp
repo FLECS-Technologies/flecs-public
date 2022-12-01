@@ -149,6 +149,18 @@ auto module_app_manager_t::do_init() //
         return crow::response{status, response.dump()};
     });
 
+    FLECS_ROUTE("/<string>/instance/<string>/update")
+        .methods("PUT"_method)(
+            [=](const crow::request& req, const std::string& /*api_version*/, const std::string& instance_id) {
+                auto response = json_t{};
+                const auto args = parse_json(req.body);
+                OPTIONAL_JSON_VALUE(args, app);
+                OPTIONAL_JSON_VALUE(args, from);
+                REQUIRED_JSON_VALUE(args, to);
+                const auto status = _impl->do_update_instance(instance_id, app, from, to, response);
+                return crow::response{status, response.dump()};
+            });
+
     FLECS_ROUTE("/instance/delete").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
