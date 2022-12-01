@@ -134,13 +134,10 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     }
 
     // Step 2: Create volumes
-    for (const auto& volume : app.volumes())
+    const auto [res, additional_info] = create_volumes(instance);
+    if (res != 0)
     {
-        if (volume.type() != volume_t::VOLUME)
-        {
-            continue;
-        }
-        create_volume(instance.id(), volume.host());
+        return {res, additional_info};
     }
 
     // Step 3: Create networks
@@ -361,6 +358,23 @@ auto deployment_t::disconnect_network(std::string_view instance_id, std::string_
     -> result_t
 {
     return do_disconnect_network(std::move(instance_id), std::move(network));
+}
+
+auto deployment_t::create_volumes(const instance_t& instance) //
+    -> result_t
+{
+    for (auto& volume : instance.app().volumes())
+    {
+        if (volume.type() == volume_t::BIND_MOUNT)
+        {
+            const auto [res, additional_info] = create_volume(instance.id(), volume.host());
+            if (res != 0)
+            {
+                return {res, additional_info};
+            }
+        }
+    }
+    return {0, {}};
 }
 
 auto deployment_t::create_volume(std::string_view instance_id, std::string_view volume_name) //
