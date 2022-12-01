@@ -29,8 +29,8 @@ struct flecs_mqtt_message_t
 #endif // __cplusplus
 {
     int id;
-    const char *topic;
-    char *payload;
+    const char* topic;
+    char* payload;
     int payloadlen;
     int qos;
     bool retain;

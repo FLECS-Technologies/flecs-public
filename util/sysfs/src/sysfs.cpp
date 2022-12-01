@@ -30,8 +30,7 @@ auto read_file(std::string_view path) //
     -> std::optional<std::string>
 {
     auto file = std::ifstream{path.data()};
-    if (!file.good())
-    {
+    if (!file.good()) {
         return {};
     }
 
@@ -60,8 +59,7 @@ auto usb_busnum(std::string_view port) //
 {
     const auto path = std::string{base_path}.append(port).append("/busnum");
     const auto busnum = read_file(path);
-    if (busnum.has_value())
-    {
+    if (busnum.has_value()) {
         return std::stoi(busnum.value());
     }
     return {};
@@ -72,8 +70,7 @@ auto usb_devnum(std::string_view port) //
 {
     const auto path = std::string{base_path}.append(port).append("/devnum");
     const auto devnum = read_file(path);
-    if (devnum.has_value())
-    {
+    if (devnum.has_value()) {
         return std::stoi(devnum.value());
     }
     return {};

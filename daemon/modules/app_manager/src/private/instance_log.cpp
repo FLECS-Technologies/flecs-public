@@ -29,8 +29,7 @@ auto module_app_manager_private_t::do_instance_log(const std::string& instance_i
     response["instanceId"] = instance_id;
 
     // Step 1: Verify instance does actually exist
-    if (!_deployment->has_instance(instance_id))
-    {
+    if (!_deployment->has_instance(instance_id)) {
         response["additionalInfo"] = "Could not query details of instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
@@ -41,8 +40,7 @@ auto module_app_manager_private_t::do_instance_log(const std::string& instance_i
     docker_process.wait(false, false);
 
     // Step 3: Build response
-    if (docker_process.exit_code() != 0)
-    {
+    if (docker_process.exit_code() != 0) {
         response["additionalInfo"] = "Could not get logs for instance " + instance_id;
         return crow::status::INTERNAL_SERVER_ERROR;
     }

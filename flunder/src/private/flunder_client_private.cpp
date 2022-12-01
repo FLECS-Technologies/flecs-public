@@ -36,8 +36,7 @@ static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
     -> void
 {
     const auto* ctx = static_cast<const flunder_client_private_t::subscribe_ctx_t*>(arg);
-    if (!ctx->_once)
-    {
+    if (!ctx->_once) {
         return;
     }
 
@@ -121,15 +120,12 @@ auto encoding_from_string(std::string_view encoding) //
 
     const auto it = encodings.find(encoding);
 
-    if (it != encodings.cend())
-    {
+    if (it != encodings.cend()) {
         return {it->second, std::string_view{}};
     }
 
-    for (const auto& it : encodings)
-    {
-        if (!it.first.empty() && cxx20::starts_with(encoding, it.first))
-        {
+    for (const auto& it : encodings) {
+        if (!it.first.empty() && cxx20::starts_with(encoding, it.first)) {
             return {it.second, encoding.substr(it.first.length())};
         }
     }
@@ -193,16 +189,13 @@ auto flunder_client_private_t::reconnect() //
 auto flunder_client_private_t::disconnect() //
     -> int
 {
-    while (!_subscriptions.empty())
-    {
+    while (!_subscriptions.empty()) {
         unsubscribe(_subscriptions.rbegin()->first);
     }
-    while (!_mem_storages.empty())
-    {
+    while (!_mem_storages.empty()) {
         remove_mem_storage(*_mem_storages.rbegin());
     }
-    if (is_connected())
-    {
+    if (is_connected()) {
         z_close(z_move(_z_session));
     }
     _host.clear();
@@ -309,14 +302,12 @@ auto flunder_client_private_t::subscribe(
 {
     const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
 
-    if (_subscriptions.count(keyexpr) > 0)
-    {
+    if (_subscriptions.count(keyexpr) > 0) {
         return -1;
     }
 
     auto res = _subscriptions.emplace(keyexpr, subscribe_ctx_t{client, {}, cbk, userp, false});
-    if (!res.second)
-    {
+    if (!res.second) {
         return -1;
     }
     auto& ctx = res.first->second;
@@ -327,15 +318,13 @@ auto flunder_client_private_t::subscribe(
     auto closure = z_owned_closure_sample_t{.context = &ctx, .call = lib_subscribe_callback, .drop = nullptr};
     ctx._sub = z_declare_subscriber(z_session_loan(&_z_session), z_keyexpr(keyexpr), z_move(closure), &options);
 
-    if (!z_subscriber_check(&ctx._sub))
-    {
+    if (!z_subscriber_check(&ctx._sub)) {
         _subscriptions.erase(res.first);
         return -1;
     }
 
     const auto [unused, vars] = get(keyexpr);
-    for (const auto& var : vars)
-    {
+    for (const auto& var : vars) {
         std::visit(
             overload{// call callback without userdata
                      [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx._client, &var); },
@@ -354,8 +343,7 @@ auto flunder_client_private_t::unsubscribe(std::string_view topic) //
     const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
 
     auto it = _subscriptions.find(keyexpr);
-    if (it == _subscriptions.cend())
-    {
+    if (it == _subscriptions.cend()) {
         return -1;
     }
 
@@ -368,8 +356,7 @@ auto flunder_client_private_t::unsubscribe(std::string_view topic) //
 auto flunder_client_private_t::add_mem_storage(std::string name, std::string_view topic) //
     -> int
 {
-    if (_mem_storages.count(name))
-    {
+    if (_mem_storages.count(name)) {
         return -1;
     }
 
@@ -384,8 +371,7 @@ auto flunder_client_private_t::add_mem_storage(std::string name, std::string_vie
     const auto req_json = json_t{{"key_expr", keyexpr}, {"volume", "memory"}};
     const auto res = cpr::Put(url, cpr::Header{{"content-type", "application/json"}}, cpr::Body{req_json.dump()});
 
-    if (res.status_code != 200)
-    {
+    if (res.status_code != 200) {
         return -1;
     }
 
@@ -397,8 +383,7 @@ auto flunder_client_private_t::add_mem_storage(std::string name, std::string_vie
 auto flunder_client_private_t::remove_mem_storage(std::string name) //
     -> int
 {
-    if (!_mem_storages.count(name))
-    {
+    if (!_mem_storages.count(name)) {
         return -1;
     }
 
@@ -409,8 +394,7 @@ auto flunder_client_private_t::remove_mem_storage(std::string name) //
                             .append(name)};
     const auto res = cpr::Delete(url);
 
-    if (res.status_code != 200)
-    {
+    if (res.status_code != 200) {
         return -1;
     }
 
@@ -424,8 +408,7 @@ auto flunder_client_private_t::get(std::string_view topic) const //
 {
     auto vars = std::vector<flunder_variable_t>{};
 
-    if (!is_connected())
-    {
+    if (!is_connected()) {
         return {-1, vars};
     }
 
@@ -434,8 +417,7 @@ auto flunder_client_private_t::get(std::string_view topic) const //
     options.target = Z_QUERY_TARGET_ALL;
 
     auto keyexpr = z_keyexpr(cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data());
-    if (!z_keyexpr_is_initialized(&keyexpr))
-    {
+    if (!z_keyexpr_is_initialized(&keyexpr)) {
         return {-1, vars};
     }
 
@@ -443,16 +425,13 @@ auto flunder_client_private_t::get(std::string_view topic) const //
 
     z_owned_reply_t reply = z_reply_null();
     for (z_reply_channel_closure_call(&reply_channel.recv, &reply); z_reply_check(&reply);
-         z_reply_channel_closure_call(&reply_channel.recv, &reply))
-    {
-        if (z_reply_is_ok(&reply))
-        {
+         z_reply_channel_closure_call(&reply_channel.recv, &reply)) {
+        if (z_reply_is_ok(&reply)) {
             const auto sample = z_reply_ok(&reply);
             char* const keyexpr = z_keyexpr_to_string(sample.keyexpr);
             auto keystr = std::string{"/"} + std::string{keyexpr};
             free(keyexpr);
-            if (cxx20::starts_with(keystr, "/@"))
-            {
+            if (cxx20::starts_with(keystr, "/@")) {
                 continue;
             }
 

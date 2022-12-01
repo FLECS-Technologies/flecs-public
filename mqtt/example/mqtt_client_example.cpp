@@ -44,8 +44,7 @@ int main()
     flecs_mqtt.subscribe("/flecs/test/cpp", 0);
     flecs_mqtt.subscribe("/flecs/test/external", 0);
 
-    while (!g_stop)
-    {
+    while (!g_stop) {
         int i = 1234;
         flecs_mqtt.publish("/flecs/test/cpp", sizeof(i), &i, 0, false);
         std::this_thread::sleep_for(std::chrono::seconds(5));

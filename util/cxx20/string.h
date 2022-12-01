@@ -71,8 +71,7 @@ constexpr bool contains(const CharT* str, const CharT* s)
 
 template <typename CharT, typename Traits>
 constexpr bool starts_with(
-    std::basic_string_view<CharT, Traits> sv,
-    std::basic_string_view<CharT, Traits> sv_cmp) noexcept
+    std::basic_string_view<CharT, Traits> sv, std::basic_string_view<CharT, Traits> sv_cmp) noexcept
 {
     return sv.substr(0, sv_cmp.size()) == sv_cmp;
 }
@@ -89,8 +88,7 @@ constexpr bool starts_with(std::basic_string_view<CharT, Traits> sv, const CharT
 
 template <typename CharT, typename Traits>
 constexpr bool starts_with(
-    const std::basic_string<CharT, Traits>& str,
-    std::basic_string_view<CharT, Traits> sv) noexcept
+    const std::basic_string<CharT, Traits>& str, std::basic_string_view<CharT, Traits> sv) noexcept
 {
     return starts_with(std::basic_string_view<CharT, Traits>{str}, sv);
 }

@@ -99,11 +99,9 @@ auto get_devices() //
     auto usb_devices = static_cast<libusb_device**>(nullptr);
     const auto device_count = libusb_get_device_list(nullptr, &usb_devices);
 
-    for (ssize_t i = 0; i < device_count; ++i)
-    {
+    for (ssize_t i = 0; i < device_count; ++i) {
         auto desc = libusb_device_descriptor{};
-        if (libusb_get_device_descriptor(usb_devices[i], &desc) != 0)
-        {
+        if (libusb_get_device_descriptor(usb_devices[i], &desc) != 0) {
             continue;
         }
 
@@ -113,15 +111,11 @@ auto get_devices() //
         const auto bus = libusb_get_bus_number(usb_devices[i]);
         const auto num_ports = libusb_get_port_numbers(usb_devices[i], port_numbers, NUM_USB_PORTS);
 
-        if (num_ports == 0)
-        {
+        if (num_ports == 0) {
             port = std::string{"usb"} + std::to_string(bus);
-        }
-        else
-        {
+        } else {
             port = std::to_string(bus) + "-" + std::to_string(port_numbers[0]);
-            for (auto i = 1; i < num_ports; ++i)
-            {
+            for (auto i = 1; i < num_ports; ++i) {
                 port += "." + std::to_string(port_numbers[i]);
             }
         }

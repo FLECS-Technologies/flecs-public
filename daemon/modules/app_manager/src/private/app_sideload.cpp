@@ -30,8 +30,7 @@ auto module_app_manager_private_t::do_sideload(
 {
     // Step 1: Parse transferred manifest
     auto app = app_manifest_t::from_yaml_string(yaml);
-    if (!app.yaml_loaded())
-    {
+    if (!app.yaml_loaded()) {
         response["additionalInfo"] = "Could not parse manifest";
         return crow::status::INTERNAL_SERVER_ERROR;
     }
@@ -42,8 +41,7 @@ auto module_app_manager_private_t::do_sideload(
     {
         auto file = std::fstream{manifest_path, std::fstream::out};
         file << yaml;
-        if (!file)
-        {
+        if (!file) {
             response["additionalInfo"] = "Could not place manifest in " + manifest_path.string();
             return crow::status::INTERNAL_SERVER_ERROR;
         }
@@ -61,8 +59,7 @@ auto module_app_manager_private_t::do_sideload(
 {
     // Step 1: Parse transferred manifest
     auto app = app_manifest_t::from_yaml_file(manifest_path);
-    if (!app.yaml_loaded())
-    {
+    if (!app.yaml_loaded()) {
         response["additionalInfo"] = "Could not open manifest " + manifest_path.string();
         return crow::status::INTERNAL_SERVER_ERROR;
     }
@@ -73,8 +70,7 @@ auto module_app_manager_private_t::do_sideload(
     std::error_code ec;
     fs::remove(path, ec);
     fs::copy(manifest_path, path, ec);
-    if (ec)
-    {
+    if (ec) {
         response["additionalInfo"] = "Could not copy manifest to " + path.string();
         return crow::status::INTERNAL_SERVER_ERROR;
     }

@@ -68,8 +68,7 @@ inline bool operator!=(const volume_t& lhs, const volume_t& rhs)
 
 inline std::string to_string(const volume_t::volume_type_t& volume_type)
 {
-    switch (volume_type)
-    {
+    switch (volume_type) {
         case volume_t::BIND_MOUNT:
             return "bind mount";
         case volume_t::VOLUME:

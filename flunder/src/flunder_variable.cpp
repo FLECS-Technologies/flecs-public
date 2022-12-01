@@ -95,8 +95,7 @@ FLECS_EXPORT auto flunder_variable_t::timestamp() const noexcept //
 FLECS_EXPORT auto flunder_variable_t::own() //
     -> void
 {
-    if (!is_owned())
-    {
+    if (!is_owned()) {
         _topic = std::string{std::get<std::string_view>(_topic)};
         _value = std::string{std::get<std::string_view>(_value)};
         _encoding = std::string{std::get<std::string_view>(_encoding)};

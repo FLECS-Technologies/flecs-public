@@ -35,8 +35,7 @@ public:
         FLECS_ROUTE("/test/post").methods("POST"_method)([](const crow::request& req) {
             auto response = FLECS::json_t{};
             const auto args = FLECS::parse_json(req.body);
-            if (!args.contains("arg"))
-            {
+            if (!args.contains("arg")) {
                 return crow::response(crow::status::BAD_REQUEST);
             }
             response["additionalInfo"] = "OK";

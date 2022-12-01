@@ -75,12 +75,18 @@ struct is_std_container<
     std::enable_if_t<
         !is_std_string_v<ContainerType> && !is_std_string_view_v<ContainerType>,
         std::void_t<
-            typename std::decay_t<ContainerType>::value_type, typename std::decay_t<ContainerType>::reference,
-            typename std::decay_t<ContainerType>::const_reference, typename std::decay_t<ContainerType>::iterator,
-            typename std::decay_t<ContainerType>::const_iterator, typename std::decay_t<ContainerType>::difference_type,
-            typename std::decay_t<ContainerType>::size_type, decltype(std::decay_t<ContainerType>().begin()),
-            decltype(std::decay_t<ContainerType>().end()), decltype(std::decay_t<ContainerType>().cbegin()),
-            decltype(std::decay_t<ContainerType>().cend()), decltype(std::decay_t<ContainerType>().size()),
+            typename std::decay_t<ContainerType>::value_type,
+            typename std::decay_t<ContainerType>::reference,
+            typename std::decay_t<ContainerType>::const_reference,
+            typename std::decay_t<ContainerType>::iterator,
+            typename std::decay_t<ContainerType>::const_iterator,
+            typename std::decay_t<ContainerType>::difference_type,
+            typename std::decay_t<ContainerType>::size_type,
+            decltype(std::decay_t<ContainerType>().begin()),
+            decltype(std::decay_t<ContainerType>().end()),
+            decltype(std::decay_t<ContainerType>().cbegin()),
+            decltype(std::decay_t<ContainerType>().cend()),
+            decltype(std::decay_t<ContainerType>().size()),
             decltype(std::decay_t<ContainerType>().empty())>>> : std::true_type
 {
 };

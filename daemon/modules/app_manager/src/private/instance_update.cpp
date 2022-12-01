@@ -36,8 +36,7 @@ auto module_app_manager_private_t::do_update_instance(
     response["to"] = to;
 
     // Step 1: Verify instance does actually exist
-    if (!_deployment->has_instance(instance_id))
-    {
+    if (!_deployment->has_instance(instance_id)) {
         response["additionalInfo"] = "Could not update instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
@@ -50,23 +49,20 @@ auto module_app_manager_private_t::do_update_instance(
 
     // Step 2: Do some cross-checks if app_name and from-version are provided
     auto xcheck = xcheck_app_instance(instance, app_name, from);
-    if (xcheck < 0)
-    {
+    if (xcheck < 0) {
         response["additionalInfo"] = "Could not update instance: instance/app mismatch";
         return crow::status::BAD_REQUEST;
     }
 
     // Step 3: Make sure to-app is installed
-    if (!is_app_installed(instance.app_name(), to))
-    {
+    if (!is_app_installed(instance.app_name(), to)) {
         response["additionalInfo"] = "Could not update instance to version " + to + ", which is not installed";
         return crow::status::BAD_REQUEST;
     }
 
     // Step 4: Stop running instance
     const auto stop_res = do_stop_instance(instance.id(), instance.app_name(), instance.app_version(), response, true);
-    if (stop_res != crow::status::OK)
-    {
+    if (stop_res != crow::status::OK) {
         response["additionalInfo"] = "Could not stop instance " + instance.id();
         return crow::status::INTERNAL_SERVER_ERROR;
     }
@@ -81,12 +77,10 @@ auto module_app_manager_private_t::do_update_instance(
     _deployment->save();
 
     // Final step: Start instance
-    if (instance.desired() == instance_status_e::RUNNING)
-    {
+    if (instance.desired() == instance_status_e::RUNNING) {
         const auto start_res =
             do_start_instance(instance.id(), instance.app_name(), instance.app_version(), response, true);
-        if (start_res != crow::status::OK)
-        {
+        if (start_res != crow::status::OK) {
             response["additionalInfo"] = "Could not stop instance " + instance.id();
             return crow::status::INTERNAL_SERVER_ERROR;
         }

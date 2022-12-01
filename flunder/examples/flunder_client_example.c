@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "flunder/flunder_client.h"
-
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
+
+#include "flunder/flunder_client.h"
 
 static int g_stop;
 
@@ -28,7 +28,9 @@ void signal_handler(int signum)
 
 void flunder_subscribe_callback(void* client, const flunder_variable_t* var)
 {
-    fprintf(stdout, "Received flunder message on client %p!\n"
+    fprintf(
+        stdout,
+        "Received flunder message on client %p!\n"
         "\ttopic:     %s\n"
         "\tlength:    %zu\n"
         "\tvalue:     %s\n"
@@ -55,8 +57,7 @@ int main(void)
     flunder_subscribe(flunder_client, "/flecs/flunder/c/float", &flunder_subscribe_callback);
     flunder_subscribe(flunder_client, "/flecs/flunder/external", &flunder_subscribe_callback);
 
-    while (!g_stop)
-    {
+    while (!g_stop) {
         int i = 1234;
         float f = 3.14159;
         flunder_publish_int(flunder_client, "/flecs/flunder/c/int", i);

@@ -61,21 +61,16 @@ template <typename T>
 std::string stringify_delim_impl(std::string_view delim, T&& val)
 {
     (void)delim; // suppress wrong unused warning
-    if constexpr (is_std_container_v<T>)
-    {
+    if constexpr (is_std_container_v<T>) {
         auto str = std::string{};
-        for (decltype(auto) it : val)
-        {
+        for (decltype(auto) it : val) {
             str += stringify_impl(it) + std::string{delim};
         }
-        if (!str.empty())
-        {
+        if (!str.empty()) {
             str.resize(str.size() - delim.size());
         }
         return str;
-    }
-    else
-    {
+    } else {
         return stringify_impl(val);
     }
 }
@@ -102,8 +97,7 @@ auto split(const std::basic_string<CharT, Traits>& str, CharT delim)
     auto iss = std::istringstream{str};
     auto item = std::basic_string<CharT, Traits>{};
 
-    while (std::getline(iss, item, delim))
-    {
+    while (std::getline(iss, item, delim)) {
         res.emplace_back(item);
     }
 

@@ -69,15 +69,13 @@ auto cidr_to_subnet_mask_v4(std::string_view cidr_subnet) //
     // e.g. 127.0.0.1/24 -> 1/24
     const auto subnet_regex = std::regex{R"(\d\/([0-9]|[1][0-9]|[2][0-9]|[3][0-2])$)"};
     auto m = std::cmatch{};
-    if (!std::regex_search(cidr_subnet.data(), m, subnet_regex) || m.size() < 2)
-    {
+    if (!std::regex_search(cidr_subnet.data(), m, subnet_regex) || m.size() < 2) {
         return std::string{};
     }
 
     const auto subnet_size = std::stoi(m[1].str());
     auto subnet_bits = std::bitset<8 * sizeof(in_addr_t)>{};
-    for (auto i = 0; i < subnet_size; ++i)
-    {
+    for (auto i = 0; i < subnet_size; ++i) {
         subnet_bits.set(subnet_bits.size() - i - 1);
     }
 

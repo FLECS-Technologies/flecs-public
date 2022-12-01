@@ -107,12 +107,10 @@ auto module_app_manager_t::do_init() //
         const auto args = parse_json(req.body);
         REQUIRED_JSON_VALUE(args, instanceId);
         auto config = instance_config_t{};
-        if (args.contains("networkAdapters"))
-        {
+        if (args.contains("networkAdapters")) {
             args["networkAdapters"].get_to(config.networkAdapters);
         }
-        if (args.contains("devices") && args["devices"].contains("usb"))
-        {
+        if (args.contains("devices") && args["devices"].contains("usb")) {
             args["devices"]["usb"].get_to(config.usb_devices);
         }
 
@@ -126,12 +124,10 @@ auto module_app_manager_t::do_init() //
                 auto response = json_t{};
                 const auto args = parse_json(req.body);
                 auto config = instance_config_t{};
-                if (args.contains("networkAdapters"))
-                {
+                if (args.contains("networkAdapters")) {
                     args["networkAdapters"].get_to(config.networkAdapters);
                 }
-                if (args.contains("devices") && args["devices"].contains("usb"))
-                {
+                if (args.contains("devices") && args["devices"].contains("usb")) {
                     args["devices"]["usb"].get_to(config.usb_devices);
                 }
 

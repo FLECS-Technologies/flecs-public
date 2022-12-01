@@ -99,8 +99,7 @@ inline bool operator!=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs)
 inline std::string to_string(const mapped_env_var_t& mapped_env_var)
 {
     auto res = std::string{};
-    if (mapped_env_var.is_valid())
-    {
+    if (mapped_env_var.is_valid()) {
         res += mapped_env_var.var() + "=" + mapped_env_var.value();
     }
     return res;

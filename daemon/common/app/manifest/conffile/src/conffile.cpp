@@ -27,40 +27,28 @@ conffile_t::conffile_t(const std::string& str)
     , _init{}
 {
     auto parts = split(str, ':');
-    if (parts.size() < 2)
-    {
+    if (parts.size() < 2) {
         return;
     }
 
     _local = parts[0];
     _container = parts[1];
 
-    if (parts.size() < 3)
-    {
+    if (parts.size() < 3) {
         return;
     }
 
     auto props = split(parts[2], ',');
-    for (const auto& prop : props)
-    {
-        if (prop == "ro")
-        {
+    for (const auto& prop : props) {
+        if (prop == "ro") {
             _ro = true;
-        }
-        else if (prop == "rw")
-        {
+        } else if (prop == "rw") {
             // default
-        }
-        else if (prop == "init")
-        {
+        } else if (prop == "init") {
             _init = true;
-        }
-        else if (prop == "no_init")
-        {
+        } else if (prop == "no_init") {
             // default
-        }
-        else
-        {
+        } else {
             std::fprintf(stderr, "Ignoring invalid conffile property '%s'\n", prop.c_str());
         }
     }
@@ -73,13 +61,11 @@ bool conffile_t::is_valid() const noexcept
     // container must be an absolute path
     const auto container_regex = std::regex{"^/[^#%&{}\\<>*? $!'\":@+`|=]+[^/]$"};
 
-    if (!std::regex_match(_local, local_regex))
-    {
+    if (!std::regex_match(_local, local_regex)) {
         return false;
     }
 
-    if (!std::regex_match(_container, container_regex))
-    {
+    if (!std::regex_match(_container, container_regex)) {
         return false;
     }
 

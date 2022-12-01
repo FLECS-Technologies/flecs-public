@@ -36,14 +36,12 @@ auto module_app_manager_private_t::do_start_instance(
     response["version"] = version;
 
     // Step 1: Verify instance does actually exist and is fully created
-    if (!_deployment->has_instance(instance_id))
-    {
+    if (!_deployment->has_instance(instance_id)) {
         response["additionalInfo"] = "Could not start instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
-    if (!_deployment->is_instance_runnable(instance_id))
-    {
+    if (!_deployment->is_instance_runnable(instance_id)) {
         response["additionalInfo"] = "Could not start instance " + instance_id + ", which is not fully created";
         return crow::status::BAD_REQUEST;
     }
@@ -56,22 +54,19 @@ auto module_app_manager_private_t::do_start_instance(
 
     // Step 2: Do some cross-checks if app_name and version are provided
     auto xcheck = xcheck_app_instance(instance, app_name, version);
-    if (xcheck < 0)
-    {
+    if (xcheck < 0) {
         response["additionalInfo"] = "Could not start instance: instance/app mismatch";
         return crow::status::BAD_REQUEST;
     }
 
     // Step 3: Return if instance is already running
-    if (_deployment->is_instance_running(instance_id))
-    {
+    if (_deployment->is_instance_running(instance_id)) {
         response["additionalInfo"] = "Instance " + instance_id + " already running";
         return crow::status::OK;
     }
 
     // Step 3: Persist desired status into deployment, if triggered externally
-    if (!internal)
-    {
+    if (!internal) {
         instance.desired(instance_status_e::RUNNING);
     }
 

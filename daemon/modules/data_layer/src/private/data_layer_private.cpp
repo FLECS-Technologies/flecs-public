@@ -42,23 +42,20 @@ auto module_data_layer_private_t::do_browse(std::string_view path, json_t& respo
 {
     response["additionalInfo"] = "";
 
-    if (!_client.is_connected() && (_client.connect() < 0))
-    {
+    if (!_client.is_connected() && (_client.connect() < 0)) {
         response["additionalInfo"] = "Could not establish connection to Service Mesh";
         return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     const auto [res, vars] = _client.get(path.empty() ? "**" : path);
 
-    if (res != 0)
-    {
+    if (res != 0) {
         response["additionalInfo"] = "Could not get data from client";
         return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     response["data"] = json_t::array();
-    for (decltype(auto) it = vars.cbegin(); it != vars.cend(); ++it)
-    {
+    for (decltype(auto) it = vars.cbegin(); it != vars.cend(); ++it) {
         response["data"].push_back(json_t{
             {"key", std::string{it->topic()}},
             {"value", std::string{it->value()}},

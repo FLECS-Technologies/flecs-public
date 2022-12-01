@@ -18,9 +18,7 @@ namespace FLECS {
 namespace Private {
 
 auto module_app_manager_private_t::do_list_instances(
-    const std::string& /*app_name*/,
-    const std::string& /*version*/,
-    json_t& /*response*/) -> crow::status
+    const std::string& /*app_name*/, const std::string& /*version*/, json_t& /*response*/) -> crow::status
 {
     return crow::status::OK;
 }

@@ -50,8 +50,7 @@ echo_server_t::echo_server_t()
         CROW_CATCHALL_ROUTE(crow_app())
         ([](const crow::request& req) {
             auto response = crow::json::wvalue{};
-            if ((req.method == crow::HTTPMethod::POST) || (req.method == crow::HTTPMethod::PUT))
-            {
+            if ((req.method == crow::HTTPMethod::POST) || (req.method == crow::HTTPMethod::PUT)) {
                 response = crow::json::load(req.body);
             }
             response["endpoint"] = req.url;

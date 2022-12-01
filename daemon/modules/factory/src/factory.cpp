@@ -24,16 +24,14 @@ module_factory_t& module_factory_t::instance()
 
 void module_factory_t::init_modules()
 {
-    for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it)
-    {
+    for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it) {
         it->second->init();
     }
 }
 
 void module_factory_t::deinit_modules()
 {
-    for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it)
-    {
+    for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it) {
         it->second->deinit();
     }
 }
@@ -41,8 +39,7 @@ void module_factory_t::deinit_modules()
 std::shared_ptr<module_t> module_factory_t::query(const char* module_name)
 {
     decltype(auto) it = _module_table.find(module_name);
-    if (it != _module_table.end())
-    {
+    if (it != _module_table.end()) {
         return it->second;
     }
     return nullptr;

@@ -55,12 +55,10 @@ process_t::~process_t()
 {
     close(_fd_stdout);
     close(_fd_stderr);
-    if (strlen(_filename_stdout) > 0)
-    {
+    if (strlen(_filename_stdout) > 0) {
         unlink(_filename_stdout);
     }
-    if (strlen(_filename_stderr) > 0)
-    {
+    if (strlen(_filename_stderr) > 0) {
         unlink(_filename_stderr);
     }
 }
@@ -68,12 +66,10 @@ process_t::~process_t()
 int process_t::wait(bool dump_stdout, bool dump_stderr) noexcept
 {
     auto res = waitpid(_pid, &_status, 0);
-    if (dump_stdout)
-    {
+    if (dump_stdout) {
         std::cout << stdout();
     }
-    if (dump_stderr)
-    {
+    if (dump_stderr) {
         std::cerr << stderr();
     }
     return res;
@@ -109,14 +105,12 @@ int process_t::do_spawn(const char* exec, bool path)
     flecs_posix_spawn_file_actions_t file_actions;
 
     int res = posix_spawn_file_actions_adddup2(file_actions.pointer(), _fd_stdout, STDOUT_FILENO);
-    if (res < 0)
-    {
+    if (res < 0) {
         return -1;
     }
 
     res = posix_spawn_file_actions_adddup2(file_actions.pointer(), _fd_stderr, STDERR_FILENO);
-    if (res < 0)
-    {
+    if (res < 0) {
         return -1;
     }
 
@@ -127,8 +121,7 @@ int process_t::do_spawn(const char* exec, bool path)
     auto it = _args.begin();
     std::size_t i = 1;
 
-    while (i <= _args.size())
-    {
+    while (i <= _args.size()) {
         argv[i] = const_cast<char*>(it->c_str());
         ++i;
         ++it;

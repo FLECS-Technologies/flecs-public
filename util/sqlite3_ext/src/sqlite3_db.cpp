@@ -37,8 +37,7 @@ int sqlite3_db_t::open(const char* filename, int flags, const char* zVfs)
     const auto file_path = fs::path{filename};
     const auto dir = file_path.parent_path();
     int res = sqlite3_open_v2(filename, &_db, flags, zVfs);
-    if (res != SQLITE_OK)
-    {
+    if (res != SQLITE_OK) {
         std::fprintf(stderr, "Could not open SQLite db %s: %d\n", filename, res);
     }
     _ok = (res == SQLITE_OK);
@@ -57,14 +56,12 @@ int sqlite3_db_t::select_all(const char* table, select_callback_t cbk, void* cbk
 
 int sqlite3_db_t::exec(const char* sql, int (*callback)(void*, int, char**, char**), void* arg)
 {
-    if (!_ok)
-    {
+    if (!_ok) {
         return SQLITE_ERROR;
     }
     char* errmsg = nullptr;
     auto res = sqlite3_exec(_db, sql, callback, arg, &errmsg);
-    if (res != SQLITE_OK)
-    {
+    if (res != SQLITE_OK) {
         std::cerr << "Could not execute sql " << sql << ": " << res << " (" << errmsg << ")" << std::endl;
         sqlite3_free(errmsg);
     }

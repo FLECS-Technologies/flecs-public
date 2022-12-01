@@ -33,46 +33,33 @@ volume_t::volume_t(const std::string& volume_str) noexcept
 {
     const auto parts = split(volume_str, ':');
 
-    if (parts.size() != 2)
-    {
+    if (parts.size() != 2) {
         return;
     }
 
-    if (cxx20::starts_with(parts[0], '/'))
-    {
+    if (cxx20::starts_with(parts[0], '/')) {
         // bind mount
-        try
-        {
+        try {
             const auto path = fs::path{parts[0]};
-            if (!path.is_absolute())
-            {
+            if (!path.is_absolute()) {
                 return;
             }
-        }
-        catch (const std::exception&)
-        {
+        } catch (const std::exception&) {
             return;
         }
         _type = BIND_MOUNT;
-    }
-    else
-    {
+    } else {
         // volume
         const auto volume_regex = std::regex{R"(^[a-zA-Z0-9\-_.]+[a-zA-Z0-9]$)"};
-        if (!std::regex_match(parts[0], volume_regex))
-        {
+        if (!std::regex_match(parts[0], volume_regex)) {
             return;
         }
-        try
-        {
+        try {
             const auto path = fs::path{parts[1]};
-            if (!path.is_absolute())
-            {
+            if (!path.is_absolute()) {
                 return;
             }
-        }
-        catch (const std::exception&)
-        {
+        } catch (const std::exception&) {
             return;
         }
         _type = VOLUME;

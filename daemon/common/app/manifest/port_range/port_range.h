@@ -104,8 +104,7 @@ inline std::string to_string(const port_range_t& port_range)
 {
     auto res = stringify(port_range.start_port());
 
-    if (port_range.start_port() != port_range.end_port())
-    {
+    if (port_range.start_port() != port_range.end_port()) {
         res.append("-" + stringify(port_range.end_port()));
     }
 
@@ -175,8 +174,7 @@ inline bool operator==(const mapped_port_range_t& lhs, const mapped_port_range_t
 inline std::string to_string(const mapped_port_range_t& mapped_port_range)
 {
     auto res = std::string{};
-    if (mapped_port_range.host_port_range().is_valid())
-    {
+    if (mapped_port_range.host_port_range().is_valid()) {
         res += stringify(mapped_port_range.host_port_range());
     }
     res += ":";

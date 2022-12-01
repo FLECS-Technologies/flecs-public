@@ -90,9 +90,7 @@ int libflecs_t<Impl>::list_versions(const std::string& app)
 // instance management
 template <typename Impl>
 int libflecs_t<Impl>::create_instance(
-    const std::string& app,
-    const std::string& version,
-    const std::string& instanceName)
+    const std::string& app, const std::string& version, const std::string& instanceName)
 {
     return _impl->do_create_instance(app, version, instanceName);
 }
@@ -141,8 +139,7 @@ int libflecs_t<Impl>::run_command(int argc, char** argv)
     /* argv[0] represents program name - skip */
     auto command = argc > 1 ? argv[1] : "";
     auto args = std::vector<std::string>{};
-    for (auto i = 2; i < argc; ++i)
-    {
+    for (auto i = 2; i < argc; ++i) {
         args.push_back(argv[i]);
     }
 

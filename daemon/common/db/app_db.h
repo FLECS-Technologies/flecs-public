@@ -52,12 +52,10 @@ struct apps_table_primary_comparator_t
 {
     bool operator()(const apps_table_primary_t& lhs, const apps_table_primary_t& rhs) const
     {
-        if (lhs.app < rhs.app)
-        {
+        if (lhs.app < rhs.app) {
             return true;
         }
-        if (lhs.app > rhs.app)
-        {
+        if (lhs.app > rhs.app) {
             return false;
         }
         return lhs.version < rhs.version;

@@ -74,8 +74,7 @@ auto connect(std::string_view proto, Func f, Handle* h, Args&&... args) //
     -> void
 {
     std::fprintf(stdout, "Connecting to %s...\n", proto.data());
-    while (!g_stop && (std::invoke(f, h, std::forward<Args>(args)...)) != 0)
-    {
+    while (!g_stop && (std::invoke(f, h, std::forward<Args>(args)...)) != 0) {
         std::fprintf(stderr, "Could not connect to %s - retrying in 2 seconds\n", proto.data());
         sleep(2);
     }
@@ -90,8 +89,7 @@ auto mqtt_bridge_t::mqtt_loop() //
     mosquitto_disconnect_callback_set(_mosq, mosquitto_disconnect_callback);
     mosquitto_message_callback_set(_mosq, mosquitto_receive_callback);
     mosquitto_loop_start(_mosq);
-    do
-    {
+    do {
         _mqtt_connected = true;
         connect("mqtt", &mosquitto_connect, _mosq, "flecs-mqtt", 1883, 60);
 
@@ -99,8 +97,7 @@ auto mqtt_bridge_t::mqtt_loop() //
         sub_options |= MQTT_SUB_OPT_NO_LOCAL;
         mosquitto_subscribe_v5(_mosq, nullptr, "#", 1, sub_options, nullptr);
 
-        while (!g_stop && _mqtt_connected)
-        {
+        while (!g_stop && _mqtt_connected) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
 
@@ -112,8 +109,7 @@ auto mqtt_bridge_t::mqtt_loop() //
 auto mqtt_bridge_t::flunder_loop() //
     -> void
 {
-    do
-    {
+    do {
         connect(
             "flunder",
             (int(flunder_client_t::*)(std::string_view, int))(&flunder_client_t::connect),
@@ -123,8 +119,7 @@ auto mqtt_bridge_t::flunder_loop() //
 
         _flunder_client->subscribe("**", flunder_receive_callback, this);
 
-        while (!g_stop && _flunder_client->is_connected())
-        {
+        while (!g_stop && _flunder_client->is_connected()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         };
 
@@ -137,13 +132,11 @@ auto mqtt_bridge_t::flunder_receive_callback(
     flunder_client_t* flunder_client, const flunder_variable_t* var, const void* userp) //
     -> void
 {
-    if (cxx20::starts_with(var->topic(), "/@"))
-    {
+    if (cxx20::starts_with(var->topic(), "/@")) {
         std::fprintf(stdout, "-- dropping message %s due to topic\n", var->topic().data());
         return;
     }
-    if (var->encoding() == "application/mqtt-forwarded")
-    {
+    if (var->encoding() == "application/mqtt-forwarded") {
         std::fprintf(
             stdout,
             "-- dropping message %s due to encoding %s\n",
@@ -153,8 +146,7 @@ auto mqtt_bridge_t::flunder_receive_callback(
     }
 
     decltype(auto) mqtt_bridge = const_cast<mqtt_bridge_t*>(static_cast<const mqtt_bridge_t*>(userp));
-    if (!mqtt_bridge->mqtt_connected())
-    {
+    if (!mqtt_bridge->mqtt_connected()) {
         std::fprintf(stdout, "-- dropping flunder message %s as mqtt is not connected\n", var->topic().data());
         return;
     }
@@ -191,8 +183,7 @@ void mqtt_bridge_t::mosquitto_receive_callback(mosquitto*, void* userp, const mo
 {
     decltype(auto) mqtt_bridge = static_cast<mqtt_bridge_t*>(userp);
 
-    if (!mqtt_bridge->flunder_client().is_connected())
-    {
+    if (!mqtt_bridge->flunder_client().is_connected()) {
         std::fprintf(stdout, "-- dropping mqtt message %s as flunder is not connected\n", msg->topic);
         return;
     }
