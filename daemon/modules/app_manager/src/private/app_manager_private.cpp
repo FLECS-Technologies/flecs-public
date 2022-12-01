@@ -74,23 +74,20 @@ auto download_manifest(const std::string& app_name, const std::string& version) 
 {
     const auto path = build_manifest_path(app_name, version);
     const auto manifest = fopen(path.c_str(), "w");
-    if (manifest == nullptr)
-    {
+    if (manifest == nullptr) {
         std::fprintf(stderr, "Could not open %s for writing\n", path.c_str());
         return -1;
     }
 
     const auto url = build_manifest_url(app_name, version);
     auto response = cpr::Get(cpr::Url{url.c_str()});
-    if (response.status_code != 200)
-    {
+    if (response.status_code != 200) {
         std::fprintf(stderr, "Could not download app manifest: HTTP return code %ld\n", response.status_code);
         return -1;
     }
     const auto bytes_written = fwrite(response.text.data(), 1, response.text.length(), manifest);
     fclose(manifest);
-    if (bytes_written != response.text.length())
-    {
+    if (bytes_written != response.text.length()) {
         std::fprintf(stderr, "Could not download app manifest: Write error %d\n", errno);
         return -1;
     }
@@ -105,10 +102,8 @@ module_app_manager_private_t::module_app_manager_private_t()
 module_app_manager_private_t::~module_app_manager_private_t()
 {
     std::fprintf(stdout, "Stopping all running app instances...\n");
-    for (decltype(auto) instance : _deployment->instances())
-    {
-        if (_deployment->is_instance_running(instance.first))
-        {
+    for (decltype(auto) instance : _deployment->instances()) {
+        if (_deployment->is_instance_running(instance.first)) {
             std::fprintf(stdout, "\t%s\n", instance.first.c_str());
             json_t _unused;
             do_stop_instance(instance.first, "", "", _unused, true);
@@ -124,10 +119,8 @@ auto module_app_manager_private_t::do_init() //
 {
     // query installed apps and instances from db before deleting it
     auto app_db = app_db_t{};
-    if (app_db.is_open())
-    {
-        for (decltype(auto) app : app_db.all_apps())
-        {
+    if (app_db.is_open()) {
+        for (decltype(auto) app : app_db.all_apps()) {
             const auto manifest_path = build_manifest_path(app.app, app.version);
             _installed_apps.emplace(
                 std::piecewise_construct,
@@ -136,15 +129,12 @@ auto module_app_manager_private_t::do_init() //
         }
         persist_apps();
 
-        for (const auto& instance : app_db.all_instances())
-        {
-            if (is_app_installed(instance.app, instance.version))
-            {
+        for (const auto& instance : app_db.all_instances()) {
+            if (is_app_installed(instance.app, instance.version)) {
                 const auto& app = _installed_apps.find(app_key_t{instance.app, instance.version})->second;
                 auto tmp = instance_t{instance.id, &app, instance.description, instance.status, instance.desired};
                 tmp.startup_options().push_back(instance.flags);
-                for (std::size_t i = 0; i < instance.networks.size(); ++i)
-                {
+                for (std::size_t i = 0; i < instance.networks.size(); ++i) {
                     tmp.networks().push_back(instance_t::network_t{
                         .network_name = instance.networks[i],
                         .mac_address = {},
@@ -164,11 +154,9 @@ auto module_app_manager_private_t::do_init() //
 
     load_apps();
     _deployment->load();
-    for (auto& instance : _deployment->instances())
-    {
+    for (auto& instance : _deployment->instances()) {
         const auto it = _installed_apps.find(app_key_t{instance.second.app_name(), instance.second.app_version()});
-        if (it != _installed_apps.cend())
-        {
+        if (it != _installed_apps.cend()) {
             instance.second.app(&it->second);
         }
     }
@@ -177,46 +165,38 @@ auto module_app_manager_private_t::do_init() //
     constexpr auto system_apps = std::array<std::string_view, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
     constexpr auto system_apps_desc = std::array<std::string_view, 2>{"FLECS MQTT Bridge", "FLECS Service Mesh"};
 
-    for (size_t i = 0; i < system_apps.size(); ++i)
-    {
+    for (size_t i = 0; i < system_apps.size(); ++i) {
         auto newer_version_installed = false;
         // delete old instances and uninstall old apps
         const auto versions = app_versions(system_apps[i]);
-        for (const auto& version : versions)
-        {
-            if (version < FLECS_VERSION)
-            {
+        for (const auto& version : versions) {
+            if (version < FLECS_VERSION) {
                 std::fprintf(stdout, "Removing old version %s system app %s\n", version.c_str(), system_apps[i].data());
                 auto response = json_t{};
-                for (const auto& instance_id : _deployment->instance_ids(app_key_t{system_apps[i], version}))
-                {
+                for (const auto& instance_id : _deployment->instance_ids(app_key_t{system_apps[i], version})) {
                     do_delete_instance(instance_id, {}, {}, response);
                 }
                 do_uninstall(system_apps[i].data(), version, response, true);
             }
-            if (version > FLECS_VERSION)
-            {
+            if (version > FLECS_VERSION) {
                 newer_version_installed = true;
             }
         }
 
         // install current app and create an instance of it
-        if (!newer_version_installed && !is_app_installed(system_apps[i].data(), FLECS_VERSION))
-        {
+        if (!newer_version_installed && !is_app_installed(system_apps[i].data(), FLECS_VERSION)) {
             std::fprintf(stdout, "Installing system app %s\n", system_apps[i].data());
             download_manifest(system_apps[i].data(), FLECS_VERSION);
             auto app = app_t{
                 build_manifest_path(system_apps[i].data(), FLECS_VERSION),
                 app_status_e::INSTALLED,
                 app_status_e::INSTALLED};
-            if (!app.app().empty())
-            {
+            if (!app.app().empty()) {
                 auto response = json_t{};
                 _installed_apps.insert_or_assign(app_key_t{app.app(), app.version()}, std::move(app));
                 do_create_instance(system_apps[i].data(), FLECS_VERSION, system_apps_desc[i].data(), response);
                 const auto instance_id = _deployment->instance_ids(system_apps[i], FLECS_VERSION);
-                if (!instance_id.empty())
-                {
+                if (!instance_id.empty()) {
                     auto& instance = _deployment->instances().at(instance_id[0]);
                     instance.desired(instance_status_e::RUNNING);
                 }
@@ -227,10 +207,8 @@ auto module_app_manager_private_t::do_init() //
     _deployment->save();
 
     std::fprintf(stdout, "Starting all app instances...\n");
-    for (decltype(auto) instance : _deployment->instances())
-    {
-        if (instance.second.desired() == instance_status_e::RUNNING)
-        {
+    for (decltype(auto) instance : _deployment->instances()) {
+        if (instance.second.desired() == instance_status_e::RUNNING) {
             std::fprintf(stdout, "\t%s\n", instance.first.c_str());
             json_t _unused;
             do_start_instance(instance.first, instance.second.app_name(), instance.second.app_version(), _unused, true);
@@ -258,8 +236,7 @@ auto module_app_manager_private_t::app_versions(std::string_view app_name) const
 {
     auto res = std::vector<std::string>{};
     std::for_each(_installed_apps.cbegin(), _installed_apps.cend(), [&](installed_apps_t::const_reference app) {
-        if (std::get<0>(app.first) == app_name)
-        {
+        if (std::get<0>(app.first) == app_name) {
             res.push_back(app.second.version());
         }
     });
@@ -273,8 +250,7 @@ auto module_app_manager_private_t::xcheck_app_instance(
     -> int
 {
     // Is app installed?
-    if (!app_name.empty() && !version.empty() && !is_app_installed(app_name, version))
-    {
+    if (!app_name.empty() && !version.empty() && !is_app_installed(app_name, version)) {
         std::fprintf(
             stderr,
             "Requested instance %s belongs to app %s (%s), which is not installed\n",
@@ -285,8 +261,7 @@ auto module_app_manager_private_t::xcheck_app_instance(
     }
 
     // Do app_name and instance's app match?
-    if (!app_name.empty() && (instance.app_name() != app_name))
-    {
+    if (!app_name.empty() && (instance.app_name() != app_name)) {
         std::fprintf(
             stderr,
             "Requested instance %s of app %s belongs to app %s\n",
@@ -297,8 +272,7 @@ auto module_app_manager_private_t::xcheck_app_instance(
     }
 
     // Do version and instance's version match?
-    if (!version.empty() && (instance.app_version() != version))
-    {
+    if (!version.empty() && (instance.app_version() != version)) {
         std::fprintf(
             stderr,
             "Requested instance %s of app %s (%s) belongs to version %s\n",
@@ -318,8 +292,7 @@ auto module_app_manager_private_t::persist_apps() const //
     const auto path = "/var/lib/flecs/apps/";
     auto ec = std::error_code{};
     fs::create_directories(path, ec);
-    if (ec)
-    {
+    if (ec) {
         return;
     }
 
@@ -331,15 +304,11 @@ auto module_app_manager_private_t::load_apps() //
     -> void
 {
     auto json_file = std::ifstream{"/var/lib/flecs/apps/apps.json"};
-    if (json_file.good())
-    {
+    if (json_file.good()) {
         auto apps_json = parse_json(json_file);
-        try
-        {
+        try {
             _installed_apps = apps_json.get<decltype(_installed_apps)>();
-        }
-        catch (const std::exception&)
-        {
+        } catch (const std::exception&) {
             _installed_apps.clear();
         }
     }

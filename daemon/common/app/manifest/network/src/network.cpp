@@ -30,36 +30,27 @@ network_t::network_t(std::string_view str)
     , _mac_address{}
     , _type{network_type_t::NONE}
 {
-    if (cxx20::contains(str, "-internal-"))
-    {
+    if (cxx20::contains(str, "-internal-")) {
         _type = network_type_t::INTERNAL;
-    }
-    else if (cxx20::contains(str, "-ipvlan-"))
-    {
+    } else if (cxx20::contains(str, "-ipvlan-")) {
         _type = network_type_t::IPVLAN;
 
         const auto adapter_regex = std::regex{"ipvlan-(.+)$"};
         auto m = std::cmatch{};
         std::regex_search(str.data(), m, adapter_regex);
-        if ((m.size() > 1) && (m[1].matched))
-        {
+        if ((m.size() > 1) && (m[1].matched)) {
             _parent = m[1];
         }
-    }
-    else if (cxx20::contains(str, "-macvlan-"))
-    {
+    } else if (cxx20::contains(str, "-macvlan-")) {
         _type = network_type_t::MACVLAN;
 
         const auto adapter_regex = std::regex{"macvlan-(.+)$"};
         auto m = std::cmatch{};
         std::regex_search(str.data(), m, adapter_regex);
-        if ((m.size() > 1) && (m[1].matched))
-        {
+        if ((m.size() > 1) && (m[1].matched)) {
             _parent = m[1];
         }
-    }
-    else if (!str.empty())
-    {
+    } else if (!str.empty()) {
         _type = network_type_t::BRIDGE;
     }
 }

@@ -77,22 +77,18 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
 
     auto ifa = (ifaddrs*){};
     const auto res = getifaddrs(&ifa);
-    if (res != 0)
-    {
+    if (res != 0) {
         return adapters;
     }
 
     const auto root = ifa;
 
-    while (ifa)
-    {
-        if (!ifa->ifa_addr)
-        {
+    while (ifa) {
+        if (!ifa->ifa_addr) {
             ifa = ifa->ifa_next;
             continue;
         }
-        switch (ifa->ifa_addr->sa_family)
-        {
+        switch (ifa->ifa_addr->sa_family) {
             case AF_PACKET: {
                 char buf[18];
                 struct sockaddr_ll* s = (struct sockaddr_ll*)ifa->ifa_addr;
@@ -139,8 +135,7 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
     auto route_file = std::ifstream{"/proc/net/route"};
     route_file.ignore(std::numeric_limits<std::streamsize>::max(), route_file.widen('\n'));
     auto line = std::string{};
-    while (std::getline(route_file, line))
-    {
+    while (std::getline(route_file, line)) {
         enum route_columns_t {
             IFACE,
             DESTINATION,
@@ -156,16 +151,14 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
             ROUTE_COLUMNS_COUNT,
         };
         const auto parts = split(line, '\t');
-        if (parts.size() != ROUTE_COLUMNS_COUNT)
-        {
+        if (parts.size() != ROUTE_COLUMNS_COUNT) {
             continue;
         }
         auto sstream = std::stringstream{};
         auto destination = std::int32_t{};
         sstream << parts[DESTINATION];
         sstream >> std::hex >> destination;
-        if (destination == 0)
-        {
+        if (destination == 0) {
             auto sstream = std::stringstream{};
             auto gateway = std::int32_t{};
             sstream << parts[GATEWAY];
@@ -176,30 +169,18 @@ auto module_system_t::get_network_adapters() const -> std::map<std::string, neti
         }
     }
 
-    for (decltype(auto) adapter : adapters)
-    {
-        if ((cxx20::starts_with(adapter.first, "en") || (cxx20::starts_with(adapter.first, "eth"))))
-        {
+    for (decltype(auto) adapter : adapters) {
+        if ((cxx20::starts_with(adapter.first, "en") || (cxx20::starts_with(adapter.first, "eth")))) {
             adapter.second.type = netif_type_t::WIRED;
-        }
-        else if ((cxx20::starts_with(adapter.first, "wl")))
-        {
+        } else if ((cxx20::starts_with(adapter.first, "wl"))) {
             adapter.second.type = netif_type_t::WIRELESS;
-        }
-        else if ((cxx20::starts_with(adapter.first, "lo")))
-        {
+        } else if ((cxx20::starts_with(adapter.first, "lo"))) {
             adapter.second.type = netif_type_t::LOCAL;
-        }
-        else if ((cxx20::starts_with(adapter.first, "veth")))
-        {
+        } else if ((cxx20::starts_with(adapter.first, "veth"))) {
             adapter.second.type = netif_type_t::VIRTUAL;
-        }
-        else if ((cxx20::starts_with(adapter.first, "br") || (cxx20::starts_with(adapter.first, "docker"))))
-        {
+        } else if ((cxx20::starts_with(adapter.first, "br") || (cxx20::starts_with(adapter.first, "docker")))) {
             adapter.second.type = netif_type_t::BRIDGE;
-        }
-        else
-        {
+        } else {
             adapter.second.type = UNKNOWN;
         }
     }

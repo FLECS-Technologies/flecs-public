@@ -46,8 +46,7 @@ hwdb_t& hwdb_t::operator=(hwdb_t other)
 
 hwdb_t::~hwdb_t()
 {
-    if (_handle)
-    {
+    if (_handle) {
         udev_hwdb_unref(_handle);
     }
 }
@@ -71,8 +70,7 @@ auto hwdb_t::usb_vendor(std::uint16_t vid) //
     udev_list_entry_foreach(udev_entry, udev_hwdb_get_properties_list_entry(_handle, modalias, 0))
     {
         auto name = udev_list_entry_get_name(udev_entry);
-        if (std::strcmp(name, "ID_VENDOR_FROM_DATABASE") == 0)
-        {
+        if (std::strcmp(name, "ID_VENDOR_FROM_DATABASE") == 0) {
             return udev_list_entry_get_value(udev_entry);
         }
     }
@@ -92,8 +90,7 @@ auto hwdb_t::usb_device(std::uint16_t vid, std::uint16_t pid) //
     udev_list_entry_foreach(udev_entry, udev_hwdb_get_properties_list_entry(_handle, modalias, 0))
     {
         auto model = udev_list_entry_get_name(udev_entry);
-        if (std::strcmp(model, "ID_MODEL_FROM_DATABASE") == 0)
-        {
+        if (std::strcmp(model, "ID_MODEL_FROM_DATABASE") == 0) {
             return udev_list_entry_get_value(udev_entry);
         }
     }

@@ -44,22 +44,15 @@ void flunder_receive_callback(FLECS::flunder_client_t* client, const FLECS::flun
         var->len(),
         now);
 
-    if (var->topic() == "/flecs/flunder/cpp/int")
-    {
+    if (var->topic() == "/flecs/flunder/cpp/int") {
         const auto i = std::atoll(var->value().data());
         std::fprintf(stdout, "\tValue: %lld\n", i);
-    }
-    else if (var->topic() == "/flecs/flunder/cpp/double")
-    {
+    } else if (var->topic() == "/flecs/flunder/cpp/double") {
         const auto d = std::atof(var->value().data());
         std::fprintf(stdout, "\tValue: %lf\n", d);
-    }
-    else if (var->topic() == "/flecs/flunder/cpp/string")
-    {
+    } else if (var->topic() == "/flecs/flunder/cpp/string") {
         std::fprintf(stdout, "\tValue: %s\n", var->value().data());
-    }
-    else if (var->topic() == "/flecs/flunder/cpp/timestamp")
-    {
+    } else if (var->topic() == "/flecs/flunder/cpp/timestamp") {
         const auto t1 = std::stoll(var->value().data());
         const auto diff = now - t1;
         std::fprintf(stdout, "\tMessage sent @%lld (%lld ns ago)\n", t1, diff);
@@ -94,8 +87,7 @@ int main()
     const char* userdata = "Hello, world!";
     flunder_client.subscribe("/flecs/flunder/external", &flunder_receive_callback_userp, (const void*)userdata);
 
-    while (!g_stop)
-    {
+    while (!g_stop) {
         const auto i = 1234;
         flunder_client.publish("/flecs/flunder/cpp/int", i);
 

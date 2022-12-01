@@ -29,8 +29,7 @@ template <typename Key, typename Value, typename... Args>
 json_t build_json_impl(json_t& json, Key&& key, Value&& value, Args&&... args)
 {
     json[key] = value;
-    if constexpr (sizeof...(args))
-    {
+    if constexpr (sizeof...(args)) {
         return build_json_impl(json, std::forward<Args>(args)...);
     }
     return json;
@@ -88,31 +87,27 @@ int libflecs_private_t::do_sideload_app_from_yaml(const std::string& yaml)
 
 int libflecs_private_t::do_sideload_app_from_file(const fs::path& manifest_path)
 {
-    if (!fs::exists(manifest_path))
-    {
+    if (!fs::exists(manifest_path)) {
         std::fprintf(stderr, "Specified manifest %s does not exist\n", manifest_path.c_str());
         return -1;
     }
 
     auto ec = std::error_code{};
     const auto file_size = fs::file_size(manifest_path, ec);
-    if (ec)
-    {
+    if (ec) {
         std::fprintf(stderr, "Could not determine size of %s: %d\n", manifest_path.c_str(), ec.value());
         return -1;
     }
 
     auto data = std::make_unique<char[]>(file_size + 1);
     auto file = fopen(manifest_path.c_str(), "rb");
-    if (!file)
-    {
+    if (!file) {
         std::fprintf(stderr, "Could not open %s for reading: %d\n", manifest_path.c_str(), errno);
         return -1;
     }
     const auto bytes_read = fread(data.get(), 1, file_size, file);
     fclose(file);
-    if (bytes_read != file_size)
-    {
+    if (bytes_read != file_size) {
         return -1;
     }
 
@@ -137,36 +132,28 @@ int libflecs_private_t::do_list_versions(const std::string& /*app*/)
 
 // instance management
 int libflecs_private_t::do_create_instance(
-    const std::string& app,
-    const std::string& version,
-    const std::string& instanceName)
+    const std::string& app, const std::string& version, const std::string& instanceName)
 {
     auto body = build_json("app", app, "version", version, "instanceName", instanceName);
     return post("/instance/create", body.dump().c_str());
 }
 
 int libflecs_private_t::do_delete_instance(
-    const std::string& instanceId,
-    const std::string& app,
-    const std::string& version)
+    const std::string& instanceId, const std::string& app, const std::string& version)
 {
     auto body = build_json("instanceId", instanceId, "app", app, "version", version);
     return post("/instance/delete", body.dump().c_str());
 }
 
 int libflecs_private_t::do_start_instance(
-    const std::string& instanceId,
-    const std::string& app,
-    const std::string& version)
+    const std::string& instanceId, const std::string& app, const std::string& version)
 {
     auto body = build_json("instanceId", instanceId, "app", app, "version", version);
     return post("/instance/start", body.dump().c_str());
 }
 
 int libflecs_private_t::do_stop_instance(
-    const std::string& instanceId,
-    const std::string& app,
-    const std::string& version)
+    const std::string& instanceId, const std::string& app, const std::string& version)
 {
     auto body = build_json("instanceId", instanceId, "app", app, "version", version);
     return post("/instance/stop", body.dump().c_str());
@@ -210,33 +197,25 @@ int libflecs_private_t::do_run_command(const std::string& command, const std::ve
 
     // search top-level command
     auto i = known_commands.cbegin();
-    for (; i != known_commands.cend(); ++i)
-    {
-        if (i->command == command)
-        {
-            // command found and has callback -> done
-            if (i->cbk)
-            {
+    for (; i != known_commands.cend(); ++i) {
+        if (i->command == command) {
+            if (i->cbk) {
+                // command found and has callback -> done
                 return std::invoke(i->cbk, this, args);
-            }
-            // command found and has no callback -> continue searching subcommands
-            else
-            {
+            } else {
+                // command found and has no callback -> continue searching subcommands
                 break;
             }
         }
     }
     // command not found or no subcommand specified -> return
-    if (i == known_commands.cend() || args.empty())
-    {
+    if (i == known_commands.cend() || args.empty()) {
         return -1;
     }
 
     // search in subcommands
-    for (auto j = i->subcommands.cbegin(); j != i->subcommands.cend(); ++j)
-    {
-        if (j->command == args[0] && j->cbk)
-        {
+    for (auto j = i->subcommands.cbegin(); j != i->subcommands.cend(); ++j) {
+        if (j->command == args[0] && j->cbk) {
             auto cmd_args = std::vector<std::string>{args.begin() + 1, args.end()};
             return std::invoke(j->cbk, this, cmd_args);
         }
@@ -326,8 +305,7 @@ cpr::Url libflecs_private_t::build_url(const std::string& endpoint)
 
 int libflecs_private_t::get(const std::string& endpoint)
 {
-    if (_base_url.str().empty())
-    {
+    if (_base_url.str().empty()) {
         return -1;
     }
 
@@ -338,8 +316,7 @@ int libflecs_private_t::get(const std::string& endpoint)
 
 int libflecs_private_t::post(const std::string& endpoint, const char* data)
 {
-    if (_base_url.str().empty())
-    {
+    if (_base_url.str().empty()) {
         return -1;
     }
 
@@ -350,8 +327,7 @@ int libflecs_private_t::post(const std::string& endpoint, const char* data)
 
 int libflecs_private_t::put(const std::string& endpoint, const char* data)
 {
-    if (_base_url.str().empty())
-    {
+    if (_base_url.str().empty()) {
         return -1;
     }
 

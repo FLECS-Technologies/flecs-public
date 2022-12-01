@@ -72,8 +72,7 @@ constexpr auto encoding(T);
 template <typename T>
 constexpr auto is_signed(T)
 {
-    if constexpr (std::is_signed_v<T>)
-    {
+    if constexpr (std::is_signed_v<T>) {
         return "s";
     }
     return "u";
@@ -166,12 +165,9 @@ void flunder_cbk_userp(FLECS::flunder_client_t* client, const FLECS::flunder_var
 void flunder_cbk(FLECS::flunder_client_t* /*client*/, const FLECS::flunder_variable_t* var)
 {
     std::fprintf(stderr, "Received topic %s\n", var->topic().data());
-    if (var->topic() == topic((void*)(nullptr)))
-    {
+    if (var->topic() == topic((void*)(nullptr))) {
         ASSERT_EQ(var->encoding(), encoding((void*)(nullptr)));
-    }
-    else if (var->topic() == topic(custom_t{}))
-    {
+    } else if (var->topic() == topic(custom_t{})) {
         ASSERT_EQ(var->encoding(), encoding(custom_t{}));
         auto lock_guard = std::lock_guard<std::mutex>{m};
         done = true;
@@ -305,12 +301,9 @@ void flunder_cbk_c_userp(void* client, const FLECS::flunder_variable_t* var, voi
 void flunder_cbk_c(void* /*client*/, const FLECS::flunder_variable_t* var)
 {
     std::fprintf(stderr, "Received topic %s\n", var->topic().data());
-    if (var->topic() == topic((void*)(nullptr)))
-    {
+    if (var->topic() == topic((void*)(nullptr))) {
         ASSERT_EQ(var->encoding(), encoding((void*)(nullptr)));
-    }
-    else if (var->topic() == topic(custom_t{}))
-    {
+    } else if (var->topic() == topic(custom_t{})) {
         ASSERT_EQ(var->encoding(), encoding(custom_t{}));
         auto lock_guard = std::lock_guard<std::mutex>{m};
         done = true;

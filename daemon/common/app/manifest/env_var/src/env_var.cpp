@@ -24,8 +24,7 @@ bool env_var_t::is_valid() const noexcept
 {
     const auto name_regex = std::regex{"[a-zA-Z]+[a-zA-Z0-9_]*"};
 
-    if (std::regex_match(_var, name_regex))
-    {
+    if (std::regex_match(_var, name_regex)) {
         return true;
     }
 
@@ -37,8 +36,7 @@ mapped_env_var_t::mapped_env_var_t(const std::string& str)
     , _value{}
 {
     const auto parts = split(str, ':');
-    if (parts.size() < 2)
-    {
+    if (parts.size() < 2) {
         return;
     }
 

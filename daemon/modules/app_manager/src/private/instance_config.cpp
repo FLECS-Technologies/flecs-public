@@ -22,10 +22,8 @@ auto build_network_adapters_json(const instance_t& instance)
     const auto system_api = dynamic_cast<const module_system_t*>(api::query_module("system").get());
     const auto adapters = system_api->get_network_adapters();
     auto adapters_json = json_t::array();
-    for (decltype(auto) adapter : adapters)
-    {
-        if ((adapter.second.type == netif_type_t::WIRED) || (adapter.second.type == netif_type_t::WIRELESS))
-        {
+    for (decltype(auto) adapter : adapters) {
+        if ((adapter.second.type == netif_type_t::WIRED) || (adapter.second.type == netif_type_t::WIRELESS)) {
             auto adapter_json = json_t{};
             adapter_json["name"] = adapter.first;
             adapter_json["active"] = false;
@@ -35,17 +33,13 @@ auto build_network_adapters_json(const instance_t& instance)
                 instance.networks().cbegin(),
                 instance.networks().cend(),
                 [&](const instance_t::network_t& n) { return n.network_name == network; });
-            if (it != instance.networks().cend())
-            {
+            if (it != instance.networks().cend()) {
                 adapter_json["active"] = true;
                 adapter_json["ipAddress"] = it->ip_address;
-                if (adapter.second.ipv4_addr.empty())
-                {
+                if (adapter.second.ipv4_addr.empty()) {
                     adapter_json["subnetMask"] = "0.0.0.0";
                     adapter_json["gateway"] = "0.0.0.0";
-                }
-                else
-                {
+                } else {
                     adapter_json["subnetMask"] = adapter.second.ipv4_addr.begin()->subnet_mask;
                     adapter_json["gateway"] = adapter.second.gateway;
                 }
@@ -53,13 +47,10 @@ auto build_network_adapters_json(const instance_t& instance)
             adapters_json.push_back(adapter_json);
         }
     }
-    for (decltype(auto) network : instance.networks())
-    {
-        if (cxx20::starts_with(network.network_name, "flecs-macvlan-"))
-        {
+    for (decltype(auto) network : instance.networks()) {
+        if (cxx20::starts_with(network.network_name, "flecs-macvlan-")) {
             const auto adapter = network.network_name.substr(14);
-            if (!adapters.count(adapter))
-            {
+            if (!adapters.count(adapter)) {
                 auto adapter_json = json_t{};
                 adapter_json["name"] = adapter;
                 adapter_json["active"] = true;
@@ -81,8 +72,7 @@ auto build_usb_devices_json(const instance_t& instance)
     const auto usb_devices = usb::get_devices();
 
     // insert connected usb device
-    for (decltype(auto) usb_device : usb_devices)
-    {
+    for (decltype(auto) usb_device : usb_devices) {
         auto device_json = json_t(usb_device);
         device_json["active"] = static_cast<bool>(instance.usb_devices().count(usb_device));
         device_json["connected"] = true;
@@ -90,10 +80,8 @@ auto build_usb_devices_json(const instance_t& instance)
     }
 
     // insert configured, but disconnected usb devices
-    for (decltype(auto) usb_device : instance.usb_devices())
-    {
-        if (!usb_devices.count(usb_device))
-        {
+    for (decltype(auto) usb_device : instance.usb_devices()) {
+        if (!usb_devices.count(usb_device)) {
             auto device_json = json_t(usb_device);
             device_json["active"] = true;
             device_json["connected"] = false;
@@ -112,8 +100,7 @@ auto module_app_manager_private_t::do_get_config_instance(const std::string& ins
     response["instanceId"] = instance_id;
 
     // Step 1: Verify instance does actually exist
-    if (!_deployment->has_instance(instance_id))
-    {
+    if (!_deployment->has_instance(instance_id)) {
         response["additionalInfo"] = "Could not configure instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
@@ -135,8 +122,7 @@ auto module_app_manager_private_t::do_put_config_instance(
     response["instanceId"] = instance_id;
 
     // Step 1: Verify instance does actually exist
-    if (!_deployment->has_instance(instance_id))
-    {
+    if (!_deployment->has_instance(instance_id)) {
         response["additionalInfo"] = "Could not configure instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
@@ -147,19 +133,15 @@ auto module_app_manager_private_t::do_put_config_instance(
     const auto system_api = dynamic_cast<const module_system_t*>(api::query_module("system").get());
     const auto adapters = system_api->get_network_adapters();
 
-    for (const auto& network : config.networkAdapters)
-    {
+    for (const auto& network : config.networkAdapters) {
         const auto docker_network = std::string{"flecs-macvlan-"} + network.name;
-        if (network.active)
-        {
+        if (network.active) {
             // ensure network adapter exists
             const auto netif = adapters.find(network.name);
-            if (netif == adapters.cend())
-            {
+            if (netif == adapters.cend()) {
                 continue;
             }
-            if (netif->second.ipv4_addr.empty())
-            {
+            if (netif->second.ipv4_addr.empty()) {
                 response["additionalInfo"] = "Network adapter " + netif->first + " not ready";
                 continue;
             }
@@ -169,13 +151,10 @@ auto module_app_manager_private_t::do_put_config_instance(
                 ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
 
             // process instance configuration
-            if (network.ipAddress.empty())
-            {
+            if (network.ipAddress.empty()) {
                 // suggest suitable IP address
-                for (auto& adapter_json : response["networkAdapters"])
-                {
-                    if (adapter_json["name"] == netif->first)
-                    {
+                for (auto& adapter_json : response["networkAdapters"]) {
+                    if (adapter_json["name"] == netif->first) {
                         adapter_json["active"] = true;
                         adapter_json["ipAddress"] =
                             _deployment->generate_instance_ip(cidr_subnet, netif->second.gateway);
@@ -184,9 +163,7 @@ auto module_app_manager_private_t::do_put_config_instance(
                         break;
                     }
                 }
-            }
-            else
-            {
+            } else {
                 // apply settings
                 // @todo verify validity of IP address
                 _deployment->create_network(
@@ -201,48 +178,36 @@ auto module_app_manager_private_t::do_put_config_instance(
                 const auto [res, additional_info] =
                     _deployment->connect_network(instance_id, docker_network, network.ipAddress);
 
-                if (res == 0)
-                {
+                if (res == 0) {
                     auto it = std::find_if(
                         instance.networks().begin(),
                         instance.networks().end(),
                         [&](const instance_t::network_t& n) { return n.network_name == docker_network; });
-                    if (it != instance.networks().end())
-                    {
+                    if (it != instance.networks().end()) {
                         it->ip_address = network.ipAddress;
-                    }
-                    else
-                    {
+                    } else {
                         instance.networks().emplace_back(instance_t::network_t{
                             .network_name = docker_network,
                             .mac_address = {},
                             .ip_address = network.ipAddress});
                     }
                     _deployment->save();
-                    for (auto& adapter_json : response["networkAdapters"])
-                    {
-                        if (adapter_json.contains("name") && (adapter_json["name"] == netif->first))
-                        {
+                    for (auto& adapter_json : response["networkAdapters"]) {
+                        if (adapter_json.contains("name") && (adapter_json["name"] == netif->first)) {
                             adapter_json["active"] = true;
                             adapter_json["ipAddress"] = network.ipAddress;
                         }
                     }
-                }
-                else
-                {
+                } else {
                     response["additionalInfo"] = additional_info;
-                    for (auto& adapter_json : response["networkAdapters"])
-                    {
-                        if (adapter_json["name"] == netif->first)
-                        {
+                    for (auto& adapter_json : response["networkAdapters"]) {
+                        if (adapter_json["name"] == netif->first) {
                             adapter_json["active"] = false;
                         }
                     }
                 }
             }
-        }
-        else
-        {
+        } else {
             _deployment->disconnect_network(instance_id, docker_network);
             _deployment->delete_network(docker_network);
 
@@ -253,24 +218,18 @@ auto module_app_manager_private_t::do_put_config_instance(
                     [&](const instance_t::network_t& net) { return net.network_name == docker_network; }),
                 instance.networks().end());
 
-            for (auto& adapter_json : response["networkAdapters"])
-            {
-                if (adapter_json.contains("name") && (adapter_json["name"] == network.name))
-                {
+            for (auto& adapter_json : response["networkAdapters"]) {
+                if (adapter_json.contains("name") && (adapter_json["name"] == network.name)) {
                     adapter_json["active"] = false;
                 }
             }
         }
     }
 
-    for (const auto& usb_device : config.usb_devices)
-    {
-        if (usb_device.active)
-        {
+    for (const auto& usb_device : config.usb_devices) {
+        if (usb_device.active) {
             instance.usb_devices().emplace(usb_device);
-        }
-        else
-        {
+        } else {
             instance.usb_devices().erase(usb_device);
         }
     }

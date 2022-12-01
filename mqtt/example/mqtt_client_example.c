@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mqtt/mqtt_client.h"
-
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
+
+#include "mqtt/mqtt_client.h"
 
 static int g_stop;
 
@@ -45,8 +45,7 @@ int main(void)
     flecs_mqtt_subscribe(mqtt_client, "/flecs/test/c", 0);
     flecs_mqtt_subscribe(mqtt_client, "/flecs/test/external", 0);
 
-    while (!g_stop)
-    {
+    while (!g_stop) {
         int i = 1234;
         flecs_mqtt_publish(mqtt_client, "/flecs/test/c", sizeof(i), &i, 0, false);
         sleep(5);

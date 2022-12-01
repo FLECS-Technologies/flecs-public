@@ -20,8 +20,7 @@ int main(int argc, char** argv)
     const auto host = "http://localhost";
     const auto port = 8951;
 
-    if (lib.connect(host, port) != 0)
-    {
+    if (lib.connect(host, port) != 0) {
         std::fprintf(stderr, "Could not connect to FLECS at %s:%d. Is the FLECS daemon running?\n", host, port);
         exit(1);
     }

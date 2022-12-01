@@ -29,8 +29,7 @@ auto module_app_manager_private_t::do_instance_details(const std::string& instan
     response["instanceId"] = instance_id;
 
     // Step 1: Verify instance does actually exist
-    if (!_deployment->has_instance(instance_id))
-    {
+    if (!_deployment->has_instance(instance_id)) {
         response["additionalInfo"] = "Could not query details of instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
@@ -46,16 +45,14 @@ auto module_app_manager_private_t::do_instance_details(const std::string& instan
     response["IPAddress"] = instance.networks().empty() ? "" : instance.networks()[0].ip_address;
     response["conffiles"] = json_t::array();
     response["hostname"] = app.hostname().empty() ? (std::string{"flecs-"}.append(instance.id())) : app.hostname();
-    for (const auto& conffile : app.conffiles())
-    {
+    for (const auto& conffile : app.conffiles()) {
         auto json_conffile = json_t{};
         json_conffile["host"] = std::string{"/var/lib/flecs/instances/"} + instance.id() + "/conf/" + conffile.local();
         json_conffile["container"] = conffile.container();
         response["conffiles"].push_back(json_conffile);
     }
     response["ports"] = json_t::array();
-    for (const auto& port : app.ports())
-    {
+    for (const auto& port : app.ports()) {
         auto json_port = json_t{};
         json_port["host"] = stringify(port.host_port_range());
         json_port["container"] = stringify(port.container_port_range());
@@ -63,17 +60,13 @@ auto module_app_manager_private_t::do_instance_details(const std::string& instan
     }
     response["volumes"] = json_t::array();
     response["mounts"] = json_t::array();
-    for (const auto& volume : app.volumes())
-    {
-        if (volume.type() == volume_t::VOLUME)
-        {
+    for (const auto& volume : app.volumes()) {
+        if (volume.type() == volume_t::VOLUME) {
             auto json_volume = json_t{};
             json_volume["name"] = volume.host();
             json_volume["path"] = volume.container();
             response["volumes"].push_back(json_volume);
-        }
-        else if (volume.type() == volume_t::BIND_MOUNT)
-        {
+        } else if (volume.type() == volume_t::BIND_MOUNT) {
             auto json_mount = json_t{};
             json_mount["host"] = volume.host();
             json_mount["container"] = volume.container();

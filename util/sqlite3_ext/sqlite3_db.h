@@ -40,17 +40,12 @@ auto value_to_string(T&& value)
         std::is_same_v<long long, basic_type_t> || std::is_same_v<unsigned, basic_type_t> ||
         std::is_same_v<unsigned long, basic_type_t> || std::is_same_v<unsigned long long, basic_type_t> ||
         std::is_same_v<float, basic_type_t> || std::is_same_v<double, basic_type_t> ||
-        std::is_same_v<long double, basic_type_t>)
-    {
+        std::is_same_v<long double, basic_type_t>) {
         using std::to_string;
         str += to_string(value);
-    }
-    else if constexpr (std::is_enum_v<basic_type_t>)
-    {
+    } else if constexpr (std::is_enum_v<basic_type_t>) {
         str += static_cast<std::underlying_type_t<basic_type_t>>(value);
-    }
-    else
-    {
+    } else {
         str += value;
     }
     str += "'";

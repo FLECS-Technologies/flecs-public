@@ -35,8 +35,7 @@ auto module_app_manager_private_t::do_uninstall(
     response["version"] = version;
 
     // Step 1: Ensure app is actually installed
-    if (!is_app_installed(app_name, version))
-    {
+    if (!is_app_installed(app_name, version)) {
         response["additionalInfo"] = "Could not uninstall " + app_name + " (" + version + "): not installed";
         return crow::status::BAD_REQUEST;
     }
@@ -46,16 +45,14 @@ auto module_app_manager_private_t::do_uninstall(
     app.desired(app_status_e::NOT_INSTALLED);
 
     // Step 2a: Prevent removal of system apps
-    if (cxx20::contains(app.category(), "system") && !force)
-    {
+    if (cxx20::contains(app.category(), "system") && !force) {
         response["additionalInfo"] = "Not removing system app " + app.app() + "(" + app.version() + ")";
         return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     // Step 3: Stop and delete all instances of the app
     const auto instance_ids = _deployment->instance_ids(app_name, version);
-    for (const auto& instance_id : instance_ids)
-    {
+    for (const auto& instance_id : instance_ids) {
         do_delete_instance(instance_id, app_name, version, response);
     }
 
@@ -64,8 +61,7 @@ auto module_app_manager_private_t::do_uninstall(
     auto docker_process = process_t{};
     docker_process.spawnp("docker", "rmi", "-f", image);
     docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0)
-    {
+    if (docker_process.exit_code() != 0) {
         std::fprintf(
             stderr,
             "Warning: Could not remove image %s of app %s (%s)\n",
@@ -82,8 +78,7 @@ auto module_app_manager_private_t::do_uninstall(
     const auto path = build_manifest_path(app_name, version);
     auto ec = std::error_code{};
     const auto res = fs::remove(path, ec);
-    if (!res)
-    {
+    if (!res) {
         std::fprintf(
             stderr,
             "Warning: Could not remove manifest %s of app %s (%s)\n",

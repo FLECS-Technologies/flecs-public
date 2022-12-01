@@ -200,8 +200,7 @@ TEST(service_app_manager_app_db, GetAllInstances)
         make_app_entry("tech.flecs.test", "2.0.0.0"),
         make_app_entry("tech.flecs.another_test", "1.0.0.0"),
     };
-    for (decltype(auto) app : apps)
-    {
+    for (decltype(auto) app : apps) {
         app_db.insert_app(app);
     }
 
@@ -215,8 +214,7 @@ TEST(service_app_manager_app_db, GetAllInstances)
         make_instance_entry("77777777", std::data(apps)[2]),
     };
 
-    for (decltype(auto) instance : instances)
-    {
+    for (decltype(auto) instance : instances) {
         app_db.insert_instance(instance);
     }
 

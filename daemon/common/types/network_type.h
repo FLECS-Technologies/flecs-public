@@ -47,10 +47,8 @@ inline auto to_string(const network_type_t& network_type) //
 inline auto network_type_from_string(std::string_view str) //
     -> network_type_t
 {
-    for (const auto& it : strings)
-    {
-        if (it.second == str)
-        {
+    for (const auto& it : strings) {
+        if (it.second == str) {
             return it.first;
         }
     }

@@ -35,8 +35,7 @@ auto module_app_manager_private_t::do_delete_instance(
     response["version"] = version;
 
     // Step 1: Verify instance does actually exist
-    if (!_deployment->has_instance(instance_id))
-    {
+    if (!_deployment->has_instance(instance_id)) {
         response["additionalInfo"] = "Could not delete instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
@@ -49,8 +48,7 @@ auto module_app_manager_private_t::do_delete_instance(
     response["version"] = instance.app_version();
 
     auto xcheck = xcheck_app_instance(instance, app_name, version);
-    if (xcheck < 0)
-    {
+    if (xcheck < 0) {
         response["additionalInfo"] = "Could not delete instance: instance/app mismatch";
         return crow::status::BAD_REQUEST;
     }
@@ -58,8 +56,7 @@ auto module_app_manager_private_t::do_delete_instance(
     // Step 3: Attempt to stop instance
     const auto res = do_stop_instance(instance_id, app_name, version, response, true);
 
-    if (res != crow::status::OK)
-    {
+    if (res != crow::status::OK) {
         std::fprintf(stderr, "Could not stop instance %s: %d\n", instance_id.c_str(), static_cast<int>(res));
     }
 
@@ -69,37 +66,30 @@ auto module_app_manager_private_t::do_delete_instance(
         const auto name = std::string{"flecs-"} + instance_id;
         docker_process.spawnp("docker", "rm", "-f", name);
         docker_process.wait(false, true);
-        if (docker_process.exit_code() != 0)
-        {
+        if (docker_process.exit_code() != 0) {
             std::fprintf(stderr, "Could not remove docker container %s\n", name.c_str());
         }
     }
 
     // Step 5: Attempt to load app manifest
-    if (!is_app_installed(instance.app_name(), instance.app_version()))
-    {
+    if (!is_app_installed(instance.app_name(), instance.app_version())) {
         std::fprintf(
             stderr,
             "Could not remove volumes of app %s (%s): manifest error\n",
             instance.app_name().c_str(),
             instance.app_version().c_str());
-    }
-    // Step 6: Remove volumes of instance, if manifest loaded successfully
-    else
-    {
+    } else {
+        // Step 6: Remove volumes of instance, if manifest loaded successfully
         const auto& app = _installed_apps.find(app_key_t{instance.app_name(), instance.app_version()})->second;
-        for (const auto& volume : app.volumes())
-        {
-            if (volume.type() != volume_t::VOLUME)
-            {
+        for (const auto& volume : app.volumes()) {
+            if (volume.type() != volume_t::VOLUME) {
                 continue;
             }
             auto docker_process = process_t{};
             const auto name = std::string{"flecs-"} + instance_id + "-" + volume.host();
             docker_process.spawnp("docker", "volume", "rm", name);
             docker_process.wait(false, true);
-            if (docker_process.exit_code() != 0)
-            {
+            if (docker_process.exit_code() != 0) {
                 std::fprintf(stderr, "Could not remove docker volume %s\n", name.c_str());
             }
         }

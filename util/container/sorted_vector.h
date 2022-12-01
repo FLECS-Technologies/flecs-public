@@ -135,8 +135,7 @@ public:
     const_reference at(K&& x) const
     {
         const auto it = find(x);
-        if (__glibc_unlikely(it == cend()))
-        {
+        if (__glibc_unlikely(it == cend())) {
             throw std::out_of_range{"sorted_vector subscript out of range"};
         }
         return *it;
@@ -171,8 +170,7 @@ public:
     template <typename K>
     auto erase(K&& x)
     {
-        if (!contains(std::forward<K>(x)))
-        {
+        if (!contains(std::forward<K>(x))) {
             return static_cast<size_type>(0);
         }
         static_cast<void>(erase(find(x)));
@@ -312,8 +310,7 @@ auto sorted_vector_t<Key, Compare, Alloc>::insert_impl(T&& value) -> //
 {
     const auto it = lower_bound(value);
     // either there is no element greater than <value>, or <it> points to element greater than <value>
-    if ((it == cend()) || key_comp()(value, *it))
-    {
+    if ((it == cend()) || key_comp()(value, *it)) {
         return std::pair<iterator, bool>{_vec.insert(it, std::forward<T>(value)), true};
     }
     return std::pair<iterator, bool>{it, false};
@@ -324,28 +321,22 @@ template <typename T>
 auto sorted_vector_t<Key, Compare, Alloc>::insert_impl(const_iterator hint, T&& value) -> //
     iterator
 {
-    // check if cend() hint is correct
-    if (hint == cend())
-    {
-        if (!empty() && key_comp()(*rbegin(), value))
-        {
+    if (hint == cend()) {
+        // check if cend() hint is correct
+        if (!empty() && key_comp()(*rbegin(), value)) {
             return _vec.insert(hint, std::forward<T>(value));
         }
-    }
-    // check if other hint is correct
-    else
-    {
+    } else {
+        // check if other hint is correct
         auto pos = hint;
         // hint points to element after
-        if (key_comp()(value, *pos) && ((--pos == cbegin()) || (key_comp()(*pos, value))))
-        {
+        if (key_comp()(value, *pos) && ((--pos == cbegin()) || (key_comp()(*pos, value)))) {
             return _vec.insert(hint, std::forward<T>(value));
         }
 
         pos = hint;
         // hint points to element before
-        if (key_comp()(*pos, value) && ((++pos == cend()) || (key_comp()(value, *pos))))
-        {
+        if (key_comp()(*pos, value) && ((++pos == cend()) || (key_comp()(value, *pos)))) {
             return _vec.insert(++hint, std::forward<T>(value));
         }
     }

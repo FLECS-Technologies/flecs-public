@@ -35,8 +35,7 @@ auto module_app_manager_private_t::do_stop_instance(
     response["version"] = version;
 
     // Step 1: Verify instance does actually exist
-    if (!_deployment->has_instance(instance_id))
-    {
+    if (!_deployment->has_instance(instance_id)) {
         response["additionalInfo"] = "Could not stop instance " + instance_id + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
@@ -49,22 +48,19 @@ auto module_app_manager_private_t::do_stop_instance(
 
     // Step 2: Do some cross-checks if app_name and version are provided
     auto xcheck = xcheck_app_instance(instance, app_name, version);
-    if (xcheck < 0)
-    {
+    if (xcheck < 0) {
         response["additionalInfo"] = "Could not stop instance: instance/app mismatch";
         return crow::status::BAD_REQUEST;
     }
 
     // Step 3: Return if instance is not running
-    if (!_deployment->is_instance_running(instance_id) && !internal)
-    {
+    if (!_deployment->is_instance_running(instance_id) && !internal) {
         response["additionalInfo"] = "Instance " + instance_id + " is not running";
         return crow::status::OK;
     }
 
     // Step 4: Persist desired status into db, if triggered externally
-    if (!internal)
-    {
+    if (!internal) {
         instance.desired(instance_status_e::STOPPED);
     }
 

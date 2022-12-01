@@ -38,8 +38,7 @@ sysinfo_t::sysinfo_t()
 {
     auto buf = utsname{};
     const auto res = uname(&buf);
-    if (res < 0)
-    {
+    if (res < 0) {
         return;
     }
 
@@ -49,16 +48,12 @@ sysinfo_t::sysinfo_t()
     _machine = buf.machine;
 
     auto ec = std::error_code{};
-    if (fs::exists("/etc/os-release", ec))
-    {
+    if (fs::exists("/etc/os-release", ec)) {
         parse_os_release("/etc/os-release");
-    }
-    else if (fs::exists("/usr/lib/os-release"))
-    {
+    } else if (fs::exists("/usr/lib/os-release")) {
         parse_os_release("/usr/lib/os-release");
     }
-    if (cxx20::contains(_kernel_version, "weidmueller"))
-    {
+    if (cxx20::contains(_kernel_version, "weidmueller")) {
         _platform = "weidmueller";
     }
 }
@@ -74,23 +69,15 @@ auto sysinfo_t::parse_os_release(fs::path path) //
     auto os_release = std::ifstream{path};
 
     auto line = std::string{};
-    while (std::getline(os_release, line))
-    {
+    while (std::getline(os_release, line)) {
         auto m = std::smatch{};
-        if (std::regex_match(line, m, codename_regex))
-        {
+        if (std::regex_match(line, m, codename_regex)) {
             _distro_code = m[1].matched ? m[1] : m[2];
-        }
-        else if (std::regex_match(line, m, id_regex))
-        {
+        } else if (std::regex_match(line, m, id_regex)) {
             _distro_id = m[1].matched ? m[1] : m[2];
-        }
-        else if (std::regex_match(line, m, name_regex))
-        {
+        } else if (std::regex_match(line, m, name_regex)) {
             _distro_name = m[1].matched ? m[1] : m[2];
-        }
-        else if (std::regex_match(line, m, version_regex))
-        {
+        } else if (std::regex_match(line, m, version_regex)) {
             _distro_version = m[1].matched ? m[1] : m[2];
         }
     }

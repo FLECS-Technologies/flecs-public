@@ -39,8 +39,7 @@ auto module_app_manager_private_t::do_create_instance(
     response["version"] = version;
 
     // Step 1: Ensure app is actually installed
-    if (!is_app_installed(app_name, version))
-    {
+    if (!is_app_installed(app_name, version)) {
         response["additionalInfo"] = "Could not create instance of " + app_name + " (" + version + "): not installed";
         return crow::status::BAD_REQUEST;
     }
@@ -49,11 +48,9 @@ auto module_app_manager_private_t::do_create_instance(
     const auto& app = _installed_apps.find(app_key_t{app_name, version})->second;
 
     // Step 3: Ensure there is only one instance of single-instance apps
-    if (!app.multi_instance())
-    {
+    if (!app.multi_instance()) {
         const auto instance_ids = _deployment->instance_ids(app, deployment_t::MatchVersion);
-        if (!instance_ids.empty())
-        {
+        if (!instance_ids.empty()) {
             response["instanceId"] = instance_ids[0];
             return crow::status::OK;
         }
@@ -67,8 +64,7 @@ auto module_app_manager_private_t::do_create_instance(
     // Final step: Persist creation into db
     _deployment->save();
 
-    if (res != 0)
-    {
+    if (res != 0) {
         response["additionalInfo"] = "Failed to create instance";
         return crow::status::INTERNAL_SERVER_ERROR;
     }

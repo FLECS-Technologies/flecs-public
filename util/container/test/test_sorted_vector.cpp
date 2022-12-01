@@ -45,8 +45,7 @@ void assert_is_sorted(const FLECS::sorted_vector_t<Key, Compare, Alloc>& uut)
     ASSERT_FALSE(uut.empty());
 
     auto prev = *uut.cbegin();
-    for (auto it = uut.cbegin() + 1; it != uut.cend(); ++it)
-    {
+    for (auto it = uut.cbegin() + 1; it != uut.cend(); ++it) {
         ASSERT_TRUE(Compare()(prev, *it));
         prev = *it;
     }
@@ -118,8 +117,7 @@ void sorted_vector_init_test(T&& uut)
     ASSERT_EQ(uut.equal_range(i64_5).second, uut.upper_bound(5LL));
 
     auto i = 0;
-    for (const auto& it : uut)
-    {
+    for (const auto& it : uut) {
         ASSERT_EQ(it, i);
         ++i;
     }
@@ -315,15 +313,13 @@ TEST(sorted_vector, performance_1)
 
     getrusage(RUSAGE_SELF, &usage);
     const auto t1 = usage.ru_utime;
-    for (std::size_t i = 0; i < uut_1.capacity(); ++i)
-    {
+    for (std::size_t i = 0; i < uut_1.capacity(); ++i) {
         uut_1.insert(i);
     }
 
     getrusage(RUSAGE_SELF, &usage);
     const auto t2 = usage.ru_utime;
-    for (std::size_t i = 0; i < uut_2.capacity(); ++i)
-    {
+    for (std::size_t i = 0; i < uut_2.capacity(); ++i) {
         uut_2.insert(uut_2.cend(), i);
     }
 

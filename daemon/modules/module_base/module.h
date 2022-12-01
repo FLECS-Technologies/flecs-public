@@ -22,34 +22,27 @@ namespace FLECS {
 
 // Helper macros to parse JSON arguments passed to endpoints
 #define REQUIRED_TYPED_JSON_VALUE(json, val, type)                                           \
-    if (!json.contains(#val))                                                                \
-    {                                                                                        \
+    if (!json.contains(#val)) {                                                              \
         response["additionalInfo"] = std::string{"Missing field "} + #val + " in request";   \
         return crow::response{crow::status::BAD_REQUEST, response.dump()};                   \
     }                                                                                        \
     auto val = type{};                                                                       \
-    try                                                                                      \
-    {                                                                                        \
+    try {                                                                                    \
         val = json[#val].get<type>();                                                        \
-    }                                                                                        \
-    catch (const nlohmann::detail::exception& ex)                                            \
-    {                                                                                        \
+    } catch (const nlohmann::detail::exception& ex) {                                        \
         response["additionalInfo"] = std::string{"Malformed field "} + #val + " in request"; \
         return crow::response{crow::status::BAD_REQUEST, response.dump()};                   \
     }
 
 #define REQUIRED_JSON_VALUE(json, val) REQUIRED_TYPED_JSON_VALUE(json, val, std::string)
 
-#define OPTIONAL_TYPED_JSON_VALUE(json, val, type)    \
-    auto val = type{};                                \
-    if (json.contains(#val))                          \
-    {                                                 \
-        try                                           \
-        {                                             \
-            val = json[#val].get<std::string>();      \
-        }                                             \
-        catch (const nlohmann::detail::exception& ex) \
-        {}                                            \
+#define OPTIONAL_TYPED_JSON_VALUE(json, val, type)        \
+    auto val = type{};                                    \
+    if (json.contains(#val)) {                            \
+        try {                                             \
+            val = json[#val].get<std::string>();          \
+        } catch (const nlohmann::detail::exception& ex) { \
+        }                                                 \
     }
 
 #define OPTIONAL_JSON_VALUE(json, val) OPTIONAL_TYPED_JSON_VALUE(json, val, std::string)

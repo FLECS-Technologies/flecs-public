@@ -48,8 +48,7 @@ udev_t& udev_t::operator=(udev_t other)
 
 udev_t::~udev_t()
 {
-    if (_handle)
-    {
+    if (_handle) {
         validate_owner();
         udev_unref(_handle);
     }
@@ -69,8 +68,7 @@ auto swap(udev_t& lhs, udev_t& rhs) //
 auto udev_t::validate_owner() //
     -> void
 {
-    if (_handle && _owner != std::this_thread::get_id())
-    {
+    if (_handle && _owner != std::this_thread::get_id()) {
         udev_unref(**this);
         throw std::runtime_error{"Cannot re-use udev handle in different thread"};
     }

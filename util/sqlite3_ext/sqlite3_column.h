@@ -29,8 +29,7 @@ public:
         : _name{name}
         , _type{}
     {
-        switch (sqlite3_type)
-        {
+        switch (sqlite3_type) {
             case SQLITE_INTEGER: {
                 _type = "INTEGER";
                 break;

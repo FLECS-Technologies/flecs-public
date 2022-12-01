@@ -86,11 +86,9 @@ auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e versi
     -> std::vector<std::string>
 {
     auto ids = std::vector<std::string>{};
-    for (const auto& instance : instances())
-    {
+    for (const auto& instance : instances()) {
         if ((instance.second.app_name() == std::get<0>(app_key)) &&
-            ((version_filter == AllVersions) || (instance.second.app_version() == std::get<1>(app_key))))
-        {
+            ((version_filter == AllVersions) || (instance.second.app_version() == std::get<1>(app_key)))) {
             ids.emplace_back(instance.first);
         }
     }
@@ -122,40 +120,34 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
 {
     // Step 1: Create unique id and insert instance
     auto tmp = instance_t{&app, instance_name, instance_status_e::REQUESTED, instance_status_e::CREATED};
-    while (_instances.count(tmp.id()))
-    {
+    while (_instances.count(tmp.id())) {
         tmp.regenerate_id();
     }
 
     auto& instance = _instances.emplace(tmp.id(), tmp).first->second;
-    for (const auto& startup_option : app.startup_options())
-    {
+    for (const auto& startup_option : app.startup_options()) {
         instance.startup_options().emplace_back(static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
     }
 
     // Step 2: Create volumes
     const auto [res, additional_info] = create_volumes(instance);
-    if (res != 0)
-    {
+    if (res != 0) {
         return {res, additional_info};
     }
 
     // Step 3: Create networks
     // query and create default network, if required
     const auto network_name = default_network_name();
-    if (!network_name.empty())
-    {
+    if (!network_name.empty()) {
         const auto network = query_network(network_name);
-        if (!network.has_value())
-        {
+        if (!network.has_value()) {
             const auto [res, additional_info] = create_network(
                 default_network_type(),
                 default_network_name(),
                 default_network_cidr_subnet(),
                 default_network_gateway(),
                 {});
-            if (res != 0)
-            {
+            if (res != 0) {
                 return {-1, instance.id()};
             }
         }
@@ -185,32 +177,24 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     // Step 4: Create conffiles
     const auto container_name = std::string{"flecs-"} + instance.id();
     const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
-    if (!app.conffiles().empty())
-    {
+    if (!app.conffiles().empty()) {
         auto ec = std::error_code{};
-        if (!std::filesystem::create_directories(conf_path, ec))
-        {
+        if (!std::filesystem::create_directories(conf_path, ec)) {
             return {-1, instance.id()};
         }
     }
 
-    for (const auto& conffile : app.conffiles())
-    {
+    for (const auto& conffile : app.conffiles()) {
         const auto local_path = conf_path + conffile.local();
-        if (conffile.init())
-        {
+        if (conffile.init()) {
             const auto [res, additional_info] =
                 copy_file_from_image(app.image_with_tag(), conffile.container(), local_path);
-            if (res != 0)
-            {
+            if (res != 0) {
                 return {-1, instance.id()};
             }
-        }
-        else
-        {
+        } else {
             auto f = std::ofstream{local_path};
-            if (!f.good())
-            {
+            if (!f.good()) {
                 return {-1, instance.id()};
             }
         }
@@ -238,28 +222,23 @@ auto deployment_t::start_instance(std::string_view instance_id) //
     if (std::count(
             startup_options.cbegin(),
             startup_options.cend(),
-            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START)))
-    {
-        for (const auto& network : instance.networks())
-        {
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START))) {
+        for (const auto& network : instance.networks()) {
             disconnect_network(instance_id, network.network_name);
         }
     }
 
     const auto [res, additional_info] = do_start_instance(instance);
 
-    if (res != 0)
-    {
+    if (res != 0) {
         return {res, additional_info};
     }
 
     if (std::count(
             startup_options.cbegin(),
             startup_options.cend(),
-            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START)))
-    {
-        for (const auto& network : _instances.at(instance_id.data()).networks())
-        {
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START))) {
+        for (const auto& network : _instances.at(instance_id.data()).networks()) {
             connect_network(instance_id, network.network_name, network.ip_address);
         }
     }
@@ -285,13 +264,10 @@ auto deployment_t::stop_instance(std::string_view instance_id) //
     if (std::count(
             startup_options.cbegin(),
             startup_options.cend(),
-            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START)))
-    {
-        for (const auto& network : _instances.at(instance_id.data()).networks())
-        {
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START))) {
+        for (const auto& network : _instances.at(instance_id.data()).networks()) {
             const auto [net_res, net_err] = disconnect_network(instance_id, network.network_name);
-            if (net_res != 0)
-            {
+            if (net_res != 0) {
                 res = -1;
                 additional_info += '\n' + net_err;
             }
@@ -310,8 +286,7 @@ auto deployment_t::is_instance_runnable(std::string_view instance_id) const //
 auto deployment_t::is_instance_running(std::string_view instance_id) const //
     -> bool
 {
-    if (!has_instance(instance_id))
-    {
+    if (!has_instance(instance_id)) {
         return false;
     }
     return do_is_instance_running(instances().at(instance_id.data()));
@@ -363,13 +338,10 @@ auto deployment_t::disconnect_network(std::string_view instance_id, std::string_
 auto deployment_t::create_volumes(const instance_t& instance) //
     -> result_t
 {
-    for (auto& volume : instance.app().volumes())
-    {
-        if (volume.type() == volume_t::VOLUME)
-        {
+    for (auto& volume : instance.app().volumes()) {
+        if (volume.type() == volume_t::VOLUME) {
             const auto [res, additional_info] = create_volume(instance.id(), volume.host());
-            if (res != 0)
-            {
+            if (res != 0) {
                 return {res, additional_info};
             }
         }
@@ -386,11 +358,9 @@ auto deployment_t::create_volume(std::string_view instance_id, std::string_view 
 auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir) //
     -> result_t
 {
-    for (auto& volume : instance.app().volumes())
-    {
+    for (auto& volume : instance.app().volumes()) {
         const auto [res, additional_info] = export_volume(instance, volume.host(), dest_dir);
-        if (res != 0)
-        {
+        if (res != 0) {
             return {res, additional_info};
         }
     }
@@ -462,8 +432,7 @@ auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::strin
         // e.g. 127.0.0.1/24 -> (127.0.0.)(1)/
         const auto ip_regex = std::regex{R"((^(?:\d{1,3}\.){3}\d{1,3})\/)"};
         auto m = std::cmatch{};
-        if (!std::regex_search(cidr_subnet.data(), m, ip_regex))
-        {
+        if (!std::regex_search(cidr_subnet.data(), m, ip_regex)) {
             return std::string{};
         }
         base_ip = ntohl(ipv4_to_bits(m[1].str()).s_addr);
@@ -475,8 +444,7 @@ auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::strin
         // e.g. 127.0.0.1/24 -> 1/24
         const auto subnet_regex = std::regex{R"(\d\/([0-9]|[1][0-9]|[2][0-9]|[3][0-2])$)"};
         auto m = std::cmatch{};
-        if (!std::regex_search(cidr_subnet.data(), m, subnet_regex) || m.size() < 2)
-        {
+        if (!std::regex_search(cidr_subnet.data(), m, subnet_regex) || m.size() < 2) {
             return std::string{};
         }
         subnet_size = std::stoi(m[1].str());
@@ -489,14 +457,11 @@ auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::strin
     const auto max_ip = (base_ip | ~(~0u << subnet_size)) - 1;
 
     auto used_ips = std::set<in_addr_t>{};
-    if (!gateway.empty())
-    {
+    if (!gateway.empty()) {
         used_ips.emplace(ntohl(ipv4_to_bits(gateway).s_addr));
     }
-    for (const auto& instance : _instances)
-    {
-        for (const auto& network : instance.second.networks())
-        {
+    for (const auto& instance : _instances) {
+        for (const auto& network : instance.second.networks()) {
             used_ips.emplace(ntohl(ipv4_to_bits(network.ip_address).s_addr));
         }
     }
@@ -505,13 +470,11 @@ auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::strin
     auto instance_ip = base_ip + 2;
 
     // search first unused address
-    while (used_ips.find(instance_ip) != used_ips.end())
-    {
+    while (used_ips.find(instance_ip) != used_ips.end()) {
         ++instance_ip;
     }
 
-    if (instance_ip > max_ip)
-    {
+    if (instance_ip > max_ip) {
         return std::string{};
     }
 
@@ -524,8 +487,7 @@ auto deployment_t::do_load(fs::path base_path) //
     using std::operator""sv;
 
     auto json_file = std::ifstream{base_path / deployment_id().data() += ".json"sv};
-    if (!json_file.good())
-    {
+    if (!json_file.good()) {
         return {-1, "Could not open json"};
     }
 
@@ -540,8 +502,7 @@ auto deployment_t::do_save(fs::path base_path) //
 {
     auto ec = std::error_code{};
     fs::create_directories(base_path, ec);
-    if (ec)
-    {
+    if (ec) {
         return {-1, "Could not create directory"};
     }
 
@@ -549,17 +510,14 @@ auto deployment_t::do_save(fs::path base_path) //
     base_path += ".json.new";
 
     auto instances_json = std::ofstream{base_path, std::ios_base::out | std::ios_base::trunc};
-    try
-    {
+    try {
         instances_json << json_t(instances());
         instances_json.flush();
 
         const auto from = base_path;
         const auto to = base_path.replace_extension();
         fs::rename(from, to);
-    }
-    catch (const std::exception& ex)
-    {
+    } catch (const std::exception& ex) {
         return {-1, ex.what()};
     }
 

@@ -19,38 +19,30 @@
 namespace FLECS {
 
 #define REQUIRED_TYPED_YAML_VALUE(yaml, value, target) \
-    do                                                 \
-    {                                                  \
+    do {                                               \
         target = yaml[#value].as<decltype(target)>();  \
     } while (false)
 
 #define REQUIRED_YAML_VALUE(yaml, value, target) \
-    do                                           \
-    {                                            \
+    do {                                         \
         target = yaml[#value];                   \
     } while (false)
 
 #define OPTIONAL_TYPED_YAML_VALUE(yaml, value, target)    \
-    do                                                    \
-    {                                                     \
-        try                                               \
-        {                                                 \
+    do {                                                  \
+        try {                                             \
             target = yaml[#value].as<decltype(target)>(); \
+        } catch (const YAML::Exception& ex) {             \
         }                                                 \
-        catch (const YAML::Exception& ex)                 \
-        {}                                                \
     } while (false)
 
 #define OPTIONAL_YAML_NODE(yaml, value, target) \
     auto target = yaml_t{};                     \
-    do                                          \
-    {                                           \
-        try                                     \
-        {                                       \
+    do {                                        \
+        try {                                   \
             target = yaml[#value];              \
+        } catch (const YAML::Exception& ex) {   \
         }                                       \
-        catch (const YAML::Exception& ex)       \
-        {}                                      \
     } while (false)
 
 app_manifest_t::app_manifest_t()
@@ -80,13 +72,10 @@ app_manifest_t::app_manifest_t()
 app_manifest_t app_manifest_t::from_yaml_file(const fs::path& path)
 {
     auto res = app_manifest_t{};
-    try
-    {
+    try {
         const auto yaml = yaml_from_file(path);
         res.parse_yaml(yaml);
-    }
-    catch (const std::exception& ex)
-    {
+    } catch (const std::exception& ex) {
         std::fprintf(stderr, "Could not open manifest %s: Invalid YAML (%s)\n", path.c_str(), ex.what());
     }
     return res;
@@ -95,13 +84,10 @@ app_manifest_t app_manifest_t::from_yaml_file(const fs::path& path)
 app_manifest_t app_manifest_t::from_yaml_string(const std::string& str)
 {
     auto res = app_manifest_t{};
-    try
-    {
+    try {
         const auto yaml = yaml_from_string(str);
         res.parse_yaml(yaml);
-    }
-    catch (const std::exception& ex)
-    {
+    } catch (const std::exception& ex) {
         std::fprintf(stderr, "Could not open manifest: Invalid YAML (%s)\n", ex.what());
     }
     return res;
@@ -109,8 +95,7 @@ app_manifest_t app_manifest_t::from_yaml_string(const std::string& str)
 
 void app_manifest_t::parse_yaml(const yaml_t& yaml)
 {
-    try
-    {
+    try {
         REQUIRED_TYPED_YAML_VALUE(yaml, app, _app);
         OPTIONAL_TYPED_YAML_VALUE(yaml, args, _args);
         REQUIRED_TYPED_YAML_VALUE(yaml, author, _author);
@@ -118,22 +103,19 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
         OPTIONAL_TYPED_YAML_VALUE(yaml, category, _category);
 
         OPTIONAL_YAML_NODE(yaml, conffiles, conffiles);
-        for (const auto& conf : conffiles)
-        {
+        for (const auto& conf : conffiles) {
             _conffiles.emplace_back(conffile_t{conf.as<std::string>()});
         }
 
         OPTIONAL_TYPED_YAML_VALUE(yaml, description, _description);
         OPTIONAL_YAML_NODE(yaml, devices, devices);
-        for (const auto& device : devices)
-        {
+        for (const auto& device : devices) {
             _devices.emplace(device.as<std::string>());
         }
         OPTIONAL_TYPED_YAML_VALUE(yaml, editor, _editor);
 
         OPTIONAL_YAML_NODE(yaml, env, envs);
-        for (const auto& env : envs)
-        {
+        for (const auto& env : envs) {
             _env.emplace(mapped_env_var_t{env.as<std::string>()});
         }
 
@@ -145,25 +127,21 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
         _networks.emplace_back("flecs");
 
         OPTIONAL_YAML_NODE(yaml, networkSettings, network_settings);
-        for (const auto& setting : network_settings)
-        {
+        for (const auto& setting : network_settings) {
             auto mac_address = std::string{};
             OPTIONAL_TYPED_YAML_VALUE(setting, macAddress, mac_address);
-            if (!mac_address.empty())
-            {
+            if (!mac_address.empty()) {
                 _networks.rbegin()->mac_address(mac_address);
             }
         }
 
         OPTIONAL_YAML_NODE(yaml, ports, ports);
-        for (const auto& port_range : ports)
-        {
+        for (const auto& port_range : ports) {
             _ports.emplace_back(mapped_port_range_t{port_range.as<std::string>()});
         }
 
         OPTIONAL_YAML_NODE(yaml, startupOptions, startup_options);
-        for (const auto& startup_option : startup_options)
-        {
+        for (const auto& startup_option : startup_options) {
             _startup_options.emplace_back(startup_option_from_string(startup_option.as<std::string>()));
         }
 
@@ -171,17 +149,14 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
         REQUIRED_TYPED_YAML_VALUE(yaml, version, _version);
 
         OPTIONAL_YAML_NODE(yaml, volumes, volumes);
-        for (const auto& volume : volumes)
-        {
+        for (const auto& volume : volumes) {
             _volumes.emplace_back(volume_t{volume.as<std::string>()});
         }
 
         _yaml_loaded = true;
 
         validate_yaml();
-    }
-    catch (const std::exception& ex)
-    {
+    } catch (const std::exception& ex) {
         std::fprintf(stderr, "Could not open manifest: Invalid YAML (%s)\n", ex.what());
         *this = app_manifest_t{};
     }
@@ -190,40 +165,31 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
 void app_manifest_t::validate_yaml()
 {
     _yaml_valid = false;
-    for (const auto& conffile : _conffiles)
-    {
-        if (!conffile.is_valid())
-        {
+    for (const auto& conffile : _conffiles) {
+        if (!conffile.is_valid()) {
             return;
         }
     }
 
-    for (const auto& env : _env)
-    {
-        if (!env.is_valid())
-        {
+    for (const auto& env : _env) {
+        if (!env.is_valid()) {
             return;
         }
     }
 
-    for (const auto& port : _ports)
-    {
-        if (!port.is_valid())
-        {
+    for (const auto& port : _ports) {
+        if (!port.is_valid()) {
             return;
         }
     }
 
-    for (const auto& volume : _volumes)
-    {
-        if (!volume.is_valid())
-        {
+    for (const auto& volume : _volumes) {
+        if (!volume.is_valid()) {
             return;
         }
     }
 
-    if (!_hostname.empty() && _multi_instance)
-    {
+    if (!_hostname.empty() && _multi_instance) {
         return;
     }
 

@@ -29,44 +29,27 @@ static int select_apps_callback(void* data, int argc, char** argv, char* col_nam
 {
     auto entries = reinterpret_cast<std::vector<apps_table_entry_t>*>(data);
     decltype(auto) entry = entries->emplace_back();
-    for (auto i = 0; i < argc; ++i)
-    {
-        if (argv[i] == nullptr)
-        {
+    for (auto i = 0; i < argc; ++i) {
+        if (argv[i] == nullptr) {
             continue;
         }
 
         auto col = std::string_view(col_name[i]);
-        if (col == "app")
-        {
+        if (col == "app") {
             entry.app = argv[i];
-        }
-        else if (col == "version")
-        {
+        } else if (col == "version") {
             entry.version = argv[i];
-        }
-        else if (col == "status")
-        {
+        } else if (col == "status") {
             entry.status = static_cast<app_status_e>(*argv[i]);
-        }
-        else if (col == "desired")
-        {
+        } else if (col == "desired") {
             entry.desired = static_cast<app_status_e>(*argv[i]);
-        }
-        else if (col == "category")
-        {
+        } else if (col == "category") {
             entry.category = argv[i];
-        }
-        else if (col == "installed_size")
-        {
+        } else if (col == "installed_size") {
             entry.installed_size = atoi(argv[i]);
-        }
-        else if (col == "license_key")
-        {
+        } else if (col == "license_key") {
             entry.license_key = argv[i];
-        }
-        else if (col == "download_token")
-        {
+        } else if (col == "download_token") {
             entry.download_token = argv[i];
         }
     }
@@ -77,56 +60,35 @@ static int select_instances_callback(void* data, int argc, char** argv, char* co
 {
     auto entries = reinterpret_cast<std::vector<instances_table_entry_t>*>(data);
     decltype(auto) entry = entries->emplace_back();
-    for (auto i = 0; i < argc; ++i)
-    {
-        if (argv[i] == nullptr)
-        {
+    for (auto i = 0; i < argc; ++i) {
+        if (argv[i] == nullptr) {
             continue;
         }
 
         auto col = std::string_view{col_name[i]};
-        if (col == "id")
-        {
+        if (col == "id") {
             entry.id = argv[i];
-        }
-        else if (col == "app")
-        {
+        } else if (col == "app") {
             entry.app = argv[i];
-        }
-        else if (col == "version")
-        {
+        } else if (col == "version") {
             entry.version = argv[i];
-        }
-        else if (col == "status")
-        {
+        } else if (col == "status") {
             entry.status = static_cast<instance_status_e>(*argv[i]);
-        }
-        else if (col == "desired")
-        {
+        } else if (col == "desired") {
             entry.desired = static_cast<instance_status_e>(*argv[i]);
-        }
-        else if (col == "description")
-        {
+        } else if (col == "description") {
             entry.description = argv[i];
-        }
-        else if (col == "networks")
-        {
+        } else if (col == "networks") {
             auto networks = split(argv[i], ',');
-            for (decltype(auto) network : networks)
-            {
+            for (decltype(auto) network : networks) {
                 entry.networks.emplace_back(network);
             }
-        }
-        else if (col == "ipv4_addr" || col == "ip_addr")
-        {
+        } else if (col == "ipv4_addr" || col == "ip_addr") {
             auto ips = split(argv[i], ',');
-            for (decltype(auto) ip : ips)
-            {
+            for (decltype(auto) ip : ips) {
                 entry.ips.emplace_back(ip);
             }
-        }
-        else if (col == "flags")
-        {
+        } else if (col == "flags") {
             entry.flags = atoi(argv[i]);
         }
     }
