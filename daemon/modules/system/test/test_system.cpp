@@ -20,7 +20,7 @@ class module_system_test_t : public FLECS::module_system_t
 public:
     module_system_test_t() = default;
 
-    auto ping(FLECS::json_t& response) const { return FLECS::module_system_t::ping(response); }
+    auto ping() const { return FLECS::module_system_t::ping(); }
 };
 
 TEST(module_version, ping)
@@ -28,11 +28,9 @@ TEST(module_version, ping)
     const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
 
     auto mod = module_system_test_t{};
-    auto response = FLECS::json_t{};
-    const auto res = mod.ping(response);
-
-    response.dump();
+    const auto res = mod.ping();
 
     ASSERT_EQ(res.code, crow::status::OK);
-    ASSERT_EQ(response.dump(), out_expected);
+    ASSERT_EQ(res.headers.find("Content-Type")->second, "application/json");
+    ASSERT_EQ(res.body, out_expected);
 }

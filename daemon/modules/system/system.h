@@ -57,10 +57,10 @@ protected:
 
     module_system_t();
 
-    auto ping(json_t& response) const //
+    auto ping() const //
         -> crow::response;
 
-    auto info(json_t& response) const //
+    auto info() const //
         -> crow::response;
 
 private:

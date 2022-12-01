@@ -42,38 +42,33 @@ module_system_t::module_system_t()
 auto module_system_t::do_init() //
     -> void
 {
-    FLECS_ROUTE("/system/ping").methods("GET"_method)([=]() {
-        auto response = json_t{};
-        return ping(response);
-    });
+    FLECS_ROUTE("/system/ping").methods("GET"_method)([=]() { return ping(); });
 
     FLECS_ROUTE("/<string>/system/ping").methods("GET"_method)([=](const std::string& /* api_version */) {
-        auto response = json_t{};
-        return ping(response);
+        return ping();
     });
 
     FLECS_ROUTE("/<string>/system/info").methods("GET"_method)([=](const std::string& /* api_version */) {
-        auto response = json_t{};
-        return info(response);
+        return info();
     });
 }
 
-auto module_system_t::ping(json_t& response) const //
+auto module_system_t::ping() const //
     -> crow::response
 {
-    response["additionalInfo"] = "OK";
+    const auto response = json_t({
+        {"additionalInfo", "OK"},
+    });
 
-    return crow::response{crow::status::OK, response.dump()};
+    return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto module_system_t::info(json_t& response) const //
+auto module_system_t::info() const //
     -> crow::response
 {
-    const auto sysinfo = sysinfo_t{};
+    const auto response = json_t(sysinfo_t{});
 
-    response = json_t(sysinfo);
-
-    return crow::response{crow::status::OK, {response.dump()}};
+    return crow::response{crow::status::OK, "json", response.dump()};
 }
 
 auto module_system_t::get_network_adapters() const -> std::map<std::string, netif_t>
