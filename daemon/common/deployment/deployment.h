@@ -116,6 +116,10 @@ public:
         -> result_t;
     auto create_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t;
+    auto export_volumes(const instance_t& instance, fs::path dest_dir) //
+        -> result_t;
+    auto export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
+        -> result_t;
     auto delete_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t;
     auto copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
@@ -183,6 +187,8 @@ private:
     virtual auto do_disconnect_network(std::string_view instance_id, std::string_view network) //
         -> result_t = 0;
     virtual auto do_create_volume(std::string_view instance_id, std::string_view volume_name) //
+        -> result_t = 0;
+    virtual auto do_export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
         -> result_t = 0;
     virtual auto do_delete_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t = 0;
