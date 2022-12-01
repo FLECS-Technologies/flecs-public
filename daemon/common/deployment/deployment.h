@@ -112,6 +112,8 @@ public:
         -> result_t;
     auto disconnect_network(std::string_view instance_id, std::string_view network) //
         -> result_t;
+    auto create_volumes(const instance_t& instance) //
+        -> result_t;
     auto create_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t;
     auto delete_volume(std::string_view instance_id, std::string_view volume_name) //
