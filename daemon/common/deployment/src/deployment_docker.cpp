@@ -674,6 +674,42 @@ auto deployment_docker_t::do_create_volume(std::string_view instance_id, std::st
     return {0, ""};
 }
 
+auto deployment_docker_t::do_export_volume(
+    const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
+    -> result_t
+{
+    using std::operator""s;
+    const auto name = "flecs"s + instance.id() + "-"s + volume_name.data();
+    const auto wd = dest_dir.string() + "/"s + instance.id() + "/"s + instance.app_version();
+
+    auto ec = std::error_code{};
+    if (!fs::create_directories(wd, ec))
+    {
+        return {-1, "Could not create export directory"s};
+    }
+
+    auto docker_process = process_t{};
+
+    docker_process.arg("run");
+    docker_process.arg("--rm");
+    docker_process.arg("--volume");
+    docker_process.arg(name + ":/mnt/backup:ro");
+    docker_process.arg("--volume");
+    docker_process.arg(wd + ":"s + wd);
+    docker_process.arg("--workdir");
+    docker_process.arg(wd);
+    docker_process.arg("alpine");
+    docker_process.arg("tar -C /mnt/backup -czf "s + name + ".tar.gz . || exit 1"s);
+    docker_process.spawnp("docker");
+    docker_process.wait(false, true);
+    if (docker_process.exit_code() != 0)
+    {
+        return {-1, docker_process.stderr()};
+    }
+
+    return {0, {}};
+}
+
 auto deployment_docker_t::do_delete_volume(std::string_view /*instance_id*/, std::string_view /*volume_name*/) //
     -> result_t
 {

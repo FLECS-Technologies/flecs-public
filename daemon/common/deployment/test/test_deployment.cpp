@@ -54,6 +54,11 @@ public:
     MOCK_METHOD(
         result_t, do_create_volume, ((std::string_view instance_id), (std::string_view volume_name)), (override));
     MOCK_METHOD(
+        result_t,
+        do_export_volume,
+        ((const instance_t& instance), (std::string_view volume_name), (FLECS::fs::path dest_dir)),
+        (override));
+    MOCK_METHOD(
         result_t, do_delete_volume, ((std::string_view instance_id), (std::string_view volume_name)), (override));
     MOCK_METHOD(
         result_t, do_copy_file_from_image, ((std::string_view image), (fs::path file), (fs::path dest)), (override));

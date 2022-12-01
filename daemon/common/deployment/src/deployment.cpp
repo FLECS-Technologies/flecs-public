@@ -365,7 +365,7 @@ auto deployment_t::create_volumes(const instance_t& instance) //
 {
     for (auto& volume : instance.app().volumes())
     {
-        if (volume.type() == volume_t::BIND_MOUNT)
+        if (volume.type() == volume_t::VOLUME)
         {
             const auto [res, additional_info] = create_volume(instance.id(), volume.host());
             if (res != 0)
@@ -381,6 +381,27 @@ auto deployment_t::create_volume(std::string_view instance_id, std::string_view 
     -> result_t
 {
     return do_create_volume(std::move(instance_id), std::move(volume_name));
+}
+
+auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir) //
+    -> result_t
+{
+    for (auto& volume : instance.app().volumes())
+    {
+        const auto [res, additional_info] = export_volume(instance, volume.host(), dest_dir);
+        if (res != 0)
+        {
+            return {res, additional_info};
+        }
+    }
+
+    return {0, {}};
+}
+
+auto deployment_t::export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
+    -> result_t
+{
+    return do_export_volume(instance, std::move(volume_name), std::move(dest_dir));
 }
 
 auto deployment_t::delete_volume(std::string_view instance_id, std::string_view volume_name) //
