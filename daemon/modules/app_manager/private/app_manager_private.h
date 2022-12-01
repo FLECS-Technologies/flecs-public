@@ -143,6 +143,14 @@ public:
         json_t& response) //
         -> crow::status;
 
+    auto do_update_instance(
+        const std::string& instance_id,
+        const std::string& app_name,
+        const std::string& from,
+        const std::string& to,
+        json_t& response) //
+        -> crow::status;
+
     /*! @brief Deletes an existing instance
      *
      * @param[in] id Unique instance id assigned by @sa do_create_instance
