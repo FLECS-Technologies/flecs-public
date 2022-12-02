@@ -77,12 +77,17 @@ auto module_app_manager_private_t::do_update_instance(
 
     // Step 5: Create backup of existing instance (volumes + config)
     using std::operator""s;
-    const auto backup_path = fs::path{"/var/lib/flecs/backups/"s.append(instance.id())
-                                          .append("/"s)
+    const auto backup_path_base = fs::path{"/var/lib/flecs/backup/"s.append(instance.id()).append("/")};
+    const auto backup_path = fs::path{backup_path_base.string()
                                           .append(instance.app_version())
-                                          .append("/"s)
+                                          .append("/")
                                           .append(unix_time(precision_e::seconds))
-                                          .append("/"s)};
+                                          .append("/")};
+    auto ec = std::error_code{};
+    if (!fs::create_directories(backup_path, ec)) {
+        response["additionalInfo"] = "Could not create backup directory";
+        return crow::status::INTERNAL_SERVER_ERROR;
+    }
     const auto [res, additional_info] = _deployment->export_volumes(instance, backup_path);
     if (res != 0) {
         response["additionalInfo"] = additional_info;
@@ -99,11 +104,43 @@ auto module_app_manager_private_t::do_update_instance(
         }
     }
 
-    // Step 6: Update instance structure
+    // Step 6: Restore previous backup on downgrade, if possible
+    if (instance.app_version() > to) {
+        auto ec = std::error_code{};
+        for (const auto& version_dir : fs::directory_iterator{backup_path_base, ec}) {
+            if (version_dir.path().filename() != to) {
+                continue;
+            }
+            auto latest_path = fs::path{"0"};
+            for (const auto& backup_dir : fs::directory_iterator{version_dir, ec}) {
+                if (backup_dir.path().filename() > latest_path.filename()) {
+                    latest_path = backup_dir;
+                }
+            }
+            if (latest_path.filename() == "0") {
+                break;
+            }
+            _deployment->import_volumes(instance, latest_path);
+            for (const auto& conffile : instance.app().conffiles()) {
+                auto ec = std::error_code{};
+                fs::copy(
+                    latest_path.string() + "/" + conffile.local(),
+                    conf_path,
+                    fs::copy_options::overwrite_existing,
+                    ec);
+                if (ec) {
+                    response["additionalInfo"] = "Could not restore conffiles";
+                }
+            }
+            break;
+        }
+    }
+
+    // Step 7: Update instance structure
     decltype(auto) app = _installed_apps.at(app_key_t{instance.app_name(), to});
     instance.app(&app);
 
-    // Step 7: Persist updated instance into deployment
+    // Step 8: Persist updated instance into deployment
     _deployment->save();
 
     // Final step: Start instance
