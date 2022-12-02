@@ -71,3 +71,29 @@ TEST(datetime, strdate_now)
     ASSERT_FALSE(std::regex_search(actual_ns, regex_ms));
     ASSERT_FALSE(std::regex_search(actual_ns, regex_s));
 }
+
+TEST(datetime, unix)
+{
+    const auto now_ns = FLECS::unix_time(FLECS::precision_e::nanoseconds);
+    const auto now_us = FLECS::unix_time(FLECS::precision_e::microseconds);
+    const auto now_ms = FLECS::unix_time(FLECS::precision_e::milliseconds);
+    const auto now_s = FLECS::unix_time(FLECS::precision_e::seconds);
+
+    /* length assertions hold true  until Nov. 2286 */
+    ASSERT_EQ(now_ns.length(), 19);
+    ASSERT_EQ(now_us.length(), 16);
+    ASSERT_EQ(now_ms.length(), 13);
+    ASSERT_EQ(now_s.length(), 10);
+
+    /* value assertions hold true from Apr. 2022... */
+    ASSERT_GT(std::stoull(now_ns), 1'650'000'000'000'000'000);
+    ASSERT_GT(std::stoull(now_us), 1'650'000'000'000'000);
+    ASSERT_GT(std::stoull(now_ms), 1'650'000'000'000);
+    ASSERT_GT(std::stoull(now_s), 1'650'000'000);
+
+    /* ... to May 2033 */
+    ASSERT_LT(std::stoull(now_ns), 2'000'000'000'000'000'000);
+    ASSERT_LT(std::stoull(now_us), 2'000'000'000'000'000);
+    ASSERT_LT(std::stoull(now_ms), 2'000'000'000'000);
+    ASSERT_LT(std::stoull(now_s), 2'000'000'000);
+}
