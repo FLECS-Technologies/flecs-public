@@ -355,6 +355,32 @@ auto deployment_t::create_volume(std::string_view instance_id, std::string_view 
     return do_create_volume(std::move(instance_id), std::move(volume_name));
 }
 
+auto deployment_t::import_volumes(const instance_t& instance, fs::path src_dir) //
+    -> result_t
+{
+    for (auto& volume : instance.app().volumes()) {
+        if (volume.type() == volume_t::VOLUME) {
+            const auto [res, additional_info] = import_volume(instance, volume.host(), src_dir);
+            if (res != 0) {
+                return {res, additional_info};
+            }
+        }
+    }
+
+    return {0, {}};
+}
+
+auto deployment_t::import_volume(const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
+    -> result_t
+{
+    auto ec = std::error_code{};
+    if (!fs::exists(src_dir, ec) || !fs::is_directory(src_dir, ec)) {
+        return {-1, "Source directory does not exist"};
+    }
+
+    return do_import_volume(instance, volume_name, src_dir);
+}
+
 auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir) //
     -> result_t
 {

@@ -66,6 +66,8 @@ private:
         -> result_t override;
     auto do_create_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t override;
+    auto do_import_volume(const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
+        -> result_t override;
     auto do_export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
         -> result_t override;
     auto do_delete_volume(std::string_view instance_id, std::string_view volume_name) //
