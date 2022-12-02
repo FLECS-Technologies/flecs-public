@@ -43,6 +43,13 @@ auto module_app_manager_private_t::do_update_instance(
 
     // get instance details from database
     auto& instance = _deployment->instances().at(instance_id);
+
+    // Step 1a: Verify instance is valid
+    if (!instance.has_app()) {
+        response["additionalInfo"] = "Instance is not connected to an app";
+        return crow::status::INTERNAL_SERVER_ERROR;
+    }
+
     // correct response based on actual instance
     response["app"] = instance.app_name();
     response["from"] = instance.app_version();

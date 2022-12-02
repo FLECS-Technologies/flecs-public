@@ -57,6 +57,8 @@ public:
         -> const std::string&;
     auto app_version() const noexcept //
         -> const std::string&;
+    auto has_app() const noexcept //
+        -> bool;
     auto instance_name() const noexcept //
         -> const std::string&;
     auto status() const noexcept //

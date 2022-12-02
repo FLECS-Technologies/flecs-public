@@ -97,6 +97,7 @@ auto module_app_manager_private_t::do_delete_instance(
 
     // @todo: move functionality to deployment
     _deployment->delete_instance(instance_id);
+    _deployment->save();
 
     // Final step: Persist removal of instance into db
     persist_apps();

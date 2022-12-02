@@ -51,6 +51,8 @@ auto module_app_manager_private_t::do_create_instance(
     if (!app.multi_instance()) {
         const auto instance_ids = _deployment->instance_ids(app, deployment_t::MatchVersion);
         if (!instance_ids.empty()) {
+            auto& instance = _deployment->instances().at(instance_ids.front());
+            instance.app(&app);
             response["instanceId"] = instance_ids[0];
             return crow::status::OK;
         }

@@ -53,6 +53,9 @@ auto deployment_docker_t::create_container(instance_t& instance) //
     auto docker_process = process_t{};
     docker_process.arg("create");
 
+    if (!instance.has_app()) {
+        return {-1, "Instance not connected to an app"};
+    }
     const auto& app = instance.app();
     for (const auto& env : app.env()) {
         docker_process.arg("--env");
@@ -277,8 +280,17 @@ auto deployment_docker_t::delete_container(const instance_t& instance) //
     const auto container_name = "flecs-" + instance.id();
 
     const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
-    for (const auto& conffile : instance.app().conffiles()) {
-        copy_file_from_instance(instance.id(), conffile.container(), conf_path + conffile.local());
+    if (instance.has_app()) {
+        for (const auto& conffile : instance.app().conffiles()) {
+            copy_file_from_instance(instance.id(), conffile.container(), conf_path + conffile.local());
+        }
+    } else {
+        std::fprintf(
+            stderr,
+            "Warning: instance %s is not connected to an app (should be %s %s)\n",
+            instance.id().c_str(),
+            instance.app_name().c_str(),
+            instance.app_version().c_str());
     }
 
     auto docker_process = process_t{};
