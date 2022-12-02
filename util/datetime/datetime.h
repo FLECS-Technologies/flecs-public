@@ -38,7 +38,8 @@ enum class precision_e : std::size_t {
  *
  * @return std::string containing ISO 8601 time
  */
-std::string time_to_iso(std::time_t time, precision_e precision = precision_e::milliseconds);
+auto time_to_iso(std::time_t time, precision_e precision = precision_e::milliseconds) //
+    -> std::string;
 
 /**! @brief Returns the current time as an ISO 8601 string in UTC
  *
@@ -46,14 +47,16 @@ std::string time_to_iso(std::time_t time, precision_e precision = precision_e::m
  *
  * @param[in] precision precision between seconds and nanoseconds @sa precision_e
  */
-std::string time_to_iso(precision_e precision = precision_e::milliseconds);
+auto time_to_iso(precision_e precision = precision_e::milliseconds) //
+    -> std::string;
 
 /**! @brief Converts a given chrono time point in localtime to an ISO 8601 string in UTC
  *
  * @param[in] tp time point obtained from @sa system_clock_t (a.k.a. std::chrono::system_clock)
  * @param[in] precision precision between seconds and nanoseconds @sa precision_e
  */
-std::string time_to_iso(std::chrono::time_point<system_clock_t> tp, precision_e precision = precision_e::milliseconds);
+auto time_to_iso(std::chrono::time_point<system_clock_t> tp, precision_e precision = precision_e::milliseconds) //
+    -> std::string;
 
 } // namespace FLECS
 
