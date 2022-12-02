@@ -627,6 +627,51 @@ auto deployment_docker_t::do_create_volume(std::string_view instance_id, std::st
     return {0, ""};
 }
 
+auto deployment_docker_t::do_import_volume(
+    const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
+    -> result_t
+{
+    using std::operator""s;
+
+    const auto name = "flecs-"s + instance.id() + "-"s + volume_name.data();
+    const auto archive = src_dir.string() + "/" + name + "tar.gz";
+
+    auto ec = std::error_code{};
+    if (!fs::exists(archive, ec)) {
+        return {-1, "Backup archive does not exist"};
+    }
+    if (!fs::is_regular_file(archive, ec)) {
+        return {-1, "Backup archive is no regular file"};
+    }
+
+    delete_volume(instance.id(), volume_name);
+    create_volume(instance.id(), volume_name);
+
+    auto docker_process = process_t{};
+    docker_process.arg("run");
+    docker_process.arg("--rm");
+    docker_process.arg("--volume");
+    docker_process.arg(name + ":/mnt/restore:rw");
+    docker_process.arg("--volume");
+    docker_process.arg(src_dir.string() + ":"s + src_dir.string());
+    docker_process.arg("--workdir");
+    docker_process.arg(src_dir.string());
+    docker_process.arg("alpine");
+    docker_process.arg("tar");
+    docker_process.arg("-C");
+    docker_process.arg("/mnt/restore");
+    docker_process.arg("-xf");
+    docker_process.arg(name + ".tar.gz");
+    docker_process.arg(".");
+    docker_process.spawnp("docker");
+    docker_process.wait(false, true);
+    if (docker_process.exit_code() != 0) {
+        return {-1, docker_process.stderr()};
+    }
+
+    return {0, {}};
+}
+
 auto deployment_docker_t::do_export_volume(
     const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
     -> result_t
