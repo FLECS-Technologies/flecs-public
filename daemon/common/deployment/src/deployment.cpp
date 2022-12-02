@@ -371,6 +371,11 @@ auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir)
 auto deployment_t::export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
     -> result_t
 {
+    auto ec = std::error_code{};
+    if (!fs::create_directories(dest_dir, ec)) {
+        return {-1, "Could not create export directory"};
+    }
+
     return do_export_volume(instance, std::move(volume_name), std::move(dest_dir));
 }
 

@@ -632,13 +632,7 @@ auto deployment_docker_t::do_export_volume(
     -> result_t
 {
     using std::operator""s;
-    const auto name = "flecs"s + instance.id() + "-"s + volume_name.data();
-    const auto wd = dest_dir.string() + "/"s + instance.id() + "/"s + instance.app_version();
-
-    auto ec = std::error_code{};
-    if (!fs::create_directories(wd, ec)) {
-        return {-1, "Could not create export directory"s};
-    }
+    const auto name = "flecs-"s + instance.id() + "-"s + volume_name.data();
 
     auto docker_process = process_t{};
 
@@ -647,11 +641,16 @@ auto deployment_docker_t::do_export_volume(
     docker_process.arg("--volume");
     docker_process.arg(name + ":/mnt/backup:ro");
     docker_process.arg("--volume");
-    docker_process.arg(wd + ":"s + wd);
+    docker_process.arg(dest_dir.string() + ":"s + dest_dir.string());
     docker_process.arg("--workdir");
-    docker_process.arg(wd);
+    docker_process.arg(dest_dir.string());
     docker_process.arg("alpine");
-    docker_process.arg("tar -C /mnt/backup -czf "s + name + ".tar.gz . || exit 1"s);
+    docker_process.arg("tar");
+    docker_process.arg("-C");
+    docker_process.arg("/mnt/backup");
+    docker_process.arg("-czf");
+    docker_process.arg(name + ".tar.gz");
+    docker_process.arg(".");
     docker_process.spawnp("docker");
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0) {
