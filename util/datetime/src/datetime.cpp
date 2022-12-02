@@ -36,6 +36,16 @@ static constexpr auto fmt_divs = std::array<std::time_t, 4>{
     1,
 };
 
+static auto chrono_to_time_t(std::chrono::time_point<system_clock_t> tp, precision_e precision) //
+    -> time_t
+{
+    const auto fmt_div = fmt_divs[static_cast<std::underlying_type_t<precision_e>>(precision)];
+    const auto time =
+        static_cast<std::time_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count()) /
+        (fmt_divs[0] / fmt_div);
+    return time;
+}
+
 auto time_to_iso(time_t time, precision_e precision) //
     -> std::string
 {
@@ -63,11 +73,15 @@ auto time_to_iso(precision_e precision) //
 auto time_to_iso(std::chrono::time_point<system_clock_t> tp, precision_e precision) //
     -> std::string
 {
-    const auto fmt_div = fmt_divs[static_cast<std::underlying_type_t<precision_e>>(precision)];
-    const auto time =
-        static_cast<std::time_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count()) /
-        (fmt_divs[0] / fmt_div);
+    const auto time = chrono_to_time_t(tp, precision);
     return time_to_iso(time, precision);
+}
+
+auto unix_time(precision_e precision) //
+    -> std::string
+{
+    const auto time = chrono_to_time_t(system_clock_t::now(), precision);
+    return std::to_string(time);
 }
 
 } // namespace FLECS

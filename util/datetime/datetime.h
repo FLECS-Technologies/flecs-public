@@ -58,6 +58,13 @@ auto time_to_iso(precision_e precision = precision_e::milliseconds) //
 auto time_to_iso(std::chrono::time_point<system_clock_t> tp, precision_e precision = precision_e::milliseconds) //
     -> std::string;
 
+/**! @brief Returns the current time as unix timestamp string in local time
+ *
+ * @param[in] precision precision between seconds and nanoseconds @sa precision_e
+ */
+auto unix_time(precision_e precision = precision_e::seconds) //
+    -> std::string;
+
 } // namespace FLECS
 
 #endif // F945857A_262A_4302_A4C9_B209858CFA98
