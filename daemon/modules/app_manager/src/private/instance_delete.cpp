@@ -80,19 +80,7 @@ auto module_app_manager_private_t::do_delete_instance(
             instance.app_version().c_str());
     } else {
         // Step 6: Remove volumes of instance, if manifest loaded successfully
-        const auto& app = _installed_apps.find(app_key_t{instance.app_name(), instance.app_version()})->second;
-        for (const auto& volume : app.volumes()) {
-            if (volume.type() != volume_t::VOLUME) {
-                continue;
-            }
-            auto docker_process = process_t{};
-            const auto name = std::string{"flecs-"} + instance_id + "-" + volume.host();
-            docker_process.spawnp("docker", "volume", "rm", name);
-            docker_process.wait(false, true);
-            if (docker_process.exit_code() != 0) {
-                std::fprintf(stderr, "Could not remove docker volume %s\n", name.c_str());
-            }
-        }
+        _deployment->delete_volumes(instance);
     }
 
     // @todo: move functionality to deployment

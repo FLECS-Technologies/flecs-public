@@ -379,6 +379,20 @@ auto deployment_t::export_volume(const instance_t& instance, std::string_view vo
     return do_export_volume(instance, std::move(volume_name), std::move(dest_dir));
 }
 
+auto deployment_t::delete_volumes(const instance_t& instance) //
+    -> result_t
+{
+    for (auto& volume : instance.app().volumes()) {
+        if (volume.type() == volume_t::VOLUME) {
+            const auto [res, additional_info] = delete_volume(instance.id(), volume.host());
+            if (res != 0) {
+                return {res, additional_info};
+            }
+        }
+    }
+    return {0, {}};
+}
+
 auto deployment_t::delete_volume(std::string_view instance_id, std::string_view volume_name) //
     -> result_t
 {

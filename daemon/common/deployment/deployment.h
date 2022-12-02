@@ -120,6 +120,8 @@ public:
         -> result_t;
     auto export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
         -> result_t;
+    auto delete_volumes(const instance_t& instance) //
+        -> result_t;
     auto delete_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t;
     auto copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
