@@ -15,6 +15,7 @@
 #include <cstdio>
 
 #include "private/app_manager_private.h"
+#include "util/datetime/datetime.h"
 #include "util/process/process.h"
 
 namespace FLECS {
@@ -74,7 +75,29 @@ auto module_app_manager_private_t::do_update_instance(
         return crow::status::INTERNAL_SERVER_ERROR;
     }
 
-    // Step 5: Create backup of existing instance
+    // Step 5: Create backup of existing instance (volumes + config)
+    using std::operator""s;
+    const auto backup_path = fs::path{"/var/lib/flecs/backups/"s.append(instance.id())
+                                          .append("/"s)
+                                          .append(instance.app_version())
+                                          .append("/"s)
+                                          .append(unix_time(precision_e::seconds))
+                                          .append("/"s)};
+    const auto [res, additional_info] = _deployment->export_volumes(instance, backup_path);
+    if (res != 0) {
+        response["additionalInfo"] = additional_info;
+        return crow::status::INTERNAL_SERVER_ERROR;
+    }
+
+    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
+    for (const auto& conffile : instance.app().conffiles()) {
+        auto ec = std::error_code{};
+        fs::copy(conf_path + conffile.local(), backup_path, ec);
+        if (ec) {
+            response["additionalInfo"] = "Could not backup conffiles";
+            return crow::status::INTERNAL_SERVER_ERROR;
+        }
+    }
 
     // Step 6: Update instance structure
     decltype(auto) app = _installed_apps.at(app_key_t{instance.app_name(), to});
