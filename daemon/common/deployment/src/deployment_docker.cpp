@@ -660,9 +660,19 @@ auto deployment_docker_t::do_export_volume(
     return {0, {}};
 }
 
-auto deployment_docker_t::do_delete_volume(std::string_view /*instance_id*/, std::string_view /*volume_name*/) //
+auto deployment_docker_t::do_delete_volume(std::string_view instance_id, std::string_view volume_name) //
     -> result_t
 {
+    auto docker_process = process_t{};
+
+    const auto name = std::string{"flecs-"} + instance_id.data() + "-" + volume_name.data();
+
+    docker_process.spawnp("docker", "volume", "rm", name);
+    docker_process.wait(false, true);
+    if (docker_process.exit_code() != 0) {
+        return {-1, "Could not remove volume"};
+    }
+
     return {0, ""};
 }
 
