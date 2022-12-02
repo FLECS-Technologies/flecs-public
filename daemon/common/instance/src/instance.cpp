@@ -73,6 +73,12 @@ auto instance_t::app_version() const noexcept //
     return _app ? _app->version() : _app_version;
 }
 
+auto instance_t::has_app() const noexcept //
+    -> bool
+{
+    return _app != nullptr;
+}
+
 auto instance_t::instance_name() const noexcept //
     -> const std::string&
 {

@@ -36,7 +36,7 @@ auto module_app_manager_private_t::do_instance_details(const std::string& instan
 
     // Step 2: Obtain instance and corresponsing app
     const auto& instance = _deployment->instances().at(instance_id);
-    const auto manifest_path = build_manifest_path(instance.app().app(), instance.app().version());
+    const auto manifest_path = build_manifest_path(instance.app_name(), instance.app_version());
     const auto app = app_manifest_t::from_yaml_file(manifest_path);
 
     // Build response
