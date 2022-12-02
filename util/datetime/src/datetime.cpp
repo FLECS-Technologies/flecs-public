@@ -20,27 +20,24 @@ namespace FLECS {
 
 using system_clock_t = std::chrono::system_clock;
 
-namespace {
+static constexpr auto fmt_string_base = "%Y-%m-%dT%H:%M:%S";
 
-constexpr const char* fmr_string_base = "%Y-%m-%dT%H:%M:%S";
-
-constexpr std::array<const char*, 4> fmt_strings = {
+static constexpr auto fmt_strings = std::array<const char*, 4>{
     ".%.9ldZ",
     ".%.6ldZ",
     ".%.3ldZ",
     "Z",
 };
 
-constexpr std::array<std::time_t, 4> fmt_divs = {
+static constexpr auto fmt_divs = std::array<std::time_t, 4>{
     1'000'000'000,
     1'000'000,
     1'000,
     1,
 };
 
-} // namespace
-
-std::string time_to_iso(time_t time, precision_e precision)
+auto time_to_iso(time_t time, precision_e precision) //
+    -> std::string
 {
     const auto fmt_div = fmt_divs[static_cast<std::underlying_type_t<precision_e>>(precision)];
     const auto time_s = time / fmt_div;
@@ -49,7 +46,7 @@ std::string time_to_iso(time_t time, precision_e precision)
     gmtime_r(&time_s, &time_utc);
 
     char strtime[32] = {};
-    const auto pos = std::strftime(strtime, sizeof(strtime), fmr_string_base, &time_utc);
+    const auto pos = std::strftime(strtime, sizeof(strtime), fmt_string_base, &time_utc);
 
     const auto fmt_string = fmt_strings[static_cast<std::underlying_type_t<precision_e>>(precision)];
     std::snprintf(&strtime[pos], sizeof(strtime) - pos, fmt_string, time % fmt_div);
@@ -57,12 +54,14 @@ std::string time_to_iso(time_t time, precision_e precision)
     return strtime;
 }
 
-std::string time_to_iso(precision_e precision)
+auto time_to_iso(precision_e precision) //
+    -> std::string
 {
     return time_to_iso(system_clock_t::now(), precision);
 }
 
-std::string time_to_iso(std::chrono::time_point<system_clock_t> tp, precision_e precision)
+auto time_to_iso(std::chrono::time_point<system_clock_t> tp, precision_e precision) //
+    -> std::string
 {
     const auto fmt_div = fmt_divs[static_cast<std::underlying_type_t<precision_e>>(precision)];
     const auto time =
