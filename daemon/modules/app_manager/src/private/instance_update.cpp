@@ -84,7 +84,8 @@ auto module_app_manager_private_t::do_update_instance(
                                           .append(unix_time(precision_e::seconds))
                                           .append("/")};
     auto ec = std::error_code{};
-    if (!fs::create_directories(backup_path, ec)) {
+    fs::create_directories(backup_path, ec);
+    if (ec) {
         response["additionalInfo"] = "Could not create backup directory";
         return crow::status::INTERNAL_SERVER_ERROR;
     }

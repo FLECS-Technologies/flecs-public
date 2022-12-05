@@ -179,7 +179,8 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
     if (!app.conffiles().empty()) {
         auto ec = std::error_code{};
-        if (!std::filesystem::create_directories(conf_path, ec)) {
+        std::filesystem::create_directories(conf_path, ec);
+        if (ec) {
             return {-1, instance.id()};
         }
     }
@@ -398,7 +399,8 @@ auto deployment_t::export_volume(const instance_t& instance, std::string_view vo
     -> result_t
 {
     auto ec = std::error_code{};
-    if (!fs::create_directories(dest_dir, ec)) {
+    fs::create_directories(dest_dir, ec);
+    if (ec) {
         return {-1, "Could not create export directory"};
     }
 
