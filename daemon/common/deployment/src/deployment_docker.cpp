@@ -394,6 +394,17 @@ auto deployment_docker_t::do_stop_instance(const instance_t& instance) //
     return delete_container(instance);
 }
 
+auto deployment_docker_t::do_export_instance(const instance_t& instance, fs::path dest_dir) const //
+    -> result_t
+{
+    const auto [res, additional_info] = export_volumes(instance, dest_dir);
+    if (res != 0) {
+        return {res, additional_info};
+    }
+
+    return {0, {}};
+}
+
 auto deployment_docker_t::do_is_instance_running(const instance_t& instance) const //
     -> bool
 {
@@ -673,7 +684,7 @@ auto deployment_docker_t::do_import_volume(
 }
 
 auto deployment_docker_t::do_export_volume(
-    const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
+    const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
     -> result_t
 {
     using std::operator""s;
@@ -780,7 +791,7 @@ auto deployment_docker_t::do_copy_file_to_instance(
 auto deployment_docker_t::do_copy_file_from_instance(
     std::string_view instance_id,
     fs::path file,
-    fs::path dest) //
+    fs::path dest) const //
     -> result_t
 {
     auto docker_process = process_t{};

@@ -30,7 +30,6 @@ auto deployment_t::deployment_id() const noexcept //
     return do_deployment_id();
 }
 
-#ifdef FLECS_UNIT_TEST
 auto deployment_t::load(fs::path base_path) //
     -> result_t
 {
@@ -40,21 +39,6 @@ auto deployment_t::load(fs::path base_path) //
 auto deployment_t::save(fs::path base_path) //
     -> result_t
 {
-    return do_save(base_path);
-}
-#endif // FLECS_UNIT_TEST
-
-auto deployment_t::load() //
-    -> result_t
-{
-    const auto base_path = "/var/lib/flecs/deployment/";
-    return do_load(base_path);
-}
-
-auto deployment_t::save() //
-    -> result_t
-{
-    const auto base_path = "/var/lib/flecs/deployment/";
     return do_save(base_path);
 }
 
@@ -130,9 +114,11 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     }
 
     // Step 2: Create volumes
-    const auto [res, additional_info] = create_volumes(instance);
-    if (res != 0) {
-        return {res, additional_info};
+    {
+        auto [res, additional_info] = create_volumes(instance);
+        if (res != 0) {
+            return {res, additional_info};
+        }
     }
 
     // Step 3: Create networks
@@ -175,33 +161,13 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
 #endif // 0
 
     // Step 4: Create conffiles
-    const auto container_name = std::string{"flecs-"} + instance.id();
-    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
-    if (!app.conffiles().empty()) {
-        auto ec = std::error_code{};
-        std::filesystem::create_directories(conf_path, ec);
-        if (ec) {
-            return {-1, instance.id()};
+    {
+        auto [res, additional_info] = create_conffiles(instance);
+        if (res != 0) {
+            return {res, instance.id()};
         }
+        instance.status(instance_status_e::RESOURCES_READY);
     }
-
-    for (const auto& conffile : app.conffiles()) {
-        const auto local_path = conf_path + conffile.local();
-        if (conffile.init()) {
-            const auto [res, additional_info] =
-                copy_file_from_image(app.image_with_tag(), conffile.container(), local_path);
-            if (res != 0) {
-                return {-1, instance.id()};
-            }
-        } else {
-            auto f = std::ofstream{local_path};
-            if (!f.good()) {
-                return {-1, instance.id()};
-            }
-        }
-    }
-
-    instance.status(instance_status_e::RESOURCES_READY);
 
     return do_create_instance(app, instance);
 }
@@ -278,6 +244,45 @@ auto deployment_t::stop_instance(std::string_view instance_id) //
     return {res, additional_info};
 }
 
+auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir) const //
+    -> result_t
+{
+    dest_dir /= instance.id();
+    auto ec = std::error_code{};
+    fs::create_directories(dest_dir, ec);
+    if (ec) {
+        return {-1, "Could not create export directory"};
+    }
+
+    const auto [res, additional_info] = export_volumes(instance, dest_dir);
+    if (res != 0) {
+        return {res, additional_info};
+    }
+
+    if (is_instance_running(instance.id())) {
+        /* copy conffiles from container for running instances */
+        for (const auto& conffile : instance.app().conffiles()) {
+            const auto [res, additional_info] =
+                copy_file_from_instance(instance.id(), conffile.container(), dest_dir / conffile.local());
+            if (res != 0) {
+                return {res, additional_info};
+            }
+        }
+    } else {
+        const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
+        /* copy conffiles from local dir for stopped instances */
+        for (const auto& conffile : instance.app().conffiles()) {
+            auto ec = std::error_code{};
+            fs::copy(conf_path + conffile.local(), dest_dir / conffile.local(), ec);
+            if (ec) {
+                return {-1, "Could not export conffile from local directory"};
+            }
+        }
+    }
+
+    return do_export_instance(instance, dest_dir);
+}
+
 auto deployment_t::is_instance_runnable(std::string_view instance_id) const //
     -> bool
 {
@@ -291,6 +296,38 @@ auto deployment_t::is_instance_running(std::string_view instance_id) const //
         return false;
     }
     return do_is_instance_running(instances().at(instance_id.data()));
+}
+
+auto deployment_t::create_conffiles(const instance_t& instance) //
+    -> result_t
+{
+    const auto& app = instance.app();
+    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
+    if (!app.conffiles().empty()) {
+        auto ec = std::error_code{};
+        std::filesystem::create_directories(conf_path, ec);
+        if (ec) {
+            return {-1, instance.id()};
+        }
+    }
+
+    for (const auto& conffile : app.conffiles()) {
+        const auto local_path = conf_path + conffile.local();
+        if (conffile.init()) {
+            const auto [res, additional_info] =
+                copy_file_from_image(app.image_with_tag(), conffile.container(), local_path);
+            if (res != 0) {
+                return {-1, instance.id()};
+            }
+        } else {
+            auto f = std::ofstream{local_path};
+            if (!f.good()) {
+                return {-1, instance.id()};
+            }
+        }
+    }
+
+    return {0, {}};
 }
 
 auto deployment_t::create_network(
@@ -382,7 +419,7 @@ auto deployment_t::import_volume(const instance_t& instance, std::string_view vo
     return do_import_volume(instance, volume_name, src_dir);
 }
 
-auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir) //
+auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir) const //
     -> result_t
 {
     for (auto& volume : instance.app().volumes()) {
@@ -395,7 +432,7 @@ auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir)
     return {0, {}};
 }
 
-auto deployment_t::export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
+auto deployment_t::export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
     -> result_t
 {
     auto ec = std::error_code{};
@@ -439,7 +476,7 @@ auto deployment_t::copy_file_to_instance(std::string_view instance_id, fs::path 
     return do_copy_file_to_instance(instance_id, file, dest);
 }
 
-auto deployment_t::copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+auto deployment_t::copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) const //
     -> result_t
 {
     return do_copy_file_from_instance(instance_id, file, dest);

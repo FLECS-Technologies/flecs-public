@@ -14,11 +14,18 @@
 
 #include "app_manager.h"
 
+#include <archive.h>
+#include <archive_entry.h>
+
+#include <fstream>
+
 #include "deployment/deployment_docker.h"
 #include "factory/factory.h"
 #include "instance/instance_config.h"
 #include "private/app_manager_private.h"
+#include "util/datetime/datetime.h"
 #include "util/string/comparator.h"
+#include "util/string/literals.h"
 
 namespace FLECS {
 
@@ -86,6 +93,94 @@ auto module_app_manager_t::do_init() //
         const auto status = _impl->do_list_versions(app_name, response);
         return crow::response{status, response.dump()};
     });
+
+    FLECS_ROUTE("/<string>/app/exports")
+        .methods("POST"_method)([=](const crow::request& req, const std::string& /* api_version */) {
+            auto response = json_t{};
+            const auto args = parse_json(req.body);
+
+            if (!args.contains("apps") && !args.contains("instances")) {
+                return crow::response{crow::status::OK, response.dump()};
+            }
+
+            auto tmpdir = tmpdir_t{"/var/lib/flecs/export-tmp/"};
+            if (!tmpdir.created()) {
+                response["additionalInfo"] = "Could not create export-tmp directory";
+                return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
+            }
+
+            /* export apps */
+            if (args.contains("apps")) {
+                for (const auto& j : args["apps"]) {
+                    REQUIRED_JSON_VALUE(j, app);
+                    REQUIRED_JSON_VALUE(j, version);
+                    auto res = _impl->do_export_app(app, version);
+                    if (res.code != crow::status::OK) {
+                        return res;
+                    }
+                }
+            }
+            /* export instances */
+            if (args.contains("instances")) {
+                for (const auto& j : args["instances"]) {
+                    REQUIRED_JSON_VALUE(j, instanceId);
+                    auto res = _impl->do_export_instance(instanceId);
+                    if (res.code != crow::status::OK) {
+                        return res;
+                    }
+                }
+            }
+            /* export deployment */
+            _impl->do_save("/var/lib/flecs/export-tmp/");
+
+            /* create export package */
+            auto ec = std::error_code{};
+            fs::create_directories("/var/lib/flecs/exports", ec);
+            if (ec) {
+                response["additionalInfo"] = "Could not create exports directory";
+                return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
+            }
+
+            using std::operator""s;
+            auto outname = "/var/lib/flecs/exports/"s.append(unix_time(precision_e::seconds)).append(".tar.gz");
+            auto archive = archive_write_new();
+            archive_write_add_filter_gzip(archive);
+            archive_write_set_format_pax_restricted(archive);
+            archive_write_open_filename(archive, outname.c_str());
+
+            auto entry = archive_entry_new();
+            auto buf = std::unique_ptr<char[]>{new char[1_MiB]};
+            for (const auto& file : fs::recursive_directory_iterator("/var/lib/flecs/export-tmp", ec)) {
+                if (ec) {
+                    break;
+                }
+                if (file.status().type() != fs::file_type::regular) {
+                    continue;
+                }
+                const auto relpath = fs::relative(file.path(), "/var/lib/flecs/export-tmp/", ec);
+                if (ec) {
+                    break;
+                }
+                archive_entry_set_pathname(entry, relpath.c_str());
+                archive_entry_set_size(entry, file.file_size());
+                archive_entry_set_filetype(entry, AE_IFREG);
+                archive_entry_set_perm(entry, 0644);
+                archive_write_header(archive, entry);
+                auto f = std::ifstream{file.path().c_str(), std::ios_base::in | std::ios_base::binary};
+                f.read(buf.get(), 1_MiB);
+                while (f.gcount()) {
+                    archive_write_data(archive, buf.get(), f.gcount());
+                    f.read(buf.get(), 1_MiB);
+                }
+                archive_entry_clear(entry);
+            }
+            archive_entry_free(entry);
+            archive_write_close(archive);
+            archive_write_free(archive);
+
+            response["additionalInfo"] = "OK";
+            return crow::response{crow::status::OK, response.dump()};
+        });
 
     FLECS_ROUTE("/instance/config").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};

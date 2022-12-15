@@ -52,16 +52,9 @@ public:
     auto deployment_id() const noexcept //
         -> std::string_view;
 
-#ifdef FLECS_UNIT_TEST
-    auto load(fs::path base_path) //
+    auto load(fs::path base_path = "/var/lib/flecs/deployment/") //
         -> result_t;
-    auto save(fs::path base_path) //
-        -> result_t;
-#endif // FLECS_UNIT_TEST
-
-    auto load() //
-        -> result_t;
-    auto save() //
+    auto save(fs::path base_path = "/var/lib/flecs/deployment/") //
         -> result_t;
 
     auto instances() noexcept //
@@ -90,10 +83,14 @@ public:
         -> result_t;
     auto stop_instance(std::string_view instance_id) //
         -> result_t;
+    auto export_instance(const instance_t& instance, fs::path dest_dir) const //
+        -> result_t;
     auto is_instance_runnable(std::string_view instance_id) const //
         -> bool;
     auto is_instance_running(std::string_view instance_id) const //
         -> bool;
+    auto create_conffiles(const instance_t& instance) //
+        -> result_t;
     auto create_network(
         network_type_t network_type,
         std::string_view network,
@@ -120,9 +117,9 @@ public:
         -> result_t;
     auto import_volume(const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
         -> result_t;
-    auto export_volumes(const instance_t& instance, fs::path dest_dir) //
+    auto export_volumes(const instance_t& instance, fs::path dest_dir) const //
         -> result_t;
-    auto export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
+    auto export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
         -> result_t;
     auto delete_volumes(const instance_t& instance) //
         -> result_t;
@@ -132,7 +129,7 @@ public:
         -> result_t;
     auto copy_file_to_instance(std::string_view instance_id, fs::path file, fs::path dest) //
         -> result_t;
-    auto copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+    auto copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) const //
         -> result_t;
     auto default_network_name() const //
         -> std::string_view;
@@ -172,6 +169,8 @@ private:
         -> result_t = 0;
     virtual auto do_stop_instance(const instance_t& instance) //
         -> result_t = 0;
+    virtual auto do_export_instance(const instance_t& instance, fs::path dest_dir) const //
+        -> result_t = 0;
     virtual auto do_is_instance_running(const instance_t& instance) const //
         -> bool = 0;
     virtual auto do_create_network(
@@ -196,7 +195,7 @@ private:
         -> result_t = 0;
     virtual auto do_import_volume(const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
         -> result_t = 0;
-    virtual auto do_export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
+    virtual auto do_export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
         -> result_t = 0;
     virtual auto do_delete_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t = 0;
@@ -204,7 +203,7 @@ private:
         -> result_t = 0;
     virtual auto do_copy_file_to_instance(std::string_view instance_id, fs::path file, fs::path dest) //
         -> result_t = 0;
-    virtual auto do_copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+    virtual auto do_copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) const //
         -> result_t = 0;
     virtual auto do_default_network_name() const //
         -> std::string_view = 0;

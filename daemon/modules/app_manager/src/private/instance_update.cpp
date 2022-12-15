@@ -83,29 +83,14 @@ auto module_app_manager_private_t::do_update_instance(
                                           .append("/")
                                           .append(unix_time(precision_e::seconds))
                                           .append("/")};
-    auto ec = std::error_code{};
-    fs::create_directories(backup_path, ec);
-    if (ec) {
-        response["additionalInfo"] = "Could not create backup directory";
-        return crow::status::INTERNAL_SERVER_ERROR;
-    }
-    const auto [res, additional_info] = _deployment->export_volumes(instance, backup_path);
+    const auto [res, additional_info] = _deployment->export_instance(instance, backup_path);
     if (res != 0) {
         response["additionalInfo"] = additional_info;
         return crow::status::INTERNAL_SERVER_ERROR;
     }
 
-    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
-    for (const auto& conffile : instance.app().conffiles()) {
-        auto ec = std::error_code{};
-        fs::copy(conf_path + conffile.local(), backup_path, ec);
-        if (ec) {
-            response["additionalInfo"] = "Could not backup conffiles";
-            return crow::status::INTERNAL_SERVER_ERROR;
-        }
-    }
-
     // Step 6: Restore previous backup on downgrade, if possible
+    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
     if (instance.app_version() > to) {
         auto ec = std::error_code{};
         for (const auto& version_dir : fs::directory_iterator{backup_path_base, ec}) {

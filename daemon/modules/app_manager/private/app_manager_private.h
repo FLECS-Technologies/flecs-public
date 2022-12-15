@@ -45,7 +45,14 @@ public:
      *
      * @return None
      */
-    void do_init();
+    auto do_init() //
+        -> void;
+
+    auto do_load(fs::path base_path = "/var/lib/flecs/") //
+        -> void;
+
+    auto do_save(fs::path base_path = "/var/lib/flecs/") const //
+        -> void;
 
     /*! @brief Installs an app from its name and version, i.e. downloads it from the marketplace
      *
@@ -123,6 +130,15 @@ public:
      */
     auto do_uninstall(const std::string& app_name, const std::string& version, json_t& response, bool force = false) //
         -> crow::status;
+
+    /*! @brief Exports an application
+     *
+     * @param[in] app_name App to export
+     * @param[in] version Version to export
+     *
+     */
+    auto do_export_app(const std::string& app_name, const std::string& version) //
+        -> crow::response;
 
     /*! @brief Creates a new instance of an installed app
      *
@@ -214,6 +230,14 @@ public:
         bool internal = false) //
         -> crow::status;
 
+    /*! @brief Exports an instance
+     *
+     * @param[in] instance_id instance to export
+     *
+     */
+    auto do_export_instance(const std::string& instance_id) //
+        -> crow::response;
+
     /*! @brief Returns details of an app instance, such as IP address, hostname or exposed ports
      *
      * @param[in] id Unique instance id assigned by @sa do_create_instance
@@ -287,9 +311,9 @@ private:
         const std::string& version) //
         -> int;
 
-    auto persist_apps() const //
+    auto persist_apps(fs::path base_path = "/var/lib/flecs/apps/") const //
         -> void;
-    auto load_apps() //
+    auto load_apps(fs::path base_path = "/var/lib/flecs/apps/") //
         -> void;
 
     using installed_apps_t = std::map<app_key_t, app_t, std::less<>>;
