@@ -15,11 +15,12 @@
 project(FLECS.external)
 
 # define source directories
-set(CMAKE_ARGS -B build/${ARCH} -DCMAKE_INSTALL_PREFIX=out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
+set(CMAKE_ARGS -B build/${ARCH} -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
 set(CPR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.9.2)
 set(CROW_DIR ${CMAKE_CURRENT_SOURCE_DIR}/crow-1.0+5)
 set(GTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.12.1)
 set(JSON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/json-3.11.2)
+set(LIBARCHIVE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libarchive-3.6.2)
 set(LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
 set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.15)
 set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1s)
@@ -42,6 +43,15 @@ add_custom_target(
 add_custom_target(
     FLECS.external.gtest.build
     WORKING_DIRECTORY ${GTEST_DIR}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
+)
+
+# libarchive
+add_custom_target(
+    FLECS.external.libarchive.build
+    WORKING_DIRECTORY ${LIBARCHIVE_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
     COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
@@ -146,6 +156,10 @@ add_library(FLECS.external.json INTERFACE)
 target_include_directories(FLECS.external.json INTERFACE
     ${JSON_DIR}/include
 )
+
+# libarchive
+add_library(FLECS.external.libarchive STATIC IMPORTED GLOBAL)
+set_property(TARGET FLECS.external.libarchive PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libarchive.a)
 
 # libmosquitto
 add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)
