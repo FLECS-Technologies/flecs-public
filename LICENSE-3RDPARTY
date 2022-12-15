@@ -75,7 +75,7 @@ Copyright:  The OpenSSL Project / Eric Young
 
 ================================================================================
 Project:    pybind11
-Version:    v2.10.0
+Version:    v2.10.1
 License:    BSD-style license
 URL:        https://github.com/pybind/pybind11
 Copyright:  Wenzel Jakob
