@@ -17,9 +17,47 @@
 
 #include <filesystem>
 
+#include "util/cxx20/string.h"
+
 namespace FLECS {
 
 namespace fs = std::filesystem;
+
+class tmpdir_t
+{
+public:
+    explicit tmpdir_t(fs::path dir) noexcept
+        : _dir{std::move(dir)}
+    {
+        if (!_dir.is_absolute() || !cxx20::starts_with(_dir.c_str(), "/var/lib/flecs/")) {
+            _dir.clear();
+            return;
+        }
+
+        auto ec = std::error_code{};
+        fs::create_directories(_dir, ec);
+        if (ec) {
+            _dir.clear();
+        }
+    }
+
+    auto created() const noexcept //
+        -> bool
+    {
+        return !_dir.empty();
+    }
+
+    ~tmpdir_t()
+    {
+        if (created()) {
+            auto ec = std::error_code{};
+            fs::remove_all(_dir, ec);
+        }
+    }
+
+private:
+    fs::path _dir;
+};
 
 } // namespace FLECS
 

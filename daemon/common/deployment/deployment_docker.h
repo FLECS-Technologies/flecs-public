@@ -44,6 +44,8 @@ private:
         -> result_t override;
     auto do_stop_instance(const instance_t& instance) //
         -> result_t override;
+    auto do_export_instance(const instance_t& instance, fs::path dest_dir) const //
+        -> result_t override;
     auto do_is_instance_running(const instance_t& instance) const //
         -> bool override;
     auto do_create_network(
@@ -68,7 +70,7 @@ private:
         -> result_t override;
     auto do_import_volume(const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
         -> result_t override;
-    auto do_export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) //
+    auto do_export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
         -> result_t override;
     auto do_delete_volume(std::string_view instance_id, std::string_view volume_name) //
         -> result_t override;
@@ -76,7 +78,7 @@ private:
         -> result_t override;
     auto do_copy_file_to_instance(std::string_view instance_id, fs::path file, fs::path dest) //
         -> result_t override;
-    auto do_copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+    auto do_copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) const //
         -> result_t override;
     auto do_default_network_name() const //
         -> std::string_view override;

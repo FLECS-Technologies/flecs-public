@@ -110,56 +110,14 @@ module_app_manager_private_t::~module_app_manager_private_t()
         }
     }
 
-    persist_apps();
-    _deployment->save();
+    do_save();
 }
 
 auto module_app_manager_private_t::do_init() //
     -> void
 {
-    // query installed apps and instances from db before deleting it
-    auto app_db = app_db_t{};
-    if (app_db.is_open()) {
-        for (decltype(auto) app : app_db.all_apps()) {
-            const auto manifest_path = build_manifest_path(app.app, app.version);
-            _installed_apps.emplace(
-                std::piecewise_construct,
-                std::forward_as_tuple(app.app, app.version),
-                std::forward_as_tuple(manifest_path, app.status, app.desired));
-        }
-        persist_apps();
-
-        for (const auto& instance : app_db.all_instances()) {
-            if (is_app_installed(instance.app, instance.version)) {
-                const auto& app = _installed_apps.find(app_key_t{instance.app, instance.version})->second;
-                auto tmp = instance_t{instance.id, &app, instance.description, instance.status, instance.desired};
-                tmp.startup_options().push_back(instance.flags);
-                for (std::size_t i = 0; i < instance.networks.size(); ++i) {
-                    tmp.networks().push_back(instance_t::network_t{
-                        .network_name = instance.networks[i],
-                        .mac_address = {},
-                        .ip_address = instance.ips[i]});
-                }
-                _deployment->insert_instance(tmp);
-            }
-        }
-        _deployment->save();
-
-        const auto db_path = app_db.path();
-        const auto db_backup_path = db_path + ".migration";
-        app_db.close();
-        auto ec = std::error_code{};
-        fs::rename(db_path, db_backup_path, ec);
-    }
-
-    load_apps();
-    _deployment->load();
-    for (auto& instance : _deployment->instances()) {
-        const auto it = _installed_apps.find(app_key_t{instance.second.app_name(), instance.second.app_version()});
-        if (it != _installed_apps.cend()) {
-            instance.second.app(&it->second);
-        }
-    }
+    // load apps and deployments
+    do_load();
 
     // "install" system apps on first start
     constexpr auto system_apps = std::array<std::string_view, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
@@ -203,8 +161,7 @@ auto module_app_manager_private_t::do_init() //
             }
         }
     }
-    persist_apps();
-    _deployment->save();
+    do_save();
 
     std::fprintf(stdout, "Starting all app instances...\n");
     for (decltype(auto) instance : _deployment->instances()) {
@@ -222,6 +179,62 @@ auto module_app_manager_private_t::do_init() //
         hosts_process.wait(false, false);
     });
     hosts_thread.detach();
+}
+
+auto module_app_manager_private_t::do_load(fs::path base_path) //
+    -> void
+{
+    /// @todo remove for 2.0
+    // query installed apps and instances from db before deleting it
+    auto app_db = app_db_t{};
+    if (app_db.is_open()) {
+        for (decltype(auto) app : app_db.all_apps()) {
+            const auto manifest_path = build_manifest_path(app.app, app.version);
+            _installed_apps.emplace(
+                std::piecewise_construct,
+                std::forward_as_tuple(app.app, app.version),
+                std::forward_as_tuple(manifest_path, app.status, app.desired));
+        }
+        persist_apps(base_path / "apps/");
+
+        for (const auto& instance : app_db.all_instances()) {
+            if (is_app_installed(instance.app, instance.version)) {
+                const auto& app = _installed_apps.find(app_key_t{instance.app, instance.version})->second;
+                auto tmp = instance_t{instance.id, &app, instance.description, instance.status, instance.desired};
+                tmp.startup_options().push_back(instance.flags);
+                for (std::size_t i = 0; i < instance.networks.size(); ++i) {
+                    tmp.networks().push_back(instance_t::network_t{
+                        .network_name = instance.networks[i],
+                        .mac_address = {},
+                        .ip_address = instance.ips[i]});
+                }
+                _deployment->insert_instance(tmp);
+            }
+        }
+        _deployment->save(base_path / "deployment/");
+
+        const auto db_path = app_db.path();
+        const auto db_backup_path = db_path + ".migration";
+        app_db.close();
+        auto ec = std::error_code{};
+        fs::rename(db_path, db_backup_path, ec);
+    }
+
+    load_apps(base_path / "apps/");
+    _deployment->load(base_path / "deployment/");
+    for (auto& instance : _deployment->instances()) {
+        const auto it = _installed_apps.find(app_key_t{instance.second.app_name(), instance.second.app_version()});
+        if (it != _installed_apps.cend()) {
+            instance.second.app(&it->second);
+        }
+    }
+}
+
+auto module_app_manager_private_t::do_save(fs::path base_path) const //
+    -> void
+{
+    persist_apps(base_path / "apps/");
+    _deployment->save(base_path / "deployment/");
 }
 
 auto module_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version) //
@@ -286,24 +299,25 @@ auto module_app_manager_private_t::xcheck_app_instance(
     return 0;
 }
 
-auto module_app_manager_private_t::persist_apps() const //
+auto module_app_manager_private_t::persist_apps(fs::path base_path) const //
     -> void
 {
-    const auto path = "/var/lib/flecs/apps/";
     auto ec = std::error_code{};
-    fs::create_directories(path, ec);
+    fs::create_directories(base_path, ec);
     if (ec) {
         return;
     }
 
-    auto apps_json = std::ofstream{"/var/lib/flecs/apps/apps.json", std::ios_base::out | std::ios_base::trunc};
+    base_path /= "apps.json";
+    auto apps_json = std::ofstream{base_path.c_str(), std::ios_base::out | std::ios_base::trunc};
     apps_json << json_t(_installed_apps);
 }
 
-auto module_app_manager_private_t::load_apps() //
+auto module_app_manager_private_t::load_apps(fs::path base_path) //
     -> void
 {
-    auto json_file = std::ifstream{"/var/lib/flecs/apps/apps.json"};
+    base_path /= "apps.json";
+    auto json_file = std::ifstream{base_path.c_str()};
     if (json_file.good()) {
         auto apps_json = parse_json(json_file);
         try {
