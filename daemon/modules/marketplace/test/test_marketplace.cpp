@@ -20,15 +20,12 @@ class module_marketplace_test_t : public FLECS::module_marketplace_t
 public:
     module_marketplace_test_t() = default;
 
-    auto login(std::string user, std::string token, FLECS::json_t& response)
+    auto login(std::string user, std::string token)
     {
-        return FLECS::module_marketplace_t::login(std::move(user), std::move(token), response);
+        return FLECS::module_marketplace_t::login(std::move(user), std::move(token));
     }
 
-    auto logout(std::string_view user, FLECS::json_t& response)
-    {
-        return FLECS::module_marketplace_t::logout(std::move(user), response);
-    }
+    auto logout(std::string_view user) { return FLECS::module_marketplace_t::logout(std::move(user)); }
 };
 
 TEST(module_marketplace, login)
@@ -39,11 +36,10 @@ TEST(module_marketplace, login)
 
     auto mod = module_marketplace_test_t{};
 
-    auto response = FLECS::json_t{};
-    const auto res = mod.login(user, token, response);
+    const auto res = mod.login(user, token);
 
     ASSERT_EQ(res.code, crow::status::OK);
-    ASSERT_EQ(response.dump(), out_expected);
+    ASSERT_EQ(res.body, out_expected);
     ASSERT_EQ(mod.user(), user);
     ASSERT_EQ(mod.token(), token);
 }
@@ -56,12 +52,11 @@ TEST(module_marketplace, logout)
 
     auto mod = module_marketplace_test_t{};
 
-    auto response = FLECS::json_t{};
-    (void)mod.login(user, token, response);
-    const auto res = mod.logout(user, response);
+    (void)mod.login(user, token);
+    const auto res = mod.logout(user);
 
     ASSERT_EQ(res.code, crow::status::OK);
-    ASSERT_EQ(response.dump(), out_expected);
+    ASSERT_EQ(res.body, out_expected);
     ASSERT_TRUE(mod.user().empty());
     ASSERT_TRUE(mod.token().empty());
 }

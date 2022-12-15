@@ -30,9 +30,9 @@ protected:
 
     module_marketplace_t();
 
-    auto login(std::string user, std::string token, json_t& response) //
+    auto login(std::string user, std::string token) //
         -> crow::response;
-    auto logout(std::string_view user, json_t& response) //
+    auto logout(std::string_view user) //
         -> crow::response;
 
 private:

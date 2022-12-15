@@ -34,7 +34,7 @@ auto module_marketplace_t::do_init() //
         REQUIRED_JSON_VALUE(args, user);
         REQUIRED_JSON_VALUE(args, token);
 
-        return login(user, token, response);
+        return login(user, token);
     });
 
     FLECS_ROUTE("/marketplace/logout").methods("POST"_method)([=](const crow::request& req) {
@@ -42,29 +42,32 @@ auto module_marketplace_t::do_init() //
         const auto args = parse_json(req.body);
         OPTIONAL_JSON_VALUE(args, user);
 
-        return logout(user, response);
+        return logout(user);
     });
 }
 
-auto module_marketplace_t::login(std::string user, std::string token, json_t& response) //
+auto module_marketplace_t::login(std::string user, std::string token) //
     -> crow::response
 {
-    _user = user;
-    _token = token;
+    _user = std::move(user);
+    _token = std::move(token);
 
-    response["additionalInfo"] = "OK";
-    return crow::response{crow::status::OK, response.dump()};
+    const auto response = json_t({
+        {"additionalInfo", "OK"},
+    });
+    return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto module_marketplace_t::logout(std::string_view /*user*/, json_t& response) //
+auto module_marketplace_t::logout(std::string_view /*user*/) //
     -> crow::response
 {
     _user.clear();
     _token.clear();
 
-    response["additionalInfo"] = "OK";
-
-    return crow::response{crow::status::OK, response.dump()};
+    const auto response = json_t({
+        {"additionalInfo", "OK"},
+    });
+    return crow::response{crow::status::OK, "json", response.dump()};
 }
 
 } // namespace FLECS
