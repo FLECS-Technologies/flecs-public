@@ -32,6 +32,7 @@ public:
     MOCK_METHOD(result_t, do_start_instance, ((instance_t & instance)), (override));
     MOCK_METHOD(result_t, do_ready_instance, (const instance_t& instance), (override));
     MOCK_METHOD(result_t, do_stop_instance, (const instance_t& instance), (override));
+    MOCK_METHOD(result_t, do_export_instance, (const instance_t& instance, fs::path dest_dir), (const, override));
     MOCK_METHOD(
         result_t,
         do_create_network,
@@ -62,7 +63,7 @@ public:
         result_t,
         do_export_volume,
         ((const instance_t& instance), (std::string_view volume_name), (FLECS::fs::path dest_dir)),
-        (override));
+        (const, override));
     MOCK_METHOD(
         result_t, do_delete_volume, ((std::string_view instance_id), (std::string_view volume_name)), (override));
     MOCK_METHOD(
@@ -76,7 +77,7 @@ public:
         result_t,
         do_copy_file_from_instance,
         ((std::string_view instance_id), (fs::path file), (fs::path dest)),
-        (override));
+        (const, override));
     MOCK_METHOD(std::string_view, do_default_network_name, (), (const, override));
     MOCK_METHOD(network_type_t, do_default_network_type, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_cidr_subnet, (), (const, override));

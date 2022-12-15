@@ -16,6 +16,7 @@ flecs_add_module(
     MODULE_NAME app_manager
     ADDITIONAL_SOURCES
     src/private/app_manager_private.cpp
+    src/private/app_export.cpp
     src/private/app_install.cpp
     src/private/app_instances.cpp
     src/private/app_list.cpp
@@ -26,11 +27,12 @@ flecs_add_module(
     src/private/instance_create.cpp
     src/private/instance_delete.cpp
     src/private/instance_details.cpp
+    src/private/instance_export.cpp
     src/private/instance_log.cpp
     src/private/instance_start.cpp
     src/private/instance_stop.cpp
     src/private/instance_update.cpp
     ADDITIONAL_HEADERS private/app_manager_private.h
     LIBS_PUBLIC FLECS.daemon.common
-    LIBS_PRIVATE FLECS.external.cpr FLECS.external.json FLECS.daemon.common FLECS.external.yaml-cpp FLECS.util.usb
+    LIBS_PRIVATE FLECS.external.cpr FLECS.external.json FLECS.external.libarchive FLECS.daemon.common FLECS.external.yaml-cpp FLECS.util.usb
 )
