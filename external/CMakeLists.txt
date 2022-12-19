@@ -39,6 +39,15 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
 
+# crow
+add_custom_target(
+    FLECS.external.crow.build
+    WORKING_DIRECTORY ${CROW_DIR}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DCROW_BUILD_EXAMPLES=OFF -DCROW_BUILD_TESTS=OFF
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
+)
+
 # gtest
 add_custom_target(
     FLECS.external.gtest.build
@@ -139,7 +148,7 @@ target_link_libraries(FLECS.external.cpr INTERFACE
 # crow
 add_library(FLECS.external.crow INTERFACE)
 target_include_directories(FLECS.external.crow INTERFACE
-    ${CROW_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include
     ${Boost_INCLUDE_DIRS}
 )
 
