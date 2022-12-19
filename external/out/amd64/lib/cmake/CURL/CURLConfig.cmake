@@ -47,10 +47,10 @@ endmacro()
 
 include(CMakeFindDependencyMacro)
 if(ON)
-  find_dependency(OpenSSL 1)
+  find_dependency(OpenSSL )
 endif()
-if(OFF)
-  find_dependency(ZLIB )
+if(ON)
+  find_dependency(ZLIB 1)
 endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/CURLTargets.cmake")
