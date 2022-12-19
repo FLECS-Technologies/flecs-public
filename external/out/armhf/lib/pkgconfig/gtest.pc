@@ -1,5 +1,5 @@
-libdir=/home/alex/git/flecs-public/external/gtest-1.12.1/out/arm64/lib
-includedir=/home/alex/git/flecs-public/external/gtest-1.12.1/out/arm64/include
+libdir=/home/alex/git/flecs-public/external/out/armhf/lib
+includedir=/home/alex/git/flecs-public/external/out/armhf/include
 
 Name: gtest
 Description: GoogleTest (without main() function)

@@ -1,5 +1,5 @@
-libdir=/home/alex/git/flecs-public/external/gtest-1.12.1/out/amd64/lib
-includedir=/home/alex/git/flecs-public/external/gtest-1.12.1/out/amd64/include
+libdir=/home/alex/git/flecs-public/external/out/amd64/lib
+includedir=/home/alex/git/flecs-public/external/out/amd64/include
 
 Name: gmock_main
 Description: GoogleMock (with main() function)

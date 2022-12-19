@@ -154,20 +154,20 @@ target_include_directories(FLECS.external.crow INTERFACE
 
 # gtest
 add_library(FLECS.external.gmock_main STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gmock_main PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgmock_main.a)
-set_property(TARGET FLECS.external.gmock_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
+set_property(TARGET FLECS.external.gmock_main PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/libgmock_main.a)
+set_property(TARGET FLECS.external.gmock_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 add_library(FLECS.external.gmock STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gmock PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgmock.a)
-set_property(TARGET FLECS.external.gmock PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
+set_property(TARGET FLECS.external.gmock PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libgmock.a)
+set_property(TARGET FLECS.external.gmock PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 add_library(FLECS.external.gtest_main STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gtest_main PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgtest_main.a)
-set_property(TARGET FLECS.external.gtest_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
+set_property(TARGET FLECS.external.gtest_main PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libgtest_main.a)
+set_property(TARGET FLECS.external.gtest_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 add_library(FLECS.external.gtest STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gtest PROPERTY IMPORTED_LOCATION ${GTEST_DIR}/out/amd64/lib/libgtest.a)
-set_property(TARGET FLECS.external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${GTEST_DIR}/out/amd64/include)
+set_property(TARGET FLECS.external.gtest PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libgtest.a)
+set_property(TARGET FLECS.external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # nlohmann/json
 add_library(FLECS.external.json INTERFACE)
