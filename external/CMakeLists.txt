@@ -172,8 +172,8 @@ target_include_directories(FLECS.external.libarchive INTERFACE ${CMAKE_CURRENT_S
 
 # libmosquitto
 add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.mosquitto PROPERTY IMPORTED_LOCATION ${MOSQUITTO_DIR}/out/${ARCH}/lib/libmosquitto_static.a)
-set_property(TARGET FLECS.external.mosquitto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${MOSQUITTO_DIR}/include)
+set_property(TARGET FLECS.external.mosquitto PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libmosquitto_static.a)
+set_property(TARGET FLECS.external.mosquitto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 target_link_libraries(FLECS.external.mosquitto INTERFACE
     FLECS.external.ssl
     FLECS.external.crypto
