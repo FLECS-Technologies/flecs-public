@@ -21,7 +21,6 @@ set(CROW_DIR ${CMAKE_CURRENT_SOURCE_DIR}/crow-1.0+5)
 set(GTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.12.1)
 set(JSON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/json-3.11.2)
 set(LIBARCHIVE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libarchive-3.6.2)
-set(LIBSODIUM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libsodium-1.0.18)
 set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.15)
 set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-1.1.1s)
 set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.10.1)
@@ -73,15 +72,6 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DDOCUMENTATION=NO -DWITH_STATIC_LIBRARIES=YES -DWITH_PIC=YES -DWITH_APPS=NO -DWITH_BROKER=NO -DWITH_CLIENTS=NO -DWITH_PLUGINS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${ARCH}
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
     COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
-)
-
-# libsodium
-add_custom_target(
-    FLECS.external.libsodium.build
-    WORKING_DIRECTORY ${LIBSODIUM_DIR}
-    COMMAND ./configure --prefix=${LIBSODIUM_DIR}/out/${ARCH} --host=${CROSS_COMPILE}
-    COMMAND ${CMAKE_MAKE_PROGRAM} install
-    COMMAND ${CMAKE_MAKE_PROGRAM} clean
 )
 
 # OpenSSL
@@ -188,11 +178,6 @@ target_link_libraries(FLECS.external.mosquitto INTERFACE
     FLECS.external.ssl
     FLECS.external.crypto
 )
-
-# libsodium
-add_library(FLECS.external.libsodium STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.libsodium PROPERTY IMPORTED_LOCATION ${LIBSODIUM_DIR}/out/${ARCH}/lib/libsodium.a)
-set_property(TARGET FLECS.external.libsodium PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LIBSODIUM_DIR}/out/${ARCH}/include)
 
 # OpenSSL
 add_library(FLECS.external.crypto STATIC IMPORTED GLOBAL)
