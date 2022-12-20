@@ -199,8 +199,8 @@ set_property(TARGET FLECS.external.sqlite3 PROPERTY INTERFACE_INCLUDE_DIRECTORIE
 
 # yaml-cpp
 add_library(FLECS.external.yaml-cpp STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.yaml-cpp PROPERTY IMPORTED_LOCATION ${YAMLCPP_DIR}/out/${ARCH}/lib/libyaml-cpp.a)
-set_property(TARGET FLECS.external.yaml-cpp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${YAMLCPP_DIR}/include)
+set_property(TARGET FLECS.external.yaml-cpp PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libyaml-cpp.a)
+set_property(TARGET FLECS.external.yaml-cpp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # zenoh-c
 add_library(FLECS.external.zenoh-c SHARED IMPORTED GLOBAL)

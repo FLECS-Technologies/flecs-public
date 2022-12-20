@@ -1,4 +1,4 @@
-prefix=/home/alex/git/flecs-public/external/yaml-cpp-0.7.0/out/aarch64-linux-gnu
+prefix=/home/alex/git/flecs-public/external/out/amd64
 exec_prefix=${prefix}
 includedir=${prefix}/include
 libdir=${exec_prefix}/lib
