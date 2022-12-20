@@ -24,7 +24,7 @@ set(LIBARCHIVE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libarchive-3.6.2)
 set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.15)
 set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-3.0.7)
 set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.10.1)
-set(SQLITE3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.39.3)
+set(SQLITE3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.40.0)
 set(YAMLCPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set(ZENOH_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.6.0-beta.1)
 
@@ -98,7 +98,7 @@ add_custom_target(
     FLECS.external.sqlite3.build
     WORKING_DIRECTORY ${SQLITE3_DIR}
     COMMAND autoreconf
-    COMMAND ./configure --prefix=${SQLITE3_DIR}/out/${ARCH} --host=${CROSS_COMPILE}
+    COMMAND ./configure --prefix=${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH} --host=${CROSS_COMPILE}
     COMMAND make install
     COMMAND make clean
 )
@@ -194,8 +194,8 @@ target_include_directories(FLECS.external.pybind11 INTERFACE ${CMAKE_CURRENT_SOU
 
 # sqlite3
 add_library(FLECS.external.sqlite3 STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.sqlite3 PROPERTY IMPORTED_LOCATION ${SQLITE3_DIR}/out/${ARCH}/lib/libsqlite3.a)
-set_property(TARGET FLECS.external.sqlite3 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${SQLITE3_DIR})
+set_property(TARGET FLECS.external.sqlite3 PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libsqlite3.a)
+set_property(TARGET FLECS.external.sqlite3 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # yaml-cpp
 add_library(FLECS.external.yaml-cpp STATIC IMPORTED GLOBAL)
