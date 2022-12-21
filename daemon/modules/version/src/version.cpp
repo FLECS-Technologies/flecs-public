@@ -34,7 +34,7 @@ auto module_version_t::version() const //
 
     auto response = json_t({{"core", FLECS_VERSION + "-"s + FLECS_GIT_SHA}});
 
-    return crow::response{crow::status::OK, response.dump()};
+    return crow::response{crow::status::OK, "json", response.dump()};
 }
 
 auto module_version_t::do_init() //
