@@ -18,6 +18,7 @@
 #include <crow.h>
 
 #define FLECS_ROUTE(url) CROW_ROUTE(FLECS::flecs_api_t::instance().app(), url)
+#define FLECS_V2_ROUTE(url) CROW_BP_ROUTE(FLECS::flecs_api_t::instance().v2_api(), url)
 
 namespace FLECS {
 
@@ -41,11 +42,24 @@ public:
         return _app;
     }
 
+    auto v2_api() noexcept //
+        -> crow::Blueprint&
+    {
+        return _bp_v2;
+    }
+
+    auto v2_api() const noexcept //
+        -> const crow::Blueprint&
+    {
+        return _bp_v2;
+    }
+
 private:
     flecs_api_t();
     ~flecs_api_t();
 
     crow::SimpleApp _app;
+    crow::Blueprint _bp_v2;
 };
 
 } // namespace FLECS

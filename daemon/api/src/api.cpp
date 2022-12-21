@@ -18,7 +18,10 @@ namespace FLECS {
 
 flecs_api_t::flecs_api_t()
     : _app{}
-{}
+    , _bp_v2{"v2"}
+{
+    _app.register_blueprint(_bp_v2);
+}
 
 flecs_api_t::~flecs_api_t()
 {}
