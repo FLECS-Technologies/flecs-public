@@ -21,9 +21,12 @@
 #include "util/sysfs/sysfs.h"
 
 constexpr auto port = "2-1";
+constexpr auto port_invalid = "2-3";
 
 #define USB_DEVICE "FLECS Test Device"
 #define USB_VENDOR "FLECS Technologies GmbH"
+#define USB_BUSNUM 3
+#define USB_DEVNUM 19
 
 TEST(sysfs, prepare)
 {
@@ -42,6 +45,14 @@ TEST(sysfs, prepare)
     auto file_vendor = std::ofstream{port_path + "manufacturer"};
     file_vendor << USB_VENDOR;
     ASSERT_TRUE(file_vendor.good());
+
+    auto file_busnum = std::ofstream{port_path + "busnum"};
+    file_busnum << USB_BUSNUM;
+    ASSERT_TRUE(file_busnum.good());
+
+    auto file_devnum = std::ofstream{port_path + "devnum"};
+    file_devnum << USB_DEVNUM;
+    ASSERT_TRUE(file_devnum.good());
 }
 
 TEST(sysfs, usb_device)
@@ -50,6 +61,9 @@ TEST(sysfs, usb_device)
 
     ASSERT_TRUE(device.has_value());
     ASSERT_EQ(device.value(), USB_DEVICE);
+
+    const auto device_invalid = FLECS::sysfs::usb_device(port_invalid);
+    ASSERT_FALSE(device_invalid.has_value());
 }
 
 TEST(sysfs, usb_vendor)
@@ -58,4 +72,29 @@ TEST(sysfs, usb_vendor)
 
     ASSERT_TRUE(vendor.has_value());
     ASSERT_EQ(vendor.value(), USB_VENDOR);
+
+    const auto vendor_invalid = FLECS::sysfs::usb_vendor(port_invalid);
+    ASSERT_FALSE(vendor_invalid.has_value());
+}
+
+TEST(sysfs, usb_busnum)
+{
+    const auto busnum = FLECS::sysfs::usb_busnum(port);
+
+    ASSERT_TRUE(busnum.has_value());
+    ASSERT_EQ(busnum.value(), USB_BUSNUM);
+
+    const auto busnum_invalid = FLECS::sysfs::usb_busnum(port_invalid);
+    ASSERT_FALSE(busnum_invalid.has_value());
+}
+
+TEST(sysfs, usb_devnum)
+{
+    const auto devnum = FLECS::sysfs::usb_devnum(port);
+
+    ASSERT_TRUE(devnum.has_value());
+    ASSERT_EQ(devnum.value(), USB_DEVNUM);
+
+    const auto devnum_invalid = FLECS::sysfs::usb_devnum(port_invalid);
+    ASSERT_FALSE(devnum_invalid.has_value());
 }
