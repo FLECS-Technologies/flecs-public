@@ -27,10 +27,12 @@ register_module_t<module_version_t> _reg("version");
 module_version_t::module_version_t()
 {}
 
-auto module_version_t::version(json_t& response) const //
+auto module_version_t::version() const //
     -> crow::response
 {
-    response["core"] = std::string{FLECS_VERSION} + "-" + std::string{FLECS_GIT_SHA};
+    using std::operator""s;
+
+    auto response = json_t({{"core", FLECS_VERSION + "-"s + FLECS_GIT_SHA}});
 
     return crow::response{crow::status::OK, response.dump()};
 }
@@ -38,10 +40,16 @@ auto module_version_t::version(json_t& response) const //
 auto module_version_t::do_init() //
     -> void
 {
-    FLECS_ROUTE("/system/version").methods("GET"_method)([=]() {
-        auto response = json_t{};
-        return version(response);
+    FLECS_ROUTE("/system/version").methods("GET"_method)([]() {
+        auto res = crow::response{};
+        res.moved_perm("/v2/system/version");
+        return res;
     });
+    FLECS_V2_ROUTE("/system/version").methods("GET"_method)([=]() { return version(); });
 }
+
+auto module_version_t::do_deinit() //
+    -> void
+{}
 
 } // namespace FLECS

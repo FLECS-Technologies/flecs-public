@@ -16,24 +16,54 @@
 #include "util/json/json.h"
 #include "version/version.h"
 
-class module_version_test_t : public FLECS::module_version_t
+class test_module_version_t : public FLECS::module_version_t
 {
 public:
-    module_version_test_t() = default;
+    test_module_version_t() = default;
 
-    auto version(FLECS::json_t& response) const { return FLECS::module_version_t::version(response); }
+    auto do_init() //
+        -> void override
+    {
+        return FLECS::module_version_t::do_init();
+    }
+
+    auto do_deinit() //
+        -> void override
+    {
+        return FLECS::module_version_t::do_deinit();
+    }
 };
+
+static auto uut = test_module_version_t{};
+
+TEST(module_version, init)
+{
+    uut.do_init();
+
+    FLECS::flecs_api_t::instance().app().validate();
+}
 
 TEST(module_version, print_version)
 {
-    const auto out_expected = std::string{"{\"core\":\""} + FLECS_VERSION + "-" + FLECS_GIT_SHA + "\"}";
+    using std::operator""s;
 
-    auto mod = module_version_test_t{};
-    auto response = FLECS::json_t{};
-    const auto res = mod.version(response);
+    auto req = crow::request{};
+    auto res = crow::response{};
 
-    response.dump();
+    req.url = "/system/version";
+    FLECS::flecs_api_t::instance().app().handle(req, res);
+    ASSERT_EQ(res.code, crow::status::MOVED_PERMANENTLY);
+    ASSERT_EQ(res.headers.find("Location")->second, "/v2/system/version");
 
+    const auto json_expected = FLECS::json_t({{"core", FLECS_VERSION + "-"s + FLECS_GIT_SHA}});
+
+    req.url = "/v2/system/version";
+    FLECS::flecs_api_t::instance().app().handle(req, res);
     ASSERT_EQ(res.code, crow::status::OK);
-    ASSERT_EQ(response.dump(), out_expected);
+    ASSERT_EQ(res.body, json_expected.dump());
+}
+
+TEST(module_version, deinit)
+{
+    uut.do_deinit();
 }
