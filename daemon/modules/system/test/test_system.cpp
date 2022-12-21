@@ -20,17 +20,65 @@ class module_system_test_t : public FLECS::module_system_t
 public:
     module_system_test_t() = default;
 
+    auto do_init() //
+        -> void override
+    {
+        return FLECS::module_system_t::do_init();
+    }
+
+    auto do_deinit() //
+        -> void override
+    {
+        return FLECS::module_system_t::do_deinit();
+    }
+
     auto ping() const { return FLECS::module_system_t::ping(); }
 };
 
-TEST(module_version, ping)
-{
-    const auto out_expected = std::string{"{\"additionalInfo\":\"OK\"}"};
+static auto uut = module_system_test_t{};
 
-    auto mod = module_system_test_t{};
-    const auto res = mod.ping();
+TEST(system, init)
+{
+    uut.do_init();
+
+    FLECS::flecs_api_t::instance().app().validate();
+}
+
+TEST(system, ping)
+{
+    using std::operator""s;
+
+    auto req = crow::request{};
+    auto res = crow::response{};
+
+    req.url = "/system/ping";
+    FLECS::flecs_api_t::instance().app().handle(req, res);
+    ASSERT_EQ(res.code, crow::status::MOVED_PERMANENTLY);
+    ASSERT_EQ(res.headers.find("Location")->second, "/v2/system/ping");
+
+    const auto out_expected = R"({"additionalInfo":"OK"})"s;
+
+    req.url = "/v2/system/ping";
+    FLECS::flecs_api_t::instance().app().handle(req, res);
 
     ASSERT_EQ(res.code, crow::status::OK);
     ASSERT_EQ(res.headers.find("Content-Type")->second, "application/json");
     ASSERT_EQ(res.body, out_expected);
+}
+
+TEST(system, info)
+{
+    auto req = crow::request{};
+    auto res = crow::response{};
+
+    req.url = "/v2/system/info";
+    FLECS::flecs_api_t::instance().app().handle(req, res);
+
+    ASSERT_EQ(res.code, crow::status::OK);
+    ASSERT_EQ(res.headers.find("Content-Type")->second, "application/json");
+}
+
+TEST(system, deinit)
+{
+    uut.do_deinit();
 }

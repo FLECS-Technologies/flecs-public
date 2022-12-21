@@ -47,7 +47,7 @@ struct netif_t
     std::string gateway;
 };
 
-class module_system_t : public module_t
+class module_system_t FLECS_FINAL_UNLESS_TESTED : public module_t
 {
 public:
     auto get_network_adapters() const -> std::map<std::string, netif_t>;
@@ -57,18 +57,16 @@ protected:
 
     module_system_t();
 
+    auto do_init() //
+        -> void override;
+    auto do_deinit() //
+        -> void override;
+
     auto ping() const //
         -> crow::response;
 
     auto info() const //
         -> crow::response;
-
-private:
-    auto do_init() //
-        -> void override;
-    auto do_deinit() //
-        -> void override
-    {}
 };
 
 } // namespace FLECS

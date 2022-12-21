@@ -42,16 +42,20 @@ module_system_t::module_system_t()
 auto module_system_t::do_init() //
     -> void
 {
-    FLECS_ROUTE("/system/ping").methods("GET"_method)([=]() { return ping(); });
-
-    FLECS_ROUTE("/<string>/system/ping").methods("GET"_method)([=](const std::string& /* api_version */) {
-        return ping();
+    FLECS_ROUTE("/system/ping").methods("GET"_method)([]() {
+        auto response = crow::response{};
+        response.moved_perm("/v2/system/ping");
+        return response;
     });
 
-    FLECS_ROUTE("/<string>/system/info").methods("GET"_method)([=](const std::string& /* api_version */) {
-        return info();
-    });
+    FLECS_V2_ROUTE("/system/ping").methods("GET"_method)([=]() { return ping(); });
+
+    FLECS_V2_ROUTE("/system/info").methods("GET"_method)([=]() { return info(); });
 }
+
+auto module_system_t::do_deinit() //
+    -> void
+{}
 
 auto module_system_t::ping() const //
     -> crow::response
@@ -71,7 +75,8 @@ auto module_system_t::info() const //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto module_system_t::get_network_adapters() const -> std::map<std::string, netif_t>
+auto module_system_t::get_network_adapters() const //
+    -> std::map<std::string, netif_t>
 {
     auto adapters = std::map<std::string, netif_t>{};
 

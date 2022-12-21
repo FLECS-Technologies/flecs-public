@@ -60,6 +60,7 @@ TEST(module_version, print_version)
     req.url = "/v2/system/version";
     FLECS::flecs_api_t::instance().app().handle(req, res);
     ASSERT_EQ(res.code, crow::status::OK);
+    ASSERT_EQ(res.headers.find("Content-Type")->second, "application/json");
     ASSERT_EQ(res.body, json_expected.dump());
 }
 
