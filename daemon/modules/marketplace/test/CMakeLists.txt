@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     project(FLECS.daemon.modules.marketplace.test)
 
     add_executable(FLECS.daemon.modules.marketplace.test
@@ -22,6 +22,7 @@ if (BUILD_TESTING)
     set_target_properties(FLECS.daemon.modules.marketplace.test PROPERTIES OUTPUT_NAME test_daemon_modules_marketplace)
 
     target_link_libraries(FLECS.daemon.modules.marketplace.test PRIVATE
+        FLECS.external.cpr
         FLECS.external.gtest
         FLECS.external.gtest_main
         FLECS.daemon.modules.factory
