@@ -44,7 +44,9 @@
             ],
             "defines": [
                 "FLECS_EXPORT=__attribute__((visibility(\"default\")))",
-                "FLECS_VERSION=\"1.4.0-porpoise\""
+                "FLECS_VERSION=\"1.4.0-porpoise\"",
+                "FLECS_GIT_SHA=\"abcd1234\"",
+                "FLECS_FINAL_UNLESS_TESTED=final"
             ],
             "compilerPath": "/usr/bin/g++",
             "cStandard": "c17",

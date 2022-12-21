@@ -19,23 +19,20 @@
 
 namespace FLECS {
 
-class module_version_t : public module_t
+class module_version_t FLECS_FINAL_UNLESS_TESTED : public module_t
 {
-public:
     friend class module_factory_t;
 
 protected:
     module_version_t();
 
-    auto version(json_t& response) const //
-        -> crow::response;
-
-private:
     auto do_init() //
         -> void override;
     auto do_deinit() //
-        -> void override
-    {}
+        -> void override;
+
+    auto version() const //
+        -> crow::response;
 };
 
 } // namespace FLECS
