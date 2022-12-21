@@ -49,12 +49,12 @@ struct netif_t
 
 class module_system_t FLECS_FINAL_UNLESS_TESTED : public module_t
 {
+    friend class module_factory_t;
+
 public:
     auto get_network_adapters() const -> std::map<std::string, netif_t>;
 
 protected:
-    friend class module_factory_t;
-
     module_system_t();
 
     auto do_init() //

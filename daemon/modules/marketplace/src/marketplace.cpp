@@ -28,7 +28,19 @@ module_marketplace_t::module_marketplace_t()
 auto module_marketplace_t::do_init() //
     -> void
 {
-    FLECS_ROUTE("/marketplace/login").methods("POST"_method)([=](const crow::request& req) {
+    FLECS_ROUTE("/marketplace/login").methods("POST"_method)([]() {
+        auto response = crow::response{};
+        response.redirect_perm("/v2/marketplace/login");
+        return response;
+    });
+
+    FLECS_ROUTE("/marketplace/logout").methods("POST"_method)([]() {
+        auto response = crow::response{};
+        response.redirect_perm("/v2/marketplace/logout");
+        return response;
+    });
+
+    FLECS_V2_ROUTE("/marketplace/login").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
         REQUIRED_JSON_VALUE(args, user);
@@ -37,7 +49,7 @@ auto module_marketplace_t::do_init() //
         return login(user, token);
     });
 
-    FLECS_ROUTE("/marketplace/logout").methods("POST"_method)([=](const crow::request& req) {
+    FLECS_V2_ROUTE("/marketplace/logout").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
         OPTIONAL_JSON_VALUE(args, user);
@@ -45,6 +57,10 @@ auto module_marketplace_t::do_init() //
         return logout(user);
     });
 }
+
+auto module_marketplace_t::do_deinit() //
+    -> void
+{}
 
 auto module_marketplace_t::login(std::string user, std::string token) //
     -> crow::response

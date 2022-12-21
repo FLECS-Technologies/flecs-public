@@ -19,28 +19,26 @@
 
 namespace FLECS {
 
-class module_marketplace_t : public module_t
+class module_marketplace_t FLECS_FINAL_UNLESS_TESTED : public module_t
 {
+    friend class module_factory_t;
+
 public:
     auto& user() const noexcept { return _user; }
     auto& token() const noexcept { return _token; }
 
 protected:
-    friend class module_factory_t;
-
     module_marketplace_t();
+
+    auto do_init() //
+        -> void override;
+    auto do_deinit() //
+        -> void override;
 
     auto login(std::string user, std::string token) //
         -> crow::response;
     auto logout(std::string_view user) //
         -> crow::response;
-
-private:
-    auto do_init() //
-        -> void override;
-    auto do_deinit() //
-        -> void override
-    {}
 
     std::string _user;
     std::string _token;
