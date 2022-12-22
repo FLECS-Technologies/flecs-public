@@ -25,10 +25,11 @@ class module_data_layer_private_t
 {
 public:
     module_data_layer_private_t();
+
     ~module_data_layer_private_t();
 
-    auto do_browse(std::string_view path, json_t& response) //
-        -> crow::status;
+    auto do_browse(std::string_view path) //
+        -> crow::response;
 
     auto do_init() //
         -> void;

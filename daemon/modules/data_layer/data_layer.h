@@ -25,10 +25,23 @@ namespace Private {
 class module_data_layer_private_t;
 } // namespace Private
 
-class module_data_layer_t : public module_t
+class module_data_layer_t FLECS_FINAL_UNLESS_TESTED : public module_t
 {
+    friend class module_factory_t;
+
 public:
     ~module_data_layer_t() override;
+
+protected:
+    module_data_layer_t();
+
+    auto do_init() //
+        -> void override;
+    auto do_deinit() //
+        -> void override;
+
+    auto browse(std::string_view path) //
+        -> crow::response;
 
 #if 0
     /* add persistent in-memory storage for path */
@@ -37,17 +50,8 @@ public:
     /* remove persistent in-memory storage for path */
     int remove_mem_storage(const std::string_view& path);
 #endif // 0
-protected:
-    friend class module_factory_t;
-
-    module_data_layer_t();
 
 private:
-    auto do_init() //
-        -> void override;
-    auto do_deinit() //
-        -> void override;
-
     std::unique_ptr<Private::module_data_layer_private_t> _impl;
 };
 
