@@ -1,7 +1,7 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: FLECS Daemon API
-  version: 1.0.0-beta.4
+  version: 2.0.0
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
@@ -64,9 +64,19 @@ components:
         ipAddress:
           type: string
           example: "172.21.0.2"
+    job:
+      type: object
+      description: Job metadata for accepted requests
+      properties:
+        job:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "17"
     licenseKey:
       type: object
-      description: License key for app installation
+      description: License key for App installation
       properties:
         licenseKey:
           type: string
@@ -124,17 +134,9 @@ components:
                 type: string
                 example: "/var/app"
 
-    response_500:
-      type: object
-      description: Internal error
-      properties:
-        additionalInfo:
-          type: string
-          example: "Details what went wrong"
-
     installed_app:
       type: object
-      description: Installed app metadata
+      description: Installed App metadata
       allOf:
         - $ref: "#/components/schemas/app"
         - type: object
@@ -182,8 +184,14 @@ components:
         - $ref: "#/components/schemas/version"
 
   responses:
+    response_202:
+      description: Accepted
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/job"
     response_400:
-      description: Malformed request body
+      description: Malformed request
       content:
         application/json:
           schema:
@@ -191,12 +199,41 @@ components:
             properties:
               additionalInfo:
                 type: string
-                example: "Explanation what is wrong"
+                example: "Details what is wrong"
+    response_401:
+      description: Unauthorized
+    response_403:
+      description: Forbidden
+    response_500:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              additionalInfo:
+                type: string
+                example: "Explanation what went wrong"
+
+tags:
+  - name: "Apps"
+    x-displayName: "Apps"
+    description: Install, manage and uninstall Apps
+  - name: "Instances"
+    x-displayName: "Instances"
+    description: Create, manage and delete Instances
+  - name: "flunder"
+    x-displayName: "Service Mesh"
+    description: |
+      FLECS Service Mesh a.k.a flunder (<b>FL</b>ecs <b>UN</b>ified <b>D</b>ata <b>E</b>xchange and <b>R</b>etention)
+  - name: "System"
+    x-displayName: "System"
 
 paths:
   /app/install:
     post:
-      summary: Install an app from the FLECS marketplace
+      tags: ["Apps"]
+      summary: Install an App from the FLECS marketplace
       requestBody:
         required: true
         content:
@@ -207,29 +244,39 @@ paths:
                 - $ref: "#/components/schemas/licenseKey"
                 - $ref: "#/components/schemas/version"
       responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/additionalInfo"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/version"
+        "202":
+          $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
         "500":
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/response_500"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/version"
+          $ref: "#/components/responses/response_500"
+
+  /app/sideload:
+    post:
+      tags: ["Apps"]
+      summary: Sideload an App from its manifest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                manifest:
+                  type: string
+                licenseKey:
+                  type: string
+      responses:
+        "202":
+          $ref: "#/components/responses/response_202"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "500":
+          $ref: "#/components/responses/response_500"
 
   /app/list:
     get:
+      tags: ["Apps"]
       summary: List installed apps and their instances
       responses:
         "200":
@@ -246,60 +293,35 @@ paths:
                         items:
                           $ref: "#/components/schemas/installed_app"
 
-  #/app/sideload:
-  #  put:
-  #    summary: Sideload an app from its manifest
-  #    requestBody:
-  #      content:
-  #        application/yaml:
-  #          schema:
-  #    responses:
-  #      "200":
-  #        description: Success
-  #        content:
-  #          application/json:
-  #            schema:
-  #              allOf:
-  #                - $ref: "#/components/schemas/additionalInfo"
-  #                - $ref: "#/components/schemas/app"
-  #                - $ref: "#/components/schemas/version"
-
-  /app/uninstall:
-    post:
-      summary: Uninstall an app
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              allOf:
-                - $ref: "#/components/schemas/app"
-                - $ref: "#/components/schemas/version"
+  /app/{app}/uninstall:
+    delete:
+      tags: ["Apps"]
+      summary: Uninstall an App
+      parameters:
+        - name: app
+          in: path
+          schema:
+            type: string
+            description: App to uninstall
+          required: true
+        - name: version
+          in: query
+          schema:
+            type: string
+            description: App version to uninstall
+          required: true
       responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/additionalInfo"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/version"
+        "202":
+          $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
         "500":
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/response_500"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/version"
+          $ref: "#/components/responses/response_500"
 
   /instance/create:
     post:
-      summary: Create new instance of an installed app
+      tags: ["Instances"]
+      summary: Create new instance of an installed App
       requestBody:
         required: true
         content:
@@ -310,77 +332,43 @@ paths:
                 - $ref: "#/components/schemas/instanceName"
                 - $ref: "#/components/schemas/version"
       responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/additionalInfo"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/instanceId"
-                  - $ref: "#/components/schemas/instanceName"
-                  - $ref: "#/components/schemas/version"
+        "202":
+          $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
         "500":
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/response_500"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/instanceName"
-                  - $ref: "#/components/schemas/version"
+          $ref: "#/components/responses/response_500"
 
-  /instance/delete:
-    post:
-      summary: Delete an app instance
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              anyOf:
-                - allOf:
-                    - $ref: "#/components/schemas/app"
-                    - $ref: "#/components/schemas/instanceId"
-                    - $ref: "#/components/schemas/version"
-                - $ref: "#/components/schemas/instanceId"
+  /instance/{id}/delete:
+    delete:
+      tags: ["Instances"]
+      summary: Delete an App instance
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+            description: Instance id to delete
+          required: true
       responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/additionalInfo"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/instanceId"
-                  - $ref: "#/components/schemas/version"
+        "202":
+          $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
         "500":
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/response_500"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/instanceId"
-                  - $ref: "#/components/schemas/version"
+          $ref: "#/components/responses/response_500"
 
-  /instance/details:
-    post:
-      summary: Obtain details of an app instance
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/instanceId"
+  /instance/{id}/details:
+    get:
+      tags: ["Instances"]
+      summary: Obtain details of an App instance
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+            description: Instance id to delete
+          required: true
       responses:
         "200":
           description: Success
@@ -401,84 +389,126 @@ paths:
         "400":
           $ref: "#/components/responses/response_400"
 
-  /instance/start:
+  /instance/{id}/start:
     post:
-      summary: Start an app instance
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              anyOf:
-                - allOf:
-                    - $ref: "#/components/schemas/app"
-                    - $ref: "#/components/schemas/instanceId"
-                    - $ref: "#/components/schemas/version"
-                - $ref: "#/components/schemas/instanceId"
+      tags: ["Instances"]
+      summary: Start an App instance
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+            description: Instance id to delete
+          required: true
       responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/additionalInfo"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/instanceId"
-                  - $ref: "#/components/schemas/version"
+        "202":
+          $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
         "500":
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/response_500"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/version"
-                  - $ref: "#/components/schemas/instanceId"
+          $ref: "#/components/responses/response_500"
 
-  /instance/stop:
+  /instance/{id}/stop:
     post:
-      summary: Stop an app instance
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              anyOf:
-                - allOf:
-                    - $ref: "#/components/schemas/app"
-                    - $ref: "#/components/schemas/instanceId"
-                    - $ref: "#/components/schemas/version"
-                - $ref: "#/components/schemas/instanceId"
+      tags: ["Instances"]
+      summary: Stop an App instance
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+            description: Instance id to delete
+          required: true
+      responses:
+        "202":
+          $ref: "#/components/responses/response_202"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "500":
+          $ref: "#/components/responses/response_500"
+
+  /flunder/browse:
+    get:
+      tags: ["flunder"]
+      summary: Retrieve stored flunder topics alongside their values
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            example: "/flecs/**"
+          required: false
       responses:
         "200":
           description: Success
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/additionalInfo"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/instanceId"
-                  - $ref: "#/components/schemas/version"
-        "400":
-          $ref: "#/components/responses/response_400"
-        "500":
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: "#/components/schemas/response_500"
-                  - $ref: "#/components/schemas/app"
-                  - $ref: "#/components/schemas/instanceId"
-                  - $ref: "#/components/schemas/version"
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        topic:
+                          type: string
+                          example: "/flecs/app1/heater0/temperature"
+                        value:
+                          type: string
+                          example: "23"
+                        encoding:
+                          type: string
+                          example: "application/integer+s8"
+                        timestamp:
+                          type: string
+                          example:
+
+  /flunder/{topic}:
+    get:
+      tags: ["flunder"]
+      summary: Retrieve value of a stored flunder topic
+      parameters:
+        - name: topic
+          in: path
+          schema:
+            type: string
+            example: "/flecs/app1/heater0/temperature"
+          required: true
+    put:
+      tags: ["flunder"]
+      summary: Publish a topic to flunder
+      parameters:
+        - name: topic
+          in: path
+          schema:
+            type: string
+            example: "/flecs/app1/heater0/temperature"
+          required: true
+        - name: value
+          in: query
+          schema:
+            type: string
+            example: "23"
+        - name: type
+          in: query
+          schema:
+            type: string
+            example: "bool"
+    delete:
+      tags: ["flunder"]
+      summary: Delete a stored flunder topic
+      parameters:
+        - name: topic
+          in: path
+          schema:
+            type: string
+            example: "/flecs/app1/heater0/temperature"
+          required: true
 
   /system/ping:
     get:
+      tags: ["System"]
       summary: Check daemon availability and connectivity
       responses:
         "200":
@@ -491,3 +521,22 @@ paths:
                   additionalInfo:
                     type: string
                     example: "OK"
+
+  /system/version:
+    get:
+      tags: ["System"]
+      summary: Get FLECS core and API version
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api:
+                    type: string
+                    example: "2.0.0"
+                  core:
+                    type: string
+                    example: "v2.0.0-???"
