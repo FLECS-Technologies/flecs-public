@@ -694,6 +694,8 @@ auto deployment_docker_t::do_export_volume(
 
     docker_process.arg("run");
     docker_process.arg("--rm");
+    docker_process.arg("--network");
+    docker_process.arg("none");
     docker_process.arg("--volume");
     docker_process.arg(name + ":/mnt/backup:ro");
     docker_process.arg("--volume");
