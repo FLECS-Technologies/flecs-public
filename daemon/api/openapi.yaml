@@ -17,10 +17,9 @@ components:
     app:
       type: object
       description: App name
-      properties:
-        app:
-          type: string
-          example: "tech.flecs.app"
+      additionalProperties:
+        type: string
+        example: "tech.flecs.app"
     conffiles:
       type: object
       description: Bind-mounted configuration files of an instance
@@ -137,34 +136,19 @@ components:
     installed_app:
       type: object
       description: Installed App metadata
-      allOf:
-        - $ref: "#/components/schemas/app"
-        - type: object
-          properties:
-            versions:
-              type: array
-              items:
-                $ref: "#/components/schemas/app_versions"
-            instances:
-              type: array
-              items:
-                $ref: "#/components/schemas/app_instances"
-    app_versions:
-      type: object
-      description: App versions
-      allOf:
-        - type: object
+      additionalProperties:
+        type: object
+        additionalProperties:
           properties:
             desired:
               type: string
               example: "installed"
-            installedSize:
-              type: integer
-              example: 10485760
             status:
               type: string
               example: "installed" # todo: refine possible values
-        - $ref: "#/components/schemas/version"
+            installedSize:
+              type: integer
+              example: 10485760
     app_instances:
       type: object
       description: App instances
@@ -186,10 +170,12 @@ components:
   responses:
     response_202:
       description: Accepted
-      content:
-        application/json:
+      headers:
+        Location:
           schema:
-            $ref: "#/components/schemas/job"
+            type: string
+            description: URI to query for job status
+            example: /v2/jobs/{job_id}
     response_400:
       description: Malformed request
       content:
@@ -230,8 +216,8 @@ tags:
     x-displayName: "System"
 
 paths:
-  /app/install:
-    post:
+  /apps/install:
+    put:
       tags: ["Apps"]
       summary: Install an App from the FLECS marketplace
       requestBody:
@@ -240,7 +226,11 @@ paths:
           application/json:
             schema:
               allOf:
-                - $ref: "#/components/schemas/app"
+                - type: object
+                  properties:
+                    app:
+                      type: string
+                      example: "tech.flecs.app"
                 - $ref: "#/components/schemas/licenseKey"
                 - $ref: "#/components/schemas/version"
       responses:
@@ -251,8 +241,8 @@ paths:
         "500":
           $ref: "#/components/responses/response_500"
 
-  /app/sideload:
-    post:
+  /apps/sideload:
+    put:
       tags: ["Apps"]
       summary: Sideload an App from its manifest
       requestBody:
@@ -274,29 +264,32 @@ paths:
         "500":
           $ref: "#/components/responses/response_500"
 
-  /app/list:
+  /apps:
     get:
       tags: ["Apps"]
-      summary: List installed apps and their instances
+      summary: Query installed Apps
       responses:
         "200":
           description: Success
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/additionalInfo"
-                  - type: object
-                    properties:
-                      appList:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/installed_app"
+                $ref: "#/components/schemas/installed_app"
 
-  /app/{app}/uninstall:
+  /apps/{app}:
+    get:
+      tags: ["Apps"]
+      summary: Query installed versions of an App
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/installed_app"
     delete:
       tags: ["Apps"]
-      summary: Uninstall an App
+      summary: Uninstall one or all versions an App
       parameters:
         - name: app
           in: path
@@ -309,7 +302,7 @@ paths:
           schema:
             type: string
             description: App version to uninstall
-          required: true
+          required: false
       responses:
         "202":
           $ref: "#/components/responses/response_202"
@@ -318,7 +311,25 @@ paths:
         "500":
           $ref: "#/components/responses/response_500"
 
-  /instance/create:
+  /instances:
+    get:
+      tags: ["Instances"]
+      summary: Query all instances of one or all Apps
+      parameters:
+        - name: app
+          in: query
+          schema:
+            type: string
+            description: App to query instances for
+          required: false
+        - name: version
+          in: query
+          schema:
+            type: string
+            description: App version to query instances for
+          required: false
+
+  /instances/create:
     post:
       tags: ["Instances"]
       summary: Create new instance of an installed App
