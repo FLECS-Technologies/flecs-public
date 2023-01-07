@@ -43,57 +43,6 @@ module_app_manager_t::~module_app_manager_t()
 auto module_app_manager_t::do_init() //
     -> void
 {
-    FLECS_ROUTE("/app/install").methods("POST"_method)([=](const crow::request& req) {
-        auto response = json_t{};
-        const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, app);
-        REQUIRED_JSON_VALUE(args, version);
-        OPTIONAL_JSON_VALUE(args, licenseKey);
-        const auto status = _impl->do_install(app, version, licenseKey, response);
-        return crow::response{status, response.dump()};
-    });
-
-    FLECS_ROUTE("/app/instances").methods("POST"_method)([=](const crow::request& req) {
-        auto response = json_t{};
-        const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, app_name);
-        OPTIONAL_JSON_VALUE(args, version);
-        const auto status = _impl->do_list_instances(app_name, version, response);
-        return crow::response{status, response.dump()};
-    });
-
-    FLECS_ROUTE("/app/list").methods("GET"_method)([=]() {
-        auto response = json_t{};
-        const auto status = _impl->do_list_apps(response);
-        return crow::response{status, response.dump()};
-    });
-
-    FLECS_ROUTE("/app/sideload").methods("PUT"_method)([=](const crow::request& req) {
-        auto response = json_t{};
-        const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, appYaml);
-        OPTIONAL_JSON_VALUE(args, licenseKey);
-        const auto status = _impl->do_sideload(appYaml, licenseKey, response);
-        return crow::response{status, response.dump()};
-    });
-
-    FLECS_ROUTE("/app/uninstall").methods("POST"_method)([=](const crow::request& req) {
-        auto response = json_t{};
-        const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, app);
-        REQUIRED_JSON_VALUE(args, version);
-        const auto status = _impl->do_uninstall(app, version, response);
-        return crow::response{status, response.dump()};
-    });
-
-    FLECS_ROUTE("/app/versions").methods("POST"_method)([=](const crow::request& req) {
-        auto response = json_t{};
-        const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, app_name);
-        const auto status = _impl->do_list_versions(app_name, response);
-        return crow::response{status, response.dump()};
-    });
-
     FLECS_ROUTE("/<string>/app/exports")
         .methods("POST"_method)([=](const crow::request& req, const std::string& /* api_version */) {
             auto response = json_t{};

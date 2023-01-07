@@ -290,7 +290,7 @@ private:
      *
      * @return true if the app is installed, false otherwise
      */
-    auto is_app_installed(const std::string& app_name, const std::string& version) //
+    auto is_app_installed(const std::string& app_name, const std::string& version) const //
         -> bool;
 
     auto app_versions(std::string_view app_name) const //
