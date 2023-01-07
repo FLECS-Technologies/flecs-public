@@ -134,7 +134,7 @@ TEST(daemon_app, minimal_app)
 
     auto app = FLECS::app_manifest_t::from_yaml_file(manifest.filename());
 
-    ASSERT_TRUE(app.yaml_loaded());
+    ASSERT_TRUE(app.is_valid());
     ASSERT_EQ(app.app(), G_APP);
     ASSERT_EQ(app.title(), G_TITLE);
     ASSERT_EQ(app.version(), G_VERSION);
@@ -149,7 +149,7 @@ TEST(daemon_app, empty_app)
 
     auto app = FLECS::app_manifest_t::from_yaml_file(manifest.filename());
 
-    ASSERT_FALSE(app.yaml_loaded());
+    ASSERT_FALSE(app.is_valid());
 }
 
 TEST(daemon_app, complex_app)
@@ -159,7 +159,7 @@ TEST(daemon_app, complex_app)
 
     auto app = FLECS::app_manifest_t::from_yaml_string(yaml);
 
-    ASSERT_TRUE(app.yaml_loaded());
+    ASSERT_TRUE(app.is_valid());
     ASSERT_EQ(app.description(), G_DESCRIPTION);
     ASSERT_EQ(app.category(), G_CATEGORY);
     ASSERT_EQ(app.hostname(), "flecs-unit-test");
@@ -206,7 +206,7 @@ TEST(daemon_app, invalid_file)
 {
     const auto app_manifest = FLECS::app_manifest_t::from_yaml_file("/no/such/manifest.yml");
 
-    ASSERT_FALSE(app_manifest.yaml_valid());
+    ASSERT_FALSE(app_manifest.is_valid());
 }
 
 TEST(daemon_app, to_json)
@@ -219,26 +219,25 @@ TEST(daemon_app, to_json)
     const auto json = FLECS::json_t(app_manifest);
     const auto json_expected =
         R"-({"app":"tech.flecs.test-app",)-"
-        R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
+        R"-("version":"1.2.3.4-f1",)-"
+        R"-("title":"FLECS test app",)-"
+        R"-("description":"FLECS test app for unit tests",)-"
         R"-("author":"FLECS Technologies GmbH (info@flecs.tech)",)-"
         R"-("avatar":"",)-"
         R"-("category":"test",)-"
-        R"-("conffiles":[{"container":"/etc/container.conf","init":false,"local":"local.conf","ro":false}],)-"
-        R"-("description":"FLECS test app for unit tests",)-"
-        R"-("devices":["/dev/device0"],)-"
+        R"-("image":"flecs/test-app",)-"
+        R"-("multiInstance":false,)-"
         R"-("editor":"",)-"
+        R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
+        R"-("conffiles":[{"container":"/etc/container.conf","init":false,"local":"local.conf","ro":false}],)-"
+        R"-("devices":["/dev/device0"],)-"
         R"-("env":[{"value":"ENV_VAR_VALUE","var":"MY_ENV_VAR"}],)-"
         R"-("hostname":"flecs-unit-test",)-"
-        R"-("image":"flecs/test-app",)-"
         R"-("interactive":true,)-"
-        R"-("multiInstance":false,)-"
         R"-("networks":[{"mac_address":"","name":"flecs","parent":"","type":"bridge"}],)-"
         R"-("ports":[{"container":"1234","host":"1234"},{"container":"10000-10005","host":"8000-8005"}],)-"
-        R"-("title":"FLECS test app",)-"
-        R"-("version":"1.2.3.4-f1",)-"
-        R"-("volumes":[{"container":"/var/","host":"var","type":"volume"},{"container":"/etc/","host":"etc","type":"volume"},{"container":"/home/","host":"/home/app1/dir","type":"bind mount"}],)-"
-        R"-("yamlLoaded":true,)-"
-        R"-("yamlValid":true})-";
+        R"-("startupOptions":[1],)-"
+        R"-("volumes":[{"container":"/var/","host":"var","type":"volume"},{"container":"/etc/","host":"etc","type":"volume"},{"container":"/home/","host":"/home/app1/dir","type":"bind mount"}]})-";
 
     ASSERT_EQ(json.dump(), json_expected);
 }

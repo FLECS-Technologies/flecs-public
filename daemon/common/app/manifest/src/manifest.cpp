@@ -14,7 +14,7 @@
 
 #include "manifest.h"
 
-#include "util/cxx20/string.h"
+#include <fstream>
 
 namespace FLECS {
 
@@ -46,8 +46,7 @@ namespace FLECS {
     } while (false)
 
 app_manifest_t::app_manifest_t()
-    : _yaml_loaded{}
-    , _yaml_valid{}
+    : _valid{}
     , _app{}
     , _args{}
     , _author{}
@@ -90,6 +89,37 @@ app_manifest_t app_manifest_t::from_yaml_string(const std::string& str)
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "Could not open manifest: Invalid YAML (%s)\n", ex.what());
     }
+    return res;
+}
+
+app_manifest_t app_manifest_t::from_string(std::string_view string)
+{
+    auto res = app_manifest_t{};
+
+    const auto json = parse_json(string);
+
+    try {
+        from_json(json, res);
+    } catch (const std::exception& ex) {
+        std::fprintf(stderr, "Could not parse manifest: Invalid JSON (%s)\n", ex.what());
+    }
+
+    return res;
+}
+
+app_manifest_t app_manifest_t::from_file(const fs::path& path)
+{
+    auto res = app_manifest_t{};
+
+    auto json_file = std::ifstream{path};
+    const auto json = parse_json(json_file);
+
+    try {
+        from_json(json, res);
+    } catch (const std::exception& ex) {
+        std::fprintf(stderr, "Could not open manifest %s: Invalid JSON (%s)\n", path.c_str(), ex.what());
+    }
+
     return res;
 }
 
@@ -153,18 +183,16 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
             _volumes.emplace_back(volume_t{volume.as<std::string>()});
         }
 
-        _yaml_loaded = true;
-
-        validate_yaml();
+        validate();
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "Could not open manifest: Invalid YAML (%s)\n", ex.what());
         *this = app_manifest_t{};
     }
 }
 
-void app_manifest_t::validate_yaml()
+void app_manifest_t::validate()
 {
-    _yaml_valid = false;
+    _valid = false;
     for (const auto& conffile : _conffiles) {
         if (!conffile.is_valid()) {
             return;
@@ -193,7 +221,7 @@ void app_manifest_t::validate_yaml()
         return;
     }
 
-    _yaml_valid = true;
+    _valid = true;
 }
 
 auto to_json(json_t& json, const app_manifest_t& app_manifest) //
@@ -201,26 +229,27 @@ auto to_json(json_t& json, const app_manifest_t& app_manifest) //
 {
     json = json_t{
         {"app", app_manifest._app},
-        {"args", app_manifest._args},
+        {"version", app_manifest._version},
+        {"title", app_manifest._title},
+        {"description", app_manifest._description},
         {"author", app_manifest._author},
         {"avatar", app_manifest._avatar},
         {"category", app_manifest._category},
-        {"conffiles", app_manifest._conffiles},
-        {"description", app_manifest._description},
-        {"devices", app_manifest._devices},
+
+        {"image", app_manifest._image},
+        {"multiInstance", app_manifest._multi_instance},
         {"editor", app_manifest._editor},
+
+        {"args", app_manifest._args},
+        {"conffiles", app_manifest._conffiles},
+        {"devices", app_manifest._devices},
         {"env", app_manifest._env},
         {"hostname", app_manifest._hostname},
-        {"image", app_manifest._image},
         {"interactive", app_manifest._interactive},
-        {"multiInstance", app_manifest._multi_instance},
         {"networks", app_manifest._networks},
         {"ports", app_manifest._ports},
-        {"title", app_manifest._title},
-        {"version", app_manifest._version},
+        {"startupOptions", app_manifest._startup_options},
         {"volumes", app_manifest._volumes},
-        {"yamlLoaded", app_manifest._yaml_loaded},
-        {"yamlValid", app_manifest._yaml_valid},
     };
 }
 
@@ -228,26 +257,27 @@ auto from_json(const json_t& json, app_manifest_t& app_manifest) //
     -> void
 {
     json.at("app").get_to(app_manifest._app);
-    json.at("args").get_to(app_manifest._args);
+    json.at("version").get_to(app_manifest._version);
+    json.at("title").get_to(app_manifest._title);
+    json.at("description").get_to(app_manifest._description);
     json.at("author").get_to(app_manifest._author);
     json.at("avatar").get_to(app_manifest._avatar);
     json.at("category").get_to(app_manifest._category);
-    json.at("conffiles").get_to(app_manifest._conffiles);
-    json.at("description").get_to(app_manifest._description);
-    json.at("devices").get_to(app_manifest._devices);
+
+    json.at("image").get_to(app_manifest._image);
+    json.at("multiInstance").get_to(app_manifest._multi_instance);
     json.at("editor").get_to(app_manifest._editor);
+
+    json.at("args").get_to(app_manifest._args);
+    json.at("conffiles").get_to(app_manifest._conffiles);
+    json.at("devices").get_to(app_manifest._devices);
     json.at("env").get_to(app_manifest._env);
     json.at("hostname").get_to(app_manifest._hostname);
-    json.at("image").get_to(app_manifest._image);
     json.at("interactive").get_to(app_manifest._interactive);
-    json.at("multiInstance").get_to(app_manifest._multi_instance);
     json.at("networks").get_to(app_manifest._networks);
     json.at("ports").get_to(app_manifest._ports);
-    json.at("title").get_to(app_manifest._title);
-    json.at("version").get_to(app_manifest._version);
+    json.at("startupOptions").get_to(app_manifest._startup_options);
     json.at("volumes").get_to(app_manifest._volumes);
-    json.at("yamlLoaded").get_to(app_manifest._yaml_loaded);
-    json.at("yamlValid").get_to(app_manifest._yaml_valid);
 }
 
 } // namespace FLECS

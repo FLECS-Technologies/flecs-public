@@ -33,7 +33,7 @@ app_t::app_t(const fs::path& manifest_path, app_status_e status, app_status_e de
     , _status{status}
     , _desired{desired}
 {
-    if (!yaml_valid()) {
+    if (!is_valid()) {
         *this = app_t{};
     }
 }
@@ -43,7 +43,7 @@ app_t::app_t(const std::string& manifest_string, app_status_e status, app_status
     , _status{status}
     , _desired(desired)
 {
-    if (!yaml_valid()) {
+    if (!is_valid()) {
         *this = app_t{};
     }
 }

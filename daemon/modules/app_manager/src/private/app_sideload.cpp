@@ -30,7 +30,7 @@ auto module_app_manager_private_t::do_sideload(
 {
     // Step 1: Parse transferred manifest
     auto app = app_manifest_t::from_yaml_string(yaml);
-    if (!app.yaml_loaded()) {
+    if (!app.is_valid()) {
         response["additionalInfo"] = "Could not parse manifest";
         return crow::status::INTERNAL_SERVER_ERROR;
     }
@@ -59,7 +59,7 @@ auto module_app_manager_private_t::do_sideload(
 {
     // Step 1: Parse transferred manifest
     auto app = app_manifest_t::from_yaml_file(manifest_path);
-    if (!app.yaml_loaded()) {
+    if (!app.is_valid()) {
         response["additionalInfo"] = "Could not open manifest " + manifest_path.string();
         return crow::status::INTERNAL_SERVER_ERROR;
     }

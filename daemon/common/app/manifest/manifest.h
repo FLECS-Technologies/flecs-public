@@ -44,11 +44,13 @@ public:
 
     app_manifest_t();
 
+    static app_manifest_t from_string(std::string_view string);
+    static app_manifest_t from_file(const fs::path& path);
+
     static app_manifest_t from_yaml_string(const std::string& yaml);
     static app_manifest_t from_yaml_file(const fs::path& path);
 
-    auto& yaml_loaded() const noexcept { return _yaml_loaded; }
-    auto& yaml_valid() const noexcept { return _yaml_valid; }
+    auto& is_valid() const noexcept { return _valid; }
 
     auto& app() const noexcept { return _app; }
     auto& args() const noexcept { return _args; }
@@ -79,10 +81,9 @@ private:
         -> void;
 
     void parse_yaml(const yaml_t& yaml);
-    void validate_yaml();
+    void validate();
 
-    bool _yaml_loaded;
-    bool _yaml_valid;
+    bool _valid;
 
     std::string _app;
     args_t _args;
