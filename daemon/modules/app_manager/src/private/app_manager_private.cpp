@@ -240,7 +240,7 @@ auto module_app_manager_private_t::do_save(fs::path base_path) const //
     _deployment->save(base_path / "deployment/");
 }
 
-auto module_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version) //
+auto module_app_manager_private_t::is_app_installed(const std::string& app_name, const std::string& version) const //
     -> bool
 {
     const auto it = _installed_apps.find(app_key_t{app_name, version});

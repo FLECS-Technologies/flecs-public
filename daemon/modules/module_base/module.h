@@ -51,13 +51,14 @@ namespace FLECS {
 class module_t
 {
 public:
-    virtual ~module_t() = default;
-
     auto init() -> //
         void;
     auto deinit() -> //
         void;
     // std::string usage();
+
+protected:
+    virtual ~module_t() = default;
 
 private:
     virtual auto do_init() //
