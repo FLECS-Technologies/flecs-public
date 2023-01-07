@@ -19,12 +19,12 @@
 
 namespace FLECS {
 
-using json_t = nlohmann::json;
+using json_t = nlohmann::ordered_json;
 
 template <typename InputType>
 auto parse_json(InputType&& i)
 {
-    return nlohmann::json::parse(std::forward<InputType>(i), nullptr, false, false);
+    return nlohmann::ordered_json::parse(std::forward<InputType>(i), nullptr, false, false);
 }
 
 inline auto is_valid_json(const json_t& json)
