@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "api/api.h"
-#include "factory/factory.h"
-#include "util/signal_handler/signal_handler.h"
+#pragma once
 
-int main(int /*argc*/, char** /*argv*/)
-{
-    FLECS::api::init_modules();
-    FLECS::flecs_api_t::instance().app().multithreaded().port(8951).run();
+#include <cstdint>
 
-    FLECS::g_stop = true;
+namespace FLECS {
 
-    FLECS::api::deinit_modules();
+using job_id_t = std::uint32_t;
 
-    return 0;
-}
+} // namespace FLECS

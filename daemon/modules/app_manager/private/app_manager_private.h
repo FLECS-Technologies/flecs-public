@@ -28,6 +28,7 @@
 namespace FLECS {
 
 class module_app_manager_t;
+class module_jobs_t;
 struct instance_config_t;
 
 namespace Private {
@@ -320,6 +321,8 @@ private:
 
     installed_apps_t _installed_apps;
     std::unique_ptr<deployment_t> _deployment;
+
+    std::shared_ptr<module_jobs_t> _mod_jobs;
 };
 
 auto build_manifest_path(const std::string& app_name, const std::string& version) //

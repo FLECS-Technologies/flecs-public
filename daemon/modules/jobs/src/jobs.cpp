@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "api/api.h"
+#include "jobs.h"
+
 #include "factory/factory.h"
-#include "util/signal_handler/signal_handler.h"
+#include "impl/jobs_impl.h"
 
-int main(int /*argc*/, char** /*argv*/)
-{
-    FLECS::api::init_modules();
-    FLECS::flecs_api_t::instance().app().multithreaded().port(8951).run();
+namespace FLECS {
 
-    FLECS::g_stop = true;
-
-    FLECS::api::deinit_modules();
-
-    return 0;
+namespace {
+register_module_t<module_jobs_t> _reg("jobs");
 }
+
+module_jobs_t::module_jobs_t()
+    : _impl{new impl::module_jobs_t{}}
+{}
+
+module_jobs_t::~module_jobs_t() = default;
+
+auto module_jobs_t::do_init() //
+    -> void
+{
+    _impl->do_init();
+}
+
+auto module_jobs_t::do_deinit() //
+    -> void
+{
+    _impl->do_deinit();
+}
+
+auto module_jobs_t::append(job_t job) //
+    -> job_id_t
+{
+    return _impl->do_append(std::move(job));
+}
+
+} // namespace FLECS

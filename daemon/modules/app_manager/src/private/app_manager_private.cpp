@@ -27,6 +27,7 @@
 
 #include "app/manifest/manifest.h"
 #include "factory/factory.h"
+#include "modules/jobs/jobs.h"
 #include "util/fs/fs.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
@@ -179,6 +180,8 @@ auto module_app_manager_private_t::do_init() //
         hosts_process.wait(false, false);
     });
     hosts_thread.detach();
+
+    _mod_jobs = std::dynamic_pointer_cast<module_jobs_t>(api::query_module("jobs"));
 }
 
 auto module_app_manager_private_t::do_load(fs::path base_path) //
