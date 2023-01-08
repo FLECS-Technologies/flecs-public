@@ -51,6 +51,7 @@ target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.modules.data_layer
     FLECS.daemon.modules.factory
     FLECS.daemon.modules.help
+    FLECS.daemon.modules.jobs
     FLECS.daemon.modules.marketplace
     FLECS.daemon.modules.module_base
     FLECS.daemon.modules.rpc
