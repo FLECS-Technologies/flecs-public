@@ -22,7 +22,7 @@ namespace impl {
 
 module_jobs_t::module_jobs_t()
     : _job_id{}
-    , _active_job_id{}
+    , _next_job_id{}
     , _q_mutex{}
     , _q{}
     , _q_cv{}
@@ -49,8 +49,7 @@ auto module_jobs_t::do_append(job_t job) //
         auto lock = std::lock_guard{_q_mutex};
         _q.push(std::move(job));
     }
-    auto job_progress = job_progress_t{++_job_id};
-    _job_progress.insert(std::move(job_progress));
+    _job_progress.emplace_back(++_job_id);
     _q_cv.notify_one();
     return _job_id;
 }
@@ -79,12 +78,16 @@ auto module_jobs_t::worker_thread() //
             continue;
         }
 
-        ++_active_job_id;
+        ++_next_job_id;
         auto job_thread = std::thread{[this, job = std::move(job)]() {
             char thread_name[16] = {};
-            snprintf(thread_name, sizeof(thread_name) - 1, "job_%d", _active_job_id);
+            snprintf(thread_name, sizeof(thread_name) - 1, "job_%d", _next_job_id);
             pthread_setname_np(pthread_self(), thread_name);
-            std::invoke(job->callable);
+            auto& job_progress =
+                *std::find_if(_job_progress.begin(), _job_progress.end(), [this](job_progress_t& item) {
+                    return item.job_id() == _next_job_id;
+                });
+            std::invoke(job->callable, job_progress);
         }};
         job_thread.join();
     }

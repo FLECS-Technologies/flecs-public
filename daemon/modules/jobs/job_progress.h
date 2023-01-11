@@ -25,33 +25,58 @@ namespace FLECS {
 class job_progress_t
 {
 public:
+    struct current_step_t
+    {
+        std::string _desc;          /** current step description*/
+        std::int16_t _num;          /** number of current step */
+        std::string _unit;          /** unit of current step's operation (e.g. "B" when downloading)*/
+        std::uint32_t _units_total; /** total units to process */
+        std::uint32_t _units_done;  /** processed units so far*/
+        std::uint32_t _rate;        /** processing rate in units per second*/
+    };
+
+    struct result_t
+    {
+        std::int32_t code;
+        std::string message;
+    };
+
     explicit job_progress_t(job_id_t job_id);
 
     auto job_id() const noexcept //
         -> job_id_t;
 
+    [[nodiscard]] auto lock() const //
+        -> std::unique_lock<std::mutex>;
+
+    auto status() const //
+        -> std::uint32_t;
+    auto desc() const noexcept //
+        -> const std::string&;
+    auto num_steps() const noexcept //
+        -> std::int16_t;
+
+    auto current_step() noexcept //
+        -> current_step_t&;
+    auto current_step() const noexcept //
+        -> const current_step_t&;
+
+    auto result() noexcept //
+        -> result_t&;
+    auto result() const noexcept //
+        -> const result_t&;
+
 private:
     job_id_t _job_id; /** unique job id */
 
-    std::uint32_t status;   /** @todo job status - replace by enum */
-    std::string desc;       /** job description (e.g. "Install app xyz (123) ")*/
-    std::int16_t num_steps; /** total number of steps  */
-    struct
-    {
-        std::string desc;        /** current step description*/
-        std::int16_t num;        /** number of current step */
-        std::string unit;        /** unit of current step's operation (e.g. "B" when downloading)*/
-        std::size_t units_total; /** total units to process */
-        std::size_t units_done;  /** processed units so far*/
-        std::size_t rate;        /** processing rate in units per second*/
-    } current_step;              /** current step't meta info*/
-    bool done;                   /** true after job finished */
-    struct
-    {
-        std::int32_t code;    /** exit code */
-        std::string message;  /** error/success message*/
-        std::string location; /** where a newly created resource can be found (e.g. /instances/abcd1234) */
-    } result;
+    std::uint32_t _status;   /** @todo job status - replace by enum */
+    std::string _desc;       /** job description (e.g. "Install app xyz (123) ")*/
+    std::int16_t _num_steps; /** total number of steps  */
+
+    current_step_t _current_step;
+    result_t _result;
+
+    mutable std::mutex _mutex;
 };
 
 auto operator<(const job_progress_t& lhs, const job_progress_t& rhs) //

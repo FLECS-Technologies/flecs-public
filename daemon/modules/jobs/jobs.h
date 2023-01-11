@@ -30,7 +30,7 @@ class module_jobs_t;
 
 struct job_t
 {
-    std::function<void()> callable;
+    std::function<void(job_progress_t&)> callable;
 };
 
 class module_jobs_t FLECS_FINAL_UNLESS_TESTED : public module_t

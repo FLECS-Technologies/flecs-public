@@ -53,7 +53,8 @@ TEST(jobs, schedule)
     uut.init();
 
     auto executed = false;
-    auto test_func = [&executed, &cv, &mutex]() {
+    auto test_func = [&executed, &cv, &mutex](FLECS::job_progress_t& progress) {
+        ASSERT_EQ(progress.job_id(), 1);
         auto lock = std::lock_guard{mutex};
         executed = true;
         cv.notify_one();
