@@ -1,4 +1,4 @@
-# Copyright 2021-2022 FLECS Technologies GmbH
+# Copyright 2021-2023 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,20 +13,21 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    project(FLECS.util.string.utils.test)
+    project(util.string.utils.test)
 
-    add_executable(FLECS.util.string.utils.test
+    add_executable(${PROJECT_NAME}
         test_comparator.cpp
         test_format.cpp
+        test_literals.cpp
         test_string_utils.cpp
     )
 
-    set_target_properties(FLECS.util.string.utils.test PROPERTIES OUTPUT_NAME test_util_string_utils)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_util_string_utils)
 
-    target_link_libraries(FLECS.util.string.utils.test PRIVATE
+    target_link_libraries(${PROJECT_NAME} PRIVATE
         FLECS.external.gtest
         FLECS.external.gtest_main
     )
 
-    add_test(NAME FLECS.util.string.utils.test COMMAND FLECS.util.string.utils.test)
+    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 endif()

@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,36 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef C675AFA3_8344_4013_A6F5_1AB5B8B7902F
-#define C675AFA3_8344_4013_A6F5_1AB5B8B7902F
+#pragma once
 
 namespace FLECS {
 
-constexpr auto operator""_B(const unsigned long long num)
+FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_B(const unsigned long long num)
 {
     return num;
 }
 
-constexpr auto operator""_kiB(const unsigned long long num)
+FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_kiB(const unsigned long long num)
 {
     return 1024 * operator""_B(num);
 }
 
-constexpr auto operator""_MiB(const unsigned long long num)
+FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_MiB(const unsigned long long num)
 {
     return 1024 * operator""_kiB(num);
 }
 
-constexpr auto operator""_GiB(const unsigned long long num)
+FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_GiB(const unsigned long long num)
 {
     return 1024 * operator""_MiB(num);
 }
 
-constexpr auto operator""_TiB(const unsigned long long num)
+FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_TiB(const unsigned long long num)
 {
     return 1024 * operator""_GiB(num);
 }
 
 } // namespace FLECS
-
-#endif // C675AFA3_8344_4013_A6F5_1AB5B8B7902F
