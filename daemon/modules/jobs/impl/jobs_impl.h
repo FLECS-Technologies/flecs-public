@@ -16,10 +16,10 @@
 
 #include <condition_variable>
 #include <cstdint>
+#include <list>
 #include <mutex>
 #include <optional>
 #include <queue>
-#include <set>
 #include <thread>
 #include <vector>
 
@@ -54,12 +54,12 @@ private:
         -> void;
 
     job_id_t _job_id;
-    job_id_t _active_job_id;
+    job_id_t _next_job_id;
 
     std::mutex _q_mutex;
     std::queue<job_t> _q;
     std::condition_variable _q_cv;
-    std::set<job_progress_t> _job_progress;
+    std::list<job_progress_t> _job_progress;
 
     std::thread _worker_thread;
 };
