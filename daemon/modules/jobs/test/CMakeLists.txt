@@ -18,6 +18,7 @@ if(BUILD_TESTING)
 
     add_executable(${PROJECT_NAME}
         test_jobs.cpp
+        test_job_status.cpp
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_jobs)
