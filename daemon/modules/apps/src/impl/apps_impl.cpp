@@ -261,12 +261,26 @@ auto module_apps_impl_t::do_install_from_marketplace(
     job_progress_t& progress) //
     -> void
 {
+    {
+        auto lock = progress.lock();
+
+        progress.desc("Installing app "s + app_name + " (" + version + ")");
+        progress.num_steps(7);
+
+        progress.current_step()._desc = "Downloading manifest";
+        progress.current_step()._num = 1;
+        progress.current_step()._unit = {};
+        progress.current_step()._units_done = {};
+        progress.current_step()._units_total = {};
+        progress.current_step()._rate = {};
+    }
+
     // Download App manifest and forward to manifest installation, if download successful
     const auto res = download_manifest(app_name, version);
     if (res != 0) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Could not download manifest for "s + app_name.data() + " (" + version.data() + ")";
+        progress.result().message = "Could not download manifest";
         return;
     };
 
@@ -324,6 +338,13 @@ auto module_apps_impl_t::do_install_impl(
     const fs::path& manifest_path, std::string_view license_key, job_progress_t& progress) //
     -> void
 {
+    {
+        auto lock = progress.lock();
+
+        progress.current_step()._desc = "Loading manifest";
+        progress.current_step()._num++;
+    }
+
     const auto desired = app_status_e::INSTALLED;
 
     // Step 1: Load App manifest
@@ -349,6 +370,13 @@ auto module_apps_impl_t::do_install_impl(
     auto& app = it->second;
     switch (app.status()) {
         case app_status_e::MANIFEST_DOWNLOADED: {
+            {
+                auto lock = progress.lock();
+
+                progress.current_step()._desc = "Acquiring download token";
+                progress.current_step()._num++;
+            }
+
             // Step 3: Acquire download token for App
             app.download_token(acquire_download_token(license_key));
 
@@ -361,6 +389,13 @@ auto module_apps_impl_t::do_install_impl(
             [[fallthrough]];
         }
         case app_status_e::TOKEN_ACQUIRED: {
+            {
+                auto lock = progress.lock();
+
+                progress.current_step()._desc = "Acquiring download token";
+                progress.current_step()._num++;
+            }
+
             // Step 4: Pull Docker image for this App
             auto docker_login_process = process_t{};
             auto docker_pull_process = process_t{};
@@ -368,6 +403,12 @@ auto module_apps_impl_t::do_install_impl(
             const auto args = split(app.download_token(), ';');
 
             if (args.size() == 3) {
+                {
+                    auto lock = progress.lock();
+
+                    progress.current_step()._desc = "Logging in";
+                    progress.current_step()._num++;
+                }
                 auto login_attempts = 3;
                 while (login_attempts-- > 0) {
                     docker_login_process = process_t{};
@@ -381,11 +422,18 @@ auto module_apps_impl_t::do_install_impl(
 
             if (docker_login_process.exit_code() != 0) {
                 auto lock = progress.lock();
+                progress.result().code = -1;
                 progress.result().message = docker_login_process.stderr();
                 _parent->save();
                 return;
             }
 
+            {
+                auto lock = progress.lock();
+
+                progress.current_step()._desc = "Downloading";
+                progress.current_step()._num++;
+            }
             auto pull_attempts = 3;
             while (pull_attempts-- > 0) {
                 docker_pull_process = process_t{};
@@ -401,6 +449,7 @@ auto module_apps_impl_t::do_install_impl(
 
             if (docker_pull_process.exit_code() != 0) {
                 auto lock = progress.lock();
+                progress.result().code = -1;
                 progress.result().message = docker_pull_process.stderr();
                 _parent->save();
                 return;
@@ -409,6 +458,13 @@ auto module_apps_impl_t::do_install_impl(
             [[fallthrough]];
         }
         case app_status_e::IMAGE_DOWNLOADED: {
+            {
+                auto lock = progress.lock();
+
+                progress.current_step()._desc = "Expiring download token";
+                progress.current_step()._num++;
+            }
+
             // Step 5: Expire download token
             const auto args = split(app.download_token(), ';');
             if (args.size() == 3) {
@@ -432,6 +488,12 @@ auto module_apps_impl_t::do_install_impl(
 
     // Final step: Persist successful installation into db
     _parent->save();
+
+    {
+        auto lock = progress.lock();
+
+        progress.result().code = 0;
+    }
 }
 
 auto module_apps_impl_t::queue_uninstall(std::string app_name, std::string version, bool force) //
