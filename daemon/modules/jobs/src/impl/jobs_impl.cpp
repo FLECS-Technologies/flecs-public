@@ -54,6 +54,25 @@ auto module_jobs_t::do_append(job_t job) //
     return _job_id;
 }
 
+auto module_jobs_t::do_list_jobs(job_id_t job_id) const //
+    -> crow::response
+{
+    auto response = json_t::array();
+
+    for (const auto& progress : _job_progress) {
+        if ((job_id != job_id_t{}) && (job_id != progress.job_id())) {
+            continue;
+        }
+        response.push_back(progress);
+    }
+
+    if ((job_id != job_id_t{}) && response.empty()) {
+        return crow::response{crow::status::NOT_FOUND, "txt", "No such job " + std::to_string(job_id)};
+    }
+
+    return crow::response{crow::status::OK, "json", response.dump()};
+}
+
 auto module_jobs_t::wait_for_job() //
     -> std::optional<job_t>
 {
@@ -87,7 +106,17 @@ auto module_jobs_t::worker_thread() //
                 *std::find_if(_job_progress.begin(), _job_progress.end(), [this](job_progress_t& item) {
                     return item.job_id() == _next_job_id;
                 });
+            {
+                auto lock = job_progress.lock();
+                job_progress.status(job_status_e::Running);
+            }
             std::invoke(job->callable, job_progress);
+
+            {
+                auto lock = job_progress.lock();
+                job_progress.current_step() = {};
+                job_progress.status(job_progress.result().code == 0 ? job_status_e::Successful : job_status_e::Failed);
+            }
         }};
         job_thread.join();
     }

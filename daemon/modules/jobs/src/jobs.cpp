@@ -32,6 +32,11 @@ module_jobs_t::~module_jobs_t() = default;
 auto module_jobs_t::do_init() //
     -> void
 {
+    FLECS_V2_ROUTE("/jobs").methods("GET"_method)([this]() { return list_jobs({}); });
+    FLECS_V2_ROUTE("/jobs/<uint>").methods("GET"_method)([this](std::uint32_t job_id) {
+        return list_jobs(job_id_t{job_id});
+    });
+
     _impl->do_init();
 }
 
@@ -45,6 +50,12 @@ auto module_jobs_t::append(job_t job) //
     -> job_id_t
 {
     return _impl->do_append(std::move(job));
+}
+
+auto module_jobs_t::list_jobs(job_id_t job_id) const //
+    -> crow::response
+{
+    return _impl->do_list_jobs(std::move(job_id));
 }
 
 } // namespace FLECS
