@@ -30,6 +30,7 @@
                 "${workspaceFolder}/daemon/modules/data_layer",
                 "${workspaceFolder}/daemon/modules/factory",
                 "${workspaceFolder}/daemon/modules/help",
+                "${workspaceFolder}/daemon/modules/instances",
                 "${workspaceFolder}/daemon/modules/jobs",
                 "${workspaceFolder}/daemon/modules/marketplace",
                 "${workspaceFolder}/daemon/modules/module_base",
