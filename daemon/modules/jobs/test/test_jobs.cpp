@@ -42,30 +42,80 @@ TEST(jobs, empty)
     uut.deinit();
 }
 
+struct test_job_t
+{
+    std::condition_variable cv = {};
+    std::mutex mutex = {};
+    bool executed = {};
+
+    void test_func(FLECS::job_id_t, int, FLECS::job_progress_t&);
+};
+
+void test_job_t::test_func(FLECS::job_id_t job_id, int exit_code, FLECS::job_progress_t& progress)
+{
+    ASSERT_EQ(progress.job_id(), job_id);
+    {
+        auto lock = progress.lock();
+        progress.result().code = exit_code;
+    }
+
+    auto lock = std::lock_guard{mutex};
+    executed = true;
+    cv.notify_one();
+}
+
+auto make_job()
+{
+    return test_job_t{};
+}
+
 TEST(jobs, schedule)
 {
-    auto cv = std::condition_variable{};
-    auto mutex = std::mutex{};
-
     FLECS::signal_handler_init();
+
+    auto job = test_job_t{};
 
     auto uut = test_module_jobs_t{};
     uut.init();
 
-    auto executed = false;
-    auto test_func = [&executed, &cv, &mutex](FLECS::job_progress_t& progress) {
-        ASSERT_EQ(progress.job_id(), 1);
-        auto lock = std::lock_guard{mutex};
-        executed = true;
-        cv.notify_one();
-    };
+    uut.append(FLECS::job_t{std::bind(&test_job_t::test_func, &job, FLECS::job_id_t{1}, 0, std::placeholders::_1)});
 
-    uut.append(FLECS::job_t{test_func});
-
-    auto lock = std::unique_lock{mutex};
-    ASSERT_TRUE(cv.wait_for(lock, std::chrono::seconds(5), [&executed]() { return executed; }));
+    auto lock = std::unique_lock{job.mutex};
+    ASSERT_TRUE(job.cv.wait_for(lock, std::chrono::seconds(1), [&job]() { return job.executed; }));
     kill(flecs_gettid(), SIGTERM);
     uut.deinit();
 
-    ASSERT_TRUE(executed);
+    ASSERT_TRUE(job.executed);
+}
+
+TEST(jobs, status)
+{
+    FLECS::signal_handler_init();
+
+    auto job_0 = test_job_t{};
+    auto job_1 = test_job_t{};
+
+    auto uut = test_module_jobs_t{};
+    uut.init();
+
+    uut.append(FLECS::job_t{std::bind(&test_job_t::test_func, &job_0, FLECS::job_id_t{1}, 0, std::placeholders::_1)});
+    uut.append(FLECS::job_t{std::bind(&test_job_t::test_func, &job_1, FLECS::job_id_t{2}, -1, std::placeholders::_1)});
+
+    {
+        auto lock = std::unique_lock{job_0.mutex};
+        ASSERT_TRUE(job_0.cv.wait_for(lock, std::chrono::seconds(1), [&job_0]() { return job_0.executed; }));
+    }
+    {
+        auto lock = std::unique_lock{job_1.mutex};
+        ASSERT_TRUE(job_1.cv.wait_for(lock, std::chrono::seconds(1), [&job_1]() { return job_1.executed; }));
+    }
+
+    kill(flecs_gettid(), SIGTERM);
+    uut.deinit();
+
+    ASSERT_TRUE(job_0.executed);
+    ASSERT_EQ(FLECS::parse_json(uut.list_jobs(FLECS::job_id_t{1}).body)[0]["status"], "successful");
+
+    ASSERT_TRUE(job_1.executed);
+    ASSERT_EQ(FLECS::parse_json(uut.list_jobs(FLECS::job_id_t{2}).body)[0]["status"], "failed");
 }
