@@ -19,12 +19,24 @@
 #include <string>
 
 #include "job_id.h"
+#include "job_status.h"
+#include "util/json/json.h"
 
 namespace FLECS {
 
 class job_progress_t
 {
 public:
+    job_progress_t()
+        : _job_id{}
+        , _status{}
+        , _desc{}
+        , _num_steps{}
+        , _current_step{}
+        , _result{}
+        , _mutex{}
+    {}
+
     struct current_step_t
     {
         std::string _desc;          /** current step description*/
@@ -33,12 +45,26 @@ public:
         std::uint32_t _units_total; /** total units to process */
         std::uint32_t _units_done;  /** processed units so far*/
         std::uint32_t _rate;        /** processing rate in units per second*/
+
+        current_step_t()
+            : _desc{}
+            , _num{}
+            , _unit{}
+            , _units_total{}
+            , _units_done{}
+            , _rate{}
+        {}
     };
 
     struct result_t
     {
         std::int32_t code;
         std::string message;
+
+        result_t()
+            : code{}
+            , message{}
+        {}
     };
 
     explicit job_progress_t(job_id_t job_id);
@@ -50,11 +76,17 @@ public:
         -> std::unique_lock<std::mutex>;
 
     auto status() const //
-        -> std::uint32_t;
+        -> job_status_e;
     auto desc() const noexcept //
         -> const std::string&;
     auto num_steps() const noexcept //
         -> std::int16_t;
+    auto status(job_status_e status) noexcept //
+        -> void;
+    auto desc(std::string desc) noexcept //
+        -> void;
+    auto num_steps(std::int16_t num_steps) noexcept //
+        -> void;
 
     auto current_step() noexcept //
         -> current_step_t&;
@@ -67,9 +99,12 @@ public:
         -> const result_t&;
 
 private:
+    friend auto to_json(json_t& j, const job_progress_t& progress) //
+        -> void;
+
     job_id_t _job_id; /** unique job id */
 
-    std::uint32_t _status;   /** @todo job status - replace by enum */
+    job_status_e _status;    /** @todo job status - replace by enum */
     std::string _desc;       /** job description (e.g. "Install app xyz (123) ")*/
     std::int16_t _num_steps; /** total number of steps  */
 

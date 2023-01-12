@@ -33,7 +33,7 @@ auto job_progress_t::lock() const //
 }
 
 auto job_progress_t::status() const //
-    -> std::uint32_t
+    -> job_status_e
 {
     return _status;
 }
@@ -46,6 +46,24 @@ auto job_progress_t::num_steps() const noexcept //
     -> std::int16_t
 {
     return _num_steps;
+}
+
+auto job_progress_t::status(job_status_e status) noexcept //
+    -> void
+{
+    _status = std::move(status);
+}
+
+auto job_progress_t::desc(std::string desc) noexcept //
+    -> void
+{
+    _desc = std::move(desc);
+}
+
+auto job_progress_t::num_steps(std::int16_t num_steps) noexcept //
+    -> void
+{
+    _num_steps = std::move(num_steps);
 }
 
 auto job_progress_t::current_step() noexcept //
@@ -68,6 +86,28 @@ auto job_progress_t::result() const noexcept //
     -> const result_t&
 {
     return _result;
+}
+
+auto to_json(json_t& j, const job_progress_t& progress) //
+    -> void
+{
+    j = json_t{};
+
+    auto lock = progress.lock();
+    j["id"] = progress._job_id;
+    j["status"] = to_string(progress._status);
+    j["description"] = progress._desc;
+    j["numSteps"] = progress._num_steps;
+    j["currentStep"] = json_t::object();
+    j["currentStep"]["description"] = progress._current_step._desc;
+    j["currentStep"]["num"] = progress._current_step._num;
+    j["currentStep"]["unit"] = progress._current_step._unit;
+    j["currentStep"]["unitsTotal"] = progress._current_step._units_total;
+    j["currentStep"]["unitsDone"] = progress._current_step._units_done;
+    j["currentStep"]["rate"] = progress._current_step._rate;
+    j["result"] = json_t::object();
+    j["result"]["code"] = progress._result.code;
+    j["result"]["message"] = progress._result.message;
 }
 
 auto operator<(const job_progress_t& lhs, const job_progress_t& rhs) //

@@ -49,6 +49,9 @@ public:
     auto append(job_t job) //
         -> job_id_t;
 
+    auto list_jobs(job_id_t job_id) const //
+        -> crow::response;
+
 protected:
     module_jobs_t();
 

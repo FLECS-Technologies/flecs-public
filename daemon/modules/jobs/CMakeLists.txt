@@ -14,8 +14,8 @@
 
 flecs_add_module(
     MODULE_NAME jobs
-    ADDITIONAL_HEADERS impl/jobs_impl.h job_id.h job_progress.h
-    ADDITIONAL_SOURCES src/impl/jobs_impl.cpp src/job_progress.cpp
+    ADDITIONAL_HEADERS impl/jobs_impl.h job_id.h job_progress.h job_status.h
+    ADDITIONAL_SOURCES src/impl/jobs_impl.cpp src/job_progress.cpp src/job_status.cpp
 )
 
 add_subdirectory(test)
