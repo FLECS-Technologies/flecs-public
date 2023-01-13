@@ -14,20 +14,73 @@
 
 #pragma once
 
-#include <memory>
-
+#include "common/instance/instance_id.h"
 #include "module_base/module.h"
 
 namespace FLECS {
 
+class app_key_t;
+class instance_config_t;
+
 namespace impl {
-class module_instances_impl_t;
+class module_instances_t;
 } // namespace impl
 
 class module_instances_t FLECS_FINAL_UNLESS_TESTED : public module_t
 {
 public:
     ~module_instances_t() override;
+
+    /*! @brief Lists all available instances
+     *
+     * @param app_key (optional) limit list to all or specific version of specific App
+     *
+     * @return HTTP response
+     */
+    auto list(const app_key_t& app_key) const //
+        -> crow::response;
+    auto list(std::string app_name, std::string version) const //
+        -> crow::response;
+    auto list(std::string app_name) const //
+        -> crow::response;
+    auto list() const //
+        -> crow::response;
+
+    auto create(app_key_t app_key, std::string instance_name) //
+        -> crow::response;
+    auto create(app_key_t app_key) //
+        -> crow::response;
+    auto create(std::string app_name, std::string version, std::string instance_name) //
+        -> crow::response;
+    auto create(std::string app_name, std::string version) //
+        -> crow::response;
+
+    auto start(instance_id_t instance_id) //
+        -> crow::response;
+
+    auto stop(instance_id_t instance_id) //
+        -> crow::response;
+
+    auto remove(instance_id_t instance_id) //
+        -> crow::response;
+
+    auto get_config(instance_id_t instance_id) const //
+        -> crow::response;
+
+    auto post_config(instance_id_t instance_id, const instance_config_t& config) //
+        -> crow::response;
+
+    auto details(instance_id_t instance_id) const //
+        -> crow::response;
+
+    auto logs(instance_id_t instance_id) const //
+        -> crow::response;
+
+    auto update(instance_id_t instance_id, std::string from, std::string to) //
+        -> crow::response;
+
+    auto archive(instance_id_t instance_id) const //
+        -> crow::response;
 
 protected:
     friend class module_factory_t;
@@ -37,7 +90,7 @@ protected:
     void do_init() override;
     void do_deinit() override {}
 
-    std::unique_ptr<impl::module_instances_impl_t> _impl;
+    std::unique_ptr<impl::module_instances_t> _impl;
 };
 
 } // namespace FLECS
