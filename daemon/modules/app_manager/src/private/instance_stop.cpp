@@ -62,7 +62,7 @@ auto module_app_manager_private_t::do_stop_instance(
 
     // Step 4: Persist desired status into db, if triggered externally
     if (!internal) {
-        instance.desired(instance_status_e::STOPPED);
+        instance.desired(instance_status_e::Stopped);
     }
 
     // Step 5: Forward to deployment

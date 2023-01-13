@@ -336,7 +336,7 @@ auto deployment_docker_t::do_insert_instance(instance_t /*instance*/) //
 auto deployment_docker_t::do_create_instance(const app_t& /*app*/, instance_t& instance) //
     -> result_t
 {
-    instance.status(instance_status_e::CREATED);
+    instance.status(instance_status_e::Created);
 
     return {0, instance.id().hex()};
 }

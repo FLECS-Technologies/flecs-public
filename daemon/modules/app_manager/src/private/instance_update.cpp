@@ -139,7 +139,7 @@ auto module_app_manager_private_t::do_update_instance(
     _deployment->save();
 
     // Final step: Start instance
-    if (instance.desired() == instance_status_e::RUNNING) {
+    if (instance.desired() == instance_status_e::Running) {
         const auto start_res = do_start_instance(
             instance.id(),
             instance.app_name(),

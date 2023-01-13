@@ -149,12 +149,12 @@ TEST(deployment, interface)
     const auto& test_deployment_c = static_cast<const FLECS::mock_deployment_t&>(test_deployment);
 
     auto instance_1 = FLECS::instance_t{G_INSTANCE_ID_1, &app_1, G_INSTANCE_NAME_1};
-    instance_1.status(FLECS::instance_status_e::CREATED);
-    instance_1.desired(FLECS::instance_status_e::RUNNING);
+    instance_1.status(FLECS::instance_status_e::Created);
+    instance_1.desired(FLECS::instance_status_e::Running);
 
     auto instance_2 = FLECS::instance_t{G_INSTANCE_ID_2, &app_2, G_INSTANCE_NAME_2};
-    instance_2.status(FLECS::instance_status_e::CREATED);
-    instance_2.desired(FLECS::instance_status_e::RUNNING);
+    instance_2.status(FLECS::instance_status_e::Created);
+    instance_2.desired(FLECS::instance_status_e::Running);
 
     EXPECT_CALL(test_deployment, do_deployment_id()).Times(1);
     test_deployment.deployment_id();

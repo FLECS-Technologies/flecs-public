@@ -37,8 +37,8 @@ instance_t::instance_t(instance_id_t id, const app_t* app, std::string instance_
     , _app_name{app ? app->app() : ""}
     , _app_version{app ? app->version() : ""}
     , _instance_name{std::move(instance_name)}
-    , _status{instance_status_e::UNKNOWN}
-    , _desired{instance_status_e::UNKNOWN}
+    , _status{instance_status_e::Unknown}
+    , _desired{instance_status_e::Unknown}
     , _networks{}
     , _startup_options{}
 {}

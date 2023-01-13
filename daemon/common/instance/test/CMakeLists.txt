@@ -18,6 +18,7 @@ if(BUILD_TESTING)
 
     add_executable(${PROJECT_NAME}
         test_instance_id.cpp
+        test_instance_status.cpp
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_instance)

@@ -35,10 +35,10 @@ auto module_app_manager_private_t::do_list_apps(json_t& response) //
             auto json_instance = json_t{};
             json_instance["instanceId"] = instance.id();
             json_instance["instanceName"] = instance.instance_name();
-            if (instance.status() == instance_status_e::CREATED) {
+            if (instance.status() == instance_status_e::Created) {
                 json_instance["status"] = to_string(
-                    _deployment->is_instance_running(instance.id()) ? instance_status_e::RUNNING
-                                                                    : instance_status_e::STOPPED);
+                    _deployment->is_instance_running(instance.id()) ? instance_status_e::Running
+                                                                    : instance_status_e::Stopped);
             } else {
                 json_instance["status"] = to_string(instance.status());
             }
