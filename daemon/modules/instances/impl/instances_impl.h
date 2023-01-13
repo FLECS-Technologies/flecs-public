@@ -15,34 +15,88 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 
-#include "module_base/module.h"
+#include "instances.h"
 
 namespace FLECS {
 
+class deployment_t;
 class job_progress_t;
-class module_instances_t;
+class module_apps_t;
 class module_jobs_t;
 
 namespace impl {
 
-class module_instances_impl_t
+class module_instances_t
 {
     friend class FLECS::module_instances_t;
 
 public:
-    ~module_instances_impl_t();
+    ~module_instances_t();
 
 private:
-    explicit module_instances_impl_t(module_instances_t* parent);
+    explicit module_instances_t(FLECS::module_instances_t* parent);
 
     auto do_init() //
         -> void;
 
-    module_instances_t* _parent;
+    auto do_list(const app_key_t& app_key) const //
+        -> crow::response;
 
-    std::mutex _installed_apps_mutex;
+    auto queue_create(app_key_t app_key, std::string instance_name) //
+        -> crow::response;
 
+    auto do_create(app_key_t app_key, std::string instance_name, job_progress_t& progress) //
+        -> void;
+
+    auto queue_start(instance_id_t instance_id) //
+        -> crow::response;
+
+    auto do_start(instance_id_t instance_id, job_progress_t& progress) //
+        -> void;
+
+    auto queue_stop(instance_id_t instance_id) //
+        -> crow::response;
+
+    auto do_stop(instance_id_t instance_id, job_progress_t& progress) //
+        -> void;
+
+    auto queue_remove(instance_id_t instance_id) //
+        -> crow::response;
+
+    auto do_remove(instance_id_t instance_id, job_progress_t& progress) //
+        -> void;
+
+    auto do_get_config(instance_id_t instance_id) const //
+        -> crow::response;
+
+    auto do_post_config(instance_id_t instance_id, const instance_config_t& config) //
+        -> crow::response;
+
+    auto do_details(instance_id_t instance_id) const //
+        -> crow::response;
+
+    auto do_logs(instance_id_t instance_id) const //
+        -> crow::response;
+
+    auto queue_update(instance_id_t instance_id, std::string from, std::string to) //
+        -> crow::response;
+
+    auto do_update(
+        instance_id_t instance_id, std::string from, std::string to, job_progress_t& progress) //
+        -> void;
+
+    auto queue_export(instance_id_t instance_id) //
+        -> crow::response;
+
+    auto do_export(instance_id_t instance_id, job_progress_t& progress) //
+        -> void;
+
+    FLECS::module_instances_t* _parent;
+
+    std::unique_ptr<deployment_t> _deployment;
+    std::shared_ptr<FLECS::module_apps_t> _apps_api;
     std::shared_ptr<FLECS::module_jobs_t> _jobs_api;
 };
 
