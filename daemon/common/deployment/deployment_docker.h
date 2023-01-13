@@ -36,7 +36,7 @@ private:
         -> result_t override;
     auto do_create_instance(const app_t& app, instance_t& instance) //
         -> result_t override;
-    auto do_delete_instance(std::string_view instance_id) //
+    auto do_delete_instance(instance_id_t instance_id) //
         -> result_t override;
     auto do_start_instance(instance_t& instance) //
         -> result_t override;
@@ -60,25 +60,28 @@ private:
     auto do_delete_network(std::string_view network) //
         -> result_t override;
     auto do_connect_network(
-        std::string_view instance_id,
+        instance_id_t instance_id,
         std::string_view network,
         std::string_view ip) //
         -> result_t override;
-    auto do_disconnect_network(std::string_view instance_id, std::string_view network) //
+    auto do_disconnect_network(instance_id_t instance_id, std::string_view network) //
         -> result_t override;
-    auto do_create_volume(std::string_view instance_id, std::string_view volume_name) //
+    auto do_create_volume(instance_id_t instance_id, std::string_view volume_name) //
         -> result_t override;
-    auto do_import_volume(const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
+    auto do_import_volume(
+        const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
         -> result_t override;
-    auto do_export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
+    auto do_export_volume(
+        const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
         -> result_t override;
-    auto do_delete_volume(std::string_view instance_id, std::string_view volume_name) //
+    auto do_delete_volume(instance_id_t instance_id, std::string_view volume_name) //
         -> result_t override;
     auto do_copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
         -> result_t override;
-    auto do_copy_file_to_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+    auto do_copy_file_to_instance(instance_id_t instance_id, fs::path file, fs::path dest) //
         -> result_t override;
-    auto do_copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) const //
+    auto do_copy_file_from_instance(
+        instance_id_t instance_id, fs::path file, fs::path dest) const //
         -> result_t override;
     auto do_default_network_name() const //
         -> std::string_view override;

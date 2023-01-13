@@ -23,7 +23,8 @@ auto build_network_adapters_json(const instance_t& instance)
     const auto adapters = system_api->get_network_adapters();
     auto adapters_json = json_t::array();
     for (decltype(auto) adapter : adapters) {
-        if ((adapter.second.type == netif_type_t::WIRED) || (adapter.second.type == netif_type_t::WIRELESS)) {
+        if ((adapter.second.type == netif_type_t::WIRED) ||
+            (adapter.second.type == netif_type_t::WIRELESS)) {
             auto adapter_json = json_t{};
             adapter_json["name"] = adapter.first;
             adapter_json["active"] = false;
@@ -93,7 +94,8 @@ auto build_usb_devices_json(const instance_t& instance)
 }
 } // namespace
 
-auto module_app_manager_private_t::do_get_config_instance(const std::string& instance_id, json_t& response) //
+auto module_app_manager_private_t::do_get_config_instance(
+    const instance_id_t& instance_id, json_t& response) //
     -> crow::status
 {
     response["additionalInfo"] = std::string{};
@@ -101,7 +103,8 @@ auto module_app_manager_private_t::do_get_config_instance(const std::string& ins
 
     // Step 1: Verify instance does actually exist
     if (!_deployment->has_instance(instance_id)) {
-        response["additionalInfo"] = "Could not configure instance " + instance_id + ", which does not exist";
+        response["additionalInfo"] =
+            "Could not configure instance " + instance_id.hex() + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
@@ -113,7 +116,7 @@ auto module_app_manager_private_t::do_get_config_instance(const std::string& ins
 }
 
 auto module_app_manager_private_t::do_put_config_instance(
-    const std::string& instance_id,
+    const instance_id_t& instance_id,
     const instance_config_t& config,
     json_t& response) //
     -> crow::status
@@ -123,7 +126,8 @@ auto module_app_manager_private_t::do_put_config_instance(
 
     // Step 1: Verify instance does actually exist
     if (!_deployment->has_instance(instance_id)) {
-        response["additionalInfo"] = "Could not configure instance " + instance_id + ", which does not exist";
+        response["additionalInfo"] =
+            "Could not configure instance " + instance_id.hex() + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
@@ -147,8 +151,9 @@ auto module_app_manager_private_t::do_put_config_instance(
             }
 
             // create macvlan network, if not exists
-            const auto cidr_subnet =
-                ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
+            const auto cidr_subnet = ipv4_to_network(
+                netif->second.ipv4_addr[0].addr,
+                netif->second.ipv4_addr[0].subnet_mask);
 
             // process instance configuration
             if (network.ipAddress.empty()) {
@@ -182,7 +187,9 @@ auto module_app_manager_private_t::do_put_config_instance(
                     auto it = std::find_if(
                         instance.networks().begin(),
                         instance.networks().end(),
-                        [&](const instance_t::network_t& n) { return n.network_name == docker_network; });
+                        [&](const instance_t::network_t& n) {
+                            return n.network_name == docker_network;
+                        });
                     if (it != instance.networks().end()) {
                         it->ip_address = network.ipAddress;
                     } else {
@@ -193,7 +200,8 @@ auto module_app_manager_private_t::do_put_config_instance(
                     }
                     _deployment->save();
                     for (auto& adapter_json : response["networkAdapters"]) {
-                        if (adapter_json.contains("name") && (adapter_json["name"] == netif->first)) {
+                        if (adapter_json.contains("name") &&
+                            (adapter_json["name"] == netif->first)) {
                             adapter_json["active"] = true;
                             adapter_json["ipAddress"] = network.ipAddress;
                         }
@@ -215,7 +223,9 @@ auto module_app_manager_private_t::do_put_config_instance(
                 std::remove_if(
                     instance.networks().begin(),
                     instance.networks().end(),
-                    [&](const instance_t::network_t& net) { return net.network_name == docker_network; }),
+                    [&](const instance_t::network_t& net) {
+                        return net.network_name == docker_network;
+                    }),
                 instance.networks().end());
 
             for (auto& adapter_json : response["networkAdapters"]) {

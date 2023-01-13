@@ -43,36 +43,37 @@ auto deployment_t::save(fs::path base_path) //
 }
 
 auto deployment_t::instances() const noexcept //
-    -> const std::map<std::string, instance_t>&
+    -> const std::map<instance_id_t, instance_t>&
 {
     return _instances;
 }
 
 auto deployment_t::instances() noexcept //
-    -> std::map<std::string, instance_t>&
+    -> std::map<instance_id_t, instance_t>&
 {
     return _instances;
 }
 
 auto deployment_t::instance_ids(std::string_view app) const //
-    -> std::vector<std::string>
+    -> std::vector<instance_id_t>
 {
     return instance_ids(app_key_t{app.data(), ""}, AllVersions);
 }
 
 auto deployment_t::instance_ids(std::string_view app, std::string_view version) const //
-    -> std::vector<std::string>
+    -> std::vector<instance_id_t>
 {
     return instance_ids(app_key_t{app.data(), version.data()}, MatchVersion);
 }
 
 auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e version_filter) const //
-    -> std::vector<std::string>
+    -> std::vector<instance_id_t>
 {
-    auto ids = std::vector<std::string>{};
+    auto ids = std::vector<instance_id_t>{};
     for (const auto& instance : instances()) {
         if ((instance.second.app_name() == app_key.name()) &&
-            ((version_filter == AllVersions) || (instance.second.app_version() == app_key.version()))) {
+            ((version_filter == AllVersions) ||
+             (instance.second.app_version() == app_key.version()))) {
             ids.emplace_back(instance.first);
         }
     }
@@ -81,15 +82,15 @@ auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e versi
 }
 
 auto deployment_t::instance_ids(const app_t& app, version_filter_e version_filter) const //
-    -> std::vector<std::string>
+    -> std::vector<instance_id_t>
 {
     return instance_ids(app_key_t{app.app(), app.version()}, version_filter);
 }
 
-auto deployment_t::has_instance(std::string_view instance_id) const noexcept //
+auto deployment_t::has_instance(instance_id_t instance_id) const noexcept //
     -> bool
 {
-    return _instances.count(instance_id.data());
+    return _instances.count(instance_id);
 }
 
 auto deployment_t::insert_instance(instance_t instance) //
@@ -103,14 +104,18 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     -> result_t
 {
     // Step 1: Create unique id and insert instance
-    auto tmp = instance_t{&app, instance_name, instance_status_e::REQUESTED, instance_status_e::CREATED};
+    auto tmp = instance_t{&app, instance_name};
     while (_instances.count(tmp.id())) {
         tmp.regenerate_id();
     }
 
+    tmp.status(instance_status_e::REQUESTED);
+    tmp.desired(instance_status_e::CREATED);
+
     auto& instance = _instances.emplace(tmp.id(), tmp).first->second;
     for (const auto& startup_option : app.startup_options()) {
-        instance.startup_options().emplace_back(static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
+        instance.startup_options().emplace_back(
+            static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
     }
 
     // Step 2: Create volumes
@@ -134,7 +139,7 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
                 default_network_gateway(),
                 {});
             if (res != 0) {
-                return {-1, instance.id()};
+                return {-1, instance.id().hex()};
             }
         }
         instance.networks().emplace_back(instance_t::network_t{
@@ -164,7 +169,7 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     {
         auto [res, additional_info] = create_conffiles(instance);
         if (res != 0) {
-            return {res, instance.id()};
+            return {res, instance.id().hex()};
         }
         instance.status(instance_status_e::RESOURCES_READY);
     }
@@ -172,24 +177,25 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     return do_create_instance(app, instance);
 }
 
-auto deployment_t::delete_instance(std::string_view instance_id) //
+auto deployment_t::delete_instance(instance_id_t instance_id) //
     -> result_t
 {
     const auto [res, additional_info] = do_delete_instance(std::move(instance_id));
-    _instances.erase(instance_id.data());
+    _instances.erase(instance_id);
     return {res, additional_info};
 }
 
-auto deployment_t::start_instance(std::string_view instance_id) //
+auto deployment_t::start_instance(instance_id_t instance_id) //
     -> result_t
 {
-    auto& instance = _instances.at(instance_id.data());
+    auto& instance = _instances.at(instance_id);
     const auto& startup_options = instance.startup_options();
 
     if (std::count(
             startup_options.cbegin(),
             startup_options.cend(),
-            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START))) {
+            static_cast<std::underlying_type_t<startup_option_t>>(
+                startup_option_t::INIT_NETWORK_AFTER_START))) {
         for (const auto& network : instance.networks()) {
             disconnect_network(instance_id, network.network_name);
         }
@@ -204,8 +210,9 @@ auto deployment_t::start_instance(std::string_view instance_id) //
     if (std::count(
             startup_options.cbegin(),
             startup_options.cend(),
-            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START))) {
-        for (const auto& network : _instances.at(instance_id.data()).networks()) {
+            static_cast<std::underlying_type_t<startup_option_t>>(
+                startup_option_t::INIT_NETWORK_AFTER_START))) {
+        for (const auto& network : _instances.at(instance_id).networks()) {
             connect_network(instance_id, network.network_name, network.ip_address);
         }
     }
@@ -213,17 +220,17 @@ auto deployment_t::start_instance(std::string_view instance_id) //
     return ready_instance(instance_id);
 }
 
-auto deployment_t::ready_instance(std::string_view instance_id) //
+auto deployment_t::ready_instance(instance_id_t instance_id) //
     -> result_t
 {
-    const auto& instance = _instances.at(instance_id.data());
+    const auto& instance = _instances.at(instance_id);
     return do_ready_instance(instance);
 }
 
-auto deployment_t::stop_instance(std::string_view instance_id) //
+auto deployment_t::stop_instance(instance_id_t instance_id) //
     -> result_t
 {
-    const auto& instance = _instances.at(instance_id.data());
+    const auto& instance = _instances.at(instance_id);
     const auto& startup_options = instance.startup_options();
 
     auto [res, additional_info] = do_stop_instance(instance);
@@ -231,8 +238,9 @@ auto deployment_t::stop_instance(std::string_view instance_id) //
     if (std::count(
             startup_options.cbegin(),
             startup_options.cend(),
-            static_cast<std::underlying_type_t<startup_option_t>>(startup_option_t::INIT_NETWORK_AFTER_START))) {
-        for (const auto& network : _instances.at(instance_id.data()).networks()) {
+            static_cast<std::underlying_type_t<startup_option_t>>(
+                startup_option_t::INIT_NETWORK_AFTER_START))) {
+        for (const auto& network : _instances.at(instance_id).networks()) {
             const auto [net_res, net_err] = disconnect_network(instance_id, network.network_name);
             if (net_res != 0) {
                 res = -1;
@@ -247,7 +255,7 @@ auto deployment_t::stop_instance(std::string_view instance_id) //
 auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir) const //
     -> result_t
 {
-    dest_dir /= instance.id();
+    dest_dir /= instance.id().hex();
     auto ec = std::error_code{};
     fs::create_directories(dest_dir, ec);
     if (ec) {
@@ -262,14 +270,17 @@ auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir
     if (is_instance_running(instance.id())) {
         /* copy conffiles from container for running instances */
         for (const auto& conffile : instance.app().conffiles()) {
-            const auto [res, additional_info] =
-                copy_file_from_instance(instance.id(), conffile.container(), dest_dir / conffile.local());
+            const auto [res, additional_info] = copy_file_from_instance(
+                instance.id(),
+                conffile.container(),
+                dest_dir / conffile.local());
             if (res != 0) {
                 return {res, additional_info};
             }
         }
     } else {
-        const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
+        const auto conf_path =
+            std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
         /* copy conffiles from local dir for stopped instances */
         for (const auto& conffile : instance.app().conffiles()) {
             auto ec = std::error_code{};
@@ -283,31 +294,33 @@ auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir
     return do_export_instance(instance, dest_dir);
 }
 
-auto deployment_t::is_instance_runnable(std::string_view instance_id) const //
+auto deployment_t::is_instance_runnable(instance_id_t instance_id) const //
     -> bool
 {
-    return has_instance(instance_id) && (instances().at(instance_id.data()).status() == instance_status_e::CREATED);
+    return has_instance(instance_id) &&
+           (instances().at(instance_id).status() == instance_status_e::CREATED);
 }
 
-auto deployment_t::is_instance_running(std::string_view instance_id) const //
+auto deployment_t::is_instance_running(instance_id_t instance_id) const //
     -> bool
 {
     if (!has_instance(instance_id)) {
         return false;
     }
-    return do_is_instance_running(instances().at(instance_id.data()));
+    return do_is_instance_running(instances().at(instance_id));
 }
 
 auto deployment_t::create_conffiles(const instance_t& instance) //
     -> result_t
 {
     const auto& app = instance.app();
-    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
+    const auto conf_path =
+        std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
     if (!app.conffiles().empty()) {
         auto ec = std::error_code{};
         std::filesystem::create_directories(conf_path, ec);
         if (ec) {
-            return {-1, instance.id()};
+            return {-1, instance.id().hex()};
         }
     }
 
@@ -317,12 +330,12 @@ auto deployment_t::create_conffiles(const instance_t& instance) //
             const auto [res, additional_info] =
                 copy_file_from_image(app.image_with_tag(), conffile.container(), local_path);
             if (res != 0) {
-                return {-1, instance.id()};
+                return {-1, instance.id().hex()};
             }
         } else {
             auto f = std::ofstream{local_path};
             if (!f.good()) {
-                return {-1, instance.id()};
+                return {-1, instance.id().hex()};
             }
         }
     }
@@ -359,7 +372,7 @@ auto deployment_t::delete_network(std::string_view network) //
 }
 
 auto deployment_t::connect_network(
-    std::string_view instance_id,
+    instance_id_t instance_id,
     std::string_view network,
     std::string_view ip) //
     -> result_t
@@ -367,7 +380,7 @@ auto deployment_t::connect_network(
     return do_connect_network(std::move(instance_id), std::move(network), std::move(ip));
 }
 
-auto deployment_t::disconnect_network(std::string_view instance_id, std::string_view network) //
+auto deployment_t::disconnect_network(instance_id_t instance_id, std::string_view network) //
     -> result_t
 {
     return do_disconnect_network(std::move(instance_id), std::move(network));
@@ -387,7 +400,7 @@ auto deployment_t::create_volumes(const instance_t& instance) //
     return {0, {}};
 }
 
-auto deployment_t::create_volume(std::string_view instance_id, std::string_view volume_name) //
+auto deployment_t::create_volume(instance_id_t instance_id, std::string_view volume_name) //
     -> result_t
 {
     return do_create_volume(std::move(instance_id), std::move(volume_name));
@@ -408,7 +421,8 @@ auto deployment_t::import_volumes(const instance_t& instance, fs::path src_dir) 
     return {0, {}};
 }
 
-auto deployment_t::import_volume(const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
+auto deployment_t::import_volume(
+    const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
     -> result_t
 {
     auto ec = std::error_code{};
@@ -432,7 +446,8 @@ auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir)
     return {0, {}};
 }
 
-auto deployment_t::export_volume(const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
+auto deployment_t::export_volume(
+    const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
     -> result_t
 {
     auto ec = std::error_code{};
@@ -458,7 +473,7 @@ auto deployment_t::delete_volumes(const instance_t& instance) //
     return {0, {}};
 }
 
-auto deployment_t::delete_volume(std::string_view instance_id, std::string_view volume_name) //
+auto deployment_t::delete_volume(instance_id_t instance_id, std::string_view volume_name) //
     -> result_t
 {
     return do_delete_volume(std::move(instance_id), std::move(volume_name));
@@ -470,13 +485,14 @@ auto deployment_t::copy_file_from_image(std::string_view image, fs::path file, f
     return do_copy_file_from_image(image, file, dest);
 }
 
-auto deployment_t::copy_file_to_instance(std::string_view instance_id, fs::path file, fs::path dest) //
+auto deployment_t::copy_file_to_instance(instance_id_t instance_id, fs::path file, fs::path dest) //
     -> result_t
 {
     return do_copy_file_to_instance(instance_id, file, dest);
 }
 
-auto deployment_t::copy_file_from_instance(std::string_view instance_id, fs::path file, fs::path dest) const //
+auto deployment_t::copy_file_from_instance(
+    instance_id_t instance_id, fs::path file, fs::path dest) const //
     -> result_t
 {
     return do_copy_file_from_instance(instance_id, file, dest);
@@ -506,7 +522,8 @@ auto deployment_t::default_network_gateway() const //
     return do_default_network_gateway();
 }
 
-auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::string_view gateway) const //
+auto deployment_t::generate_instance_ip(
+    std::string_view cidr_subnet, std::string_view gateway) const //
     -> std::string
 {
     // parse a.b.c.d

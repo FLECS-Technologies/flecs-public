@@ -20,7 +20,7 @@
 namespace FLECS {
 namespace Private {
 
-auto module_app_manager_private_t::do_export_instance(const std::string& instance_id) //
+auto module_app_manager_private_t::do_export_instance(const instance_id_t& instance_id) //
     -> crow::response
 {
     auto response = json_t{};
@@ -33,7 +33,8 @@ auto module_app_manager_private_t::do_export_instance(const std::string& instanc
 
     // Step 1: Verify instance does actually exist
     if (!_deployment->has_instance(instance_id)) {
-        response["additionalInfo"] = "Could not export instance " + instance_id + ", which does not exist";
+        response["additionalInfo"] =
+            "Could not export instance " + instance_id.hex() + ", which does not exist";
         return {crow::status::BAD_REQUEST, response.dump()};
     }
 
@@ -44,7 +45,8 @@ auto module_app_manager_private_t::do_export_instance(const std::string& instanc
     response["version"] = instance.app_version();
 
     // Step 2: Forward to deployment
-    const auto [res, additional_info] = _deployment->export_instance(instance, "/var/lib/flecs/export-tmp/instances/");
+    const auto [res, additional_info] =
+        _deployment->export_instance(instance, "/var/lib/flecs/export-tmp/instances/");
     response["additionalInfo"] = additional_info;
 
     return {(res == 0) ? crow::status::OK : crow::status::INTERNAL_SERVER_ERROR, response.dump()};

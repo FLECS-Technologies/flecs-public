@@ -22,7 +22,7 @@ namespace FLECS {
 namespace Private {
 
 auto module_app_manager_private_t::do_update_instance(
-    const std::string& instance_id,
+    const instance_id_t& instance_id,
     const std::string& app_name,
     const std::string& from,
     const std::string& to,
@@ -38,7 +38,8 @@ auto module_app_manager_private_t::do_update_instance(
 
     // Step 1: Verify instance does actually exist
     if (!_deployment->has_instance(instance_id)) {
-        response["additionalInfo"] = "Could not update instance " + instance_id + ", which does not exist";
+        response["additionalInfo"] =
+            "Could not update instance " + instance_id.hex() + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
@@ -64,20 +65,27 @@ auto module_app_manager_private_t::do_update_instance(
 
     // Step 3: Make sure to-app is installed
     if (!is_app_installed(instance.app_name(), to)) {
-        response["additionalInfo"] = "Could not update instance to version " + to + ", which is not installed";
+        response["additionalInfo"] =
+            "Could not update instance to version " + to + ", which is not installed";
         return crow::status::BAD_REQUEST;
     }
 
     // Step 4: Stop running instance
-    const auto stop_res = do_stop_instance(instance.id(), instance.app_name(), instance.app_version(), response, true);
+    const auto stop_res = do_stop_instance(
+        instance.id(),
+        instance.app_name(),
+        instance.app_version(),
+        response,
+        true);
     if (stop_res != crow::status::OK) {
-        response["additionalInfo"] = "Could not stop instance " + instance.id();
+        response["additionalInfo"] = "Could not stop instance " + instance.id().hex();
         return crow::status::INTERNAL_SERVER_ERROR;
     }
 
     // Step 5: Create backup of existing instance (volumes + config)
     using std::operator""s;
-    const auto backup_path_base = fs::path{"/var/lib/flecs/backup/"s.append(instance.id()).append("/")};
+    const auto backup_path_base =
+        fs::path{"/var/lib/flecs/backup/"s.append(instance.id().hex()).append("/")};
     const auto backup_path = fs::path{backup_path_base.string()
                                           .append(instance.app_version())
                                           .append("/")
@@ -90,7 +98,8 @@ auto module_app_manager_private_t::do_update_instance(
     }
 
     // Step 6: Restore previous backup on downgrade, if possible
-    const auto conf_path = std::string{"/var/lib/flecs/instances/"} + instance.id() + std::string{"/conf/"};
+    const auto conf_path =
+        std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
     if (instance.app_version() > to) {
         auto ec = std::error_code{};
         for (const auto& version_dir : fs::directory_iterator{backup_path_base, ec}) {
@@ -131,10 +140,14 @@ auto module_app_manager_private_t::do_update_instance(
 
     // Final step: Start instance
     if (instance.desired() == instance_status_e::RUNNING) {
-        const auto start_res =
-            do_start_instance(instance.id(), instance.app_name(), instance.app_version(), response, true);
+        const auto start_res = do_start_instance(
+            instance.id(),
+            instance.app_name(),
+            instance.app_version(),
+            response,
+            true);
         if (start_res != crow::status::OK) {
-            response["additionalInfo"] = "Could not stop instance " + instance.id();
+            response["additionalInfo"] = "Could not stop instance " + instance.id().hex();
             return crow::status::INTERNAL_SERVER_ERROR;
         }
     }

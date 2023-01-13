@@ -44,7 +44,8 @@ auto module_app_manager_t::do_init() //
     -> void
 {
     FLECS_ROUTE("/<string>/app/exports")
-        .methods("POST"_method)([=](const crow::request& req, const std::string& /* api_version */) {
+        .methods(
+            "POST"_method)([=](const crow::request& req, const std::string& /* api_version */) {
             auto response = json_t{};
             const auto args = parse_json(req.body);
 
@@ -69,6 +70,7 @@ auto module_app_manager_t::do_init() //
                     }
                 }
             }
+#if 0
             /* export instances */
             if (args.contains("instances")) {
                 for (const auto& j : args["instances"]) {
@@ -79,6 +81,7 @@ auto module_app_manager_t::do_init() //
                     }
                 }
             }
+#endif // 0
             /* export deployment */
             _impl->do_save("/var/lib/flecs/export-tmp/");
 
@@ -91,7 +94,8 @@ auto module_app_manager_t::do_init() //
             }
 
             using std::operator""s;
-            auto outname = "/var/lib/flecs/exports/"s.append(unix_time(precision_e::seconds)).append(".tar.gz");
+            auto outname = "/var/lib/flecs/exports/"s.append(unix_time(precision_e::seconds))
+                               .append(".tar.gz");
             auto archive = archive_write_new();
             archive_write_add_filter_gzip(archive);
             archive_write_set_format_pax_restricted(archive);
@@ -99,7 +103,8 @@ auto module_app_manager_t::do_init() //
 
             auto entry = archive_entry_new();
             auto buf = std::unique_ptr<char[]>{new char[1_MiB]};
-            for (const auto& file : fs::recursive_directory_iterator("/var/lib/flecs/export-tmp", ec)) {
+            for (const auto& file :
+                 fs::recursive_directory_iterator("/var/lib/flecs/export-tmp", ec)) {
                 if (ec) {
                     break;
                 }
@@ -115,7 +120,8 @@ auto module_app_manager_t::do_init() //
                 archive_entry_set_filetype(entry, AE_IFREG);
                 archive_entry_set_perm(entry, 0644);
                 archive_write_header(archive, entry);
-                auto f = std::ifstream{file.path().c_str(), std::ios_base::in | std::ios_base::binary};
+                auto f =
+                    std::ifstream{file.path().c_str(), std::ios_base::in | std::ios_base::binary};
                 f.read(buf.get(), 1_MiB);
                 while (f.gcount()) {
                     archive_write_data(archive, buf.get(), f.gcount());
@@ -134,22 +140,23 @@ auto module_app_manager_t::do_init() //
     FLECS_ROUTE("/instance/config").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, instanceId);
+        REQUIRED_TYPED_JSON_VALUE(args, instanceId, std::uint32_t);
         const auto status = _impl->do_get_config_instance(instanceId, response);
         return crow::response{status, response.dump()};
     });
 
-    FLECS_ROUTE("/<string>/instance/<string>/config")
-        .methods("GET"_method)([=](const std::string& /*api_version*/, const std::string& instance_id) {
-            auto response = json_t{};
-            const auto status = _impl->do_get_config_instance(instance_id, response);
-            return crow::response{status, response.dump()};
-        });
+    FLECS_ROUTE("/<string>/instance/<uint>/config")
+        .methods("GET"_method)(
+            [=](const std::string& /*api_version*/, const std::uint32_t& instance_id) {
+                auto response = json_t{};
+                const auto status = _impl->do_get_config_instance(instance_id, response);
+                return crow::response{status, response.dump()};
+            });
 
     FLECS_ROUTE("/instance/config").methods("PUT"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, instanceId);
+        REQUIRED_TYPED_JSON_VALUE(args, instanceId, std::uint32_t);
         auto config = instance_config_t{};
         if (args.contains("networkAdapters")) {
             args["networkAdapters"].get_to(config.networkAdapters);
@@ -162,22 +169,23 @@ auto module_app_manager_t::do_init() //
         return crow::response{status, response.dump()};
     });
 
-    FLECS_ROUTE("/<string>/instance/<string>/config")
-        .methods("PUT"_method)(
-            [=](const crow::request& req, const std::string& /*api_version*/, const std::string& instance_id) {
-                auto response = json_t{};
-                const auto args = parse_json(req.body);
-                auto config = instance_config_t{};
-                if (args.contains("networkAdapters")) {
-                    args["networkAdapters"].get_to(config.networkAdapters);
-                }
-                if (args.contains("devices") && args["devices"].contains("usb")) {
-                    args["devices"]["usb"].get_to(config.usb_devices);
-                }
+    FLECS_ROUTE("/<string>/instance/<uint>/config")
+        .methods("PUT"_method)([=](const crow::request& req,
+                                   const std::string& /*api_version*/,
+                                   const std::uint32_t& instance_id) {
+            auto response = json_t{};
+            const auto args = parse_json(req.body);
+            auto config = instance_config_t{};
+            if (args.contains("networkAdapters")) {
+                args["networkAdapters"].get_to(config.networkAdapters);
+            }
+            if (args.contains("devices") && args["devices"].contains("usb")) {
+                args["devices"]["usb"].get_to(config.usb_devices);
+            }
 
-                const auto status = _impl->do_put_config_instance(instance_id, config, response);
-                return crow::response{status, response.dump()};
-            });
+            const auto status = _impl->do_put_config_instance(instance_id, config, response);
+            return crow::response{status, response.dump()};
+        });
 
     FLECS_ROUTE("/instance/create").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
@@ -189,22 +197,23 @@ auto module_app_manager_t::do_init() //
         return crow::response{status, response.dump()};
     });
 
-    FLECS_ROUTE("/<string>/instance/<string>/update")
-        .methods("PUT"_method)(
-            [=](const crow::request& req, const std::string& /*api_version*/, const std::string& instance_id) {
-                auto response = json_t{};
-                const auto args = parse_json(req.body);
-                OPTIONAL_JSON_VALUE(args, app);
-                OPTIONAL_JSON_VALUE(args, from);
-                REQUIRED_JSON_VALUE(args, to);
-                const auto status = _impl->do_update_instance(instance_id, app, from, to, response);
-                return crow::response{status, response.dump()};
-            });
+    FLECS_ROUTE("/<string>/instance/<uint>/update")
+        .methods("PUT"_method)([=](const crow::request& req,
+                                   const std::string& /*api_version*/,
+                                   std::uint32_t instance_id) {
+            auto response = json_t{};
+            const auto args = parse_json(req.body);
+            OPTIONAL_JSON_VALUE(args, app);
+            OPTIONAL_JSON_VALUE(args, from);
+            REQUIRED_JSON_VALUE(args, to);
+            const auto status = _impl->do_update_instance(instance_id, app, from, to, response);
+            return crow::response{status, response.dump()};
+        });
 
     FLECS_ROUTE("/instance/delete").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, instanceId);
+        REQUIRED_TYPED_JSON_VALUE(args, instanceId, std::uint32_t);
         OPTIONAL_JSON_VALUE(args, app);
         OPTIONAL_JSON_VALUE(args, version);
         const auto status = _impl->do_delete_instance(instanceId, app, version, response);
@@ -214,7 +223,7 @@ auto module_app_manager_t::do_init() //
     FLECS_ROUTE("/instance/details").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, instanceId);
+        REQUIRED_TYPED_JSON_VALUE(args, instanceId, std::uint32_t);
         const auto status = _impl->do_instance_details(instanceId, response);
         return crow::response{status, response.dump()};
     });
@@ -222,7 +231,7 @@ auto module_app_manager_t::do_init() //
     FLECS_ROUTE("/instance/log").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, instanceId);
+        REQUIRED_TYPED_JSON_VALUE(args, instanceId, std::uint32_t);
         const auto status = _impl->do_instance_log(instanceId, response);
         return crow::response{status, response.dump()};
     });
@@ -230,7 +239,7 @@ auto module_app_manager_t::do_init() //
     FLECS_ROUTE("/instance/start").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, instanceId);
+        REQUIRED_TYPED_JSON_VALUE(args, instanceId, std::uint32_t);
         OPTIONAL_JSON_VALUE(args, app);
         OPTIONAL_JSON_VALUE(args, version);
         const auto status = _impl->do_start_instance(instanceId, app, version, response);
@@ -240,7 +249,7 @@ auto module_app_manager_t::do_init() //
     FLECS_ROUTE("/instance/stop").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, instanceId);
+        REQUIRED_TYPED_JSON_VALUE(args, instanceId, std::uint32_t);
         OPTIONAL_JSON_VALUE(args, app);
         OPTIONAL_JSON_VALUE(args, version);
         const auto status = _impl->do_stop_instance(instanceId, app, version, response);

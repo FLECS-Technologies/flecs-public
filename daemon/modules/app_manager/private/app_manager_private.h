@@ -40,7 +40,8 @@ public:
 
     ~module_app_manager_private_t();
 
-    /*! @brief Initializes the module. Sanitizes the app database and starts all previously running app instances
+    /*! @brief Initializes the module. Sanitizes the app database and starts all previously running
+     * app instances
      *
      * @param None
      *
@@ -97,7 +98,8 @@ public:
      * @return FLECS_OK: No error occurred
      * @return FLECS_IOR: Error reading from manifest
      * @return FLECS_IOW: Error writing manifest to FLECS application directory
-     * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
+     * @return Any error code returned by overloaded @sa do_install(const std::string&, const
+     * std::string&)
      */
     auto do_sideload(const std::string& yaml, const std::string& license_key, json_t& response) //
         -> crow::status;
@@ -112,9 +114,11 @@ public:
      * @return FLECS_OK: No error occurred
      * @return FLECS_IOR: Error reading from manifest
      * @return FLECS_IOW: Error writing manifest to FLECS application directory
-     * @return Any error code returned by overloaded @sa do_install(const std::string&, const std::string&)
+     * @return Any error code returned by overloaded @sa do_install(const std::string&, const
+     * std::string&)
      */
-    auto do_sideload(const fs::path& manifest_path, const std::string& license_key, json_t& response) //
+    auto do_sideload(
+        const fs::path& manifest_path, const std::string& license_key, json_t& response) //
         -> crow::status;
 
     /*! @brief Uninstalls an application
@@ -129,7 +133,11 @@ public:
      * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
      * @return FLECS_IOW: Error deleting manifest from disk
      */
-    auto do_uninstall(const std::string& app_name, const std::string& version, json_t& response, bool force = false) //
+    auto do_uninstall(
+        const std::string& app_name,
+        const std::string& version,
+        json_t& response,
+        bool force = false) //
         -> crow::status;
 
     /*! @brief Exports an application
@@ -161,7 +169,7 @@ public:
         -> crow::status;
 
     auto do_update_instance(
-        const std::string& instance_id,
+        const instance_id_t& instance_id,
         const std::string& app_name,
         const std::string& from,
         const std::string& to,
@@ -177,18 +185,20 @@ public:
      * @return error code
      * @return FLECS_OK No error occurred
      * @return FLECS_INSTANCE_NOTEXIST if the specified instance does not exist
-     * @return any error returned by @sa xcheck_app_instance if app_name and/or versions are provided
+     * @return any error returned by @sa xcheck_app_instance if app_name and/or versions are
+     * provided
      */
     auto do_delete_instance(
-        const std::string& instance_id,
+        const instance_id_t& instance_id,
         const std::string& app_name,
         const std::string& version,
         json_t& response) //
         -> crow::status;
 
-    /*! @brief Starts an existing instance. If the instance is already running, no action is performed and the function
-     * call is considered successful. app_name and version can be provided as additional arguments, in which case these
-     * values are cross-checked to the contents of the app db.
+    /*! @brief Starts an existing instance. If the instance is already running, no action is
+     * performed and the function call is considered successful. app_name and version can be
+     * provided as additional arguments, in which case these values are cross-checked to the
+     * contents of the app db.
      *
      * @param[in] id Unique instance id assigned by @sa do_create_instance
      * @param[in] app_name Name of the app the instance belongs to or empty string
@@ -200,19 +210,21 @@ public:
      * @return FLECS_INSTANCE_NOTRUNNABLE if the specified instance was not successfully created
      * @return FLECS_YAML if the corresponding app manifest is missing or incorrect
      * @return FLECS_DOCKER if the call to Docker was unsuccessful
-     * @return any error returned by @sa xcheck_app_instance if app_name and/or versions are provided
+     * @return any error returned by @sa xcheck_app_instance if app_name and/or versions are
+     * provided
      */
     auto do_start_instance(
-        const std::string& instance_id,
+        const instance_id_t& instance_id,
         const std::string& app_name,
         const std::string& version,
         json_t& response,
         bool internal = false) //
         -> crow::status;
 
-    /*! @brief Stops a running instance. If the instance is not running, no action is performed and the function call is
-     * considered successful. app_name and version can be provided as additional arguments, in which case these
-     * values are cross-checked to the contents of the app db.
+    /*! @brief Stops a running instance. If the instance is not running, no action is performed and
+     * the function call is considered successful. app_name and version can be provided as
+     * additional arguments, in which case these values are cross-checked to the contents of the app
+     * db.
      *
      * @param[in] id Unique instance id assigned by @sa do_create_instance
      * @param[in] app_name Name of the app the instance belongs to or empty string
@@ -224,7 +236,7 @@ public:
      * @return FLECS_DOCKER if the call to Docker was unsuccessful
      */
     auto do_stop_instance(
-        const std::string& instance_id,
+        const instance_id_t& instance_id,
         const std::string& app_name,
         const std::string& version,
         json_t& response,
@@ -236,7 +248,7 @@ public:
      * @param[in] instance_id instance to export
      *
      */
-    auto do_export_instance(const std::string& instance_id) //
+    auto do_export_instance(const instance_id_t& instance_id) //
         -> crow::response;
 
     /*! @brief Returns details of an app instance, such as IP address, hostname or exposed ports
@@ -245,7 +257,7 @@ public:
      *
      * @return error code
      */
-    auto do_instance_details(const std::string& instance_id, json_t& response) //
+    auto do_instance_details(const instance_id_t& instance_id, json_t& response) //
         -> crow::status;
 
     /*! @brief Returns logfile of an app instance
@@ -254,7 +266,7 @@ public:
      *
      * @return error code
      */
-    auto do_instance_log(const std::string& instance_id, json_t& response) //
+    auto do_instance_log(const instance_id_t& instance_id, json_t& response) //
         -> crow::status;
 
     /*! @brief Prints all installed apps and their instances in JSON format
@@ -273,13 +285,15 @@ public:
 
     /*! @brief Prints all available instances for a given app and version. Not yet implemented
      */
-    auto do_list_instances(const std::string& app_name, const std::string& version, json_t& response) //
+    auto do_list_instances(
+        const std::string& app_name, const std::string& version, json_t& response) //
         -> crow::status;
 
-    auto do_get_config_instance(const std::string& instance_id, json_t& response) //
+    auto do_get_config_instance(const instance_id_t& instance_id, json_t& response) //
         -> crow::status;
 
-    auto do_put_config_instance(const std::string& instance_id, const instance_config_t& config, json_t& response) //
+    auto do_put_config_instance(
+        const instance_id_t& instance_id, const instance_config_t& config, json_t& response) //
         -> crow::status;
 
 private:
@@ -296,9 +310,10 @@ private:
     auto app_versions(std::string_view app_name) const //
         -> std::vector<std::string>;
 
-    /*! @brief Helper function to perform some cross-checks between an instance and a given app_name and version. For
-     * some functions, app_name and versions are optional, but if provided these checks will be performed. Used
-     * especially for actions triggered through the WebApp to ensure user actions are consistently packed into requests.
+    /*! @brief Helper function to perform some cross-checks between an instance and a given app_name
+     * and version. For some functions, app_name and versions are optional, but if provided these
+     * checks will be performed. Used especially for actions triggered through the WebApp to ensure
+     * user actions are consistently packed into requests.
      *
      * @param[in] instance Database entry of the instance to check
      * @param[in] app_name Name of the corresponding app

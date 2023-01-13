@@ -22,7 +22,7 @@ namespace FLECS {
 namespace Private {
 
 auto module_app_manager_private_t::do_delete_instance(
-    const std::string& instance_id,
+    const instance_id_t& instance_id,
     const std::string& app_name,
     const std::string& version,
     json_t& response) //
@@ -36,7 +36,8 @@ auto module_app_manager_private_t::do_delete_instance(
 
     // Step 1: Verify instance does actually exist
     if (!_deployment->has_instance(instance_id)) {
-        response["additionalInfo"] = "Could not delete instance " + instance_id + ", which does not exist";
+        response["additionalInfo"] =
+            "Could not delete instance " + instance_id.hex() + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
@@ -57,13 +58,17 @@ auto module_app_manager_private_t::do_delete_instance(
     const auto res = do_stop_instance(instance_id, app_name, version, response, true);
 
     if (res != crow::status::OK) {
-        std::fprintf(stderr, "Could not stop instance %s: %d\n", instance_id.c_str(), static_cast<int>(res));
+        std::fprintf(
+            stderr,
+            "Could not stop instance %s: %d\n",
+            instance_id.hex().c_str(),
+            static_cast<int>(res));
     }
 
     // Step 4: Remove Docker container for instance
     {
         auto docker_process = process_t{};
-        const auto name = std::string{"flecs-"} + instance_id;
+        const auto name = std::string{"flecs-"} + instance_id.hex();
         docker_process.spawnp("docker", "rm", "-f", name);
         docker_process.wait(false, true);
         if (docker_process.exit_code() != 0) {

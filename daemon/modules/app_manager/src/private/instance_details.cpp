@@ -21,7 +21,8 @@
 namespace FLECS {
 namespace Private {
 
-auto module_app_manager_private_t::do_instance_details(const std::string& instance_id, json_t& response) //
+auto module_app_manager_private_t::do_instance_details(
+    const instance_id_t& instance_id, json_t& response) //
     -> crow::status
 {
     // Provisional response based on request
@@ -30,7 +31,8 @@ auto module_app_manager_private_t::do_instance_details(const std::string& instan
 
     // Step 1: Verify instance does actually exist
     if (!_deployment->has_instance(instance_id)) {
-        response["additionalInfo"] = "Could not query details of instance " + instance_id + ", which does not exist";
+        response["additionalInfo"] =
+            "Could not query details of instance " + instance_id.hex() + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
@@ -44,10 +46,13 @@ auto module_app_manager_private_t::do_instance_details(const std::string& instan
     response["version"] = instance.app_version();
     response["IPAddress"] = instance.networks().empty() ? "" : instance.networks()[0].ip_address;
     response["conffiles"] = json_t::array();
-    response["hostname"] = app.hostname().empty() ? (std::string{"flecs-"}.append(instance.id())) : app.hostname();
+    response["hostname"] = app.hostname().empty()
+                               ? (std::string{"flecs-"}.append(instance.id().hex()))
+                               : app.hostname();
     for (const auto& conffile : app.conffiles()) {
         auto json_conffile = json_t{};
-        json_conffile["host"] = std::string{"/var/lib/flecs/instances/"} + instance.id() + "/conf/" + conffile.local();
+        json_conffile["host"] = std::string{"/var/lib/flecs/instances/"} + instance.id().hex() +
+                                "/conf/" + conffile.local();
         json_conffile["container"] = conffile.container();
         response["conffiles"].push_back(json_conffile);
     }
