@@ -12,25 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef A1671630_FCCE_4302_B252_4C67A6FF0562
-#define A1671630_FCCE_4302_B252_4C67A6FF0562
+#pragma once
 
 #include <string>
+#include <string_view>
 
 namespace FLECS {
 
-enum class instance_status_e : char {
-    NOT_CREATED = 'n',
-    REQUESTED = 'q',
-    RESOURCES_READY = 'y',
-    CREATED = 'c',
-    STOPPED = 's',
-    RUNNING = 'r',
-    UNKNOWN = 'u',
+enum class instance_status_e {
+    NotCreated,
+    Requested,
+    ResourcesReady,
+    Created,
+    Stopped,
+    Running,
+    Orphaned,
+    Unknown,
 };
 
-auto to_char(const instance_status_e& instance_status) //
-    -> char;
+auto to_string_view(const instance_status_e& instance_status) //
+    -> std::string_view;
 
 auto to_string(const instance_status_e& instance_status) //
     -> std::string;
@@ -39,5 +40,3 @@ auto instance_status_from_string(std::string_view str) //
     -> instance_status_e;
 
 } // namespace FLECS
-
-#endif // A1671630_FCCE_4302_B252_4C67A6FF0562

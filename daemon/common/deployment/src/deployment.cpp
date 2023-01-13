@@ -109,8 +109,8 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
         tmp.regenerate_id();
     }
 
-    tmp.status(instance_status_e::REQUESTED);
-    tmp.desired(instance_status_e::CREATED);
+    tmp.status(instance_status_e::Requested);
+    tmp.desired(instance_status_e::Created);
 
     auto& instance = _instances.emplace(tmp.id(), tmp).first->second;
     for (const auto& startup_option : app.startup_options()) {
@@ -171,7 +171,7 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
         if (res != 0) {
             return {res, instance.id().hex()};
         }
-        instance.status(instance_status_e::RESOURCES_READY);
+        instance.status(instance_status_e::ResourcesReady);
     }
 
     return do_create_instance(app, instance);
@@ -298,7 +298,7 @@ auto deployment_t::is_instance_runnable(instance_id_t instance_id) const //
     -> bool
 {
     return has_instance(instance_id) &&
-           (instances().at(instance_id).status() == instance_status_e::CREATED);
+           (instances().at(instance_id).status() == instance_status_e::Created);
 }
 
 auto deployment_t::is_instance_running(instance_id_t instance_id) const //

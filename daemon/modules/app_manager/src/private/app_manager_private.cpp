@@ -173,7 +173,7 @@ auto module_app_manager_private_t::do_init() //
                 const auto instance_id = _deployment->instance_ids(system_apps[i], FLECS_VERSION);
                 if (!instance_id.empty()) {
                     auto& instance = _deployment->instances().at(instance_id[0]);
-                    instance.desired(instance_status_e::RUNNING);
+                    instance.desired(instance_status_e::Running);
                 }
             }
         }
@@ -182,7 +182,7 @@ auto module_app_manager_private_t::do_init() //
 
     std::fprintf(stdout, "Starting all app instances...\n");
     for (decltype(auto) instance : _deployment->instances()) {
-        if (instance.second.desired() == instance_status_e::RUNNING) {
+        if (instance.second.desired() == instance_status_e::Running) {
             std::fprintf(stdout, "\t%s\n", instance.first.hex().c_str());
             json_t _unused;
             do_start_instance(

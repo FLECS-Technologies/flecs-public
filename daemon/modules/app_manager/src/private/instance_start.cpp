@@ -69,7 +69,7 @@ auto module_app_manager_private_t::do_start_instance(
 
     // Step 3: Persist desired status into deployment, if triggered externally
     if (!internal) {
-        instance.desired(instance_status_e::RUNNING);
+        instance.desired(instance_status_e::Running);
     }
 
     // Step 4: Forward to deployment

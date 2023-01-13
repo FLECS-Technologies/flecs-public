@@ -41,8 +41,8 @@ auto make_instance_entry(std::string id = "789abcde", const FLECS::app_t& app = 
             app.app(),
             app.version(),
             "Test instance",
-            FLECS::NOT_CREATED,
-            FLECS::CREATED,
+            FLECS::NotCreated,
+            FLECS::Created,
             {"network"},
             {"127.0.0.1"},
             0}};
@@ -78,7 +78,8 @@ void assert_db_has_app(const FLECS::app_db_t& app_db, const FLECS::app_t& app)
     ASSERT_EQ(app_val.download_token, data.download_token);
 }
 
-void assert_db_has_instance(const FLECS::app_db_t& app_db, const FLECS::instances_table_entry_t& instance)
+void assert_db_has_instance(
+    const FLECS::app_db_t& app_db, const FLECS::instances_table_entry_t& instance)
 {
     decltype(auto) primary = static_cast<const FLECS::instances_table_primary_t&>(instance);
     decltype(auto) data = static_cast<const FLECS::instances_table_data_t&>(instance);

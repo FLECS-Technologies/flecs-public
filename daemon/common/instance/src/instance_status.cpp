@@ -16,27 +16,21 @@
 
 #include <algorithm>
 #include <array>
-#include <map>
 #include <tuple>
 
 namespace FLECS {
 
-auto to_char(const instance_status_e& instance_status) //
-    -> char
+auto to_string_view(const instance_status_e& instance_status) //
+    -> std::string_view
 {
-    return static_cast<std::underlying_type_t<instance_status_e>>(instance_status);
-}
-
-auto to_string(const instance_status_e& instance_status) //
-    -> std::string
-{
-    const auto strings = std::array<std::tuple<instance_status_e, std::string>, 6>{{
-        {instance_status_e::CREATED, "created"},
-        {instance_status_e::NOT_CREATED, "not created"},
-        {instance_status_e::REQUESTED, "requested"},
-        {instance_status_e::RESOURCES_READY, "resources ready"},
-        {instance_status_e::RUNNING, "running"},
-        {instance_status_e::STOPPED, "stopped"},
+    const auto strings = std::array<std::tuple<instance_status_e, std::string_view>, 7>{{
+        {instance_status_e::Created, "created"},
+        {instance_status_e::NotCreated, "not created"},
+        {instance_status_e::Orphaned, "orphaned"},
+        {instance_status_e::Requested, "requested"},
+        {instance_status_e::ResourcesReady, "resources ready"},
+        {instance_status_e::Running, "running"},
+        {instance_status_e::Stopped, "stopped"},
     }};
 
     const auto it = std::find_if(
@@ -49,19 +43,33 @@ auto to_string(const instance_status_e& instance_status) //
     return it == strings.cend() ? "unknown" : std::get<1>(*it);
 }
 
+auto to_string(const instance_status_e& instance_status) //
+    -> std::string
+{
+    return std::string{to_string_view(instance_status)};
+}
+
 auto instance_status_from_string(std::string_view str) //
     -> instance_status_e
 {
-    const auto status = std::map<std::string_view, instance_status_e>{
-        {"created", instance_status_e::CREATED},
-        {"not created", instance_status_e::NOT_CREATED},
-        {"requested", instance_status_e::REQUESTED},
-        {"resources ready", instance_status_e::RESOURCES_READY},
-        {"running", instance_status_e::RUNNING},
-        {"stopped", instance_status_e::STOPPED},
-    };
+    const auto status = std::array<std::tuple<std::string_view, instance_status_e>, 7>{{
+        {"created", instance_status_e::Created},
+        {"not created", instance_status_e::NotCreated},
+        {"orphaned", instance_status_e::Orphaned},
+        {"requested", instance_status_e::Requested},
+        {"resources ready", instance_status_e::ResourcesReady},
+        {"running", instance_status_e::Running},
+        {"stopped", instance_status_e::Stopped},
+    }};
 
-    return status.count(str) ? status.at(str) : instance_status_e::UNKNOWN;
+    const auto it = std::find_if(
+        status.cbegin(),
+        status.cend(),
+        [&str](const std::tuple<std::string_view, instance_status_e>& elem) {
+            return std::get<0>(elem) == str;
+        });
+
+    return it == status.cend() ? instance_status_e::Unknown : std::get<1>(*it);
 }
 
 } // namespace FLECS
