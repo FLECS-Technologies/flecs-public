@@ -23,34 +23,28 @@
 
 namespace FLECS {
 
-std::string generate_instance_id()
-{
-    return int_to_hex(rnd(), fmt::Lowercase, fmt::NoPrefix, fmt::LeadingZeroes);
-}
-
 instance_t::instance_t()
-    : instance_t{generate_instance_id(), nullptr, "", instance_status_e::UNKNOWN, instance_status_e::UNKNOWN}
+    : instance_t{instance_id_t{}, nullptr, std::string{}}
 {}
 
-instance_t::instance_t(const app_t* app, std::string instance_name, instance_status_e status, instance_status_e desired)
-    : instance_t{generate_instance_id(), app, instance_name, status, desired}
+instance_t::instance_t(const app_t* app, std::string instance_name)
+    : instance_t{instance_id_t{}, app, std::move(instance_name)}
 {}
 
-instance_t::instance_t(
-    std::string id, const app_t* app, std::string instance_name, instance_status_e status, instance_status_e desired)
-    : _id{id}
+instance_t::instance_t(instance_id_t id, const app_t* app, std::string instance_name)
+    : _id{std::move(id)}
     , _app{app}
     , _app_name{app ? app->app() : ""}
     , _app_version{app ? app->version() : ""}
-    , _instance_name{instance_name}
-    , _status{status}
-    , _desired{desired}
+    , _instance_name{std::move(instance_name)}
+    , _status{instance_status_e::UNKNOWN}
+    , _desired{instance_status_e::UNKNOWN}
     , _networks{}
     , _startup_options{}
 {}
 
 auto instance_t::id() const noexcept //
-    -> const std::string&
+    -> const instance_id_t&
 {
     return _id;
 }
@@ -136,7 +130,7 @@ auto instance_t::usb_devices() noexcept //
 auto instance_t::regenerate_id() //
     -> void
 {
-    _id = generate_instance_id();
+    return _id.regenerate();
 }
 
 auto instance_t::app(const app_t* app) //

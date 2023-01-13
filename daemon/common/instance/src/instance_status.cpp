@@ -14,7 +14,10 @@
 
 #include "instance_status.h"
 
+#include <algorithm>
+#include <array>
 #include <map>
+#include <tuple>
 
 namespace FLECS {
 
@@ -27,16 +30,23 @@ auto to_char(const instance_status_e& instance_status) //
 auto to_string(const instance_status_e& instance_status) //
     -> std::string
 {
-    const auto strings = std::map<instance_status_e, std::string>{
+    const auto strings = std::array<std::tuple<instance_status_e, std::string>, 6>{{
         {instance_status_e::CREATED, "created"},
         {instance_status_e::NOT_CREATED, "not created"},
         {instance_status_e::REQUESTED, "requested"},
         {instance_status_e::RESOURCES_READY, "resources ready"},
         {instance_status_e::RUNNING, "running"},
         {instance_status_e::STOPPED, "stopped"},
-    };
+    }};
 
-    return strings.at(instance_status);
+    const auto it = std::find_if(
+        strings.cbegin(),
+        strings.cend(),
+        [&instance_status](const std::tuple<instance_status_e, std::string_view>& elem) {
+            return std::get<0>(elem) == instance_status;
+        });
+
+    return it == strings.cend() ? "unknown" : std::get<1>(*it);
 }
 
 auto instance_status_from_string(std::string_view str) //

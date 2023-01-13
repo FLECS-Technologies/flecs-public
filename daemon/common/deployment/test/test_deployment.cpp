@@ -27,12 +27,17 @@ class mock_deployment_t : public deployment_t
 public:
     MOCK_METHOD(std::string_view, do_deployment_id, (), (const, noexcept, override));
     MOCK_METHOD(result_t, do_insert_instance, (instance_t instance), (override));
-    MOCK_METHOD(result_t, do_create_instance, ((const app_t& app), (instance_t & instance)), (override));
-    MOCK_METHOD(result_t, do_delete_instance, (std::string_view instance_id), (override));
+    MOCK_METHOD(
+        result_t, do_create_instance, ((const app_t& app), (instance_t & instance)), (override));
+    MOCK_METHOD(result_t, do_delete_instance, (instance_id_t instance_id), (override));
     MOCK_METHOD(result_t, do_start_instance, ((instance_t & instance)), (override));
     MOCK_METHOD(result_t, do_ready_instance, (const instance_t& instance), (override));
     MOCK_METHOD(result_t, do_stop_instance, (const instance_t& instance), (override));
-    MOCK_METHOD(result_t, do_export_instance, (const instance_t& instance, fs::path dest_dir), (const, override));
+    MOCK_METHOD(
+        result_t,
+        do_export_instance,
+        (const instance_t& instance, fs::path dest_dir),
+        (const, override));
     MOCK_METHOD(
         result_t,
         do_create_network,
@@ -48,12 +53,18 @@ public:
     MOCK_METHOD(
         result_t,
         do_connect_network,
-        ((std::string_view instance_id), (std::string_view network), (std::string_view ip)),
+        ((instance_id_t instance_id), (std::string_view network), (std::string_view ip)),
         (override));
     MOCK_METHOD(
-        result_t, do_disconnect_network, ((std::string_view instance_id), (std::string_view network)), (override));
+        result_t,
+        do_disconnect_network,
+        ((instance_id_t instance_id), (std::string_view network)),
+        (override));
     MOCK_METHOD(
-        result_t, do_create_volume, ((std::string_view instance_id), (std::string_view volume_name)), (override));
+        result_t,
+        do_create_volume,
+        ((instance_id_t instance_id), (std::string_view volume_name)),
+        (override));
     MOCK_METHOD(
         result_t,
         do_import_volume,
@@ -65,18 +76,24 @@ public:
         ((const instance_t& instance), (std::string_view volume_name), (FLECS::fs::path dest_dir)),
         (const, override));
     MOCK_METHOD(
-        result_t, do_delete_volume, ((std::string_view instance_id), (std::string_view volume_name)), (override));
+        result_t,
+        do_delete_volume,
+        ((instance_id_t instance_id), (std::string_view volume_name)),
+        (override));
     MOCK_METHOD(
-        result_t, do_copy_file_from_image, ((std::string_view image), (fs::path file), (fs::path dest)), (override));
+        result_t,
+        do_copy_file_from_image,
+        ((std::string_view image), (fs::path file), (fs::path dest)),
+        (override));
     MOCK_METHOD(
         result_t,
         do_copy_file_to_instance,
-        ((std::string_view instance_id), (fs::path file), (fs::path dest)),
+        ((instance_id_t instance_id), (fs::path file), (fs::path dest)),
         (override));
     MOCK_METHOD(
         result_t,
         do_copy_file_from_instance,
-        ((std::string_view instance_id), (fs::path file), (fs::path dest)),
+        ((instance_id_t instance_id), (fs::path file), (fs::path dest)),
         (const, override));
     MOCK_METHOD(std::string_view, do_default_network_name, (), (const, override));
     MOCK_METHOD(network_type_t, do_default_network_type, (), (const, override));
@@ -91,8 +108,8 @@ using std::operator""s;
 #define G_CIDR_SUBNET "172.20.0.0/24"
 #define G_GATEWAY "172.20.0.1"
 #define G_IMAGE "flecs/test-app"
-#define G_INSTANCE_ID_1 "abcd0123"
-#define G_INSTANCE_ID_2 "0123abcd"
+#define G_INSTANCE_ID_1 FLECS::instance_id_t(2882339107U)
+#define G_INSTANCE_ID_2 FLECS::instance_id_t(19114957U)
 #define G_IP "172.20.0.2"
 #define G_INSTANCE_NAME_1 "Test instance 1"
 #define G_INSTANCE_NAME_2 "Test instance 2"
@@ -120,8 +137,10 @@ using std::operator""s;
     "author: FLECS Technologies GmbH (info@flecs.tech)\n" \
     "image: " G_IMAGE "\n"s
 
-static const auto app_1 = FLECS::app_t{G_MANIFEST_1, FLECS::app_status_e::INSTALLED, FLECS::app_status_e::INSTALLED};
-static const auto app_2 = FLECS::app_t{G_MANIFEST_2, FLECS::app_status_e::INSTALLED, FLECS::app_status_e::INSTALLED};
+static const auto app_1 =
+    FLECS::app_t{G_MANIFEST_1, FLECS::app_status_e::INSTALLED, FLECS::app_status_e::INSTALLED};
+static const auto app_2 =
+    FLECS::app_t{G_MANIFEST_2, FLECS::app_status_e::INSTALLED, FLECS::app_status_e::INSTALLED};
 
 TEST(deployment, interface)
 {
@@ -129,19 +148,13 @@ TEST(deployment, interface)
     auto& test_deployment = static_cast<FLECS::mock_deployment_t&>(*deployment.get());
     const auto& test_deployment_c = static_cast<const FLECS::mock_deployment_t&>(test_deployment);
 
-    auto instance_1 = FLECS::instance_t{
-        G_INSTANCE_ID_1,
-        &app_1,
-        G_INSTANCE_NAME_1,
-        FLECS::instance_status_e::CREATED,
-        FLECS::instance_status_e::RUNNING};
+    auto instance_1 = FLECS::instance_t{G_INSTANCE_ID_1, &app_1, G_INSTANCE_NAME_1};
+    instance_1.status(FLECS::instance_status_e::CREATED);
+    instance_1.desired(FLECS::instance_status_e::RUNNING);
 
-    auto instance_2 = FLECS::instance_t{
-        G_INSTANCE_ID_2,
-        &app_2,
-        G_INSTANCE_NAME_2,
-        FLECS::instance_status_e::CREATED,
-        FLECS::instance_status_e::RUNNING};
+    auto instance_2 = FLECS::instance_t{G_INSTANCE_ID_2, &app_2, G_INSTANCE_NAME_2};
+    instance_2.status(FLECS::instance_status_e::CREATED);
+    instance_2.desired(FLECS::instance_status_e::RUNNING);
 
     EXPECT_CALL(test_deployment, do_deployment_id()).Times(1);
     test_deployment.deployment_id();
@@ -210,9 +223,19 @@ TEST(deployment, interface)
 
     EXPECT_CALL(
         test_deployment,
-        do_create_network(FLECS::network_type_t::BRIDGE, G_NETWORK_NAME, G_CIDR_SUBNET, G_GATEWAY, G_PARENT))
+        do_create_network(
+            FLECS::network_type_t::BRIDGE,
+            G_NETWORK_NAME,
+            G_CIDR_SUBNET,
+            G_GATEWAY,
+            G_PARENT))
         .Times(1);
-    deployment->create_network(FLECS::network_type_t::BRIDGE, G_NETWORK_NAME, G_CIDR_SUBNET, G_GATEWAY, G_PARENT);
+    deployment->create_network(
+        FLECS::network_type_t::BRIDGE,
+        G_NETWORK_NAME,
+        G_CIDR_SUBNET,
+        G_GATEWAY,
+        G_PARENT);
 
     EXPECT_CALL(test_deployment, do_query_network(G_NETWORK_NAME)).Times(1);
     deployment->query_network(G_NETWORK_NAME);
@@ -220,7 +243,8 @@ TEST(deployment, interface)
     EXPECT_CALL(test_deployment, do_delete_network(G_NETWORK_NAME)).Times(1);
     deployment->delete_network(G_NETWORK_NAME);
 
-    EXPECT_CALL(test_deployment, do_connect_network(G_INSTANCE_ID_1, G_NETWORK_NAME, G_IP)).Times(1);
+    EXPECT_CALL(test_deployment, do_connect_network(G_INSTANCE_ID_1, G_NETWORK_NAME, G_IP))
+        .Times(1);
     deployment->connect_network(G_INSTANCE_ID_1, G_NETWORK_NAME, G_IP);
 
     EXPECT_CALL(test_deployment, do_disconnect_network(G_INSTANCE_ID_1, G_NETWORK_NAME)).Times(1);
@@ -234,19 +258,28 @@ TEST(deployment, interface)
 
     EXPECT_CALL(
         test_deployment,
-        do_copy_file_from_image(G_IMAGE, FLECS::fs::path{G_FILE_CONTAINER}, FLECS::fs::path{G_FILE_LOCAL}))
+        do_copy_file_from_image(
+            G_IMAGE,
+            FLECS::fs::path{G_FILE_CONTAINER},
+            FLECS::fs::path{G_FILE_LOCAL}))
         .Times(1);
     deployment->copy_file_from_image(G_IMAGE, G_FILE_CONTAINER, G_FILE_LOCAL);
 
     EXPECT_CALL(
         test_deployment,
-        do_copy_file_to_instance(G_INSTANCE_ID_1, FLECS::fs::path{G_FILE_LOCAL}, FLECS::fs::path{G_FILE_CONTAINER}))
+        do_copy_file_to_instance(
+            G_INSTANCE_ID_1,
+            FLECS::fs::path{G_FILE_LOCAL},
+            FLECS::fs::path{G_FILE_CONTAINER}))
         .Times(1);
     deployment->copy_file_to_instance(G_INSTANCE_ID_1, G_FILE_LOCAL, G_FILE_CONTAINER);
 
     EXPECT_CALL(
         test_deployment,
-        do_copy_file_from_instance(G_INSTANCE_ID_1, FLECS::fs::path{G_FILE_CONTAINER}, FLECS::fs::path{G_FILE_LOCAL}))
+        do_copy_file_from_instance(
+            G_INSTANCE_ID_1,
+            FLECS::fs::path{G_FILE_CONTAINER},
+            FLECS::fs::path{G_FILE_LOCAL}))
         .Times(1);
     deployment->copy_file_from_instance(G_INSTANCE_ID_1, G_FILE_CONTAINER, G_FILE_LOCAL);
 
@@ -268,19 +301,8 @@ TEST(deployment, load_save)
     auto save_deployment = std::unique_ptr<FLECS::deployment_t>{new FLECS::mock_deployment_t{}};
     auto& save_uut = static_cast<FLECS::mock_deployment_t&>(*save_deployment.get());
 
-    auto instance_1 = FLECS::instance_t{
-        G_INSTANCE_ID_1,
-        &app_1,
-        G_INSTANCE_NAME_1,
-        FLECS::instance_status_e::CREATED,
-        FLECS::instance_status_e::RUNNING};
-
-    auto instance_2 = FLECS::instance_t{
-        G_INSTANCE_ID_2,
-        &app_2,
-        G_INSTANCE_NAME_2,
-        FLECS::instance_status_e::CREATED,
-        FLECS::instance_status_e::RUNNING};
+    auto instance_1 = FLECS::instance_t{G_INSTANCE_ID_1, &app_1, G_INSTANCE_NAME_1};
+    auto instance_2 = FLECS::instance_t{G_INSTANCE_ID_2, &app_2, G_INSTANCE_NAME_2};
 
     save_deployment->insert_instance(instance_1);
     save_deployment->insert_instance(instance_2);
@@ -307,13 +329,11 @@ TEST(deployment, generate_ip_success)
         EXPECT_EQ(ip, "172.20.0.2");
     }
 
-    auto instance = FLECS::instance_t{
-        &app_1,
-        G_INSTANCE_NAME_1,
-        FLECS::instance_status_e::CREATED,
-        FLECS::instance_status_e::CREATED};
-    instance.networks().emplace_back(
-        FLECS::instance_t::network_t{.network_name = "flecs-network", .mac_address = {}, .ip_address = G_IP});
+    auto instance = FLECS::instance_t{&app_1, G_INSTANCE_NAME_1};
+    instance.networks().emplace_back(FLECS::instance_t::network_t{
+        .network_name = "flecs-network",
+        .mac_address = {},
+        .ip_address = G_IP});
 
     deployment->insert_instance(instance);
 

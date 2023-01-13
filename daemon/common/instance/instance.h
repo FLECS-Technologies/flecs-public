@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef BFBA07F5_D230_427A_814B_DA012423C246
-#define BFBA07F5_D230_427A_814B_DA012423C246
+#pragma once
 
 #include <memory>
 #include <set>
 #include <string>
 
 #include "instance_config.h"
+#include "instance_id.h"
 #include "instance_status.h"
 #include "util/json/json.h"
 #include "util/usb/usb.h"
@@ -28,6 +28,11 @@ namespace FLECS {
 
 class app_t;
 
+/*
+class instance_t
+{
+};
+*/
 class instance_t
 {
 public:
@@ -40,17 +45,12 @@ public:
 
     instance_t();
 
-    instance_t(const app_t* app, std::string instance_name, instance_status_e status, instance_status_e desired);
+    instance_t(const app_t* app, std::string instance_name);
 
-    instance_t(
-        std::string id,
-        const app_t* app,
-        std::string instance_name,
-        instance_status_e status,
-        instance_status_e desired);
+    instance_t(instance_id_t id, const app_t* app, std::string instance_name);
 
     auto id() const noexcept //
-        -> const std::string&;
+        -> const instance_id_t&;
     auto app() const noexcept //
         -> const app_t&;
     auto app_name() const noexcept //
@@ -100,8 +100,10 @@ private:
     friend auto from_json(const json_t& json, instance_t& instance) //
         -> void;
 
-    std::string _id;
+    instance_id_t _id;
     const app_t* _app;
+    // std::weak_ptr<const app_t> _app;
+    // std::weak_ptr<deployment_t> _deployment;
     std::string _app_name;
     std::string _app_version;
     std::string _instance_name;
@@ -116,5 +118,3 @@ auto operator==(const instance_t& lhs, const instance_t& rhs) //
     -> bool;
 
 } // namespace FLECS
-
-#endif // BFBA07F5_D230_427A_814B_DA012423C246

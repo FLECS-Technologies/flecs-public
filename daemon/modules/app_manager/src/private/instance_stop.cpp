@@ -21,7 +21,7 @@ namespace FLECS {
 namespace Private {
 
 auto module_app_manager_private_t::do_stop_instance(
-    const std::string& instance_id,
+    const instance_id_t& instance_id,
     const std::string& app_name,
     const std::string& version,
     json_t& response,
@@ -36,7 +36,8 @@ auto module_app_manager_private_t::do_stop_instance(
 
     // Step 1: Verify instance does actually exist
     if (!_deployment->has_instance(instance_id)) {
-        response["additionalInfo"] = "Could not stop instance " + instance_id + ", which does not exist";
+        response["additionalInfo"] =
+            "Could not stop instance " + instance_id.hex() + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
@@ -55,7 +56,7 @@ auto module_app_manager_private_t::do_stop_instance(
 
     // Step 3: Return if instance is not running
     if (!_deployment->is_instance_running(instance_id) && !internal) {
-        response["additionalInfo"] = "Instance " + instance_id + " is not running";
+        response["additionalInfo"] = "Instance " + instance_id.hex() + " is not running";
         return crow::status::OK;
     }
 

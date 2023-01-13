@@ -21,7 +21,8 @@
 namespace FLECS {
 namespace Private {
 
-auto module_app_manager_private_t::do_instance_log(const std::string& instance_id, json_t& response) //
+auto module_app_manager_private_t::do_instance_log(
+    const instance_id_t& instance_id, json_t& response) //
     -> crow::status
 {
     // Provisional response based on request
@@ -30,22 +31,24 @@ auto module_app_manager_private_t::do_instance_log(const std::string& instance_i
 
     // Step 1: Verify instance does actually exist
     if (!_deployment->has_instance(instance_id)) {
-        response["additionalInfo"] = "Could not query details of instance " + instance_id + ", which does not exist";
+        response["additionalInfo"] =
+            "Could not query details of instance " + instance_id.hex() + ", which does not exist";
         return crow::status::BAD_REQUEST;
     }
 
     // Step 2: Obtain log from Docker
     auto docker_process = process_t{};
-    docker_process.spawnp("docker", "logs", "flecs-" + instance_id);
+    docker_process.spawnp("docker", "logs", "flecs-" + instance_id.hex());
     docker_process.wait(false, false);
 
     // Step 3: Build response
     if (docker_process.exit_code() != 0) {
-        response["additionalInfo"] = "Could not get logs for instance " + instance_id;
+        response["additionalInfo"] = "Could not get logs for instance " + instance_id.hex();
         return crow::status::INTERNAL_SERVER_ERROR;
     }
 
-    response["log"] = "--- stdout\n" + docker_process.stdout() + "\n--- stderr\n" + docker_process.stderr();
+    response["log"] =
+        "--- stdout\n" + docker_process.stdout() + "\n--- stderr\n" + docker_process.stderr();
 
     return crow::status::OK;
 }
