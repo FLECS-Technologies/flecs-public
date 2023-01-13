@@ -31,5 +31,5 @@ target_link_libraries(
     FLECS.daemon.common.app
     FLECS.daemon.common.db
     FLECS.daemon.common.deployment
-    FLECS.daemon.common.instance
+    daemon.common.instance
 )
