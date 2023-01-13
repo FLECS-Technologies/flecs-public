@@ -12,28 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME daemon.common.instance)
+if(BUILD_TESTING)
+    set(PROJECT_NAME daemon.common.instance.test)
+    project(${PROJECT_NAME})
 
-project(${PROJECT_NAME})
+    add_executable(${PROJECT_NAME}
+        test_instance_id.cpp
+    )
 
-add_library(
-    ${PROJECT_NAME} STATIC
-    src/instance.cpp src/instance_config.cpp src/instance_id.cpp src/instance_status.cpp
-    instance.h instance_config.h instance_id.h instance_status.h
-)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_instance)
 
-target_include_directories(
-    ${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        FLECS.external.gtest
+        FLECS.external.gtest_main
+        daemon.common.instance
+    )
 
-target_include_directories(
-    ${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(${PROJECT_NAME} PUBLIC
-    FLECS.daemon.common.app
-    FLECS.external.json
-    FLECS.util.usb
-)
-
-add_subdirectory(test)
+    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+endif()

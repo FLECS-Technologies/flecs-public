@@ -35,7 +35,7 @@ target_include_directories(
 target_link_libraries(
     ${PROJECT_NAME} PRIVATE
     FLECS.daemon.common.app
-    FLECS.daemon.common.instance
+    daemon.common.instance
     FLECS.daemon.modules.factory
     FLECS.daemon.modules.system
     FLECS.util.network
