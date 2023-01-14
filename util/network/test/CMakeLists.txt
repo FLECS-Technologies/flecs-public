@@ -17,6 +17,7 @@ if(BUILD_TESTING)
 
     add_executable(FLECS.test.util.network
         test_ip_addr.cpp
+        test_netif_type.cpp
         test_network.cpp
     )
 

@@ -15,8 +15,8 @@
 project(FLECS.util.network)
 
 add_library(FLECS.util.network STATIC
-    src/ip_addr.cpp src/network.cpp
-    ip_addr.h network.h
+    src/ip_addr.cpp src/netif_type.cpp src/network.cpp
+    ip_addr.h netif_type.h network.h
 )
 
 target_include_directories(FLECS.util.network PRIVATE
