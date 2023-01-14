@@ -26,6 +26,7 @@
 
 #include "factory/factory.h"
 #include "util/cxx20/string.h"
+#include "util/network/ip_addr.h"
 #include "util/network/network.h"
 #include "util/string/string_utils.h"
 #include "util/sysinfo/sysinfo.h"
@@ -112,9 +113,9 @@ auto module_system_t::get_network_adapters() const //
             case AF_INET: {
                 auto ip = ipaddr_t{};
 
-                // inet_ntop(AF_INET, &((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr, buf, INET_ADDRSTRLEN);
-                ip.addr = ipv4_to_string(((struct sockaddr_in*)ifa->ifa_addr)->sin_addr);
-                ip.subnet_mask = ipv4_to_string(((struct sockaddr_in*)ifa->ifa_netmask)->sin_addr);
+                ip.addr = to_string(ip_addr_t{((struct sockaddr_in*)ifa->ifa_addr)->sin_addr});
+                ip.subnet_mask =
+                    to_string(ip_addr_t{((struct sockaddr_in*)ifa->ifa_netmask)->sin_addr});
 
                 adapters[ifa->ifa_name].ipv4_addr.emplace_back(ip);
                 break;
@@ -122,8 +123,9 @@ auto module_system_t::get_network_adapters() const //
             case AF_INET6: {
                 auto ip = ipaddr_t{};
 
-                ip.addr = ipv6_to_string(((struct sockaddr_in6*)ifa->ifa_addr)->sin6_addr);
-                ip.subnet_mask = ipv6_to_string(((struct sockaddr_in6*)ifa->ifa_netmask)->sin6_addr);
+                ip.addr = to_string(ip_addr_t{((struct sockaddr_in6*)ifa->ifa_addr)->sin6_addr});
+                ip.subnet_mask =
+                    to_string(ip_addr_t{((struct sockaddr_in6*)ifa->ifa_netmask)->sin6_addr});
 
                 adapters[ifa->ifa_name].ipv6_addr.emplace_back(ip);
                 break;
@@ -175,7 +177,8 @@ auto module_system_t::get_network_adapters() const //
     }
 
     for (decltype(auto) adapter : adapters) {
-        if ((cxx20::starts_with(adapter.first, "en") || (cxx20::starts_with(adapter.first, "eth")))) {
+        if ((cxx20::starts_with(adapter.first, "en") ||
+             (cxx20::starts_with(adapter.first, "eth")))) {
             adapter.second.type = netif_type_t::WIRED;
         } else if ((cxx20::starts_with(adapter.first, "wl"))) {
             adapter.second.type = netif_type_t::WIRELESS;
@@ -183,7 +186,8 @@ auto module_system_t::get_network_adapters() const //
             adapter.second.type = netif_type_t::LOCAL;
         } else if ((cxx20::starts_with(adapter.first, "veth"))) {
             adapter.second.type = netif_type_t::VIRTUAL;
-        } else if ((cxx20::starts_with(adapter.first, "br") || (cxx20::starts_with(adapter.first, "docker")))) {
+        } else if ((cxx20::starts_with(adapter.first, "br") ||
+                    (cxx20::starts_with(adapter.first, "docker")))) {
             adapter.second.type = netif_type_t::BRIDGE;
         } else {
             adapter.second.type = UNKNOWN;

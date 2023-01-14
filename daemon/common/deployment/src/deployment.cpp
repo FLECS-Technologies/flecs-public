@@ -20,6 +20,7 @@
 #include <regex>
 #include <set>
 
+#include "util/network/ip_addr.h"
 #include "util/network/network.h"
 
 namespace FLECS {
@@ -527,16 +528,16 @@ auto deployment_t::generate_instance_ip(
     -> std::string
 {
     // parse a.b.c.d
-    auto base_ip = in_addr_t{};
+    auto base_ip = ip_addr_t{};
     {
         // from beginning of line: (a.b.c.)(d/)
         // e.g. 127.0.0.1/24 -> (127.0.0.)(1)/
         const auto ip_regex = std::regex{R"((^(?:\d{1,3}\.){3}\d{1,3})\/)"};
         auto m = std::cmatch{};
         if (!std::regex_search(cidr_subnet.data(), m, ip_regex)) {
-            return std::string{};
+            return {};
         }
-        base_ip = ntohl(ipv4_to_bits(m[1].str()).s_addr);
+        base_ip = ip_addr_t{m[1].str()};
     }
     // parse /x
     auto subnet_size = int{};
@@ -546,7 +547,7 @@ auto deployment_t::generate_instance_ip(
         const auto subnet_regex = std::regex{R"(\d\/([0-9]|[1][0-9]|[2][0-9]|[3][0-2])$)"};
         auto m = std::cmatch{};
         if (!std::regex_search(cidr_subnet.data(), m, subnet_regex) || m.size() < 2) {
-            return std::string{};
+            return {};
         }
         subnet_size = std::stoi(m[1].str());
     }
@@ -555,15 +556,15 @@ auto deployment_t::generate_instance_ip(
     // (~0u << subnet_size) creates an inverted bitmask (such as 0xff00),
     // which is again inverted (yielding e.g. 0x00ff) and or'ed with the base ip.
     // finally subtract 1 to exclude the network's broadcast address
-    const auto max_ip = (base_ip | ~(~0u << subnet_size)) - 1;
+    const auto max_ip = ip_addr_t{(base_ip.addr_v4().s_addr | ~(~0u << subnet_size)) - 1};
 
-    auto used_ips = std::set<in_addr_t>{};
+    auto used_ips = std::set<ip_addr_t>{};
     if (!gateway.empty()) {
-        used_ips.emplace(ntohl(ipv4_to_bits(gateway).s_addr));
+        used_ips.emplace(gateway);
     }
     for (const auto& instance : _instances) {
         for (const auto& network : instance.second.networks()) {
-            used_ips.emplace(ntohl(ipv4_to_bits(network.ip_address).s_addr));
+            used_ips.emplace(network.ip_address);
         }
     }
 
@@ -571,15 +572,15 @@ auto deployment_t::generate_instance_ip(
     auto instance_ip = base_ip + 2;
 
     // search first unused address
-    while (used_ips.find(instance_ip) != used_ips.end()) {
+    while (used_ips.count(instance_ip)) {
         ++instance_ip;
     }
 
     if (instance_ip > max_ip) {
-        return std::string{};
+        return {};
     }
 
-    return ipv4_to_string(in_addr{.s_addr = htonl(instance_ip)});
+    return to_string(instance_ip);
 }
 
 auto deployment_t::do_load(fs::path base_path) //

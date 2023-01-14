@@ -19,46 +19,19 @@
 #include <bitset>
 #include <regex>
 
+#include "ip_addr.h"
 #include "util/string/string_utils.h"
 
 namespace FLECS {
 
-auto ipv4_to_bits(std::string_view ip) //
-    -> in_addr
-{
-    auto ip_addr = in_addr{};
-    inet_pton(AF_INET, ip.data(), &ip_addr);
-    return ip_addr;
-}
-
-auto ipv6_to_bits(std::string_view ip) //
-    -> in6_addr
-{
-    auto ip_addr = in6_addr{};
-    inet_pton(AF_INET6, ip.data(), &ip_addr);
-    return ip_addr;
-}
-
-auto ipv4_to_string(const in_addr& ip) //
-    -> std::string
-{
-    char buf[INET_ADDRSTRLEN] = {};
-    inet_ntop(AF_INET, &ip, buf, INET_ADDRSTRLEN);
-    return std::string{buf};
-}
-
-auto ipv6_to_string(const in6_addr& ip) //
-    -> std::string
-{
-    char buf[INET6_ADDRSTRLEN] = {};
-    inet_ntop(AF_INET6, &ip, buf, INET6_ADDRSTRLEN);
-    return std::string{buf};
-}
-
 auto subnet_mask_to_cidr_v4(std::string_view subnet_mask) //
     -> std::size_t
 {
-    const auto subnet_bits = std::bitset<8 * sizeof(in_addr_t)>{ipv4_to_bits(subnet_mask).s_addr};
+    const auto addr = ip_addr_t{subnet_mask};
+    if (addr.type() != ip_addr_t::IPv4) {
+        return {};
+    }
+    const auto subnet_bits = std::bitset<8 * sizeof(in_addr_t)>{addr.addr_v4().s_addr};
     return subnet_bits.count();
 }
 
@@ -79,20 +52,21 @@ auto cidr_to_subnet_mask_v4(std::string_view cidr_subnet) //
         subnet_bits.set(subnet_bits.size() - i - 1);
     }
 
-    const auto addr = in_addr{.s_addr = htonl(static_cast<in_addr_t>(subnet_bits.to_ulong()))};
-
-    return ipv4_to_string(addr);
+    const auto addr = ip_addr_t{htonl(static_cast<in_addr_t>(subnet_bits.to_ulong()))};
+    return to_string(addr);
 }
 
 auto ipv4_to_network(std::string_view ip, std::string_view subnet_mask) //
     -> std::string
 {
-    const auto ip_addr = ipv4_to_bits(ip).s_addr;
-    const auto subnet_addr = ipv4_to_bits(subnet_mask).s_addr;
+    const auto ip_addr = ip_addr_t{ip};
+    const auto subnet_addr = subnet_mask_t{subnet_mask};
+    if (ip_addr.type() != ip_addr_t::IPv4 || subnet_addr.type() != ip_addr_t::IPv4) {
+        return {};
+    }
 
-    const auto network_addr = in_addr{.s_addr = (ip_addr & subnet_addr)};
-
-    return ipv4_to_string(network_addr) + "/" + stringify(subnet_mask_to_cidr_v4(subnet_mask));
+    const auto network_addr = ip_addr_t{ip_addr.addr_v4().s_addr & subnet_addr.addr_v4().s_addr};
+    return stringify_delim('/', network_addr, subnet_mask_to_cidr_v4(subnet_mask));
 }
 
 } // namespace FLECS
