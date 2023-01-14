@@ -22,15 +22,6 @@
 
 namespace FLECS {
 
-auto ipv4_to_bits(std::string_view ip) //
-    -> in_addr;
-auto ipv6_to_bits(std::string_view ip) //
-    -> in6_addr;
-auto ipv4_to_string(const in_addr& ip) //
-    -> std::string;
-auto ipv6_to_string(const in6_addr& ip) //
-    -> std::string;
-
 auto subnet_mask_to_cidr_v4(std::string_view subnet_mask) //
     -> std::size_t;
 auto cidr_to_subnet_mask_v4(std::string_view cidr_subnet) //
