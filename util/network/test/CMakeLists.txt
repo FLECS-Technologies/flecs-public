@@ -13,9 +13,10 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    project(FLECS.util.network.test)
+    project(util.network.test)
 
     add_executable(FLECS.test.util.network
+        test_ip_addr.cpp
         test_network.cpp
     )
 
