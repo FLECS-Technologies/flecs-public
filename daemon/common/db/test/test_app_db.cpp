@@ -30,7 +30,7 @@ auto make_app_entry(std::string app = "tech.flecs.test", std::string version = "
     manifest_string << "category: \"test\"\n";
     manifest_string << "image: \"flecs/" << app << "\"\n";
 
-    return FLECS::app_t{manifest_string.str(), FLECS::NOT_INSTALLED, FLECS::INSTALLED};
+    return FLECS::app_t{manifest_string.str(), FLECS::NotInstalled, FLECS::Installed};
 }
 
 auto make_instance_entry(std::string id = "789abcde", const FLECS::app_t& app = make_app_entry())

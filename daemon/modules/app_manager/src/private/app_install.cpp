@@ -126,10 +126,10 @@ auto module_app_manager_private_t::do_install(
     json_t& response) //
     -> crow::status
 {
-    const auto desired = app_status_e::INSTALLED;
+    const auto desired = app_status_e::Installed;
 
     // Step 1: Load app manifest
-    auto tmp = app_t{manifest_path, app_status_e::MANIFEST_DOWNLOADED, desired};
+    auto tmp = app_t{manifest_path, app_status_e::ManifestDownloaded, desired};
     if (tmp.app().empty()) {
         response["additionalInfo"] = "Could not open app manifest " + manifest_path.string();
         return crow::status::INTERNAL_SERVER_ERROR;
@@ -152,18 +152,18 @@ auto module_app_manager_private_t::do_install(
 
     auto& app = it->second;
     switch (app.status()) {
-        case app_status_e::MANIFEST_DOWNLOADED: {
+        case app_status_e::ManifestDownloaded: {
             // Step 3: Acquire download token for app
             app.download_token(acquire_download_token(license_key));
 
             if (app.download_token().empty()) {
                 response["additionalInfo"] = "Could not acquire download token";
             } else {
-                app.status(app_status_e::TOKEN_ACQUIRED);
+                app.status(app_status_e::TokenAcquired);
             }
             [[fallthrough]];
         }
-        case app_status_e::TOKEN_ACQUIRED: {
+        case app_status_e::TokenAcquired: {
             // Step 4: Pull Docker image for this app
             auto docker_login_process = process_t{};
             auto docker_pull_process = process_t{};
@@ -206,23 +206,23 @@ auto module_app_manager_private_t::do_install(
                 persist_apps();
                 return crow::status::INTERNAL_SERVER_ERROR;
             }
-            app.status(app_status_e::IMAGE_DOWNLOADED);
+            app.status(app_status_e::ImageDownloaded);
             [[fallthrough]];
         }
-        case app_status_e::IMAGE_DOWNLOADED: {
+        case app_status_e::ImageDownloaded: {
             // Step 5: Expire download token
             const auto args = split(app.download_token(), ';');
             if (args.size() == 3) {
                 const auto success = expire_download_token(args[0], args[2]);
                 if (success) {
                     app.download_token("");
-                    app.status(app_status_e::INSTALLED);
+                    app.status(app_status_e::Installed);
                 } else {
                     response["additionalInfo"] = "Could not expire download token";
                 }
             } else {
                 app.download_token("");
-                app.status(app_status_e::INSTALLED);
+                app.status(app_status_e::Installed);
             }
             break;
         }

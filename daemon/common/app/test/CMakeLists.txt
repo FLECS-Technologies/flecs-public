@@ -19,6 +19,7 @@ if(BUILD_TESTING)
     add_executable(${PROJECT_NAME}
         test_app_key.cpp
         test_app_name.cpp
+        test_app_status.cpp
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_app)

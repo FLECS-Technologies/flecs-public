@@ -138,9 +138,9 @@ using std::operator""s;
     "image: " G_IMAGE "\n"s
 
 static const auto app_1 =
-    FLECS::app_t{G_MANIFEST_1, FLECS::app_status_e::INSTALLED, FLECS::app_status_e::INSTALLED};
+    FLECS::app_t{G_MANIFEST_1, FLECS::app_status_e::Installed, FLECS::app_status_e::Installed};
 static const auto app_2 =
-    FLECS::app_t{G_MANIFEST_2, FLECS::app_status_e::INSTALLED, FLECS::app_status_e::INSTALLED};
+    FLECS::app_t{G_MANIFEST_2, FLECS::app_status_e::Installed, FLECS::app_status_e::Installed};
 
 TEST(deployment, interface)
 {
