@@ -42,7 +42,7 @@ auto module_app_manager_private_t::do_uninstall(
 
     // Step 2: Load app manifest
     auto& app = _installed_apps.find(app_key_t{app_name, version})->second;
-    app.desired(app_status_e::NOT_INSTALLED);
+    app.desired(app_status_e::NotInstalled);
 
     // Step 2a: Prevent removal of system apps
     if (cxx20::contains(app.category(), "system") && !force) {

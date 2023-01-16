@@ -12,29 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef A374D934_15CF_4E41_9406_B3368CEA8A94
-#define A374D934_15CF_4E41_9406_B3368CEA8A94
+#pragma once
 
 #include <string>
+#include <string_view>
 
 namespace FLECS {
 
-enum class app_status_e : char {
-    NOT_INSTALLED = 'n',
-    MANIFEST_DOWNLOADED = 'm',
-    TOKEN_ACQUIRED = 't',
-    IMAGE_DOWNLOADED = 'd',
-    INSTALLED = 'i',
-    REMOVED = 'r',
-    PURGED = 'p',
-    UNKNOWN = 'u',
+enum class app_status_e {
+    NotInstalled,
+    ManifestDownloaded,
+    TokenAcquired,
+    ImageDownloaded,
+    Installed,
+    Removed,
+    Purged,
+    Unknown,
 };
 
-inline auto to_char(app_status_e val) //
-    -> char
-{
-    return static_cast<std::underlying_type_t<app_status_e>>(val);
-}
+auto to_string_view(app_status_e instance_status) //
+    -> std::string_view;
 
 auto to_string(app_status_e app_status) //
     -> std::string;
@@ -43,5 +40,3 @@ auto app_status_from_string(std::string_view str) //
     -> app_status_e;
 
 } // namespace FLECS
-
-#endif // A374D934_15CF_4E41_9406_B3368CEA8A94

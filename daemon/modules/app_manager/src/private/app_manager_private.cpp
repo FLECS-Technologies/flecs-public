@@ -158,8 +158,8 @@ auto module_app_manager_private_t::do_init() //
             download_manifest(system_apps[i].data(), FLECS_VERSION);
             auto app = app_t{
                 build_manifest_path(system_apps[i].data(), FLECS_VERSION),
-                app_status_e::INSTALLED,
-                app_status_e::INSTALLED};
+                app_status_e::Installed,
+                app_status_e::Installed};
             if (!app.app().empty()) {
                 auto response = json_t{};
                 _installed_apps.insert_or_assign(
@@ -271,7 +271,7 @@ auto module_app_manager_private_t::is_app_installed(
     -> bool
 {
     const auto it = _installed_apps.find(app_key_t{app_name, version});
-    return (it != _installed_apps.cend()) && (it->second.status() == app_status_e::INSTALLED);
+    return (it != _installed_apps.cend()) && (it->second.status() == app_status_e::Installed);
 }
 
 auto module_app_manager_private_t::app_versions(std::string_view app_name) const //

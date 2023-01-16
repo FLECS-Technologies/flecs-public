@@ -344,10 +344,10 @@ auto module_apps_impl_t::do_install_impl(
         progress.current_step()._num++;
     }
 
-    const auto desired = app_status_e::INSTALLED;
+    const auto desired = app_status_e::Installed;
 
     // Step 1: Load App manifest
-    auto tmp = app_t{manifest_path, app_status_e::MANIFEST_DOWNLOADED, desired};
+    auto tmp = app_t{manifest_path, app_status_e::ManifestDownloaded, desired};
     if (tmp.app().empty()) {
         auto lock = progress.lock();
         progress.result().code = -1;
@@ -368,7 +368,7 @@ auto module_apps_impl_t::do_install_impl(
 
     auto& app = it->second;
     switch (app.status()) {
-        case app_status_e::MANIFEST_DOWNLOADED: {
+        case app_status_e::ManifestDownloaded: {
             {
                 auto lock = progress.lock();
 
@@ -383,11 +383,11 @@ auto module_apps_impl_t::do_install_impl(
                 auto lock = progress.lock();
                 progress.result().message = "Could not acquire download token";
             } else {
-                app.status(app_status_e::TOKEN_ACQUIRED);
+                app.status(app_status_e::TokenAcquired);
             }
             [[fallthrough]];
         }
-        case app_status_e::TOKEN_ACQUIRED: {
+        case app_status_e::TokenAcquired: {
             {
                 auto lock = progress.lock();
 
@@ -453,10 +453,10 @@ auto module_apps_impl_t::do_install_impl(
                 _parent->save();
                 return;
             }
-            app.status(app_status_e::IMAGE_DOWNLOADED);
+            app.status(app_status_e::ImageDownloaded);
             [[fallthrough]];
         }
-        case app_status_e::IMAGE_DOWNLOADED: {
+        case app_status_e::ImageDownloaded: {
             {
                 auto lock = progress.lock();
 
@@ -470,14 +470,14 @@ auto module_apps_impl_t::do_install_impl(
                 const auto success = expire_download_token(args[0], args[2]);
                 if (success) {
                     app.download_token("");
-                    app.status(app_status_e::INSTALLED);
+                    app.status(app_status_e::Installed);
                 } else {
                     auto lock = progress.lock();
                     progress.result().message = "Could not expire download token";
                 }
             } else {
                 app.download_token("");
-                app.status(app_status_e::INSTALLED);
+                app.status(app_status_e::Installed);
             }
             break;
         }
@@ -542,7 +542,7 @@ auto module_apps_impl_t::do_uninstall(
         return;
     }
 
-    app.desired(app_status_e::NOT_INSTALLED);
+    app.desired(app_status_e::NotInstalled);
 
 #if 0
     // Step 3: Stop and delete all instances of the App
@@ -663,7 +663,7 @@ auto module_apps_impl_t::is_app_installed(std::string_view app_name, std::string
     }
 
     return _installed_apps.at(app_key_t{std::string{app_name}, std::string{version}}).status() ==
-           app_status_e::INSTALLED;
+           app_status_e::Installed;
 }
 
 } // namespace impl

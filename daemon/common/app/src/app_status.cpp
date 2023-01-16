@@ -14,40 +14,62 @@
 
 #include "app_status.h"
 
-#include <map>
+#include <algorithm>
+#include <array>
+#include <tuple>
 
 namespace FLECS {
+
+auto to_string_view(app_status_e app_status) //
+    -> std::string_view
+{
+    const auto strings = std::array<std::tuple<app_status_e, std::string_view>, 7>{{
+        {app_status_e::NotInstalled, "not installed"},
+        {app_status_e::ManifestDownloaded, "manifest downloaded"},
+        {app_status_e::TokenAcquired, "token acquired"},
+        {app_status_e::ImageDownloaded, "image downloaded"},
+        {app_status_e::Installed, "installed"},
+        {app_status_e::Removed, "removed"},
+        {app_status_e::Purged, "purged"},
+    }};
+
+    const auto it = std::find_if(
+        strings.cbegin(),
+        strings.cend(),
+        [&app_status](const std::tuple<app_status_e, std::string_view>& elem) {
+            return std::get<0>(elem) == app_status;
+        });
+
+    return it == strings.cend() ? "unknown" : std::get<1>(*it);
+}
 
 auto to_string(app_status_e app_status) //
     -> std::string
 {
-    const auto strings = std::map<app_status_e, std::string>{
-        {app_status_e::NOT_INSTALLED, "not installed"},
-        {app_status_e::MANIFEST_DOWNLOADED, "manifest downloaded"},
-        {app_status_e::TOKEN_ACQUIRED, "token acquired"},
-        {app_status_e::IMAGE_DOWNLOADED, "image downloaded"},
-        {app_status_e::INSTALLED, "installed"},
-        {app_status_e::REMOVED, "removed"},
-        {app_status_e::PURGED, "purged"},
-    };
-
-    return strings.count(app_status) ? strings.at(app_status) : "unknown";
+    return std::string{to_string_view(app_status)};
 }
 
 auto app_status_from_string(std::string_view str) //
     -> app_status_e
 {
-    const auto status = std::map<std::string_view, app_status_e>{
-        {"not installed", app_status_e::NOT_INSTALLED},
-        {"manifest downloaded", app_status_e::MANIFEST_DOWNLOADED},
-        {"token acquired", app_status_e::TOKEN_ACQUIRED},
-        {"image downloaded", app_status_e::IMAGE_DOWNLOADED},
-        {"installed", app_status_e::INSTALLED},
-        {"removed", app_status_e::REMOVED},
-        {"purged", app_status_e::PURGED},
-    };
+    const auto status = std::array<std::tuple<std::string_view, app_status_e>, 7>{{
+        {"not installed", app_status_e::NotInstalled},
+        {"manifest downloaded", app_status_e::ManifestDownloaded},
+        {"token acquired", app_status_e::TokenAcquired},
+        {"image downloaded", app_status_e::ImageDownloaded},
+        {"installed", app_status_e::Installed},
+        {"removed", app_status_e::Removed},
+        {"purged", app_status_e::Purged},
+    }};
 
-    return status.count(str) ? status.at(str) : app_status_e::UNKNOWN;
+    const auto it = std::find_if(
+        status.cbegin(),
+        status.cend(),
+        [&str](const std::tuple<std::string_view, app_status_e>& elem) {
+            return std::get<0>(elem) == str;
+        });
+
+    return it == status.cend() ? app_status_e::Unknown : std::get<1>(*it);
 }
 
 } // namespace FLECS
