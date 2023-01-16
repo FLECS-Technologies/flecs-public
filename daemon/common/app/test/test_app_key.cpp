@@ -43,7 +43,8 @@ TEST(app_key, init)
     }
     /* app_key_t(std::tuple<std::string, std::string>) */
     {
-        const auto uut = FLECS::app_key_t{std::make_tuple(VALID_APP_NAME_1, VALID_APP_VERSION_1)};
+        const auto uut = FLECS::app_key_t{
+            std::make_tuple(FLECS::app_name_t{VALID_APP_NAME_1}, VALID_APP_VERSION_1)};
 
         ASSERT_TRUE(uut.is_valid());
         ASSERT_EQ(uut.name(), VALID_APP_NAME_1);
@@ -80,7 +81,7 @@ TEST(app_key, sort)
 
 TEST(app_key, json)
 {
-    const auto json_expected = R"-({"app_key":{"name":"tech.flecs.test-app","version":"1.2.3.4-f1"}})-";
+    const auto json_expected = R"-({"name":"tech.flecs.test-app","version":"1.2.3.4-f1"})-";
 
     const auto uut_1 = FLECS::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_1};
     const auto json = FLECS::json_t(uut_1);

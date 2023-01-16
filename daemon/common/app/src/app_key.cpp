@@ -16,10 +16,6 @@
 
 namespace FLECS {
 
-app_key_t::app_key_t(std::tuple<std::string, std::string> app_key)
-    : app_key_t{std::make_tuple(app_name_t{std::move(std::get<0>(app_key))}, std::move(std::get<1>(app_key)))}
-{}
-
 app_key_t::app_key_t(std::tuple<app_name_t, std::string> app_key)
     : _key{std::move(app_key)}
 {}
@@ -88,12 +84,12 @@ auto operator!=(const app_key_t& lhs, const app_key_t& rhs) //
 
 void to_json(json_t& j, const app_key_t& app_key)
 {
-    j = json_t{{"app_key", json_t::object({{"name", app_key.name()}, {"version", app_key.version()}})}};
+    j = json_t({{"name", app_key.name()}, {"version", app_key.version()}});
 }
 
 void from_json(const json_t& json, app_key_t& app_key)
 {
-    app_key = app_key_t{json.at("app_key")["name"], json.at("app_key")["version"]};
+    app_key = app_key_t{json.at("name"), json.at("version")};
 }
 
 } // namespace FLECS

@@ -36,6 +36,8 @@ app_t::app_t(const fs::path& manifest_path, app_status_e status, app_status_e de
     if (!is_valid()) {
         *this = app_t{};
     }
+
+    _key = app_key_t{app(), version()};
 }
 
 app_t::app_t(const std::string& manifest_string, app_status_e status, app_status_e desired)
@@ -46,27 +48,27 @@ app_t::app_t(const std::string& manifest_string, app_status_e status, app_status
     if (!is_valid()) {
         *this = app_t{};
     }
+
+    _key = app_key_t{app(), version()};
 }
 
 auto to_json(json_t& json, const app_t& app) //
     -> void
 {
-    const auto& parent = static_cast<const app_manifest_t&>(app);
-    to_json(json, parent);
-    json.push_back({"status", to_string(app._status)});
-    json.push_back({"desired", to_string(app._desired)});
+    json = json_t(
+        {{"app_key", app._key},
+         {"status", to_string(app._status)},
+         {"desired", to_string(app._desired)},
+         {"installedSize", app._installed_size}});
 }
 
 auto from_json(const json_t& json, app_t& app) //
     -> void
 {
-    from_json(json, static_cast<app_manifest_t&>(app));
-    auto status = std::string{};
-    json.at("status").get_to(status);
-    app._status = app_status_from_string(status);
-    auto desired = std::string{};
-    json.at("desired").get_to(desired);
-    app._desired = app_status_from_string(desired);
+    json.at("app_key").get_to(app._key);
+    app._status = app_status_from_string(json.at("status").get<std::string_view>());
+    app._desired = app_status_from_string(json.at("desired").get<std::string_view>());
+    json.at("installedSize").get_to(app._installed_size);
 }
 
 } // namespace FLECS

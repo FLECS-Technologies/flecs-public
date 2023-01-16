@@ -50,6 +50,7 @@ private:
     friend auto from_json(const json_t& json, app_t& app) //
         -> void;
 
+    app_key_t _key;
     std::string _license_key;
     std::string _download_token;
     std::int32_t _installed_size;
