@@ -564,7 +564,9 @@ auto deployment_t::generate_instance_ip(
     }
     for (const auto& instance : _instances) {
         for (const auto& network : instance.second.networks()) {
-            used_ips.emplace(network.ip_address);
+            if (!network.ip_address.empty()) {
+                used_ips.emplace(network.ip_address);
+            }
         }
     }
 
