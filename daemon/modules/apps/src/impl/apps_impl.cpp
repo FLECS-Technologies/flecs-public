@@ -219,15 +219,14 @@ auto module_apps_impl_t::do_save(fs::path base_path) const //
 auto module_apps_impl_t::do_list(std::string_view app_name, std::string_view version) const //
     -> crow::response
 {
-    auto response = json_t{};
-
-    response["apps"] = json_t::array();
+    auto response = json_t::array();
 
     for (decltype(auto) app : _installed_apps) {
         const auto apps_match = app_name.empty() || (app_name == app.first.name());
-        const auto versions_match = app_name.empty() || version.empty() || (version == app.first.version());
+        const auto versions_match =
+            app_name.empty() || version.empty() || (version == app.first.version());
         if (apps_match && versions_match) {
-            response["appList"].push_back(app.second);
+            response.push_back(app.second);
         }
     }
 

@@ -25,7 +25,6 @@ class app_key_t
 public:
     app_key_t() = default;
     app_key_t(std::tuple<app_name_t, std::string> app_key);
-    app_key_t(std::tuple<std::string, std::string> app_key);
     app_key_t(std::string app_name, std::string app_version);
     app_key_t(app_name_t app_name, std::string app_version);
 

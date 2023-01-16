@@ -28,8 +28,8 @@ namespace FLECS {
  *      o sections are separated by dots (e.g. resulting in tech.flecs.service-mesh)
  *  - allowed characters:
  *      o top-level-domain: [a-z]+
- *      o company name: ([a-z0-9]|[a-z0-9]+[a-z0-9\-]*[a-z0-9]+)    -> must start and end with [a-z0-9]
- *      o product name: ([a-z0-9]|[a-z0-9]+[a-z0-9\-.]*[a-z0-9]+)   -> must start and end with [a-z0-9]
+ *      o company name: ([a-z0-9]|[a-z0-9]+[a-z0-9\-]*[a-z0-9]+) : must start and end with [a-z0-9]
+ *      o product name: ([a-z0-9]|[a-z0-9]+[a-z0-9\-.]*[a-z0-9]+): must start and end with [a-z0-9]
  *  - maximum length: 127 characters
  *
  */
@@ -39,7 +39,7 @@ public:
     static constexpr auto MAX_APP_NAME_LEN = 127;
 
     app_name_t() = default;
-    explicit app_name_t(std::string app_name);
+    app_name_t(std::string app_name);
 
     auto is_valid() const noexcept //
         -> bool;
