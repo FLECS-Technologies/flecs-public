@@ -20,7 +20,7 @@
 
 namespace FLECS {
 
-conffile_t::conffile_t(const std::string& str)
+conffile_t::conffile_t(std::string_view str)
     : _local{}
     , _container{}
     , _ro{}
@@ -54,6 +54,50 @@ conffile_t::conffile_t(const std::string& str)
     }
 }
 
+auto conffile_t::local() const noexcept //
+    -> const std::string&
+{
+    return _local;
+}
+auto conffile_t::local(std::string local) //
+    -> void
+{
+    _local = local;
+}
+
+auto conffile_t::container() const noexcept //
+    -> const std::string&
+{
+    return _container;
+}
+auto conffile_t::container(std::string container) //
+    -> void
+{
+    _container = container;
+}
+
+auto conffile_t::ro() const noexcept //
+    -> bool
+{
+    return _ro;
+}
+auto conffile_t::ro(bool ro) //
+    -> void
+{
+    _ro = ro;
+}
+
+auto conffile_t::init() const noexcept //
+    -> bool
+{
+    return _init;
+}
+auto conffile_t::init(bool init) //
+    -> void
+{
+    _init = init;
+}
+
 bool conffile_t::is_valid() const noexcept
 {
     // local must be a simple filename, no path
@@ -76,9 +120,9 @@ auto to_json(json_t& json, const conffile_t& conffile) //
     -> void
 {
     json = json_t{
+        {"local", conffile._local},
         {"container", conffile._container},
         {"init", conffile._init},
-        {"local", conffile._local},
         {"ro", conffile._ro},
     };
 }
@@ -86,10 +130,56 @@ auto to_json(json_t& json, const conffile_t& conffile) //
 auto from_json(const json_t& json, conffile_t& conffile) //
     -> void
 {
+    json.at("local").get_to(conffile._local);
     json.at("container").get_to(conffile._container);
     json.at("init").get_to(conffile._init);
-    json.at("local").get_to(conffile._local);
     json.at("ro").get_to(conffile._ro);
+}
+
+auto to_string(const conffile_t& conffile) //
+    -> std::string
+{
+    return stringify_delim(
+        ':',
+        conffile.local(),
+        conffile.container(),
+        stringify_delim(',', conffile.ro() ? "ro" : "rw", conffile.init() ? "init" : "no_init"));
+}
+
+auto operator<(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool
+{
+    return lhs.local() < rhs.local();
+}
+
+auto operator<=(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool
+{
+    return !(lhs > rhs);
+}
+
+auto operator>(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool
+{
+    return rhs < lhs;
+}
+
+auto operator>=(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool
+{
+    return !(lhs < rhs);
+}
+
+auto operator==(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool
+{
+    return lhs.local() == rhs.local();
+}
+
+auto operator!=(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool
+{
+    return !(lhs == rhs);
 }
 
 } // namespace FLECS

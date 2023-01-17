@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef D9E7247E_A1EF_469A_9089_3EA80D84D2E4
-#define D9E7247E_A1EF_469A_9089_3EA80D84D2E4
+#pragma once
 
 #include <string>
+#include <string_view>
 
 #include "util/json/json.h"
 
@@ -31,21 +31,30 @@ public:
         , _init{}
     {}
 
-    explicit conffile_t(const std::string& str);
+    explicit conffile_t(std::string_view str);
 
-    auto& local() const noexcept { return _local; }
-    void local(std::string local) { _local = local; }
+    auto local() const noexcept //
+        -> const std::string&;
+    auto local(std::string local) //
+        -> void;
 
-    auto& container() const noexcept { return _container; }
-    void container(std::string container) { _container = container; }
+    auto container() const noexcept //
+        -> const std::string&;
+    auto container(std::string container) //
+        -> void;
 
-    auto ro() const noexcept { return _ro; }
-    void ro(bool ro) { _ro = ro; }
+    auto ro() const noexcept //
+        -> bool;
+    auto ro(bool ro) //
+        -> void;
 
-    auto init() const noexcept { return _init; }
-    void init(bool init) { _init = init; }
+    auto init() const noexcept //
+        -> bool;
+    auto init(bool init) //
+        -> void;
 
-    bool is_valid() const noexcept;
+    auto is_valid() const noexcept //
+        -> bool;
 
 private:
     friend auto to_json(json_t& json, const conffile_t& conffile) //
@@ -59,16 +68,22 @@ private:
     bool _init;
 };
 
-inline bool operator<(const conffile_t& lhs, const conffile_t& rhs)
-{
-    return lhs.local() < rhs.local();
-}
+auto to_string(const conffile_t& conffile) //
+    -> std::string;
 
-inline bool operator==(const conffile_t& lhs, const conffile_t& rhs)
-{
-    return lhs.local() == rhs.local();
-}
+auto operator<(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool;
+auto operator<(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool;
+auto operator<=(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool;
+auto operator>(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool;
+auto operator>=(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool;
+auto operator==(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool;
+auto operator!=(const conffile_t& lhs, const conffile_t& rhs) //
+    -> bool;
 
 } // namespace FLECS
-
-#endif // D9E7247E_A1EF_469A_9089_3EA80D84D2E4
