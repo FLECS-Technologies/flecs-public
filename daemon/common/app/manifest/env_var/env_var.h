@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FDADEFFE_6E66_4E93_8B9D_DDBA6629DEC1
-#define FDADEFFE_6E66_4E93_8B9D_DDBA6629DEC1
+#pragma once
 
 #include <string>
 
@@ -24,51 +23,37 @@ namespace FLECS {
 class env_var_t
 {
 public:
-    env_var_t()
-        : _var{}
-    {}
+    env_var_t() = default;
 
-    env_var_t(std::string var)
-        : _var{var}
-    {}
+    env_var_t(std::string var);
 
-    bool is_valid() const noexcept;
+    auto is_valid() const noexcept //
+        -> bool;
 
-    auto& var() const noexcept { return _var; }
+    auto var() const noexcept //
+        -> const std::string&;
 
 private:
     std::string _var;
 };
 
-inline bool operator<(const env_var_t& lhs, const env_var_t& rhs)
-{
-    return lhs.var() < rhs.var();
-}
-
-inline bool operator==(const env_var_t& lhs, const env_var_t& rhs)
-{
-    return lhs.var() == rhs.var();
-}
-
 class mapped_env_var_t
 {
 public:
-    mapped_env_var_t()
-        : _env_var{}
-        , _value{}
-    {}
+    mapped_env_var_t() = default;
 
-    mapped_env_var_t(env_var_t var, std::string value)
-        : _env_var{var}
-        , _value{value}
-    {}
+    mapped_env_var_t(env_var_t var, std::string value);
 
-    mapped_env_var_t(const std::string& str);
+    mapped_env_var_t(std::string_view str);
 
-    bool is_valid() const noexcept { return _env_var.is_valid(); }
+    auto is_valid() const noexcept //
+        -> bool;
 
-    auto& var() const noexcept { return _env_var.var(); }
-    auto& value() const noexcept { return _value; }
+    auto var() const noexcept //
+        -> const std::string&;
+
+    auto value() const noexcept //
+        -> const std::string&;
 
 private:
     friend auto to_json(json_t& json, const mapped_env_var_t& mapped_env_var) //
@@ -81,30 +66,22 @@ private:
     std::string _value;
 };
 
-inline bool operator<(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs)
-{
-    return lhs.var() < rhs.var();
-}
+auto operator<(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool;
+auto operator<(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool;
+auto operator<=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool;
+auto operator>(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool;
+auto operator>=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool;
+auto operator==(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool;
+auto operator!=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool;
 
-inline bool operator==(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs)
-{
-    return lhs.var() == rhs.var();
-}
-
-inline bool operator!=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline std::string to_string(const mapped_env_var_t& mapped_env_var)
-{
-    auto res = std::string{};
-    if (mapped_env_var.is_valid()) {
-        res += mapped_env_var.var() + "=" + mapped_env_var.value();
-    }
-    return res;
-}
+auto to_string(const mapped_env_var_t& mapped_env_var) //
+    -> std::string;
 
 } // namespace FLECS
-
-#endif // FDADEFFE_6E66_4E93_8B9D_DDBA6629DEC1

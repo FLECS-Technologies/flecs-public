@@ -231,7 +231,7 @@ TEST(daemon_app, to_json)
         R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
         R"-("conffiles":[{"local":"local.conf","container":"/etc/container.conf","init":false,"ro":false}],)-"
         R"-("devices":["/dev/device0"],)-"
-        R"-("env":[{"value":"ENV_VAR_VALUE","var":"MY_ENV_VAR"}],)-"
+        R"-("env":[{"var":"MY_ENV_VAR","value":"ENV_VAR_VALUE"}],)-"
         R"-("hostname":"flecs-unit-test",)-"
         R"-("interactive":true,)-"
         R"-("networks":[{"mac_address":"","name":"flecs","parent":"","type":"bridge"}],)-"
