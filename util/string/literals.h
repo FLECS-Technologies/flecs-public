@@ -16,27 +16,27 @@
 
 namespace FLECS {
 
-FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_B(const unsigned long long num)
+inline FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_B(const unsigned long long num)
 {
     return num;
 }
 
-FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_kiB(const unsigned long long num)
+inline FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_kiB(const unsigned long long num)
 {
     return 1024 * operator""_B(num);
 }
 
-FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_MiB(const unsigned long long num)
+inline FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_MiB(const unsigned long long num)
 {
     return 1024 * operator""_kiB(num);
 }
 
-FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_GiB(const unsigned long long num)
+inline FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_GiB(const unsigned long long num)
 {
     return 1024 * operator""_MiB(num);
 }
 
-FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_TiB(const unsigned long long num)
+inline FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_TiB(const unsigned long long num)
 {
     return 1024 * operator""_GiB(num);
 }

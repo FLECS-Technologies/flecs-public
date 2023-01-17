@@ -44,10 +44,13 @@ public:
 
     app_manifest_t();
 
-    static app_manifest_t from_string(std::string_view string);
-    static app_manifest_t from_file(const fs::path& path);
+    static app_manifest_t from_json(const json_t& json);
+    static app_manifest_t from_yaml(const yaml_t& yaml);
 
-    static app_manifest_t from_yaml_string(const std::string& yaml);
+    static app_manifest_t from_json_string(std::string_view string);
+    static app_manifest_t from_yaml_string(std::string_view string);
+
+    static app_manifest_t from_json_file(const fs::path& path);
     static app_manifest_t from_yaml_file(const fs::path& path);
 
     auto& is_valid() const noexcept { return _valid; }
