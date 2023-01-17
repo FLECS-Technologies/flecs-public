@@ -20,7 +20,12 @@
 
 namespace FLECS {
 
-bool env_var_t::is_valid() const noexcept
+env_var_t::env_var_t(std::string var)
+    : _var{std::move(var)}
+{}
+
+auto env_var_t::is_valid() const noexcept //
+    -> bool
 {
     const auto name_regex = std::regex{"[a-zA-Z]+[a-zA-Z0-9_]*"};
 
@@ -31,7 +36,18 @@ bool env_var_t::is_valid() const noexcept
     return false;
 }
 
-mapped_env_var_t::mapped_env_var_t(const std::string& str)
+auto env_var_t::var() const noexcept //
+    -> const std::string&
+{
+    return _var;
+}
+
+mapped_env_var_t::mapped_env_var_t(env_var_t var, std::string value)
+    : _env_var{std::move(var)}
+    , _value{std::move(value)}
+{}
+
+mapped_env_var_t::mapped_env_var_t(std::string_view str)
     : _env_var{}
     , _value{}
 {
@@ -44,10 +60,31 @@ mapped_env_var_t::mapped_env_var_t(const std::string& str)
     _value = parts[1];
 }
 
+auto mapped_env_var_t::is_valid() const noexcept //
+    -> bool
+{
+    return _env_var.is_valid();
+}
+
+auto mapped_env_var_t::var() const noexcept //
+    -> const std::string&
+{
+    return _env_var.var();
+}
+
+auto mapped_env_var_t::value() const noexcept //
+    -> const std::string&
+{
+    return _value;
+}
+
 auto to_json(json_t& json, const mapped_env_var_t& mapped_env_var) //
     -> void
 {
-    json = json_t{{"value", mapped_env_var._value}, {"var", mapped_env_var._env_var.var()}};
+    json = json_t({
+        {"var", mapped_env_var._env_var.var()},
+        {"value", mapped_env_var._value},
+    });
 }
 
 auto from_json(const json_t& json, mapped_env_var_t& mapped_env_var) //
@@ -58,6 +95,50 @@ auto from_json(const json_t& json, mapped_env_var_t& mapped_env_var) //
     json.at("value").get_to(value);
     json.at("var").get_to(var);
     mapped_env_var = mapped_env_var_t{var + ":" + value};
+}
+
+auto operator<(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool
+{
+    return lhs.var() < rhs.var();
+}
+
+auto operator<=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool
+{
+    return !(lhs > rhs);
+}
+
+auto operator>(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool
+{
+    return rhs < lhs;
+}
+
+auto operator>=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool
+{
+    return !(lhs < rhs);
+}
+
+auto operator==(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool
+{
+    return lhs.var() == rhs.var();
+}
+
+auto operator!=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
+    -> bool
+{
+    return !(lhs == rhs);
+}
+
+auto to_string(const mapped_env_var_t& mapped_env_var) //
+    -> std::string
+{
+    return mapped_env_var.is_valid()
+               ? stringify_delim('=', mapped_env_var.var(), mapped_env_var.value())
+               : std::string{};
 }
 
 } // namespace FLECS
