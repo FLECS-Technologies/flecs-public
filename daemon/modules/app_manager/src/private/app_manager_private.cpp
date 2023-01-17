@@ -109,9 +109,6 @@ module_app_manager_private_t::~module_app_manager_private_t()
             do_stop_instance(instance.first, "", "", _unused, true);
         }
     }
-
-    persist_apps();
-    _deployment->save();
 }
 
 auto module_app_manager_private_t::do_init() //
