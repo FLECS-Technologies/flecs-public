@@ -45,6 +45,16 @@ namespace FLECS {
         }                                       \
     } while (false)
 
+#define REQUIRED_JSON_VALUE(json, key, target) \
+    do {                                       \
+        json.at(#key).get_to(target);          \
+    } while (false)
+
+#define OPTIONAL_JSON_VALUE(json, key, target) \
+    if (json.contains(#key)) {                 \
+        json.at(#key).get_to(target);          \
+    }
+
 app_manifest_t::app_manifest_t()
     : _valid{}
     , _app{}
@@ -68,59 +78,56 @@ app_manifest_t::app_manifest_t()
     , _volumes{}
 {}
 
-app_manifest_t app_manifest_t::from_yaml_file(const fs::path& path)
-{
-    auto res = app_manifest_t{};
-    try {
-        const auto yaml = yaml_from_file(path);
-        res.parse_yaml(yaml);
-    } catch (const std::exception& ex) {
-        std::fprintf(stderr, "Could not open manifest %s: Invalid YAML (%s)\n", path.c_str(), ex.what());
-    }
-    return res;
-}
-
-app_manifest_t app_manifest_t::from_yaml_string(const std::string& str)
-{
-    auto res = app_manifest_t{};
-    try {
-        const auto yaml = yaml_from_string(str);
-        res.parse_yaml(yaml);
-    } catch (const std::exception& ex) {
-        std::fprintf(stderr, "Could not open manifest: Invalid YAML (%s)\n", ex.what());
-    }
-    return res;
-}
-
-app_manifest_t app_manifest_t::from_string(std::string_view string)
+app_manifest_t app_manifest_t::from_json(const json_t& json)
 {
     auto res = app_manifest_t{};
 
-    const auto json = parse_json(string);
-
     try {
-        from_json(json, res);
-    } catch (const std::exception& ex) {
-        std::fprintf(stderr, "Could not parse manifest: Invalid JSON (%s)\n", ex.what());
+        json.get_to(res);
+    } catch (...) {
     }
 
     return res;
 }
+app_manifest_t app_manifest_t::from_yaml(const yaml_t& yaml)
+{
+    auto res = app_manifest_t{};
+    res.parse_yaml(yaml);
+    return res;
+}
 
-app_manifest_t app_manifest_t::from_file(const fs::path& path)
+app_manifest_t app_manifest_t::from_json_string(std::string_view string)
+{
+    return from_json(parse_json(string));
+}
+app_manifest_t app_manifest_t::from_yaml_string(std::string_view string)
+{
+    try {
+        return from_yaml(yaml_from_string(std::move(string)));
+    } catch (const std::exception& ex) {
+        std::fprintf(stderr, "Could not open manifest: %s\n", ex.what());
+    }
+    return {};
+}
+
+app_manifest_t app_manifest_t::from_json_file(const fs::path& path)
 {
     auto res = app_manifest_t{};
 
     auto json_file = std::ifstream{path};
-    const auto json = parse_json(json_file);
-
-    try {
-        from_json(json, res);
-    } catch (const std::exception& ex) {
-        std::fprintf(stderr, "Could not open manifest %s: Invalid JSON (%s)\n", path.c_str(), ex.what());
+    if (!json_file) {
+        return {};
     }
-
-    return res;
+    return from_json(parse_json(json_file));
+}
+app_manifest_t app_manifest_t::from_yaml_file(const fs::path& path)
+{
+    try {
+        return from_yaml(yaml_from_file(path.c_str()));
+    } catch (const std::exception& ex) {
+        std::fprintf(stderr, "Could not open manifest %s: %s\n", path.c_str(), ex.what());
+    }
+    return {};
 }
 
 void app_manifest_t::parse_yaml(const yaml_t& yaml)
@@ -172,7 +179,8 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
 
         OPTIONAL_YAML_NODE(yaml, startupOptions, startup_options);
         for (const auto& startup_option : startup_options) {
-            _startup_options.emplace_back(startup_option_from_string(startup_option.as<std::string>()));
+            _startup_options.emplace_back(
+                startup_option_from_string(startup_option.as<std::string>()));
         }
 
         REQUIRED_TYPED_YAML_VALUE(yaml, title, _title);
@@ -227,57 +235,58 @@ void app_manifest_t::validate()
 auto to_json(json_t& json, const app_manifest_t& app_manifest) //
     -> void
 {
-    json = json_t{
-        {"app", app_manifest._app},
-        {"version", app_manifest._version},
-        {"title", app_manifest._title},
-        {"description", app_manifest._description},
-        {"author", app_manifest._author},
-        {"avatar", app_manifest._avatar},
-        {"category", app_manifest._category},
+    json = json_t(
+        {{"app", app_manifest._app},
+         {"version", app_manifest._version},
+         {"title", app_manifest._title},
+         {"author", app_manifest._author},
+         {"image", app_manifest._image},
 
-        {"image", app_manifest._image},
-        {"multiInstance", app_manifest._multi_instance},
-        {"editor", app_manifest._editor},
+         {"description", app_manifest._description},
+         {"avatar", app_manifest._avatar},
+         {"category", app_manifest._category},
+         {"multiInstance", app_manifest._multi_instance},
+         {"editor", app_manifest._editor},
 
-        {"args", app_manifest._args},
-        {"conffiles", app_manifest._conffiles},
-        {"devices", app_manifest._devices},
-        {"env", app_manifest._env},
-        {"hostname", app_manifest._hostname},
-        {"interactive", app_manifest._interactive},
-        {"networks", app_manifest._networks},
-        {"ports", app_manifest._ports},
-        {"startupOptions", app_manifest._startup_options},
-        {"volumes", app_manifest._volumes},
-    };
+         {"args", app_manifest._args},
+         {"conffiles", app_manifest._conffiles},
+         {"devices", app_manifest._devices},
+         {"env", app_manifest._env},
+         {"hostname", app_manifest._hostname},
+         {"interactive", app_manifest._interactive},
+         {"networks", app_manifest._networks},
+         {"ports", app_manifest._ports},
+         {"startupOptions", app_manifest._startup_options},
+         {"volumes", app_manifest._volumes}});
 }
 
 auto from_json(const json_t& json, app_manifest_t& app_manifest) //
     -> void
 {
-    json.at("app").get_to(app_manifest._app);
-    json.at("version").get_to(app_manifest._version);
-    json.at("title").get_to(app_manifest._title);
-    json.at("description").get_to(app_manifest._description);
-    json.at("author").get_to(app_manifest._author);
-    json.at("avatar").get_to(app_manifest._avatar);
-    json.at("category").get_to(app_manifest._category);
+    REQUIRED_JSON_VALUE(json, app, app_manifest._app);
+    REQUIRED_JSON_VALUE(json, version, app_manifest._version);
+    REQUIRED_JSON_VALUE(json, title, app_manifest._title);
+    REQUIRED_JSON_VALUE(json, author, app_manifest._author);
+    REQUIRED_JSON_VALUE(json, image, app_manifest._image);
 
-    json.at("image").get_to(app_manifest._image);
-    json.at("multiInstance").get_to(app_manifest._multi_instance);
-    json.at("editor").get_to(app_manifest._editor);
+    OPTIONAL_JSON_VALUE(json, description, app_manifest._description);
+    OPTIONAL_JSON_VALUE(json, avatar, app_manifest._avatar);
+    OPTIONAL_JSON_VALUE(json, category, app_manifest._category);
+    OPTIONAL_JSON_VALUE(json, multiInstance, app_manifest._multi_instance);
+    OPTIONAL_JSON_VALUE(json, editor, app_manifest._editor);
 
-    json.at("args").get_to(app_manifest._args);
-    json.at("conffiles").get_to(app_manifest._conffiles);
-    json.at("devices").get_to(app_manifest._devices);
-    json.at("env").get_to(app_manifest._env);
-    json.at("hostname").get_to(app_manifest._hostname);
-    json.at("interactive").get_to(app_manifest._interactive);
-    json.at("networks").get_to(app_manifest._networks);
-    json.at("ports").get_to(app_manifest._ports);
-    json.at("startupOptions").get_to(app_manifest._startup_options);
-    json.at("volumes").get_to(app_manifest._volumes);
+    OPTIONAL_JSON_VALUE(json, args, app_manifest._args);
+    OPTIONAL_JSON_VALUE(json, conffiles, app_manifest._conffiles);
+    OPTIONAL_JSON_VALUE(json, devices, app_manifest._devices);
+    OPTIONAL_JSON_VALUE(json, env, app_manifest._env);
+    OPTIONAL_JSON_VALUE(json, hostname, app_manifest._hostname);
+    OPTIONAL_JSON_VALUE(json, interactive, app_manifest._interactive);
+    OPTIONAL_JSON_VALUE(json, networks, app_manifest._networks);
+    OPTIONAL_JSON_VALUE(json, ports, app_manifest._ports);
+    OPTIONAL_JSON_VALUE(json, startupOptions, app_manifest._startup_options);
+    OPTIONAL_JSON_VALUE(json, volumes, app_manifest._volumes);
+
+    app_manifest.validate();
 }
 
 } // namespace FLECS

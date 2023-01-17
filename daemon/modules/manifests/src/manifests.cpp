@@ -14,6 +14,8 @@
 
 #include "manifests.h"
 
+#include "common/app/app_key.h"
+#include "common/app/manifest/manifest.h"
 #include "factory/factory.h"
 #include "impl/manifests_impl.h"
 
@@ -30,12 +32,146 @@ module_manifests_t::module_manifests_t()
 module_manifests_t::~module_manifests_t()
 {}
 
+auto module_manifests_t::base_path(const fs::path& base_path) //
+    -> void
+{
+    clear();
+    return _impl->do_base_path(std::move(base_path));
+}
+auto module_manifests_t::base_path() const noexcept //
+    -> const fs::path&
+{
+    return _impl->do_base_path();
+}
+
+auto module_manifests_t::contains(const app_key_t& app_key) const noexcept //
+    -> bool
+{
+    return _impl->do_contains(app_key);
+}
+
+auto module_manifests_t::query(const app_key_t& app_key) noexcept //
+    -> std::optional<std::reference_wrapper<app_manifest_t>>
+{
+    return _impl->do_query_manifest(app_key);
+}
+auto module_manifests_t::query(const app_key_t& app_key) const noexcept //
+    -> std::optional<std::reference_wrapper<const app_manifest_t>>
+{
+    /** @todo gcc 8.3.0 workaround */
+    auto val = _impl->do_query_manifest(app_key);
+    if (val.has_value()) {
+        return std::cref(val.value().get());
+    }
+    return {};
+}
+
+auto module_manifests_t::add(app_manifest_t manifest) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    return _impl->do_add(std::move(manifest));
+}
+auto module_manifests_t::add_from_json(const json_t& manifest) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    return add(app_manifest_t::from_json(manifest));
+}
+auto module_manifests_t::add_from_yaml(const yaml_t& manifest) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    return add(app_manifest_t::from_yaml(manifest));
+}
+
+auto module_manifests_t::add_from_file(const fs::path& path) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    auto [manifest, res] = add_from_json_file(path);
+    if (res) {
+        return {manifest, res};
+    }
+    return add_from_yaml_file(path);
+}
+auto module_manifests_t::add_from_json_file(const fs::path& path) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    return add(app_manifest_t::from_json_file(path));
+}
+auto module_manifests_t::add_from_yaml_file(const fs::path& path) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    return add(app_manifest_t::from_yaml_file(path));
+}
+
+auto module_manifests_t::add_from_string(std::string_view manifest) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    auto [manifest_opt, added] = add_from_json_string(manifest);
+    if (manifest_opt) {
+        return {manifest_opt, added};
+    }
+    return add_from_yaml_string(std::move(manifest));
+}
+auto module_manifests_t::add_from_json_string(std::string_view manifest) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    return add_from_json(parse_json(std::move(manifest)));
+}
+auto module_manifests_t::add_from_yaml_string(std::string_view manifest) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    return add_from_yaml(yaml_from_string(std::move(manifest)));
+}
+
+auto module_manifests_t::add_from_marketplace(const app_key_t& app_key) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+#ifndef NDEBUG
+    auto url = std::string{"https://marketplace.flecs.tech:8443/manifests/apps/"};
+#else
+    auto url = std::string{"https://marketplace.flecs.tech/manifests/apps/"};
+#endif // NDEBUG
+
+    url.append(app_key.name());
+    url.append("/");
+    url.append(app_key.version());
+    url.append("/");
+    url.append("manifest.yml");
+
+    return add_from_url(url);
+}
+auto module_manifests_t::add_from_url(std::string_view url) //
+    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+{
+    return _impl->do_add_from_url(std::move(url));
+}
+
+auto module_manifests_t::clear() //
+    -> void
+{
+    return _impl->do_clear();
+}
+auto module_manifests_t::erase(const app_key_t& app_key) //
+    -> void
+{
+    return _impl->do_erase(app_key);
+}
+auto module_manifests_t::remove(const app_key_t& app_key) //
+    -> void
+{
+    return _impl->do_remove(app_key);
+}
+
+auto module_manifests_t::path(const app_key_t& app_key) //
+    -> fs::path
+{
+    return _impl->do_path(app_key);
+}
+
 auto module_manifests_t::do_init() //
     -> void
 {
     return _impl->do_init();
 }
-
 auto module_manifests_t::do_deinit() //
     -> void
 {

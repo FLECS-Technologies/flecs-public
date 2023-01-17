@@ -21,14 +21,14 @@ namespace FLECS {
 
 using yaml_t = YAML::Node;
 
-inline auto yaml_from_string(const std::string& str)
+inline auto yaml_from_string(std::string_view str)
 {
-    return YAML::Load(str);
+    return YAML::Load(str.data());
 }
 
-inline auto yaml_from_file(const std::string& path)
+inline auto yaml_from_file(std::string_view path)
 {
-    return YAML::LoadFile(path);
+    return YAML::LoadFile(path.data());
 }
 
 } // namespace FLECS
