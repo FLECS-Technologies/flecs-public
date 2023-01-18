@@ -237,8 +237,6 @@ auto module_apps_impl_t::queue_install_from_marketplace(
     std::string app_name, std::string version, std::string license_key) //
     -> crow::response
 {
-    auto response = crow::response{crow::status::ACCEPTED};
-
     auto job = job_t{};
     job.callable = std::bind(
         &module_apps_impl_t::do_install_from_marketplace,
@@ -249,8 +247,10 @@ auto module_apps_impl_t::queue_install_from_marketplace(
         std::placeholders::_1);
 
     auto job_id = _jobs_api->append(std::move(job));
-    response.add_header("Location", "/jobs/"s + std::to_string(job_id));
-    return response;
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 auto module_apps_impl_t::do_install_from_marketplace(
@@ -289,8 +289,6 @@ auto module_apps_impl_t::do_install_from_marketplace(
 auto module_apps_impl_t::queue_sideload(std::string manifest_string, std::string license_key) //
     -> crow::response
 {
-    auto response = crow::response{crow::status::ACCEPTED};
-
     auto job = job_t{};
     job.callable = std::bind(
         &module_apps_impl_t::do_sideload,
@@ -300,8 +298,10 @@ auto module_apps_impl_t::queue_sideload(std::string manifest_string, std::string
         std::placeholders::_1);
 
     auto job_id = _jobs_api->append(std::move(job));
-    response.add_header("Location", "/jobs/"s + std::to_string(job_id));
-    return response;
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 auto module_apps_impl_t::do_sideload(std::string manifest_string, std::string license_key, job_progress_t& progress) //
@@ -504,7 +504,6 @@ auto module_apps_impl_t::queue_uninstall(std::string app_name, std::string versi
         return {crow::status::BAD_REQUEST, "json", response.dump()};
     }
 
-    auto response = crow::response{crow::status::ACCEPTED};
     auto job = job_t{};
     job.callable = std::bind(
         &module_apps_impl_t::do_uninstall,
@@ -515,8 +514,10 @@ auto module_apps_impl_t::queue_uninstall(std::string app_name, std::string versi
         std::placeholders::_1);
 
     auto job_id = _jobs_api->append(std::move(job));
-    response.add_header("Location", "/jobs/"s + std::to_string(job_id));
-    return response;
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 auto module_apps_impl_t::do_uninstall(
@@ -587,14 +588,14 @@ auto module_apps_impl_t::do_uninstall(
 auto module_apps_impl_t::queue_export_app(std::string app_name, std::string version) const //
     -> crow::response
 {
-    auto response = crow::response{crow::status::ACCEPTED};
-
     auto job = job_t{};
     job.callable = std::bind(&module_apps_impl_t::do_export_app, this, app_name, version, std::placeholders::_1);
 
     auto job_id = _jobs_api->append(std::move(job));
-    response.add_header("Location", "/jobs/"s + std::to_string(job_id));
-    return response;
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 auto module_apps_impl_t::do_export_app(std::string app_name, std::string version, job_progress_t& progress) const //
