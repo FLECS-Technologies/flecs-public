@@ -28,7 +28,7 @@ register_module_t<module_apps_t> _reg("apps");
 }
 
 module_apps_t::module_apps_t()
-    : _impl{new impl::module_apps_impl_t{this}}
+    : _impl{new impl::module_apps_t{this}}
 {}
 
 module_apps_t::~module_apps_t()
@@ -41,23 +41,25 @@ auto module_apps_t::do_init() //
 {
     FLECS_V2_ROUTE("/apps").methods("GET"_method)([this]() { return list(); });
 
-    FLECS_V2_ROUTE("/apps/<string>").methods("GET"_method)([this](const crow::request& req, const std::string& app) {
-        const auto version = req.url_params.get("version");
-        if (version) {
-            return list(app, version);
-        } else {
-            return list(app, {});
-        }
-    });
+    FLECS_V2_ROUTE("/apps/<string>")
+        .methods("GET"_method)([this](const crow::request& req, const std::string& app) {
+            const auto version = req.url_params.get("version");
+            if (version) {
+                return list(app, version);
+            } else {
+                return list(app, {});
+            }
+        });
 
-    FLECS_V2_ROUTE("/apps/<string>").methods("DELETE"_method)([this](const crow::request& req, const std::string& app) {
-        const auto version = req.url_params.get("version");
-        if (version) {
-            return uninstall(app, version, false);
-        } else {
-            return uninstall(app, {}, false);
-        }
-    });
+    FLECS_V2_ROUTE("/apps/<string>")
+        .methods("DELETE"_method)([this](const crow::request& req, const std::string& app) {
+            const auto version = req.url_params.get("version");
+            if (version) {
+                return uninstall(app, version, false);
+            } else {
+                return uninstall(app, {}, false);
+            }
+        });
 
     FLECS_V2_ROUTE("/apps/install").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
@@ -141,10 +143,14 @@ auto module_apps_t::list() const //
     return list({}, {});
 }
 
-auto module_apps_t::install_from_marketplace(std::string app_name, std::string version, std::string license_key) //
+auto module_apps_t::install_from_marketplace(
+    std::string app_name, std::string version, std::string license_key) //
     -> crow::response
 {
-    return _impl->queue_install_from_marketplace(std::move(app_name), std::move(version), std::move(license_key));
+    return _impl->queue_install_from_marketplace(
+        std::move(app_name),
+        std::move(version),
+        std::move(license_key));
 }
 auto module_apps_t::install_from_marketplace(std::string app_name, std::string version) //
     -> crow::response
@@ -186,7 +192,8 @@ auto module_apps_t::has_app(std::string_view app_name, std::string_view version)
     return _impl->has_app(std::move(app_name), std::move(version));
 }
 
-auto module_apps_t::is_app_installed(std::string_view app_name, std::string_view version) const noexcept //
+auto module_apps_t::is_app_installed(
+    std::string_view app_name, std::string_view version) const noexcept //
     -> bool
 {
     return _impl->is_app_installed(std::move(app_name), std::move(version));

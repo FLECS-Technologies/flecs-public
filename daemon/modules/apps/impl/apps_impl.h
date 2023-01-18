@@ -19,28 +19,27 @@
 #include <mutex>
 #include <string>
 
+#include "apps.h"
 #include "common/app/app.h"
-#include "module_base/module.h"
-#include "util/fs/fs.h"
 
 namespace FLECS {
 
 class job_progress_t;
-class module_apps_t;
 class module_instances_t;
+class module_manifests_t;
 class module_jobs_t;
 
 namespace impl {
 
-class module_apps_impl_t
+class module_apps_t
 {
     friend class FLECS::module_apps_t;
 
 public:
-    ~module_apps_impl_t();
+    ~module_apps_t();
 
 private:
-    explicit module_apps_impl_t(module_apps_t* parent);
+    explicit module_apps_t(FLECS::module_apps_t* parent);
 
     auto do_init() //
         -> void;
@@ -54,7 +53,8 @@ private:
     auto do_list(std::string_view app_name, std::string_view version) const //
         -> crow::response;
 
-    auto queue_install_from_marketplace(std::string app_name, std::string version, std::string license_key) //
+    auto queue_install_from_marketplace(
+        std::string app_name, std::string version, std::string license_key) //
         -> crow::response;
 
     auto do_install_from_marketplace(
@@ -67,13 +67,15 @@ private:
     auto queue_sideload(std::string manifest_string, std::string license_key) //
         -> crow::response;
 
-    auto do_sideload(std::string manifest_string, std::string license_key, job_progress_t& progress) //
+    auto do_sideload(
+        std::string manifest_string, std::string license_key, job_progress_t& progress) //
         -> void;
 
     auto queue_uninstall(std::string app_name, std::string version, bool force) //
         -> crow::response;
 
-    auto do_uninstall(std::string app_name, std::string version, bool force, job_progress_t& progress) //
+    auto do_uninstall(
+        std::string app_name, std::string version, bool force, job_progress_t& progress) //
         -> void;
 
     auto queue_export_app(std::string app_name, std::string version) const //
@@ -82,7 +84,8 @@ private:
     auto do_export_app(std::string app_name, std::string version, job_progress_t& progress) const //
         -> void;
 
-    auto do_install_impl(const fs::path& manifest, std::string_view license_key, job_progress_t& progress) //
+    auto do_install_impl(
+        const fs::path& manifest, std::string_view license_key, job_progress_t& progress) //
         -> void;
 
     /*! @brief Helper function to determine whether a given app is installed in a given version
@@ -105,7 +108,7 @@ private:
     auto is_app_installed(std::string_view app_name, std::string_view version) const noexcept //
         -> bool;
 
-    module_apps_t* _parent;
+    FLECS::module_apps_t* _parent;
 
     using installed_apps_t = std::map<app_key_t, app_t, std::less<>>;
     installed_apps_t _installed_apps;
@@ -113,6 +116,7 @@ private:
     std::mutex _installed_apps_mutex;
 
     std::shared_ptr<FLECS::module_instances_t> _instances_api;
+    std::shared_ptr<FLECS::module_manifests_t> _manifests_api;
     std::shared_ptr<FLECS::module_jobs_t> _jobs_api;
 };
 

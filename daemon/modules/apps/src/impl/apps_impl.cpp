@@ -19,7 +19,6 @@
 #include <fstream>
 
 #include "api/api.h"
-#include "modules/apps/apps.h"
 #include "modules/factory/factory.h"
 #include "modules/jobs/jobs.h"
 #include "modules/marketplace/marketplace.h"
@@ -35,7 +34,8 @@ namespace impl {
 static auto build_manifest_path(std::string_view app_name, std::string_view version) //
     -> fs::path
 {
-    const auto manifest_path = fs::path{"/var/lib/flecs/apps"} / app_name / version / "manifest.yml";
+    const auto manifest_path =
+        fs::path{"/var/lib/flecs/apps"} / app_name / version / "manifest.yml";
 
     auto ec = std::error_code{};
     fs::create_directories(manifest_path.parent_path(), ec);
@@ -73,7 +73,10 @@ static auto download_manifest(std::string_view app_name, std::string_view versio
     auto url = build_manifest_url(app_name, version);
     const auto res = cpr::Download(manifest, cpr::Url(std::move(url)));
     if (res.status_code != cpr::status::HTTP_OK) {
-        std::fprintf(stderr, "Could not download App manifest: HTTP response %ld\n", res.status_code);
+        std::fprintf(
+            stderr,
+            "Could not download App manifest: HTTP response %ld\n",
+            res.status_code);
         return -1;
     }
 
@@ -100,8 +103,10 @@ static auto acquire_download_token(std::string_view license_key) //
     const auto url = cpr::Url{"https://marketplace.flecs.tech/api/v1/app/download"};
 #endif // NDEBUG
 
-    const auto http_res =
-        cpr::Post(url, cpr::Header{{"content-type", "application/json"}}, cpr::Body{post_json.dump()});
+    const auto http_res = cpr::Post(
+        url,
+        cpr::Header{{"content-type", "application/json"}},
+        cpr::Body{post_json.dump()});
 
     if (http_res.status_code != 200) {
         return "";
@@ -137,8 +142,10 @@ static auto expire_download_token(const std::string& user_token, const std::stri
     const auto url = cpr::Url{"https://marketplace.flecs.tech/api/v1/app/finish"};
 #endif // NDEBUG
 
-    const auto http_res =
-        cpr::Post(url, cpr::Header{{"content-type", "application/json"}}, cpr::Body{post_json.dump()});
+    const auto http_res = cpr::Post(
+        url,
+        cpr::Header{{"content-type", "application/json"}},
+        cpr::Body{post_json.dump()});
 
     if (http_res.status_code != 200) {
         return false;
@@ -152,23 +159,23 @@ static auto expire_download_token(const std::string& user_token, const std::stri
     return response_json["success"].get<bool>();
 }
 
-module_apps_impl_t::module_apps_impl_t(module_apps_t* parent)
+module_apps_t::module_apps_t(FLECS::module_apps_t* parent)
     : _parent{parent}
     , _installed_apps{}
     , _installed_apps_mutex{}
     , _jobs_api{}
 {}
 
-module_apps_impl_t::~module_apps_impl_t()
+module_apps_t::~module_apps_t()
 {}
 
-auto module_apps_impl_t::do_init() //
+auto module_apps_t::do_init() //
     -> void
 {
     _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
 }
 
-auto module_apps_impl_t::do_load(fs::path base_path) //
+auto module_apps_t::do_load(fs::path base_path) //
     -> crow::response
 {
     auto response = json_t{};
@@ -184,14 +191,15 @@ auto module_apps_impl_t::do_load(fs::path base_path) //
         } catch (const std::exception& ex) {
             _installed_apps.clear();
             res = crow::status::INTERNAL_SERVER_ERROR;
-            response["additionalInfo"] = "Could not load apps from "s + base_path.string() + ": "s + ex.what();
+            response["additionalInfo"] =
+                "Could not load apps from "s + base_path.string() + ": "s + ex.what();
         }
     }
 
     return {res, "json", response.dump()};
 }
 
-auto module_apps_impl_t::do_save(fs::path base_path) const //
+auto module_apps_t::do_save(fs::path base_path) const //
     -> crow::response
 {
     auto response = json_t{};
@@ -216,7 +224,7 @@ auto module_apps_impl_t::do_save(fs::path base_path) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto module_apps_impl_t::do_list(std::string_view app_name, std::string_view version) const //
+auto module_apps_t::do_list(std::string_view app_name, std::string_view version) const //
     -> crow::response
 {
     auto response = json_t::array();
@@ -233,13 +241,13 @@ auto module_apps_impl_t::do_list(std::string_view app_name, std::string_view ver
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto module_apps_impl_t::queue_install_from_marketplace(
+auto module_apps_t::queue_install_from_marketplace(
     std::string app_name, std::string version, std::string license_key) //
     -> crow::response
 {
     auto job = job_t{};
     job.callable = std::bind(
-        &module_apps_impl_t::do_install_from_marketplace,
+        &module_apps_t::do_install_from_marketplace,
         this,
         std::move(app_name),
         std::move(version),
@@ -253,7 +261,7 @@ auto module_apps_impl_t::queue_install_from_marketplace(
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_impl_t::do_install_from_marketplace(
+auto module_apps_t::do_install_from_marketplace(
     std::string app_name,
     std::string version,
     std::string license_key,
@@ -286,12 +294,12 @@ auto module_apps_impl_t::do_install_from_marketplace(
     return do_install_impl(build_manifest_path(app_name, version), license_key, progress);
 }
 
-auto module_apps_impl_t::queue_sideload(std::string manifest_string, std::string license_key) //
+auto module_apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
     -> crow::response
 {
     auto job = job_t{};
     job.callable = std::bind(
-        &module_apps_impl_t::do_sideload,
+        &module_apps_t::do_sideload,
         this,
         std::move(manifest_string),
         std::move(license_key),
@@ -304,7 +312,8 @@ auto module_apps_impl_t::queue_sideload(std::string manifest_string, std::string
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_impl_t::do_sideload(std::string manifest_string, std::string license_key, job_progress_t& progress) //
+auto module_apps_t::do_sideload(
+    std::string manifest_string, std::string license_key, job_progress_t& progress) //
     -> void
 {
     // Step 1: Validate transferred manifest
@@ -333,7 +342,7 @@ auto module_apps_impl_t::do_sideload(std::string manifest_string, std::string li
     return do_install_impl(manifest_path, license_key, progress);
 }
 
-auto module_apps_impl_t::do_install_impl(
+auto module_apps_t::do_install_impl(
     const fs::path& manifest_path, std::string_view license_key, job_progress_t& progress) //
     -> void
 {
@@ -411,7 +420,8 @@ auto module_apps_impl_t::do_install_impl(
                 auto login_attempts = 3;
                 while (login_attempts-- > 0) {
                     docker_login_process = process_t{};
-                    docker_login_process.spawnp("docker", "login", "--username", "flecs", "--password", args[1]);
+                    docker_login_process
+                        .spawnp("docker", "login", "--username", "flecs", "--password", args[1]);
                     docker_login_process.wait(true, true);
                     if (docker_login_process.exit_code() == 0) {
                         break;
@@ -495,18 +505,19 @@ auto module_apps_impl_t::do_install_impl(
     }
 }
 
-auto module_apps_impl_t::queue_uninstall(std::string app_name, std::string version, bool force) //
+auto module_apps_t::queue_uninstall(std::string app_name, std::string version, bool force) //
     -> crow::response
 {
     if (!is_app_installed(app_name, version)) {
         auto response = json_t{};
-        response["additionalInfo"] = "Cannot uninstall "s + app_name + " (" + version + "), which is not installed";
+        response["additionalInfo"] =
+            "Cannot uninstall "s + app_name + " (" + version + "), which is not installed";
         return {crow::status::BAD_REQUEST, "json", response.dump()};
     }
 
     auto job = job_t{};
     job.callable = std::bind(
-        &module_apps_impl_t::do_uninstall,
+        &module_apps_t::do_uninstall,
         this,
         std::move(app_name),
         std::move(version),
@@ -520,7 +531,7 @@ auto module_apps_impl_t::queue_uninstall(std::string app_name, std::string versi
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_impl_t::do_uninstall(
+auto module_apps_t::do_uninstall(
     std::string app_name, std::string version, bool force, job_progress_t& progress) //
     -> void
 {
@@ -528,7 +539,8 @@ auto module_apps_impl_t::do_uninstall(
     if (!is_app_installed(app_name, version)) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Cannot uninstall "s + app_name + " (" + version + "), which is not installed";
+        progress.result().message =
+            "Cannot uninstall "s + app_name + " (" + version + "), which is not installed";
         return;
     }
 
@@ -539,7 +551,8 @@ auto module_apps_impl_t::do_uninstall(
     if (cxx20::contains(app.category(), "system") && !force) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Not uninstalling system app " + app.app() + "(" + app.version() + ")";
+        progress.result().message =
+            "Not uninstalling system app " + app.app() + "(" + app.version() + ")";
         return;
     }
 
@@ -585,11 +598,12 @@ auto module_apps_impl_t::do_uninstall(
     }
 }
 
-auto module_apps_impl_t::queue_export_app(std::string app_name, std::string version) const //
+auto module_apps_t::queue_export_app(std::string app_name, std::string version) const //
     -> crow::response
 {
     auto job = job_t{};
-    job.callable = std::bind(&module_apps_impl_t::do_export_app, this, app_name, version, std::placeholders::_1);
+    job.callable =
+        std::bind(&module_apps_t::do_export_app, this, app_name, version, std::placeholders::_1);
 
     auto job_id = _jobs_api->append(std::move(job));
     return crow::response{
@@ -598,14 +612,16 @@ auto module_apps_impl_t::queue_export_app(std::string app_name, std::string vers
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_impl_t::do_export_app(std::string app_name, std::string version, job_progress_t& progress) const //
+auto module_apps_t::do_export_app(
+    std::string app_name, std::string version, job_progress_t& progress) const //
     -> void
 {
     // Step 1: Ensure App is actually installed
     if (!is_app_installed(app_name, version)) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Cannot export "s + app_name + " (" + version + "), which is not installed";
+        progress.result().message =
+            "Cannot export "s + app_name + " (" + version + "), which is not installed";
         return;
     }
 
@@ -618,7 +634,8 @@ auto module_apps_impl_t::do_export_app(std::string app_name, std::string version
     if (ec) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Could not create export directory for "s + app_name + " (" + version + ")";
+        progress.result().message =
+            "Could not create export directory for "s + app_name + " (" + version + ")";
         return;
     }
 
@@ -640,23 +657,26 @@ auto module_apps_impl_t::do_export_app(std::string app_name, std::string version
 
     // Step 5: Copy manifest
     const auto manifest_src = fs::path{"/var/lib/flecs/apps"} / app_name / version / "manifest.yml";
-    const auto manifest_dst = fs::path{"/var/lib/flecs/export-tmp/apps/"} / (app_name + "_" + version + ".yml");
+    const auto manifest_dst =
+        fs::path{"/var/lib/flecs/export-tmp/apps/"} / (app_name + "_" + version + ".yml");
     fs::copy_file(manifest_src, manifest_dst, ec);
     if (ec) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Could not copy app manifest for "s + app_name + " (" + version + ")";
+        progress.result().message =
+            "Could not copy app manifest for "s + app_name + " (" + version + ")";
         return;
     }
 }
 
-auto module_apps_impl_t::has_app(std::string_view app_name, std::string_view version) const noexcept //
+auto module_apps_t::has_app(std::string_view app_name, std::string_view version) const noexcept //
     -> bool
 {
     return _installed_apps.count(app_key_t{std::string{app_name}, std::string{version}});
 }
 
-auto module_apps_impl_t::is_app_installed(std::string_view app_name, std::string_view version) const noexcept //
+auto module_apps_t::is_app_installed(
+    std::string_view app_name, std::string_view version) const noexcept //
     -> bool
 {
     if (!has_app(app_name, version)) {

@@ -23,7 +23,7 @@
 namespace FLECS {
 
 namespace impl {
-class module_apps_impl_t;
+class module_apps_t;
 } // namespace impl
 
 class app_manifest_t;
@@ -73,7 +73,8 @@ public:
      *
      * @return HTTP response
      */
-    auto install_from_marketplace(std::string app_name, std::string version, std::string license_key) //
+    auto install_from_marketplace(
+        std::string app_name, std::string version, std::string license_key) //
         -> crow::response;
     auto install_from_marketplace(std::string app_name, std::string version) //
         -> crow::response;
@@ -125,7 +126,7 @@ protected:
     void do_init() override;
     void do_deinit() override {}
 
-    std::unique_ptr<impl::module_apps_impl_t> _impl;
+    std::unique_ptr<impl::module_apps_t> _impl;
 };
 
 } // namespace FLECS
