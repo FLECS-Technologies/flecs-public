@@ -56,90 +56,6 @@ public:
     auto do_save(fs::path base_path = "/var/lib/flecs/") const //
         -> void;
 
-    /*! @brief Installs an app from its name and version, i.e. downloads it from the marketplace
-     *
-     * Downloads the according app manifest and forwards to manifest installation
-     *
-     * @param[in] app_name Name of the app to install
-     * @param[in] version Version of the app to install
-     * @param[in] license_key License key to activate with the marketplace
-     *
-     * @return error code
-     * @return FLECS_OK: No error occurred
-     * @return Any error code returned by @sa download_manifest
-     * @return Any error code returned by overloaded @sa do_install(const std::string&)
-     */
-    auto do_install(
-        const std::string& app_name,
-        const std::string& version,
-        const std::string& license_key,
-        json_t& response) //
-        -> crow::status;
-
-    /*! @brief Installs an app from its YAML manifest
-     *
-     * @param[in] manifest string containing the raw YAML manifest
-     *
-     * @return error code
-     * @return FLECS_OK: No error occurred
-     * @return FLECS_YAML: Error parsing manifest
-     * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
-     */
-    auto do_install(const fs::path& manifest, const std::string& license_key, json_t& response) //
-        -> crow::status;
-
-    /*! @brief Sideloads an app from its YAML manifest
-     *
-     * Copies the transferred app manifest and forwards to manifest installation
-     *
-     * @param[in] manifest_path Path to a YAML manifest file
-     *
-     * @return error code
-     * @return FLECS_OK: No error occurred
-     * @return FLECS_IOR: Error reading from manifest
-     * @return FLECS_IOW: Error writing manifest to FLECS application directory
-     * @return Any error code returned by overloaded @sa do_install(const std::string&, const
-     * std::string&)
-     */
-    auto do_sideload(const std::string& yaml, const std::string& license_key, json_t& response) //
-        -> crow::status;
-
-    /*! @brief Sideloads an app from its YAML manifest
-     *
-     * Copies the transferred app manifest and forwards to manifest installation
-     *
-     * @param[in] manifest_path Path to a YAML manifest file
-     *
-     * @return error code
-     * @return FLECS_OK: No error occurred
-     * @return FLECS_IOR: Error reading from manifest
-     * @return FLECS_IOW: Error writing manifest to FLECS application directory
-     * @return Any error code returned by overloaded @sa do_install(const std::string&, const
-     * std::string&)
-     */
-    auto do_sideload(
-        const fs::path& manifest_path, const std::string& license_key, json_t& response) //
-        -> crow::status;
-
-    /*! @brief Uninstalls an application
-     *
-     * @param[in] app_name App to uninstall
-     * @param[in] version Version to uninstall
-     *
-     * @return error code
-     * @return FLECS_OK: No error occurred
-     * @return FLECS_APP_NOTINST: App not installed
-     * @return FLECS_YAML: Error parsing manifest of installed app
-     * @return FLECS_DOCKER: Unsuccessful exit code from spawned Docker process
-     * @return FLECS_IOW: Error deleting manifest from disk
-     */
-    auto do_uninstall(
-        const std::string& app_name,
-        const std::string& version,
-        json_t& response,
-        bool force = false) //
-        -> crow::status;
-
     /*! @brief Exports an application
      *
      * @param[in] app_name App to export
@@ -267,20 +183,6 @@ public:
      * @return error code
      */
     auto do_instance_log(const instance_id_t& instance_id, json_t& response) //
-        -> crow::status;
-
-    /*! @brief Prints all installed apps and their instances in JSON format
-     *
-     * @param None
-     *
-     * @return FLECS_OK
-     */
-    auto do_list_apps(json_t& response) //
-        -> crow::status;
-
-    /*! @brief Prints all available versions for a given app. Not yet implemented
-     */
-    auto do_list_versions(const std::string& app_name, json_t& response) //
         -> crow::status;
 
     /*! @brief Prints all available instances for a given app and version. Not yet implemented

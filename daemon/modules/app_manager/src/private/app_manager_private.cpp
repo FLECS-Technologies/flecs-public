@@ -145,7 +145,6 @@ auto module_app_manager_private_t::do_init() //
                      _deployment->instance_ids(app_key_t{system_apps[i].data(), version})) {
                     do_delete_instance(instance_id, {}, {}, response);
                 }
-                do_uninstall(system_apps[i].data(), version, response, true);
             }
             if (version > FLECS_VERSION) {
                 newer_version_installed = true;

@@ -17,12 +17,7 @@ flecs_add_module(
     ADDITIONAL_SOURCES
     src/private/app_manager_private.cpp
     src/private/app_export.cpp
-    src/private/app_install.cpp
     src/private/app_instances.cpp
-    src/private/app_list.cpp
-    src/private/app_sideload.cpp
-    src/private/app_uninstall.cpp
-    src/private/app_versions.cpp
     src/private/instance_config.cpp
     src/private/instance_create.cpp
     src/private/instance_delete.cpp
