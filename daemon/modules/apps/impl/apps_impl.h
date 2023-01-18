@@ -85,7 +85,7 @@ private:
         -> void;
 
     auto do_install_impl(
-        const fs::path& manifest, std::string_view license_key, job_progress_t& progress) //
+        const app_manifest_t& manifest, std::string_view license_key, job_progress_t& progress) //
         -> void;
 
     /*! @brief Helper function to determine whether a given app is installed in a given version
