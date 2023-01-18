@@ -21,6 +21,7 @@
 #include "api/api.h"
 #include "modules/factory/factory.h"
 #include "modules/jobs/jobs.h"
+#include "modules/manifests/manifests.h"
 #include "modules/marketplace/marketplace.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
@@ -30,58 +31,6 @@ using std::operator""s;
 
 namespace FLECS {
 namespace impl {
-
-static auto build_manifest_path(std::string_view app_name, std::string_view version) //
-    -> fs::path
-{
-    const auto manifest_path =
-        fs::path{"/var/lib/flecs/apps"} / app_name / version / "manifest.yml";
-
-    auto ec = std::error_code{};
-    fs::create_directories(manifest_path.parent_path(), ec);
-
-    return manifest_path;
-}
-
-static auto build_manifest_url(std::string_view app_name, std::string_view version) //
-    -> std::string
-{
-#ifndef NDEBUG
-    auto url = std::string{"https://marketplace.flecs.tech:8443/manifests/apps/"};
-#else
-    auto url = std::string{"https://marketplace.flecs.tech/manifests/apps/"};
-#endif // NDEBUG
-
-    url.append(app_name);
-    url.append("/");
-    url.append(version);
-    url.append("/");
-    url.append("manifest.yml");
-
-    return url;
-}
-
-static auto download_manifest(std::string_view app_name, std::string_view version)
-{
-    const auto manifest_path = build_manifest_path(app_name, version);
-    auto manifest = std::ofstream{manifest_path, std::ios::binary};
-    if (!manifest) {
-        std::fprintf(stderr, "Could not open %s for writing\n", manifest_path.c_str());
-        return -1;
-    }
-
-    auto url = build_manifest_url(app_name, version);
-    const auto res = cpr::Download(manifest, cpr::Url(std::move(url)));
-    if (res.status_code != cpr::status::HTTP_OK) {
-        std::fprintf(
-            stderr,
-            "Could not download App manifest: HTTP response %ld\n",
-            res.status_code);
-        return -1;
-    }
-
-    return 0;
-}
 
 static auto acquire_download_token(std::string_view license_key) //
     -> std::string
@@ -173,6 +122,9 @@ auto module_apps_t::do_init() //
     -> void
 {
     _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
+    _manifests_api =
+        std::dynamic_pointer_cast<FLECS::module_manifests_t>(api::query_module("manifests"));
+    _manifests_api->base_path("/var/lib/flecs/manifests/");
 }
 
 auto module_apps_t::do_load(fs::path base_path) //
@@ -268,11 +220,14 @@ auto module_apps_t::do_install_from_marketplace(
     job_progress_t& progress) //
     -> void
 {
+    const auto app_key = app_key_t{std::move(app_name), std::move(version)};
+
     {
         auto lock = progress.lock();
 
-        progress.desc("Installing app "s + app_name + " (" + version + ")");
-        progress.num_steps(7);
+        progress.desc(
+            "Installing app "s + app_key.name().data() + " (" + app_key.version().data() + ")");
+        progress.num_steps(6);
 
         progress.current_step()._desc = "Downloading manifest";
         progress.current_step()._num = 1;
@@ -283,15 +238,15 @@ auto module_apps_t::do_install_from_marketplace(
     }
 
     // Download App manifest and forward to manifest installation, if download successful
-    const auto res = download_manifest(app_name, version);
-    if (res != 0) {
+    const auto [manifest, _] = _manifests_api->add_from_marketplace(app_key);
+    if (!manifest) {
         auto lock = progress.lock();
         progress.result().code = -1;
         progress.result().message = "Could not download manifest";
         return;
     };
 
-    return do_install_impl(build_manifest_path(app_name, version), license_key, progress);
+    return do_install_impl(manifest.value(), license_key, progress);
 }
 
 auto module_apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
@@ -316,34 +271,21 @@ auto module_apps_t::do_sideload(
     std::string manifest_string, std::string license_key, job_progress_t& progress) //
     -> void
 {
+    const auto [manifest, _] = _manifests_api->add_from_string(manifest_string);
     // Step 1: Validate transferred manifest
-    const auto app = app_t::from_yaml_string(manifest_string);
-    if (!app.is_valid()) {
+    if (!manifest) {
         auto lock = progress.lock();
         progress.result().code = -1;
         progress.result().message = "Could not parse manifest";
         return;
     }
 
-    // Step 2: Copy manifest to local storage
-    const auto manifest_path = build_manifest_path(app.app(), app.version());
-    {
-        auto file = std::ofstream{manifest_path};
-        file << manifest_string;
-        if (!file) {
-            auto lock = progress.lock();
-            progress.result().code = -1;
-            progress.result().message = "Could not place manifest in " + manifest_path.string();
-            return;
-        }
-    }
-
-    // Step 3: Forward to manifest installation
-    return do_install_impl(manifest_path, license_key, progress);
+    // Step 2: Forward to manifest installation
+    return do_install_impl(manifest.value(), license_key, progress);
 }
 
 auto module_apps_t::do_install_impl(
-    const fs::path& manifest_path, std::string_view license_key, job_progress_t& progress) //
+    const app_manifest_t& manifest, std::string_view license_key, job_progress_t& progress) //
     -> void
 {
     {
@@ -353,14 +295,12 @@ auto module_apps_t::do_install_impl(
         progress.current_step()._num++;
     }
 
-    const auto desired = app_status_e::Installed;
-
-    // Step 1: Load App manifest
-    auto tmp = app_t{manifest_path, app_status_e::ManifestDownloaded, desired};
+    // Step 1: Create app from manifest
+    auto tmp = app_t{manifest, app_status_e::ManifestDownloaded, app_status_e::Installed};
     if (tmp.app().empty()) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Could not open app manifest " + manifest_path.string();
+        progress.result().message = "Could not open app manifest";
         return;
     }
 
@@ -397,13 +337,6 @@ auto module_apps_t::do_install_impl(
             [[fallthrough]];
         }
         case app_status_e::TokenAcquired: {
-            {
-                auto lock = progress.lock();
-
-                progress.current_step()._desc = "Acquiring download token";
-                progress.current_step()._num++;
-            }
-
             // Step 4: Pull Docker image for this App
             auto docker_login_process = process_t{};
             auto docker_pull_process = process_t{};
@@ -535,6 +468,8 @@ auto module_apps_t::do_uninstall(
     std::string app_name, std::string version, bool force, job_progress_t& progress) //
     -> void
 {
+    const auto app_key = app_key_t{std::move(app_name), std::move(version)};
+
     // Step 1: Ensure App is actually installed
     if (!is_app_installed(app_name, version)) {
         auto lock = progress.lock();
@@ -545,7 +480,7 @@ auto module_apps_t::do_uninstall(
     }
 
     // Step 2: Load App manifest
-    auto& app = _installed_apps.find(app_key_t{app_name, version})->second;
+    auto& app = _installed_apps.find(app_key)->second;
 
     // Step 2a: Prevent removal of system apps
     if (cxx20::contains(app.category(), "system") && !force) {
@@ -581,21 +516,11 @@ auto module_apps_t::do_uninstall(
     }
 
     // Step 5: Persist removal of App into db
-    _installed_apps.erase(app_key_t{app_name, version});
+    _installed_apps.erase(app_key);
     _parent->save();
 
     // Step 6: Remove App manifest
-    const auto path = build_manifest_path(app_name, version);
-    auto ec = std::error_code{};
-    const auto res = fs::remove(path, ec);
-    if (!res) {
-        std::fprintf(
-            stderr,
-            "Warning: Could not remove manifest %s of app %s (%s)\n",
-            path.c_str(),
-            app_name.c_str(),
-            version.c_str());
-    }
+    _manifests_api->erase(app_key);
 }
 
 auto module_apps_t::queue_export_app(std::string app_name, std::string version) const //

@@ -17,16 +17,11 @@
 namespace FLECS {
 
 app_t::app_t()
-    : app_manifest_t{}
-    , _license_key{}
-    , _download_token{}
-    , _installed_size{}
-    , _status{}
-    , _desired{}
+    : app_t{app_manifest_t{}, {}, {}}
 {}
 
-app_t::app_t(const fs::path& manifest_path, app_status_e status, app_status_e desired)
-    : app_manifest_t{app_manifest_t::from_yaml_file(manifest_path)}
+app_t::app_t(app_manifest_t manifest, app_status_e status, app_status_e desired)
+    : app_manifest_t{std::move(manifest)}
     , _license_key{}
     , _download_token{}
     , _installed_size{}
@@ -40,17 +35,13 @@ app_t::app_t(const fs::path& manifest_path, app_status_e status, app_status_e de
     _key = app_key_t{app(), version()};
 }
 
-app_t::app_t(const std::string& manifest_string, app_status_e status, app_status_e desired)
-    : app_manifest_t{app_manifest_t::from_yaml_string(manifest_string)}
-    , _status{status}
-    , _desired(desired)
-{
-    if (!is_valid()) {
-        *this = app_t{};
-    }
+app_t::app_t(const fs::path& manifest_path, app_status_e status, app_status_e desired)
+    : app_t{app_manifest_t::from_yaml_file(manifest_path), status, desired}
+{}
 
-    _key = app_key_t{app(), version()};
-}
+app_t::app_t(const std::string& manifest_string, app_status_e status, app_status_e desired)
+    : app_t{app_manifest_t::from_yaml_string(manifest_string), status, desired}
+{}
 
 auto app_t::key() const noexcept //
     -> const app_key_t&

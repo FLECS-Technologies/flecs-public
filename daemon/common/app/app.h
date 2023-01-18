@@ -28,6 +28,7 @@ class app_t : public app_manifest_t
 public:
     app_t();
 
+    app_t(app_manifest_t manifest, app_status_e status, app_status_e desired);
     app_t(const fs::path& manifest_path, app_status_e status, app_status_e desired);
     app_t(const std::string& manifest_string, app_status_e status, app_status_e desired);
 
