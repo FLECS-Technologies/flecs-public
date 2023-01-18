@@ -191,7 +191,7 @@ TEST(daemon_app, complex_app)
     ASSERT_EQ((app.args()[1]), G_ARG_2);
     ASSERT_EQ((app.args()[2]), G_ARG_3);
     ASSERT_EQ((app.networks()[0].name()), "flecs");
-    ASSERT_EQ((app.networks()[0].type()), FLECS::network_type_t::BRIDGE);
+    ASSERT_EQ((app.networks()[0].type()), FLECS::network_type_e::Bridge);
     ASSERT_EQ((app.ports()[0].host_port_range()), FLECS::port_range_t{G_PORT_LOCAL_1});
     ASSERT_EQ((app.ports()[0].container_port_range()), FLECS::port_range_t{G_PORT_CONTAINER_1});
     ASSERT_EQ((app.ports()[1].host_port_range()), FLECS::port_range_t{G_PORT_LOCAL_2});

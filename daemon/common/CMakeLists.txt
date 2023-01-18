@@ -18,6 +18,7 @@ add_subdirectory(app)
 add_subdirectory(db)
 add_subdirectory(deployment)
 add_subdirectory(instance)
+add_subdirectory(network)
 
 add_library(FLECS.daemon.common INTERFACE)
 
@@ -32,4 +33,5 @@ target_link_libraries(
     FLECS.daemon.common.db
     FLECS.daemon.common.deployment
     daemon.common.instance
+    daemon.common.network
 )

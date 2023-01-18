@@ -49,7 +49,7 @@ private:
     auto do_is_instance_running(const instance_t& instance) const //
         -> bool override;
     auto do_create_network(
-        network_type_t network_type,
+        network_type_e network_type,
         std::string_view network,
         std::string_view cidr_subnet,
         std::string_view gateway,
@@ -86,7 +86,7 @@ private:
     auto do_default_network_name() const //
         -> std::string_view override;
     auto do_default_network_type() const //
-        -> network_type_t override;
+        -> network_type_e override;
     auto do_default_network_cidr_subnet() const //
         -> std::string_view override;
     auto do_default_network_gateway() const //

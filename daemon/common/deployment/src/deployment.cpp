@@ -345,7 +345,7 @@ auto deployment_t::create_conffiles(const instance_t& instance) //
 }
 
 auto deployment_t::create_network(
-    network_type_t network_type,
+    network_type_e network_type,
     std::string_view network,
     std::string_view cidr_subnet,
     std::string_view gateway,
@@ -506,7 +506,7 @@ auto deployment_t::default_network_name() const //
 }
 
 auto deployment_t::default_network_type() const //
-    -> network_type_t
+    -> network_type_e
 {
     return do_default_network_type();
 }
