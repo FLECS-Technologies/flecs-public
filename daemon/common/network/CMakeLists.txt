@@ -1,4 +1,4 @@
-# Copyright 2021-2022 FLECS Technologies GmbH
+# Copyright 2021-2023 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME FLECS.daemon.common.app.manifest.network)
+set(PROJECT_NAME daemon.common.network)
 
 project(${PROJECT_NAME})
 
 add_library(
     ${PROJECT_NAME} STATIC
-    src/network.cpp
-    network.h
+    src/network_type.cpp src/network.cpp
+    network_type.h network.h
 )
 
 target_include_directories(
@@ -32,7 +32,6 @@ target_include_directories(
 
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC
-    FLECS.daemon.common.deployment
     FLECS.external.json
 )
 

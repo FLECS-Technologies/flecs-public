@@ -1,4 +1,4 @@
-# Copyright 2021-2022 FLECS Technologies GmbH
+# Copyright 2021-2023 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,19 +13,21 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    project(FLECS.daemon.app.network.test)
+    set(PROJECT_NAME daemon.common.network.test)
+    project(${PROJECT_NAME})
 
-    add_executable(FLECS.daemon.app.network.test
+    add_executable(${PROJECT_NAME}
+        test_network_type.cpp
         test_network.cpp
     )
 
-    set_target_properties(FLECS.daemon.app.network.test PROPERTIES OUTPUT_NAME test_network)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_network)
 
-    target_link_libraries(FLECS.daemon.app.network.test PRIVATE
+    target_link_libraries(${PROJECT_NAME} PRIVATE
         FLECS.external.gtest
         FLECS.external.gtest_main
-        FLECS.daemon.common.app.manifest.network
+        daemon.common.network
     )
 
-    add_test(NAME FLECS.daemon.app.network.test COMMAND FLECS.daemon.app.network.test)
+    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 endif()

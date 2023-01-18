@@ -440,7 +440,7 @@ auto deployment_docker_t::do_is_instance_running(const instance_t& instance) con
 }
 
 auto deployment_docker_t::do_create_network(
-    network_type_t network_type,
+    network_type_e network_type,
     std::string_view network,
     std::string_view cidr_subnet,
     std::string_view gateway,
@@ -454,10 +454,10 @@ auto deployment_docker_t::do_create_network(
     auto gw = std::string{gateway};
 
     switch (network_type) {
-        case network_type_t::BRIDGE: {
+        case network_type_e::Bridge: {
             break;
         }
-        case network_type_t::IPVLAN: {
+        case network_type_e::IPVLAN: {
             if (parent_adapter.empty()) {
                 return {-1, "cannot create ipvlan network without parent"};
             }
@@ -481,10 +481,10 @@ auto deployment_docker_t::do_create_network(
             }
             break;
         }
-        case network_type_t::MACVLAN: {
+        case network_type_e::MACVLAN: {
             break;
         }
-        case network_type_t::INTERNAL: {
+        case network_type_e::Internal: {
             break;
         }
         default: {
@@ -853,9 +853,9 @@ auto deployment_docker_t::do_default_network_name() const //
 }
 
 auto deployment_docker_t::do_default_network_type() const //
-    -> network_type_t
+    -> network_type_e
 {
-    return network_type_t::BRIDGE;
+    return network_type_e::Bridge;
 }
 
 auto deployment_docker_t::do_default_network_cidr_subnet() const //

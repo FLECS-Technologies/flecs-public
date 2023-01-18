@@ -172,7 +172,7 @@ auto module_app_manager_private_t::do_put_config_instance(
                 // apply settings
                 // @todo verify validity of IP address
                 _deployment->create_network(
-                    network_type_t::MACVLAN,
+                    network_type_e::MACVLAN,
                     docker_network,
                     cidr_subnet,
                     netif->second.gateway,

@@ -41,7 +41,7 @@ public:
     MOCK_METHOD(
         result_t,
         do_create_network,
-        ((network_type_t network_type),
+        ((network_type_e network_type),
          (std::string_view network),
          (std::string_view cidr_subnet),
          (std::string_view gateway),
@@ -96,7 +96,7 @@ public:
         ((instance_id_t instance_id), (fs::path file), (fs::path dest)),
         (const, override));
     MOCK_METHOD(std::string_view, do_default_network_name, (), (const, override));
-    MOCK_METHOD(network_type_t, do_default_network_type, (), (const, override));
+    MOCK_METHOD(network_type_e, do_default_network_type, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_cidr_subnet, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_gateway, (), (const, override));
 };
@@ -224,14 +224,14 @@ TEST(deployment, interface)
     EXPECT_CALL(
         test_deployment,
         do_create_network(
-            FLECS::network_type_t::BRIDGE,
+            FLECS::network_type_e::Bridge,
             G_NETWORK_NAME,
             G_CIDR_SUBNET,
             G_GATEWAY,
             G_PARENT))
         .Times(1);
     deployment->create_network(
-        FLECS::network_type_t::BRIDGE,
+        FLECS::network_type_e::Bridge,
         G_NETWORK_NAME,
         G_CIDR_SUBNET,
         G_GATEWAY,

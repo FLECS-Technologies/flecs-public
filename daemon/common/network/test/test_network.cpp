@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 #include <gtest/gtest.h>
 
-#include "daemon/common/app/manifest/network/network.h"
+#include "daemon/common/network/network.h"
 
 TEST(network, default)
 {
@@ -24,7 +24,7 @@ TEST(network, default)
     ASSERT_TRUE(network.mac_address().empty());
     ASSERT_TRUE(network.name().empty());
     ASSERT_TRUE(network.parent().empty());
-    ASSERT_EQ(network.type(), FLECS::network_type_t::NONE);
+    ASSERT_EQ(network.type(), FLECS::network_type_e::None);
 }
 
 TEST(network, bridge)
@@ -35,7 +35,7 @@ TEST(network, bridge)
     ASSERT_TRUE(network.mac_address().empty());
     ASSERT_EQ(network.name(), "flecs-bridge-custom");
     ASSERT_TRUE(network.parent().empty());
-    ASSERT_EQ(network.type(), FLECS::network_type_t::BRIDGE);
+    ASSERT_EQ(network.type(), FLECS::network_type_e::Bridge);
 }
 
 TEST(network, ipvlan)
@@ -46,7 +46,7 @@ TEST(network, ipvlan)
     // ASSERT_EQ(network.mac_address(), "00:00:00:00:00:00");
     ASSERT_EQ(network.name(), "flecs-ipvlan-lo");
     ASSERT_EQ(network.parent(), "lo");
-    ASSERT_EQ(network.type(), FLECS::network_type_t::IPVLAN);
+    ASSERT_EQ(network.type(), FLECS::network_type_e::IPVLAN);
 }
 
 TEST(network, macvlan)
@@ -57,7 +57,7 @@ TEST(network, macvlan)
     // ASSERT_EQ(network.mac_address(), "00:00:00:00:00:00");
     ASSERT_EQ(network.name(), "flecs-macvlan-lo");
     ASSERT_EQ(network.parent(), "lo");
-    ASSERT_EQ(network.type(), FLECS::network_type_t::MACVLAN);
+    ASSERT_EQ(network.type(), FLECS::network_type_e::MACVLAN);
 }
 
 TEST(network, internal)
@@ -68,7 +68,7 @@ TEST(network, internal)
     // ASSERT_EQ(network.mac_address(), "00:00:00:00:00:00");
     ASSERT_EQ(network.name(), "flecs-internal-custom");
     ASSERT_TRUE(network.parent().empty());
-    ASSERT_EQ(network.type(), FLECS::network_type_t::INTERNAL);
+    ASSERT_EQ(network.type(), FLECS::network_type_e::Internal);
 }
 
 TEST(network, custom)
@@ -83,5 +83,5 @@ TEST(network, custom)
     ASSERT_TRUE(network.is_valid());
     ASSERT_EQ(network.mac_address(), "00:00:00:00:00:00");
     ASSERT_EQ(network.parent(), "lo");
-    ASSERT_EQ(network.type(), FLECS::network_type_t::IPVLAN);
+    ASSERT_EQ(network.type(), FLECS::network_type_e::IPVLAN);
 }

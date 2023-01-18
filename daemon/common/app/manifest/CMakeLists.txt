@@ -18,7 +18,6 @@ project(${PROJECT_NAME})
 
 add_subdirectory(conffile)
 add_subdirectory(env_var)
-add_subdirectory(network)
 add_subdirectory(port_range)
 add_subdirectory(startup_option)
 add_subdirectory(volume)
@@ -39,9 +38,9 @@ target_include_directories(
 
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC
+    daemon.common.network
     FLECS.daemon.common.app.manifest.conffile
     FLECS.daemon.common.app.manifest.env_var
-    FLECS.daemon.common.app.manifest.network
     FLECS.daemon.common.app.manifest.port_range
     FLECS.daemon.common.app.manifest.startup_option
     FLECS.daemon.common.app.manifest.volume

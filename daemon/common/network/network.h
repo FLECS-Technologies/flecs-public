@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DD9A8DC3_3CE8_4B4D_BCCD_6CE7E45FC419
-#define DD9A8DC3_3CE8_4B4D_BCCD_6CE7E45FC419
+#pragma once
 
 #include <string_view>
 
-#include "types/network_type.h"
+#include "network_type.h"
 #include "util/json/json.h"
 
 namespace FLECS {
@@ -36,7 +35,7 @@ public:
     auto mac_address() const noexcept //
         -> const std::string&;
     auto type() const noexcept //
-        -> network_type_t;
+        -> network_type_e;
 
     auto name(std::string name) //
         -> void;
@@ -44,7 +43,7 @@ public:
         -> void;
     auto mac_address(std::string mac_address) //
         -> void;
-    auto type(network_type_t type) noexcept //
+    auto type(network_type_e type) noexcept //
         -> void;
 
     auto is_valid() const noexcept //
@@ -59,9 +58,7 @@ private:
     std::string _name;
     std::string _parent;
     std::string _mac_address;
-    network_type_t _type;
+    network_type_e _type;
 };
 
 } // namespace FLECS
-
-#endif // DD9A8DC3_3CE8_4B4D_BCCD_6CE7E45FC419

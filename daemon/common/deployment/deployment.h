@@ -37,7 +37,7 @@ public:
         std::string cidr_subnet;
         std::string gateway;
         std::string parent;
-        network_type_t type;
+        network_type_e type;
     };
 
     enum version_filter_e {
@@ -93,7 +93,7 @@ public:
     auto create_conffiles(const instance_t& instance) //
         -> result_t;
     auto create_network(
-        network_type_t network_type,
+        network_type_e network_type,
         std::string_view network,
         std::string_view cidr_subnet,
         std::string_view gateway,
@@ -137,7 +137,7 @@ public:
     auto default_network_name() const //
         -> std::string_view;
     auto default_network_type() const //
-        -> network_type_t;
+        -> network_type_e;
     auto default_network_cidr_subnet() const //
         -> std::string_view;
     auto default_network_gateway() const //
@@ -177,7 +177,7 @@ private:
     virtual auto do_is_instance_running(const instance_t& instance) const //
         -> bool = 0;
     virtual auto do_create_network(
-        network_type_t network_type,
+        network_type_e network_type,
         std::string_view network,
         std::string_view cidr_subnet,
         std::string_view gateway,
@@ -215,7 +215,7 @@ private:
     virtual auto do_default_network_name() const //
         -> std::string_view = 0;
     virtual auto do_default_network_type() const //
-        -> network_type_t = 0;
+        -> network_type_e = 0;
     virtual auto do_default_network_cidr_subnet() const //
         -> std::string_view = 0;
     virtual auto do_default_network_gateway() const //

@@ -24,6 +24,7 @@
                 "${workspaceFolder}/daemon/common/app/manifest/volume",
                 "${workspaceFolder}/daemon/common/deployment",
                 "${workspaceFolder}/daemon/common/instance",
+                "${workspaceFolder}/daemon/common/network",
                 "${workspaceFolder}/daemon/modules",
                 "${workspaceFolder}/daemon/modules/apps",
                 "${workspaceFolder}/daemon/modules/app_manager",
