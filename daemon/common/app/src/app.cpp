@@ -52,6 +52,72 @@ app_t::app_t(const std::string& manifest_string, app_status_e status, app_status
     _key = app_key_t{app(), version()};
 }
 
+auto app_t::key() const noexcept //
+    -> const app_key_t&
+{
+    return _key;
+}
+
+auto app_t::download_token() const noexcept //
+    -> const std::string&
+{
+    return _download_token;
+}
+
+auto app_t::installed_size() const noexcept //
+    -> std::int32_t
+{
+    return _installed_size;
+}
+
+auto app_t::license_key() const noexcept //
+    -> const std::string&
+{
+    return _license_key;
+}
+
+auto app_t::status() const noexcept //
+    -> app_status_e
+{
+    return _status;
+}
+
+auto app_t::desired() const noexcept //
+    -> app_status_e
+{
+    return _desired;
+}
+
+auto app_t::download_token(std::string download_token) //
+    -> void
+{
+    _download_token = std::move(download_token);
+}
+
+auto app_t::installed_size(std::int32_t installed_size) //
+    -> void
+{
+    _installed_size = installed_size;
+}
+
+auto app_t::license_key(std::string license_key) //
+    -> void
+{
+    _license_key = license_key;
+}
+
+auto app_t::status(app_status_e status) //
+    -> void
+{
+    _status = status;
+}
+
+auto app_t::desired(app_status_e desired) //
+    -> void
+{
+    _desired = desired;
+}
+
 auto to_json(json_t& json, const app_t& app) //
     -> void
 {

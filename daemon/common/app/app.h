@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef E02D9ED5_6E61_4F4F_B9B2_C94F79443A61
-#define E02D9ED5_6E61_4F4F_B9B2_C94F79443A61
+#pragma once
 
 #include <string>
 #include <tuple>
@@ -32,17 +31,29 @@ public:
     app_t(const fs::path& manifest_path, app_status_e status, app_status_e desired);
     app_t(const std::string& manifest_string, app_status_e status, app_status_e desired);
 
-    auto& download_token() const noexcept { return _download_token; }
-    auto installed_size() const noexcept { return _installed_size; }
-    auto& license_key() const noexcept { return _license_key; }
-    auto status() const noexcept { return _status; }
-    auto desired() const noexcept { return _desired; }
+    auto key() const noexcept //
+        -> const app_key_t&;
+    auto download_token() const noexcept //
+        -> const std::string&;
+    auto installed_size() const noexcept //
+        -> std::int32_t;
+    auto license_key() const noexcept //
+        -> const std::string&;
+    auto status() const noexcept //
+        -> app_status_e;
+    auto desired() const noexcept //
+        -> app_status_e;
 
-    void download_token(std::string download_token) { _download_token = download_token; }
-    void installed_size(std::int32_t installed_size) { _installed_size = installed_size; }
-    void license_key(std::string license_key) { _license_key = license_key; }
-    void status(app_status_e status) { _status = status; }
-    void desired(app_status_e desired) { _desired = desired; }
+    auto download_token(std::string download_token) //
+        -> void;
+    auto installed_size(std::int32_t installed_size) //
+        -> void;
+    auto license_key(std::string license_key) //
+        -> void;
+    auto status(app_status_e status) //
+        -> void;
+    auto desired(app_status_e desired) //
+        -> void;
 
 private:
     friend auto to_json(json_t& json, const app_t& app) //
@@ -59,5 +70,3 @@ private:
 };
 
 } // namespace FLECS
-
-#endif // E02D9ED5_6E61_4F4F_B9B2_C94F79443A61
