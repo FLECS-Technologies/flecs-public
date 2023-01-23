@@ -574,7 +574,14 @@ paths:
   /jobs/{job_id}:
     get:
       tags: ["Jobs"]
-      summary: Retrieve information for specific {job_id}
+      summary: Retrieve information for specific job_id
+      parameters:
+        - name: job_id
+          in: path
+          schema:
+            type: int
+            description: job_id to query
+          required: true
       responses:
         "200":
           description: Success
@@ -586,7 +593,7 @@ paths:
           description: Not found
     delete:
       tags: ["Jobs"]
-      summary: Cancel jov or remove failed/successful/cancelled job from journal
+      summary: Cancel job or remove failed/successful/cancelled job from journal
       responses:
         "200":
           description: Success
