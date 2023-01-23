@@ -65,14 +65,56 @@ components:
           example: "172.21.0.2"
     job:
       type: object
-      description: Job metadata for accepted requests
       properties:
-        job:
+        id:
+          type: integer
+          example: 1234
+        status:
+          type: string
+          example: pending
+        description:
+          type: string
+          example: Installation of app tech.flecs.app-1 (1.2.3.4-f1)
+        numSteps:
+          type: integer
+          example: 5
+        currentStep:
           type: object
           properties:
-            id:
+            description:
               type: string
-              example: "17"
+              example: Downloading...
+            num:
+              type: integer
+              example: 3
+            unit:
+              type: integer
+              example: B
+            unitsTotal:
+              type: integer
+              example: 10485761
+            unitsDone:
+              type: integer
+              example: 5120000
+            rate:
+              type: integer
+              example: 2048
+        result:
+          type: object
+          properties:
+            code:
+              type: integer
+              example: -1
+            message:
+              type: string
+              example: Could not download app...
+    job_meta:
+      type: object
+      description: Job metadata for accepted requests
+      properties:
+        jobId:
+          type: integer
+          example: 17
     licenseKey:
       type: object
       description: License key for App installation
@@ -170,12 +212,10 @@ components:
   responses:
     response_202:
       description: Accepted
-      headers:
-        Location:
+      content:
+        application/json:
           schema:
-            type: string
-            description: URI to query for job status
-            example: /v2/jobs/{job_id}
+            $ref: "#/components/schemas/job_meta"
     response_400:
       description: Malformed request
       content:
@@ -516,6 +556,42 @@ paths:
             type: string
             example: "/flecs/app1/heater0/temperature"
           required: true
+
+  /jobs:
+    get:
+      tags: ["Jobs"]
+      summary: Retrieve a list of all pending/queued/running/failed/cancelled jobs
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/job"
+
+  /jobs/{job_id}:
+    get:
+      tags: ["Jobs"]
+      summary: Retrieve information for specific {job_id}
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/job"
+        "404":
+          description: Not found
+    delete:
+      tags: ["Jobs"]
+      summary: Cancel jov or remove failed/successful/cancelled job from journal
+      responses:
+        "200":
+          description: Success
+        "404":
+          description: Not found
 
   /system/ping:
     get:
