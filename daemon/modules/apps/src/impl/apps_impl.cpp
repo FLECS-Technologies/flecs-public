@@ -16,6 +16,7 @@
 
 #include <cpr/cpr.h>
 
+#include <algorithm>
 #include <fstream>
 
 #include "api/api.h"
@@ -112,8 +113,8 @@ static auto expire_download_token(const std::string& user_token, const std::stri
 
 module_apps_t::module_apps_t(FLECS::module_apps_t* parent)
     : _parent{parent}
-    , _installed_apps{}
-    , _installed_apps_mutex{}
+    , _apps{}
+    , _apps_mutex{}
     , _jobs_api{}
 {}
 
@@ -140,10 +141,13 @@ auto module_apps_t::do_load(fs::path base_path) //
     if (json_file.good()) {
         auto apps_json = parse_json(json_file);
         try {
-            _installed_apps = apps_json.get<decltype(_installed_apps)>();
+            _apps.reserve(apps_json.size());
+            for (const auto& app : apps_json) {
+                _apps.push_back(std::make_shared<app_t>(app.get<app_t>()));
+            }
             response["additionalInfo"] = "Loaded apps from "s + base_path.string();
         } catch (const std::exception& ex) {
-            _installed_apps.clear();
+            _apps.clear();
             res = crow::status::INTERNAL_SERVER_ERROR;
             response["additionalInfo"] =
                 "Could not load apps from "s + base_path.string() + ": "s + ex.what();
@@ -167,9 +171,13 @@ auto module_apps_t::do_save(fs::path base_path) const //
     }
 
     base_path /= "apps.json";
-    auto apps_json = std::ofstream{base_path.c_str(), std::ios_base::out | std::ios_base::trunc};
-    apps_json << json_t(_installed_apps);
-    if (!apps_json) {
+    auto json_file = std::ofstream{base_path.c_str(), std::ios_base::out | std::ios_base::trunc};
+    auto apps_json = json_t::array();
+    for (const auto& app : _apps) {
+        apps_json.push_back(*app);
+    }
+    json_file << apps_json;
+    if (!json_file) {
         response["additionalInfo"] = "Could not save apps to "s + base_path.string();
         return {crow::status::INTERNAL_SERVER_ERROR, "json", response.dump()};
     }
@@ -178,33 +186,31 @@ auto module_apps_t::do_save(fs::path base_path) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto module_apps_t::do_list(std::string_view app_name, std::string_view version) const //
+auto module_apps_t::do_list(const app_key_t& app_key) const //
     -> crow::response
 {
     auto response = json_t::array();
 
-    for (decltype(auto) app : _installed_apps) {
-        const auto apps_match = app_name.empty() || (app_name == app.first.name());
-        const auto versions_match =
-            app_name.empty() || version.empty() || (version == app.first.version());
+    for (decltype(auto) app : _apps) {
+        const auto apps_match = app_key.name().empty() || (app_key.name() == app->key().name());
+        const auto versions_match = app_key.name().empty() || app_key.version().empty() ||
+                                    (app_key.version() == app->key().version());
         if (apps_match && versions_match) {
-            response.push_back(app.second);
+            response.push_back(*app);
         }
     }
 
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto module_apps_t::queue_install_from_marketplace(
-    std::string app_name, std::string version, std::string license_key) //
+auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
     -> crow::response
 {
     auto job = job_t{};
     job.callable = std::bind(
         &module_apps_t::do_install_from_marketplace,
         this,
-        std::move(app_name),
-        std::move(version),
+        std::move(app_key),
         std::move(license_key),
         std::placeholders::_1);
 
@@ -216,14 +222,11 @@ auto module_apps_t::queue_install_from_marketplace(
 }
 
 auto module_apps_t::do_install_from_marketplace(
-    std::string app_name,
-    std::string version,
+    app_key_t app_key,
     std::string license_key,
     job_progress_t& progress) //
     -> void
 {
-    const auto app_key = app_key_t{std::move(app_name), std::move(version)};
-
     {
         auto lock = progress.lock();
 
@@ -311,13 +314,13 @@ auto module_apps_t::do_install_impl(
     tmp.status(app_status_e::ManifestDownloaded);
 
     // Step 2: Determine current App status to decide where to continue
-    auto it = _installed_apps.find(tmp.key());
-    if (it == _installed_apps.end()) {
-        it = _installed_apps.emplace(tmp.key(), std::move(tmp)).first;
+    auto app = _parent->query(tmp.key());
+    if (!app) {
+        _apps.push_back(std::make_shared<app_t>(std::move(tmp)));
+        app = *_apps.rbegin();
     }
 
-    auto& app = it->second;
-    switch (app.status()) {
+    switch (app->status()) {
         case app_status_e::ManifestDownloaded: {
             {
                 auto lock = progress.lock();
@@ -327,13 +330,13 @@ auto module_apps_t::do_install_impl(
             }
 
             // Step 3: Acquire download token for App
-            app.download_token(acquire_download_token(license_key));
+            app->download_token(acquire_download_token(license_key));
 
-            if (app.download_token().empty()) {
+            if (app->download_token().empty()) {
                 auto lock = progress.lock();
                 progress.result().message = "Could not acquire download token";
             } else {
-                app.status(app_status_e::TokenAcquired);
+                app->status(app_status_e::TokenAcquired);
             }
             [[fallthrough]];
         }
@@ -342,7 +345,7 @@ auto module_apps_t::do_install_impl(
             auto docker_login_process = process_t{};
             auto docker_pull_process = process_t{};
             auto docker_logout_process = process_t{};
-            const auto args = split(app.download_token(), ';');
+            const auto args = split(app->download_token(), ';');
 
             if (args.size() == 3) {
                 {
@@ -397,7 +400,7 @@ auto module_apps_t::do_install_impl(
                 _parent->save();
                 return;
             }
-            app.status(app_status_e::ImageDownloaded);
+            app->status(app_status_e::ImageDownloaded);
             [[fallthrough]];
         }
         case app_status_e::ImageDownloaded: {
@@ -409,19 +412,19 @@ auto module_apps_t::do_install_impl(
             }
 
             // Step 5: Expire download token
-            const auto args = split(app.download_token(), ';');
+            const auto args = split(app->download_token(), ';');
             if (args.size() == 3) {
                 const auto success = expire_download_token(args[0], args[2]);
                 if (success) {
-                    app.download_token("");
-                    app.status(app_status_e::Installed);
+                    app->download_token("");
+                    app->status(app_status_e::Installed);
                 } else {
                     auto lock = progress.lock();
                     progress.result().message = "Could not expire download token";
                 }
             } else {
-                app.download_token("");
-                app.status(app_status_e::Installed);
+                app->download_token("");
+                app->status(app_status_e::Installed);
             }
             break;
         }
@@ -439,13 +442,13 @@ auto module_apps_t::do_install_impl(
     }
 }
 
-auto module_apps_t::queue_uninstall(std::string app_name, std::string version, bool force) //
+auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
     -> crow::response
 {
-    if (!is_app_installed(app_name, version)) {
+    if (!_parent->is_installed(app_key)) {
         auto response = json_t{};
-        response["additionalInfo"] =
-            "Cannot uninstall "s + app_name + " (" + version + "), which is not installed";
+        response["additionalInfo"] = "Cannot uninstall "s + app_key.name().data() + " (" +
+                                     app_key.version().data() + "), which is not installed";
         return {crow::status::BAD_REQUEST, "json", response.dump()};
     }
 
@@ -453,8 +456,7 @@ auto module_apps_t::queue_uninstall(std::string app_name, std::string version, b
     job.callable = std::bind(
         &module_apps_t::do_uninstall,
         this,
-        std::move(app_name),
-        std::move(version),
+        std::move(app_key),
         std::move(force),
         std::placeholders::_1);
 
@@ -465,35 +467,32 @@ auto module_apps_t::queue_uninstall(std::string app_name, std::string version, b
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_t::do_uninstall(
-    std::string app_name, std::string version, bool force, job_progress_t& progress) //
+auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
     -> void
 {
-    const auto app_key = app_key_t{std::move(app_name), std::move(version)};
-
     // Step 1: Ensure App is actually installed
-    if (!is_app_installed(app_name, version)) {
+    if (!_parent->is_installed(app_key)) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message =
-            "Cannot uninstall "s + app_name + " (" + version + "), which is not installed";
+        progress.result().message = "Cannot uninstall "s + app_key.name().data() + " (" +
+                                    app_key.version().data() + "), which is not installed";
         return;
     }
 
     // Step 2: Load App manifest
-    auto& app = _installed_apps.find(app_key)->second;
-    auto manifest = app.manifest();
+    auto app = _parent->query(app_key);
+    auto manifest = app->manifest();
 
     // Step 2a: Prevent removal of system apps
     if (cxx20::contains(manifest->category(), "system") && !force) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Not uninstalling system app "s + app.key().name().data() +
-                                    "(" + app.key().version().data() + ")";
+        progress.result().message = "Not uninstalling system app "s + app->key().name().data() +
+                                    "(" + app->key().version().data() + ")";
         return;
     }
 
-    app.desired(app_status_e::NotInstalled);
+    app->desired(app_status_e::NotInstalled);
 
 #if 0
     // Step 3: Stop and delete all instances of the App
@@ -513,24 +512,29 @@ auto module_apps_t::do_uninstall(
             stderr,
             "Warning: Could not remove image %s of app %s (%s)\n",
             image.c_str(),
-            app_name.c_str(),
-            version.c_str());
+            app_key.name().data(),
+            app_key.version().data());
     }
 
     // Step 5: Persist removal of App into db
-    _installed_apps.erase(app_key);
+    _apps.erase(
+        std::remove_if(
+            _apps.begin(),
+            _apps.end(),
+            [&app_key](const std::shared_ptr<app_t>& elem) { return elem->key() == app_key; }),
+        _apps.end());
     _parent->save();
 
     // Step 6: Remove App manifest
     _manifests_api->erase(app_key);
 }
 
-auto module_apps_t::queue_export_app(std::string app_name, std::string version) const //
+auto module_apps_t::queue_archive(app_key_t app_key) const //
     -> crow::response
 {
     auto job = job_t{};
     job.callable =
-        std::bind(&module_apps_t::do_export_app, this, app_name, version, std::placeholders::_1);
+        std::bind(&module_apps_t::do_archive, this, std::move(app_key), std::placeholders::_1);
 
     auto job_id = _jobs_api->append(std::move(job));
     return crow::response{
@@ -539,22 +543,21 @@ auto module_apps_t::queue_export_app(std::string app_name, std::string version) 
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_t::do_export_app(
-    std::string app_name, std::string version, job_progress_t& progress) const //
+auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) const //
     -> void
 {
     // Step 1: Ensure App is actually installed
-    if (!is_app_installed(app_name, version)) {
+    if (!_parent->is_installed(app_key)) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message =
-            "Cannot export "s + app_name + " (" + version + "), which is not installed";
+        progress.result().message = "Cannot export "s + app_key.name().data() + " (" +
+                                    app_key.version().data() + "), which is not installed";
         return;
     }
 
     // Step 2: Load App manifest
-    auto& app = _installed_apps.find(app_key_t{app_name, version})->second;
-    auto manifest = app.manifest();
+    auto app = _parent->query(app_key);
+    auto manifest = app->manifest();
 
     // Step 3: Create export directory
     auto ec = std::error_code{};
@@ -562,17 +565,17 @@ auto module_apps_t::do_export_app(
     if (ec) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message =
-            "Could not create export directory for "s + app_name + " (" + version + ")";
+        progress.result().message = "Could not create export directory for "s +
+                                    app_key.name().data() + " (" + app_key.version().data() + ")";
         return;
     }
 
     // Step 4: Export image
     auto docker_process = process_t{};
     const auto filename = std::string{"/var/lib/flecs/export-tmp/apps/"}
-                              .append(app.key().name())
+                              .append(app->key().name())
                               .append("_")
-                              .append(app.key().version())
+                              .append(app->key().version())
                               .append(".tar");
     docker_process.spawnp("docker", "save", "--output", filename, manifest->image_with_tag());
     docker_process.wait(false, true);
@@ -584,35 +587,49 @@ auto module_apps_t::do_export_app(
     }
 
     // Step 5: Copy manifest
-    const auto manifest_src = fs::path{"/var/lib/flecs/apps"} / app_name / version / "manifest.yml";
-    const auto manifest_dst =
-        fs::path{"/var/lib/flecs/export-tmp/apps/"} / (app_name + "_" + version + ".yml");
+    const auto manifest_src = fs::path{"/var/lib/flecs/apps"} / app_key.name().data() /
+                              app_key.version().data() / "manifest.yml";
+    const auto manifest_dst = fs::path{"/var/lib/flecs/export-tmp/apps/"} /
+                              (app_key.name().data() + "_"s + app_key.version().data() + ".yml");
     fs::copy_file(manifest_src, manifest_dst, ec);
     if (ec) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message =
-            "Could not copy app manifest for "s + app_name + " (" + version + ")";
+        progress.result().message = "Could not copy app manifest for "s + app_key.name().data() +
+                                    " (" + app_key.version().data() + ")";
         return;
     }
 }
 
-auto module_apps_t::has_app(std::string_view app_name, std::string_view version) const noexcept //
+auto module_apps_t::do_contains(const app_key_t& app_key) const noexcept //
     -> bool
 {
-    return _installed_apps.count(app_key_t{std::string{app_name}, std::string{version}});
+    return std::find_if(
+               _apps.cbegin(),
+               _apps.cend(),
+               [&app_key](const std::shared_ptr<app_t>& elem) { return elem->key() == app_key; }) !=
+           _apps.cend();
 }
 
-auto module_apps_t::is_app_installed(
-    std::string_view app_name, std::string_view version) const noexcept //
+auto module_apps_t::do_query(const app_key_t& app_key) const noexcept //
+    -> std::shared_ptr<app_t>
+{
+    auto it =
+        std::find_if(_apps.cbegin(), _apps.cend(), [&app_key](const std::shared_ptr<app_t>& elem) {
+            return elem->key() == app_key;
+        });
+
+    return it == _apps.cend() ? nullptr : *it;
+}
+
+auto module_apps_t::do_is_installed(const app_key_t& app_key) const noexcept //
     -> bool
 {
-    if (!has_app(app_name, version)) {
-        return false;
+    if (auto app = _parent->query(app_key)) {
+        return app->status() == app_status_e::Installed;
     }
 
-    return _installed_apps.at(app_key_t{std::string{app_name}, std::string{version}}).status() ==
-           app_status_e::Installed;
+    return false;
 }
 
 } // namespace impl

@@ -50,16 +50,14 @@ private:
     auto do_save(fs::path base_path = "/var/lib/flecs/") const //
         -> crow::response;
 
-    auto do_list(std::string_view app_name, std::string_view version) const //
+    auto do_list(const app_key_t& app_key) const //
         -> crow::response;
 
-    auto queue_install_from_marketplace(
-        std::string app_name, std::string version, std::string license_key) //
+    auto queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
         -> crow::response;
 
     auto do_install_from_marketplace(
-        std::string app_name,
-        std::string version,
+        app_key_t app_key,
         std::string license_key,
         job_progress_t& progress) //
         -> void;
@@ -71,17 +69,16 @@ private:
         std::string manifest_string, std::string license_key, job_progress_t& progress) //
         -> void;
 
-    auto queue_uninstall(std::string app_name, std::string version, bool force) //
+    auto queue_uninstall(app_key_t app_key, bool force) //
         -> crow::response;
 
-    auto do_uninstall(
-        std::string app_name, std::string version, bool force, job_progress_t& progress) //
+    auto do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
         -> void;
 
-    auto queue_export_app(std::string app_name, std::string version) const //
+    auto queue_archive(app_key_t app_key) const //
         -> crow::response;
 
-    auto do_export_app(std::string app_name, std::string version, job_progress_t& progress) const //
+    auto do_archive(app_key_t app_key, job_progress_t& progress) const //
         -> void;
 
     auto do_install_impl(
@@ -97,8 +94,11 @@ private:
      *
      * @return true if the app is installed, false otherwise
      */
-    auto has_app(std::string_view app_name, std::string_view version) const noexcept //
+    auto do_contains(const app_key_t& app_key) const noexcept //
         -> bool;
+
+    auto do_query(const app_key_t& app_key) const noexcept //
+        -> std::shared_ptr<app_t>;
 
     /*! @brief Helper function to determine whether a given app is installed in a given version
      *
@@ -107,17 +107,14 @@ private:
      *
      * @return true if the app is installed, false otherwise
      */
-    auto is_app_installed(std::string_view app_name, std::string_view version) const noexcept //
+    auto do_is_installed(const app_key_t& app_key) const noexcept //
         -> bool;
 
     FLECS::module_apps_t* _parent;
 
-    using installed_apps_t = std::map<app_key_t, app_t, std::less<>>;
-    installed_apps_t _installed_apps;
+    std::vector<std::shared_ptr<app_t>> _apps;
+    std::mutex _apps_mutex;
 
-    std::mutex _installed_apps_mutex;
-
-    std::shared_ptr<FLECS::module_instances_t> _instances_api;
     std::shared_ptr<FLECS::module_manifests_t> _manifests_api;
     std::shared_ptr<FLECS::module_jobs_t> _jobs_api;
 };

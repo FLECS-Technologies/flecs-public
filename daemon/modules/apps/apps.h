@@ -26,6 +26,8 @@ namespace impl {
 class module_apps_t;
 } // namespace impl
 
+class app_t;
+class app_key_t;
 class app_manifest_t;
 
 class module_apps_t FLECS_FINAL_UNLESS_TESTED : public module_t
@@ -53,26 +55,28 @@ public:
 
     /*! @brief Lists all installed Apps
      *
-     * @param app_name (optional) retrieve information about specific App only
-     * @param version (optional) retrieve information about specific version only
+     * @param app_key (optional) limit list to all or specific version of specific App
      *
      * @return HTTP response
      */
-    auto list(std::string_view app_name, std::string_view version) const //
+    auto list(const app_key_t& app_key) const //
         -> crow::response;
-    auto list(std::string_view app_name) const //
+    auto list(std::string app_name, std::string version) const //
+        -> crow::response;
+    auto list(std::string app_name) const //
         -> crow::response;
     auto list() const //
         -> crow::response;
 
     /*! @brief Installs an App from the FLECS marketplace
      *
-     * @param[in] app_name Name of the App to install
-     * @param[in] version Version of the App to install
+     * @param[in] app_key Key of the App to install, version required @sa app_key_t
      * @param[in] license_key License key to activate with the marketplace
      *
      * @return HTTP response
      */
+    auto install_from_marketplace(app_key_t app_key, std::string license_key) //
+        -> crow::response;
     auto install_from_marketplace(
         std::string app_name, std::string version, std::string license_key) //
         -> crow::response;
@@ -93,29 +97,32 @@ public:
 
     /*! @brief Uninstalls an App
      *
-     * @param[in] app_name App to uninstall
-     * @param[in] version Version to uninstall
+     * @param[in] app_key Key of the App to uninstall, all or specific version @sa app_key_t
      *
      * @return HTTP response
      */
+    auto uninstall(app_key_t app_key, bool force) //
+        -> crow::response;
     auto uninstall(std::string app_name, std::string version, bool force) //
         -> crow::response;
 
     /*! @brief Exports an App as compressed archive
      *
-     * @param[in] app_name App to export
-     * @param[in] version Version to export
+     * @param[in] app_key Key of the App to export, all or specific version @sa app_key_t
      *
      */
-    auto export_app(std::string app_name, std::string version) const //
+    auto archive(app_key_t app_key) const //
         -> crow::response;
-    auto export_app(std::string app_name) const //
+    auto archive(std::string app_name, std::string version) const //
+        -> crow::response;
+    auto archive(std::string app_name) const //
         -> crow::response;
 
-    auto has_app(std::string_view app_name, std::string_view version) const noexcept //
+    auto contains(const app_key_t& app_key) const noexcept //
         -> bool;
-
-    auto is_app_installed(std::string_view app_name, std::string_view version) const noexcept //
+    auto query(const app_key_t& app_key) const noexcept //
+        -> std::shared_ptr<app_t>;
+    auto is_installed(const app_key_t& app_key) const noexcept //
         -> bool;
 
 protected:

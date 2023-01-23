@@ -98,7 +98,7 @@ auto module_apps_t::do_init() //
             for (const auto& j : args["apps"]) {
                 REQUIRED_JSON_VALUE(j, app);
                 REQUIRED_JSON_VALUE(j, version);
-                auto res = _impl->do_export_app(app, version);
+                auto res = _impl->do_archive(app, version);
                 if (res.code != crow::status::OK) {
                     return res;
                 }
@@ -127,12 +127,18 @@ auto module_apps_t::save(fs::path base_path) const //
     return _impl->do_save(std::move(base_path));
 }
 
-auto module_apps_t::list(std::string_view app_name, std::string_view version) const //
+auto module_apps_t::list(const app_key_t& app_key) const //
     -> crow::response
 {
-    return _impl->do_list(std::move(app_name), std::move(version));
+    return _impl->do_list(app_key);
 }
-auto module_apps_t::list(std::string_view app_name) const //
+
+auto module_apps_t::list(std::string app_name, std::string version) const //
+    -> crow::response
+{
+    return list(app_key_t{std::move(app_name), std::move(version)});
+}
+auto module_apps_t::list(std::string app_name) const //
     -> crow::response
 {
     return list(std::move(app_name), {});
@@ -143,13 +149,18 @@ auto module_apps_t::list() const //
     return list({}, {});
 }
 
+auto module_apps_t::install_from_marketplace(app_key_t app_key, std::string license_key) //
+    -> crow::response
+{
+    return _impl->queue_install_from_marketplace(std::move(app_key), std::move(license_key));
+}
+
 auto module_apps_t::install_from_marketplace(
     std::string app_name, std::string version, std::string license_key) //
     -> crow::response
 {
-    return _impl->queue_install_from_marketplace(
-        std::move(app_name),
-        std::move(version),
+    return install_from_marketplace(
+        app_key_t{std::move(app_name), std::move(version)},
         std::move(license_key));
 }
 auto module_apps_t::install_from_marketplace(std::string app_name, std::string version) //
@@ -169,34 +180,49 @@ auto module_apps_t::sideload(std::string manifest_string) //
     return sideload(std::move(manifest_string), {});
 }
 
+auto module_apps_t::uninstall(app_key_t app_key, bool force) //
+    -> crow::response
+{
+    return _impl->queue_uninstall(std::move(app_key), force);
+}
 auto module_apps_t::uninstall(std::string app_name, std::string version, bool force) //
     -> crow::response
 {
-    return _impl->queue_uninstall(std::move(app_name), std::move(version), std::move(force));
+    return uninstall(app_key_t{std::move(app_name), std::move(version)}, std::move(force));
 }
 
-auto module_apps_t::export_app(std::string app_name, std::string version) const //
+auto module_apps_t::archive(app_key_t app_key) const //
     -> crow::response
 {
-    return _impl->queue_export_app(std::move(app_name), std::move(version));
+    return _impl->queue_archive(std::move(app_key));
 }
-auto module_apps_t::export_app(std::string app_name) const //
+auto module_apps_t::archive(std::string app_name, std::string version) const //
     -> crow::response
 {
-    return export_app(std::move(app_name), {});
+    return archive(app_key_t{std::move(app_name), std::move(version)});
+}
+auto module_apps_t::archive(std::string app_name) const //
+    -> crow::response
+{
+    return archive(std::move(app_name), {});
 }
 
-auto module_apps_t::has_app(std::string_view app_name, std::string_view version) const noexcept //
+auto module_apps_t::contains(const app_key_t& app_key) const noexcept //
     -> bool
 {
-    return _impl->has_app(std::move(app_name), std::move(version));
+    return _impl->do_contains(app_key);
 }
 
-auto module_apps_t::is_app_installed(
-    std::string_view app_name, std::string_view version) const noexcept //
+auto module_apps_t::query(const app_key_t& app_key) const noexcept //
+    -> std::shared_ptr<app_t>
+{
+    return _impl->do_query(app_key);
+}
+
+auto module_apps_t::is_installed(const app_key_t& app_key) const noexcept //
     -> bool
 {
-    return _impl->is_app_installed(std::move(app_name), std::move(version));
+    return _impl->do_is_installed(app_key);
 }
 
 } // namespace FLECS
