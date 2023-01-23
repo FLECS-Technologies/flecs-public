@@ -47,43 +47,50 @@ auto module_manifests_t::base_path() const noexcept //
 auto module_manifests_t::contains(const app_key_t& app_key) const noexcept //
     -> bool
 {
+    if (base_path().empty() || !app_key.is_valid()) {
+        return false;
+    }
     return _impl->do_contains(app_key);
 }
 
 auto module_manifests_t::query(const app_key_t& app_key) noexcept //
-    -> std::optional<std::reference_wrapper<app_manifest_t>>
+    -> std::weak_ptr<app_manifest_t>
 {
+    if (base_path().empty() || !app_key.is_valid()) {
+        return {};
+    }
     return _impl->do_query_manifest(app_key);
 }
 auto module_manifests_t::query(const app_key_t& app_key) const noexcept //
-    -> std::optional<std::reference_wrapper<const app_manifest_t>>
+    -> std::weak_ptr<const app_manifest_t>
 {
-    /** @todo gcc 8.3.0 workaround */
-    auto val = _impl->do_query_manifest(app_key);
-    if (val.has_value()) {
-        return std::cref(val.value().get());
+    if (base_path().empty() || !app_key.is_valid()) {
+        return {};
     }
-    return {};
+    return _impl->do_query_manifest(app_key);
 }
 
 auto module_manifests_t::add(app_manifest_t manifest) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
+    if (base_path().empty() || !manifest.is_valid()) {
+        return {};
+    }
     return _impl->do_add(std::move(manifest));
 }
 auto module_manifests_t::add_from_json(const json_t& manifest) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
     return add(app_manifest_t::from_json(manifest));
 }
 auto module_manifests_t::add_from_yaml(const yaml_t& manifest) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
     return add(app_manifest_t::from_yaml(manifest));
 }
 
 auto module_manifests_t::add_from_file(const fs::path& path) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
     auto [manifest, res] = add_from_json_file(path);
     if (res) {
@@ -92,38 +99,38 @@ auto module_manifests_t::add_from_file(const fs::path& path) //
     return add_from_yaml_file(path);
 }
 auto module_manifests_t::add_from_json_file(const fs::path& path) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
     return add(app_manifest_t::from_json_file(path));
 }
 auto module_manifests_t::add_from_yaml_file(const fs::path& path) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
     return add(app_manifest_t::from_yaml_file(path));
 }
 
 auto module_manifests_t::add_from_string(std::string_view manifest) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
-    auto [manifest_opt, added] = add_from_json_string(manifest);
-    if (manifest_opt) {
-        return {manifest_opt, added};
+    auto [manifest_ptr, added] = add_from_json_string(manifest);
+    if (manifest_ptr.use_count()) {
+        return {manifest_ptr, added};
     }
     return add_from_yaml_string(std::move(manifest));
 }
 auto module_manifests_t::add_from_json_string(std::string_view manifest) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
     return add_from_json(parse_json(std::move(manifest)));
 }
 auto module_manifests_t::add_from_yaml_string(std::string_view manifest) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
     return add_from_yaml(yaml_from_string(std::move(manifest)));
 }
 
 auto module_manifests_t::add_from_marketplace(const app_key_t& app_key) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
 #ifndef NDEBUG
     auto url = std::string{"https://marketplace.flecs.tech:8443/manifests/apps/"};
@@ -140,7 +147,7 @@ auto module_manifests_t::add_from_marketplace(const app_key_t& app_key) //
     return add_from_url(url);
 }
 auto module_manifests_t::add_from_url(std::string_view url) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
     return _impl->do_add_from_url(std::move(url));
 }
@@ -153,6 +160,9 @@ auto module_manifests_t::clear() //
 auto module_manifests_t::erase(const app_key_t& app_key) //
     -> void
 {
+    if (base_path().empty() || !app_key.is_valid()) {
+        return;
+    }
     return _impl->do_erase(app_key);
 }
 auto module_manifests_t::remove(const app_key_t& app_key) //
@@ -164,6 +174,9 @@ auto module_manifests_t::remove(const app_key_t& app_key) //
 auto module_manifests_t::path(const app_key_t& app_key) //
     -> fs::path
 {
+    if (base_path().empty() || !app_key.is_valid()) {
+        return {};
+    }
     return _impl->do_path(app_key);
 }
 

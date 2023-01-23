@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "manifests.h"
 
 namespace FLECS {
@@ -39,14 +41,14 @@ public:
         -> bool;
 
     auto do_query_manifest(const app_key_t& app_key) noexcept //
-        -> std::optional<std::reference_wrapper<app_manifest_t>>;
+        -> std::weak_ptr<app_manifest_t>;
     auto do_query_manifest(const app_key_t& app_key) const noexcept //
         -> std::optional<std::reference_wrapper<const app_manifest_t>>;
 
     auto do_add(app_manifest_t manifest) //
-        -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>;
+        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
     auto do_add_from_url(std::string_view url) //
-        -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>;
+        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
 
     auto do_clear() //
         -> void;
@@ -68,7 +70,7 @@ private:
 
     FLECS::module_manifests_t* _parent;
     fs::path _base_path;
-    std::map<app_key_t, app_manifest_t> _manifests;
+    std::vector<std::shared_ptr<app_manifest_t>> _manifests;
 };
 
 } // namespace impl

@@ -16,6 +16,7 @@
 
 #include <cpr/cpr.h>
 
+#include <algorithm>
 #include <cstdio>
 
 #include "common/app/app_key.h"
@@ -56,18 +57,25 @@ auto module_manifests_t::do_base_path() const noexcept //
 auto module_manifests_t::do_contains(const app_key_t& app_key) const noexcept //
     -> bool
 {
-    return _manifests.count(app_key);
+    return std::find_if(
+               _manifests.cbegin(),
+               _manifests.cend(),
+               [&app_key](const std::shared_ptr<app_manifest_t>& elem) {
+                   return elem->app() == app_key.name() && elem->version() == app_key.version();
+               }) != _manifests.cend();
 }
 
 auto module_manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
-    -> std::optional<std::reference_wrapper<app_manifest_t>>
+    -> std::weak_ptr<app_manifest_t>
 {
-    if (_base_path.empty() || !app_key.is_valid()) {
-        return {};
-    }
-
-    if (_manifests.count(app_key)) {
-        return std::ref(_manifests.at(app_key));
+    auto it = std::find_if(
+        _manifests.begin(),
+        _manifests.end(),
+        [&app_key](const std::shared_ptr<app_manifest_t>& elem) {
+            return elem->app() == app_key.name() && elem->version() == app_key.version();
+        });
+    if (it != _manifests.end()) {
+        return *it;
     }
 
     auto ec = std::error_code{};
@@ -75,7 +83,7 @@ auto module_manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
     if (fs::is_regular_file(json_path, ec)) {
         auto [manifest, res] = _parent->add_from_file(json_path);
         if (res) {
-            return std::ref(manifest);
+            return manifest;
         }
     }
 
@@ -83,46 +91,46 @@ auto module_manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
     if (fs::is_regular_file(yml_path)) {
         auto [manifest, res] = _parent->add_from_file(yml_path);
         if (res) {
-            return std::ref(manifest);
+            return manifest;
         }
     }
 
-    return std::nullopt;
+    return {};
 }
 
 auto module_manifests_t::do_add(app_manifest_t manifest) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
-    if (_base_path.empty() || !manifest.is_valid()) {
-        return {};
-    }
-
     auto app_key = app_key_t{manifest.app(), manifest.version()};
-    auto res = _manifests.emplace(app_key, std::move(manifest));
 
-    if (res.second) {
-        auto ec = std::error_code{};
-        fs::create_directories(_parent->path(app_key).parent_path(), ec);
-        if (ec) {
-            std::fprintf(
-                stderr,
-                "Could not create directory in local manifest store: %d\n",
-                ec.value());
-            return {std::ref(_manifests.at(res.first->first)), res.second};
-        }
-
-        auto file = std::ofstream{_parent->path(app_key)};
-        file << json_t(_manifests.at(res.first->first)).dump(4);
-        if (!file) {
-            std::fprintf(stderr, "Could not copy manifest to local manifest store\n");
-        }
+    if (_parent->contains(app_key)) {
+        auto p = _parent->query(app_key).lock();
+        *p = std::move(manifest);
+        return {p, false};
     }
 
-    return {std::ref(_manifests.at(res.first->first)), res.second};
+    auto p = _manifests.emplace_back(std::make_shared<app_manifest_t>(std::move(manifest)));
+    auto ec = std::error_code{};
+    fs::create_directories(_parent->path(app_key).parent_path(), ec);
+    if (ec) {
+        std::fprintf(
+            stderr,
+            "Could not create directory in local manifest store: %d\n",
+            ec.value());
+        return {p, true};
+    }
+
+    auto file = std::ofstream{_parent->path(app_key)};
+    file << json_t(*p).dump(4);
+    if (!file) {
+        std::fprintf(stderr, "Could not copy manifest to local manifest store\n");
+    }
+
+    return {p, true};
 }
 
 auto module_manifests_t::do_add_from_url(std::string_view url) //
-    -> std::tuple<std::optional<std::reference_wrapper<app_manifest_t>>, bool>
+    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
 {
     auto manifest = std::string{};
 
@@ -156,10 +164,6 @@ auto module_manifests_t::do_clear() //
 auto module_manifests_t::do_erase(const app_key_t& app_key) //
     -> void
 {
-    if (_base_path.empty() || !app_key.is_valid()) {
-        return;
-    }
-
     auto ec_1 = std::error_code{};
     fs::remove(_parent->path(app_key), ec_1);
     auto ec_2 = std::error_code{};
@@ -175,21 +179,25 @@ auto module_manifests_t::do_erase(const app_key_t& app_key) //
             ec_2.value());
     }
 
-    _manifests.erase(app_key);
+    _parent->remove(app_key);
 }
 auto module_manifests_t::do_remove(const app_key_t& app_key) //
     -> void
 {
-    _manifests.erase(app_key);
+    auto it = std::find_if(
+        _manifests.begin(),
+        _manifests.end(),
+        [&app_key](const std::shared_ptr<app_manifest_t>& elem) {
+            return elem->app() == app_key.name() && elem->version() == app_key.version();
+        });
+    if (it != _manifests.end()) {
+        _manifests.erase(it);
+    }
 }
 
 auto module_manifests_t::do_path(const app_key_t& app_key) //
     -> fs::path
 {
-    if (_base_path.empty() || !app_key.is_valid()) {
-        return {};
-    }
-
     return _base_path / app_key.name() / app_key.version() / "manifest.json";
 }
 

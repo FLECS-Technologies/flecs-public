@@ -239,14 +239,14 @@ auto module_apps_t::do_install_from_marketplace(
 
     // Download App manifest and forward to manifest installation, if download successful
     const auto [manifest, _] = _manifests_api->add_from_marketplace(app_key);
-    if (!manifest) {
-        auto lock = progress.lock();
-        progress.result().code = -1;
-        progress.result().message = "Could not download manifest";
-        return;
-    };
+    if (auto p = manifest.lock()) {
+        return do_install_impl(*p, license_key, progress);
+    }
 
-    return do_install_impl(manifest.value(), license_key, progress);
+    auto lock = progress.lock();
+    progress.result().code = -1;
+    progress.result().message = "Could not download manifest";
+    return;
 }
 
 auto module_apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
@@ -273,15 +273,15 @@ auto module_apps_t::do_sideload(
 {
     const auto [manifest, _] = _manifests_api->add_from_string(manifest_string);
     // Step 1: Validate transferred manifest
-    if (!manifest) {
-        auto lock = progress.lock();
-        progress.result().code = -1;
-        progress.result().message = "Could not parse manifest";
-        return;
+    if (auto p = manifest.lock()) {
+        // Step 2: Forward to manifest installation
+        return do_install_impl(*p, license_key, progress);
     }
 
-    // Step 2: Forward to manifest installation
-    return do_install_impl(manifest.value(), license_key, progress);
+    auto lock = progress.lock();
+    progress.result().code = -1;
+    progress.result().message = "Could not parse manifest";
+    return;
 }
 
 auto module_apps_t::do_install_impl(
