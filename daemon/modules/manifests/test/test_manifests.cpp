@@ -139,18 +139,18 @@ TEST(manifests, load_success)
     ASSERT_FALSE(uut.contains(invalid_key_1));
     ASSERT_FALSE(uut_c.contains(invalid_key_2));
 
-    ASSERT_TRUE(uut.query(valid_key_1));
-    ASSERT_TRUE(uut_c.query(valid_key_2));
-    ASSERT_FALSE(uut.query(invalid_key_1));
-    ASSERT_FALSE(uut_c.query(invalid_key_2));
+    ASSERT_TRUE(uut.query(valid_key_1).lock());
+    ASSERT_TRUE(uut_c.query(valid_key_2).lock());
+    ASSERT_FALSE(uut.query(invalid_key_1).lock());
+    ASSERT_FALSE(uut_c.query(invalid_key_2).lock());
 
     ASSERT_TRUE(uut.contains(valid_key_1));
     ASSERT_TRUE(uut_c.contains(valid_key_2));
     ASSERT_FALSE(uut.contains(invalid_key_1));
     ASSERT_FALSE(uut_c.contains(invalid_key_2));
 
-    ASSERT_EQ(uut.query(valid_key_1)->get().author(), "FLECS Technologies GmbH");
-    ASSERT_EQ(uut_c.query(valid_key_2)->get().author(), "FLECS Technologies GmbH");
+    ASSERT_EQ(uut.query(valid_key_1).lock()->author(), "FLECS Technologies GmbH");
+    ASSERT_EQ(uut_c.query(valid_key_2).lock()->author(), "FLECS Technologies GmbH");
 
     ASSERT_EQ(uut.path(FLECS::app_key_t{}), "");
     ASSERT_EQ(
@@ -175,7 +175,7 @@ TEST(manifests, load_fail)
         uut.add_from_file("./import/tech.flecs.test-app-1/1.2.3.4-f1/manifest.yml");
     ASSERT_FALSE(res_1);
     ASSERT_FALSE(uut.contains(valid_key_1));
-    ASSERT_FALSE(uut.query(valid_key_1).has_value());
+    ASSERT_FALSE(uut.query(valid_key_1).lock());
 
     uut.remove(valid_key_1);
     uut.erase(valid_key_1);
@@ -197,8 +197,8 @@ TEST(manifests, add_from_file)
         uut.add_from_file("./import/tech.flecs.test-app-1/1.2.3.4-f1/manifest.yml");
     ASSERT_TRUE(res_1);
     ASSERT_TRUE(uut.contains(valid_key_1));
-    ASSERT_TRUE(uut.query(valid_key_1));
-    ASSERT_EQ(uut.query(valid_key_1)->get().author(), "FLECS Technologies GmbH");
+    ASSERT_TRUE(uut.query(valid_key_1).lock());
+    ASSERT_EQ(uut.query(valid_key_1).lock()->author(), "FLECS Technologies GmbH");
 
     ASSERT_TRUE(fs::exists("./manifests/tech.flecs.test-app-1/1.2.3.4-f1/manifest.json"));
 
@@ -206,8 +206,8 @@ TEST(manifests, add_from_file)
         uut.add_from_file("./import/tech.flecs.test-app-1/1.2.3.4-f1/manifest.yml");
     ASSERT_FALSE(res_2);
     ASSERT_TRUE(uut.contains(valid_key_1));
-    ASSERT_TRUE(uut.query(valid_key_1));
-    ASSERT_EQ(uut.query(valid_key_1)->get().author(), "FLECS Technologies GmbH");
+    ASSERT_TRUE(uut.query(valid_key_1).lock());
+    ASSERT_EQ(uut.query(valid_key_1).lock()->author(), "FLECS Technologies GmbH");
 
     uut.deinit();
 
@@ -224,14 +224,14 @@ TEST(manifests, add_from_yaml_string)
     const auto [manifest_1, res_1] = uut.add_from_string(valid_manifest_1);
     ASSERT_TRUE(res_1);
     ASSERT_TRUE(uut.contains(valid_key_1));
-    ASSERT_TRUE(uut.query(valid_key_1));
-    ASSERT_EQ(uut.query(valid_key_1)->get().author(), "FLECS Technologies GmbH");
+    ASSERT_TRUE(uut.query(valid_key_1).lock());
+    ASSERT_EQ(uut.query(valid_key_1).lock()->author(), "FLECS Technologies GmbH");
 
     const auto [manifest_2, res_2] = uut.add_from_string(valid_manifest_1);
     ASSERT_FALSE(res_2);
     ASSERT_TRUE(uut.contains(valid_key_1));
-    ASSERT_TRUE(uut.query(valid_key_1));
-    ASSERT_EQ(uut.query(valid_key_1)->get().author(), "FLECS Technologies GmbH");
+    ASSERT_TRUE(uut.query(valid_key_1).lock());
+    ASSERT_EQ(uut.query(valid_key_1).lock()->author(), "FLECS Technologies GmbH");
 
     uut.deinit();
 
@@ -247,15 +247,15 @@ TEST(manifests, add_from_json_string)
     const auto [manifest_1, res_1] = uut.add_from_string(json_manifest_2);
     ASSERT_TRUE(res_1);
     ASSERT_TRUE(uut.contains(valid_key_2));
-    ASSERT_TRUE(uut.query(valid_key_2));
-    ASSERT_EQ(uut.query(valid_key_2)->get().author(), "FLECS Technologies GmbH");
+    ASSERT_TRUE(uut.query(valid_key_2).lock());
+    ASSERT_EQ(uut.query(valid_key_2).lock()->author(), "FLECS Technologies GmbH");
 
     const auto [manifest_2, res_2] = uut.add_from_string(json_manifest_2);
     ASSERT_FALSE(res_2);
     ASSERT_TRUE(uut.contains(valid_key_2));
-    ASSERT_TRUE(uut.query(valid_key_2));
-    ASSERT_EQ(uut.query(valid_key_2)->get().author(), manifest_2->get().author());
-    ASSERT_EQ(uut.query(valid_key_2)->get().author(), "FLECS Technologies GmbH");
+    ASSERT_TRUE(uut.query(valid_key_2).lock());
+    ASSERT_EQ(uut.query(valid_key_2).lock()->author(), manifest_2.lock()->author());
+    ASSERT_EQ(uut.query(valid_key_2).lock()->author(), "FLECS Technologies GmbH");
 
     uut.deinit();
 
@@ -274,8 +274,8 @@ TEST(manifests, add_from_url)
     const auto [manifest_1, res_1] = uut.add_from_marketplace(key);
     ASSERT_TRUE(res_1);
     ASSERT_TRUE(uut.contains(key));
-    ASSERT_TRUE(uut.query(key));
-    ASSERT_EQ(uut.query(key)->get().title(), "FLECS MQTT bridge");
+    ASSERT_TRUE(uut.query(key).lock());
+    ASSERT_EQ(uut.query(key).lock()->title(), "FLECS MQTT bridge");
 
     /* not a manifest, but exceeds size limit */
     const auto [manifest_2, res_2] =
@@ -294,21 +294,21 @@ TEST(manifests, erase_remove)
     uut.init();
     uut.base_path("./manifests");
 
-    ASSERT_TRUE(uut.query(valid_key_1));
-    ASSERT_TRUE(uut.query(valid_key_2));
+    ASSERT_TRUE(uut.query(valid_key_1).lock());
+    ASSERT_TRUE(uut.query(valid_key_2).lock());
 
     uut.remove(valid_key_1);
 
     ASSERT_FALSE(uut.contains(valid_key_1));
     ASSERT_TRUE(uut.contains(valid_key_2));
 
-    ASSERT_TRUE(uut.query(valid_key_1));
-    ASSERT_TRUE(uut.query(valid_key_2));
+    ASSERT_TRUE(uut.query(valid_key_1).lock());
+    ASSERT_TRUE(uut.query(valid_key_2).lock());
 
     uut.erase(valid_key_1);
 
-    ASSERT_FALSE(uut.query(valid_key_1));
-    ASSERT_TRUE(uut.query(valid_key_2));
+    ASSERT_FALSE(uut.query(valid_key_1).lock());
+    ASSERT_TRUE(uut.query(valid_key_2).lock());
 
     uut.erase(valid_key_1);
     uut.erase(invalid_key_1);
