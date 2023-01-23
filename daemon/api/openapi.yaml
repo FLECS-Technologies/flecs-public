@@ -176,21 +176,25 @@ components:
                 example: "/var/app"
 
     installed_app:
-      type: object
-      description: Installed App metadata
-      additionalProperties:
-        type: object
-        additionalProperties:
+      properties:
+        app_key:
+          type: object
           properties:
-            desired:
+            name:
               type: string
-              example: "installed"
-            status:
+              example: tech.flecs.app-1
+            version:
               type: string
-              example: "installed" # todo: refine possible values
-            installedSize:
-              type: integer
-              example: 10485760
+              example: 1.2.3.4-f1
+        status:
+          type: string
+          example: "installed" # todo: refine possible values
+        desired:
+          type: string
+          example: "installed"
+        installedSize:
+          type: integer
+          example: 10485760
     app_instances:
       type: object
       description: App instances
@@ -257,7 +261,7 @@ tags:
 
 paths:
   /apps/install:
-    put:
+    post:
       tags: ["Apps"]
       summary: Install an App from the FLECS marketplace
       requestBody:
@@ -282,7 +286,7 @@ paths:
           $ref: "#/components/responses/response_500"
 
   /apps/sideload:
-    put:
+    post:
       tags: ["Apps"]
       summary: Sideload an App from its manifest
       requestBody:
@@ -314,19 +318,38 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/installed_app"
+                type: array
+                items:
+                  $ref: "#/components/schemas/installed_app"
 
   /apps/{app}:
     get:
       tags: ["Apps"]
-      summary: Query installed versions of an App
+      summary: Query all versions or specific versions of an App
+      parameters:
+        - name: app
+          in: path
+          schema:
+            type: string
+            description: App to query
+          required: true
+        - name: version
+          in: query
+          schema:
+            type: string
+            description: App version to query
+          required: false
       responses:
         "200":
           description: Success
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/installed_app"
+                type: array
+                items:
+                  $ref: "#/components/schemas/installed_app"
+        "404":
+          description: No such app or app/version combination
     delete:
       tags: ["Apps"]
       summary: Uninstall one or all versions an App
@@ -346,8 +369,8 @@ paths:
       responses:
         "202":
           $ref: "#/components/responses/response_202"
-        "400":
-          $ref: "#/components/responses/response_400"
+        "404":
+          description: No such app or app/version combination
         "500":
           $ref: "#/components/responses/response_500"
 
@@ -579,7 +602,7 @@ paths:
         - name: job_id
           in: path
           schema:
-            type: int
+            type: integer
             description: job_id to query
           required: true
       responses:
