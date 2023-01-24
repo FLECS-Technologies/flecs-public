@@ -14,23 +14,24 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <tuple>
 
 #include "app_key.h"
 #include "app_status.h"
-#include "manifest/manifest.h"
+#include "util/json/json.h"
 
 namespace FLECS {
 
-class app_t : public app_manifest_t
+class app_manifest_t;
+
+class app_t : app_key_t
 {
 public:
     app_t();
-
-    app_t(app_manifest_t manifest, app_status_e status, app_status_e desired);
-    app_t(const fs::path& manifest_path, app_status_e status, app_status_e desired);
-    app_t(const std::string& manifest_string, app_status_e status, app_status_e desired);
+    explicit app_t(app_key_t app_key);
+    app_t(app_key_t app_key, std::weak_ptr<app_manifest_t> manifest);
 
     auto key() const noexcept //
         -> const app_key_t&;
@@ -44,6 +45,8 @@ public:
         -> app_status_e;
     auto desired() const noexcept //
         -> app_status_e;
+    auto manifest() const noexcept //
+        -> std::shared_ptr<app_manifest_t>;
 
     auto download_token(std::string download_token) //
         -> void;
@@ -62,12 +65,12 @@ private:
     friend auto from_json(const json_t& json, app_t& app) //
         -> void;
 
-    app_key_t _key;
     std::string _license_key;
     std::string _download_token;
     std::int32_t _installed_size;
     app_status_e _status;
     app_status_e _desired;
+    std::weak_ptr<app_manifest_t> _manifest;
 };
 
 } // namespace FLECS

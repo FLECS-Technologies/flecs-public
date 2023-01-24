@@ -22,9 +22,10 @@ namespace FLECS {
 namespace Private {
 
 auto module_app_manager_private_t::do_instance_details(
-    const instance_id_t& instance_id, json_t& response) //
+    const instance_id_t& /*instance_id*/, json_t& /*response*/) //
     -> crow::status
 {
+#if 0
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
     response["instanceId"] = instance_id;
@@ -78,7 +79,7 @@ auto module_app_manager_private_t::do_instance_details(
             response["mounts"].push_back(json_mount);
         }
     }
-
+#endif // 0
     return crow::status::OK;
 }
 

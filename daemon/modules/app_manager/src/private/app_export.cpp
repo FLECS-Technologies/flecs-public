@@ -21,9 +21,10 @@
 namespace FLECS {
 namespace Private {
 
-auto module_app_manager_private_t::do_export_app(const std::string& app_name, const std::string& version) //
+auto module_app_manager_private_t::do_export_app(const std::string& /*app_name*/, const std::string& /*version*/) //
     -> crow::response
 {
+#if 0
     auto response = json_t{};
 
     response["additionalInfo"] = std::string{};
@@ -70,7 +71,8 @@ auto module_app_manager_private_t::do_export_app(const std::string& app_name, co
         return {crow::status::INTERNAL_SERVER_ERROR, response.dump()};
     }
 
-    return {crow::status::OK, response.dump()};
+#endif // 0
+    return {crow::status::OK, "json", "[]"};
 }
 
 } // namespace Private

@@ -15,6 +15,7 @@
 #include "deployment_docker.h"
 
 #include "app/app.h"
+#include "app/manifest/manifest.h"
 #include "factory/factory.h"
 #include "system/system.h"
 #include "util/cxx20/string.h"
@@ -56,35 +57,40 @@ auto deployment_docker_t::create_container(instance_t& instance) //
     if (!instance.has_app()) {
         return {-1, "Instance not connected to an app"};
     }
-    const auto& app = instance.app();
-    for (const auto& env : app.env()) {
+
+    auto manifest = instance.app().manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
+    for (const auto& env : manifest->env()) {
         docker_process.arg("--env");
         docker_process.arg(stringify(env));
     }
-    for (const auto& volume : app.volumes()) {
+    for (const auto& volume : manifest->volumes()) {
         docker_process.arg("--volume");
         docker_process.arg(container_name + "-" + volume.host() + ":" + volume.container());
     }
-    for (const auto& port_range : app.ports()) {
+    for (const auto& port_range : manifest->ports()) {
         docker_process.arg("--publish");
         docker_process.arg(stringify(port_range));
     }
-    if (app.interactive()) {
+    if (manifest->interactive()) {
         docker_process.arg("--interactive");
     }
 
     docker_process.arg("--name");
     docker_process.arg(container_name);
 
-    if (!app.hostname().empty()) {
+    if (!manifest->hostname().empty()) {
         docker_process.arg("--hostname");
-        docker_process.arg(app.hostname());
+        docker_process.arg(manifest->hostname());
     } else {
         docker_process.arg("--hostname");
         docker_process.arg(container_name);
     }
 
-    for (const auto& device : app.devices()) {
+    for (const auto& device : manifest->devices()) {
         docker_process.arg("--device");
         docker_process.arg(device);
     }
@@ -165,7 +171,7 @@ auto deployment_docker_t::create_container(instance_t& instance) //
             docker_process.arg("inspect");
             docker_process.arg("--format");
             docker_process.arg("{{.Config.Cmd}}");
-            docker_process.arg(app.image_with_tag());
+            docker_process.arg(manifest->image_with_tag());
 
             docker_process.spawnp("docker");
             docker_process.wait(false, true);
@@ -202,9 +208,9 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         docker_process.arg("/flecs-entrypoint.sh");
     }
 
-    docker_process.arg(app.image_with_tag());
+    docker_process.arg(manifest->image_with_tag());
 
-    for (const auto& arg : app.args()) {
+    for (const auto& arg : manifest->args()) {
         docker_process.arg(arg);
     }
 
@@ -216,7 +222,7 @@ auto deployment_docker_t::create_container(instance_t& instance) //
 
     const auto conf_path =
         std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
-    for (const auto& conffile : app.conffiles()) {
+    for (const auto& conffile : manifest->conffiles()) {
         const auto [res, err] = copy_file_to_instance(
             instance.id(),
             conf_path + conffile.local(),
@@ -287,12 +293,17 @@ auto deployment_docker_t::create_container(instance_t& instance) //
 auto deployment_docker_t::delete_container(const instance_t& instance) //
     -> result_t
 {
+    auto manifest = instance.app().manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
     const auto container_name = "flecs-" + instance.id().hex();
 
     const auto conf_path =
         std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
     if (instance.has_app()) {
-        for (const auto& conffile : instance.app().conffiles()) {
+        for (const auto& conffile : manifest->conffiles()) {
             copy_file_from_instance(
                 instance.id(),
                 conffile.container(),
@@ -302,9 +313,9 @@ auto deployment_docker_t::delete_container(const instance_t& instance) //
         std::fprintf(
             stderr,
             "Warning: instance %s is not connected to an app (should be %s %s)\n",
-            instance.id().hex().c_str(),
-            instance.app_name().c_str(),
-            instance.app_version().c_str());
+            instance.id().hex().data(),
+            instance.app_name().data(),
+            instance.app_version().data());
     }
 
     auto docker_process = process_t{};

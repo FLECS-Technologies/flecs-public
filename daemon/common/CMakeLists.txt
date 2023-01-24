@@ -29,9 +29,9 @@ target_include_directories(
 
 target_link_libraries(
     FLECS.daemon.common INTERFACE
-    FLECS.daemon.common.app
     FLECS.daemon.common.db
     FLECS.daemon.common.deployment
+    daemon.common.app
     daemon.common.instance
     daemon.common.network
 )

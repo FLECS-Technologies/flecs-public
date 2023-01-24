@@ -19,14 +19,16 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <tuple>
 
-#include "app/app.h"
+#include "common/network/network_type.h"
 #include "core/flecs.h"
 #include "instance/instance.h"
 #include "util/fs/fs.h"
 
 namespace FLECS {
+
+class app_t;
+class app_key_t;
 
 class deployment_t
 {

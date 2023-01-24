@@ -34,8 +34,8 @@ instance_t::instance_t(const app_t* app, std::string instance_name)
 instance_t::instance_t(instance_id_t id, const app_t* app, std::string instance_name)
     : _id{std::move(id)}
     , _app{app}
-    , _app_name{app ? app->app() : ""}
-    , _app_version{app ? app->version() : ""}
+    , _app_name{app ? app->key().name() : ""}
+    , _app_version{app ? app->key().version() : ""}
     , _instance_name{std::move(instance_name)}
     , _status{instance_status_e::Unknown}
     , _desired{instance_status_e::Unknown}
@@ -56,15 +56,15 @@ auto instance_t::app() const noexcept //
 }
 
 auto instance_t::app_name() const noexcept //
-    -> const std::string&
+    -> std::string_view
 {
-    return _app ? _app->app() : _app_name;
+    return _app ? _app->key().name() : _app_name;
 }
 
 auto instance_t::app_version() const noexcept //
-    -> const std::string&
+    -> std::string_view
 {
-    return _app ? _app->version() : _app_version;
+    return _app ? _app->key().version() : _app_version;
 }
 
 auto instance_t::has_app() const noexcept //
