@@ -77,7 +77,7 @@ public:
      *
      * Existence of app manifests can be verified by
      *      1) calling the `contains` function for the desired app_key @sa contains
-     *      2) calling `use_count` on the weak_ptr returned by query()
+     *      2) checking `operator bool` on the shared_ptr returned by query()
      *
      * Note that query() will trigger loading a local manifest into the cache, if not yet present.
      * If the sole existence in the local manifest cache is of interest, refer to @sa contains()
@@ -85,40 +85,40 @@ public:
      *
      * @param[in] app_key to query
      *
-     * @return weak_ptr to manifest matching the specified app_key, if exists
+     * @return shared_ptr to manifest matching the specified app_key, if exists
      */
     auto query(const app_key_t& app_key) noexcept //
-        -> std::weak_ptr<app_manifest_t>;
+        -> std::shared_ptr<app_manifest_t>;
     auto query(const app_key_t& app_key) const noexcept //
-        -> std::weak_ptr<const app_manifest_t>;
+        -> std::shared_ptr<const app_manifest_t>;
 
     /** @brief Add a manifest to the local manifest store and cache
      */
     auto add(app_manifest_t manifest) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto add_from_json(const json_t& manifest) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto add_from_yaml(const yaml_t& manifest) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
 
     auto add_from_string(std::string_view manifest) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto add_from_json_string(std::string_view manifest) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto add_from_yaml_string(std::string_view manifest) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
 
     auto add_from_file(const fs::path& path) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto add_from_json_file(const fs::path& path) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto add_from_yaml_file(const fs::path& path) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
 
     auto add_from_marketplace(const app_key_t& app_key) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto add_from_url(std::string_view url) //
-        -> std::tuple<std::weak_ptr<app_manifest_t>, bool>;
+        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
 
     /** @brief Clears the local manifest cache
      *

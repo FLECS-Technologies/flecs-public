@@ -31,7 +31,7 @@ class app_t : app_key_t
 public:
     app_t();
     explicit app_t(app_key_t app_key);
-    app_t(app_key_t app_key, std::weak_ptr<app_manifest_t> manifest);
+    app_t(app_key_t app_key, std::shared_ptr<app_manifest_t> manifest);
 
     auto key() const noexcept //
         -> const app_key_t&;

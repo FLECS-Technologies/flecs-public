@@ -66,7 +66,7 @@ auto module_manifests_t::do_contains(const app_key_t& app_key) const noexcept //
 }
 
 auto module_manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
-    -> std::weak_ptr<app_manifest_t>
+    -> std::shared_ptr<app_manifest_t>
 {
     auto it = std::find_if(
         _manifests.begin(),
@@ -99,12 +99,12 @@ auto module_manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
 }
 
 auto module_manifests_t::do_add(app_manifest_t manifest) //
-    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
+    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
     auto app_key = app_key_t{manifest.app(), manifest.version()};
 
     if (_parent->contains(app_key)) {
-        auto p = _parent->query(app_key).lock();
+        auto p = _parent->query(app_key);
         *p = std::move(manifest);
         return {p, false};
     }
@@ -130,7 +130,7 @@ auto module_manifests_t::do_add(app_manifest_t manifest) //
 }
 
 auto module_manifests_t::do_add_from_url(std::string_view url) //
-    -> std::tuple<std::weak_ptr<app_manifest_t>, bool>
+    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
     auto manifest = std::string{};
 
