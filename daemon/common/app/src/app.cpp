@@ -24,7 +24,7 @@ app_t::app_t(app_key_t app_key)
     : app_t{std::move(app_key), {}}
 {}
 
-app_t::app_t(app_key_t app_key, std::weak_ptr<app_manifest_t> manifest)
+app_t::app_t(app_key_t app_key, std::shared_ptr<app_manifest_t> manifest)
     : app_key_t{std::move(app_key)}
     , _license_key{}
     , _download_token{}

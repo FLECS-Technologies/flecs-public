@@ -241,8 +241,8 @@ auto module_apps_t::do_install_from_marketplace(
 
     // Download App manifest and forward to manifest installation, if download successful
     const auto [manifest, _] = _manifests_api->add_from_marketplace(app_key);
-    if (auto p = manifest.lock()) {
-        return do_install_impl(std::move(p), license_key, progress);
+    if (manifest) {
+        return do_install_impl(std::move(manifest), license_key, progress);
     }
 
     auto lock = progress.lock();
@@ -275,9 +275,9 @@ auto module_apps_t::do_sideload(
 {
     const auto [manifest, _] = _manifests_api->add_from_string(manifest_string);
     // Step 1: Validate transferred manifest
-    if (auto p = manifest.lock()) {
+    if (manifest) {
         // Step 2: Forward to manifest installation
-        return do_install_impl(std::move(p), license_key, progress);
+        return do_install_impl(std::move(manifest), license_key, progress);
     }
 
     auto lock = progress.lock();
