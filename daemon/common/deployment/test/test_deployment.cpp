@@ -18,6 +18,7 @@
 #include <sstream>
 
 #include "daemon/common/app/app.h"
+#include "daemon/common/app/manifest/manifest.h"
 #include "daemon/common/deployment/deployment.h"
 #include "util/fs/fs.h"
 
@@ -137,10 +138,13 @@ using std::operator""s;
     "author: FLECS Technologies GmbH (info@flecs.tech)\n" \
     "image: " G_IMAGE "\n"s
 
-static const auto app_1 =
-    FLECS::app_t{G_MANIFEST_1, FLECS::app_status_e::Installed, FLECS::app_status_e::Installed};
-static const auto app_2 =
-    FLECS::app_t{G_MANIFEST_2, FLECS::app_status_e::Installed, FLECS::app_status_e::Installed};
+static const auto manifest_1 =
+    std::make_shared<FLECS::app_manifest_t>(FLECS::app_manifest_t::from_yaml_string(G_MANIFEST_1));
+static const auto manifest_2 =
+    std::make_shared<FLECS::app_manifest_t>(FLECS::app_manifest_t::from_yaml_string(G_MANIFEST_2));
+
+static const auto app_1 = FLECS::app_t{FLECS::app_key_t{G_APP, G_VERSION_1}, manifest_1};
+static const auto app_2 = FLECS::app_t{FLECS::app_key_t{G_APP, G_VERSION_2}, manifest_2};
 
 TEST(deployment, interface)
 {
@@ -190,7 +194,7 @@ TEST(deployment, interface)
     const auto ids_2 = test_deployment.instance_ids(app_1);
     EXPECT_EQ(ids_2.size(), 2);
 
-    const auto ids_3 = test_deployment.instance_ids(app_1.app(), app_1.version());
+    const auto ids_3 = test_deployment.instance_ids(app_1.key().name(), app_1.key().version());
     EXPECT_EQ(ids_3.size(), 2);
 
     // insert instance of app_2 with ID_2
@@ -201,10 +205,10 @@ TEST(deployment, interface)
     ASSERT_EQ(test_deployment_c.instances().count(G_INSTANCE_ID_2), 1);
     ASSERT_TRUE(test_deployment_c.has_instance(G_INSTANCE_ID_2));
 
-    const auto ids_4 = test_deployment.instance_ids(app_1.app());
+    const auto ids_4 = test_deployment.instance_ids(app_1.key().name());
     EXPECT_EQ(ids_4.size(), 3);
 
-    const auto ids_5 = test_deployment.instance_ids(app_1.app(), app_1.version());
+    const auto ids_5 = test_deployment.instance_ids(app_1.key().name(), app_1.key().version());
     EXPECT_EQ(ids_5.size(), 2);
 
     EXPECT_CALL(test_deployment, do_start_instance(instance_1)).Times(1);

@@ -20,11 +20,11 @@
 namespace FLECS {
 namespace Private {
 
-auto module_app_manager_private_t::do_export_instance(const instance_id_t& instance_id) //
+auto module_app_manager_private_t::do_export_instance(const instance_id_t& /*instance_id*/) //
     -> crow::response
 {
     auto response = json_t{};
-
+#if 0
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
     response["app"] = std::string{};
@@ -48,8 +48,8 @@ auto module_app_manager_private_t::do_export_instance(const instance_id_t& insta
     const auto [res, additional_info] =
         _deployment->export_instance(instance, "/var/lib/flecs/export-tmp/instances/");
     response["additionalInfo"] = additional_info;
-
-    return {(res == 0) ? crow::status::OK : crow::status::INTERNAL_SERVER_ERROR, response.dump()};
+#endif // 0
+    return {crow::status::OK, "json", response.dump()};
 }
 
 } // namespace Private

@@ -123,6 +123,7 @@ auto module_app_manager_private_t::do_init() //
     // load apps and deployments
     do_load();
 
+#if 0
     // "install" system apps on first start
     constexpr auto system_apps =
         std::array<std::string_view, 2>{"tech.flecs.mqtt-bridge", "tech.flecs.service-mesh"};
@@ -192,6 +193,7 @@ auto module_app_manager_private_t::do_init() //
                 true);
         }
     }
+#endif // 0
 
     auto hosts_thread = std::thread([] {
         pthread_setname_np(pthread_self(), "flecs-update-hosts");
@@ -204,9 +206,10 @@ auto module_app_manager_private_t::do_init() //
     _mod_jobs = std::dynamic_pointer_cast<module_jobs_t>(api::query_module("jobs"));
 }
 
-auto module_app_manager_private_t::do_load(fs::path base_path) //
+auto module_app_manager_private_t::do_load(fs::path) //
     -> void
 {
+#if 0
     /// @todo remove for 2.0
     // query installed apps and instances from db before deleting it
     auto app_db = app_db_t{};
@@ -256,6 +259,7 @@ auto module_app_manager_private_t::do_load(fs::path base_path) //
             instance.second.app(&it->second);
         }
     }
+#endif // 0
 }
 
 auto module_app_manager_private_t::do_save(fs::path base_path) const //
@@ -282,7 +286,7 @@ auto module_app_manager_private_t::app_versions(std::string_view app_name) const
         _installed_apps.cend(),
         [&](installed_apps_t::const_reference app) {
             if (app.first.name() == app_name) {
-                res.push_back(app.second.version());
+                res.push_back(app.second.key().version().data());
             }
         });
     return res;
@@ -299,9 +303,9 @@ auto module_app_manager_private_t::xcheck_app_instance(
         std::fprintf(
             stderr,
             "Requested instance %s belongs to app %s (%s), which is not installed\n",
-            instance.id().hex().c_str(),
-            app_name.c_str(),
-            version.c_str());
+            instance.id().hex().data(),
+            app_name.data(),
+            version.data());
         return -1;
     }
 
@@ -310,9 +314,9 @@ auto module_app_manager_private_t::xcheck_app_instance(
         std::fprintf(
             stderr,
             "Requested instance %s of app %s belongs to app %s\n",
-            instance.id().hex().c_str(),
-            app_name.c_str(),
-            instance.app_name().c_str());
+            instance.id().hex().data(),
+            app_name.data(),
+            instance.app_name().data());
         return -1;
     }
 
@@ -321,10 +325,10 @@ auto module_app_manager_private_t::xcheck_app_instance(
         std::fprintf(
             stderr,
             "Requested instance %s of app %s (%s) belongs to version %s\n",
-            instance.id().hex().c_str(),
-            instance.app_version().c_str(),
-            version.c_str(),
-            instance.app_version().c_str());
+            instance.id().hex().data(),
+            instance.app_version().data(),
+            version.data(),
+            instance.app_version().data());
         return -1;
     }
 

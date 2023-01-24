@@ -22,12 +22,13 @@ namespace FLECS {
 namespace Private {
 
 auto module_app_manager_private_t::do_delete_instance(
-    const instance_id_t& instance_id,
-    const std::string& app_name,
-    const std::string& version,
-    json_t& response) //
+    const instance_id_t& /*instance_id*/,
+    const std::string& /*app_name*/,
+    const std::string& /*version*/,
+    json_t& /*response*/) //
     -> crow::status
 {
+#if 0
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
@@ -94,7 +95,7 @@ auto module_app_manager_private_t::do_delete_instance(
 
     // Final step: Persist removal of instance into db
     persist_apps();
-
+#endif // 0
     return crow::status::OK;
 }
 

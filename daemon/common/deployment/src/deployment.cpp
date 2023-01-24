@@ -20,6 +20,8 @@
 #include <regex>
 #include <set>
 
+#include "common/app/app.h"
+#include "common/app/manifest/manifest.h"
 #include "util/network/ip_addr.h"
 #include "util/network/network.h"
 
@@ -85,7 +87,7 @@ auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e versi
 auto deployment_t::instance_ids(const app_t& app, version_filter_e version_filter) const //
     -> std::vector<instance_id_t>
 {
-    return instance_ids(app_key_t{app.app(), app.version()}, version_filter);
+    return instance_ids(app.key(), version_filter);
 }
 
 auto deployment_t::has_instance(instance_id_t instance_id) const noexcept //
@@ -104,6 +106,11 @@ auto deployment_t::insert_instance(instance_t instance) //
 auto deployment_t::create_instance(const app_t& app, std::string instance_name) //
     -> result_t
 {
+    auto manifest = app.manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
     // Step 1: Create unique id and insert instance
     auto tmp = instance_t{&app, instance_name};
     while (_instances.count(tmp.id())) {
@@ -114,7 +121,7 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
     tmp.desired(instance_status_e::Created);
 
     auto& instance = _instances.emplace(tmp.id(), tmp).first->second;
-    for (const auto& startup_option : app.startup_options()) {
+    for (const auto& startup_option : manifest->startup_options()) {
         instance.startup_options().emplace_back(
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
     }
@@ -145,7 +152,7 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
         }
         instance.networks().emplace_back(instance_t::network_t{
             .network_name = default_network_name().data(),
-            .mac_address = app.networks()[0].mac_address(),
+            .mac_address = manifest->networks()[0].mac_address(),
             .ip_address = {},
         });
     }
@@ -256,6 +263,11 @@ auto deployment_t::stop_instance(instance_id_t instance_id) //
 auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir) const //
     -> result_t
 {
+    auto manifest = instance.app().manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
     dest_dir /= instance.id().hex();
     auto ec = std::error_code{};
     fs::create_directories(dest_dir, ec);
@@ -270,7 +282,7 @@ auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir
 
     if (is_instance_running(instance.id())) {
         /* copy conffiles from container for running instances */
-        for (const auto& conffile : instance.app().conffiles()) {
+        for (const auto& conffile : manifest->conffiles()) {
             const auto [res, additional_info] = copy_file_from_instance(
                 instance.id(),
                 conffile.container(),
@@ -283,7 +295,7 @@ auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir
         const auto conf_path =
             std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
         /* copy conffiles from local dir for stopped instances */
-        for (const auto& conffile : instance.app().conffiles()) {
+        for (const auto& conffile : manifest->conffiles()) {
             auto ec = std::error_code{};
             fs::copy(conf_path + conffile.local(), dest_dir / conffile.local(), ec);
             if (ec) {
@@ -314,10 +326,14 @@ auto deployment_t::is_instance_running(instance_id_t instance_id) const //
 auto deployment_t::create_conffiles(const instance_t& instance) //
     -> result_t
 {
-    const auto& app = instance.app();
+    auto manifest = instance.app().manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
     const auto conf_path =
         std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
-    if (!app.conffiles().empty()) {
+    if (!manifest->conffiles().empty()) {
         auto ec = std::error_code{};
         std::filesystem::create_directories(conf_path, ec);
         if (ec) {
@@ -325,11 +341,11 @@ auto deployment_t::create_conffiles(const instance_t& instance) //
         }
     }
 
-    for (const auto& conffile : app.conffiles()) {
+    for (const auto& conffile : manifest->conffiles()) {
         const auto local_path = conf_path + conffile.local();
         if (conffile.init()) {
             const auto [res, additional_info] =
-                copy_file_from_image(app.image_with_tag(), conffile.container(), local_path);
+                copy_file_from_image(manifest->image_with_tag(), conffile.container(), local_path);
             if (res != 0) {
                 return {-1, instance.id().hex()};
             }
@@ -390,7 +406,12 @@ auto deployment_t::disconnect_network(instance_id_t instance_id, std::string_vie
 auto deployment_t::create_volumes(const instance_t& instance) //
     -> result_t
 {
-    for (auto& volume : instance.app().volumes()) {
+    auto manifest = instance.app().manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
+    for (auto& volume : manifest->volumes()) {
         if (volume.type() == volume_t::VOLUME) {
             const auto [res, additional_info] = create_volume(instance.id(), volume.host());
             if (res != 0) {
@@ -410,7 +431,12 @@ auto deployment_t::create_volume(instance_id_t instance_id, std::string_view vol
 auto deployment_t::import_volumes(const instance_t& instance, fs::path src_dir) //
     -> result_t
 {
-    for (auto& volume : instance.app().volumes()) {
+    auto manifest = instance.app().manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
+    for (auto& volume : manifest->volumes()) {
         if (volume.type() == volume_t::VOLUME) {
             const auto [res, additional_info] = import_volume(instance, volume.host(), src_dir);
             if (res != 0) {
@@ -437,7 +463,12 @@ auto deployment_t::import_volume(
 auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir) const //
     -> result_t
 {
-    for (auto& volume : instance.app().volumes()) {
+    auto manifest = instance.app().manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
+    for (auto& volume : manifest->volumes()) {
         const auto [res, additional_info] = export_volume(instance, volume.host(), dest_dir);
         if (res != 0) {
             return {res, additional_info};
@@ -463,7 +494,12 @@ auto deployment_t::export_volume(
 auto deployment_t::delete_volumes(const instance_t& instance) //
     -> result_t
 {
-    for (auto& volume : instance.app().volumes()) {
+    auto manifest = instance.app().manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
+    for (auto& volume : manifest->volumes()) {
         if (volume.type() == volume_t::VOLUME) {
             const auto [res, additional_info] = delete_volume(instance.id(), volume.host());
             if (res != 0) {

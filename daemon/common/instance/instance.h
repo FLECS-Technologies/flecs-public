@@ -54,9 +54,9 @@ public:
     auto app() const noexcept //
         -> const app_t&;
     auto app_name() const noexcept //
-        -> const std::string&;
+        -> std::string_view;
     auto app_version() const noexcept //
-        -> const std::string&;
+        -> std::string_view;
     auto has_app() const noexcept //
         -> bool;
     auto instance_name() const noexcept //

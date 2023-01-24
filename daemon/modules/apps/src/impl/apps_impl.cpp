@@ -19,6 +19,7 @@
 #include <fstream>
 
 #include "api/api.h"
+#include "common/app/manifest/manifest.h"
 #include "modules/factory/factory.h"
 #include "modules/jobs/jobs.h"
 #include "modules/manifests/manifests.h"
@@ -26,6 +27,7 @@
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 #include "util/process/process.h"
+#include "util/string/string_utils.h"
 
 using std::operator""s;
 
@@ -240,7 +242,7 @@ auto module_apps_t::do_install_from_marketplace(
     // Download App manifest and forward to manifest installation, if download successful
     const auto [manifest, _] = _manifests_api->add_from_marketplace(app_key);
     if (auto p = manifest.lock()) {
-        return do_install_impl(*p, license_key, progress);
+        return do_install_impl(std::move(p), license_key, progress);
     }
 
     auto lock = progress.lock();
@@ -275,7 +277,7 @@ auto module_apps_t::do_sideload(
     // Step 1: Validate transferred manifest
     if (auto p = manifest.lock()) {
         // Step 2: Forward to manifest installation
-        return do_install_impl(*p, license_key, progress);
+        return do_install_impl(std::move(p), license_key, progress);
     }
 
     auto lock = progress.lock();
@@ -285,7 +287,9 @@ auto module_apps_t::do_sideload(
 }
 
 auto module_apps_t::do_install_impl(
-    const app_manifest_t& manifest, std::string_view license_key, job_progress_t& progress) //
+    std::shared_ptr<app_manifest_t> manifest,
+    std::string_view license_key,
+    job_progress_t& progress) //
     -> void
 {
     {
@@ -296,23 +300,20 @@ auto module_apps_t::do_install_impl(
     }
 
     // Step 1: Create app from manifest
-    auto tmp = app_t{manifest, app_status_e::ManifestDownloaded, app_status_e::Installed};
-    if (tmp.app().empty()) {
+    auto tmp = app_t{app_key_t{manifest->app(), manifest->version()}, manifest};
+    if (!tmp.key().is_valid()) {
         auto lock = progress.lock();
         progress.result().code = -1;
         progress.result().message = "Could not open app manifest";
         return;
     }
+    tmp.desired(app_status_e::Installed);
+    tmp.status(app_status_e::ManifestDownloaded);
 
     // Step 2: Determine current App status to decide where to continue
-    auto it = _installed_apps.find(app_key_t{tmp.app(), tmp.version()});
+    auto it = _installed_apps.find(tmp.key());
     if (it == _installed_apps.end()) {
-        it = _installed_apps
-                 .emplace(
-                     std::piecewise_construct,
-                     std::forward_as_tuple(tmp.app(), tmp.version()),
-                     std::forward_as_tuple(tmp))
-                 .first;
+        it = _installed_apps.emplace(tmp.key(), std::move(tmp)).first;
     }
 
     auto& app = it->second;
@@ -379,7 +380,7 @@ auto module_apps_t::do_install_impl(
             auto pull_attempts = 3;
             while (pull_attempts-- > 0) {
                 docker_pull_process = process_t{};
-                docker_pull_process.spawnp("docker", "pull", app.image_with_tag());
+                docker_pull_process.spawnp("docker", "pull", manifest->image_with_tag());
                 docker_pull_process.wait(true, true);
                 if (docker_pull_process.exit_code() == 0) {
                     break;
@@ -481,13 +482,14 @@ auto module_apps_t::do_uninstall(
 
     // Step 2: Load App manifest
     auto& app = _installed_apps.find(app_key)->second;
+    auto manifest = app.manifest();
 
     // Step 2a: Prevent removal of system apps
-    if (cxx20::contains(app.category(), "system") && !force) {
+    if (cxx20::contains(manifest->category(), "system") && !force) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message =
-            "Not uninstalling system app " + app.app() + "(" + app.version() + ")";
+        progress.result().message = "Not uninstalling system app "s + app.key().name().data() +
+                                    "(" + app.key().version().data() + ")";
         return;
     }
 
@@ -502,7 +504,7 @@ auto module_apps_t::do_uninstall(
 #endif // 0
 
     // Step 4: Remove Docker image of the App
-    const auto image = app.image_with_tag();
+    const auto image = manifest->image_with_tag();
     auto docker_process = process_t{};
     docker_process.spawnp("docker", "rmi", "-f", image);
     docker_process.wait(false, true);
@@ -552,6 +554,7 @@ auto module_apps_t::do_export_app(
 
     // Step 2: Load App manifest
     auto& app = _installed_apps.find(app_key_t{app_name, version})->second;
+    auto manifest = app.manifest();
 
     // Step 3: Create export directory
     auto ec = std::error_code{};
@@ -567,11 +570,11 @@ auto module_apps_t::do_export_app(
     // Step 4: Export image
     auto docker_process = process_t{};
     const auto filename = std::string{"/var/lib/flecs/export-tmp/apps/"}
-                              .append(app.app())
+                              .append(app.key().name())
                               .append("_")
-                              .append(app.version())
+                              .append(app.key().version())
                               .append(".tar");
-    docker_process.spawnp("docker", "save", "--output", filename, app.image_with_tag());
+    docker_process.spawnp("docker", "save", "--output", filename, manifest->image_with_tag());
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0) {
         auto lock = progress.lock();

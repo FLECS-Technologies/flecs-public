@@ -27,12 +27,13 @@ namespace FLECS {
 namespace Private {
 
 auto module_app_manager_private_t::do_create_instance(
-    const std::string& app_name,
-    const std::string& version,
-    const std::string& instance_name,
-    json_t& response) //
+    const std::string& /*app_name*/,
+    const std::string& /*version*/,
+    const std::string& /*instance_name*/,
+    json_t& /*response*/) //
     -> crow::status
 {
+#if 0
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
     response["instanceName"] = instance_name;
@@ -70,7 +71,7 @@ auto module_app_manager_private_t::do_create_instance(
         response["additionalInfo"] = "Failed to create instance";
         return crow::status::INTERNAL_SERVER_ERROR;
     }
-
+#endif // 0
     return crow::status::OK;
 }
 

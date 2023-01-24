@@ -17,36 +17,31 @@
 namespace FLECS {
 
 app_t::app_t()
-    : app_t{app_manifest_t{}, {}, {}}
+    : app_t{app_key_t{}, {}}
 {}
 
-app_t::app_t(app_manifest_t manifest, app_status_e status, app_status_e desired)
-    : app_manifest_t{std::move(manifest)}
+app_t::app_t(app_key_t app_key)
+    : app_t{std::move(app_key), {}}
+{}
+
+app_t::app_t(app_key_t app_key, std::weak_ptr<app_manifest_t> manifest)
+    : app_key_t{std::move(app_key)}
     , _license_key{}
     , _download_token{}
     , _installed_size{}
-    , _status{status}
-    , _desired{desired}
+    , _status{app_status_e::Unknown}
+    , _desired{app_status_e::Unknown}
+    , _manifest{std::move(manifest)}
 {
     if (!is_valid()) {
         *this = app_t{};
     }
-
-    _key = app_key_t{app(), version()};
 }
-
-app_t::app_t(const fs::path& manifest_path, app_status_e status, app_status_e desired)
-    : app_t{app_manifest_t::from_yaml_file(manifest_path), status, desired}
-{}
-
-app_t::app_t(const std::string& manifest_string, app_status_e status, app_status_e desired)
-    : app_t{app_manifest_t::from_yaml_string(manifest_string), status, desired}
-{}
 
 auto app_t::key() const noexcept //
     -> const app_key_t&
 {
-    return _key;
+    return static_cast<const app_key_t&>(*this);
 }
 
 auto app_t::download_token() const noexcept //
@@ -109,11 +104,17 @@ auto app_t::desired(app_status_e desired) //
     _desired = desired;
 }
 
+auto app_t::manifest() const noexcept //
+    -> std::shared_ptr<app_manifest_t>
+{
+    return _manifest.lock();
+}
+
 auto to_json(json_t& json, const app_t& app) //
     -> void
 {
     json = json_t(
-        {{"app_key", app._key},
+        {{"app_key", static_cast<const app_key_t&>(app)},
          {"status", to_string(app._status)},
          {"desired", to_string(app._desired)},
          {"installedSize", app._installed_size}});
@@ -122,7 +123,7 @@ auto to_json(json_t& json, const app_t& app) //
 auto from_json(const json_t& json, app_t& app) //
     -> void
 {
-    json.at("app_key").get_to(app._key);
+    app = app_t{json.at("app_key").get<app_key_t>()};
     app._status = app_status_from_string(json.at("status").get<std::string_view>());
     app._desired = app_status_from_string(json.at("desired").get<std::string_view>());
     json.at("installedSize").get_to(app._installed_size);
