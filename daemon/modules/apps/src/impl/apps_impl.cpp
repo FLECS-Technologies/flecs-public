@@ -231,7 +231,7 @@ auto module_apps_t::do_install_from_marketplace(
         auto lock = progress.lock();
 
         progress.desc(
-            "Installing app "s + app_key.name().data() + " (" + app_key.version().data() + ")");
+            "Installation of "s + app_key.name().data() + " (" + app_key.version().data() + ")");
         progress.num_steps(6);
 
         progress.current_step()._desc = "Downloading manifest";
@@ -312,6 +312,14 @@ auto module_apps_t::do_install_impl(
     }
     tmp.desired(app_status_e::Installed);
     tmp.status(app_status_e::ManifestDownloaded);
+
+    {
+        auto lock = progress.lock();
+
+        progress.desc("Installation of "s + manifest->title() + " (" + manifest->version() + ")");
+        progress.current_step()._desc = "Acquiring download token";
+        progress.current_step()._num++;
+    }
 
     // Step 2: Determine current App status to decide where to continue
     auto app = _parent->query(tmp.key());
