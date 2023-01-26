@@ -20,19 +20,20 @@
 
 namespace FLECS {
 
+static constexpr auto strings = std::array<std::tuple<app_status_e, std::string_view>, 8>{{
+    {app_status_e::NotInstalled, "not installed"},
+    {app_status_e::ManifestDownloaded, "manifest downloaded"},
+    {app_status_e::TokenAcquired, "token acquired"},
+    {app_status_e::ImageDownloaded, "image downloaded"},
+    {app_status_e::Installed, "installed"},
+    {app_status_e::Removed, "removed"},
+    {app_status_e::Purged, "purged"},
+    {app_status_e::Orphaned, "orphaned"},
+}};
+
 auto to_string_view(app_status_e app_status) //
     -> std::string_view
 {
-    const auto strings = std::array<std::tuple<app_status_e, std::string_view>, 7>{{
-        {app_status_e::NotInstalled, "not installed"},
-        {app_status_e::ManifestDownloaded, "manifest downloaded"},
-        {app_status_e::TokenAcquired, "token acquired"},
-        {app_status_e::ImageDownloaded, "image downloaded"},
-        {app_status_e::Installed, "installed"},
-        {app_status_e::Removed, "removed"},
-        {app_status_e::Purged, "purged"},
-    }};
-
     const auto it = std::find_if(
         strings.cbegin(),
         strings.cend(),
@@ -52,24 +53,14 @@ auto to_string(app_status_e app_status) //
 auto app_status_from_string(std::string_view str) //
     -> app_status_e
 {
-    const auto status = std::array<std::tuple<std::string_view, app_status_e>, 7>{{
-        {"not installed", app_status_e::NotInstalled},
-        {"manifest downloaded", app_status_e::ManifestDownloaded},
-        {"token acquired", app_status_e::TokenAcquired},
-        {"image downloaded", app_status_e::ImageDownloaded},
-        {"installed", app_status_e::Installed},
-        {"removed", app_status_e::Removed},
-        {"purged", app_status_e::Purged},
-    }};
-
     const auto it = std::find_if(
-        status.cbegin(),
-        status.cend(),
-        [&str](const std::tuple<std::string_view, app_status_e>& elem) {
-            return std::get<0>(elem) == str;
+        strings.cbegin(),
+        strings.cend(),
+        [&str](const std::tuple<app_status_e, std::string_view>& elem) {
+            return std::get<1>(elem) == str;
         });
 
-    return it == status.cend() ? app_status_e::Unknown : std::get<1>(*it);
+    return it == strings.cend() ? app_status_e::Unknown : std::get<0>(*it);
 }
 
 } // namespace FLECS
