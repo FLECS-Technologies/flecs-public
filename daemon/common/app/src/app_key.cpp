@@ -92,4 +92,11 @@ void from_json(const json_t& json, app_key_t& app_key)
     app_key = app_key_t{json.at("name"), json.at("version")};
 }
 
+auto to_string(const app_key_t& app_key) //
+    -> std::string
+{
+    using std::operator""s;
+    return app_key.name().data() + " ("s + app_key.version().data() + ")"s;
+}
+
 } // namespace FLECS

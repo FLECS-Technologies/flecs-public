@@ -63,4 +63,7 @@ private:
     std::tuple<app_name_t, std::string> _key;
 };
 
+auto to_string(const app_key_t& app_key) //
+    -> std::string;
+
 } // namespace FLECS
