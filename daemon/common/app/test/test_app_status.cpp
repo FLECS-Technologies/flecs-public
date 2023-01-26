@@ -18,9 +18,9 @@
 
 #include "daemon/common/app/app_status.h"
 
-TEST(instance_status, to_string)
+TEST(app_status, to_string)
 {
-    const auto values = std::array<FLECS::app_status_e, 9>{
+    const auto values = std::array<FLECS::app_status_e, 10>{
         FLECS::app_status_e::NotInstalled,
         FLECS::app_status_e::ManifestDownloaded,
         FLECS::app_status_e::TokenAcquired,
@@ -28,11 +28,12 @@ TEST(instance_status, to_string)
         FLECS::app_status_e::Installed,
         FLECS::app_status_e::Removed,
         FLECS::app_status_e::Purged,
+        FLECS::app_status_e::Orphaned,
         FLECS::app_status_e::Unknown,
         static_cast<FLECS::app_status_e>(-1),
     };
 
-    const auto strings = std::array<std::string_view, 9>{
+    const auto strings = std::array<std::string_view, 10>{
         "not installed",
         "manifest downloaded",
         "token acquired",
@@ -40,6 +41,7 @@ TEST(instance_status, to_string)
         "installed",
         "removed",
         "purged",
+        "orphaned",
         "unknown",
         "unknown",
     };

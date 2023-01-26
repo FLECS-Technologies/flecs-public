@@ -27,6 +27,7 @@ enum class app_status_e {
     Installed,
     Removed,
     Purged,
+    Orphaned,
     Unknown,
 };
 

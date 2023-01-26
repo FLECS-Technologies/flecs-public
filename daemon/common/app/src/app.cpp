@@ -65,7 +65,7 @@ auto app_t::license_key() const noexcept //
 auto app_t::status() const noexcept //
     -> app_status_e
 {
-    return _status;
+    return _manifest.expired() ? app_status_e::Orphaned : _status;
 }
 
 auto app_t::desired() const noexcept //
