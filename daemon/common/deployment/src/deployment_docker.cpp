@@ -58,7 +58,7 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         return {-1, "Instance not connected to an app"};
     }
 
-    auto manifest = instance.app().manifest();
+    auto manifest = instance.app()->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -293,7 +293,7 @@ auto deployment_docker_t::create_container(instance_t& instance) //
 auto deployment_docker_t::delete_container(const instance_t& instance) //
     -> result_t
 {
-    auto manifest = instance.app().manifest();
+    auto manifest = instance.app()->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -344,7 +344,8 @@ auto deployment_docker_t::do_insert_instance(instance_t /*instance*/) //
     return {0, ""};
 }
 
-auto deployment_docker_t::do_create_instance(const app_t& /*app*/, instance_t& instance) //
+auto deployment_docker_t::do_create_instance(
+    std::shared_ptr<const app_t> /*app*/, instance_t& instance) //
     -> result_t
 {
     instance.status(instance_status_e::Created);

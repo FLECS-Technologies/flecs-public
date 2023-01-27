@@ -70,13 +70,14 @@ public:
     auto instance_ids(
         const app_key_t& app_key, version_filter_e version_filter = AllVersions) const //
         -> std::vector<instance_id_t>;
-    auto instance_ids(const app_t& app, version_filter_e version_filter = AllVersions) const //
+    auto instance_ids(
+        std::shared_ptr<const app_t> app, version_filter_e version_filter = AllVersions) const //
         -> std::vector<instance_id_t>;
     auto has_instance(instance_id_t instance_id) const noexcept //
         -> bool;
     auto insert_instance(instance_t instance) //
         -> result_t;
-    auto create_instance(const app_t& app, std::string instance_name) //
+    auto create_instance(std::shared_ptr<const app_t> app, std::string instance_name) //
         -> result_t;
     auto delete_instance(instance_id_t instance_id) //
         -> result_t;
@@ -164,7 +165,7 @@ private:
 
     virtual auto do_insert_instance(instance_t instance) //
         -> result_t = 0;
-    virtual auto do_create_instance(const app_t& app, instance_t& instance) //
+    virtual auto do_create_instance(std::shared_ptr<const app_t> app, instance_t& instance) //
         -> result_t = 0;
     virtual auto do_delete_instance(instance_id_t instance_id) //
         -> result_t = 0;

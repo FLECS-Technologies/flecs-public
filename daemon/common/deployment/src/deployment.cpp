@@ -84,10 +84,11 @@ auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e versi
     return ids;
 }
 
-auto deployment_t::instance_ids(const app_t& app, version_filter_e version_filter) const //
+auto deployment_t::instance_ids(
+    std::shared_ptr<const app_t> app, version_filter_e version_filter) const //
     -> std::vector<instance_id_t>
 {
-    return instance_ids(app.key(), version_filter);
+    return instance_ids(app->key(), version_filter);
 }
 
 auto deployment_t::has_instance(instance_id_t instance_id) const noexcept //
@@ -103,16 +104,16 @@ auto deployment_t::insert_instance(instance_t instance) //
     return do_insert_instance(std::move(instance));
 }
 
-auto deployment_t::create_instance(const app_t& app, std::string instance_name) //
+auto deployment_t::create_instance(std::shared_ptr<const app_t> app, std::string instance_name) //
     -> result_t
 {
-    auto manifest = app.manifest();
+    auto manifest = app->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
 
     // Step 1: Create unique id and insert instance
-    auto tmp = instance_t{&app, instance_name};
+    auto tmp = instance_t{app, instance_name};
     while (_instances.count(tmp.id())) {
         tmp.regenerate_id();
     }
@@ -182,7 +183,7 @@ auto deployment_t::create_instance(const app_t& app, std::string instance_name) 
         instance.status(instance_status_e::ResourcesReady);
     }
 
-    return do_create_instance(app, instance);
+    return do_create_instance(std::move(app), instance);
 }
 
 auto deployment_t::delete_instance(instance_id_t instance_id) //
@@ -263,7 +264,7 @@ auto deployment_t::stop_instance(instance_id_t instance_id) //
 auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir) const //
     -> result_t
 {
-    auto manifest = instance.app().manifest();
+    auto manifest = instance.app()->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -326,7 +327,7 @@ auto deployment_t::is_instance_running(instance_id_t instance_id) const //
 auto deployment_t::create_conffiles(const instance_t& instance) //
     -> result_t
 {
-    auto manifest = instance.app().manifest();
+    auto manifest = instance.app()->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -406,7 +407,7 @@ auto deployment_t::disconnect_network(instance_id_t instance_id, std::string_vie
 auto deployment_t::create_volumes(const instance_t& instance) //
     -> result_t
 {
-    auto manifest = instance.app().manifest();
+    auto manifest = instance.app()->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -431,7 +432,7 @@ auto deployment_t::create_volume(instance_id_t instance_id, std::string_view vol
 auto deployment_t::import_volumes(const instance_t& instance, fs::path src_dir) //
     -> result_t
 {
-    auto manifest = instance.app().manifest();
+    auto manifest = instance.app()->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -463,7 +464,7 @@ auto deployment_t::import_volume(
 auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir) const //
     -> result_t
 {
-    auto manifest = instance.app().manifest();
+    auto manifest = instance.app()->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -494,7 +495,7 @@ auto deployment_t::export_volume(
 auto deployment_t::delete_volumes(const instance_t& instance) //
     -> result_t
 {
-    auto manifest = instance.app().manifest();
+    auto manifest = instance.app()->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }

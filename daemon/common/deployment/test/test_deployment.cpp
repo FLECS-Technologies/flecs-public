@@ -29,7 +29,10 @@ public:
     MOCK_METHOD(std::string_view, do_deployment_id, (), (const, noexcept, override));
     MOCK_METHOD(result_t, do_insert_instance, (instance_t instance), (override));
     MOCK_METHOD(
-        result_t, do_create_instance, ((const app_t& app), (instance_t & instance)), (override));
+        result_t,
+        do_create_instance,
+        ((std::shared_ptr<const app_t> app), (instance_t & instance)),
+        (override));
     MOCK_METHOD(result_t, do_delete_instance, (instance_id_t instance_id), (override));
     MOCK_METHOD(result_t, do_start_instance, ((instance_t & instance)), (override));
     MOCK_METHOD(result_t, do_ready_instance, (const instance_t& instance), (override));
@@ -143,8 +146,10 @@ static const auto manifest_1 =
 static const auto manifest_2 =
     std::make_shared<FLECS::app_manifest_t>(FLECS::app_manifest_t::from_yaml_string(G_MANIFEST_2));
 
-static const auto app_1 = FLECS::app_t{FLECS::app_key_t{G_APP, G_VERSION_1}, manifest_1};
-static const auto app_2 = FLECS::app_t{FLECS::app_key_t{G_APP, G_VERSION_2}, manifest_2};
+static const auto app_1 =
+    std::make_shared<FLECS::app_t>(FLECS::app_key_t{G_APP, G_VERSION_1}, manifest_1);
+static const auto app_2 =
+    std::make_shared<FLECS::app_t>(FLECS::app_key_t{G_APP, G_VERSION_2}, manifest_2);
 
 TEST(deployment, interface)
 {
@@ -152,11 +157,11 @@ TEST(deployment, interface)
     auto& test_deployment = static_cast<FLECS::mock_deployment_t&>(*deployment.get());
     const auto& test_deployment_c = static_cast<const FLECS::mock_deployment_t&>(test_deployment);
 
-    auto instance_1 = FLECS::instance_t{G_INSTANCE_ID_1, &app_1, G_INSTANCE_NAME_1};
+    auto instance_1 = FLECS::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
     instance_1.status(FLECS::instance_status_e::Created);
     instance_1.desired(FLECS::instance_status_e::Running);
 
-    auto instance_2 = FLECS::instance_t{G_INSTANCE_ID_2, &app_2, G_INSTANCE_NAME_2};
+    auto instance_2 = FLECS::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
     instance_2.status(FLECS::instance_status_e::Created);
     instance_2.desired(FLECS::instance_status_e::Running);
 
@@ -194,7 +199,7 @@ TEST(deployment, interface)
     const auto ids_2 = test_deployment.instance_ids(app_1);
     EXPECT_EQ(ids_2.size(), 2);
 
-    const auto ids_3 = test_deployment.instance_ids(app_1.key().name(), app_1.key().version());
+    const auto ids_3 = test_deployment.instance_ids(app_1->key().name(), app_1->key().version());
     EXPECT_EQ(ids_3.size(), 2);
 
     // insert instance of app_2 with ID_2
@@ -205,10 +210,10 @@ TEST(deployment, interface)
     ASSERT_EQ(test_deployment_c.instances().count(G_INSTANCE_ID_2), 1);
     ASSERT_TRUE(test_deployment_c.has_instance(G_INSTANCE_ID_2));
 
-    const auto ids_4 = test_deployment.instance_ids(app_1.key().name());
+    const auto ids_4 = test_deployment.instance_ids(app_1->key().name());
     EXPECT_EQ(ids_4.size(), 3);
 
-    const auto ids_5 = test_deployment.instance_ids(app_1.key().name(), app_1.key().version());
+    const auto ids_5 = test_deployment.instance_ids(app_1->key().name(), app_1->key().version());
     EXPECT_EQ(ids_5.size(), 2);
 
     EXPECT_CALL(test_deployment, do_start_instance(instance_1)).Times(1);
@@ -305,8 +310,8 @@ TEST(deployment, load_save)
     auto save_deployment = std::unique_ptr<FLECS::deployment_t>{new FLECS::mock_deployment_t{}};
     auto& save_uut = static_cast<FLECS::mock_deployment_t&>(*save_deployment.get());
 
-    auto instance_1 = FLECS::instance_t{G_INSTANCE_ID_1, &app_1, G_INSTANCE_NAME_1};
-    auto instance_2 = FLECS::instance_t{G_INSTANCE_ID_2, &app_2, G_INSTANCE_NAME_2};
+    auto instance_1 = FLECS::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
+    auto instance_2 = FLECS::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
 
     save_deployment->insert_instance(instance_1);
     save_deployment->insert_instance(instance_2);
@@ -333,7 +338,7 @@ TEST(deployment, generate_ip_success)
         EXPECT_EQ(ip, "172.20.0.2");
     }
 
-    auto instance = FLECS::instance_t{&app_1, G_INSTANCE_NAME_1};
+    auto instance = FLECS::instance_t{app_1, G_INSTANCE_NAME_1};
     instance.networks().emplace_back(FLECS::instance_t::network_t{
         .network_name = "flecs-network",
         .mac_address = {},

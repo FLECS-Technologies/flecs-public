@@ -27,11 +27,12 @@ instance_t::instance_t()
     : instance_t{instance_id_t{}, nullptr, std::string{}}
 {}
 
-instance_t::instance_t(const app_t* app, std::string instance_name)
+instance_t::instance_t(std::shared_ptr<const app_t> app, std::string instance_name)
     : instance_t{instance_id_t{}, app, std::move(instance_name)}
 {}
 
-instance_t::instance_t(instance_id_t id, const app_t* app, std::string instance_name)
+instance_t::instance_t(
+    instance_id_t id, std::shared_ptr<const app_t> app, std::string instance_name)
     : _id{std::move(id)}
     , _app{app}
     , _app_name{app ? app->key().name() : ""}
@@ -50,27 +51,29 @@ auto instance_t::id() const noexcept //
 }
 
 auto instance_t::app() const noexcept //
-    -> const app_t&
+    -> std::shared_ptr<const app_t>
 {
-    return *_app;
+    return _app.lock();
 }
 
 auto instance_t::app_name() const noexcept //
     -> std::string_view
 {
-    return _app ? _app->key().name() : _app_name;
+    const auto p = app();
+    return p ? p->key().name() : _app_name;
 }
 
 auto instance_t::app_version() const noexcept //
     -> std::string_view
 {
-    return _app ? _app->key().version() : _app_version;
+    const auto p = app();
+    return p ? p->key().version() : _app_version;
 }
 
 auto instance_t::has_app() const noexcept //
     -> bool
 {
-    return _app != nullptr;
+    return !_app.expired();
 }
 
 auto instance_t::instance_name() const noexcept //
@@ -133,7 +136,7 @@ auto instance_t::regenerate_id() //
     return _id.regenerate();
 }
 
-auto instance_t::app(const app_t* app) //
+auto instance_t::app(std::shared_ptr<const app_t> app) //
     -> void
 {
     _app = app;
