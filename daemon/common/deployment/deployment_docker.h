@@ -34,7 +34,7 @@ private:
 
     auto do_insert_instance(instance_t instance) //
         -> result_t override;
-    auto do_create_instance(const app_t& app, instance_t& instance) //
+    auto do_create_instance(std::shared_ptr<const app_t> app, instance_t& instance) //
         -> result_t override;
     auto do_delete_instance(instance_id_t instance_id) //
         -> result_t override;
