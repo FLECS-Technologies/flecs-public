@@ -20,7 +20,5 @@ RUN apt-get -y install ca-certificates curl gnupg lsb-release net-tools jq libus
 COPY scripts/install-docker.sh /tmp/
 RUN /tmp/install-docker.sh
 
-COPY scripts/smoke-test.sh /tmp/
-
 COPY scripts/entrypoint.sh /
 ENTRYPOINT [ "/entrypoint.sh" ]
