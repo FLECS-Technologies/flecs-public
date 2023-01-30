@@ -27,7 +27,6 @@
                 "${workspaceFolder}/daemon/common/network",
                 "${workspaceFolder}/daemon/modules",
                 "${workspaceFolder}/daemon/modules/apps",
-                "${workspaceFolder}/daemon/modules/app_manager",
                 "${workspaceFolder}/daemon/modules/data_layer",
                 "${workspaceFolder}/daemon/modules/factory",
                 "${workspaceFolder}/daemon/modules/help",
