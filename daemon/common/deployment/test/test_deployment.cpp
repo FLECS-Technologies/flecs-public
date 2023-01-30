@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include <sstream>
+#include <string_view>
 
 #include "daemon/common/app/app.h"
 #include "daemon/common/app/manifest/manifest.h"
@@ -27,20 +28,15 @@ class mock_deployment_t : public deployment_t
 {
 public:
     MOCK_METHOD(std::string_view, do_deployment_id, (), (const, noexcept, override));
-    MOCK_METHOD(result_t, do_insert_instance, (instance_t instance), (override));
-    MOCK_METHOD(
-        result_t,
-        do_create_instance,
-        ((std::shared_ptr<const app_t> app), (instance_t & instance)),
-        (override));
-    MOCK_METHOD(result_t, do_delete_instance, (instance_id_t instance_id), (override));
-    MOCK_METHOD(result_t, do_start_instance, ((instance_t & instance)), (override));
-    MOCK_METHOD(result_t, do_ready_instance, (const instance_t& instance), (override));
-    MOCK_METHOD(result_t, do_stop_instance, (const instance_t& instance), (override));
+    MOCK_METHOD(result_t, do_create_instance, (std::shared_ptr<instance_t> instance), (override));
+    MOCK_METHOD(result_t, do_delete_instance, (std::shared_ptr<instance_t> instance), (override));
+    MOCK_METHOD(result_t, do_start_instance, (std::shared_ptr<instance_t> instance), (override));
+    MOCK_METHOD(result_t, do_ready_instance, (std::shared_ptr<instance_t> instance), (override));
+    MOCK_METHOD(result_t, do_stop_instance, (std::shared_ptr<instance_t> instance), (override));
     MOCK_METHOD(
         result_t,
         do_export_instance,
-        (const instance_t& instance, fs::path dest_dir),
+        (std::shared_ptr<instance_t> instance, fs::path dest_dir),
         (const, override));
     MOCK_METHOD(
         result_t,
@@ -51,38 +47,43 @@ public:
          (std::string_view gateway),
          (std::string_view parent_adapter)),
         (override));
-    MOCK_METHOD(bool, do_is_instance_running, (const instance_t& instance), (const, override));
+    MOCK_METHOD(
+        bool, do_is_instance_running, (std::shared_ptr<instance_t> instance), (const, override));
     MOCK_METHOD(std::optional<network_t>, do_query_network, (std::string_view network), (override));
     MOCK_METHOD(result_t, do_delete_network, (std::string_view network), (override));
     MOCK_METHOD(
         result_t,
         do_connect_network,
-        ((instance_id_t instance_id), (std::string_view network), (std::string_view ip)),
+        ((std::shared_ptr<instance_t> instance), (std::string_view network), (std::string_view ip)),
         (override));
     MOCK_METHOD(
         result_t,
         do_disconnect_network,
-        ((instance_id_t instance_id), (std::string_view network)),
+        ((std::shared_ptr<instance_t> instance), (std::string_view network)),
         (override));
     MOCK_METHOD(
         result_t,
         do_create_volume,
-        ((instance_id_t instance_id), (std::string_view volume_name)),
+        ((std::shared_ptr<instance_t> instance), (std::string_view volume_name)),
         (override));
     MOCK_METHOD(
         result_t,
         do_import_volume,
-        ((const instance_t& instance), (std::string_view volume_name), (FLECS::fs::path dest_dir)),
+        ((std::shared_ptr<instance_t> instance),
+         (std::string_view volume_name),
+         (FLECS::fs::path dest_dir)),
         (override));
     MOCK_METHOD(
         result_t,
         do_export_volume,
-        ((const instance_t& instance), (std::string_view volume_name), (FLECS::fs::path dest_dir)),
+        ((std::shared_ptr<instance_t> instance),
+         (std::string_view volume_name),
+         (FLECS::fs::path dest_dir)),
         (const, override));
     MOCK_METHOD(
         result_t,
         do_delete_volume,
-        ((instance_id_t instance_id), (std::string_view volume_name)),
+        ((std::shared_ptr<instance_t> instance), (std::string_view volume_name)),
         (override));
     MOCK_METHOD(
         result_t,
@@ -92,12 +93,12 @@ public:
     MOCK_METHOD(
         result_t,
         do_copy_file_to_instance,
-        ((instance_id_t instance_id), (fs::path file), (fs::path dest)),
+        ((std::shared_ptr<instance_t> instance), (fs::path file), (fs::path dest)),
         (override));
     MOCK_METHOD(
         result_t,
         do_copy_file_from_instance,
-        ((instance_id_t instance_id), (fs::path file), (fs::path dest)),
+        ((std::shared_ptr<instance_t> instance), (fs::path file), (fs::path dest)),
         (const, override));
     MOCK_METHOD(std::string_view, do_default_network_name, (), (const, override));
     MOCK_METHOD(network_type_e, do_default_network_type, (), (const, override));
@@ -107,6 +108,8 @@ public:
 } // namespace FLECS
 
 using std::operator""s;
+using std::operator""sv;
+using namespace testing;
 
 #define G_APP "tech.flecs.test-app"
 #define G_CIDR_SUBNET "172.20.0.0/24"
@@ -165,144 +168,167 @@ TEST(deployment, interface)
     instance_2.status(FLECS::instance_status_e::Created);
     instance_2.desired(FLECS::instance_status_e::Running);
 
-    EXPECT_CALL(test_deployment, do_deployment_id()).Times(1);
-    test_deployment.deployment_id();
+    // mock deployment id
+    EXPECT_CALL(test_deployment, do_deployment_id()).Times(1).WillOnce(Return("test-deployment"sv));
+    ASSERT_EQ(test_deployment.deployment_id(), "test-deployment");
 
-    // deployment should be empty initially
-    ASSERT_TRUE(test_deployment.instances().empty());
-    ASSERT_EQ(test_deployment.instances().count(G_INSTANCE_ID_1), 0);
-    ASSERT_FALSE(test_deployment.has_instance(G_INSTANCE_ID_1));
-    ASSERT_FALSE(test_deployment.is_instance_runnable(G_INSTANCE_ID_1));
-    EXPECT_CALL(test_deployment, do_is_instance_running(instance_1)).Times(0);
-    deployment->is_instance_running(G_INSTANCE_ID_1);
+    // deployment should be initially empty
+    ASSERT_TRUE(test_deployment.instance_ids().empty());
+    ASSERT_FALSE(test_deployment_c.has_instance(G_INSTANCE_ID_1));
+    ASSERT_FALSE(test_deployment.query_instance(G_INSTANCE_ID_1));
 
     // insert instance with of app_1 with ID_1
-    EXPECT_CALL(test_deployment, do_insert_instance(instance_1)).Times(1);
     deployment->insert_instance(instance_1);
-
-    // deployment should now contain ID_1
-    ASSERT_FALSE(test_deployment_c.instances().empty());
-    ASSERT_EQ(test_deployment_c.instances().count(G_INSTANCE_ID_1), 1);
-    ASSERT_TRUE(test_deployment_c.has_instance(G_INSTANCE_ID_1));
-    ASSERT_TRUE(test_deployment.is_instance_runnable(G_INSTANCE_ID_1));
-    EXPECT_CALL(test_deployment, do_is_instance_running(instance_1)).Times(1);
-    deployment->is_instance_running(G_INSTANCE_ID_1);
-
-    const auto ids_1 = test_deployment.instance_ids(app_1);
-    EXPECT_EQ(ids_1.size(), 1);
-    EXPECT_EQ(ids_1[0], G_INSTANCE_ID_1);
+    {
+        // deployment should now contain ID_1
+        ASSERT_FALSE(test_deployment_c.instance_ids().empty());
+        ASSERT_TRUE(test_deployment_c.has_instance(G_INSTANCE_ID_1));
+        // instance should be runnable (i.e. exists and is 'Created')
+        auto p = test_deployment_c.query_instance(G_INSTANCE_ID_1);
+        ASSERT_TRUE(p);
+        ASSERT_TRUE(test_deployment.is_instance_runnable(p));
+        // instance should not be running
+        EXPECT_CALL(test_deployment, do_is_instance_running(p)).Times(1).WillOnce(Return(false));
+        ASSERT_FALSE(deployment->is_instance_running(p));
+    }
 
     // create instance of app_1 with random instance id
     EXPECT_CALL(test_deployment, do_create_instance).Times(1);
     deployment->create_instance(app_1, "test instance_1");
-
-    const auto ids_2 = test_deployment.instance_ids(app_1);
-    EXPECT_EQ(ids_2.size(), 2);
-
-    const auto ids_3 = test_deployment.instance_ids(app_1->key().name(), app_1->key().version());
-    EXPECT_EQ(ids_3.size(), 2);
+    {
+        // deployment should now contain 2 IDs
+        const auto ids = test_deployment.instance_ids(app_1->key().name(), app_1->key().version());
+        EXPECT_EQ(ids.size(), 2);
+    }
 
     // insert instance of app_2 with ID_2
-    EXPECT_CALL(test_deployment, do_insert_instance(instance_2)).Times(1);
     deployment->insert_instance(instance_2);
+    {
+        // deployment should now contain ID_1
+        ASSERT_TRUE(test_deployment_c.has_instance(G_INSTANCE_ID_2));
+    }
 
-    // deployment should now contain ID_2
-    ASSERT_EQ(test_deployment_c.instances().count(G_INSTANCE_ID_2), 1);
-    ASSERT_TRUE(test_deployment_c.has_instance(G_INSTANCE_ID_2));
+    {
+        // assert content of deployment through different interfaces
+        const auto& key_1 = app_1->key();
+        const auto& key_2 = app_2->key();
 
-    const auto ids_4 = test_deployment.instance_ids(app_1->key().name());
-    EXPECT_EQ(ids_4.size(), 3);
+        ASSERT_EQ(test_deployment.instance_ids().size(), 3);
+        ASSERT_EQ(test_deployment.instance_ids(key_1.name()).size(), 3);
 
-    const auto ids_5 = test_deployment.instance_ids(app_1->key().name(), app_1->key().version());
-    EXPECT_EQ(ids_5.size(), 2);
+        ASSERT_EQ(test_deployment.instance_ids(key_1.name(), key_1.version()).size(), 2);
+        ASSERT_EQ(test_deployment.instance_ids(key_2.name(), key_2.version()).size(), 1);
+    }
 
-    EXPECT_CALL(test_deployment, do_start_instance(instance_1)).Times(1);
-    deployment->start_instance(instance_1.id());
+    // perform actions on instance_1
+    {
+        auto p = test_deployment.query_instance(G_INSTANCE_ID_1);
+        EXPECT_CALL(test_deployment, do_start_instance(p)).Times(1);
+        deployment->start_instance(p);
 
-    EXPECT_CALL(test_deployment, do_ready_instance(instance_1)).Times(1);
-    deployment->ready_instance(instance_1.id());
+        EXPECT_CALL(test_deployment, do_ready_instance(p)).Times(1);
+        deployment->ready_instance(p);
 
-    EXPECT_CALL(test_deployment, do_stop_instance(instance_1)).Times(1);
-    deployment->stop_instance(instance_1.id());
+        EXPECT_CALL(test_deployment, do_stop_instance(p)).Times(1);
+        deployment->stop_instance(p);
 
-    EXPECT_CALL(test_deployment, do_delete_instance(instance_1.id())).Times(1);
-    deployment->delete_instance(instance_1.id());
+        EXPECT_CALL(test_deployment, do_delete_instance(p)).Times(1);
+        deployment->delete_instance(p);
 
-    EXPECT_EQ(test_deployment.instances().count(G_INSTANCE_ID_1), 0);
+        ASSERT_FALSE(test_deployment.has_instance(G_INSTANCE_ID_1));
+    }
 
-    EXPECT_CALL(
-        test_deployment,
-        do_create_network(
+    {
+        // interact with networking interface
+        EXPECT_CALL(
+            test_deployment,
+            do_create_network(
+                FLECS::network_type_e::Bridge,
+                G_NETWORK_NAME,
+                G_CIDR_SUBNET,
+                G_GATEWAY,
+                G_PARENT))
+            .Times(1);
+        deployment->create_network(
             FLECS::network_type_e::Bridge,
             G_NETWORK_NAME,
             G_CIDR_SUBNET,
             G_GATEWAY,
-            G_PARENT))
-        .Times(1);
-    deployment->create_network(
-        FLECS::network_type_e::Bridge,
-        G_NETWORK_NAME,
-        G_CIDR_SUBNET,
-        G_GATEWAY,
-        G_PARENT);
+            G_PARENT);
 
-    EXPECT_CALL(test_deployment, do_query_network(G_NETWORK_NAME)).Times(1);
-    deployment->query_network(G_NETWORK_NAME);
+        EXPECT_CALL(test_deployment, do_query_network(G_NETWORK_NAME)).Times(1);
+        deployment->query_network(G_NETWORK_NAME);
 
-    EXPECT_CALL(test_deployment, do_delete_network(G_NETWORK_NAME)).Times(1);
-    deployment->delete_network(G_NETWORK_NAME);
+        EXPECT_CALL(test_deployment, do_delete_network(G_NETWORK_NAME)).Times(1);
+        deployment->delete_network(G_NETWORK_NAME);
 
-    EXPECT_CALL(test_deployment, do_connect_network(G_INSTANCE_ID_1, G_NETWORK_NAME, G_IP))
-        .Times(1);
-    deployment->connect_network(G_INSTANCE_ID_1, G_NETWORK_NAME, G_IP);
+        EXPECT_CALL(test_deployment, do_default_network_name())
+            .Times(1)
+            .WillOnce(Return("test-network"));
+        ASSERT_EQ(deployment->default_network_name(), "test-network");
 
-    EXPECT_CALL(test_deployment, do_disconnect_network(G_INSTANCE_ID_1, G_NETWORK_NAME)).Times(1);
-    deployment->disconnect_network(G_INSTANCE_ID_1, G_NETWORK_NAME);
+        EXPECT_CALL(test_deployment, do_default_network_type()).Times(1);
+        deployment->default_network_type();
 
-    EXPECT_CALL(test_deployment, do_create_volume(G_INSTANCE_ID_1, G_VOLUME)).Times(1);
-    deployment->create_volume(G_INSTANCE_ID_1, G_VOLUME);
+        EXPECT_CALL(test_deployment, do_default_network_cidr_subnet()).Times(1);
+        deployment->default_network_cidr_subnet();
 
-    EXPECT_CALL(test_deployment, do_delete_volume(G_INSTANCE_ID_1, G_VOLUME)).Times(1);
-    deployment->delete_volume(G_INSTANCE_ID_1, G_VOLUME);
+        EXPECT_CALL(test_deployment, do_default_network_gateway()).Times(1);
+        deployment->default_network_gateway();
+    }
 
-    EXPECT_CALL(
-        test_deployment,
-        do_copy_file_from_image(
-            G_IMAGE,
-            FLECS::fs::path{G_FILE_CONTAINER},
-            FLECS::fs::path{G_FILE_LOCAL}))
-        .Times(1);
-    deployment->copy_file_from_image(G_IMAGE, G_FILE_CONTAINER, G_FILE_LOCAL);
+    {
+        // connect and disconnect network to/from instance_1
+        auto p = deployment->query_instance(G_INSTANCE_ID_1);
+        EXPECT_CALL(test_deployment, do_connect_network(p, G_NETWORK_NAME, G_IP)).Times(1);
+        deployment->connect_network(p, G_NETWORK_NAME, G_IP);
 
-    EXPECT_CALL(
-        test_deployment,
-        do_copy_file_to_instance(
-            G_INSTANCE_ID_1,
-            FLECS::fs::path{G_FILE_LOCAL},
-            FLECS::fs::path{G_FILE_CONTAINER}))
-        .Times(1);
-    deployment->copy_file_to_instance(G_INSTANCE_ID_1, G_FILE_LOCAL, G_FILE_CONTAINER);
+        EXPECT_CALL(test_deployment, do_disconnect_network(p, G_NETWORK_NAME)).Times(1);
+        deployment->disconnect_network(p, G_NETWORK_NAME);
+    }
 
-    EXPECT_CALL(
-        test_deployment,
-        do_copy_file_from_instance(
-            G_INSTANCE_ID_1,
-            FLECS::fs::path{G_FILE_CONTAINER},
-            FLECS::fs::path{G_FILE_LOCAL}))
-        .Times(1);
-    deployment->copy_file_from_instance(G_INSTANCE_ID_1, G_FILE_CONTAINER, G_FILE_LOCAL);
+    {
+        // create and delete volumes for instance_1
+        auto p = deployment->query_instance(G_INSTANCE_ID_1);
 
-    EXPECT_CALL(test_deployment, do_default_network_name()).Times(1);
-    deployment->default_network_name();
+        EXPECT_CALL(test_deployment, do_create_volume(p, G_VOLUME)).Times(1);
+        deployment->create_volume(p, G_VOLUME);
 
-    EXPECT_CALL(test_deployment, do_default_network_type()).Times(1);
-    deployment->default_network_type();
+        EXPECT_CALL(test_deployment, do_delete_volume(p, G_VOLUME)).Times(1);
+        deployment->delete_volume(p, G_VOLUME);
+    }
 
-    EXPECT_CALL(test_deployment, do_default_network_cidr_subnet()).Times(1);
-    deployment->default_network_cidr_subnet();
+    {
+        // copy files from app/instance
+        auto p = deployment->query_instance(G_INSTANCE_ID_2);
 
-    EXPECT_CALL(test_deployment, do_default_network_gateway()).Times(1);
-    deployment->default_network_gateway();
+        EXPECT_CALL(
+            test_deployment,
+            do_copy_file_from_image(
+                G_IMAGE,
+                FLECS::fs::path{G_FILE_CONTAINER},
+                FLECS::fs::path{G_FILE_LOCAL}))
+            .Times(1);
+        deployment->copy_file_from_image(G_IMAGE, G_FILE_CONTAINER, G_FILE_LOCAL);
+
+        EXPECT_CALL(
+            test_deployment,
+            do_copy_file_to_instance(
+                p,
+                FLECS::fs::path{G_FILE_LOCAL},
+                FLECS::fs::path{G_FILE_CONTAINER}))
+            .Times(1);
+        deployment->copy_file_to_instance(p, G_FILE_LOCAL, G_FILE_CONTAINER);
+
+        EXPECT_CALL(
+            test_deployment,
+            do_copy_file_from_instance(
+                p,
+                FLECS::fs::path{G_FILE_CONTAINER},
+                FLECS::fs::path{G_FILE_LOCAL}))
+            .Times(1);
+        deployment->copy_file_from_instance(p, G_FILE_CONTAINER, G_FILE_LOCAL);
+    }
 }
 
 TEST(deployment, load_save)
@@ -324,9 +350,9 @@ TEST(deployment, load_save)
     EXPECT_CALL(load_uut, do_deployment_id()).Times(1).WillOnce(testing::Return("test"));
     load_deployment->load(".");
 
-    ASSERT_EQ(load_deployment->instances().size(), 2);
-    ASSERT_EQ(load_deployment->instances().at(G_INSTANCE_ID_1), instance_1);
-    ASSERT_EQ(load_deployment->instances().at(G_INSTANCE_ID_2), instance_2);
+    ASSERT_EQ(load_deployment->instance_ids().size(), 2);
+    ASSERT_EQ(*(load_deployment->query_instance(G_INSTANCE_ID_1)), instance_1);
+    ASSERT_EQ(*(load_deployment->query_instance(G_INSTANCE_ID_2)), instance_2);
 }
 
 TEST(deployment, generate_ip_success)

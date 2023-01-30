@@ -32,21 +32,19 @@ private:
     auto do_deployment_id() const noexcept //
         -> std::string_view override;
 
-    auto do_insert_instance(instance_t instance) //
+    auto do_create_instance(std::shared_ptr<instance_t> instance) //
         -> result_t override;
-    auto do_create_instance(std::shared_ptr<const app_t> app, instance_t& instance) //
+    auto do_delete_instance(std::shared_ptr<instance_t> instance) //
         -> result_t override;
-    auto do_delete_instance(instance_id_t instance_id) //
+    auto do_start_instance(std::shared_ptr<instance_t> instance) //
         -> result_t override;
-    auto do_start_instance(instance_t& instance) //
+    auto do_ready_instance(std::shared_ptr<instance_t> instance) //
         -> result_t override;
-    auto do_ready_instance(const instance_t& instance) //
+    auto do_stop_instance(std::shared_ptr<instance_t> instance) //
         -> result_t override;
-    auto do_stop_instance(const instance_t& instance) //
+    auto do_export_instance(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
         -> result_t override;
-    auto do_export_instance(const instance_t& instance, fs::path dest_dir) const //
-        -> result_t override;
-    auto do_is_instance_running(const instance_t& instance) const //
+    auto do_is_instance_running(std::shared_ptr<instance_t> instance) const //
         -> bool override;
     auto do_create_network(
         network_type_e network_type,
@@ -60,28 +58,33 @@ private:
     auto do_delete_network(std::string_view network) //
         -> result_t override;
     auto do_connect_network(
-        instance_id_t instance_id,
+        std::shared_ptr<instance_t> instance,
         std::string_view network,
         std::string_view ip) //
         -> result_t override;
-    auto do_disconnect_network(instance_id_t instance_id, std::string_view network) //
+    auto do_disconnect_network(std::shared_ptr<instance_t> instance, std::string_view network) //
         -> result_t override;
-    auto do_create_volume(instance_id_t instance_id, std::string_view volume_name) //
+    auto do_create_volume(std::shared_ptr<instance_t> instance, std::string_view volume_name) //
         -> result_t override;
     auto do_import_volume(
-        const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
+        std::shared_ptr<instance_t> instance,
+        std::string_view volume_name,
+        fs::path src_dir) //
         -> result_t override;
     auto do_export_volume(
-        const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
+        std::shared_ptr<instance_t> instance,
+        std::string_view volume_name,
+        fs::path dest_dir) const //
         -> result_t override;
-    auto do_delete_volume(instance_id_t instance_id, std::string_view volume_name) //
+    auto do_delete_volume(std::shared_ptr<instance_t> instance, std::string_view volume_name) //
         -> result_t override;
     auto do_copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
         -> result_t override;
-    auto do_copy_file_to_instance(instance_id_t instance_id, fs::path file, fs::path dest) //
+    auto do_copy_file_to_instance(
+        std::shared_ptr<instance_t> instance, fs::path file, fs::path dest) //
         -> result_t override;
     auto do_copy_file_from_instance(
-        instance_id_t instance_id, fs::path file, fs::path dest) const //
+        std::shared_ptr<instance_t> instance, fs::path file, fs::path dest) const //
         -> result_t override;
     auto do_default_network_name() const //
         -> std::string_view override;
@@ -92,9 +95,9 @@ private:
     auto do_default_network_gateway() const //
         -> std::string_view override;
 
-    auto create_container(instance_t& instance) //
+    auto create_container(std::shared_ptr<instance_t> instance) //
         -> result_t;
-    auto delete_container(const instance_t& instance) //
+    auto delete_container(std::shared_ptr<instance_t> instance) //
         -> result_t;
 };
 

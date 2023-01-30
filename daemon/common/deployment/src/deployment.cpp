@@ -14,7 +14,7 @@
 
 #include "deployment.h"
 
-#include <cassert>
+#include <algorithm>
 #include <fstream>
 #include <map>
 #include <regex>
@@ -45,16 +45,10 @@ auto deployment_t::save(fs::path base_path) //
     return do_save(base_path);
 }
 
-auto deployment_t::instances() const noexcept //
-    -> const std::map<instance_id_t, instance_t>&
+auto deployment_t::instance_ids() const //
+    -> std::vector<instance_id_t>
 {
-    return _instances;
-}
-
-auto deployment_t::instances() noexcept //
-    -> std::map<instance_id_t, instance_t>&
-{
-    return _instances;
+    return instance_ids(app_key_t{}, AllVersions);
 }
 
 auto deployment_t::instance_ids(std::string_view app) const //
@@ -73,35 +67,53 @@ auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e versi
     -> std::vector<instance_id_t>
 {
     auto ids = std::vector<instance_id_t>{};
-    for (const auto& instance : instances()) {
-        if ((instance.second.app_name() == app_key.name()) &&
-            ((version_filter == AllVersions) ||
-             (instance.second.app_version() == app_key.version()))) {
-            ids.emplace_back(instance.first);
+    for (const auto& instance : _instances) {
+        const auto app = instance->app();
+        if (!app && app_key.name().empty()) {
+            ids.emplace_back(instance->id());
+            continue;
+        }
+
+        const auto apps_match = app_key.name().empty() || (app_key.name() == app->key().name());
+        const auto versions_match = app_key.name().empty() || app_key.version().empty() ||
+                                    version_filter == AllVersions ||
+                                    (app_key.version() == app->key().version());
+        if (apps_match && versions_match) {
+            ids.emplace_back(instance->id());
         }
     }
 
     return ids;
 }
 
-auto deployment_t::instance_ids(
-    std::shared_ptr<const app_t> app, version_filter_e version_filter) const //
-    -> std::vector<instance_id_t>
+auto deployment_t::query_instance(instance_id_t instance_id) const //
+    -> std::shared_ptr<instance_t>
 {
-    return instance_ids(app->key(), version_filter);
+    const auto it = std::find_if(
+        _instances.cbegin(),
+        _instances.cend(),
+        [&instance_id](const std::shared_ptr<instance_t>& elem) {
+            return elem->id() == instance_id;
+        });
+    return it != _instances.cend() ? *it : nullptr;
 }
 
 auto deployment_t::has_instance(instance_id_t instance_id) const noexcept //
     -> bool
 {
-    return _instances.count(instance_id);
+    const auto it = std::find_if(
+        _instances.cbegin(),
+        _instances.cend(),
+        [&instance_id](const std::shared_ptr<instance_t>& elem) {
+            return elem->id() == instance_id;
+        });
+    return it != _instances.cend();
 }
 
 auto deployment_t::insert_instance(instance_t instance) //
-    -> result_t
+    -> std::shared_ptr<instance_t>
 {
-    _instances.emplace(instance.id(), instance);
-    return do_insert_instance(std::move(instance));
+    return _instances.emplace_back(std::make_shared<instance_t>(std::move(instance)));
 }
 
 auto deployment_t::create_instance(std::shared_ptr<const app_t> app, std::string instance_name) //
@@ -114,16 +126,16 @@ auto deployment_t::create_instance(std::shared_ptr<const app_t> app, std::string
 
     // Step 1: Create unique id and insert instance
     auto tmp = instance_t{app, instance_name};
-    while (_instances.count(tmp.id())) {
+    while (has_instance(tmp.id())) {
         tmp.regenerate_id();
     }
 
     tmp.status(instance_status_e::Requested);
     tmp.desired(instance_status_e::Created);
 
-    auto& instance = _instances.emplace(tmp.id(), tmp).first->second;
+    auto instance = insert_instance(std::move(tmp));
     for (const auto& startup_option : manifest->startup_options()) {
-        instance.startup_options().emplace_back(
+        instance->startup_options().emplace_back(
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
     }
 
@@ -148,10 +160,10 @@ auto deployment_t::create_instance(std::shared_ptr<const app_t> app, std::string
                 default_network_gateway(),
                 {});
             if (res != 0) {
-                return {-1, instance.id().hex()};
+                return {-1, instance->id().hex()};
             }
         }
-        instance.networks().emplace_back(instance_t::network_t{
+        instance->networks().emplace_back(instance_t::network_t{
             .network_name = default_network_name().data(),
             .mac_address = manifest->networks()[0].mac_address(),
             .ip_address = {},
@@ -176,37 +188,41 @@ auto deployment_t::create_instance(std::shared_ptr<const app_t> app, std::string
 
     // Step 4: Create conffiles
     {
-        auto [res, additional_info] = create_conffiles(instance);
+        auto [res, additional_info] = create_config_files(instance);
         if (res != 0) {
-            return {res, instance.id().hex()};
+            return {res, instance->id().hex()};
         }
-        instance.status(instance_status_e::ResourcesReady);
+        instance->status(instance_status_e::ResourcesReady);
     }
 
-    return do_create_instance(std::move(app), instance);
+    return do_create_instance(instance);
 }
 
-auto deployment_t::delete_instance(instance_id_t instance_id) //
+auto deployment_t::delete_instance(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    const auto [res, additional_info] = do_delete_instance(std::move(instance_id));
-    _instances.erase(instance_id);
+    const auto [res, additional_info] = do_delete_instance(instance);
+    _instances.erase(
+        std::remove_if(
+            _instances.begin(),
+            _instances.end(),
+            [&instance](const std::shared_ptr<instance_t>& elem) {
+                return elem->id() == instance->id();
+            }),
+        _instances.end());
     return {res, additional_info};
 }
 
-auto deployment_t::start_instance(instance_id_t instance_id) //
+auto deployment_t::start_instance(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    auto& instance = _instances.at(instance_id);
-    const auto& startup_options = instance.startup_options();
-
     if (std::count(
-            startup_options.cbegin(),
-            startup_options.cend(),
+            instance->startup_options().cbegin(),
+            instance->startup_options().cend(),
             static_cast<std::underlying_type_t<startup_option_t>>(
                 startup_option_t::INIT_NETWORK_AFTER_START))) {
-        for (const auto& network : instance.networks()) {
-            disconnect_network(instance_id, network.network_name);
+        for (const auto& network : instance->networks()) {
+            disconnect_network(instance, network.network_name);
         }
     }
 
@@ -217,40 +233,36 @@ auto deployment_t::start_instance(instance_id_t instance_id) //
     }
 
     if (std::count(
-            startup_options.cbegin(),
-            startup_options.cend(),
+            instance->startup_options().cbegin(),
+            instance->startup_options().cend(),
             static_cast<std::underlying_type_t<startup_option_t>>(
                 startup_option_t::INIT_NETWORK_AFTER_START))) {
-        for (const auto& network : _instances.at(instance_id).networks()) {
-            connect_network(instance_id, network.network_name, network.ip_address);
+        for (const auto& network : instance->networks()) {
+            connect_network(instance, network.network_name, network.ip_address);
         }
     }
 
-    return ready_instance(instance_id);
+    return ready_instance(std::move(instance));
 }
 
-auto deployment_t::ready_instance(instance_id_t instance_id) //
+auto deployment_t::ready_instance(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    const auto& instance = _instances.at(instance_id);
-    return do_ready_instance(instance);
+    return do_ready_instance(std::move(instance));
 }
 
-auto deployment_t::stop_instance(instance_id_t instance_id) //
+auto deployment_t::stop_instance(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    const auto& instance = _instances.at(instance_id);
-    const auto& startup_options = instance.startup_options();
-
     auto [res, additional_info] = do_stop_instance(instance);
 
     if (std::count(
-            startup_options.cbegin(),
-            startup_options.cend(),
+            instance->startup_options().cbegin(),
+            instance->startup_options().cend(),
             static_cast<std::underlying_type_t<startup_option_t>>(
                 startup_option_t::INIT_NETWORK_AFTER_START))) {
-        for (const auto& network : _instances.at(instance_id).networks()) {
-            const auto [net_res, net_err] = disconnect_network(instance_id, network.network_name);
+        for (const auto& network : instance->networks()) {
+            const auto [net_res, net_err] = disconnect_network(instance, network.network_name);
             if (net_res != 0) {
                 res = -1;
                 additional_info += '\n' + net_err;
@@ -261,15 +273,20 @@ auto deployment_t::stop_instance(instance_id_t instance_id) //
     return {res, additional_info};
 }
 
-auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir) const //
+auto deployment_t::export_instance(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
-    auto manifest = instance.app()->manifest();
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+
+    auto manifest = app->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
 
-    dest_dir /= instance.id().hex();
+    dest_dir /= instance->id().hex();
     auto ec = std::error_code{};
     fs::create_directories(dest_dir, ec);
     if (ec) {
@@ -281,11 +298,11 @@ auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir
         return {res, additional_info};
     }
 
-    if (is_instance_running(instance.id())) {
-        /* copy conffiles from container for running instances */
+    if (is_instance_running(instance)) {
+        /* copy config files from container for running instances */
         for (const auto& conffile : manifest->conffiles()) {
             const auto [res, additional_info] = copy_file_from_instance(
-                instance.id(),
+                instance,
                 conffile.container(),
                 dest_dir / conffile.local());
             if (res != 0) {
@@ -293,9 +310,8 @@ auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir
             }
         }
     } else {
-        const auto conf_path =
-            std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
-        /* copy conffiles from local dir for stopped instances */
+        const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
+        /* copy config files from local dir for stopped instances */
         for (const auto& conffile : manifest->conffiles()) {
             auto ec = std::error_code{};
             fs::copy(conf_path + conffile.local(), dest_dir / conffile.local(), ec);
@@ -308,37 +324,36 @@ auto deployment_t::export_instance(const instance_t& instance, fs::path dest_dir
     return do_export_instance(instance, dest_dir);
 }
 
-auto deployment_t::is_instance_runnable(instance_id_t instance_id) const //
+auto deployment_t::is_instance_runnable(std::shared_ptr<instance_t> instance) const //
     -> bool
 {
-    return has_instance(instance_id) &&
-           (instances().at(instance_id).status() == instance_status_e::Created);
+    return instance && instance->status() == instance_status_e::Created;
 }
 
-auto deployment_t::is_instance_running(instance_id_t instance_id) const //
+auto deployment_t::is_instance_running(std::shared_ptr<instance_t> instance) const //
     -> bool
 {
-    if (!has_instance(instance_id)) {
-        return false;
-    }
-    return do_is_instance_running(instances().at(instance_id));
+    return instance && do_is_instance_running(std::move(instance));
 }
 
-auto deployment_t::create_conffiles(const instance_t& instance) //
+auto deployment_t::create_config_files(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    auto manifest = instance.app()->manifest();
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+    auto manifest = app->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
 
-    const auto conf_path =
-        std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
+    const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
     if (!manifest->conffiles().empty()) {
         auto ec = std::error_code{};
         std::filesystem::create_directories(conf_path, ec);
         if (ec) {
-            return {-1, instance.id().hex()};
+            return {-1, instance->id().hex()};
         }
     }
 
@@ -348,12 +363,12 @@ auto deployment_t::create_conffiles(const instance_t& instance) //
             const auto [res, additional_info] =
                 copy_file_from_image(manifest->image_with_tag(), conffile.container(), local_path);
             if (res != 0) {
-                return {-1, instance.id().hex()};
+                return {-1, instance->id().hex()};
             }
         } else {
             auto f = std::ofstream{local_path};
             if (!f.good()) {
-                return {-1, instance.id().hex()};
+                return {-1, instance->id().hex()};
             }
         }
     }
@@ -390,31 +405,36 @@ auto deployment_t::delete_network(std::string_view network) //
 }
 
 auto deployment_t::connect_network(
-    instance_id_t instance_id,
+    std::shared_ptr<instance_t> instance,
     std::string_view network,
     std::string_view ip) //
     -> result_t
 {
-    return do_connect_network(std::move(instance_id), std::move(network), std::move(ip));
+    return do_connect_network(std::move(instance), std::move(network), std::move(ip));
 }
 
-auto deployment_t::disconnect_network(instance_id_t instance_id, std::string_view network) //
+auto deployment_t::disconnect_network(
+    std::shared_ptr<instance_t> instance, std::string_view network) //
     -> result_t
 {
-    return do_disconnect_network(std::move(instance_id), std::move(network));
+    return do_disconnect_network(std::move(instance), std::move(network));
 }
 
-auto deployment_t::create_volumes(const instance_t& instance) //
+auto deployment_t::create_volumes(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    auto manifest = instance.app()->manifest();
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+    auto manifest = app->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
 
     for (auto& volume : manifest->volumes()) {
         if (volume.type() == volume_t::VOLUME) {
-            const auto [res, additional_info] = create_volume(instance.id(), volume.host());
+            const auto [res, additional_info] = create_volume(instance, volume.host());
             if (res != 0) {
                 return {res, additional_info};
             }
@@ -423,16 +443,21 @@ auto deployment_t::create_volumes(const instance_t& instance) //
     return {0, {}};
 }
 
-auto deployment_t::create_volume(instance_id_t instance_id, std::string_view volume_name) //
+auto deployment_t::create_volume(
+    std::shared_ptr<instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
-    return do_create_volume(std::move(instance_id), std::move(volume_name));
+    return do_create_volume(std::move(instance), std::move(volume_name));
 }
 
-auto deployment_t::import_volumes(const instance_t& instance, fs::path src_dir) //
+auto deployment_t::import_volumes(std::shared_ptr<instance_t> instance, fs::path src_dir) //
     -> result_t
 {
-    auto manifest = instance.app()->manifest();
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+    auto manifest = app->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -450,7 +475,7 @@ auto deployment_t::import_volumes(const instance_t& instance, fs::path src_dir) 
 }
 
 auto deployment_t::import_volume(
-    const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
+    std::shared_ptr<instance_t> instance, std::string_view volume_name, fs::path src_dir) //
     -> result_t
 {
     auto ec = std::error_code{};
@@ -458,13 +483,17 @@ auto deployment_t::import_volume(
         return {-1, "Source directory does not exist"};
     }
 
-    return do_import_volume(instance, volume_name, src_dir);
+    return do_import_volume(std::move(instance), volume_name, src_dir);
 }
 
-auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir) const //
+auto deployment_t::export_volumes(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
-    auto manifest = instance.app()->manifest();
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+    auto manifest = app->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -480,7 +509,9 @@ auto deployment_t::export_volumes(const instance_t& instance, fs::path dest_dir)
 }
 
 auto deployment_t::export_volume(
-    const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
+    std::shared_ptr<instance_t> instance,
+    std::string_view volume_name,
+    fs::path dest_dir) const //
     -> result_t
 {
     auto ec = std::error_code{};
@@ -489,20 +520,24 @@ auto deployment_t::export_volume(
         return {-1, "Could not create export directory"};
     }
 
-    return do_export_volume(instance, std::move(volume_name), std::move(dest_dir));
+    return do_export_volume(std::move(instance), std::move(volume_name), std::move(dest_dir));
 }
 
-auto deployment_t::delete_volumes(const instance_t& instance) //
+auto deployment_t::delete_volumes(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    auto manifest = instance.app()->manifest();
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+    auto manifest = app->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
 
     for (auto& volume : manifest->volumes()) {
         if (volume.type() == volume_t::VOLUME) {
-            const auto [res, additional_info] = delete_volume(instance.id(), volume.host());
+            const auto [res, additional_info] = delete_volume(instance, volume.host());
             if (res != 0) {
                 return {res, additional_info};
             }
@@ -511,10 +546,11 @@ auto deployment_t::delete_volumes(const instance_t& instance) //
     return {0, {}};
 }
 
-auto deployment_t::delete_volume(instance_id_t instance_id, std::string_view volume_name) //
+auto deployment_t::delete_volume(
+    std::shared_ptr<instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
-    return do_delete_volume(std::move(instance_id), std::move(volume_name));
+    return do_delete_volume(std::move(instance), std::move(volume_name));
 }
 
 auto deployment_t::copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
@@ -523,17 +559,18 @@ auto deployment_t::copy_file_from_image(std::string_view image, fs::path file, f
     return do_copy_file_from_image(image, file, dest);
 }
 
-auto deployment_t::copy_file_to_instance(instance_id_t instance_id, fs::path file, fs::path dest) //
+auto deployment_t::copy_file_to_instance(
+    std::shared_ptr<instance_t> instance, fs::path file, fs::path dest) //
     -> result_t
 {
-    return do_copy_file_to_instance(instance_id, file, dest);
+    return do_copy_file_to_instance(std::move(instance), file, dest);
 }
 
 auto deployment_t::copy_file_from_instance(
-    instance_id_t instance_id, fs::path file, fs::path dest) const //
+    std::shared_ptr<instance_t> instance, fs::path file, fs::path dest) const //
     -> result_t
 {
-    return do_copy_file_from_instance(instance_id, file, dest);
+    return do_copy_file_from_instance(std::move(instance), file, dest);
 }
 
 auto deployment_t::default_network_name() const //
@@ -600,7 +637,7 @@ auto deployment_t::generate_instance_ip(
         used_ips.emplace(gateway);
     }
     for (const auto& instance : _instances) {
-        for (const auto& network : instance.second.networks()) {
+        for (const auto& network : instance->networks()) {
             if (!network.ip_address.empty()) {
                 used_ips.emplace(network.ip_address);
             }
@@ -633,7 +670,15 @@ auto deployment_t::do_load(fs::path base_path) //
     }
 
     auto instances_json = parse_json(json_file);
-    instances_json.get_to(_instances);
+    try {
+        _instances.reserve(instances_json.size());
+        for (const auto& instance : instances_json) {
+            _instances.push_back(std::make_shared<instance_t>(instance.get<instance_t>()));
+        }
+    } catch (const std::exception& ex) {
+        _instances.clear();
+        return {-1, ex.what()};
+    }
 
     return {0, {}};
 }
@@ -650,10 +695,14 @@ auto deployment_t::do_save(fs::path base_path) //
     base_path /= deployment_id().data();
     base_path += ".json.new";
 
-    auto instances_json = std::ofstream{base_path, std::ios_base::out | std::ios_base::trunc};
     try {
-        instances_json << json_t(instances());
-        instances_json.flush();
+        auto json_file = std::ofstream{base_path, std::ios_base::out | std::ios_base::trunc};
+        auto instances_json = json_t::array();
+        for (const auto& instance : _instances) {
+            instances_json.push_back(*instance);
+        }
+        json_file << instances_json;
+        json_file.flush();
 
         const auto from = base_path;
         const auto to = base_path.replace_extension();
