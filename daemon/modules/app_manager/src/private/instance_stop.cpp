@@ -21,13 +21,14 @@ namespace FLECS {
 namespace Private {
 
 auto module_app_manager_private_t::do_stop_instance(
-    const instance_id_t& instance_id,
-    const std::string& app_name,
-    const std::string& version,
-    json_t& response,
-    bool internal) //
+    const instance_id_t& /*instance_id*/,
+    const std::string& /*app_name*/,
+    const std::string& /*version*/,
+    json_t& /*response*/,
+    bool /*internal*/) //
     -> crow::status
 {
+#if 0
     // Provisional response based on request
     response["additionalInfo"] = std::string{};
     response["app"] = app_name;
@@ -72,8 +73,8 @@ auto module_app_manager_private_t::do_stop_instance(
 
     // Final step: Persist instance status into deployment
     _deployment->save();
-
-    return (res == 0) ? crow::status::OK : crow::status::INTERNAL_SERVER_ERROR;
+#endif // 0
+    return crow::status::OK;
 }
 
 } // namespace Private
