@@ -26,13 +26,13 @@
 
 namespace FLECS {
 
-auto deployment_docker_t::create_container(instance_t& instance) //
+auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    const auto container_name = std::string{"flecs-"} + instance.id().hex();
+    const auto container_name = std::string{"flecs-"} + instance->id().hex();
 
     // cleanup after possible unclean shutdown
-    if (!is_instance_running(instance.id())) {
+    if (!is_instance_running(instance)) {
         delete_container(instance);
     }
 
@@ -54,11 +54,12 @@ auto deployment_docker_t::create_container(instance_t& instance) //
     auto docker_process = process_t{};
     docker_process.arg("create");
 
-    if (!instance.has_app()) {
+    auto app = instance->app();
+    if (!app) {
         return {-1, "Instance not connected to an app"};
     }
 
-    auto manifest = instance.app()->manifest();
+    auto manifest = app->manifest();
     if (!manifest) {
         return {-1, "Could not access app manifest"};
     }
@@ -95,8 +96,8 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         docker_process.arg(device);
     }
 
-    if (!instance.networks().empty()) {
-        auto& network = instance.networks()[0];
+    if (!instance->networks().empty()) {
+        auto& network = instance->networks()[0];
 
         if (network.ip_address.empty()) {
             const auto net = query_network(network.network_name);
@@ -107,7 +108,7 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         }
 
         docker_process.arg("--network");
-        docker_process.arg(instance.networks()[0].network_name);
+        docker_process.arg(instance->networks()[0].network_name);
 
         docker_process.arg("--ip");
         docker_process.arg(network.ip_address);
@@ -136,7 +137,7 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         }
     }
 
-    for (const auto& usb_device : instance.usb_devices()) {
+    for (const auto& usb_device : instance->usb_devices()) {
         const auto busnum = sysfs::usb_busnum(usb_device.port);
         const auto devnum = sysfs::usb_devnum(usb_device.port);
         if (busnum.has_value() && devnum.has_value()) {
@@ -157,10 +158,10 @@ auto deployment_docker_t::create_container(instance_t& instance) //
     }
 
     if (std::find(
-            instance.startup_options().cbegin(),
-            instance.startup_options().cend(),
+            instance->startup_options().cbegin(),
+            instance->startup_options().cend(),
             (unsigned int)startup_option_t::INIT_NETWORK_AFTER_START) !=
-        instance.startup_options().cend()) {
+        instance->startup_options().cend()) {
         docker_process.arg("--mount");
         docker_process.arg("type=tmpfs,destination=/flecs-tmp");
 
@@ -189,7 +190,7 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         }
 
         const auto entrypoint_path = std::string{"/var/lib/flecs/instances/"} +
-                                     instance.id().hex() + std::string{"/scripts/"};
+                                     instance->id().hex() + std::string{"/scripts/"};
 
         auto ec = std::error_code{};
         fs::create_directories(entrypoint_path, ec);
@@ -220,31 +221,28 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         return {-1, "Could not create Docker container"};
     }
 
-    const auto conf_path =
-        std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
+    const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
     for (const auto& conffile : manifest->conffiles()) {
-        const auto [res, err] = copy_file_to_instance(
-            instance.id(),
-            conf_path + conffile.local(),
-            conffile.container());
+        const auto [res, err] =
+            copy_file_to_instance(instance, conf_path + conffile.local(), conffile.container());
         if (res != 0) {
             std::fprintf(
                 stderr,
                 "Warning: Could not copy file %s to %s of instance %s: %s\n",
                 conffile.local().c_str(),
                 conffile.container().c_str(),
-                instance.id().hex().c_str(),
+                instance->id().hex().c_str(),
                 err.c_str());
         }
     }
 
     if (std::find(
-            instance.startup_options().cbegin(),
-            instance.startup_options().cend(),
+            instance->startup_options().cbegin(),
+            instance->startup_options().cend(),
             std::underlying_type_t<startup_option_t>(startup_option_t::INIT_NETWORK_AFTER_START)) !=
-        instance.startup_options().cend()) {
+        instance->startup_options().cend()) {
         const auto entrypoint_path = std::string{"/var/lib/flecs/instances/"} +
-                                     instance.id().hex() + std::string{"/scripts/entrypoint.sh"};
+                                     instance->id().hex() + std::string{"/scripts/entrypoint.sh"};
 
         auto ec = std::error_code{};
 
@@ -258,15 +256,15 @@ auto deployment_docker_t::create_container(instance_t& instance) //
         }
 
         const auto [res, err_msg] =
-            copy_file_to_instance(instance.id(), entrypoint_path, "/flecs-entrypoint.sh");
+            copy_file_to_instance(instance, entrypoint_path, "/flecs-entrypoint.sh");
         if (res != 0) {
             return {-1, "Could not copy entrypoint to container"};
         }
     }
 
     // assign static ips to remaining networks
-    for (size_t i = 1; i < instance.networks().size(); ++i) {
-        auto& network = instance.networks()[i];
+    for (size_t i = 1; i < instance->networks().size(); ++i) {
+        auto& network = instance->networks()[i];
         const auto net = query_network(network.network_name);
         if (!net.has_value()) {
             return {-1, "Requested network does not exist"};
@@ -278,48 +276,38 @@ auto deployment_docker_t::create_container(instance_t& instance) //
             }
         }
         if (std::find(
-                instance.startup_options().cbegin(),
-                instance.startup_options().cend(),
+                instance->startup_options().cbegin(),
+                instance->startup_options().cend(),
                 std::underlying_type_t<startup_option_t>(
                     startup_option_t::INIT_NETWORK_AFTER_START)) ==
-            instance.startup_options().cend()) {
-            connect_network(instance.id(), net->name, network.ip_address);
+            instance->startup_options().cend()) {
+            connect_network(instance, net->name, network.ip_address);
         }
     }
 
     return {0, {}};
 }
 
-auto deployment_docker_t::delete_container(const instance_t& instance) //
+auto deployment_docker_t::delete_container(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    auto manifest = instance.app()->manifest();
-    if (!manifest) {
-        return {-1, "Could not access app manifest"};
-    }
-
-    const auto container_name = "flecs-" + instance.id().hex();
-
-    const auto conf_path =
-        std::string{"/var/lib/flecs/instances/"} + instance.id().hex() + std::string{"/conf/"};
-    if (instance.has_app()) {
-        for (const auto& conffile : manifest->conffiles()) {
-            copy_file_from_instance(
-                instance.id(),
-                conffile.container(),
-                conf_path + conffile.local());
+    auto app = instance->app();
+    if (app) {
+        auto manifest = app->manifest();
+        if (manifest) {
+            const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
+            for (const auto& conffile : manifest->conffiles()) {
+                copy_file_from_instance(
+                    instance,
+                    conffile.container(),
+                    conf_path + conffile.local());
+            }
         }
-    } else {
-        std::fprintf(
-            stderr,
-            "Warning: instance %s is not connected to an app (should be %s %s)\n",
-            instance.id().hex().data(),
-            instance.app_name().data(),
-            instance.app_version().data());
     }
+
+    const auto container_name = "flecs-" + instance->id().hex();
 
     auto docker_process = process_t{};
-
     docker_process.arg("rm");
     docker_process.arg("--force");
     docker_process.arg(container_name);
@@ -338,28 +326,20 @@ auto deployment_docker_t::do_deployment_id() const noexcept //
     return "docker";
 }
 
-auto deployment_docker_t::do_insert_instance(instance_t /*instance*/) //
+auto deployment_docker_t::do_create_instance(std::shared_ptr<instance_t> instance) //
+    -> result_t
+{
+    instance->status(instance_status_e::Created);
+    return {0, instance->id().hex()};
+}
+
+auto deployment_docker_t::do_delete_instance(std::shared_ptr<instance_t> /*instance*/) //
     -> result_t
 {
     return {0, ""};
 }
 
-auto deployment_docker_t::do_create_instance(
-    std::shared_ptr<const app_t> /*app*/, instance_t& instance) //
-    -> result_t
-{
-    instance.status(instance_status_e::Created);
-
-    return {0, instance.id().hex()};
-}
-
-auto deployment_docker_t::do_delete_instance(instance_id_t /*instance_id*/) //
-    -> result_t
-{
-    return {0, ""};
-}
-
-auto deployment_docker_t::do_start_instance(instance_t& instance) //
+auto deployment_docker_t::do_start_instance(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
     const auto [res, additional_info] = create_container(instance);
@@ -367,7 +347,7 @@ auto deployment_docker_t::do_start_instance(instance_t& instance) //
         return {res, additional_info};
     }
 
-    const auto container_name = "flecs-" + instance.id().hex();
+    const auto container_name = "flecs-" + instance->id().hex();
 
     auto docker_process = process_t{};
 
@@ -383,10 +363,10 @@ auto deployment_docker_t::do_start_instance(instance_t& instance) //
     return {0, {}};
 }
 
-auto deployment_docker_t::do_ready_instance(const instance_t& instance) //
+auto deployment_docker_t::do_ready_instance(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    const auto container_name = "flecs-" + instance.id().hex();
+    const auto container_name = "flecs-" + instance->id().hex();
 
     auto docker_process = process_t{};
 
@@ -404,10 +384,10 @@ auto deployment_docker_t::do_ready_instance(const instance_t& instance) //
     return {0, {}};
 }
 
-auto deployment_docker_t::do_stop_instance(const instance_t& instance) //
+auto deployment_docker_t::do_stop_instance(std::shared_ptr<instance_t> instance) //
     -> result_t
 {
-    const auto container_name = "flecs-" + instance.id().hex();
+    const auto container_name = "flecs-" + instance->id().hex();
 
     auto docker_process = process_t{};
 
@@ -420,7 +400,8 @@ auto deployment_docker_t::do_stop_instance(const instance_t& instance) //
     return delete_container(instance);
 }
 
-auto deployment_docker_t::do_export_instance(const instance_t& instance, fs::path dest_dir) const //
+auto deployment_docker_t::do_export_instance(
+    std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
     const auto [res, additional_info] = export_volumes(instance, dest_dir);
@@ -431,17 +412,15 @@ auto deployment_docker_t::do_export_instance(const instance_t& instance, fs::pat
     return {0, {}};
 }
 
-auto deployment_docker_t::do_is_instance_running(const instance_t& instance) const //
+auto deployment_docker_t::do_is_instance_running(std::shared_ptr<instance_t> instance) const //
     -> bool
 {
     auto docker_process = process_t{};
-
-    docker_process.spawnp(
-        "docker",
-        "ps",
-        "--quiet",
-        "--filter",
-        std::string{"name=flecs-" + instance.id().hex()});
+    docker_process.arg("ps");
+    docker_process.arg("--quiet");
+    docker_process.arg("--filter");
+    docker_process.arg("name=flecs-" + instance->id().hex());
+    docker_process.spawnp("docker");
     docker_process.wait(false, false);
     // Consider instance running if Docker call was successful and returned a container id
     if (docker_process.exit_code() == 0 && !docker_process.stdout().empty()) {
@@ -609,7 +588,7 @@ auto deployment_docker_t::do_delete_network(std::string_view network) //
 }
 
 auto deployment_docker_t::do_connect_network(
-    instance_id_t instance_id,
+    std::shared_ptr<instance_t> instance,
     std::string_view network,
     std::string_view ip) //
     -> result_t
@@ -621,7 +600,7 @@ auto deployment_docker_t::do_connect_network(
     docker_process.arg("--ip");
     docker_process.arg(std::string{ip});
     docker_process.arg(std::string{network});
-    docker_process.arg("flecs-" + instance_id.hex());
+    docker_process.arg("flecs-" + instance->id().hex());
 
     docker_process.spawnp("docker");
     docker_process.wait(false, true);
@@ -633,7 +612,7 @@ auto deployment_docker_t::do_connect_network(
 }
 
 auto deployment_docker_t::do_disconnect_network(
-    instance_id_t instance_id, std::string_view network) //
+    std::shared_ptr<instance_t> instance, std::string_view network) //
     -> result_t
 {
     auto docker_process = process_t{};
@@ -642,7 +621,7 @@ auto deployment_docker_t::do_disconnect_network(
     docker_process.arg("disconnect");
     docker_process.arg("--force");
     docker_process.arg(std::string{network});
-    docker_process.arg("flecs-" + instance_id.hex());
+    docker_process.arg("flecs-" + instance->id().hex());
 
     docker_process.spawnp("docker");
     docker_process.wait(false, true);
@@ -654,10 +633,10 @@ auto deployment_docker_t::do_disconnect_network(
 }
 
 auto deployment_docker_t::do_create_volume(
-    instance_id_t instance_id, std::string_view volume_name) //
+    std::shared_ptr<instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
-    const auto name = std::string{"flecs-"} + instance_id.hex() + "-" + std::string{volume_name};
+    const auto name = "flecs-" + instance->id().hex() + "-" + std::string{volume_name};
 
     auto docker_process = process_t{};
 
@@ -675,12 +654,12 @@ auto deployment_docker_t::do_create_volume(
 }
 
 auto deployment_docker_t::do_import_volume(
-    const instance_t& instance, std::string_view volume_name, fs::path src_dir) //
+    std::shared_ptr<instance_t> instance, std::string_view volume_name, fs::path src_dir) //
     -> result_t
 {
     using std::operator""s;
 
-    const auto name = "flecs-"s + instance.id().hex() + "-"s + volume_name.data();
+    const auto name = "flecs-"s + instance->id().hex() + "-"s + volume_name.data();
     const auto archive = src_dir.string() + "/" + name + "tar.gz";
 
     auto ec = std::error_code{};
@@ -691,8 +670,8 @@ auto deployment_docker_t::do_import_volume(
         return {-1, "Backup archive is no regular file"};
     }
 
-    delete_volume(instance.id(), volume_name);
-    create_volume(instance.id(), volume_name);
+    delete_volume(instance, volume_name);
+    create_volume(instance, volume_name);
 
     auto docker_process = process_t{};
     docker_process.arg("run");
@@ -720,11 +699,12 @@ auto deployment_docker_t::do_import_volume(
 }
 
 auto deployment_docker_t::do_export_volume(
-    const instance_t& instance, std::string_view volume_name, fs::path dest_dir) const //
+    std::shared_ptr<instance_t> instance,
+    std::string_view volume_name,
+    fs::path dest_dir) const //
     -> result_t
 {
-    using std::operator""s;
-    const auto name = "flecs-"s + instance.id().hex() + "-"s + volume_name.data();
+    const auto name = "flecs-" + instance->id().hex() + "-" + volume_name.data();
 
     auto docker_process = process_t{};
 
@@ -735,7 +715,7 @@ auto deployment_docker_t::do_export_volume(
     docker_process.arg("--volume");
     docker_process.arg(name + ":/mnt/backup:ro");
     docker_process.arg("--volume");
-    docker_process.arg(dest_dir.string() + ":"s + dest_dir.string());
+    docker_process.arg(dest_dir.string() + ":" + dest_dir.string());
     docker_process.arg("--workdir");
     docker_process.arg(dest_dir.string());
     docker_process.arg("alpine");
@@ -755,12 +735,12 @@ auto deployment_docker_t::do_export_volume(
 }
 
 auto deployment_docker_t::do_delete_volume(
-    instance_id_t instance_id, std::string_view volume_name) //
+    std::shared_ptr<instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
     auto docker_process = process_t{};
 
-    const auto name = std::string{"flecs-"} + instance_id.hex() + "-" + volume_name.data();
+    const auto name = "flecs-" + instance->id().hex() + "-" + volume_name.data();
 
     docker_process.spawnp("docker", "volume", "rm", name);
     docker_process.wait(false, true);
@@ -809,7 +789,7 @@ auto deployment_docker_t::do_copy_file_from_image(
 }
 
 auto deployment_docker_t::do_copy_file_to_instance(
-    instance_id_t instance_id,
+    std::shared_ptr<instance_t> instance,
     fs::path file,
     fs::path dest) //
     -> result_t
@@ -817,7 +797,7 @@ auto deployment_docker_t::do_copy_file_to_instance(
     auto docker_process = process_t{};
     docker_process.arg("cp");
     docker_process.arg(file.string());
-    docker_process.arg(std::string{"flecs-"} + instance_id.hex() + ":" + dest.string());
+    docker_process.arg("flecs-" + instance->id().hex() + ":" + dest.string());
     docker_process.spawnp("docker");
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0) {
@@ -826,7 +806,7 @@ auto deployment_docker_t::do_copy_file_to_instance(
             -1,
             "Could not copy "s.append(file)
                 .append(" to ")
-                .append(instance_id.hex())
+                .append(instance->id().hex())
                 .append(":")
                 .append(dest)};
     }
@@ -834,14 +814,14 @@ auto deployment_docker_t::do_copy_file_to_instance(
 }
 
 auto deployment_docker_t::do_copy_file_from_instance(
-    instance_id_t instance_id,
+    std::shared_ptr<instance_t> instance,
     fs::path file,
     fs::path dest) const //
     -> result_t
 {
     auto docker_process = process_t{};
     docker_process.arg("cp");
-    docker_process.arg(std::string{"flecs-"} + instance_id.hex() + ":" + file.string());
+    docker_process.arg("flecs-" + instance->id().hex() + ":" + file.string());
     docker_process.arg(dest.string());
     docker_process.spawnp("docker");
     docker_process.wait(false, true);
@@ -849,7 +829,7 @@ auto deployment_docker_t::do_copy_file_from_instance(
         using std::operator""s;
         return {
             -1,
-            "Could not copy "s.append(instance_id.hex())
+            "Could not copy "s.append(instance->id().hex())
                 .append(":")
                 .append(file)
                 .append(" to ")
