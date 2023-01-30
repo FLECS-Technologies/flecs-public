@@ -15,7 +15,7 @@
 
 namespace FLECS {
 namespace Private {
-
+#if 0
 namespace {
 auto build_network_adapters_json(const instance_t& instance)
 {
@@ -93,11 +93,12 @@ auto build_usb_devices_json(const instance_t& instance)
     return ret;
 }
 } // namespace
-
+#endif // 0
 auto module_app_manager_private_t::do_get_config_instance(
-    const instance_id_t& instance_id, json_t& response) //
+    const instance_id_t& /*instance_id*/, json_t& /*response*/) //
     -> crow::status
 {
+#if 0
     response["additionalInfo"] = std::string{};
     response["instanceId"] = instance_id;
 
@@ -111,16 +112,17 @@ auto module_app_manager_private_t::do_get_config_instance(
     const auto& instance = _deployment->instances().at(instance_id);
     response["networkAdapters"] = build_network_adapters_json(instance);
     response["devices"]["usb"] = build_usb_devices_json(instance);
-
+#endif // 0
     return crow::status::OK;
 }
 
 auto module_app_manager_private_t::do_put_config_instance(
-    const instance_id_t& instance_id,
-    const instance_config_t& config,
-    json_t& response) //
+    const instance_id_t& /*instance_id*/,
+    const instance_config_t& /*config*/,
+    json_t& /*response*/) //
     -> crow::status
 {
+#if 0
     response["additionalInfo"] = std::string{};
     response["instanceId"] = instance_id;
 
@@ -244,7 +246,7 @@ auto module_app_manager_private_t::do_put_config_instance(
         }
     }
     response["devices"]["usb"] = build_usb_devices_json(instance);
-
+#endif // 0
     return crow::status::OK;
 }
 

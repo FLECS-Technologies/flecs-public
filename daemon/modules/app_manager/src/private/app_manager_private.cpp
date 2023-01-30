@@ -105,6 +105,7 @@ module_app_manager_private_t::module_app_manager_private_t()
 
 module_app_manager_private_t::~module_app_manager_private_t()
 {
+#if 0
     std::fprintf(stdout, "Stopping all running app instances...\n");
     for (decltype(auto) instance : _deployment->instances()) {
         if (_deployment->is_instance_running(instance.first)) {
@@ -115,6 +116,7 @@ module_app_manager_private_t::~module_app_manager_private_t()
     }
 
     do_save();
+#endif // 0
 }
 
 auto module_app_manager_private_t::do_init() //
