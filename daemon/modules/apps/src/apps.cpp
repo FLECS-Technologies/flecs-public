@@ -110,9 +110,9 @@ auto module_apps_t::do_init() //
 });
 #endif // 0
 
-    load();
+    _impl->do_init();
 
-    return _impl->do_init();
+    load();
 }
 
 auto module_apps_t::load(fs::path base_path) //

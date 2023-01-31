@@ -153,6 +153,12 @@ auto module_apps_t::do_load(fs::path base_path) //
                 "Could not load apps from "s + base_path.string() + ": "s + ex.what();
         }
     }
+    for (auto& app : _apps) {
+        auto manifest = _manifests_api->query(app->key());
+        if (manifest) {
+            app->manifest(std::move(manifest));
+        }
+    }
 
     return {res, "json", response.dump()};
 }
