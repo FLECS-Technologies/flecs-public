@@ -77,7 +77,10 @@ bool volume_t::is_valid() const noexcept
 auto to_json(json_t& json, const volume_t& volume) //
     -> void
 {
-    json = json_t{{"container", volume._container}, {"host", volume._host}, {"type", stringify(volume._type)}};
+    json = json_t{
+        {"container", volume._container},
+        {"host", volume._host},
+        {"type", stringify(volume._type)}};
 }
 
 auto from_json(const json_t& json, volume_t& volume) //
@@ -85,7 +88,7 @@ auto from_json(const json_t& json, volume_t& volume) //
 {
     json.at("container").get_to(volume._container);
     json.at("host").get_to(volume._host);
-    volume._type = volume_type_from_string(json.at("host").get<std::string_view>());
+    volume._type = volume_type_from_string(json.at("type").get<std::string_view>());
 }
 
 } // namespace FLECS
