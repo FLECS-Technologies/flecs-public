@@ -15,6 +15,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <string_view>
 
 #include "util/json/json.h"
 
@@ -26,6 +28,8 @@ public:
     instance_id_t();
 
     instance_id_t(std::uint32_t id);
+
+    instance_id_t(std::string_view id);
 
     auto get() const noexcept //
         -> std::uint32_t;
