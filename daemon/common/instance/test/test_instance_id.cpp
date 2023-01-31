@@ -18,8 +18,25 @@
 
 TEST(instance_id, init)
 {
-    const auto uut = FLECS::instance_id_t{13};
-    ASSERT_EQ(uut.get(), 13);
+    {
+        const auto uut = FLECS::instance_id_t{13};
+        ASSERT_EQ(uut.get(), 13);
+    }
+
+    {
+        const auto uut = FLECS::instance_id_t{"01a55555"};
+        ASSERT_EQ(uut.get(), 0x01a55555);
+    }
+
+    {
+        const auto uut = FLECS::instance_id_t{"invalid"};
+        ASSERT_EQ(uut.get(), 0);
+    }
+
+    {
+        const auto uut = FLECS::instance_id_t{"1a2b3c4d5e6f"};
+        ASSERT_EQ(uut.get(), 0);
+    }
 }
 
 TEST(instance_id, regenerate)
