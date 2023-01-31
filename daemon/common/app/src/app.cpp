@@ -74,6 +74,12 @@ auto app_t::desired() const noexcept //
     return _desired;
 }
 
+auto app_t::manifest() const noexcept //
+    -> std::shared_ptr<app_manifest_t>
+{
+    return _manifest.lock();
+}
+
 auto app_t::download_token(std::string download_token) //
     -> void
 {
@@ -104,10 +110,10 @@ auto app_t::desired(app_status_e desired) //
     _desired = desired;
 }
 
-auto app_t::manifest() const noexcept //
-    -> std::shared_ptr<app_manifest_t>
+auto app_t::manifest(std::shared_ptr<app_manifest_t> manifest) //
+    -> void
 {
-    return _manifest.lock();
+    _manifest = manifest;
 }
 
 auto to_json(json_t& json, const app_t& app) //

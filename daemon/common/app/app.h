@@ -58,6 +58,8 @@ public:
         -> void;
     auto desired(app_status_e desired) //
         -> void;
+    auto manifest(std::shared_ptr<app_manifest_t> manifest) //
+        -> void;
 
 private:
     friend auto to_json(json_t& json, const app_t& app) //
