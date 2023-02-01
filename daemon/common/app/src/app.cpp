@@ -17,7 +17,13 @@
 namespace FLECS {
 
 app_t::app_t()
-    : app_t{app_key_t{}, {}}
+    : app_key_t{}
+    , _license_key{}
+    , _download_token{}
+    , _installed_size{}
+    , _status{app_status_e::Unknown}
+    , _desired{app_status_e::Unknown}
+    , _manifest{}
 {}
 
 app_t::app_t(app_key_t app_key)
