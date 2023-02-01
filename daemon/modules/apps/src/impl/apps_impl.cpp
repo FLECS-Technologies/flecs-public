@@ -236,8 +236,7 @@ auto module_apps_t::do_install_from_marketplace(
     {
         auto lock = progress.lock();
 
-        progress.desc(
-            "Installation of "s + app_key.name().data() + " (" + app_key.version().data() + ")");
+        progress.desc("Installation of "s + to_string(app_key));
         progress.num_steps(6);
 
         progress.current_step()._desc = "Downloading manifest";
@@ -461,8 +460,8 @@ auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
 {
     if (!_parent->is_installed(app_key)) {
         auto response = json_t{};
-        response["additionalInfo"] = "Cannot uninstall "s + app_key.name().data() + " (" +
-                                     app_key.version().data() + "), which is not installed";
+        response["additionalInfo"] =
+            "Cannot uninstall "s + to_string(app_key) + ", which is not installed";
         return {crow::status::BAD_REQUEST, "json", response.dump()};
     }
 
@@ -488,8 +487,8 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     if (!_parent->is_installed(app_key)) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Cannot uninstall "s + app_key.name().data() + " (" +
-                                    app_key.version().data() + "), which is not installed";
+        progress.result().message =
+            "Cannot uninstall "s + to_string(app_key) + ", which is not installed";
         return;
     }
 
@@ -564,8 +563,8 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) cons
     if (!_parent->is_installed(app_key)) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Cannot export "s + app_key.name().data() + " (" +
-                                    app_key.version().data() + "), which is not installed";
+        progress.result().message =
+            "Cannot export "s + to_string(app_key) + ", which is not installed";
         return;
     }
 
@@ -579,8 +578,7 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) cons
     if (ec) {
         auto lock = progress.lock();
         progress.result().code = -1;
-        progress.result().message = "Could not create export directory for "s +
-                                    app_key.name().data() + " (" + app_key.version().data() + ")";
+        progress.result().message = "Could not create export directory for "s + to_string(app_key);
         return;
     }
 
