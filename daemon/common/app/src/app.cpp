@@ -126,7 +126,7 @@ auto to_json(json_t& json, const app_t& app) //
     -> void
 {
     json = json_t(
-        {{"app_key", static_cast<const app_key_t&>(app)},
+        {{"appKey", static_cast<const app_key_t&>(app)},
          {"status", to_string(app._status)},
          {"desired", to_string(app._desired)},
          {"installedSize", app._installed_size}});
@@ -135,7 +135,7 @@ auto to_json(json_t& json, const app_t& app) //
 auto from_json(const json_t& json, app_t& app) //
     -> void
 {
-    app = app_t{json.at("app_key").get<app_key_t>()};
+    app = app_t{json.at("appKey").get<app_key_t>()};
     app._status = app_status_from_string(json.at("status").get<std::string_view>());
     app._desired = app_status_from_string(json.at("desired").get<std::string_view>());
     json.at("installedSize").get_to(app._installed_size);
