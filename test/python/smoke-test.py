@@ -28,6 +28,10 @@ mp_password = os.environ["MP_PASSWORD"]
 login_response = None
 
 # Test apps
+system_apps = [
+    "tech.flecs.service-mesh",
+    "tech.flecs.mqtt-bridge"
+]
 user_apps = [
     "org.mosquitto.broker",
     "io.anyviz.cloudadapter",
@@ -98,13 +102,13 @@ def count_tickets()-> int:
     ticket_count = len (unused_tickets)
     return ticket_count
 
-def get_license()-> str:
+def get_license(offset=0)-> str:
     """"
     Get a license
     """
 
     tickets = get_tickets()
-    license = tickets[0]["license_key"]
+    license = tickets[offset]["license_key"]
     return license
 
 def get_jobs():
@@ -126,6 +130,24 @@ def get_ongoing_job_ids():
     ids = [i for i in range(len(jobs)) if jobs[i]["status"] not in ("cancelled", "successful", "failed")]
     return ids
 
+def wait_til_job_finished(jobId: int) -> dict:
+    """
+    Wait until the job with the given ID has finished and return its result
+    """
+
+    ongoing_job_sleep_time = 1
+
+    while True:
+        job_url = flecs_core_url + "/v2/jobs/" + str(jobId)
+        resp = requests.get(job_url)
+        res = resp.json()[0]
+        if res["status"] not in ("cancelled", "successful", "failed"): # job is still running
+            time.sleep(ongoing_job_sleep_time)
+            continue
+        else:
+            break
+
+    return res["result"]
 
 ###
 ### Test: Check version
@@ -154,8 +176,7 @@ def test_version():
 
     actual_version = version()
     assert expected_version == actual_version
-    # TODO actual version contains git hash?
-
+    # TODO actual version contains dash
 
 ###
 ### Test: Rate app
@@ -194,6 +215,50 @@ def test_rate_app():
     assert True == resp.ok
 
 ###
+### Test: Instances
+###
+
+def get_instances() -> list:
+    """
+    Get instances from FLECS core
+    """
+
+    instance_url = flecs_core_url + "/v2/instances"
+    resp = requests.get(instance_url)
+    instance_list = resp.json()
+    return instance_list
+
+def create_instance(appname: str, appversion: str) -> str:
+    """
+    Create a new instance of the given app name and version
+    """
+
+    instance_url = flecs_core_url + "/v2/instances/create"
+
+    header = {"content-type":"application/json"}
+
+    payload = {
+        "appKey": {
+            "name": appname,
+            "version": appversion
+        },
+        "instanceName": appname + "0"
+    }
+
+    resp = requests.post(instance_url, headers=header, data=format_json_data(payload))
+    return resp
+
+def start_instance(instanceId:str) -> str:
+    """
+    Start the instance given by instanceId
+    """
+
+    start_url = flecs_core_url + "/v2/instances/" + instanceId + "/start"
+    resp = requests.post(start_url)
+
+    return resp
+
+###
 ### Test: Installed apps are correct
 ###
 
@@ -221,8 +286,11 @@ def test_get_apps():
     # get list of installed apps
     app_list = get_apps()
 
+    # get instances
+    instance_list = get_instances()
+
     # expected installed apps:
-    expected_installed_apps = ("tech.flecs.service-mesh", "tech.flecs.mqtt-bridge")
+    expected_installed_apps = system_apps
 
     # assert correct length
     assert len(expected_installed_apps) == len(app_list)
@@ -230,17 +298,17 @@ def test_get_apps():
     # expected apps are installed and a single instance is running
     for app_name in expected_installed_apps:
         # assert that app-name occurs in app_list exactly once
-        app_matches = list(app_entry["app"] == app_name for app_entry in app_list)
-        assert 1 == app_matches.count(True)
+        app_matches_idx = list(idx for idx in range(len(app_list)) if app_list[idx]["appKey"]["name"] == app_name)
+        assert 1 == len(app_matches_idx)
 
         # assert that app is installed
-        app_index = app_matches.index(True)
+        app_index = app_matches_idx[0]
         assert app_list[app_index]["status"] == "installed"
 
         # assert that single instance is running
-        app_instances = app_list[app_index]["instances"]
-        assert 1 == len(app_instances)
-        assert "running" == app_instances[0]["status"]
+        app_instance_idx = list(idx for idx in range(len(instance_list)) if instance_list[idx]["appKey"]["name"] == app_name)
+        assert 1 == len(app_instance_idx)
+        assert "running" == instance_list[app_instance_idx[0]]["status"]
 
     # TODO: system apps not listed in v2 api response yet -> test fails
 
@@ -277,7 +345,7 @@ def test_login():
 ### Test: App installation works
 ###
 
-def install_app(user_app: str, user_app_version: str):
+def install_app(user_app: str, user_app_version: str, offset):
     """
     Install user_app_version of user_app.
     """
@@ -289,7 +357,7 @@ def install_app(user_app: str, user_app_version: str):
     assert license_count > 0
 
     # get a ticket
-    license_key = get_license()
+    license_key = get_license(offset)
 
     header = {"content-type": "application/json"}
     payload = {
@@ -314,7 +382,7 @@ def test_install_apps():
 
     # install apps
     for i in range(app_count):
-        install_app(user_apps[i], user_apps_versions[i])
+        install_app(user_apps[i], user_apps_versions[i], i)
 
     # wait for jobs to finish
     ongoing_job_sleep_time = 1
@@ -326,14 +394,38 @@ def test_install_apps():
     # check if apps are installed
     installed_apps = get_apps()
     for user_app in user_apps:
-        assert user_app in list(installed_app["app_key"]["name"] for installed_app in installed_apps)
+        assert user_app in list(installed_app["appKey"]["name"] for installed_app in installed_apps)
         # installed_apps is a list of dicts, we need to look at the "app" entry of each dict
 
     # check if correct amount of tickets were consumed
     ticked_count_post = count_tickets()
     tickets_consumed = ticked_count_pre - ticked_count_post
     assert len(user_apps) == tickets_consumed
-    # TODO sometimes no tickets are consumed
+
+###
+### Test: Instances of installed apps can be created
+###
+
+def test_start_instances():
+    """
+    TC06: Start instances of newly installed apps
+    """
+
+    for i in range(len(user_apps)):
+        appname = user_apps[i]
+        appversion = user_apps_versions[i]
+        resp = create_instance(appname, appversion)
+        assert True == resp.ok
+        create_jobId = resp.json()["jobId"]
+        # wait_til_jobs_finished()
+        res = wait_til_job_finished(create_jobId)
+        if (res["code"] == 0):
+            instanceId = res["message"]
+            resp = start_instance(instanceId)
+            assert True == resp.ok
+            if resp.json():
+                start_jobId = resp.json()["jobId"]
+                wait_til_job_finished(start_jobId)
 
 ###
 ### Test: installed apps can be opened
