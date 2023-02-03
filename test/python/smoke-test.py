@@ -165,7 +165,7 @@ def version() -> str:
 
 def test_version():
     """
-    Smoke Test 01: Check version of FLECS core.
+    TC01: Check version of FLECS core.
         Go to the system page and check if the desired version is installed.
     """
 
@@ -206,7 +206,7 @@ def rate_app(app_id: int, app_rating:int) -> dict:
 
 def test_rate_app():
     """
-    Smoke Test 02: Rate an app in the FLECS marketplace.
+    TC04: Rate an app in the FLECS marketplace.
         Go to the marketplace page and rate an app.
         Switch to mp-dev admin backend and check if the rating is available for approval.
     """
@@ -274,7 +274,7 @@ def get_apps() -> list:
 
 def test_get_apps():
     """
-    TC01: Read app list of freshly installed FLECS.
+    TC02: Read app list of freshly installed FLECS.
     Expect:
       - length 2
       - app "tech.flecs.service-mesh" is "INSTALLED"
@@ -334,7 +334,7 @@ def login() -> dict:
 
 def test_login():
     """
-    TC02: Pass login data to FLECS daemon.
+    TC03: Pass login data to FLECS daemon.
     Expect:
         - "OK" response
     """
@@ -370,7 +370,7 @@ def install_app(user_app: str, user_app_version: str, offset):
 
 def test_install_apps():
     """
-    TC03: App installation
+    TC05: App installation
     """
 
     # count tickets beforehand
@@ -433,7 +433,7 @@ def test_start_instances():
 
 def open_app(app: str):
     """"
-    Get
+    Send GET request to port corresponding to app
     """
 
     # TODO: ports need to be forwarded from inside docker image to host. Currently hardcoded in scripts/build-image.sh
@@ -446,7 +446,7 @@ def open_app(app: str):
 
 def test_open_apps():
     """
-    Test if opening the apps in user_apps_ports works
+    TC07: Test if opening the apps in user_apps_ports works
     """
 
     for app in user_apps_ports:
@@ -469,7 +469,7 @@ def uninstall_app(user_app: str, user_app_version: str):
 
 def test_uninstall_app():
     """
-    Uninstall user_apps
+    TC12: Uninstall user_apps
     """
 
     # make sure app and version lists have same size
