@@ -16,6 +16,7 @@
 
 #include "common/instance/instance_id.h"
 #include "module_base/module.h"
+#include "util/fs/fs.h"
 
 namespace FLECS {
 
@@ -79,7 +80,7 @@ public:
     auto update(instance_id_t instance_id, std::string from, std::string to) //
         -> crow::response;
 
-    auto archive(instance_id_t instance_id) const //
+    auto export_to(instance_id_t instance_id, fs::path dest_dir) const //
         -> crow::response;
 
 protected:

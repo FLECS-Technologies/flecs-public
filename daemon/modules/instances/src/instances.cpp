@@ -89,6 +89,11 @@ auto module_instances_t::do_init() //
         .methods("GET"_method)(
             [this](const std::string& instance_id) { return logs(instance_id_t{instance_id}); });
 
+    FLECS_V2_ROUTE("/instances/<string>/export")
+        .methods("POST"_method)([this](const std::string& instance_id) {
+            return export_to(instance_id_t{instance_id}, "/var/lib/flecs/exports/");
+        });
+
     return _impl->do_init();
 }
 
@@ -192,10 +197,10 @@ auto module_instances_t::update(instance_id_t instance_id, std::string from, std
     return _impl->queue_update(std::move(instance_id), std::move(from), std::move(to));
 }
 
-auto module_instances_t::archive(instance_id_t instance_id) const //
+auto module_instances_t::export_to(instance_id_t instance_id, fs::path dest_dir) const //
     -> crow::response
 {
-    return _impl->queue_export(std::move(instance_id));
+    return _impl->queue_export_to(std::move(instance_id), std::move(dest_dir));
 }
 
 } // namespace FLECS
