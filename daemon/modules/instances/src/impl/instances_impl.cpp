@@ -124,12 +124,12 @@ auto module_instances_t::do_init() //
     _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
 }
 
-auto module_instances_t::do_list(const app_key_t& /*app_key*/) const //
+auto module_instances_t::do_list(const app_key_t& app_key) const //
     -> crow::response
 {
     auto response = json_t::array();
 
-    for (const auto& instance_id : _deployment->instance_ids()) {
+    for (const auto& instance_id : _deployment->instance_ids(app_key, deployment_t::MatchVersion)) {
         auto json = json_t::object();
 
         auto instance = _deployment->query_instance(instance_id);
