@@ -34,13 +34,6 @@ docker buildx build \
 
 
 docker run \
-    -p 8951:8951 \
-    -p 8888:8888 \
-    -p 3000:3000 \
-    -p 8086:8086 \
-    --name flecs-test -it --rm --privileged flecs/flecs-test:latest
-
-    # core
-    # AnyViz
-    # Grafana
-    # InfluxDB
+    --name flecs-test -it --rm --privileged \
+    --env-file ./env.test \
+    flecs/flecs-test:latest

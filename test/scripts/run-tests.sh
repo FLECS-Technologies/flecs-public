@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DIRNAME=$(dirname $(readlink -f ${0}))/..
 REPORTNAME="test-report.html"
 
-pytest ${DIRNAME}/python/smoke-test.py --html=${DIRNAME}/${REPORTNAME}
-xdg-open test-report.html 2>&1 &
+pytest smoke-test.py --html=${REPORTNAME}
