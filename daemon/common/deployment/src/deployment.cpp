@@ -68,16 +68,10 @@ auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e versi
 {
     auto ids = std::vector<instance_id_t>{};
     for (const auto& instance : _instances) {
-        const auto app = instance->app();
-        if (!app && app_key.name().empty()) {
-            ids.emplace_back(instance->id());
-            continue;
-        }
-
-        const auto apps_match = app_key.name().empty() || (app_key.name() == app->key().name());
+        const auto apps_match = app_key.name().empty() || (app_key.name() == instance->app_name());
         const auto versions_match = app_key.name().empty() || app_key.version().empty() ||
                                     version_filter == AllVersions ||
-                                    (app_key.version() == app->key().version());
+                                    (app_key.version() == instance->app_version());
         if (apps_match && versions_match) {
             ids.emplace_back(instance->id());
         }
