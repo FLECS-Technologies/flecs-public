@@ -87,10 +87,10 @@ private:
         instance_id_t instance_id, std::string from, std::string to, job_progress_t& progress) //
         -> void;
 
-    auto queue_export(instance_id_t instance_id) //
+    auto queue_export_to(instance_id_t instance_id, fs::path dest_dir) //
         -> crow::response;
 
-    auto do_export(instance_id_t instance_id, job_progress_t& progress) //
+    auto do_export_to(instance_id_t instance_id, fs::path dest_dir, job_progress_t& progress) //
         -> void;
 
     FLECS::module_instances_t* _parent;

@@ -615,15 +615,43 @@ auto module_instances_t::do_update(
     -> void
 {}
 
-auto module_instances_t::queue_export(instance_id_t /*instance_id*/) //
+auto module_instances_t::queue_export_to(instance_id_t instance_id, fs::path dest_dir) //
     -> crow::response
 {
-    return {crow::status::ACCEPTED, "json", {}};
+    auto job = job_t{};
+    job.callable = std::bind(
+        &module_instances_t::do_export_to,
+        this,
+        std::move(instance_id),
+        std::move(dest_dir),
+        std::placeholders::_1);
+
+    auto job_id = _jobs_api->append(std::move(job));
+
+    auto response = json_t::object();
+    response["jobId"] = std::to_string(job_id);
+    return {crow::status::ACCEPTED, "json", response.dump()};
 }
 
-auto module_instances_t::do_export(instance_id_t /*instance_id*/, job_progress_t& /*progress*/) //
+auto module_instances_t::do_export_to(
+    instance_id_t instance_id, fs::path dest_dir, job_progress_t& progress) //
     -> void
-{}
+{
+    // Step 1: Verify instance does actually exist, is fully created and valid
+    auto instance = _deployment->query_instance(instance_id);
+    if (!instance) {
+        auto lock = progress.lock();
+        progress.result().code = -1;
+        progress.result().message = "Instance does not exist";
+        return;
+    }
+
+    const auto [res, additional_info] = _deployment->export_instance(instance, std::move(dest_dir));
+
+    auto lock = progress.lock();
+    progress.result().code = std::move(res);
+    progress.result().message = std::move(additional_info);
+}
 
 } // namespace impl
 } // namespace FLECS
