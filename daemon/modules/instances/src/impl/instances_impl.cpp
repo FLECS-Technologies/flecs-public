@@ -177,6 +177,13 @@ auto module_instances_t::do_create(
     app_key_t app_key, std::string instance_name, job_progress_t& progress) //
     -> void
 {
+    {
+        auto lock = progress.lock();
+        progress.desc("Creating new instance of " + to_string(app_key));
+        progress.num_steps(1);
+        progress.current_step()._num = 1;
+    }
+
     // Step 1: Ensure app is actually installed
     auto app = _apps_api->query(app_key);
     if (!app || (app->status() != app_status_e::Installed)) {
@@ -195,6 +202,11 @@ auto module_instances_t::do_create(
         progress.result().message =
             "Could not create instance of " + to_string(app_key) + ": manifest error";
         return;
+    }
+
+    {
+        auto lock = progress.lock();
+        progress.desc("Creating new instance of " + manifest->title());
     }
 
     // Step 3: Ensure there is only one instance of single-instance apps
@@ -217,16 +229,14 @@ auto module_instances_t::do_create(
     // Final step: Persist creation into db
     _deployment->save();
 
+    auto lock = progress.lock();
     if (res != 0) {
-        auto lock = progress.lock();
         progress.result().code = -1;
         progress.result().message = "Could not create instance of " + to_string(app_key);
-        return;
+    } else {
+        progress.result().code = 0;
+        progress.result().message = instance_id;
     }
-
-    auto lock = progress.lock();
-    progress.result().code = 0;
-    progress.result().message = instance_id;
 }
 
 auto module_instances_t::queue_start(instance_id_t instance_id) //
@@ -249,6 +259,13 @@ auto module_instances_t::queue_start(instance_id_t instance_id) //
 auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& progress) //
     -> void
 {
+    {
+        auto lock = progress.lock();
+        progress.desc("Starting instance " + instance_id.hex());
+        progress.num_steps(1);
+        progress.current_step()._num = 1;
+    }
+
     auto instance = _deployment->query_instance(instance_id);
     // Step 1: Verify instance does actually exist and is fully created
     if (!_deployment->is_instance_runnable(instance)) {
@@ -299,6 +316,13 @@ auto module_instances_t::queue_stop(instance_id_t instance_id) //
 auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& progress) //
     -> void
 {
+    {
+        auto lock = progress.lock();
+        progress.desc("Stopping instance " + instance_id.hex());
+        progress.num_steps(1);
+        progress.current_step()._num = 1;
+    }
+
     // get instance details from database
     auto instance = _deployment->query_instance(instance_id);
 
@@ -350,6 +374,12 @@ auto module_instances_t::do_remove(
     job_progress_t& progress) //
     -> void
 {
+    {
+        auto lock = progress.lock();
+        progress.desc("Removing instance " + instance_id.hex());
+        progress.num_steps(3);
+    }
+
     // Step 1: Verify instance does actually exist
     auto instance = _deployment->query_instance(instance_id);
     if (!instance) {
@@ -359,14 +389,34 @@ auto module_instances_t::do_remove(
     }
 
     // Step 2: Attempt to stop instance
+    {
+        auto lock = progress.lock();
+        progress.current_step()._num++;
+        progress.current_step()._desc = "Stopping instance";
+    }
     _deployment->stop_instance(instance);
 
     // Step 3: Remove volumes of instance
+    {
+        auto lock = progress.lock();
+        progress.current_step()._num++;
+        progress.current_step()._desc = "Removing volumes";
+    }
     _deployment->delete_volumes(instance);
 
     /// @todo: move functionality to deployment
-    _deployment->delete_instance(instance);
+    {
+        auto lock = progress.lock();
+        progress.current_step()._num++;
+        progress.current_step()._desc = "Removing instance";
+    }
+
+    auto [res, message] = _deployment->delete_instance(instance);
     _deployment->save();
+
+    auto lock = progress.lock();
+    progress.result().code = std::move(res);
+    progress.result().message = std::move(message);
 }
 
 auto module_instances_t::do_get_config(instance_id_t instance_id) const //
@@ -637,6 +687,13 @@ auto module_instances_t::do_export_to(
     instance_id_t instance_id, fs::path dest_dir, job_progress_t& progress) //
     -> void
 {
+    {
+        auto lock = progress.lock();
+        progress.desc("Exporting instance " + instance_id.hex() + " to " + dest_dir.string());
+        progress.num_steps(1);
+        progress.current_step()._num = 1;
+    }
+
     // Step 1: Verify instance does actually exist, is fully created and valid
     auto instance = _deployment->query_instance(instance_id);
     if (!instance) {
