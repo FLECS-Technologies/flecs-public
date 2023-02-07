@@ -145,8 +145,8 @@ auto module_instances_t::do_list(const app_key_t& app_key) const //
                 json["status"] = to_string(instance->status());
             }
         } else {
-            json["appKey"] = app_key_t{};
-            json["status"] = instance_status_e::Orphaned;
+            json["appKey"] = app_key_t{instance->app_name().data(), instance->app_version().data()};
+            json["status"] = to_string(instance_status_e::Orphaned);
         }
         json["desired"] = to_string(instance->desired());
         response.push_back(std::move(json));
