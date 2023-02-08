@@ -424,6 +424,22 @@ auto module_apps_t::do_install_impl(
                 progress.current_step()._num++;
             }
 
+            auto image_size = std::int32_t{};
+            auto docker_img_size = process_t{};
+            docker_img_size.spawnp("docker", "inspect", "-f", "{{ .Size }}", manifest->image_with_tag());
+            docker_img_size.wait(false, true);
+
+                if (docker_img_size.exit_code() != 0) {
+                    auto lock = progress.lock();
+                    progress.result().code = -1;
+                    progress.result().message = docker_img_size.stderr();
+                    _parent->save();
+                    return;
+                }
+                
+            image_size = stoi(docker_img_size.stdout());
+            app->installed_size(image_size);
+            
             // Step 5: Expire download token
             const auto args = split(app->download_token(), ';');
             if (args.size() == 3) {
