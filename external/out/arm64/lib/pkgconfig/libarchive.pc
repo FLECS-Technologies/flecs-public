@@ -9,5 +9,5 @@ Version: 3.6.2
 Cflags: -I${includedir}
 Cflags.private: -DLIBARCHIVE_STATIC
 Libs: -L${libdir} -larchive
-Libs.private:  -lexpat
+Libs.private:  -lz
 Requires.private: 
