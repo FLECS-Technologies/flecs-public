@@ -27,6 +27,7 @@ set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.10.1)
 set(SQLITE3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.40.0)
 set(YAMLCPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set(ZENOH_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.6.0-beta.1)
+set(ZLIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.13)
 
 # custom build rules
 # cpr
@@ -108,6 +109,15 @@ add_custom_target(
     FLECS.external.yaml-cpp.build
     WORKING_DIRECTORY ${YAMLCPP_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DYAML_CPP_BUILD_TESTS=NO
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
+)
+
+# zlib
+add_custom_target(
+    external.zlib.build
+    WORKING_DIRECTORY ${ZLIB_DIR}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
     COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
@@ -207,3 +217,8 @@ add_library(FLECS.external.zenoh-c SHARED IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_LOCATION ${ZENOH_C_DIR}/out/${ARCH}/lib/libzenohc.so)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_NO_SONAME TRUE)
 set_property(TARGET FLECS.external.zenoh-c PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZENOH_C_DIR}/out/${ARCH}/include)
+
+# zlib
+add_library(external.zlib STATIC IMPORTED GLOBAL)
+set_property(TARGET external.zlib PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libz.a)
+set_property(TARGET external.zlib PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
