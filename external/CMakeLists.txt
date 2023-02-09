@@ -61,7 +61,7 @@ add_custom_target(
 add_custom_target(
     FLECS.external.libarchive.build
     WORKING_DIRECTORY ${LIBARCHIVE_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DENABLE_OPENSSL=OFF -DENABLE_LIBXML2=OFF -DENABLE_EXPAT=OFF
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
     COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
@@ -179,6 +179,9 @@ target_include_directories(FLECS.external.json INTERFACE
 add_library(FLECS.external.libarchive STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.libarchive PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libarchive.a)
 target_include_directories(FLECS.external.libarchive INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
+target_link_libraries(FLECS.external.libarchive INTERFACE
+    external.zlib
+)
 
 # libmosquitto
 add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)
