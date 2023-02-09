@@ -1,0 +1,13 @@
+prefix=/home/alex/git/flecs-public/external/out/armhf
+exec_prefix=/home/alex/git/flecs-public/external/out/armhf
+libdir=/home/alex/git/flecs-public/external/out/armhf/lib
+sharedlibdir=/home/alex/git/flecs-public/external/out/armhf/lib
+includedir=/home/alex/git/flecs-public/external/out/armhf/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.13
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}
