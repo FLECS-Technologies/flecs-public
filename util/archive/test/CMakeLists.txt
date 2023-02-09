@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(archive)
-add_subdirectory(container)
-add_subdirectory(cxx20)
-add_subdirectory(datetime)
-add_subdirectory(network)
-add_subdirectory(process)
-add_subdirectory(random)
-add_subdirectory(signal_handler)
-add_subdirectory(string)
-add_subdirectory(sqlite3_ext)
-add_subdirectory(sysfs)
-add_subdirectory(sysinfo)
-add_subdirectory(udev)
-add_subdirectory(usb)
+if(BUILD_TESTING)
+    project(util.archive.test)
+
+    add_executable(${PROJECT_NAME}
+        test_archive.cpp
+    )
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_util_archive)
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        external.gtest
+        external.gtest_main
+        util.archive
+    )
+
+    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+endif()
