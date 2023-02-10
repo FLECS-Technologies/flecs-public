@@ -22,7 +22,7 @@ set(GTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/googletest-1.13.0)
 set(JSON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/json-3.11.2)
 set(LIBARCHIVE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libarchive-3.6.2)
 set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.15)
-set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-3.0.7)
+set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-3.0.8)
 set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.10.1)
 set(SQLITE3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.40.0)
 set(YAMLCPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
@@ -77,7 +77,7 @@ add_custom_target(
 
 # OpenSSL
 add_custom_target(
-    FLECS.external.openssl.build
+    external.openssl.build
     WORKING_DIRECTORY ${OPENSSL_DIR}
     COMMAND flecs-configure/Configure.${ARCH}.sh ${OPENSSL_DIR} --cross-compile-prefix=${MACHINE}- --prefix=${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH} no-shared
     COMMAND make all
@@ -130,8 +130,8 @@ add_custom_target(
 add_library(external.cpr.curl STATIC IMPORTED GLOBAL)
 set_property(TARGET external.cpr.curl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libcurl.a)
 target_link_libraries(external.cpr.curl INTERFACE
-    FLECS.external.ssl
-    FLECS.external.crypto
+    external.ssl
+    external.crypto
 )
 
 add_library(external.cpr.zlib STATIC IMPORTED GLOBAL)
@@ -188,18 +188,18 @@ add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)
 set_property(TARGET FLECS.external.mosquitto PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libmosquitto_static.a)
 set_property(TARGET FLECS.external.mosquitto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 target_link_libraries(FLECS.external.mosquitto INTERFACE
-    FLECS.external.ssl
-    FLECS.external.crypto
+    external.ssl
+    external.crypto
 )
 
 # OpenSSL
-add_library(FLECS.external.crypto STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.crypto PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libcrypto.a)
-set_property(TARGET FLECS.external.crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
+add_library(external.crypto STATIC IMPORTED GLOBAL)
+set_property(TARGET external.crypto PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libcrypto.a)
+set_property(TARGET external.crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
-add_library(FLECS.external.ssl STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.ssl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libssl.a)
-set_property(TARGET FLECS.external.ssl PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
+add_library(external.ssl STATIC IMPORTED GLOBAL)
+set_property(TARGET external.ssl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libssl.a)
+set_property(TARGET external.ssl PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # pybind11
 add_library(FLECS.external.pybind11 INTERFACE)
