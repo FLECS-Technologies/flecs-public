@@ -26,8 +26,8 @@ if(BUILD_TESTING)
     target_link_libraries(FLECS.daemon.deployment.test PRIVATE
         FLECS.daemon.common.deployment
         FLECS.external.gmock
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.external.json
         FLECS.external.yaml-cpp
     )

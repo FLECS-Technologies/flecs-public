@@ -22,8 +22,8 @@ if(BUILD_TESTING)
     set_target_properties(FLECS.daemon.app.startup_option.test PROPERTIES OUTPUT_NAME test_daemon_app_startup_option)
 
     target_link_libraries(FLECS.daemon.app.startup_option.test PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.daemon.common.app.manifest.startup_option
     )
 

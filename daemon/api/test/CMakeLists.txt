@@ -24,8 +24,8 @@ if(BUILD_TESTING)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
         external.cpr
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.external.json
         FLECS.daemon.api
         FLECS.util.signal_handler

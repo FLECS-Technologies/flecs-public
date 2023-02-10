@@ -25,8 +25,8 @@ if(BUILD_TESTING)
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_util_string_utils)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
     )
 
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

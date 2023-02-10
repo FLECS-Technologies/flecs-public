@@ -22,8 +22,8 @@ if(BUILD_TESTING)
     set_target_properties(FLECS.util.cxx20.test PROPERTIES OUTPUT_NAME test_util_string_utils)
 
     target_link_libraries(FLECS.util.cxx20.test PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
     )
 
     add_test(NAME FLECS.util.cxx20.test COMMAND FLECS.util.cxx20.test)

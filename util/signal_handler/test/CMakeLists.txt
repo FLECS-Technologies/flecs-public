@@ -22,8 +22,8 @@ if(BUILD_TESTING)
     set_target_properties(FLECS.util.signal_handler.test PROPERTIES OUTPUT_NAME test_signal_handler)
 
     target_link_libraries(FLECS.util.signal_handler.test PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.util.signal_handler
     )
 

@@ -22,8 +22,8 @@ if (BUILD_TESTING)
     set_target_properties(FLECS.daemon.modules.system.test PROPERTIES OUTPUT_NAME test_daemon_modules_system)
 
     target_link_libraries(FLECS.daemon.modules.system.test PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.daemon.modules.factory
         FLECS.daemon.modules.module_base
         FLECS.daemon.modules.system

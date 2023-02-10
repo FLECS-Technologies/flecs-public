@@ -23,8 +23,8 @@ if(BUILD_TESTING)
 
     target_link_libraries(FLECS.daemon.modules.marketplace.test PRIVATE
         external.cpr
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.daemon.modules.factory
         FLECS.daemon.modules.module_base
         FLECS.daemon.modules.marketplace

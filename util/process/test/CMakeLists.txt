@@ -22,8 +22,8 @@ if (BUILD_TESTING)
     set_target_properties(FLECS.test.util.process PROPERTIES OUTPUT_NAME test_util_process)
 
     target_link_libraries(FLECS.test.util.process PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.util.process
     )
 

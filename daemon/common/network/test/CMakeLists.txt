@@ -24,8 +24,8 @@ if(BUILD_TESTING)
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_network)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         daemon.common.network
     )
 
