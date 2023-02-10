@@ -22,8 +22,8 @@ if (BUILD_TESTING)
     set_target_properties(FLECS.daemon.app.env_var.test PROPERTIES OUTPUT_NAME test_env_var)
 
     target_link_libraries(FLECS.daemon.app.env_var.test PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.daemon.common.app.manifest.env_var
     )
 

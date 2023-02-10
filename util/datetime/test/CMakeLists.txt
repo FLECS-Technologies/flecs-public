@@ -22,8 +22,8 @@ if (BUILD_TESTING)
     set_target_properties(FLECS.util.datetime.test PROPERTIES OUTPUT_NAME test_util_datetime)
 
     target_link_libraries(FLECS.util.datetime.test PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.util.datetime
     )
 

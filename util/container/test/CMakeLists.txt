@@ -22,8 +22,8 @@ if(BUILD_TESTING)
     set_target_properties(FLECS.util.container.test PROPERTIES OUTPUT_NAME test_util_container)
 
     target_link_libraries(FLECS.util.container.test PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
     )
 
     add_test(NAME FLECS.util.container.test COMMAND FLECS.util.container.test)

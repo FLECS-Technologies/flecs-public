@@ -25,8 +25,8 @@ if (BUILD_TESTING)
 
     target_link_libraries(FLECS.daemon.db.test PRIVATE
         FLECS.daemon.common
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.util.sqlite3_ext
     )
 

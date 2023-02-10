@@ -22,8 +22,8 @@ if (BUILD_TESTING)
     set_target_properties(FLECS.daemon.app.port_range.test PROPERTIES OUTPUT_NAME test_daemon_app_port_range)
 
     target_link_libraries(FLECS.daemon.app.port_range.test PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.daemon.common.app.manifest.port_range
     )
 

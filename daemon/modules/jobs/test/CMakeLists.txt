@@ -24,8 +24,8 @@ if(BUILD_TESTING)
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_jobs)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        FLECS.external.gtest
-        FLECS.external.gtest_main
+        external.gtest
+        external.gtest_main
         FLECS.daemon.modules.jobs
         FLECS.util.signal_handler
     )
