@@ -67,7 +67,7 @@ Copyright:  1995-1998 Eric A. Young, Tim J. Hudson, 1998-2022 The OpenSSL Projec
 
 ================================================================================
 Project:    pybind11
-Version:    v2.10.1
+Version:    v2.10.3
 License:    BSD-style license
 URL:        https://github.com/pybind/pybind11
 Copyright:  Wenzel Jakob
