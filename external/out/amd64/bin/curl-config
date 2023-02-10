@@ -161,7 +161,7 @@ while test $# -gt 0; do
            CURLLIBDIR=""
         fi
         if test "Xno" = "Xno"; then
-          echo ${CURLLIBDIR}-lcurl  -lgcc -lgcc_s -lc -lgcc -lgcc_s -ldl -lpthread /home/alex/git/flecs-public/external/out/amd64/lib/libssl.a /home/alex/git/flecs-public/external/out/amd64/lib/libcrypto.a /home/alex/git/flecs-public/external/out/amd64/lib/libz.a
+          echo ${CURLLIBDIR}-lcurl  -lgcc -lgcc_s -lc -lgcc -lgcc_s -ldl -lpthread /home/alex/git/flecs-public/external/out/amd64/lib/libssl.a /home/alex/git/flecs-public/external/out/amd64/lib/libcrypto.a /home/alex/git/flecs-public/external/out/amd64/lib/libz.so
         else
           echo ${CURLLIBDIR}-lcurl
         fi
@@ -172,7 +172,7 @@ while test $# -gt 0; do
 
     --static-libs)
         if test "Xyes" != "Xno" ; then
-          echo /home/alex/git/flecs-public/external/out/amd64/lib/libcurl.a   -lgcc -lgcc_s -lc -lgcc -lgcc_s -ldl -lpthread /home/alex/git/flecs-public/external/out/amd64/lib/libssl.a /home/alex/git/flecs-public/external/out/amd64/lib/libcrypto.a /home/alex/git/flecs-public/external/out/amd64/lib/libz.a
+          echo /home/alex/git/flecs-public/external/out/amd64/lib/libcurl.a   -lgcc -lgcc_s -lc -lgcc -lgcc_s -ldl -lpthread /home/alex/git/flecs-public/external/out/amd64/lib/libssl.a /home/alex/git/flecs-public/external/out/amd64/lib/libcrypto.a /home/alex/git/flecs-public/external/out/amd64/lib/libz.so
         else
           echo "curl was built with static libraries disabled" >&2
           exit 1

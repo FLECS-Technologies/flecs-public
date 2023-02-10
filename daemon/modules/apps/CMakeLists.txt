@@ -19,5 +19,5 @@ flecs_add_module(
     ADDITIONAL_HEADERS
     impl/apps_impl.h
     LIBS_PUBLIC FLECS.daemon.common
-    LIBS_PRIVATE FLECS.external.cpr FLECS.external.json FLECS.external.libarchive FLECS.daemon.common FLECS.external.yaml-cpp FLECS.util.usb
+    LIBS_PRIVATE external.cpr FLECS.external.json FLECS.external.libarchive FLECS.daemon.common FLECS.external.yaml-cpp FLECS.util.usb
 )

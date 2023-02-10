@@ -41,19 +41,19 @@ target_include_directories(FLECS.flunder PRIVATE
 )
 
 target_link_libraries(FLECS.flunder PRIVATE
-    FLECS.external.cpr
+    external.cpr
     FLECS.external.json
     FLECS.external.zenoh-c
 )
 
 target_link_libraries(FLECS.flunder.static INTERFACE
-    FLECS.external.cpr
+    external.cpr
     FLECS.external.zenoh-c
 )
 
 target_link_libraries(FLECS.flunder.shared PRIVATE
     -Wl,--whole-archive
-    FLECS.external.cpr
+    external.cpr
     FLECS.external.zenoh-c
     -Wl,--no-whole-archive
 )

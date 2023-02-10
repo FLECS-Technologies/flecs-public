@@ -19,7 +19,7 @@ flecs_add_module(
     ADDITIONAL_HEADERS
     impl/manifests_impl.h
     LIBS_PRIVATE
-    FLECS.external.cpr daemon.common.app FLECS.daemon.common.app.manifest
+    external.cpr daemon.common.app FLECS.daemon.common.app.manifest
 )
 
 add_subdirectory(test)

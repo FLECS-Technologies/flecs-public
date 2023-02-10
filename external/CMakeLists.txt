@@ -16,7 +16,7 @@ project(FLECS.external)
 
 # define source directories
 set(CMAKE_ARGS -B build/${ARCH} -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
-set(CPR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.9.3)
+set(CPR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cpr-1.10.0)
 set(CROW_DIR ${CMAKE_CURRENT_SOURCE_DIR}/crow-1.0+5)
 set(GTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gtest-1.12.1)
 set(JSON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/json-3.11.2)
@@ -32,7 +32,7 @@ set(ZLIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.13)
 # custom build rules
 # cpr
 add_custom_target(
-    FLECS.external.cpr.build
+    external.cpr.build
     WORKING_DIRECTORY ${CPR_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=NO -DOPENSSL_ROOT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH} -DOPENSSL_INCLUDE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
@@ -127,22 +127,22 @@ add_custom_target(
 
 # imported libraries
 # cpr
-add_library(FLECS.external.cpr.curl STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.cpr.curl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libcurl.a)
-target_link_libraries(FLECS.external.cpr.curl INTERFACE
+add_library(external.cpr.curl STATIC IMPORTED GLOBAL)
+set_property(TARGET external.cpr.curl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libcurl.a)
+target_link_libraries(external.cpr.curl INTERFACE
     FLECS.external.ssl
     FLECS.external.crypto
 )
 
-add_library(FLECS.external.cpr.zlib STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.cpr.zlib PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libz.a)
+add_library(external.cpr.zlib STATIC IMPORTED GLOBAL)
+set_property(TARGET external.cpr.zlib PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libz.a)
 
-add_library(FLECS.external.cpr STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.cpr PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libcpr.a)
-set_property(TARGET FLECS.external.cpr PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
-target_link_libraries(FLECS.external.cpr INTERFACE
-    FLECS.external.cpr.curl
-    FLECS.external.cpr.zlib
+add_library(external.cpr STATIC IMPORTED GLOBAL)
+set_property(TARGET external.cpr PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libcpr.a)
+set_property(TARGET external.cpr PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
+target_link_libraries(external.cpr INTERFACE
+    external.cpr.curl
+    external.cpr.zlib
 )
 
 # crow
