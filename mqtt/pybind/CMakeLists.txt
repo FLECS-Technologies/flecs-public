@@ -48,10 +48,10 @@ foreach(path ${PYBIND_INCLUDES})
 endforeach()
 
 target_link_libraries(FLECS.mqtt_client.pybind PRIVATE
-    FLECS.external.pybind11
+    external.pybind11
     FLECS.mqtt.shared
 )
 
 target_link_libraries(FLECS.mqtt_message.pybind PRIVATE
-    FLECS.external.pybind11
+    external.pybind11
 )
