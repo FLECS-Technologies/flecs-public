@@ -22,7 +22,7 @@ if(BUILD_TESTING)
     set_target_properties(FLECS.daemon.modules.marketplace.test PROPERTIES OUTPUT_NAME test_daemon_modules_marketplace)
 
     target_link_libraries(FLECS.daemon.modules.marketplace.test PRIVATE
-        FLECS.external.cpr
+        external.cpr
         FLECS.external.gtest
         FLECS.external.gtest_main
         FLECS.daemon.modules.factory

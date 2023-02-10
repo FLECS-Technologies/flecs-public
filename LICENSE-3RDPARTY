@@ -3,10 +3,10 @@ licensed under the following conditions by their respective owners
 
 ================================================================================
 Project:    cpr
-Version:    v1.9.3
+Version:    v1.10.0
 License:    MIT License
 URL:        https://github.com/libcpr/cpr
-Copyright:  2017-2021 Huu Nguyen, 2021 libcpr and many other contributors
+Copyright:  2017-2021 Huu Nguyen, 2022 libcpr and many other contributors
 ================================================================================
 
 ================================================================================
@@ -122,7 +122,7 @@ directory and its subdirectories.
 MIT License
 
 Copyright (c) 2017-2021 Huu Nguyen
-Copyright (c) 2021 libcpr and many other contributors
+Copyright (c) 2022 libcpr and many other contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

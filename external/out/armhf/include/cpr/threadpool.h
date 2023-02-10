@@ -63,7 +63,7 @@ class ThreadPool {
      * Submit(std::mem_fn(&Class::mem_fn, &obj))
      **/
     template <class Fn, class... Args>
-    auto Submit(Fn&& fn, Args&&... args) -> std::future<decltype(fn(args...))> {
+    auto Submit(Fn&& fn, Args&&... args) {
         if (status == STOP) {
             Start();
         }

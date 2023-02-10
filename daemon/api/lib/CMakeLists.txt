@@ -29,7 +29,7 @@ target_include_directories(FLECS.daemon.lib PUBLIC
 
 target_link_libraries(FLECS.daemon.lib PRIVATE
     FLECS.daemon.modules.module_base
-    FLECS.external.cpr
+    external.cpr
     FLECS.external.json
 )
 
