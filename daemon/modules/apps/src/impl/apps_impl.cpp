@@ -483,6 +483,16 @@ auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
 auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
     -> void
 {
+    {
+        auto lock = progress.lock();
+
+        progress.desc("Uninstallation of "s + to_string(app_key));
+        progress.num_steps(4);
+
+        progress.current_step()._desc = "Loading App manifest";
+        progress.current_step()._num = 1;
+    }
+
     // Step 1: Ensure App is actually installed
     if (!_parent->is_installed(app_key)) {
         auto lock = progress.lock();
@@ -508,6 +518,13 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     app->desired(app_status_e::NotInstalled);
 
 #if 0
+    {
+        auto lock = progress.lock();
+
+        progress.current_step()._desc = "Removing App instances";
+        progress.current_step()._num++;
+    }
+
     // Step 3: Stop and delete all instances of the App
     const auto instance_ids = _deployment->instance_ids(app_name, version);
     for (const auto& instance_id : instance_ids) {
@@ -516,6 +533,12 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
 #endif // 0
 
     // Step 4: Remove Docker image of the App
+    {
+        auto lock = progress.lock();
+
+        progress.current_step()._desc = "Removing App image";
+        progress.current_step()._num++;
+    }
     const auto image = manifest->image_with_tag();
     auto docker_process = process_t{};
     docker_process.spawnp("docker", "rmi", "-f", image);
@@ -539,6 +562,12 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     _parent->save();
 
     // Step 6: Remove App manifest
+    {
+        auto lock = progress.lock();
+
+        progress.current_step()._desc = "Removing App manifest";
+        progress.current_step()._num++;
+    }
     _manifests_api->erase(app_key);
 }
 
