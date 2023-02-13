@@ -34,6 +34,12 @@ docker buildx build \
 
 
 docker run \
-    --name flecs-test -it --rm --privileged \
+    --name flecs-test -it --privileged \
     --env-file ./env.test \
+    -p 8951:8951 \
     flecs/flecs-test:latest
+
+docker cp flecs-test:/test-report.html report/test-report.html
+docker cp flecs-test:/assets report/assets
+
+docker rm -f flecs-test
