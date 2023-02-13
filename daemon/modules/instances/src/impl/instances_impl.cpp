@@ -135,6 +135,7 @@ auto module_instances_t::do_list(const app_key_t& app_key) const //
         auto instance = _deployment->query_instance(instance_id);
 
         json["instanceId"] = instance->id().hex();
+        json["instanceName"] = instance->instance_name();
         if (auto app = instance->app()) {
             json["appKey"] = app->key();
             if (instance->status() == instance_status_e::Created) {

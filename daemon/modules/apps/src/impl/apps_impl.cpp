@@ -506,6 +506,11 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     auto app = _parent->query(app_key);
     auto manifest = app->manifest();
 
+    {
+        auto lock = progress.lock();
+        progress.desc("Uninstallation of "s + manifest->title() + " (" + manifest->version() + ")");
+    }
+
     // Step 2a: Prevent removal of system apps
     if (cxx20::contains(manifest->category(), "system") && !force) {
         auto lock = progress.lock();

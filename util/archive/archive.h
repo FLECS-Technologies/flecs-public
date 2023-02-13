@@ -25,7 +25,7 @@ auto compress(const fs::path& archive, const std::vector<fs::path>& files, const
 auto list(const fs::path& archive) //
     -> std::vector<fs::path>;
 
-auto decompress(const fs::path& archive, const fs::path& archiv) //
+auto decompress(const fs::path& archive, const fs::path& dest_dir) //
     -> int;
 
 } // namespace archive
