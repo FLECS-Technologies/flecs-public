@@ -48,25 +48,25 @@ private:
         -> crow::response;
 
     auto do_create(app_key_t app_key, std::string instance_name, job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     auto queue_start(instance_id_t instance_id) //
         -> crow::response;
 
     auto do_start(instance_id_t instance_id, job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     auto queue_stop(instance_id_t instance_id) //
         -> crow::response;
 
     auto do_stop(instance_id_t instance_id, job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     auto queue_remove(instance_id_t instance_id) //
         -> crow::response;
 
     auto do_remove(instance_id_t instance_id, job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     auto do_get_config(instance_id_t instance_id) const //
         -> crow::response;
@@ -85,13 +85,13 @@ private:
 
     auto do_update(
         instance_id_t instance_id, std::string from, std::string to, job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     auto queue_export_to(instance_id_t instance_id, fs::path dest_dir) //
         -> crow::response;
 
     auto do_export_to(instance_id_t instance_id, fs::path dest_dir, job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     FLECS::module_instances_t* _parent;
 
