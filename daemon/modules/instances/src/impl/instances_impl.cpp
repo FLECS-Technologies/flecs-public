@@ -177,22 +177,18 @@ auto module_instances_t::queue_create(app_key_t app_key, std::string instance_na
 
 auto module_instances_t::do_create(
     app_key_t app_key, std::string instance_name, job_progress_t& progress) //
-    -> void
+    -> result_t
 {
     // Step 1: Ensure app is actually installed
     auto app = _apps_api->query(app_key);
     if (!app || (app->status() != app_status_e::Installed)) {
-        return progress.result(
-            -1,
-            "Could not create instance of " + to_string(app_key) + ": not installed");
+        return {-1, "Could not create instance of " + to_string(app_key) + ": not installed"};
     }
 
     // Step 2: Load app manifest
     const auto manifest = app->manifest();
     if (!manifest || !manifest->is_valid()) {
-        return progress.result(
-            -1,
-            "Could not create instance of " + to_string(app_key) + ": manifest error");
+        return {-1, "Could not create instance of " + to_string(app_key) + ": manifest error"};
     }
 
     progress.desc("Creating new instance of " + manifest->title());
@@ -204,7 +200,7 @@ auto module_instances_t::do_create(
             auto instance = _deployment->query_instance(instance_ids.front());
             instance->app(std::move(app));
 
-            return progress.result(0, instance->id().hex());
+            return {0, instance->id().hex()};
         }
     }
 
@@ -215,10 +211,10 @@ auto module_instances_t::do_create(
     _deployment->save();
 
     if (res != 0) {
-        progress.result(-1, "Could not create instance of " + to_string(app_key));
-    } else {
-        progress.result(0, instance_id);
+        return {-1, "Could not create instance of " + to_string(app_key)};
     }
+
+    return {0, instance_id};
 }
 
 auto module_instances_t::queue_start(instance_id_t instance_id) //
@@ -238,20 +234,18 @@ auto module_instances_t::queue_start(instance_id_t instance_id) //
     return {crow::status::ACCEPTED, "json", response.dump()};
 }
 
-auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& progress) //
-    -> void
+auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& /*progress*/) //
+    -> result_t
 {
     auto instance = _deployment->query_instance(instance_id);
     // Step 1: Verify instance does actually exist and is fully created
     if (!_deployment->is_instance_runnable(instance)) {
-        return progress.result(
-            -1,
-            instance ? "Instance not fully created" : "Instance does not exist");
+        return {-1, instance ? "Instance not fully created" : "Instance does not exist"};
     }
 
     // Step 3: Return if instance is already running
     if (_deployment->is_instance_running(instance)) {
-        return progress.result(0, "Instance already running");
+        return {0, "Instance already running"};
     }
 
     // Step 3: Persist desired status into deployment
@@ -264,7 +258,7 @@ auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& pro
     // Final step: Persist instance status into deployment
     _deployment->save();
 
-    progress.result(std::move(res), std::move(additional_info));
+    return {res, additional_info};
 }
 
 auto module_instances_t::queue_stop(instance_id_t instance_id) //
@@ -284,19 +278,19 @@ auto module_instances_t::queue_stop(instance_id_t instance_id) //
     return {crow::status::ACCEPTED, "json", response.dump()};
 }
 
-auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& progress) //
-    -> void
+auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& /*progress*/) //
+    -> result_t
 {
     // get instance details from database
     auto instance = _deployment->query_instance(instance_id);
 
     if (!instance) {
-        return progress.result(-1, "Instance does not exist");
+        return {-1, "Instance does not exist"};
     }
 
     // Step 3: Return if instance is not running
     if (!_deployment->is_instance_running(instance)) {
-        return progress.result(0, "Instance not running");
+        return {0, "Instance not running"};
     }
 
     // Step 4: Persist desired status into db
@@ -308,7 +302,7 @@ auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& prog
     // Final step: Persist instance status into deployment
     _deployment->save();
 
-    progress.result(std::move(res), std::move(additional_info));
+    return {res, additional_info};
 }
 
 auto module_instances_t::queue_remove(instance_id_t instance_id) //
@@ -331,14 +325,14 @@ auto module_instances_t::queue_remove(instance_id_t instance_id) //
 auto module_instances_t::do_remove(
     instance_id_t instance_id,
     job_progress_t& progress) //
-    -> void
+    -> result_t
 {
     progress.num_steps(3);
 
     // Step 1: Verify instance does actually exist
     auto instance = _deployment->query_instance(instance_id);
     if (!instance) {
-        return progress.result(-1, "Instance does not exist");
+        return {-1, "Instance does not exist"};
     }
 
     // Step 2: Attempt to stop instance
@@ -355,7 +349,7 @@ auto module_instances_t::do_remove(
     auto [res, message] = _deployment->delete_instance(instance);
     _deployment->save();
 
-    progress.result(std::move(res), std::move(message));
+    return {res, message};
 }
 
 auto module_instances_t::do_get_config(instance_id_t instance_id) const //
@@ -601,8 +595,10 @@ auto module_instances_t::do_update(
     std::string /*from*/,
     std::string /*to*/,
     job_progress_t& /*progress*/) //
-    -> void
-{}
+    -> result_t
+{
+    return {0, {}};
+}
 
 auto module_instances_t::queue_export_to(instance_id_t instance_id, fs::path dest_dir) //
     -> crow::response
@@ -625,18 +621,18 @@ auto module_instances_t::queue_export_to(instance_id_t instance_id, fs::path des
 }
 
 auto module_instances_t::do_export_to(
-    instance_id_t instance_id, fs::path dest_dir, job_progress_t& progress) //
-    -> void
+    instance_id_t instance_id, fs::path dest_dir, job_progress_t& /*progress*/) //
+    -> result_t
 {
     // Step 1: Verify instance does actually exist, is fully created and valid
     auto instance = _deployment->query_instance(instance_id);
     if (!instance) {
-        return progress.result(-1, "Instance does not exist");
+        return {-1, "Instance does not exist"};
     }
 
     const auto [res, additional_info] = _deployment->export_instance(instance, std::move(dest_dir));
 
-    progress.result(std::move(res), std::move(additional_info));
+    return {res, additional_info};
 }
 
 } // namespace impl

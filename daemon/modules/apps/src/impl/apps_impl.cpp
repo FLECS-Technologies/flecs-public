@@ -231,7 +231,7 @@ auto module_apps_t::do_install_from_marketplace(
     app_key_t app_key,
     std::string license_key,
     job_progress_t& progress) //
-    -> void
+    -> result_t
 {
     progress.num_steps(6);
     progress.next_step("Downloading manifest");
@@ -242,7 +242,7 @@ auto module_apps_t::do_install_from_marketplace(
         return do_install_impl(std::move(manifest), license_key, progress);
     }
 
-    return progress.result(-1, "Could not download manifest");
+    return {-1, "Could not download manifest"};
 }
 
 auto module_apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
@@ -265,7 +265,7 @@ auto module_apps_t::queue_sideload(std::string manifest_string, std::string lice
 
 auto module_apps_t::do_sideload(
     std::string manifest_string, std::string license_key, job_progress_t& progress) //
-    -> void
+    -> result_t
 {
     const auto [manifest, _] = _manifests_api->add_from_string(manifest_string);
     // Step 1: Validate transferred manifest
@@ -274,21 +274,21 @@ auto module_apps_t::do_sideload(
         return do_install_impl(std::move(manifest), license_key, progress);
     }
 
-    return progress.result(-1, "Could not parse manifest");
+    return {-1, "Could not parse manifest"};
 }
 
 auto module_apps_t::do_install_impl(
     std::shared_ptr<app_manifest_t> manifest,
     std::string_view license_key,
     job_progress_t& progress) //
-    -> void
+    -> result_t
 {
     progress.next_step("Loading manifest");
 
     // Step 1: Create app from manifest
     auto tmp = app_t{app_key_t{manifest->app(), manifest->version()}, manifest};
     if (!tmp.key().is_valid()) {
-        return progress.result(-1, "Could not open app manifest");
+        return {-1, "Could not open app manifest"};
     }
     tmp.desired(app_status_e::Installed);
     tmp.status(app_status_e::ManifestDownloaded);
@@ -341,7 +341,7 @@ auto module_apps_t::do_install_impl(
 
             if (docker_login_process.exit_code() != 0) {
                 _parent->save();
-                return progress.result(-1, docker_login_process.stderr());
+                return {-1, docker_login_process.stderr()};
             }
 
             progress.next_step("Downloading App");
@@ -361,7 +361,7 @@ auto module_apps_t::do_install_impl(
 
             if (docker_pull_process.exit_code() != 0) {
                 _parent->save();
-                return progress.result(-1, docker_pull_process.stderr());
+                return {-1, docker_pull_process.stderr()};
             }
             app->status(app_status_e::ImageDownloaded);
             [[fallthrough]];
@@ -391,7 +391,7 @@ auto module_apps_t::do_install_impl(
 
     // Final step: Persist successful installation into db
     _parent->save();
-    progress.result(0);
+    return {0, {}};
 }
 
 auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
@@ -420,16 +420,14 @@ auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
 }
 
 auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
-    -> void
+    -> result_t
 {
     progress.num_steps(4);
     progress.next_step("Loading App manifest");
 
     // Step 1: Ensure App is actually installed
     if (!_parent->is_installed(app_key)) {
-        return progress.result(
-            -1,
-            "Cannot uninstall "s + to_string(app_key) + ", which is not installed");
+        return {-1, "Cannot uninstall "s + to_string(app_key) + ", which is not installed"};
     }
 
     // Step 2: Load App manifest
@@ -440,11 +438,7 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
 
     // Step 2a: Prevent removal of system apps
     if (cxx20::contains(manifest->category(), "system") && !force) {
-        return progress.result(
-            -1,
-            "Not uninstalling system app "s + app->key().name().data() + "(" +
-                app->key().version().data() + ")");
-        return;
+        return {-1, "Not uninstalling system app "s + to_string(app_key)};
     }
 
     app->desired(app_status_e::NotInstalled);
@@ -488,6 +482,8 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     progress.next_step("Removing App manifest");
 
     _manifests_api->erase(app_key);
+
+    return {0, {}};
 }
 
 auto module_apps_t::queue_archive(app_key_t app_key) const //
@@ -504,14 +500,12 @@ auto module_apps_t::queue_archive(app_key_t app_key) const //
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) const //
-    -> void
+auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& /*progress*/) const //
+    -> result_t
 {
     // Step 1: Ensure App is actually installed
     if (!_parent->is_installed(app_key)) {
-        return progress.result(
-            -1,
-            "Cannot export "s + to_string(app_key) + ", which is not installed");
+        return {-1, "Cannot export "s + to_string(app_key) + ", which is not installed"};
     }
 
     // Step 2: Load App manifest
@@ -522,7 +516,7 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) cons
     auto ec = std::error_code{};
     fs::create_directories("/var/lib/flecs/export-tmp/apps/");
     if (ec) {
-        return progress.result(-1, "Could not create export directory for "s + to_string(app_key));
+        return {-1, "Could not create export directory for "s + to_string(app_key)};
     }
 
     // Step 4: Export image
@@ -535,7 +529,7 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) cons
     docker_process.spawnp("docker", "save", "--output", filename, manifest->image_with_tag());
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0) {
-        return progress.result(-1, docker_process.stderr());
+        return {-1, docker_process.stderr()};
     }
 
     // Step 5: Copy manifest
@@ -545,8 +539,10 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) cons
                               (app_key.name().data() + "_"s + app_key.version().data() + ".yml");
     fs::copy_file(manifest_src, manifest_dst, ec);
     if (ec) {
-        return progress.result(-1, "Could not copy app manifest for "s + to_string(app_key));
+        return {-1, "Could not copy app manifest for "s + to_string(app_key)};
     }
+
+    return {0, {}};
 }
 
 auto module_apps_t::do_contains(const app_key_t& app_key) const noexcept //

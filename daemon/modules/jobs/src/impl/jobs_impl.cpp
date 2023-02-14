@@ -109,16 +109,11 @@ auto module_jobs_t::worker_thread() //
                 _job_progress.begin(),
                 _job_progress.end(),
                 [this](job_progress_t& item) { return item.job_id() == _next_job_id; });
-            {
-                job_progress.status(job_status_e::Running);
-            }
-            std::invoke(job->callable, job_progress);
 
-            {
-                job_progress.status(
-                    job_progress.result().code == 0 ? job_status_e::Successful
-                                                    : job_status_e::Failed);
-            }
+            job_progress.status(job_status_e::Running);
+            auto [code, message] = std::invoke(job->callable, job_progress);
+            job_progress.result(code, std::move(message));
+            job_progress.status(code == 0 ? job_status_e::Successful : job_status_e::Failed);
         }};
         job_thread.join();
     }

@@ -48,17 +48,21 @@ struct test_job_t
     std::mutex mutex = {};
     bool executed = {};
 
-    void test_func(FLECS::job_id_t, int, FLECS::job_progress_t&);
+    FLECS::result_t test_func(FLECS::job_id_t, int, FLECS::job_progress_t&);
 };
 
-void test_job_t::test_func(FLECS::job_id_t job_id, int exit_code, FLECS::job_progress_t& progress)
+FLECS::result_t test_job_t::test_func(
+    FLECS::job_id_t job_id, int exit_code, FLECS::job_progress_t& progress)
 {
-    ASSERT_EQ(progress.job_id(), job_id);
-    progress.result(exit_code);
-
     auto lock = std::lock_guard{mutex};
     executed = true;
     cv.notify_one();
+
+    if (progress.job_id() != job_id) {
+        return {-1, {}};
+    }
+
+    return {exit_code, {}};
 }
 
 auto make_job()

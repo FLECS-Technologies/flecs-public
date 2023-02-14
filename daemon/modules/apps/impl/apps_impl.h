@@ -60,32 +60,32 @@ private:
         app_key_t app_key,
         std::string license_key,
         job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     auto queue_sideload(std::string manifest_string, std::string license_key) //
         -> crow::response;
 
     auto do_sideload(
         std::string manifest_string, std::string license_key, job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     auto queue_uninstall(app_key_t app_key, bool force) //
         -> crow::response;
 
     auto do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     auto queue_archive(app_key_t app_key) const //
         -> crow::response;
 
     auto do_archive(app_key_t app_key, job_progress_t& progress) const //
-        -> void;
+        -> result_t;
 
     auto do_install_impl(
         std::shared_ptr<app_manifest_t> manifest,
         std::string_view license_key,
         job_progress_t& progress) //
-        -> void;
+        -> result_t;
 
     /*! @brief Helper function to determine whether a given app is installed in a given version
      *
