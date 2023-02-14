@@ -67,13 +67,10 @@ public:
         {}
     };
 
-    explicit job_progress_t(job_id_t job_id);
+    job_progress_t(job_id_t job_id, std::string desc);
 
     auto job_id() const noexcept //
         -> job_id_t;
-
-    [[nodiscard]] auto lock() const //
-        -> std::unique_lock<std::mutex>;
 
     auto status() const //
         -> job_status_e;
@@ -88,17 +85,26 @@ public:
     auto num_steps(std::int16_t num_steps) noexcept //
         -> void;
 
-    auto current_step() noexcept //
-        -> current_step_t&;
     auto current_step() const noexcept //
         -> const current_step_t&;
 
-    auto result() noexcept //
-        -> result_t&;
+    auto next_step(std::string desc) //
+        -> void;
+    auto next_step(std::string desc, std::string unit, std::uint32_t units_total) //
+        -> void;
+
     auto result() const noexcept //
         -> const result_t&;
 
+    auto result(std::int32_t code) //
+        -> void;
+    auto result(std::int32_t code, std::string message) //
+        -> void;
+
 private:
+    [[nodiscard]] auto lock() const //
+        -> std::unique_lock<std::mutex>;
+
     friend auto to_json(json_t& j, const job_progress_t& progress) //
         -> void;
 

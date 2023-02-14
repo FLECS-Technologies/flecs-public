@@ -42,14 +42,14 @@ auto module_jobs_t::do_deinit() //
     _worker_thread.join();
 }
 
-auto module_jobs_t::do_append(job_t job) //
+auto module_jobs_t::do_append(job_t job, std::string desc) //
     -> job_id_t
 {
     {
         auto lock = std::lock_guard{_q_mutex};
         _q.push(std::move(job));
     }
-    _job_progress.emplace_back(++_job_id);
+    _job_progress.emplace_back(++_job_id, std::move(desc));
     _q_cv.notify_one();
     return _job_id;
 }
@@ -67,7 +67,10 @@ auto module_jobs_t::do_list_jobs(job_id_t job_id) const //
     }
 
     if ((job_id != job_id_t{}) && response.empty()) {
-        return crow::response{crow::status::NOT_FOUND, "txt", "No such job " + std::to_string(job_id)};
+        return crow::response{
+            crow::status::NOT_FOUND,
+            "txt",
+            "No such job " + std::to_string(job_id)};
     }
 
     return crow::response{crow::status::OK, "json", response.dump()};
@@ -102,20 +105,19 @@ auto module_jobs_t::worker_thread() //
             char thread_name[16] = {};
             snprintf(thread_name, sizeof(thread_name) - 1, "job_%d", _next_job_id);
             pthread_setname_np(pthread_self(), thread_name);
-            auto& job_progress =
-                *std::find_if(_job_progress.begin(), _job_progress.end(), [this](job_progress_t& item) {
-                    return item.job_id() == _next_job_id;
-                });
+            auto& job_progress = *std::find_if(
+                _job_progress.begin(),
+                _job_progress.end(),
+                [this](job_progress_t& item) { return item.job_id() == _next_job_id; });
             {
-                auto lock = job_progress.lock();
                 job_progress.status(job_status_e::Running);
             }
             std::invoke(job->callable, job_progress);
 
             {
-                auto lock = job_progress.lock();
-                job_progress.current_step() = {};
-                job_progress.status(job_progress.result().code == 0 ? job_status_e::Successful : job_status_e::Failed);
+                job_progress.status(
+                    job_progress.result().code == 0 ? job_status_e::Successful
+                                                    : job_status_e::Failed);
             }
         }};
         job_thread.join();

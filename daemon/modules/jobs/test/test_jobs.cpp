@@ -54,10 +54,7 @@ struct test_job_t
 void test_job_t::test_func(FLECS::job_id_t job_id, int exit_code, FLECS::job_progress_t& progress)
 {
     ASSERT_EQ(progress.job_id(), job_id);
-    {
-        auto lock = progress.lock();
-        progress.result().code = exit_code;
-    }
+    progress.result(exit_code);
 
     auto lock = std::lock_guard{mutex};
     executed = true;
@@ -78,7 +75,10 @@ TEST(jobs, schedule)
     auto uut = test_module_jobs_t{};
     uut.init();
 
-    uut.append(FLECS::job_t{std::bind(&test_job_t::test_func, &job, FLECS::job_id_t{1}, 0, std::placeholders::_1)});
+    uut.append(
+        FLECS::job_t{
+            std::bind(&test_job_t::test_func, &job, FLECS::job_id_t{1}, 0, std::placeholders::_1)},
+        "FLECS unit test job");
 
     auto lock = std::unique_lock{job.mutex};
     ASSERT_TRUE(job.cv.wait_for(lock, std::chrono::seconds(1), [&job]() { return job.executed; }));
@@ -98,16 +98,34 @@ TEST(jobs, status)
     auto uut = test_module_jobs_t{};
     uut.init();
 
-    uut.append(FLECS::job_t{std::bind(&test_job_t::test_func, &job_0, FLECS::job_id_t{1}, 0, std::placeholders::_1)});
-    uut.append(FLECS::job_t{std::bind(&test_job_t::test_func, &job_1, FLECS::job_id_t{2}, -1, std::placeholders::_1)});
+    uut.append(
+        FLECS::job_t{std::bind(
+            &test_job_t::test_func,
+            &job_0,
+            FLECS::job_id_t{1},
+            0,
+            std::placeholders::_1)},
+        "FLECS unit test job");
+    uut.append(
+        FLECS::job_t{std::bind(
+            &test_job_t::test_func,
+            &job_1,
+            FLECS::job_id_t{2},
+            -1,
+            std::placeholders::_1)},
+        "FLECS unit test job");
 
     {
         auto lock = std::unique_lock{job_0.mutex};
-        ASSERT_TRUE(job_0.cv.wait_for(lock, std::chrono::seconds(1), [&job_0]() { return job_0.executed; }));
+        ASSERT_TRUE(job_0.cv.wait_for(lock, std::chrono::seconds(1), [&job_0]() {
+            return job_0.executed;
+        }));
     }
     {
         auto lock = std::unique_lock{job_1.mutex};
-        ASSERT_TRUE(job_1.cv.wait_for(lock, std::chrono::seconds(1), [&job_1]() { return job_1.executed; }));
+        ASSERT_TRUE(job_1.cv.wait_for(lock, std::chrono::seconds(1), [&job_1]() {
+            return job_1.executed;
+        }));
     }
 
     kill(flecs_gettid(), SIGTERM);
