@@ -47,7 +47,7 @@ private:
     auto do_list_jobs(job_id_t job_id) const //
         -> crow::response;
 
-    auto do_append(job_t job) //
+    auto do_append(job_t job, std::string desc) //
         -> job_id_t;
 
     auto wait_for_job() //

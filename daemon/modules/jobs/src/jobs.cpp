@@ -46,10 +46,10 @@ auto module_jobs_t::do_deinit() //
     _impl->do_deinit();
 }
 
-auto module_jobs_t::append(job_t job) //
+auto module_jobs_t::append(job_t job, std::string desc) //
     -> job_id_t
 {
-    return _impl->do_append(std::move(job));
+    return _impl->do_append(std::move(job), std::move(desc));
 }
 
 auto module_jobs_t::list_jobs(job_id_t job_id) const //

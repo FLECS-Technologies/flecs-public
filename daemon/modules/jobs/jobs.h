@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 
 #include "job_id.h"
 #include "job_progress.h"
@@ -43,10 +44,11 @@ public:
     /** @brief Appends a new job to the queue
      *
      * @param[in] job
+     * @param[in] progress
      *
-     * @return reference to job_progress_t
+     * @return job id assigned by api
      */
-    auto append(job_t job) //
+    auto append(job_t job, std::string desc) //
         -> job_id_t;
 
     auto list_jobs(job_id_t job_id) const //

@@ -220,7 +220,7 @@ auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::strin
         std::move(license_key),
         std::placeholders::_1);
 
-    auto job_id = _jobs_api->append(std::move(job));
+    auto job_id = _jobs_api->append(std::move(job), "Installation of "s + to_string(app_key));
     return crow::response{
         crow::status::ACCEPTED,
         "json",
@@ -233,19 +233,8 @@ auto module_apps_t::do_install_from_marketplace(
     job_progress_t& progress) //
     -> void
 {
-    {
-        auto lock = progress.lock();
-
-        progress.desc("Installation of "s + to_string(app_key));
-        progress.num_steps(6);
-
-        progress.current_step()._desc = "Downloading manifest";
-        progress.current_step()._num = 1;
-        progress.current_step()._unit = {};
-        progress.current_step()._units_done = {};
-        progress.current_step()._units_total = {};
-        progress.current_step()._rate = {};
-    }
+    progress.num_steps(6);
+    progress.next_step("Downloading manifest");
 
     // Download App manifest and forward to manifest installation, if download successful
     const auto [manifest, _] = _manifests_api->add_from_marketplace(app_key);
@@ -253,10 +242,7 @@ auto module_apps_t::do_install_from_marketplace(
         return do_install_impl(std::move(manifest), license_key, progress);
     }
 
-    auto lock = progress.lock();
-    progress.result().code = -1;
-    progress.result().message = "Could not download manifest";
-    return;
+    return progress.result(-1, "Could not download manifest");
 }
 
 auto module_apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
@@ -270,7 +256,7 @@ auto module_apps_t::queue_sideload(std::string manifest_string, std::string lice
         std::move(license_key),
         std::placeholders::_1);
 
-    auto job_id = _jobs_api->append(std::move(job));
+    auto job_id = _jobs_api->append(std::move(job), "Sideloading App");
     return crow::response{
         crow::status::ACCEPTED,
         "json",
@@ -288,10 +274,7 @@ auto module_apps_t::do_sideload(
         return do_install_impl(std::move(manifest), license_key, progress);
     }
 
-    auto lock = progress.lock();
-    progress.result().code = -1;
-    progress.result().message = "Could not parse manifest";
-    return;
+    return progress.result(-1, "Could not parse manifest");
 }
 
 auto module_apps_t::do_install_impl(
@@ -300,31 +283,18 @@ auto module_apps_t::do_install_impl(
     job_progress_t& progress) //
     -> void
 {
-    {
-        auto lock = progress.lock();
-
-        progress.current_step()._desc = "Loading manifest";
-        progress.current_step()._num++;
-    }
+    progress.next_step("Loading manifest");
 
     // Step 1: Create app from manifest
     auto tmp = app_t{app_key_t{manifest->app(), manifest->version()}, manifest};
     if (!tmp.key().is_valid()) {
-        auto lock = progress.lock();
-        progress.result().code = -1;
-        progress.result().message = "Could not open app manifest";
-        return;
+        return progress.result(-1, "Could not open app manifest");
     }
     tmp.desired(app_status_e::Installed);
     tmp.status(app_status_e::ManifestDownloaded);
 
-    {
-        auto lock = progress.lock();
-
-        progress.desc("Installation of "s + manifest->title() + " (" + manifest->version() + ")");
-        progress.current_step()._desc = "Acquiring download token";
-        progress.current_step()._num++;
-    }
+    progress.desc("Installation of "s + manifest->title() + " (" + manifest->version() + ")");
+    progress.next_step("Acquiring download token");
 
     // Step 2: Determine current App status to decide where to continue
     auto app = _parent->query(tmp.key());
@@ -335,19 +305,13 @@ auto module_apps_t::do_install_impl(
 
     switch (app->status()) {
         case app_status_e::ManifestDownloaded: {
-            {
-                auto lock = progress.lock();
-
-                progress.current_step()._desc = "Acquiring download token";
-                progress.current_step()._num++;
-            }
+            progress.next_step("Acquiring download token");
 
             // Step 3: Acquire download token for App
             app->download_token(acquire_download_token(license_key));
 
             if (app->download_token().empty()) {
-                auto lock = progress.lock();
-                progress.result().message = "Could not acquire download token";
+                progress.result(0, "Could not acquire download token");
             } else {
                 app->status(app_status_e::TokenAcquired);
             }
@@ -361,12 +325,8 @@ auto module_apps_t::do_install_impl(
             const auto args = split(app->download_token(), ';');
 
             if (args.size() == 3) {
-                {
-                    auto lock = progress.lock();
+                progress.next_step("Authenticating");
 
-                    progress.current_step()._desc = "Logging in";
-                    progress.current_step()._num++;
-                }
                 auto login_attempts = 3;
                 while (login_attempts-- > 0) {
                     docker_login_process = process_t{};
@@ -380,19 +340,12 @@ auto module_apps_t::do_install_impl(
             }
 
             if (docker_login_process.exit_code() != 0) {
-                auto lock = progress.lock();
-                progress.result().code = -1;
-                progress.result().message = docker_login_process.stderr();
                 _parent->save();
-                return;
+                return progress.result(-1, docker_login_process.stderr());
             }
 
-            {
-                auto lock = progress.lock();
+            progress.next_step("Downloading App");
 
-                progress.current_step()._desc = "Downloading";
-                progress.current_step()._num++;
-            }
             auto pull_attempts = 3;
             while (pull_attempts-- > 0) {
                 docker_pull_process = process_t{};
@@ -407,22 +360,14 @@ auto module_apps_t::do_install_impl(
             docker_logout_process.wait(true, true);
 
             if (docker_pull_process.exit_code() != 0) {
-                auto lock = progress.lock();
-                progress.result().code = -1;
-                progress.result().message = docker_pull_process.stderr();
                 _parent->save();
-                return;
+                return progress.result(-1, docker_pull_process.stderr());
             }
             app->status(app_status_e::ImageDownloaded);
             [[fallthrough]];
         }
         case app_status_e::ImageDownloaded: {
-            {
-                auto lock = progress.lock();
-
-                progress.current_step()._desc = "Expiring download token";
-                progress.current_step()._num++;
-            }
+            progress.next_step("Expiring download token");
 
             // Step 5: Expire download token
             const auto args = split(app->download_token(), ';');
@@ -432,8 +377,7 @@ auto module_apps_t::do_install_impl(
                     app->download_token("");
                     app->status(app_status_e::Installed);
                 } else {
-                    auto lock = progress.lock();
-                    progress.result().message = "Could not expire download token";
+                    progress.result(0, "Could not expire download token");
                 }
             } else {
                 app->download_token("");
@@ -447,12 +391,7 @@ auto module_apps_t::do_install_impl(
 
     // Final step: Persist successful installation into db
     _parent->save();
-
-    {
-        auto lock = progress.lock();
-
-        progress.result().code = 0;
-    }
+    progress.result(0);
 }
 
 auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
@@ -473,7 +412,7 @@ auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
         std::move(force),
         std::placeholders::_1);
 
-    auto job_id = _jobs_api->append(std::move(job));
+    auto job_id = _jobs_api->append(std::move(job), "Uninstallation of "s + to_string(app_key));
     return crow::response{
         crow::status::ACCEPTED,
         "json",
@@ -483,52 +422,35 @@ auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
 auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
     -> void
 {
-    {
-        auto lock = progress.lock();
-
-        progress.desc("Uninstallation of "s + to_string(app_key));
-        progress.num_steps(4);
-
-        progress.current_step()._desc = "Loading App manifest";
-        progress.current_step()._num = 1;
-    }
+    progress.num_steps(4);
+    progress.next_step("Loading App manifest");
 
     // Step 1: Ensure App is actually installed
     if (!_parent->is_installed(app_key)) {
-        auto lock = progress.lock();
-        progress.result().code = -1;
-        progress.result().message =
-            "Cannot uninstall "s + to_string(app_key) + ", which is not installed";
-        return;
+        return progress.result(
+            -1,
+            "Cannot uninstall "s + to_string(app_key) + ", which is not installed");
     }
 
     // Step 2: Load App manifest
     auto app = _parent->query(app_key);
     auto manifest = app->manifest();
 
-    {
-        auto lock = progress.lock();
-        progress.desc("Uninstallation of "s + manifest->title() + " (" + manifest->version() + ")");
-    }
+    progress.desc("Uninstallation of "s + manifest->title() + " (" + manifest->version() + ")");
 
     // Step 2a: Prevent removal of system apps
     if (cxx20::contains(manifest->category(), "system") && !force) {
-        auto lock = progress.lock();
-        progress.result().code = -1;
-        progress.result().message = "Not uninstalling system app "s + app->key().name().data() +
-                                    "(" + app->key().version().data() + ")";
+        return progress.result(
+            -1,
+            "Not uninstalling system app "s + app->key().name().data() + "(" +
+                app->key().version().data() + ")");
         return;
     }
 
     app->desired(app_status_e::NotInstalled);
 
 #if 0
-    {
-        auto lock = progress.lock();
-
-        progress.current_step()._desc = "Removing App instances";
-        progress.current_step()._num++;
-    }
+    progress.next_step("Removing App instances");
 
     // Step 3: Stop and delete all instances of the App
     const auto instance_ids = _deployment->instance_ids(app_name, version);
@@ -538,12 +460,8 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
 #endif // 0
 
     // Step 4: Remove Docker image of the App
-    {
-        auto lock = progress.lock();
+    progress.next_step("Removing App image");
 
-        progress.current_step()._desc = "Removing App image";
-        progress.current_step()._num++;
-    }
     const auto image = manifest->image_with_tag();
     auto docker_process = process_t{};
     docker_process.spawnp("docker", "rmi", "-f", image);
@@ -567,12 +485,8 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     _parent->save();
 
     // Step 6: Remove App manifest
-    {
-        auto lock = progress.lock();
+    progress.next_step("Removing App manifest");
 
-        progress.current_step()._desc = "Removing App manifest";
-        progress.current_step()._num++;
-    }
     _manifests_api->erase(app_key);
 }
 
@@ -583,7 +497,7 @@ auto module_apps_t::queue_archive(app_key_t app_key) const //
     job.callable =
         std::bind(&module_apps_t::do_archive, this, std::move(app_key), std::placeholders::_1);
 
-    auto job_id = _jobs_api->append(std::move(job));
+    auto job_id = _jobs_api->append(std::move(job), "Exporting App " + to_string(app_key));
     return crow::response{
         crow::status::ACCEPTED,
         "json",
@@ -595,11 +509,9 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) cons
 {
     // Step 1: Ensure App is actually installed
     if (!_parent->is_installed(app_key)) {
-        auto lock = progress.lock();
-        progress.result().code = -1;
-        progress.result().message =
-            "Cannot export "s + to_string(app_key) + ", which is not installed";
-        return;
+        return progress.result(
+            -1,
+            "Cannot export "s + to_string(app_key) + ", which is not installed");
     }
 
     // Step 2: Load App manifest
@@ -610,10 +522,7 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) cons
     auto ec = std::error_code{};
     fs::create_directories("/var/lib/flecs/export-tmp/apps/");
     if (ec) {
-        auto lock = progress.lock();
-        progress.result().code = -1;
-        progress.result().message = "Could not create export directory for "s + to_string(app_key);
-        return;
+        return progress.result(-1, "Could not create export directory for "s + to_string(app_key));
     }
 
     // Step 4: Export image
@@ -626,10 +535,7 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) cons
     docker_process.spawnp("docker", "save", "--output", filename, manifest->image_with_tag());
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0) {
-        auto lock = progress.lock();
-        progress.result().code = -1;
-        progress.result().message = docker_process.stderr();
-        return;
+        return progress.result(-1, docker_process.stderr());
     }
 
     // Step 5: Copy manifest
@@ -639,11 +545,7 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& progress) cons
                               (app_key.name().data() + "_"s + app_key.version().data() + ".yml");
     fs::copy_file(manifest_src, manifest_dst, ec);
     if (ec) {
-        auto lock = progress.lock();
-        progress.result().code = -1;
-        progress.result().message = "Could not copy app manifest for "s + app_key.name().data() +
-                                    " (" + app_key.version().data() + ")";
-        return;
+        return progress.result(-1, "Could not copy app manifest for "s + to_string(app_key));
     }
 }
 
