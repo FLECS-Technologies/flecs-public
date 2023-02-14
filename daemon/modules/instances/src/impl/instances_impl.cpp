@@ -372,7 +372,7 @@ auto module_instances_t::do_get_config(instance_id_t instance_id) const //
     response["networkAdapters"] = build_network_adapters_json(instance);
     response["devices"]["usb"] = build_usb_devices_json(instance);
 
-    return {crow::status::OK, "json", {}};
+    return {crow::status::OK, "json", response.dump()};
 }
 
 auto module_instances_t::do_post_config(
