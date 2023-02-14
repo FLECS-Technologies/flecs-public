@@ -401,14 +401,9 @@ auto deployment_docker_t::do_stop_instance(std::shared_ptr<instance_t> instance)
 }
 
 auto deployment_docker_t::do_export_instance(
-    std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
+    std::shared_ptr<instance_t> /*instance*/, fs::path /*dest_dir*/) const //
     -> result_t
 {
-    const auto [res, additional_info] = export_volumes(instance, dest_dir);
-    if (res != 0) {
-        return {res, additional_info};
-    }
-
     return {0, {}};
 }
 

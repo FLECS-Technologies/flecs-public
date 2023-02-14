@@ -287,32 +287,14 @@ auto deployment_t::export_instance(std::shared_ptr<instance_t> instance, fs::pat
         return {-1, "Could not create export directory"};
     }
 
-    const auto [res, additional_info] = export_volumes(instance, dest_dir);
+    auto [res, additional_info] = export_volumes(instance, dest_dir / "volumes");
     if (res != 0) {
         return {res, additional_info};
     }
 
-    if (is_instance_running(instance)) {
-        /* copy config files from container for running instances */
-        for (const auto& conffile : manifest->conffiles()) {
-            const auto [res, additional_info] = copy_file_from_instance(
-                instance,
-                conffile.container(),
-                dest_dir / conffile.local());
-            if (res != 0) {
-                return {res, additional_info};
-            }
-        }
-    } else {
-        const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
-        /* copy config files from local dir for stopped instances */
-        for (const auto& conffile : manifest->conffiles()) {
-            auto ec = std::error_code{};
-            fs::copy(conf_path + conffile.local(), dest_dir / conffile.local(), ec);
-            if (ec) {
-                return {-1, "Could not export conffile from local directory"};
-            }
-        }
+    std::tie(res, additional_info) = export_config_files(instance, dest_dir / "conf");
+    if (res != 0) {
+        return {res, additional_info};
     }
 
     return do_export_instance(instance, dest_dir);
@@ -515,6 +497,55 @@ auto deployment_t::export_volume(
     }
 
     return do_export_volume(std::move(instance), std::move(volume_name), std::move(dest_dir));
+}
+
+auto deployment_t::export_config_files(
+    std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
+    -> result_t
+{
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+    auto manifest = app->manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
+    for (auto& config_file : manifest->conffiles()) {
+        const auto [res, additional_info] = export_config_file(instance, config_file, dest_dir);
+        if (res != 0) {
+            return {res, additional_info};
+        }
+    }
+
+    return {0, {}};
+}
+auto deployment_t::export_config_file(
+    std::shared_ptr<instance_t> instance,
+    const conffile_t& config_file,
+    fs::path dest_dir) const //
+    -> result_t
+{
+    if (is_instance_running(instance)) {
+        const auto [res, additional_info] = copy_file_from_instance(
+            instance,
+            config_file.container(),
+            dest_dir / "conf" / config_file.local());
+        if (res != 0) {
+            return {res, additional_info};
+        }
+    } else {
+        const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
+        /* copy config files from local dir for stopped instances */
+        auto ec = std::error_code{};
+        fs::copy(conf_path + config_file.local(), dest_dir / "conf" / config_file.local(), ec);
+        if (ec) {
+            return {-1, "Could not export conffile from local directory"};
+        }
+    }
+
+    return {0, {}};
 }
 
 auto deployment_t::delete_volumes(std::shared_ptr<instance_t> instance) //
