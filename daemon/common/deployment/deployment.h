@@ -30,6 +30,7 @@ namespace FLECS {
 
 class app_t;
 class app_key_t;
+class conffile_t;
 
 class deployment_t
 {
@@ -127,6 +128,13 @@ public:
     auto export_volume(
         std::shared_ptr<instance_t> instance,
         std::string_view volume_name,
+        fs::path dest_dir) const //
+        -> result_t;
+    auto export_config_files(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
+        -> result_t;
+    auto export_config_file(
+        std::shared_ptr<instance_t> instance,
+        const conffile_t& config_file,
         fs::path dest_dir) const //
         -> result_t;
     auto delete_volumes(std::shared_ptr<instance_t> instance) //
