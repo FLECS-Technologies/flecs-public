@@ -114,8 +114,7 @@ auto job_progress_t::result(std::int32_t code, std::string message) //
     -> void
 {
     auto _ = lock();
-    _result.code = std::move(code);
-    _result.message = std::move(message);
+    _result = result_t{std::move(code), std::move(message)};
 }
 
 auto to_json(json_t& j, const job_progress_t& progress) //
@@ -136,8 +135,8 @@ auto to_json(json_t& j, const job_progress_t& progress) //
     j["currentStep"]["unitsDone"] = progress._current_step._units_done;
     j["currentStep"]["rate"] = progress._current_step._rate;
     j["result"] = json_t::object();
-    j["result"]["code"] = progress._result.code;
-    j["result"]["message"] = progress._result.message;
+    j["result"]["code"] = std::get<0>(progress._result);
+    j["result"]["message"] = std::get<1>(progress._result);
 }
 
 auto operator<(const job_progress_t& lhs, const job_progress_t& rhs) //
