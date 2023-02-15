@@ -212,13 +212,12 @@ auto module_apps_t::do_list(const app_key_t& app_key) const //
 auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
     -> crow::response
 {
-    auto job = job_t{};
-    job.callable = std::bind(
+    auto job = job_t{std::bind(
         &module_apps_t::do_install_from_marketplace,
         this,
         std::move(app_key),
         std::move(license_key),
-        std::placeholders::_1);
+        std::placeholders::_1)};
 
     auto job_id = _jobs_api->append(std::move(job), "Installation of "s + to_string(app_key));
     return crow::response{
@@ -248,13 +247,12 @@ auto module_apps_t::do_install_from_marketplace(
 auto module_apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
     -> crow::response
 {
-    auto job = job_t{};
-    job.callable = std::bind(
+    auto job = job_t{std::bind(
         &module_apps_t::do_sideload,
         this,
         std::move(manifest_string),
         std::move(license_key),
-        std::placeholders::_1);
+        std::placeholders::_1)};
 
     auto job_id = _jobs_api->append(std::move(job), "Sideloading App");
     return crow::response{
@@ -404,13 +402,12 @@ auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
         return {crow::status::BAD_REQUEST, "json", response.dump()};
     }
 
-    auto job = job_t{};
-    job.callable = std::bind(
+    auto job = job_t{std::bind(
         &module_apps_t::do_uninstall,
         this,
         std::move(app_key),
         std::move(force),
-        std::placeholders::_1);
+        std::placeholders::_1)};
 
     auto job_id = _jobs_api->append(std::move(job), "Uninstallation of "s + to_string(app_key));
     return crow::response{
@@ -489,9 +486,8 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
 auto module_apps_t::queue_archive(app_key_t app_key) const //
     -> crow::response
 {
-    auto job = job_t{};
-    job.callable =
-        std::bind(&module_apps_t::do_archive, this, std::move(app_key), std::placeholders::_1);
+    auto job = job_t{
+        std::bind(&module_apps_t::do_archive, this, std::move(app_key), std::placeholders::_1)};
 
     auto job_id = _jobs_api->append(std::move(job), "Exporting App " + to_string(app_key));
     return crow::response{

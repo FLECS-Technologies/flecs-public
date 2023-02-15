@@ -14,9 +14,11 @@
 
 #pragma once
 
+#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "job_id.h"
@@ -29,9 +31,18 @@ namespace impl {
 class module_jobs_t;
 }
 
-struct job_t
+class job_t
 {
-    std::function<result_t(job_progress_t&)> callable;
+public:
+    using callable_t = std::function<result_t(job_progress_t&)>;
+
+    explicit job_t(callable_t callable);
+
+    auto callable() const noexcept //
+        -> const callable_t&;
+
+private:
+    callable_t _callable;
 };
 
 class module_jobs_t FLECS_FINAL_UNLESS_TESTED : public module_t
@@ -53,6 +64,9 @@ public:
 
     auto list_jobs(job_id_t job_id) const //
         -> crow::response;
+
+    auto wait_for_job(job_id_t job_id) const //
+        -> result_t;
 
 protected:
     module_jobs_t();

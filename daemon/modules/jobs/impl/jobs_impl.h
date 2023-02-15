@@ -47,10 +47,13 @@ private:
     auto do_list_jobs(job_id_t job_id) const //
         -> crow::response;
 
+    auto do_wait_for_job(job_id_t job_id) const //
+        -> result_t;
+
     auto do_append(job_t job, std::string desc) //
         -> job_id_t;
 
-    auto wait_for_job() //
+    auto fetch_job() //
         -> std::optional<job_t>;
 
     auto worker_thread() //
@@ -59,9 +62,10 @@ private:
     job_id_t _job_id;
     job_id_t _next_job_id;
 
-    std::mutex _q_mutex;
     std::queue<job_t> _q;
+    std::mutex _q_mutex;
     std::condition_variable _q_cv;
+
     std::list<job_progress_t> _job_progress;
 
     std::thread _worker_thread;
