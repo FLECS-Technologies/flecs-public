@@ -158,8 +158,8 @@ auto module_instances_t::queue_create(app_key_t app_key, std::string instance_na
 auto module_instances_t::do_create_sync(app_key_t app_key, std::string instance_name) //
     -> result_t
 {
-    auto job_id = queue_create(std::move(app_key), std::move(instance_name));
-    return _jobs_api->wait_for_job(job_id);
+    auto _ = job_progress_t{};
+    return do_create(std::move(app_key), std::move(instance_name), _);
 }
 
 auto module_instances_t::do_create(
@@ -219,8 +219,8 @@ auto module_instances_t::queue_start(instance_id_t instance_id) //
 auto module_instances_t::do_start_sync(instance_id_t instance_id) //
     -> result_t
 {
-    auto job_id = queue_start(std::move(instance_id));
-    return _jobs_api->wait_for_job(job_id);
+    auto _ = job_progress_t{};
+    return do_start(std::move(instance_id), _);
 }
 
 auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& /*progress*/) //
@@ -265,8 +265,8 @@ auto module_instances_t::queue_stop(instance_id_t instance_id) //
 auto module_instances_t::do_stop_sync(instance_id_t instance_id) //
     -> result_t
 {
-    auto job_id = queue_stop(std::move(instance_id));
-    return _jobs_api->wait_for_job(job_id);
+    auto _ = job_progress_t{};
+    return do_stop(std::move(instance_id), _);
 }
 
 auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& /*progress*/) //
@@ -311,8 +311,8 @@ auto module_instances_t::queue_remove(instance_id_t instance_id) //
 auto module_instances_t::do_remove_sync(instance_id_t instance_id) //
     -> result_t
 {
-    auto job_id = queue_remove(std::move(instance_id));
-    return _jobs_api->wait_for_job(job_id);
+    auto _ = job_progress_t{};
+    return do_remove(std::move(instance_id), _);
 }
 
 auto module_instances_t::do_remove(instance_id_t instance_id, job_progress_t& progress) //
@@ -580,10 +580,11 @@ auto module_instances_t::queue_update(instance_id_t /*instance_id*/, std::string
     return {};
 }
 
-auto module_instances_t::do_update_sync(instance_id_t /*instance_id*/, std::string /*to*/) //
+auto module_instances_t::do_update_sync(instance_id_t instance_id, std::string to) //
     -> result_t
 {
-    return {0, {}};
+    auto _ = job_progress_t{};
+    return do_update(std::move(instance_id), std::move(to), _);
 }
 
 auto module_instances_t::do_update(
