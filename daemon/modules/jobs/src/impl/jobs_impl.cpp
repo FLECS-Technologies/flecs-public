@@ -103,7 +103,7 @@ auto module_jobs_t::do_wait_for_job(job_id_t job_id) const //
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     } while (true);
 
-    return {0, {}};
+    return it->result();
 }
 
 auto module_jobs_t::fetch_job() //

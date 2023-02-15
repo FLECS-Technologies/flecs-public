@@ -124,40 +124,26 @@ auto module_instances_t::do_init() //
     _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
 }
 
-auto module_instances_t::do_list(const app_key_t& app_key) const //
-    -> crow::response
+auto module_instances_t::do_instance_ids(const app_key_t& app_key) const //
+    -> std::vector<instance_id_t>
 {
-    auto response = json_t::array();
+    return _deployment->instance_ids(app_key);
+}
 
-    for (const auto& instance_id : _deployment->instance_ids(app_key, deployment_t::MatchVersion)) {
-        auto json = json_t::object();
+auto module_instances_t::do_query(instance_id_t instance_id) const //
+    -> std::shared_ptr<instance_t>
+{
+    return _deployment->query_instance(std::move(instance_id));
+}
 
-        auto instance = _deployment->query_instance(instance_id);
-
-        json["instanceId"] = instance->id().hex();
-        json["instanceName"] = instance->instance_name();
-        if (auto app = instance->app()) {
-            json["appKey"] = app->key();
-            if (instance->status() == instance_status_e::Created) {
-                json["status"] = to_string(
-                    _deployment->is_instance_running(instance) ? instance_status_e::Running
-                                                               : instance_status_e::Stopped);
-            } else {
-                json["status"] = to_string(instance->status());
-            }
-        } else {
-            json["appKey"] = app_key_t{instance->app_name().data(), instance->app_version().data()};
-            json["status"] = to_string(instance_status_e::Orphaned);
-        }
-        json["desired"] = to_string(instance->desired());
-        response.push_back(std::move(json));
-    }
-
-    return {crow::status::OK, "json", response.dump()};
+auto module_instances_t::do_is_running(std::shared_ptr<instance_t> instance) const //
+    -> bool
+{
+    return _deployment->is_instance_running(std::move(instance));
 }
 
 auto module_instances_t::queue_create(app_key_t app_key, std::string instance_name) //
-    -> crow::response
+    -> job_id_t
 {
     auto job = job_t{std::bind(
         &module_instances_t::do_create,
@@ -166,12 +152,14 @@ auto module_instances_t::queue_create(app_key_t app_key, std::string instance_na
         std::move(instance_name),
         std::placeholders::_1)};
 
-    auto job_id =
-        _jobs_api->append(std::move(job), "Creating new instance of " + to_string(app_key));
+    return _jobs_api->append(std::move(job), "Creating new instance of " + to_string(app_key));
+}
 
-    auto response = json_t::object();
-    response["jobId"] = std::to_string(job_id);
-    return {crow::status::ACCEPTED, "json", response.dump()};
+auto module_instances_t::do_create_sync(app_key_t app_key, std::string instance_name) //
+    -> result_t
+{
+    auto job_id = queue_create(std::move(app_key), std::move(instance_name));
+    return _jobs_api->wait_for_job(job_id);
 }
 
 auto module_instances_t::do_create(
@@ -217,7 +205,7 @@ auto module_instances_t::do_create(
 }
 
 auto module_instances_t::queue_start(instance_id_t instance_id) //
-    -> crow::response
+    -> job_id_t
 {
     auto job = job_t{std::bind(
         &module_instances_t::do_start,
@@ -225,11 +213,14 @@ auto module_instances_t::queue_start(instance_id_t instance_id) //
         std::move(instance_id),
         std::placeholders::_1)};
 
-    auto job_id = _jobs_api->append(std::move(job), "Starting instance " + instance_id.hex());
+    return _jobs_api->append(std::move(job), "Starting instance " + instance_id.hex());
+}
 
-    auto response = json_t::object();
-    response["jobId"] = std::to_string(job_id);
-    return {crow::status::ACCEPTED, "json", response.dump()};
+auto module_instances_t::do_start_sync(instance_id_t instance_id) //
+    -> result_t
+{
+    auto job_id = queue_start(std::move(instance_id));
+    return _jobs_api->wait_for_job(job_id);
 }
 
 auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& /*progress*/) //
@@ -260,7 +251,7 @@ auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& /*p
 }
 
 auto module_instances_t::queue_stop(instance_id_t instance_id) //
-    -> crow::response
+    -> job_id_t
 {
     auto job = job_t{std::bind(
         &module_instances_t::do_stop,
@@ -268,11 +259,14 @@ auto module_instances_t::queue_stop(instance_id_t instance_id) //
         std::move(instance_id),
         std::placeholders::_1)};
 
-    auto job_id = _jobs_api->append(std::move(job), "Stopping instance " + instance_id.hex());
+    return _jobs_api->append(std::move(job), "Stopping instance " + instance_id.hex());
+}
 
-    auto response = json_t::object();
-    response["jobId"] = std::to_string(job_id);
-    return {crow::status::ACCEPTED, "json", response.dump()};
+auto module_instances_t::do_stop_sync(instance_id_t instance_id) //
+    -> result_t
+{
+    auto job_id = queue_stop(std::move(instance_id));
+    return _jobs_api->wait_for_job(job_id);
 }
 
 auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& /*progress*/) //
@@ -303,7 +297,7 @@ auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& /*pr
 }
 
 auto module_instances_t::queue_remove(instance_id_t instance_id) //
-    -> crow::response
+    -> job_id_t
 {
     auto job = job_t{std::bind(
         &module_instances_t::do_remove,
@@ -311,16 +305,17 @@ auto module_instances_t::queue_remove(instance_id_t instance_id) //
         std::move(instance_id),
         std::placeholders::_1)};
 
-    auto job_id = _jobs_api->append(std::move(job), "Removing instance " + instance_id.hex());
-
-    auto response = json_t::object();
-    response["jobId"] = std::to_string(job_id);
-    return {crow::status::ACCEPTED, "json", response.dump()};
+    return _jobs_api->append(std::move(job), "Removing instance " + instance_id.hex());
 }
 
-auto module_instances_t::do_remove(
-    instance_id_t instance_id,
-    job_progress_t& progress) //
+auto module_instances_t::do_remove_sync(instance_id_t instance_id) //
+    -> result_t
+{
+    auto job_id = queue_remove(std::move(instance_id));
+    return _jobs_api->wait_for_job(job_id);
+}
+
+auto module_instances_t::do_remove(instance_id_t instance_id, job_progress_t& progress) //
     -> result_t
 {
     progress.num_steps(3);
@@ -579,25 +574,27 @@ auto module_instances_t::do_logs(instance_id_t instance_id) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto module_instances_t::queue_update(
-    instance_id_t /*instance_id*/, std::string /*from*/, std::string /*to*/) //
-    -> crow::response
+auto module_instances_t::queue_update(instance_id_t /*instance_id*/, std::string /*to*/) //
+    -> job_id_t
 {
-    return {crow::status::ACCEPTED, "json", {}};
+    return {};
+}
+
+auto module_instances_t::do_update_sync(instance_id_t /*instance_id*/, std::string /*to*/) //
+    -> result_t
+{
+    return {0, {}};
 }
 
 auto module_instances_t::do_update(
-    instance_id_t /*instance_id*/,
-    std::string /*from*/,
-    std::string /*to*/,
-    job_progress_t& /*progress*/) //
+    instance_id_t /*instance_id*/, std::string /*to*/, job_progress_t& /*progress*/) //
     -> result_t
 {
     return {0, {}};
 }
 
 auto module_instances_t::queue_export_to(instance_id_t instance_id, fs::path dest_dir) //
-    -> crow::response
+    -> job_id_t
 {
     auto job = job_t{std::bind(
         &module_instances_t::do_export_to,
@@ -606,13 +603,9 @@ auto module_instances_t::queue_export_to(instance_id_t instance_id, fs::path des
         std::move(dest_dir),
         std::placeholders::_1)};
 
-    auto job_id = _jobs_api->append(
+    return _jobs_api->append(
         std::move(job),
         "Exporting instance " + instance_id.hex() + " to " + dest_dir.string());
-
-    auto response = json_t::object();
-    response["jobId"] = std::to_string(job_id);
-    return {crow::status::ACCEPTED, "json", response.dump()};
 }
 
 auto module_instances_t::do_export_to(

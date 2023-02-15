@@ -136,7 +136,7 @@ TEST(jobs, status)
     }
     {
         const auto [res, message] = uut.wait_for_job(2);
-        ASSERT_EQ(res, 0);
+        ASSERT_EQ(res, -1);
         ASSERT_TRUE(job_1.executed);
     }
 

@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <mutex>
+#include <vector>
 
 #include "instances.h"
 
@@ -41,30 +42,43 @@ private:
     auto do_init() //
         -> void;
 
+    auto do_instance_ids(const app_key_t& app_key) const //
+        -> std::vector<instance_id_t>;
+
+    auto do_query(instance_id_t instance_id) const //
+        -> std::shared_ptr<instance_t>;
+
+    auto do_is_running(std::shared_ptr<instance_t> instance) const //
+        -> bool;
+
     auto do_list(const app_key_t& app_key) const //
-        -> crow::response;
+        -> std::vector<instance_id_t>;
 
     auto queue_create(app_key_t app_key, std::string instance_name) //
-        -> crow::response;
-
+        -> job_id_t;
+    auto do_create_sync(app_key_t app_key, std::string instance_name) //
+        -> result_t;
     auto do_create(app_key_t app_key, std::string instance_name, job_progress_t& progress) //
         -> result_t;
 
     auto queue_start(instance_id_t instance_id) //
-        -> crow::response;
-
+        -> job_id_t;
+    auto do_start_sync(instance_id_t instance_id) //
+        -> result_t;
     auto do_start(instance_id_t instance_id, job_progress_t& progress) //
         -> result_t;
 
     auto queue_stop(instance_id_t instance_id) //
-        -> crow::response;
-
+        -> job_id_t;
+    auto do_stop_sync(instance_id_t instance_id) //
+        -> result_t;
     auto do_stop(instance_id_t instance_id, job_progress_t& progress) //
         -> result_t;
 
     auto queue_remove(instance_id_t instance_id) //
-        -> crow::response;
-
+        -> job_id_t;
+    auto do_remove_sync(instance_id_t instance_id) //
+        -> result_t;
     auto do_remove(instance_id_t instance_id, job_progress_t& progress) //
         -> result_t;
 
@@ -80,15 +94,15 @@ private:
     auto do_logs(instance_id_t instance_id) const //
         -> crow::response;
 
-    auto queue_update(instance_id_t instance_id, std::string from, std::string to) //
-        -> crow::response;
-
-    auto do_update(
-        instance_id_t instance_id, std::string from, std::string to, job_progress_t& progress) //
+    auto queue_update(instance_id_t instance_id, std::string to) //
+        -> job_id_t;
+    auto do_update_sync(instance_id_t instance_id, std::string to) //
+        -> result_t;
+    auto do_update(instance_id_t instance_id, std::string to, job_progress_t& progress) //
         -> result_t;
 
     auto queue_export_to(instance_id_t instance_id, fs::path dest_dir) //
-        -> crow::response;
+        -> job_id_t;
 
     auto do_export_to(instance_id_t instance_id, fs::path dest_dir, job_progress_t& progress) //
         -> result_t;

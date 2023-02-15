@@ -14,14 +14,19 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include "common/instance/instance_id.h"
 #include "module_base/module.h"
+#include "modules/jobs/job_id.h"
 #include "util/fs/fs.h"
 
 namespace FLECS {
 
 class app_key_t;
 class instance_config_t;
+class instance_t;
 
 namespace impl {
 class module_instances_t;
@@ -38,50 +43,89 @@ public:
      *
      * @return HTTP response
      */
-    auto list(const app_key_t& app_key) const //
+    auto http_list(const app_key_t& app_key) const //
         -> crow::response;
-    auto list(std::string app_name, std::string version) const //
+
+    auto http_details(instance_id_t instance_id) const //
         -> crow::response;
-    auto list(std::string app_name) const //
+
+    auto http_create(app_key_t app_key, std::string instance_name) //
         -> crow::response;
-    auto list() const //
+
+    auto http_start(instance_id_t instance_id) //
         -> crow::response;
+
+    auto http_stop(instance_id_t instance_id) //
+        -> crow::response;
+
+    auto http_remove(instance_id_t instance_id) //
+        -> crow::response;
+
+    auto http_get_config(instance_id_t instance_id) const //
+        -> crow::response;
+
+    auto http_post_config(instance_id_t instance_id, const instance_config_t& config) //
+        -> crow::response;
+
+    auto http_logs(instance_id_t instance_id) const //
+        -> crow::response;
+
+    auto http_update(instance_id_t instance_id, std::string to) //
+        -> crow::response;
+
+    auto http_export_to(instance_id_t instance_id, fs::path dest_dir) const //
+        -> crow::response;
+
+    /*! @brief List all available instance ids
+     *
+     * @param app_key (optional) limit list to all or specific version of specific App
+     *
+     * @return vector containing all available instance ids
+     */
+    auto instance_ids(const app_key_t& app_key) const //
+        -> std::vector<instance_id_t>;
+    auto instance_ids(std::string app_name, std::string version) const //
+        -> std::vector<instance_id_t>;
+    auto instance_ids(std::string app_name) const //
+        -> std::vector<instance_id_t>;
+    auto instance_ids() const //
+        -> std::vector<instance_id_t>;
+
+    /*! @brief Query instance for a given instance id
+     *
+     * @param instance_id instance id to query
+     *
+     * @return shared_ptr to instance, or nullptr
+     */
+    auto query(instance_id_t instance_id) const //
+        -> std::shared_ptr<instance_t>;
+
+    /*! @brief Query if instance is running
+     *
+     * @param instance shared_ptr to instance
+     *
+     * @return true if instance is running, false otherwise
+     */
+    auto is_running(std::shared_ptr<instance_t> instance) const //
+        -> bool;
 
     auto create(app_key_t app_key, std::string instance_name) //
-        -> crow::response;
+        -> result_t;
     auto create(app_key_t app_key) //
-        -> crow::response;
+        -> result_t;
     auto create(std::string app_name, std::string version, std::string instance_name) //
-        -> crow::response;
+        -> result_t;
     auto create(std::string app_name, std::string version) //
-        -> crow::response;
+        -> result_t;
 
     auto start(instance_id_t instance_id) //
-        -> crow::response;
+        -> result_t;
 
     auto stop(instance_id_t instance_id) //
-        -> crow::response;
+        -> result_t;
 
     auto remove(instance_id_t instance_id) //
-        -> crow::response;
-
-    auto get_config(instance_id_t instance_id) const //
-        -> crow::response;
-
-    auto post_config(instance_id_t instance_id, const instance_config_t& config) //
-        -> crow::response;
-
-    auto details(instance_id_t instance_id) const //
-        -> crow::response;
-
-    auto logs(instance_id_t instance_id) const //
-        -> crow::response;
-
-    auto update(instance_id_t instance_id, std::string from, std::string to) //
-        -> crow::response;
-
-    auto export_to(instance_id_t instance_id, fs::path dest_dir) const //
-        -> crow::response;
+        -> result_t;
 
 protected:
     friend class module_factory_t;

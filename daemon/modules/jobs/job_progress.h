@@ -18,6 +18,7 @@
 #include <mutex>
 #include <string>
 
+#include "core/flecs.h"
 #include "job_id.h"
 #include "job_status.h"
 #include "util/json/json.h"
@@ -53,17 +54,6 @@ public:
             , _units_total{}
             , _units_done{}
             , _rate{}
-        {}
-    };
-
-    struct result_t
-    {
-        std::int32_t code;
-        std::string message;
-
-        result_t()
-            : code{}
-            , message{}
         {}
     };
 
