@@ -159,13 +159,12 @@ auto module_instances_t::do_list(const app_key_t& app_key) const //
 auto module_instances_t::queue_create(app_key_t app_key, std::string instance_name) //
     -> crow::response
 {
-    auto job = job_t{};
-    job.callable = std::bind(
+    auto job = job_t{std::bind(
         &module_instances_t::do_create,
         this,
         std::move(app_key),
         std::move(instance_name),
-        std::placeholders::_1);
+        std::placeholders::_1)};
 
     auto job_id =
         _jobs_api->append(std::move(job), "Creating new instance of " + to_string(app_key));
@@ -220,12 +219,11 @@ auto module_instances_t::do_create(
 auto module_instances_t::queue_start(instance_id_t instance_id) //
     -> crow::response
 {
-    auto job = job_t{};
-    job.callable = std::bind(
+    auto job = job_t{std::bind(
         &module_instances_t::do_start,
         this,
         std::move(instance_id),
-        std::placeholders::_1);
+        std::placeholders::_1)};
 
     auto job_id = _jobs_api->append(std::move(job), "Starting instance " + instance_id.hex());
 
@@ -264,12 +262,11 @@ auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& /*p
 auto module_instances_t::queue_stop(instance_id_t instance_id) //
     -> crow::response
 {
-    auto job = job_t{};
-    job.callable = std::bind(
+    auto job = job_t{std::bind(
         &module_instances_t::do_stop,
         this,
         std::move(instance_id),
-        std::placeholders::_1);
+        std::placeholders::_1)};
 
     auto job_id = _jobs_api->append(std::move(job), "Stopping instance " + instance_id.hex());
 
@@ -308,12 +305,11 @@ auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& /*pr
 auto module_instances_t::queue_remove(instance_id_t instance_id) //
     -> crow::response
 {
-    auto job = job_t{};
-    job.callable = std::bind(
+    auto job = job_t{std::bind(
         &module_instances_t::do_remove,
         this,
         std::move(instance_id),
-        std::placeholders::_1);
+        std::placeholders::_1)};
 
     auto job_id = _jobs_api->append(std::move(job), "Removing instance " + instance_id.hex());
 
@@ -603,13 +599,12 @@ auto module_instances_t::do_update(
 auto module_instances_t::queue_export_to(instance_id_t instance_id, fs::path dest_dir) //
     -> crow::response
 {
-    auto job = job_t{};
-    job.callable = std::bind(
+    auto job = job_t{std::bind(
         &module_instances_t::do_export_to,
         this,
         std::move(instance_id),
         std::move(dest_dir),
-        std::placeholders::_1);
+        std::placeholders::_1)};
 
     auto job_id = _jobs_api->append(
         std::move(job),

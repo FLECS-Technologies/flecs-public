@@ -23,6 +23,16 @@ namespace {
 register_module_t<module_jobs_t> _reg("jobs");
 }
 
+job_t::job_t(job_t::callable_t callable)
+    : _callable{std::move(callable)}
+{}
+
+auto job_t::callable() const noexcept //
+    -> const callable_t&
+{
+    return _callable;
+}
+
 module_jobs_t::module_jobs_t()
     : _impl{new impl::module_jobs_t{}}
 {}
@@ -56,6 +66,12 @@ auto module_jobs_t::list_jobs(job_id_t job_id) const //
     -> crow::response
 {
     return _impl->do_list_jobs(std::move(job_id));
+}
+
+auto module_jobs_t::wait_for_job(job_id_t job_id) const //
+    -> result_t
+{
+    return _impl->do_wait_for_job(std::move(job_id));
 }
 
 } // namespace FLECS

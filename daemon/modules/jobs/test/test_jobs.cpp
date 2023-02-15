@@ -120,16 +120,24 @@ TEST(jobs, status)
         "FLECS unit test job");
 
     {
-        auto lock = std::unique_lock{job_0.mutex};
-        ASSERT_TRUE(job_0.cv.wait_for(lock, std::chrono::seconds(1), [&job_0]() {
-            return job_0.executed;
-        }));
+        const auto [res, message] = uut.wait_for_job(0);
+        ASSERT_EQ(res, -1);
+    }
+    {
+        const auto [res, message] = uut.wait_for_job(1);
+        ASSERT_EQ(res, 0);
+        ASSERT_TRUE(job_0.executed);
     }
     {
         auto lock = std::unique_lock{job_1.mutex};
         ASSERT_TRUE(job_1.cv.wait_for(lock, std::chrono::seconds(1), [&job_1]() {
             return job_1.executed;
         }));
+    }
+    {
+        const auto [res, message] = uut.wait_for_job(2);
+        ASSERT_EQ(res, 0);
+        ASSERT_TRUE(job_1.executed);
     }
 
     kill(flecs_gettid(), SIGTERM);

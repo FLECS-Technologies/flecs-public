@@ -14,6 +14,8 @@
 
 #include "impl/jobs_impl.h"
 
+#include <algorithm>
+
 #include "jobs.h"
 #include "util/signal_handler/signal_handler.h"
 
@@ -23,8 +25,8 @@ namespace impl {
 module_jobs_t::module_jobs_t()
     : _job_id{}
     , _next_job_id{}
-    , _q_mutex{}
     , _q{}
+    , _q_mutex{}
     , _q_cv{}
     , _job_progress{}
     , _worker_thread{}
@@ -76,7 +78,35 @@ auto module_jobs_t::do_list_jobs(job_id_t job_id) const //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto module_jobs_t::wait_for_job() //
+auto module_jobs_t::do_wait_for_job(job_id_t job_id) const //
+    -> result_t
+{
+    if (job_id == job_id_t{}) {
+        return {-1, "Empty job_id specified"};
+    }
+
+    const auto it = std::find_if(
+        _job_progress.cbegin(),
+        _job_progress.cend(),
+        [&job_id](const job_progress_t& elem) { return elem.job_id() == job_id; });
+
+    if (it == _job_progress.cend()) {
+        return {-1, "No such job " + std::to_string(job_id)};
+    }
+
+    do {
+        auto status = it->status();
+        if (status == job_status_e::Cancelled || status == job_status_e::Successful ||
+            status == job_status_e::Failed) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    } while (true);
+
+    return {0, {}};
+}
+
+auto module_jobs_t::fetch_job() //
     -> std::optional<job_t>
 {
     auto lock = std::unique_lock{_q_mutex};
@@ -95,7 +125,7 @@ auto module_jobs_t::worker_thread() //
     pthread_setname_np(pthread_self(), "job_scheduler");
 
     while (!g_stop) {
-        auto job = wait_for_job();
+        auto job = fetch_job();
         if (!job.has_value()) {
             continue;
         }
@@ -111,7 +141,7 @@ auto module_jobs_t::worker_thread() //
                 [this](job_progress_t& item) { return item.job_id() == _next_job_id; });
 
             job_progress.status(job_status_e::Running);
-            auto [code, message] = std::invoke(job->callable, job_progress);
+            auto [code, message] = std::invoke(job->callable(), job_progress);
             job_progress.result(code, std::move(message));
             job_progress.status(code == 0 ? job_status_e::Successful : job_status_e::Failed);
         }};
