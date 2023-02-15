@@ -22,6 +22,7 @@
 #include "api/api.h"
 #include "common/app/manifest/manifest.h"
 #include "modules/factory/factory.h"
+#include "modules/instances/instances.h"
 #include "modules/jobs/jobs.h"
 #include "modules/manifests/manifests.h"
 #include "modules/marketplace/marketplace.h"
@@ -124,6 +125,8 @@ module_apps_t::~module_apps_t()
 auto module_apps_t::do_init() //
     -> void
 {
+    _instances_api =
+        std::dynamic_pointer_cast<FLECS::module_instances_t>(api::query_module("instances"));
     _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
     _manifests_api =
         std::dynamic_pointer_cast<FLECS::module_manifests_t>(api::query_module("manifests"));
@@ -440,15 +443,13 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
 
     app->desired(app_status_e::NotInstalled);
 
-#if 0
     progress.next_step("Removing App instances");
 
     // Step 3: Stop and delete all instances of the App
-    const auto instance_ids = _deployment->instance_ids(app_name, version);
-    for (const auto& instance_id : instance_ids) {
-        do_delete_instance(instance_id, app_name, version, response);
+    const auto instance_ids = _instances_api->instance_ids(app_key);
+    for (const auto id : instance_ids) {
+        _instances_api->remove(id);
     }
-#endif // 0
 
     // Step 4: Remove Docker image of the App
     progress.next_step("Removing App image");
