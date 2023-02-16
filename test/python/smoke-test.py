@@ -400,7 +400,7 @@ def test_install_apps():
     # check if correct amount of tickets were consumed
     ticked_count_post = count_tickets()
     tickets_consumed = ticked_count_pre - ticked_count_post
-    assert len(user_apps) == tickets_consumed
+    assert len(user_apps) <= tickets_consumed # until there is a separate testing account, someone else might use tickets at the same time
 
 ###
 ### Test: Instances of installed apps can be created
@@ -448,6 +448,8 @@ def test_open_apps():
     """
     TC07: Test if opening the apps in user_apps_ports works
     """
+
+    time.sleep(5) # wait for instances to become responsive
 
     for app in user_apps_ports:
         resp = open_app(app)
