@@ -17,8 +17,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+      - name: "Disable git security"
+        run: |
+          git config --system --add safe.directory "*"
       - name: "CMake: Configure"
         run: |
+          git config --system --add safe.directory "*"
           cmake -G Ninja -B out/${{ matrix.arch }} -DARCH=${{ matrix.arch }}
       - name: "CMake: Build"
         run: |
@@ -39,8 +43,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+      - name: "Disable git security"
+        run: |
+          git config --system --add safe.directory "*"
       - name: "CMake: Configure"
         run: |
+          git config --system --add safe.directory "*"
           cmake -G Ninja -B out/${{ matrix.arch }} -DARCH=${{ matrix.arch }} -DFLECS_BUILD_TESTS=Yes
       - name: "CMake: Build"
         run: |
