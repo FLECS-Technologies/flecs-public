@@ -56,9 +56,9 @@ public:
     auto deployment_id() const noexcept //
         -> std::string_view;
 
-    auto load(fs::path base_path = "/var/lib/flecs/deployment/") //
+    auto load(const fs::path& base_path = "/var/lib/flecs/") //
         -> result_t;
-    auto save(fs::path base_path = "/var/lib/flecs/deployment/") //
+    auto save(const fs::path& base_path = "/var/lib/flecs/") //
         -> result_t;
 
     auto instance_ids(
@@ -166,10 +166,10 @@ protected:
     std::map<std::string, network_t> _networks;
 
 private:
-    auto do_load(fs::path base_path) //
+    auto do_load(const fs::path& base_path) //
         -> result_t;
 
-    auto do_save(fs::path base_path) //
+    auto do_save(const fs::path& base_path) //
         -> result_t;
 
     virtual auto do_deployment_id() const noexcept //

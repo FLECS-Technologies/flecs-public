@@ -32,9 +32,7 @@ module_apps_t::module_apps_t()
 {}
 
 module_apps_t::~module_apps_t()
-{
-    save();
-}
+{}
 
 auto module_apps_t::do_init() //
     -> void
@@ -111,20 +109,18 @@ auto module_apps_t::do_init() //
 #endif // 0
 
     _impl->do_init();
-
-    load();
 }
 
-auto module_apps_t::load(fs::path base_path) //
-    -> crow::response
+auto module_apps_t::do_load(const fs::path& base_path) //
+    -> void
 {
-    return _impl->do_load(std::move(base_path));
+    return _impl->do_load(base_path);
 }
 
-auto module_apps_t::save(fs::path base_path) const //
-    -> crow::response
+auto module_apps_t::do_save(const fs::path& base_path) const //
+    -> void
 {
-    return _impl->do_save(std::move(base_path));
+    return _impl->do_save(base_path);
 }
 
 auto module_apps_t::list(const app_key_t& app_key) const //

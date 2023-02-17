@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B
-#define DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B
+#pragma once
 
 #include "api/api.h"
 #include "core/flecs.h"
+#include "util/fs/fs.h"
 #include "util/json/json.h"
 
 namespace FLECS {
@@ -52,23 +52,29 @@ namespace FLECS {
 class module_t
 {
 public:
-    auto init() -> //
-        void;
-    auto deinit() -> //
-        void;
+    auto load(const fs::path& base_path = "/var/lib/flecs/") //
+        -> void;
+    auto init() //
+        -> void;
+    auto deinit() //
+        -> void;
+    auto save(const fs::path& base_path = "/var/lib/flecs/") const //
+        -> void;
     // std::string usage();
 
 protected:
     virtual ~module_t() = default;
 
 private:
+    virtual auto do_load(const fs::path& base_path) //
+        -> void;
     virtual auto do_init() //
         -> void = 0;
     virtual auto do_deinit() //
         -> void = 0;
+    virtual auto do_save(const fs::path& base_path) const //
+        -> void;
     // virtual std::string do_usage() = 0;
 };
 
 } // namespace FLECS
-
-#endif // DB1BEA7C_952B_4D0F_A1A5_3DD71D6CB69B

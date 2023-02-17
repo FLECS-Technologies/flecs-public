@@ -32,6 +32,12 @@ module_instances_t::module_instances_t()
 module_instances_t::~module_instances_t()
 {}
 
+auto module_instances_t::do_load(const fs::path& base_path) //
+    -> void
+{
+    return _impl->do_load(base_path);
+}
+
 auto module_instances_t::do_init() //
     -> void
 {

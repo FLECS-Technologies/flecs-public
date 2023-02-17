@@ -41,8 +41,8 @@ public:
      *
      * @return HTTP response
      */
-    auto load(fs::path base_path = "/var/lib/flecs/") //
-        -> crow::response;
+    auto do_load(const fs::path& base_path) //
+        -> void override;
 
     /*! @brief Save installed apps to apps.json
      *
@@ -50,8 +50,8 @@ public:
      *
      * @return HTTP response
      */
-    auto save(fs::path base_path = "/var/lib/flecs/") const //
-        -> crow::response;
+    auto do_save(const fs::path& base_path) const //
+        -> void override;
 
     /*! @brief Lists all installed Apps
      *
