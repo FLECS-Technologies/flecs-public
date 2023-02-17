@@ -25,6 +25,9 @@ module_factory_t& module_factory_t::instance()
 void module_factory_t::init_modules()
 {
     for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it) {
+        it->second->load();
+    }
+    for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it) {
         it->second->init();
     }
 }

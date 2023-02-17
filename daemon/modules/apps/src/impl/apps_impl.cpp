@@ -21,6 +21,7 @@
 
 #include "api/api.h"
 #include "common/app/manifest/manifest.h"
+#include "common/instance/instance.h"
 #include "modules/factory/factory.h"
 #include "modules/instances/instances.h"
 #include "modules/jobs/jobs.h"
@@ -131,31 +132,7 @@ auto module_apps_t::do_init() //
     _manifests_api =
         std::dynamic_pointer_cast<FLECS::module_manifests_t>(api::query_module("manifests"));
     _manifests_api->base_path("/var/lib/flecs/manifests/");
-}
 
-auto module_apps_t::do_load(fs::path base_path) //
-    -> crow::response
-{
-    auto response = json_t{};
-    auto res = crow::status::OK;
-
-    base_path /= "apps.json";
-    auto json_file = std::ifstream{base_path.c_str()};
-    if (json_file.good()) {
-        auto apps_json = parse_json(json_file);
-        try {
-            _apps.reserve(apps_json.size());
-            for (const auto& app : apps_json) {
-                _apps.push_back(std::make_shared<app_t>(app.get<app_t>()));
-            }
-            response["additionalInfo"] = "Loaded apps from "s + base_path.string();
-        } catch (const std::exception& ex) {
-            _apps.clear();
-            res = crow::status::INTERNAL_SERVER_ERROR;
-            response["additionalInfo"] =
-                "Could not load apps from "s + base_path.string() + ": "s + ex.what();
-        }
-    }
     for (auto& app : _apps) {
         auto manifest = _manifests_api->query(app->key());
         if (manifest) {
@@ -163,36 +140,47 @@ auto module_apps_t::do_load(fs::path base_path) //
         }
     }
 
-    return {res, "json", response.dump()};
+    for (auto id : _instances_api->instance_ids()) {
+        auto instance = _instances_api->query(id);
+        instance->app(
+            _parent->query(app_key_t{instance->app_name().data(), instance->app_version().data()}));
+    }
 }
 
-auto module_apps_t::do_save(fs::path base_path) const //
-    -> crow::response
+auto module_apps_t::do_load(const fs::path& base_path) //
+    -> void
 {
-    auto response = json_t{};
+    auto json_file = std::ifstream{base_path / "apps.json"};
+    if (json_file.good()) {
+        auto apps_json = parse_json(json_file);
+        try {
+            _apps.reserve(apps_json.size());
+            for (const auto& app : apps_json) {
+                _apps.push_back(std::make_shared<app_t>(app.get<app_t>()));
+            }
+        } catch (const std::exception& ex) {
+            _apps.clear();
+        }
+    }
+}
 
+auto module_apps_t::do_save(const fs::path& base_path) const //
+    -> void
+{
     auto ec = std::error_code{};
     fs::create_directories(base_path, ec);
     if (ec) {
-        response["additionalInfo"] =
-            "Could not save apps to "s + base_path.string() + ": " + std::to_string(ec.value());
-        return {crow::status::INTERNAL_SERVER_ERROR, "json", response.dump()};
+        return;
     }
 
-    base_path /= "apps.json";
-    auto json_file = std::ofstream{base_path.c_str(), std::ios_base::out | std::ios_base::trunc};
+    auto json_file =
+        std::ofstream{base_path / "apps.json", std::ios_base::out | std::ios_base::trunc};
     auto apps_json = json_t::array();
     for (const auto& app : _apps) {
         apps_json.push_back(*app);
     }
-    json_file << apps_json;
-    if (!json_file) {
-        response["additionalInfo"] = "Could not save apps to "s + base_path.string();
-        return {crow::status::INTERNAL_SERVER_ERROR, "json", response.dump()};
-    }
 
-    response["additionalInfo"] = "Saved apps to "s + base_path.string();
-    return {crow::status::OK, "json", response.dump()};
+    json_file << apps_json;
 }
 
 auto module_apps_t::do_list(const app_key_t& app_key) const //

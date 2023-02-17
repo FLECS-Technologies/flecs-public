@@ -132,8 +132,15 @@ protected:
 
     module_instances_t();
 
-    void do_init() override;
-    void do_deinit() override {}
+    auto do_load(const fs::path& base_path) //
+        -> void override;
+
+    auto do_init() //
+        -> void override;
+
+    auto do_deinit() //
+        -> void override
+    {}
 
     std::unique_ptr<impl::module_instances_t> _impl;
 };

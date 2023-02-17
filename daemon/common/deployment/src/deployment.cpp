@@ -33,13 +33,13 @@ auto deployment_t::deployment_id() const noexcept //
     return do_deployment_id();
 }
 
-auto deployment_t::load(fs::path base_path) //
+auto deployment_t::load(const fs::path& base_path) //
     -> result_t
 {
     return do_load(base_path);
 }
 
-auto deployment_t::save(fs::path base_path) //
+auto deployment_t::save(const fs::path& base_path) //
     -> result_t
 {
     return do_save(base_path);
@@ -684,12 +684,12 @@ auto deployment_t::generate_instance_ip(
     return to_string(instance_ip);
 }
 
-auto deployment_t::do_load(fs::path base_path) //
+auto deployment_t::do_load(const fs::path& base_path) //
     -> result_t
 {
     using std::operator""sv;
 
-    auto json_file = std::ifstream{base_path / deployment_id().data() += ".json"sv};
+    auto json_file = std::ifstream{base_path / "deployment" / deployment_id().data() += ".json"sv};
     if (!json_file.good()) {
         return {-1, "Could not open json"};
     }
@@ -708,20 +708,20 @@ auto deployment_t::do_load(fs::path base_path) //
     return {0, {}};
 }
 
-auto deployment_t::do_save(fs::path base_path) //
+auto deployment_t::do_save(const fs::path& base_path) //
     -> result_t
 {
+    auto path = base_path / "deployment";
     auto ec = std::error_code{};
-    fs::create_directories(base_path, ec);
+    fs::create_directories(path, ec);
     if (ec) {
         return {-1, "Could not create directory"};
     }
 
-    base_path /= deployment_id().data();
-    base_path += ".json.new";
-
+    using std::operator""s;
+    auto json_new = path / (deployment_id().data() + ".json.new"s);
     try {
-        auto json_file = std::ofstream{base_path, std::ios_base::out | std::ios_base::trunc};
+        auto json_file = std::ofstream{json_new, std::ios_base::out | std::ios_base::trunc};
         auto instances_json = json_t::array();
         for (const auto& instance : _instances) {
             instances_json.push_back(*instance);
@@ -729,8 +729,8 @@ auto deployment_t::do_save(fs::path base_path) //
         json_file << instances_json;
         json_file.flush();
 
-        const auto from = base_path;
-        const auto to = base_path.replace_extension();
+        const auto from = json_new;
+        const auto to = json_new.replace_extension();
         fs::rename(from, to);
     } catch (const std::exception& ex) {
         return {-1, ex.what()};

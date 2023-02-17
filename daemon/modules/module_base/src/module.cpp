@@ -16,14 +16,36 @@
 
 namespace FLECS {
 
-void module_t::init()
+auto module_t::load(const fs::path& base_path) //
+    -> void
+{
+    return do_load(base_path);
+}
+
+auto module_t::init() //
+    -> void
 {
     return do_init();
 }
 
-void module_t::deinit()
+auto module_t::save(const fs::path& base_path) const //
+    -> void
+{
+    return do_save(base_path);
+}
+
+auto module_t::deinit() //
+    -> void
 {
     return do_deinit();
 }
+
+auto module_t::do_load(const fs::path& /*base_path*/) //
+    -> void
+{}
+
+auto module_t::do_save(const fs::path& /*base_path*/) const //
+    -> void
+{}
 
 } // namespace FLECS

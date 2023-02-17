@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef F9F4DFEC_B3F8_4D33_B5B6_A7B2084181BD
-#define F9F4DFEC_B3F8_4D33_B5B6_A7B2084181BD
+#pragma once
 
 #include <memory>
 
@@ -102,5 +101,3 @@ private:
 };
 
 } // namespace FLECS
-
-#endif // F9F4DFEC_B3F8_4D33_B5B6_A7B2084181BD

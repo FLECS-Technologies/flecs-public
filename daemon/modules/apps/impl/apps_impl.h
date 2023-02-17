@@ -44,11 +44,11 @@ private:
     auto do_init() //
         -> void;
 
-    auto do_load(fs::path base_path = "/var/lib/flecs/") //
-        -> crow::response;
+    auto do_load(const fs::path& base_path) //
+        -> void;
 
-    auto do_save(fs::path base_path = "/var/lib/flecs/") const //
-        -> crow::response;
+    auto do_save(const fs::path& base_path) const //
+        -> void;
 
     auto do_list(const app_key_t& app_key) const //
         -> crow::response;
