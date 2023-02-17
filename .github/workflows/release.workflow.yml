@@ -20,6 +20,7 @@ jobs:
           submodules: recursive
       - name: "CMake: Configure"
         run: |
+          git config --system --add safe.directory "*"
           cmake -G Ninja -B out/${{ matrix.arch }} -DARCH=${{ matrix.arch }} -DCMAKE_BUILD_TYPE=Release -DNDEBUG=1
       - name: "CMake: Build"
         run: |
