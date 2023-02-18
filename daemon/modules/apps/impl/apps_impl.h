@@ -50,12 +50,18 @@ private:
     auto do_save(const fs::path& base_path) const //
         -> void;
 
+    auto do_app_keys(const app_key_t& app_key) const //
+        -> std::vector<app_key_t>;
+
     auto do_list(const app_key_t& app_key) const //
         -> crow::response;
 
     auto queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
-        -> crow::response;
-
+        -> job_id_t;
+    auto do_install_from_marketplace_sync(
+        app_key_t app_key,
+        std::string license_key) //
+        -> result_t;
     auto do_install_from_marketplace(
         app_key_t app_key,
         std::string license_key,
@@ -63,22 +69,25 @@ private:
         -> result_t;
 
     auto queue_sideload(std::string manifest_string, std::string license_key) //
-        -> crow::response;
-
+        -> job_id_t;
+    auto do_sideload_sync(std::string manifest_string, std::string license_key) //
+        -> result_t;
     auto do_sideload(
         std::string manifest_string, std::string license_key, job_progress_t& progress) //
         -> result_t;
 
     auto queue_uninstall(app_key_t app_key, bool force) //
-        -> crow::response;
-
+        -> job_id_t;
+    auto do_uninstall_sync(app_key_t app_key, bool force) //
+        -> result_t;
     auto do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
         -> result_t;
 
-    auto queue_archive(app_key_t app_key) const //
-        -> crow::response;
-
-    auto do_archive(app_key_t app_key, job_progress_t& progress) const //
+    auto queue_export_to(app_key_t app_key, fs::path dest_dir) const //
+        -> job_id_t;
+    auto do_export_to_sync(app_key_t app_key, fs::path dest_dir) const //
+        -> result_t;
+    auto do_export_to(app_key_t app_key, fs::path dest_dir, job_progress_t& progress) const //
         -> result_t;
 
     auto do_install_impl(
@@ -86,16 +95,6 @@ private:
         std::string_view license_key,
         job_progress_t& progress) //
         -> result_t;
-
-    /*! @brief Helper function to determine whether a given app is installed in a given version
-     *
-     * @param[in] app_name Name of the app
-     * @param[in] version Version of the app
-     *
-     * @return true if the app is installed, false otherwise
-     */
-    auto do_contains(const app_key_t& app_key) const noexcept //
-        -> bool;
 
     auto do_query(const app_key_t& app_key) const noexcept //
         -> std::shared_ptr<app_t>;

@@ -14,9 +14,6 @@
 
 #include "apps.h"
 
-#include <archive.h>
-#include <archive_entry.h>
-
 #include "factory/factory.h"
 #include "impl/apps_impl.h"
 #include "util/datetime/datetime.h"
@@ -37,26 +34,22 @@ module_apps_t::~module_apps_t()
 auto module_apps_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/apps").methods("GET"_method)([this]() { return list(); });
+    FLECS_V2_ROUTE("/apps").methods("GET"_method)([this]() { return http_list({}); });
 
     FLECS_V2_ROUTE("/apps/<string>")
-        .methods("GET"_method)([this](const crow::request& req, const std::string& app) {
+        .methods("GET"_method)([this](const crow::request& req, std::string app) {
             const auto version = req.url_params.get("version");
             if (version) {
-                return list(app, version);
+                return http_list(app_key_t{std::move(app), version});
             } else {
-                return list(app, {});
+                return http_list(app_key_t{std::move(app), {}});
             }
         });
 
     FLECS_V2_ROUTE("/apps/<string>")
-        .methods("DELETE"_method)([this](const crow::request& req, const std::string& app) {
+        .methods("DELETE"_method)([this](const crow::request& req, std::string app) {
             const auto version = req.url_params.get("version");
-            if (version) {
-                return uninstall(app, version, false);
-            } else {
-                return uninstall(app, {}, false);
-            }
+            return http_uninstall(app_key_t{std::move(app), version ? version : ""});
         });
 
     FLECS_V2_ROUTE("/apps/install").methods("POST"_method)([this](const crow::request& req) {
@@ -65,7 +58,7 @@ auto module_apps_t::do_init() //
         REQUIRED_JSON_VALUE(args, app);
         REQUIRED_JSON_VALUE(args, version);
         OPTIONAL_JSON_VALUE(args, licenseKey);
-        return install_from_marketplace(app, version, licenseKey);
+        return http_install(app_key_t{std::move(app), std::move(version)}, std::move(licenseKey));
     });
 
     FLECS_V2_ROUTE("/apps/sideload").methods("POST"_method)([this](const crow::request& req) {
@@ -73,7 +66,7 @@ auto module_apps_t::do_init() //
         const auto args = parse_json(req.body);
         REQUIRED_JSON_VALUE(args, appYaml);
         OPTIONAL_JSON_VALUE(args, licenseKey);
-        return sideload(appYaml, licenseKey);
+        return http_sideload(std::move(appYaml), std::move(licenseKey));
     });
 
 #if 0
@@ -123,90 +116,130 @@ auto module_apps_t::do_save(const fs::path& base_path) const //
     return _impl->do_save(base_path);
 }
 
-auto module_apps_t::list(const app_key_t& app_key) const //
+auto module_apps_t::http_list(const app_key_t& app_key) const //
     -> crow::response
 {
-    return _impl->do_list(app_key);
+    auto response = json_t::array();
+
+    const auto keys = app_keys(app_key);
+    for (const auto& key : keys) {
+        auto app = query(key);
+        if (app) {
+            response.push_back(*app);
+        }
+    }
+
+    return {crow::status::OK, "json", response.dump()};
 }
 
-auto module_apps_t::list(std::string app_name, std::string version) const //
+auto module_apps_t::http_install(app_key_t app_key, std::string license_key) //
     -> crow::response
 {
-    return list(app_key_t{std::move(app_name), std::move(version)});
+    auto job_id = _impl->queue_install_from_marketplace(std::move(app_key), std::move(license_key));
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
-auto module_apps_t::list(std::string app_name) const //
+
+auto module_apps_t::http_sideload(std::string manifest_string, std::string license_key) //
     -> crow::response
 {
-    return list(std::move(app_name), {});
+    auto job_id = _impl->queue_sideload(std::move(manifest_string), std::move(license_key));
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
-auto module_apps_t::list() const //
+
+auto module_apps_t::http_uninstall(app_key_t app_key) //
     -> crow::response
 {
-    return list({}, {});
+    if (!is_installed(app_key)) {
+        auto response = json_t{};
+        response["additionalInfo"] =
+            "Cannot uninstall " + to_string(app_key) + ", which is not installed";
+        return {crow::status::BAD_REQUEST, "json", response.dump()};
+    }
+
+    auto job_id = _impl->queue_uninstall(std::move(app_key), false);
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
+}
+
+auto module_apps_t::http_export_to(app_key_t app_key) //
+    -> crow::response
+{
+    if (!is_installed(app_key)) {
+        auto response = json_t{};
+        response["additionalInfo"] =
+            "Cannot export " + to_string(app_key) + ", which is not installed";
+        return {crow::status::BAD_REQUEST, "json", response.dump()};
+    }
+
+    auto job_id = _impl->queue_export_to(std::move(app_key), "/var/lib/flecs/exports/");
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
+}
+
+auto module_apps_t::app_keys(const app_key_t& app_key) const //
+    -> std::vector<app_key_t>
+{
+    return _impl->do_app_keys(app_key);
+}
+
+auto module_apps_t::app_keys(std::string app_name, std::string version) const //
+    -> std::vector<app_key_t>
+{
+    return app_keys(app_key_t{std::move(app_name), std::move(version)});
+}
+auto module_apps_t::app_keys(std::string app_name) const //
+    -> std::vector<app_key_t>
+{
+    return app_keys(app_key_t{std::move(app_name), {}});
+}
+auto module_apps_t::app_keys() const //
+    -> std::vector<app_key_t>
+{
+    return app_keys(app_key_t{});
 }
 
 auto module_apps_t::install_from_marketplace(app_key_t app_key, std::string license_key) //
-    -> crow::response
+    -> result_t
 {
-    return _impl->queue_install_from_marketplace(std::move(app_key), std::move(license_key));
+    return _impl->do_install_from_marketplace_sync(std::move(app_key), std::move(license_key));
 }
-
-auto module_apps_t::install_from_marketplace(
-    std::string app_name, std::string version, std::string license_key) //
-    -> crow::response
+auto module_apps_t::install_from_marketplace(app_key_t app_key) //
+    -> result_t
 {
-    return install_from_marketplace(
-        app_key_t{std::move(app_name), std::move(version)},
-        std::move(license_key));
-}
-auto module_apps_t::install_from_marketplace(std::string app_name, std::string version) //
-    -> crow::response
-{
-    return install_from_marketplace(std::move(app_name), std::move(version), {});
+    return install_from_marketplace(std::move(app_key), {});
 }
 
 auto module_apps_t::sideload(std::string manifest_string, std::string license_key) //
-    -> crow::response
+    -> result_t
 {
-    return _impl->queue_sideload(std::move(manifest_string), std::move(license_key));
+    return _impl->do_sideload_sync(std::move(manifest_string), std::move(license_key));
 }
 auto module_apps_t::sideload(std::string manifest_string) //
-    -> crow::response
+    -> result_t
 {
     return sideload(std::move(manifest_string), {});
 }
 
 auto module_apps_t::uninstall(app_key_t app_key, bool force) //
-    -> crow::response
+    -> result_t
 {
-    return _impl->queue_uninstall(std::move(app_key), force);
-}
-auto module_apps_t::uninstall(std::string app_name, std::string version, bool force) //
-    -> crow::response
-{
-    return uninstall(app_key_t{std::move(app_name), std::move(version)}, std::move(force));
+    return _impl->do_uninstall_sync(std::move(app_key), force);
 }
 
-auto module_apps_t::archive(app_key_t app_key) const //
-    -> crow::response
+auto module_apps_t::export_to(app_key_t app_key, fs::path dest_dir) const //
+    -> result_t
 {
-    return _impl->queue_archive(std::move(app_key));
-}
-auto module_apps_t::archive(std::string app_name, std::string version) const //
-    -> crow::response
-{
-    return archive(app_key_t{std::move(app_name), std::move(version)});
-}
-auto module_apps_t::archive(std::string app_name) const //
-    -> crow::response
-{
-    return archive(std::move(app_name), {});
-}
-
-auto module_apps_t::contains(const app_key_t& app_key) const noexcept //
-    -> bool
-{
-    return _impl->do_contains(app_key);
+    return _impl->do_export_to_sync(std::move(app_key), std::move(dest_dir));
 }
 
 auto module_apps_t::query(const app_key_t& app_key) const noexcept //
