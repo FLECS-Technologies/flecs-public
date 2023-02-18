@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ABC7B599_2593_43CC_856A_CDB2D9CF3D01
-#define ABC7B599_2593_43CC_856A_CDB2D9CF3D01
+#pragma once
 
 #ifdef __cplusplus
 
@@ -29,8 +28,10 @@ class flunder_variable_t
 public:
     FLECS_EXPORT flunder_variable_t();
 
-    FLECS_EXPORT flunder_variable_t(std::string topic, std::string value, std::string encoding, std::string timestamp);
-    FLECS_EXPORT flunder_variable_t(const char* topic, const char* value, const char* encoding, const char* timestamp);
+    FLECS_EXPORT flunder_variable_t(
+        std::string topic, std::string value, std::string encoding, std::string timestamp);
+    FLECS_EXPORT flunder_variable_t(
+        const char* topic, const char* value, const char* encoding, const char* timestamp);
 
     FLECS_EXPORT auto topic() const noexcept //
         -> std::string_view;
@@ -90,5 +91,3 @@ FLECS_EXPORT void flunder_variable_destroy(flunder_variable_t* var);
 #ifdef __cplusplus
 } // extern "C"
 #endif // __cplusplus
-
-#endif // ABC7B599_2593_43CC_856A_CDB2D9CF3D01

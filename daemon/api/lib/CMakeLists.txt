@@ -1,4 +1,4 @@
-# Copyright 2021-2022 FLECS Technologies GmbH
+# Copyright 2021-2023 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@ project(FLECS.daemon.lib)
 
 add_library(FLECS.daemon.lib SHARED
     src/libflecs.cpp
-    src/private/libflecs_private.cpp
+    src/impl/libflecs_impl.cpp
     libflecs.h
-    private/libflecs_private.h
+    impl/libflecs_impl.h
 )
 
 set_target_properties(FLECS.daemon.lib PROPERTIES OUTPUT_NAME FLECS.daemon)

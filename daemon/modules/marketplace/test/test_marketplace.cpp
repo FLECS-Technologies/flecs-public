@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,10 @@ public:
         return FLECS::module_marketplace_t::login(std::move(user), std::move(token));
     }
 
-    auto logout(std::string_view user) { return FLECS::module_marketplace_t::logout(std::move(user)); }
+    auto logout(std::string_view user)
+    {
+        return FLECS::module_marketplace_t::logout(std::move(user));
+    }
 
     auto& user() const noexcept { return FLECS::module_marketplace_t::user(); }
     auto& token() const noexcept { return FLECS::module_marketplace_t::token(); }

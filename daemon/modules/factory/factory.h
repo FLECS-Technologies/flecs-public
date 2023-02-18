@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef E020106A_682E_43CD_99AA_07D004790681
-#define E020106A_682E_43CD_99AA_07D004790681
+#pragma once
 
 #include <map>
 #include <memory>
@@ -73,5 +72,3 @@ std::shared_ptr<module_t> query_module(const char* module_name);
 } // namespace api
 
 } // namespace FLECS
-
-#endif // E020106A_682E_43CD_99AA_07D004790681

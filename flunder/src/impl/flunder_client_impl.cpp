@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "private/flunder_client_private.h"
+#include "impl/flunder_client_impl.h"
 
 #include <cpr/cpr.h>
 
@@ -21,7 +21,7 @@
 #include "util/cxx20/string.h"
 
 namespace FLECS {
-namespace Private {
+namespace impl {
 
 /** @todo */
 template <class... Ts>
@@ -35,7 +35,7 @@ overload(Ts...) -> overload<Ts...>;
 static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
     -> void
 {
-    const auto* ctx = static_cast<const flunder_client_private_t::subscribe_ctx_t*>(arg);
+    const auto* ctx = static_cast<const flunder_client_t::subscribe_ctx_t*>(arg);
     if (!ctx->_once) {
         return;
     }
@@ -56,7 +56,9 @@ static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
         overload{// call callback without userdata
                  [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx->_client, &var); },
                  // call callback with userdata
-                 [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx->_client, &var, ctx->_userp); }},
+                 [&](flunder_client_t::subscribe_cbk_userp_t cbk) {
+                     cbk(ctx->_client, &var, ctx->_userp);
+                 }},
         ctx->_cbk);
 }
 
@@ -88,7 +90,8 @@ auto to_string(z_encoding_prefix_t prefix, std::string_view suffix) //
     };
 
     const auto it = strings.find(prefix);
-    return (it != strings.cend()) ? std::string{it->second.data()} + std::string{suffix} : std::string{suffix};
+    return (it != strings.cend()) ? std::string{it->second.data()} + std::string{suffix}
+                                  : std::string{suffix};
 }
 
 auto encoding_from_string(std::string_view encoding) //
@@ -133,16 +136,16 @@ auto encoding_from_string(std::string_view encoding) //
     return {Z_ENCODING_PREFIX_EMPTY, encoding};
 }
 
-flunder_client_private_t::flunder_client_private_t()
+flunder_client_t::flunder_client_t()
     : _mem_storages{}
     , _z_session{}
     , _subscriptions{}
 {}
 
-flunder_client_private_t::~flunder_client_private_t()
+flunder_client_t::~flunder_client_t()
 {}
 
-auto flunder_client_private_t::connect(std::string_view host, int port) //
+auto flunder_client_t::connect(std::string_view host, int port) //
     -> int
 {
     _host = host;
@@ -163,7 +166,7 @@ auto flunder_client_private_t::connect(std::string_view host, int port) //
     return is_connected() ? 0 : -1;
 }
 
-auto flunder_client_private_t::is_connected() const noexcept //
+auto flunder_client_t::is_connected() const noexcept //
     -> bool
 {
     const auto invalid_session = z_owned_session_t{};
@@ -176,7 +179,7 @@ auto flunder_client_private_t::is_connected() const noexcept //
     return session_initialized && z_session_check(&_z_session);
 }
 
-auto flunder_client_private_t::reconnect() //
+auto flunder_client_t::reconnect() //
     -> int
 {
     const auto host = _host;
@@ -186,7 +189,7 @@ auto flunder_client_private_t::reconnect() //
     return connect(host, port);
 }
 
-auto flunder_client_private_t::disconnect() //
+auto flunder_client_t::disconnect() //
     -> int
 {
     while (!_subscriptions.empty()) {
@@ -204,13 +207,13 @@ auto flunder_client_private_t::disconnect() //
     return 0;
 }
 
-auto flunder_client_private_t::publish_bool(std::string_view topic, const std::string& value) const //
+auto flunder_client_t::publish_bool(std::string_view topic, const std::string& value) const //
     -> int
 {
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_CUSTOM, "bool"), value);
 }
 
-auto flunder_client_private_t::publish_int(
+auto flunder_client_t::publish_int(
     std::string_view topic, size_t size, bool is_signed, const std::string& value) const //
     -> int
 {
@@ -222,20 +225,22 @@ auto flunder_client_private_t::publish_int(
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_INTEGER, suffix.c_str()), value);
 }
 
-auto flunder_client_private_t::publish_float(std::string_view topic, size_t size, const std::string& value) const //
+auto flunder_client_t::publish_float(
+    std::string_view topic, size_t size, const std::string& value) const //
     -> int
 {
     const auto size_str = stringify("+", size * 8);
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_APP_FLOAT, size_str.c_str()), value);
 }
 
-auto flunder_client_private_t::publish_string(std::string_view topic, const std::string& value) const //
+auto flunder_client_t::publish_string(std::string_view topic, const std::string& value) const //
     -> int
 {
     return publish(topic, z_encoding(Z_ENCODING_PREFIX_TEXT_PLAIN, nullptr), value);
 }
 
-auto flunder_client_private_t::publish_raw(std::string_view topic, const void* payload, size_t payloadlen) const //
+auto flunder_client_t::publish_raw(
+    std::string_view topic, const void* payload, size_t payloadlen) const //
     -> int
 {
     return publish(
@@ -244,8 +249,11 @@ auto flunder_client_private_t::publish_raw(std::string_view topic, const void* p
         std::string{reinterpret_cast<const char*>(payload), payloadlen});
 }
 
-auto flunder_client_private_t::publish_custom(
-    std::string_view topic, const void* payload, size_t payloadlen, std::string_view encoding) const //
+auto flunder_client_t::publish_custom(
+    std::string_view topic,
+    const void* payload,
+    size_t payloadlen,
+    std::string_view encoding) const //
     -> int
 {
     const auto [prefix, suffix] = encoding_from_string(encoding);
@@ -255,7 +263,8 @@ auto flunder_client_private_t::publish_custom(
         std::string{reinterpret_cast<const char*>(payload), payloadlen});
 }
 
-auto flunder_client_private_t::publish(std::string_view topic, z_encoding_t encoding, const std::string& value) const //
+auto flunder_client_t::publish(
+    std::string_view topic, z_encoding_t encoding, const std::string& value) const //
     -> int
 {
     auto options = z_put_options_default();
@@ -274,29 +283,29 @@ auto flunder_client_private_t::publish(std::string_view topic, z_encoding_t enco
     return (res == 1) ? 0 : -1;
 }
 
-auto flunder_client_private_t::subscribe(
-    flunder_client_t* client,
+auto flunder_client_t::subscribe(
+    FLECS::flunder_client_t* client,
     std::string_view topic,
     flunder_client_t::subscribe_cbk_t cbk) //
     -> int
 {
-    return subscribe(client, topic, subscribe_cbk_t{cbk}, nullptr);
+    return subscribe(client, topic, subscribe_cbk_var_t{cbk}, nullptr);
 }
 
-auto flunder_client_private_t::subscribe(
-    flunder_client_t* client,
+auto flunder_client_t::subscribe(
+    FLECS::flunder_client_t* client,
     std::string_view topic,
     flunder_client_t::subscribe_cbk_userp_t cbk,
     const void* userp) //
     -> int
 {
-    return subscribe(client, topic, subscribe_cbk_t{cbk}, userp);
+    return subscribe(client, topic, subscribe_cbk_var_t{cbk}, userp);
 }
 
-auto flunder_client_private_t::subscribe(
-    flunder_client_t* client,
+auto flunder_client_t::subscribe(
+    FLECS::flunder_client_t* client,
     std::string_view topic,
-    subscribe_cbk_t cbk,
+    subscribe_cbk_var_t cbk,
     const void* userp) //
     -> int
 {
@@ -315,8 +324,13 @@ auto flunder_client_private_t::subscribe(
     auto options = z_subscriber_options_default();
     options.reliability = Z_RELIABILITY_RELIABLE;
 
-    auto closure = z_owned_closure_sample_t{.context = &ctx, .call = lib_subscribe_callback, .drop = nullptr};
-    ctx._sub = z_declare_subscriber(z_session_loan(&_z_session), z_keyexpr(keyexpr), z_move(closure), &options);
+    auto closure =
+        z_owned_closure_sample_t{.context = &ctx, .call = lib_subscribe_callback, .drop = nullptr};
+    ctx._sub = z_declare_subscriber(
+        z_session_loan(&_z_session),
+        z_keyexpr(keyexpr),
+        z_move(closure),
+        &options);
 
     if (!z_subscriber_check(&ctx._sub)) {
         _subscriptions.erase(res.first);
@@ -329,7 +343,9 @@ auto flunder_client_private_t::subscribe(
             overload{// call callback without userdata
                      [&](flunder_client_t::subscribe_cbk_t cbk) { cbk(ctx._client, &var); },
                      // call callback with userdata
-                     [&](flunder_client_t::subscribe_cbk_userp_t cbk) { cbk(ctx._client, &var, ctx._userp); }},
+                     [&](flunder_client_t::subscribe_cbk_userp_t cbk) {
+                         cbk(ctx._client, &var, ctx._userp);
+                     }},
             ctx._cbk);
     }
     ctx._once = true;
@@ -337,7 +353,7 @@ auto flunder_client_private_t::subscribe(
     return 0;
 }
 
-auto flunder_client_private_t::unsubscribe(std::string_view topic) //
+auto flunder_client_t::unsubscribe(std::string_view topic) //
     -> int
 {
     const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
@@ -353,7 +369,7 @@ auto flunder_client_private_t::unsubscribe(std::string_view topic) //
     return 0;
 }
 
-auto flunder_client_private_t::add_mem_storage(std::string name, std::string_view topic) //
+auto flunder_client_t::add_mem_storage(std::string name, std::string_view topic) //
     -> int
 {
     if (_mem_storages.count(name)) {
@@ -369,7 +385,10 @@ auto flunder_client_private_t::add_mem_storage(std::string name, std::string_vie
                             .append(name)};
 
     const auto req_json = json_t{{"key_expr", keyexpr}, {"volume", "memory"}};
-    const auto res = cpr::Put(url, cpr::Header{{"content-type", "application/json"}}, cpr::Body{req_json.dump()});
+    const auto res = cpr::Put(
+        url,
+        cpr::Header{{"content-type", "application/json"}},
+        cpr::Body{req_json.dump()});
 
     if (res.status_code != 200) {
         return -1;
@@ -380,7 +399,7 @@ auto flunder_client_private_t::add_mem_storage(std::string name, std::string_vie
     return 0;
 }
 
-auto flunder_client_private_t::remove_mem_storage(std::string name) //
+auto flunder_client_t::remove_mem_storage(std::string name) //
     -> int
 {
     if (!_mem_storages.count(name)) {
@@ -403,7 +422,7 @@ auto flunder_client_private_t::remove_mem_storage(std::string name) //
     return 0;
 }
 
-auto flunder_client_private_t::get(std::string_view topic) const //
+auto flunder_client_t::get(std::string_view topic) const //
     -> std::tuple<int, std::vector<flunder_variable_t>>
 {
     auto vars = std::vector<flunder_variable_t>{};
@@ -437,7 +456,9 @@ auto flunder_client_private_t::get(std::string_view topic) const //
 
             vars.emplace_back(
                 std::move(keystr),
-                std::string(reinterpret_cast<const char*>(sample.payload.start), sample.payload.len),
+                std::string(
+                    reinterpret_cast<const char*>(sample.payload.start),
+                    sample.payload.len),
                 to_string(
                     sample.encoding.prefix,
                     std::string_view{
@@ -453,7 +474,7 @@ auto flunder_client_private_t::get(std::string_view topic) const //
     return {0, vars};
 }
 
-auto flunder_client_private_t::erase(std::string_view topic) //
+auto flunder_client_t::erase(std::string_view topic) //
     -> int
 {
     const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
@@ -482,11 +503,11 @@ auto ntp64_to_unix_time(std::uint64_t ntp_time) //
 
     const auto seconds = ntp_time >> 32;
     const auto fractions = static_cast<double>(ntp_time & 0xffffffff);
-    const auto unix_time =
-        static_cast<uint64_t>((seconds + (fractions / std::numeric_limits<std::uint32_t>::max())) * 1'000'000'000);
+    const auto unix_time = static_cast<uint64_t>(
+        (seconds + (fractions / std::numeric_limits<std::uint32_t>::max())) * 1'000'000'000);
 
     return unix_time;
 }
 
-} // namespace Private
+} // namespace impl
 } // namespace FLECS

@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CBE91B30_CC56_4E6A_969C_9A84233C1DA4
-#define CBE91B30_CC56_4E6A_969C_9A84233C1DA4
+#pragma once
 
 #include "module_base/module.h"
 
@@ -45,5 +44,3 @@ protected:
 };
 
 } // namespace FLECS
-
-#endif // CBE91B30_CC56_4E6A_969C_9A84233C1DA4

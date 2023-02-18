@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,29 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef B9FC4679_2559_4145_830A_947F1BB2CF52
-#define B9FC4679_2559_4145_830A_947F1BB2CF52
+#pragma once
 
 #include <cpr/cpr.h>
 
 #include "libflecs.h"
 
 namespace FLECS {
-namespace Private {
+namespace impl {
 
-class libflecs_private_t
+class libflecs_t
 {
 public:
-    FLECS_EXPORT libflecs_private_t();
+    FLECS_EXPORT libflecs_t();
 
-    FLECS_EXPORT ~libflecs_private_t();
+    FLECS_EXPORT ~libflecs_t();
 
     FLECS_EXPORT int do_connect(std::string host, int port);
 
     FLECS_EXPORT int do_disconnect();
 
     // app management
-    FLECS_EXPORT int do_install_app(const std::string& app, const std::string& version, const std::string& license);
+    FLECS_EXPORT int do_install_app(
+        const std::string& app, const std::string& version, const std::string& license);
     FLECS_EXPORT int do_uninstall_app(const std::string& app, const std::string& version);
     FLECS_EXPORT int do_sideload_app_from_yaml(const std::string& yaml);
     FLECS_EXPORT int do_sideload_app_from_file(const fs::path& manifest_path);
@@ -57,7 +57,8 @@ public:
     FLECS_EXPORT int do_ping();
 
     // string-based interface
-    FLECS_EXPORT int do_run_command(const std::string& command, const std::vector<std::string>& args);
+    FLECS_EXPORT int do_run_command(
+        const std::string& command, const std::vector<std::string>& args);
     // string-based app management
     FLECS_EXPORT int dispatch_install_app(const std::vector<std::string>& args);
     FLECS_EXPORT int dispatch_uninstall_app(const std::vector<std::string>& args);
@@ -90,7 +91,5 @@ private:
     cpr::Response _response;
 };
 
-} // namespace Private
+} // namespace impl
 } // namespace FLECS
-
-#endif // B9FC4679_2559_4145_830A_947F1BB2CF52

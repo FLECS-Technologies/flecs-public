@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,32 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "private/data_layer_private.h"
+#include "impl/data_layer_impl.h"
 
 #include "util/json/json.h"
 
 namespace FLECS {
-namespace Private {
+namespace impl {
 
-module_data_layer_private_t::module_data_layer_private_t()
+module_data_layer_t::module_data_layer_t()
 {}
 
-module_data_layer_private_t::~module_data_layer_private_t()
+module_data_layer_t::~module_data_layer_t()
 {}
 
-auto module_data_layer_private_t::do_init() //
+auto module_data_layer_t::do_init() //
     -> void
 {
     _client.connect(FLUNDER_HOST, FLUNDER_PORT);
 }
 
-auto module_data_layer_private_t::do_deinit() //
+auto module_data_layer_t::do_deinit() //
     -> void
 {
     _client.disconnect();
 }
 
-auto module_data_layer_private_t::do_browse(std::string_view path) //
+auto module_data_layer_t::do_browse(std::string_view path) //
     -> crow::response
 {
     auto response = json_t{};
@@ -69,5 +69,5 @@ auto module_data_layer_private_t::do_browse(std::string_view path) //
     return {crow::status::OK, response.dump()};
 }
 
-} // namespace Private
+} // namespace impl
 } // namespace FLECS

@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ int process_t::do_spawn(const char* exec, bool path)
 
     flecs_posix_spawnattr_t attr;
 
-    std::unique_ptr<char* []> argv { new char*[_args.size() + 2] };
+    std::unique_ptr<char*[]> argv{new char*[_args.size() + 2]};
     argv[0] = const_cast<char*>(exec);
     auto it = _args.begin();
     std::size_t i = 1;
@@ -128,8 +128,20 @@ int process_t::do_spawn(const char* exec, bool path)
     }
     argv[i] = nullptr;
 
-    return path ? posix_spawnp(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ)
-                : posix_spawn(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ);
+    return path ? posix_spawnp(
+                      &_pid,
+                      exec,
+                      file_actions.pointer(),
+                      attr.pointer(),
+                      argv.get(),
+                      environ)
+                : posix_spawn(
+                      &_pid,
+                      exec,
+                      file_actions.pointer(),
+                      attr.pointer(),
+                      argv.get(),
+                      environ);
 }
 
 void swap(process_t& lhs, process_t& rhs)

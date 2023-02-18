@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,11 @@ int main(int argc, char** argv)
     const auto port = 8951;
 
     if (lib.connect(host, port) != 0) {
-        std::fprintf(stderr, "Could not connect to FLECS at %s:%d. Is the FLECS daemon running?\n", host, port);
+        std::fprintf(
+            stderr,
+            "Could not connect to FLECS at %s:%d. Is the FLECS daemon running?\n",
+            host,
+            port);
         exit(1);
     }
     lib.run_command(argc, argv);

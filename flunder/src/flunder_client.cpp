@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
 
 #include "flunder_client.h"
 
-#include "private/flunder_client_private.h"
+#include "impl/flunder_client_impl.h"
 
 namespace FLECS {
 
 flunder_client_t::flunder_client_t()
-    : _impl{new Private::flunder_client_private_t{}}
+    : _impl{new impl::flunder_client_t{}}
 {}
 
 flunder_client_t::flunder_client_t(flunder_client_t&& other)
@@ -87,7 +87,8 @@ auto flunder_client_t::publish(std::string_view topic, const void* data, size_t 
     return publish_raw(topic, data, len);
 }
 
-auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
+auto flunder_client_t::publish(
+    std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
     -> int
 {
     return publish_custom(topic, data, len, encoding);
@@ -106,7 +107,8 @@ auto flunder_client_t::publish_int(
     return _impl->publish_int(topic, size, is_signed, value);
 }
 
-auto flunder_client_t::publish_float(std::string_view topic, size_t size, const std::string& value) const //
+auto flunder_client_t::publish_float(
+    std::string_view topic, size_t size, const std::string& value) const //
     -> int
 {
     return _impl->publish_float(topic, size, value);
@@ -147,7 +149,8 @@ auto flunder_client_t::publish(std::string_view topic, const void* data, size_t 
 {
     return (static_cast<const flunder_client_t*>(this))->publish(topic, data, len);
 }
-auto flunder_client_t::publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) //
+auto flunder_client_t::publish(
+    std::string_view topic, const void* data, size_t len, std::string_view encoding) //
     -> int
 {
     return (static_cast<const flunder_client_t*>(this))->publish(topic, data, len, encoding);
@@ -157,12 +160,14 @@ auto flunder_client_t::publish_bool(std::string_view topic, const std::string& v
 {
     return (static_cast<const flunder_client_t*>(this))->publish_bool(topic, value);
 }
-auto flunder_client_t::publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+auto flunder_client_t::publish_int(
+    std::string_view topic, size_t size, bool is_signed, const std::string& value) //
     -> int
 {
     return (static_cast<const flunder_client_t*>(this))->publish_int(topic, size, is_signed, value);
 }
-auto flunder_client_t::publish_float(std::string_view topic, size_t size, const std::string& value) //
+auto flunder_client_t::publish_float(
+    std::string_view topic, size_t size, const std::string& value) //
     -> int
 {
     return (static_cast<const flunder_client_t*>(this))->publish_float(topic, size, value);
@@ -189,13 +194,14 @@ auto flunder_client_t::publish_custom(
 auto flunder_client_t::subscribe(std::string_view topic, subscribe_cbk_t cbk) //
     -> int
 {
-    return _impl->subscribe(this, topic, cbk);
+    return _impl->subscribe(this, std::move(topic), std::move(cbk));
 }
 
-auto flunder_client_t::subscribe(std::string_view topic, subscribe_cbk_userp_t cbk, const void* userp) //
+auto flunder_client_t::subscribe(
+    std::string_view topic, subscribe_cbk_userp_t cbk, const void* userp) //
     -> int
 {
-    return _impl->subscribe(this, topic, cbk, userp);
+    return _impl->subscribe(this, std::move(topic), std::move(cbk), userp);
 }
 
 auto flunder_client_t::unsubscribe(std::string_view topic) //
@@ -270,7 +276,8 @@ FLECS_EXPORT int flunder_subscribe(void* flunder, const char* topic, flunder_sub
 FLECS_EXPORT int flunder_subscribe_userp(
     void* flunder, const char* topic, flunder_subscribe_cbk_userp_t cbk, const void* userp)
 {
-    auto p = reinterpret_cast<void (*)(flunder_client_t*, const flunder_variable_t*, const void*)>(cbk);
+    auto p =
+        reinterpret_cast<void (*)(flunder_client_t*, const flunder_variable_t*, const void*)>(cbk);
     return static_cast<FLECS::flunder_client_t*>(flunder)->subscribe(topic, p, userp);
 }
 
@@ -344,13 +351,18 @@ FLECS_EXPORT int flunder_publish_string(const void* flunder, const char* topic, 
     return static_cast<const FLECS::flunder_client_t*>(flunder)->publish(topic, value);
 }
 
-FLECS_EXPORT int flunder_publish_raw(const void* flunder, const char* topic, const void* value, size_t payloadlen)
+FLECS_EXPORT int flunder_publish_raw(
+    const void* flunder, const char* topic, const void* value, size_t payloadlen)
 {
     return static_cast<const FLECS::flunder_client_t*>(flunder)->publish(topic, value, payloadlen);
 }
 
 FLECS_EXPORT int flunder_publish_custom(
-    const void* flunder, const char* topic, const void* value, size_t payloadlen, const char* encoding)
+    const void* flunder,
+    const char* topic,
+    const void* value,
+    size_t payloadlen,
+    const char* encoding)
 {
     return static_cast<const FLECS::flunder_client_t*>(flunder)
         ->publish(topic, value, payloadlen, std::string_view{encoding});

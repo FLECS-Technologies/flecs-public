@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef C794C40B_C58D_43F0_8EDC_97D509E67767
-#define C794C40B_C58D_43F0_8EDC_97D509E67767
+#pragma once
 
 #include <nlohmann/json.hpp>
 
@@ -33,5 +32,3 @@ inline auto is_valid_json(const json_t& json)
 }
 
 } // namespace FLECS
-
-#endif // C794C40B_C58D_43F0_8EDC_97D509E67767

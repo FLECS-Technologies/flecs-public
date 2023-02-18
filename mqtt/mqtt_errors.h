@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ADCBE21F_884C_4C70_8CC2_F09C443B0F06
-#define ADCBE21F_884C_4C70_8CC2_F09C443B0F06
+#pragma once
 
 #ifdef __cplusplus
 namespace FLECS {
@@ -37,5 +36,3 @@ enum mqtt_error_t {
 #ifdef __cplusplus
 } // namespace FLECS
 #endif // __cplusplus
-
-#endif // ADCBE21F_884C_4C70_8CC2_F09C443B0F06

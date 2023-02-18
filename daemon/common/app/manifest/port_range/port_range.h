@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef D25F6491_3BA5_410A_A410_0ACC76BADC98
-#define D25F6491_3BA5_410A_A410_0ACC76BADC98
+#pragma once
 
 #include <cstdint>
 #include <limits>
@@ -78,7 +77,10 @@ public:
 
     port_range_t(const std::string& range_str) noexcept;
 
-    constexpr bool is_valid() const noexcept { return (_start_port.is_valid()) && (_end_port.is_valid()); }
+    constexpr bool is_valid() const noexcept
+    {
+        return (_start_port.is_valid()) && (_end_port.is_valid());
+    }
 
     constexpr port_t start_port() const noexcept { return _start_port; }
     constexpr port_t end_port() const noexcept { return _end_port; }
@@ -124,7 +126,8 @@ public:
         , _container_port_range{host_port_range}
     {}
 
-    constexpr mapped_port_range_t(port_range_t host_port_range, port_range_t container_port_range) noexcept
+    constexpr mapped_port_range_t(
+        port_range_t host_port_range, port_range_t container_port_range) noexcept
         : _host_port_range{host_port_range}
         , _container_port_range{container_port_range}
     {}
@@ -134,14 +137,16 @@ public:
     constexpr bool is_valid() const noexcept
     {
         // a mapped range may have {0,0} as host_port_range, indicating randomization of host ports
-        const auto host_random = (_host_port_range.start_port() == 0 && _host_port_range.end_port() == 0);
+        const auto host_random =
+            (_host_port_range.start_port() == 0 && _host_port_range.end_port() == 0);
         const auto host_valid = host_random || _host_port_range.is_valid();
 
         const auto container_valid = _container_port_range.is_valid();
 
         const auto ranges_valid =
-            host_random || ((_container_port_range.end_port() - _container_port_range.start_port()) ==
-                            (_host_port_range.end_port() - _host_port_range.start_port()));
+            host_random ||
+            ((_container_port_range.end_port() - _container_port_range.start_port()) ==
+             (_host_port_range.end_port() - _host_port_range.start_port()));
 
         return host_valid && container_valid && ranges_valid;
     }
@@ -185,5 +190,3 @@ inline std::string to_string(const mapped_port_range_t& mapped_port_range)
 }
 
 } // namespace FLECS
-
-#endif // D25F6491_3BA5_410A_A410_0ACC76BADC98

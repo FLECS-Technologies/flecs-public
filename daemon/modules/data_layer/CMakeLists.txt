@@ -1,4 +1,4 @@
-# Copyright 2021-2022 FLECS Technologies GmbH
+# Copyright 2021-2023 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 flecs_add_module(
     MODULE_NAME data_layer
-    ADDITIONAL_SOURCES src/private/data_layer_private.cpp
-    ADDITIONAL_HEADERS private/data_layer_private.h
+    ADDITIONAL_SOURCES src/impl/data_layer_impl.cpp
+    ADDITIONAL_HEADERS impl/data_layer_impl.h
     LIBS_PRIVATE FLECS.flunder.static
 )

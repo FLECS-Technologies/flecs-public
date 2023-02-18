@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #include <map>
 #include <string>
 
-#include "private/libflecs_private.h"
+#include "impl/libflecs_impl.h"
 
 namespace FLECS {
 
@@ -46,7 +46,8 @@ int libflecs_t<Impl>::disconnect()
 
 // app management
 template <typename Impl>
-int libflecs_t<Impl>::install_app(const std::string& app, const std::string& version, const std::string& license)
+int libflecs_t<Impl>::install_app(
+    const std::string& app, const std::string& version, const std::string& license)
 {
     return _impl->do_install_app(app, version, license);
 }
@@ -96,19 +97,22 @@ int libflecs_t<Impl>::create_instance(
 }
 
 template <typename Impl>
-int libflecs_t<Impl>::delete_instance(const std::string& instanceId, const std::string& app, const std::string& version)
+int libflecs_t<Impl>::delete_instance(
+    const std::string& instanceId, const std::string& app, const std::string& version)
 {
     return _impl->do_delete_instance(instanceId, app, version);
 }
 
 template <typename Impl>
-int libflecs_t<Impl>::start_instance(const std::string& instanceId, const std::string& app, const std::string& version)
+int libflecs_t<Impl>::start_instance(
+    const std::string& instanceId, const std::string& app, const std::string& version)
 {
     return _impl->do_start_instance(instanceId, app, version);
 }
 
 template <typename Impl>
-int libflecs_t<Impl>::stop_instance(const std::string& instanceId, const std::string& app, const std::string& version)
+int libflecs_t<Impl>::stop_instance(
+    const std::string& instanceId, const std::string& app, const std::string& version)
 {
     return _impl->do_stop_instance(instanceId, app, version);
 }
@@ -159,6 +163,6 @@ std::string libflecs_t<Impl>::json_response() const noexcept
     return _impl->do_json_response();
 }
 
-template class libflecs_t<Private::libflecs_private_t>;
+template class libflecs_t<impl::libflecs_t>;
 
 } // namespace FLECS

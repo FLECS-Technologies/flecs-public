@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef D92E69C8_0D9E_4CCB_8A16_DC26BCD31521
-#define D92E69C8_0D9E_4CCB_8A16_DC26BCD31521
+#pragma once
 
 #include <stdexcept>
 #include <vector>
@@ -86,7 +85,8 @@ public:
     explicit sorted_vector_t(std::initializer_list<key_type> init, const Alloc& alloc = Alloc())
         : sorted_vector_t(init, Compare(), alloc)
     {}
-    sorted_vector_t(std::initializer_list<key_type> init, const Compare& comp, const Alloc& alloc = Alloc())
+    sorted_vector_t(
+        std::initializer_list<key_type> init, const Compare& comp, const Alloc& alloc = Alloc())
         : _vec{init, alloc}
         , _comp{comp}
     {
@@ -144,7 +144,10 @@ public:
     auto insert(const value_type& value) { return insert_impl(value); }
     auto insert(value_type&& value) { return insert_impl(std::move(value)); }
     auto insert(const_iterator hint, const value_type& value) { return insert_impl(hint, value); }
-    auto insert(const_iterator hint, value_type&& value) { return insert_impl(hint, std::move(value)); }
+    auto insert(const_iterator hint, value_type&& value)
+    {
+        return insert_impl(hint, std::move(value));
+    }
     template <class InputIt>
     auto insert(InputIt first, InputIt last)
     {
@@ -203,7 +206,8 @@ public:
     template <typename K>
     auto find(K&& x) const
     {
-        return static_cast<const_iterator>((const_cast<this_type*>(this))->find(std::forward<K>(x)));
+        return static_cast<const_iterator>(
+            (const_cast<this_type*>(this))->find(std::forward<K>(x)));
     }
 
     auto lower_bound(const key_type& key) { return lower_bound(std::move(key)); }
@@ -216,7 +220,8 @@ public:
     template <typename K>
     auto lower_bound(K&& x) const
     {
-        return static_cast<const_iterator>((const_cast<this_type*>(this))->lower_bound(std::forward<K>(x)));
+        return static_cast<const_iterator>(
+            (const_cast<this_type*>(this))->lower_bound(std::forward<K>(x)));
     }
 
     auto upper_bound(const key_type& key) { return upper_bound(std::move(key)); }
@@ -229,7 +234,8 @@ public:
     template <typename K>
     auto upper_bound(K&& x) const
     {
-        return static_cast<const_iterator>((const_cast<this_type*>(this))->upper_bound(std::forward<K>(x)));
+        return static_cast<const_iterator>(
+            (const_cast<this_type*>(this))->upper_bound(std::forward<K>(x)));
     }
 
     auto equal_range(const key_type& key) { return equal_range(std::move(key)); }
@@ -244,7 +250,9 @@ public:
     auto equal_range(K&& x) const
     {
         const auto range = (const_cast<this_type*>(this))->equal_range(std::forward<K>(x));
-        return std::make_pair(static_cast<const_iterator>(range.first), static_cast<const_iterator>(range.second));
+        return std::make_pair(
+            static_cast<const_iterator>(range.first),
+            static_cast<const_iterator>(range.second));
     }
 
     auto key_comp() const { return value_comp(); }
@@ -309,7 +317,8 @@ auto sorted_vector_t<Key, Compare, Alloc>::insert_impl(T&& value) -> //
     std::pair<iterator, bool>
 {
     const auto it = lower_bound(value);
-    // either there is no element greater than <value>, or <it> points to element greater than <value>
+    // either there is no element greater than <value>, or <it> points to element greater than
+    // <value>
     if ((it == cend()) || key_comp()(value, *it)) {
         return std::pair<iterator, bool>{_vec.insert(it, std::forward<T>(value)), true};
     }
@@ -344,5 +353,3 @@ auto sorted_vector_t<Key, Compare, Alloc>::insert_impl(const_iterator hint, T&& 
 }
 
 } // namespace FLECS
-
-#endif /* D92E69C8_0D9E_4CCB_8A16_DC26BCD31521 */

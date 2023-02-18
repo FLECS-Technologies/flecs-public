@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef E3107886_7E4E_4556_9EDD_91B48A8DF4D9
-#define E3107886_7E4E_4556_9EDD_91B48A8DF4D9
+#pragma once
 
 #include <algorithm>
 #include <optional>
@@ -28,7 +27,9 @@
 namespace FLECS {
 
 template <typename T>
-std::enable_if_t<!std::is_convertible_v<T, std::string> && !std::is_same_v<std::decay_t<T>, bool>, std::string>
+std::enable_if_t<
+    !std::is_convertible_v<T, std::string> && !std::is_same_v<std::decay_t<T>, bool>,
+    std::string>
 stringify_impl(T&& val)
 {
     using std::to_string;
@@ -36,7 +37,9 @@ stringify_impl(T&& val)
 }
 
 template <typename T>
-std::enable_if_t<!std::is_convertible_v<T, std::string> && std::is_same_v<std::decay_t<T>, bool>, std::string>
+std::enable_if_t<
+    !std::is_convertible_v<T, std::string> && std::is_same_v<std::decay_t<T>, bool>,
+    std::string>
 stringify_impl(T&& val)
 {
     using std::operator""s;
@@ -119,14 +122,18 @@ inline auto split(const CharT* s, CharT delim)
 template <typename CharT, typename Traits>
 inline auto ltrim(std::basic_string<CharT, Traits>& str) //
 {
-    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](CharT c) { return !std::isspace(c); }));
+    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](CharT c) {
+                  return !std::isspace(c);
+              }));
     return str;
 }
 
 template <typename CharT, typename Traits>
 inline auto rtrim(std::basic_string<CharT, Traits>& str) //
 {
-    str.erase(std::find_if(str.rbegin(), str.rend(), [](CharT c) { return !std::isspace(c); }).base(), str.end());
+    str.erase(
+        std::find_if(str.rbegin(), str.rend(), [](CharT c) { return !std::isspace(c); }).base(),
+        str.end());
     return str;
 }
 
@@ -138,5 +145,3 @@ inline auto trim(std::basic_string<CharT, Traits>& str) //
 }
 
 } // namespace FLECS
-
-#endif // E3107886_7E4E_4556_9EDD_91B48A8DF4D9

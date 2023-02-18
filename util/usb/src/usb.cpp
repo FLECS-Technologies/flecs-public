@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -119,10 +119,11 @@ auto get_devices() //
                 port += "." + std::to_string(port_numbers[i]);
             }
         }
-        const auto vendor = hwdb.usb_vendor(desc.idVendor).value_or(sysfs::usb_vendor(port).value_or(std::string{}));
+        const auto vendor = hwdb.usb_vendor(desc.idVendor)
+                                .value_or(sysfs::usb_vendor(port).value_or(std::string{}));
 
-        const auto device =
-            hwdb.usb_device(desc.idVendor, desc.idProduct).value_or(sysfs::usb_device(port).value_or(std::string{}));
+        const auto device = hwdb.usb_device(desc.idVendor, desc.idProduct)
+                                .value_or(sysfs::usb_device(port).value_or(std::string{}));
 
         devices.emplace(device_t{
             .pid = desc.idProduct,

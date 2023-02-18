@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,8 @@ TEST(port_range, single_port)
     const auto str = "9000";
 
     const auto mapped_range = FLECS::mapped_port_range_t{str};
-    const auto mapped_range_expected = FLECS::mapped_port_range_t{FLECS::port_range_t{9000}, FLECS::port_range_t{9000}};
+    const auto mapped_range_expected =
+        FLECS::mapped_port_range_t{FLECS::port_range_t{9000}, FLECS::port_range_t{9000}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -37,7 +38,8 @@ TEST(port_range, single_port_map)
     const auto str = "9000:9001";
 
     const auto mapped_range = FLECS::mapped_port_range_t{str};
-    const auto mapped_range_expected = FLECS::mapped_port_range_t{FLECS::port_range_t{9000}, FLECS::port_range_t{9001}};
+    const auto mapped_range_expected =
+        FLECS::mapped_port_range_t{FLECS::port_range_t{9000}, FLECS::port_range_t{9001}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -52,7 +54,8 @@ TEST(port_range, single_port_map_random)
 {
     const auto str = ":9001";
     const auto mapped_range = FLECS::mapped_port_range_t{str};
-    const auto mapped_range_expected = FLECS::mapped_port_range_t{FLECS::port_range_t{0, 0}, FLECS::port_range_t{9001}};
+    const auto mapped_range_expected =
+        FLECS::mapped_port_range_t{FLECS::port_range_t{0, 0}, FLECS::port_range_t{9001}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -67,8 +70,9 @@ TEST(port_range, port_range)
 {
     const auto str = "9000-9005";
     const auto mapped_range = FLECS::mapped_port_range_t{str};
-    const auto mapped_range_expected =
-        FLECS::mapped_port_range_t{FLECS::port_range_t{9000, 9005}, FLECS::port_range_t{9000, 9005}};
+    const auto mapped_range_expected = FLECS::mapped_port_range_t{
+        FLECS::port_range_t{9000, 9005},
+        FLECS::port_range_t{9000, 9005}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -83,8 +87,9 @@ TEST(port_range, port_range_map)
 {
     const auto str = "9000-9005:9001-9006";
     const auto mapped_range = FLECS::mapped_port_range_t{str};
-    const auto mapped_range_expected =
-        FLECS::mapped_port_range_t{FLECS::port_range_t{9000, 9005}, FLECS::port_range_t{9001, 9006}};
+    const auto mapped_range_expected = FLECS::mapped_port_range_t{
+        FLECS::port_range_t{9000, 9005},
+        FLECS::port_range_t{9001, 9006}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);

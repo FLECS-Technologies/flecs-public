@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef C54190C2_D535_4427_A5AA_82FC31D024D8
-#define C54190C2_D535_4427_A5AA_82FC31D024D8
+#pragma once
 
 #include <string>
 #include <string_view>
@@ -22,7 +21,8 @@ namespace FLECS {
 namespace cxx20 {
 
 template <typename CharT, typename Traits>
-constexpr bool contains(std::basic_string_view<CharT, Traits> sv, std::basic_string_view<CharT, Traits> sv_cmp) noexcept
+constexpr bool contains(
+    std::basic_string_view<CharT, Traits> sv, std::basic_string_view<CharT, Traits> sv_cmp) noexcept
 {
     return sv.find(sv_cmp) != std::basic_string_view<CharT, Traits>::npos;
 }
@@ -38,7 +38,8 @@ constexpr bool contains(std::basic_string_view<CharT, Traits> sv, const CharT* s
 }
 
 template <typename CharT, typename Traits>
-constexpr bool contains(const std::basic_string<CharT, Traits>& str, std::basic_string_view<CharT, Traits> sv) noexcept
+constexpr bool contains(
+    const std::basic_string<CharT, Traits>& str, std::basic_string_view<CharT, Traits> sv) noexcept
 {
     return contains(std::basic_string_view<CharT, Traits>{str}, sv);
 }
@@ -123,5 +124,3 @@ constexpr bool starts_with(const CharT* str, const CharT* s) noexcept
 
 } // namespace cxx20
 } // namespace FLECS
-
-#endif // C54190C2_D535_4427_A5AA_82FC31D024D8

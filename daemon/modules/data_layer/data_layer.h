@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef C747A5B8_3554_4BE3_B178_63AA7227B37D
-#define C747A5B8_3554_4BE3_B178_63AA7227B37D
+#pragma once
 
 #include <memory>
 
@@ -21,9 +20,9 @@
 
 namespace FLECS {
 
-namespace Private {
-class module_data_layer_private_t;
-} // namespace Private
+namespace impl {
+class module_data_layer_t;
+} // namespace impl
 
 class module_data_layer_t FLECS_FINAL_UNLESS_TESTED : public module_t
 {
@@ -52,9 +51,7 @@ protected:
 #endif // 0
 
 private:
-    std::unique_ptr<Private::module_data_layer_private_t> _impl;
+    std::unique_ptr<impl::module_data_layer_t> _impl;
 };
 
 } // namespace FLECS
-
-#endif // C747A5B8_3554_4BE3_B178_63AA7227B37D

@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,8 @@ static auto chrono_to_time_t(std::chrono::time_point<system_clock_t> tp, precisi
 {
     const auto fmt_div = fmt_divs[static_cast<std::underlying_type_t<precision_e>>(precision)];
     const auto time =
-        static_cast<std::time_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count()) /
+        static_cast<std::time_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count()) /
         (fmt_divs[0] / fmt_div);
     return time;
 }
@@ -58,7 +59,8 @@ auto time_to_iso(time_t time, precision_e precision) //
     char strtime[32] = {};
     const auto pos = std::strftime(strtime, sizeof(strtime), fmt_string_base, &time_utc);
 
-    const auto fmt_string = fmt_strings[static_cast<std::underlying_type_t<precision_e>>(precision)];
+    const auto fmt_string =
+        fmt_strings[static_cast<std::underlying_type_t<precision_e>>(precision)];
     std::snprintf(&strtime[pos], sizeof(strtime) - pos, fmt_string, time % fmt_div);
 
     return strtime;

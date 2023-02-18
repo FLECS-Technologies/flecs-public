@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -166,7 +166,8 @@ TEST(api_lib, app_sideload_string_success)
     auto lib = FLECS::libflecs_t{};
     (void)lib.connect("localhost", TEST_PORT);
     const auto app_manifest =
-        "\"app\":\"ch.inasoft.sql4automation\",\"title\":\"SQL4AUTOMATION\",\"version\":\"v4.0.0.6\"";
+        "\"app\":\"ch.inasoft.sql4automation\",\"title\":\"SQL4AUTOMATION\",\"version\":\"v4.0.0."
+        "6\"";
 
     const auto res = lib.sideload_app_from_yaml(app_manifest);
 
@@ -367,7 +368,8 @@ TEST(api_lib, cmdline_instance_create)
     auto lib = FLECS::libflecs_t{};
     (void)lib.connect("localhost", TEST_PORT);
 
-    const auto res = lib.run_command("app-manager", {"create-instance", app, version, instanceName});
+    const auto res =
+        lib.run_command("app-manager", {"create-instance", app, version, instanceName});
     const auto response = FLECS::parse_json(lib.json_response());
 
     ASSERT_EQ(res, 0);

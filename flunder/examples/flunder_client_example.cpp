@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,7 +65,8 @@ void flunder_receive_callback_userp(
     const auto timestamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     std::fprintf(
         stdout,
-        "Received flunder message for topic %s on client %p with length %zu and userdata %s @%" PRIi64 "\n",
+        "Received flunder message for topic %s on client %p with length %zu and userdata %s "
+        "@%" PRIi64 "\n",
         var->topic().data(),
         client,
         var->len(),
@@ -85,7 +86,10 @@ int main()
 
     flunder_client.subscribe("/flecs/flunder/cpp/**", &flunder_receive_callback);
     const char* userdata = "Hello, world!";
-    flunder_client.subscribe("/flecs/flunder/external", &flunder_receive_callback_userp, (const void*)userdata);
+    flunder_client.subscribe(
+        "/flecs/flunder/external",
+        &flunder_receive_callback_userp,
+        (const void*)userdata);
 
     while (!g_stop) {
         const auto i = 1234;

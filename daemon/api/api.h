@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef D409ED4F_76EC_4E01_B2EB_9DCBCF588B5E
-#define D409ED4F_76EC_4E01_B2EB_9DCBCF588B5E
+#pragma once
 
 #include <crow.h>
 
@@ -22,7 +21,8 @@
 
 namespace FLECS {
 
-/*! API for communication with the outside world. Runs an HTTP server handling requests on registered endpoints.
+/*! API for communication with the outside world. Runs an HTTP server handling requests on
+ * registered endpoints.
  */
 class flecs_api_t
 {
@@ -63,5 +63,3 @@ private:
 };
 
 } // namespace FLECS
-
-#endif // D409ED4F_76EC_4E01_B2EB_9DCBCF588B5E

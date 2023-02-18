@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CDA38A84_96B2_4ABF_BF57_39654CBCFB5D
-#define CDA38A84_96B2_4ABF_BF57_39654CBCFB5D
+#pragma once
 
 #include <memory>
 #include <string>
@@ -25,11 +24,11 @@
 
 namespace FLECS {
 
-namespace Private {
-class libflecs_private_t;
+namespace impl {
+class libflecs_t;
 }
 
-template <typename Impl = Private::libflecs_private_t>
+template <typename Impl = impl::libflecs_t>
 class libflecs_t
 {
 public:
@@ -42,7 +41,8 @@ public:
     FLECS_EXPORT int disconnect();
 
     // app management
-    FLECS_EXPORT int install_app(const std::string& app, const std::string& version, const std::string& license);
+    FLECS_EXPORT int install_app(
+        const std::string& app, const std::string& version, const std::string& license);
     FLECS_EXPORT int uninstall_app(const std::string& app, const std::string& version);
     FLECS_EXPORT int sideload_app_from_yaml(const std::string& yaml);
     FLECS_EXPORT int sideload_app_from_file(const fs::path& manifest_path);
@@ -53,9 +53,12 @@ public:
     // instance management
     FLECS_EXPORT int create_instance(
         const std::string& app, const std::string& version, const std::string& instanceName);
-    FLECS_EXPORT int delete_instance(const std::string& instanceId, const std::string& app, const std::string& version);
-    FLECS_EXPORT int start_instance(const std::string& instanceId, const std::string& app, const std::string& version);
-    FLECS_EXPORT int stop_instance(const std::string& instanceId, const std::string& app, const std::string& version);
+    FLECS_EXPORT int delete_instance(
+        const std::string& instanceId, const std::string& app, const std::string& version);
+    FLECS_EXPORT int start_instance(
+        const std::string& instanceId, const std::string& app, const std::string& version);
+    FLECS_EXPORT int stop_instance(
+        const std::string& instanceId, const std::string& app, const std::string& version);
 
     // system info
     FLECS_EXPORT int version();
@@ -75,8 +78,6 @@ private:
     std::unique_ptr<Impl> _impl;
 };
 
-extern template class FLECS_EXPORT libflecs_t<Private::libflecs_private_t>;
+extern template class FLECS_EXPORT libflecs_t<impl::libflecs_t>;
 
 } // namespace FLECS
-
-#endif // CDA38A84_96B2_4ABF_BF57_39654CBCFB5D

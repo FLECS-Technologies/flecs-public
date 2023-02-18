@@ -1,4 +1,4 @@
-# Copyright 2021-2022 FLECS Technologies GmbH
+# Copyright 2021-2023 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@ project(FLECS.flunder)
 set(SRC_LIB
     src/flunder_client.cpp
     src/flunder_variable.cpp
-    src/private/flunder_client_private.cpp
+    src/impl/flunder_client_impl.cpp
 )
 
 set(HEADER_LIB
     flunder_client.h
     flunder_variable.h
-    private/flunder_client_private.h
+    impl/flunder_client_impl.h
 )
 
 add_library(FLECS.flunder OBJECT ${SRC_LIB} ${HEADER_LIB})
