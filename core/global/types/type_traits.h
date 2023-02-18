@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef EE7E8533_2B64_4B48_AE6F_802059D018CF
-#define EE7E8533_2B64_4B48_AE6F_802059D018CF
+#pragma once
 
 #include <string>
 #include <type_traits>
-
-#include "core/global/types/types.h"
 
 namespace FLECS {
 
@@ -61,9 +58,9 @@ template <typename T>
 inline constexpr bool is_std_string_view_v = is_std_string_view<T>::value;
 
 // is_std_container and is_std_container_v
-// std::string and std::string_view are intentionally excluded, although they technically fulfill the basic Container
-// concept. However, the focus of is_std_container lies on containers without limitation of or assumptions about the
-// contained type.
+// std::string and std::string_view are intentionally excluded, although they technically fulfill
+// the basic Container concept. However, the focus of is_std_container lies on containers without
+// limitation of or assumptions about the contained type.
 template <typename T, typename = void>
 struct is_std_container : std::false_type
 {
@@ -95,5 +92,3 @@ template <typename T>
 inline constexpr bool is_std_container_v = is_std_container<T>::value;
 
 } // namespace FLECS
-
-#endif // EE7E8533_2B64_4B48_AE6F_802059D018CF

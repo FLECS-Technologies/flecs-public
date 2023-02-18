@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DB4AFC45_7C99_43F7_BEE8_7B88F1AE7E9E
-#define DB4AFC45_7C99_43F7_BEE8_7B88F1AE7E9E
+#pragma once
 
 #include <string>
 #include <string_view>
@@ -25,5 +24,3 @@ namespace FLECS {
 using result_t = std::tuple<int, std::string>;
 
 } // namespace FLECS
-
-#endif // DB4AFC45_7C99_43F7_BEE8_7B88F1AE7E9E
