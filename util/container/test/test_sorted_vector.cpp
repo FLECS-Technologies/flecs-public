@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,10 @@ public:
     ~non_copyable_t() = default;
 
 private:
-    friend auto operator<(const non_copyable_t& lhs, const non_copyable_t& rhs) { return lhs._n < rhs._n; }
+    friend auto operator<(const non_copyable_t& lhs, const non_copyable_t& rhs)
+    {
+        return lhs._n < rhs._n;
+    }
     friend auto operator==(const non_copyable_t& lhs, const non_copyable_t& rhs)
     {
         return !(lhs < rhs) && !(rhs < lhs);

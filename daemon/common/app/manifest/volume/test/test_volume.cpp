@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -84,7 +84,8 @@ TEST(volume, to_json)
 
     const auto bind_mount_1 = FLECS::volume_t{"/path/to/host:/path/to/container"};
     const auto json_2 = FLECS::json_t(bind_mount_1);
-    const auto expected_2 = R"({"container":"/path/to/container","host":"/path/to/host","type":"bind mount"})";
+    const auto expected_2 =
+        R"({"container":"/path/to/container","host":"/path/to/host","type":"bind mount"})";
 
     ASSERT_EQ(json_2.dump(), expected_2);
 

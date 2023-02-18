@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 #include "data_layer.h"
 
 #include "factory/factory.h"
-#include "private/data_layer_private.h"
+#include "impl/data_layer_impl.h"
 
 namespace FLECS {
 
@@ -24,7 +24,7 @@ register_module_t<module_data_layer_t> _reg("data-layer");
 }
 
 module_data_layer_t::module_data_layer_t()
-    : _impl{new Private::module_data_layer_private_t{}}
+    : _impl{new impl::module_data_layer_t{}}
 {}
 
 module_data_layer_t::~module_data_layer_t()

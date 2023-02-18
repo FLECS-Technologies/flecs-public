@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ADF3DE5E_D65D_4E99_8318_021E8B92926E
-#define ADF3DE5E_D65D_4E99_8318_021E8B92926E
+#pragma once
 
 #include <zenoh.h>
 
@@ -27,13 +26,13 @@
 #include "util/json/json.h"
 
 namespace FLECS {
-namespace Private {
+namespace impl {
 
-class flunder_client_private_t
+class flunder_client_t
 {
 public:
-    flunder_client_private_t();
-    ~flunder_client_private_t();
+    flunder_client_t();
+    ~flunder_client_t();
 
     FLECS_EXPORT auto connect(std::string_view host, int port) //
         -> int;
@@ -54,27 +53,34 @@ public:
         std::string_view topic, size_t size, bool is_signed, const std::string& value) const //
         -> int;
 
-    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) const //
+    FLECS_EXPORT auto publish_float(
+        std::string_view topic, size_t size, const std::string& value) const //
         -> int;
 
     FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) const //
         -> int;
 
-    FLECS_EXPORT auto publish_raw(std::string_view topic, const void* payload, size_t payloadlen) const //
+    FLECS_EXPORT auto publish_raw(
+        std::string_view topic, const void* payload, size_t payloadlen) const //
         -> int;
 
     FLECS_EXPORT auto publish_custom(
-        std::string_view topic, const void* payload, size_t payloadlen, std::string_view encoding) const //
-        -> int;
-
-    FLECS_EXPORT auto subscribe(
-        flunder_client_t* client, std::string_view topic, flunder_client_t::subscribe_cbk_t cbk) //
-        -> int;
-
-    FLECS_EXPORT auto subscribe(
-        flunder_client_t* client,
         std::string_view topic,
-        flunder_client_t::subscribe_cbk_userp_t cbk,
+        const void* payload,
+        size_t payloadlen,
+        std::string_view encoding) const //
+        -> int;
+
+    using subscribe_cbk_t = FLECS::flunder_client_t::subscribe_cbk_t;
+    using subscribe_cbk_userp_t = FLECS::flunder_client_t::subscribe_cbk_userp_t;
+    FLECS_EXPORT auto subscribe(
+        FLECS::flunder_client_t* client, std::string_view topic, subscribe_cbk_t cbk) //
+        -> int;
+
+    FLECS_EXPORT auto subscribe(
+        FLECS::flunder_client_t* client,
+        std::string_view topic,
+        subscribe_cbk_userp_t cbk,
         const void* userp) //
         -> int;
 
@@ -94,23 +100,27 @@ public:
         -> int;
 
     /*! Function pointer to receive callback */
-    using subscribe_cbk_t = std::variant<flunder_client_t::subscribe_cbk_t, flunder_client_t::subscribe_cbk_userp_t>;
+    using subscribe_cbk_var_t = std::variant<subscribe_cbk_t, subscribe_cbk_userp_t>;
 
     struct subscribe_ctx_t
     {
-        flunder_client_t* _client;
+        FLECS::flunder_client_t* _client;
         z_owned_subscriber_t _sub;
-        subscribe_cbk_t _cbk;
+        subscribe_cbk_var_t _cbk;
         const void* _userp;
         bool _once;
     };
 
 private:
-    FLECS_EXPORT auto publish(std::string_view topic, z_encoding_t encoding, const std::string& value) const //
+    FLECS_EXPORT auto publish(
+        std::string_view topic, z_encoding_t encoding, const std::string& value) const //
         -> int;
 
     FLECS_EXPORT auto subscribe(
-        flunder_client_t* client, std::string_view topic, subscribe_cbk_t cbk, const void* userp) //
+        FLECS::flunder_client_t* client,
+        std::string_view topic,
+        subscribe_cbk_var_t cbk,
+        const void* userp) //
         -> int;
 
     std::set<std::string> _mem_storages;
@@ -127,7 +137,5 @@ auto to_string(z_encoding_prefix_t prefix, std::string_view suffix) //
 auto ntp64_to_unix_time(std::uint64_t ntp_time) //
     -> uint64_t;
 
-} // namespace Private
+} // namespace impl
 } // namespace FLECS
-
-#endif // ADF3DE5E_D65D_4E99_8318_021E8B92926E

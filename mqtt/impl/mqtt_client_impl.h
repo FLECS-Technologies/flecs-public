@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DD4E43C0_03C7_429D_98EB_73BE4F3581D6
-#define DD4E43C0_03C7_429D_98EB_73BE4F3581D6
+#pragma once
 
 #include <variant>
 
@@ -23,18 +22,20 @@ struct mosquitto;
 struct mosquitto_message;
 
 namespace FLECS {
-namespace Private {
+namespace impl {
 
-class mqtt_client_private_t
+class mqtt_client_t
 {
 public:
-    /*! @brief Constructor. On creation of the first instance, the underlying mosquitto MQTT library is initialized.
+    /*! @brief Constructor. On creation of the first instance, the underlying mosquitto MQTT library
+     * is initialized.
      */
-    mqtt_client_private_t();
+    mqtt_client_t();
 
-    /*! @brief Destructor. If the last instance is destroyed, the underlying mosquitto MQTT library is de-initialized.
+    /*! @brief Destructor. If the last instance is destroyed, the underlying mosquitto MQTT library
+     * is de-initialized.
      */
-    ~mqtt_client_private_t();
+    ~mqtt_client_t();
 
     /*! @brief Forwards to mosquitto_connect(_mosq, host, port, keepalive)
      */
@@ -65,14 +66,20 @@ public:
 
     /*! @brief Forwards to mosquitto_publish(_mosq, mid, topic, payloadlen, payload, qos, retain)
      */
-    int publish(const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const;
+    int publish(
+        const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain)
+        const;
 
-    int receive_callback_set(mqtt_client_t::mqtt_receive_callback_t cbk, void* client);
-    int receive_callback_set(mqtt_client_t::mqtt_receive_callback_userp_t cbk, void* client, void* userp);
+    using receive_cbk_t = FLECS::mqtt_client_t::receive_cbk_t;
+    using receive_cbk_userp_t = FLECS::mqtt_client_t::receive_cbk_userp_t;
+    int receive_callback_set(receive_cbk_t cbk, void* client);
+    int receive_callback_set(receive_cbk_userp_t cbk, void* client, void* userp);
     int receive_callback_clear();
 
-    int disconnect_callback_set(mqtt_client_t::mqtt_disconnect_callback_t cbk, void* client);
-    int disconnect_callback_set(mqtt_client_t::mqtt_disconnect_callback_userp_t cbk, void* client, void* userp);
+    using disconnect_cbk_t = FLECS::mqtt_client_t::disconnect_cbk_t;
+    using disconnect_cbk_userp_t = FLECS::mqtt_client_t::disconnect_cbk_userp_t;
+    int disconnect_callback_set(disconnect_cbk_t cbk, void* client);
+    int disconnect_callback_set(disconnect_cbk_userp_t cbk, void* client, void* userp);
     int disconnect_callback_clear();
 
 private:
@@ -82,20 +89,14 @@ private:
     bool _connected;
 
     /*! Function pointer to receive callback */
-    using receive_cbk_t = std::
-        variant<std::nullptr_t, mqtt_client_t::mqtt_receive_callback_t, mqtt_client_t::mqtt_receive_callback_userp_t>;
-    receive_cbk_t _rcv_cbk;
+    std::variant<std::nullptr_t, receive_cbk_t, receive_cbk_userp_t> _rcv_cbk;
     /*! Pointer to mqtt_client_t associated with this instance */
     void* _rcv_cbk_client;
     /*! Pointer to userdata passed to receive callback */
     void* _rcv_cbk_userp;
 
     /*! Function pointer to disconnect callback */
-    using disconnect_cbk_t = std::variant<
-        std::nullptr_t,
-        mqtt_client_t::mqtt_disconnect_callback_t,
-        mqtt_client_t::mqtt_disconnect_callback_userp_t>;
-    disconnect_cbk_t _disconnect_cbk;
+    std::variant<std::nullptr_t, disconnect_cbk_t, disconnect_cbk_userp_t> _disconnect_cbk;
     /*! Pointer to mqtt_client_t tassociated with this instance */
     void* _disconnect_cbk_client;
     /*! Pointer to userdata passed to disconnect callback */
@@ -114,7 +115,5 @@ private:
     static void lib_disconnect_callback(mosquitto*, void*, int);
 };
 
-} // namespace Private
+} // namespace impl
 } // namespace FLECS
-
-#endif // DD4E43C0_03C7_429D_98EB_73BE4F3581D6

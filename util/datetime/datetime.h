@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef F945857A_262A_4302_A4C9_B209858CFA98
-#define F945857A_262A_4302_A4C9_B209858CFA98
+#pragma once
 
 #include <array>
 #include <chrono>
@@ -55,7 +54,9 @@ auto time_to_iso(precision_e precision = precision_e::milliseconds) //
  * @param[in] tp time point obtained from @sa system_clock_t (a.k.a. std::chrono::system_clock)
  * @param[in] precision precision between seconds and nanoseconds @sa precision_e
  */
-auto time_to_iso(std::chrono::time_point<system_clock_t> tp, precision_e precision = precision_e::milliseconds) //
+auto time_to_iso(
+    std::chrono::time_point<system_clock_t> tp,
+    precision_e precision = precision_e::milliseconds) //
     -> std::string;
 
 /**! @brief Returns the current time as unix timestamp string in local time
@@ -66,5 +67,3 @@ auto unix_time(precision_e precision = precision_e::seconds) //
     -> std::string;
 
 } // namespace FLECS
-
-#endif // F945857A_262A_4302_A4C9_B209858CFA98

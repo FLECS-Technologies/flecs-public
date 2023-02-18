@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef D583A2CB_B0C5_41BF_B7A4_478C82A15ABE
-#define D583A2CB_B0C5_41BF_B7A4_478C82A15ABE
+#pragma once
 
 #include <cstdint>
 #include <set>
@@ -51,5 +50,3 @@ auto get_devices() //
 
 } // namespace usb
 } // namespace FLECS
-
-#endif /* D583A2CB_B0C5_41BF_B7A4_478C82A15ABE */

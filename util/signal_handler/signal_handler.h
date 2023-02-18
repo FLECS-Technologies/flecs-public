@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CCC70E82_3BE2_46D4_AA04_A1B11B6CBF5D
-#define CCC70E82_3BE2_46D4_AA04_A1B11B6CBF5D
+#pragma once
 
 #include <atomic>
 
@@ -26,5 +25,3 @@ void signal_handler(int signum);
 void signal_handler_init();
 
 } // namespace FLECS
-
-#endif // CCC70E82_3BE2_46D4_AA04_A1B11B6CBF5D

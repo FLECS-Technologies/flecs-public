@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CA521E3A_3058_404F_822B_B77700F2CA78
-#define CA521E3A_3058_404F_822B_B77700F2CA78
+#pragma once
 
 #include <stdexcept>
 #include <thread>
@@ -63,5 +62,3 @@ private:
 
 } // namespace udev
 } // namespace FLECS
-
-#endif /* CA521E3A_3058_404F_822B_B77700F2CA78 */

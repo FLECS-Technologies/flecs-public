@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,21 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ED9FB390_4279_4DD1_9325_B7D3F8F86D98
-#define ED9FB390_4279_4DD1_9325_B7D3F8F86D98
+#pragma once
 
 #include "data_layer/data_layer.h"
 #include "flunder/flunder_client.h"
 
 namespace FLECS {
-namespace Private {
+namespace impl {
 
-class module_data_layer_private_t
+class module_data_layer_t
 {
 public:
-    module_data_layer_private_t();
+    module_data_layer_t();
 
-    ~module_data_layer_private_t();
+    ~module_data_layer_t();
 
     auto do_browse(std::string_view path) //
         -> crow::response;
@@ -38,10 +37,8 @@ public:
         -> void;
 
 private:
-    flunder_client_t _client;
+    FLECS::flunder_client_t _client;
 };
 
-} // namespace Private
+} // namespace impl
 } // namespace FLECS
-
-#endif // ED9FB390_4279_4DD1_9325_B7D3F8F86D98

@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef A060EDC4_84A2_4655_A89E_290C0AC4F5C2
-#define A060EDC4_84A2_4655_A89E_290C0AC4F5C2
+#pragma once
 
 /*! @todo */
 #ifndef FLECS_EXPORT
@@ -40,9 +39,9 @@
 
 namespace FLECS {
 
-namespace Private {
-class mqtt_client_private_t;
-} // namespace Private
+namespace impl {
+class mqtt_client_t;
+} // namespace impl
 
 /*! DNS name of the default FLECS MQTT broker */
 constexpr const char* MQTT_HOST = "flecs-mqtt";
@@ -98,7 +97,8 @@ public:
      *
      * @param[in] host Broker hostname or IP address
      * @param[in] port Broker port
-     * @param[in] keepalive Timeout between PING messages in seconds, if no messages are exchanged with the broker
+     * @param[in] keepalive Timeout between PING messages in seconds, if no messages are exchanged
+     * with the broker
      *
      * @return MQTT error code
      *      MQTT_ERR_OK on success
@@ -178,8 +178,10 @@ public:
      *
      * @return MQTT error code
      */
-    FLECS_EXPORT int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain) const;
-    FLECS_EXPORT int publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain);
+    FLECS_EXPORT int publish(
+        const char* topic, int payloadlen, const void* payload, int qos, bool retain) const;
+    FLECS_EXPORT int publish(
+        const char* topic, int payloadlen, const void* payload, int qos, bool retain);
 
     /*! @brief Publish a topic on the currently connected MQTT broker
      *
@@ -193,25 +195,27 @@ public:
      * @return MQTT error code
      */
     FLECS_EXPORT int publish(
-        const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const;
-    FLECS_EXPORT int publish(const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain);
+        const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain)
+        const;
+    FLECS_EXPORT int publish(
+        const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain);
 
     /*! @brief Type for MQTT message callbacks
      *
      * @param[in] mqtt_client_t pointer to the mqtt_client_t instance that triggered the callback
-     * @param[in] mqtt_message_t* Pointer to MQTT message. Message is only valid during execution of the callback.
-     *                            If message is required after the callback, a copy has to be made by the user
+     * @param[in] mqtt_message_t* Pointer to MQTT message. Message is only valid during execution of
+     * the callback. If message is required after the callback, a copy has to be made by the user
      */
-    using mqtt_receive_callback_t = std::function<void(mqtt_client_t*, mqtt_message_t*)>;
+    using receive_cbk_t = std::function<void(mqtt_client_t*, mqtt_message_t*)>;
 
     /*! @brief Type for MQTT message callbacks with userdata
      *
      * @param[in] mqtt_client_t pointer to the mqtt_client_t instance that triggered the callback
      * @param[in] void* pointer to arbitrary userdata
-     * @param[in] mqtt_message_t* Pointer to MQTT message. Message is only valid during execution of the callback.
-     *                            If message is required after the callback, a copy has to be made by the user
+     * @param[in] mqtt_message_t* Pointer to MQTT message. Message is only valid during execution of
+     * the callback. If message is required after the callback, a copy has to be made by the user
      */
-    using mqtt_receive_callback_userp_t = std::function<void(mqtt_client_t*, mqtt_message_t*, void*)>;
+    using receive_cbk_userp_t = std::function<void(mqtt_client_t*, mqtt_message_t*, void*)>;
 
     /*! @brief Register a receive callback function on the client
      *
@@ -219,7 +223,7 @@ public:
      *
      * @return MQTT_ERR_OK
      */
-    FLECS_EXPORT int receive_callback_set(mqtt_receive_callback_t cbk);
+    FLECS_EXPORT int receive_callback_set(receive_cbk_t cbk);
 
     /*! @brief Register a receive callback function on the client
      *
@@ -228,7 +232,7 @@ public:
      *
      * @return MQTT_ERR_OK
      */
-    FLECS_EXPORT int receive_callback_set(mqtt_receive_callback_userp_t cbk, void* userp);
+    FLECS_EXPORT int receive_callback_set(receive_cbk_userp_t cbk, void* userp);
 
     /*! @brief Unregister the receive callback function on the client
      *
@@ -242,14 +246,14 @@ public:
      *
      * @param[in] mqtt_client_t pointer to the mqtt_client_t instance that triggered the callback
      */
-    using mqtt_disconnect_callback_t = std::function<void(mqtt_client_t*)>;
+    using disconnect_cbk_t = std::function<void(mqtt_client_t*)>;
 
     /*! @brief Type for disconnect callbacks with userdata
      *
      * @param[in] mqtt_client_t pointer to the mqtt_client_t instance that triggered the callback
      * @param[in] void* pointer to arbitrary userdata
      */
-    using mqtt_disconnect_callback_userp_t = std::function<void(mqtt_client_t*, void*)>;
+    using disconnect_cbk_userp_t = std::function<void(mqtt_client_t*, void*)>;
 
     /*! @brief Register a disconnect callback function on the client
      *
@@ -257,7 +261,7 @@ public:
      *
      * @return MQTT_ERR_OK
      */
-    FLECS_EXPORT int disconnect_callback_set(mqtt_disconnect_callback_t cbk);
+    FLECS_EXPORT int disconnect_callback_set(disconnect_cbk_t cbk);
 
     /*! @brief Register a receive callback function on the client
      *
@@ -266,7 +270,7 @@ public:
      *
      * @return MQTT_ERR_OK
      */
-    FLECS_EXPORT int disconnect_callback_set(mqtt_disconnect_callback_userp_t cbk, void* userp);
+    FLECS_EXPORT int disconnect_callback_set(disconnect_cbk_userp_t cbk, void* userp);
 
     /*! @brief Unregister the disconnect callback function on the client
      *
@@ -281,7 +285,7 @@ private:
     friend FLECS_EXPORT void swap(mqtt_client_t& lhs, mqtt_client_t& rhs) noexcept;
 
     /*! Pointer to implementation */
-    std::unique_ptr<Private::mqtt_client_private_t> _impl;
+    std::unique_ptr<impl::mqtt_client_t> _impl;
 };
 
 } // namespace FLECS
@@ -311,7 +315,13 @@ FLECS_EXPORT int flecs_mqtt_publish(
     const void* mqtt, const char* topic, int payloadlen, const void* payload, int qos, bool retain);
 
 FLECS_EXPORT int flecs_mqtt_publish_mid(
-    const void* mqtt, const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain);
+    const void* mqtt,
+    const char* topic,
+    int* mid,
+    int payloadlen,
+    const void* payload,
+    int qos,
+    bool retain);
 
 FLECS_EXPORT int flecs_mqtt_receive_callback_set(void* mqtt, flecs_mqtt_callback cbk, void* userp);
 
@@ -320,5 +330,3 @@ FLECS_EXPORT int flecs_mqtt_receive_callback_clear(void* mqtt);
 #ifdef __cplusplus
 } // extern "C"
 #endif // __cplusplus
-
-#endif // A060EDC4_84A2_4655_A89E_290C0AC4F5C2

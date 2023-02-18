@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef E8E3AE12_7249_481B_B47C_5682C1BBADE2
-#define E8E3AE12_7249_481B_B47C_5682C1BBADE2
+#pragma once
 
 #include <cstdint>
 #include <string>
@@ -61,5 +60,3 @@ auto from_json(const json_t& json, instance_config_t& instance_config) //
     -> void;
 
 } // namespace FLECS
-
-#endif // E8E3AE12_7249_481B_B47C_5682C1BBADE2

@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@
 #include <cstring>
 #include <string>
 
-#include "private/mqtt_client_private.h"
+#include "impl/mqtt_client_impl.h"
 
 namespace FLECS {
 
 mqtt_client_t::mqtt_client_t()
-    : _impl{new Private::mqtt_client_private_t{}}
+    : _impl{new impl::mqtt_client_t{}}
 {}
 
 mqtt_client_t::mqtt_client_t(mqtt_client_t&& other)
@@ -76,32 +76,38 @@ int mqtt_client_t::unsubscribe(const char* sub)
     return _impl->unsubscribe(sub);
 }
 
-int mqtt_client_t::publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain) const
+int mqtt_client_t::publish(
+    const char* topic, int payloadlen, const void* payload, int qos, bool retain) const
 {
     return _impl->publish(topic, nullptr, payloadlen, payload, qos, retain);
 }
 
-int mqtt_client_t::publish(const char* topic, int payloadlen, const void* payload, int qos, bool retain)
+int mqtt_client_t::publish(
+    const char* topic, int payloadlen, const void* payload, int qos, bool retain)
 {
-    return (static_cast<const mqtt_client_t*>(this))->publish(topic, payloadlen, payload, qos, retain);
+    return (static_cast<const mqtt_client_t*>(this))
+        ->publish(topic, payloadlen, payload, qos, retain);
 }
 
-int mqtt_client_t::publish(const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const
+int mqtt_client_t::publish(
+    const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain) const
 {
     return _impl->publish(topic, mid, payloadlen, payload, qos, retain);
 }
 
-int mqtt_client_t::publish(const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain)
+int mqtt_client_t::publish(
+    const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain)
 {
-    return (static_cast<const mqtt_client_t*>(this))->publish(topic, mid, payloadlen, payload, qos, retain);
+    return (static_cast<const mqtt_client_t*>(this))
+        ->publish(topic, mid, payloadlen, payload, qos, retain);
 }
 
-int mqtt_client_t::receive_callback_set(mqtt_receive_callback_t cbk)
+int mqtt_client_t::receive_callback_set(receive_cbk_t cbk)
 {
     return _impl->receive_callback_set(cbk, static_cast<void*>(this));
 }
 
-int mqtt_client_t::receive_callback_set(mqtt_receive_callback_userp_t cbk, void* userp)
+int mqtt_client_t::receive_callback_set(receive_cbk_userp_t cbk, void* userp)
 {
     return _impl->receive_callback_set(cbk, static_cast<void*>(this), userp);
 }
@@ -111,12 +117,12 @@ int mqtt_client_t::receive_callback_clear()
     return _impl->receive_callback_clear();
 }
 
-int mqtt_client_t::disconnect_callback_set(mqtt_disconnect_callback_t cbk)
+int mqtt_client_t::disconnect_callback_set(disconnect_cbk_t cbk)
 {
     return _impl->disconnect_callback_set(cbk, static_cast<void*>(this));
 }
 
-int mqtt_client_t::disconnect_callback_set(mqtt_disconnect_callback_userp_t cbk, void* userp)
+int mqtt_client_t::disconnect_callback_set(disconnect_cbk_userp_t cbk, void* userp)
 {
     return _impl->disconnect_callback_set(cbk, static_cast<void*>(this), userp);
 }
@@ -177,13 +183,21 @@ FLECS_EXPORT int flecs_mqtt_unsubscribe(void* mqtt, const char* sub)
 FLECS_EXPORT int flecs_mqtt_publish(
     const void* mqtt, const char* topic, int payloadlen, const void* payload, int qos, bool retain)
 {
-    return static_cast<const FLECS::mqtt_client_t*>(mqtt)->publish(topic, payloadlen, payload, qos, retain);
+    return static_cast<const FLECS::mqtt_client_t*>(mqtt)
+        ->publish(topic, payloadlen, payload, qos, retain);
 }
 
 FLECS_EXPORT int flecs_mqtt_publish_mid(
-    const void* mqtt, const char* topic, int* mid, int payloadlen, const void* payload, int qos, bool retain)
+    const void* mqtt,
+    const char* topic,
+    int* mid,
+    int payloadlen,
+    const void* payload,
+    int qos,
+    bool retain)
 {
-    return static_cast<const FLECS::mqtt_client_t*>(mqtt)->publish(topic, mid, payloadlen, payload, qos, retain);
+    return static_cast<const FLECS::mqtt_client_t*>(mqtt)
+        ->publish(topic, mid, payloadlen, payload, qos, retain);
 }
 
 FLECS_EXPORT int flecs_mqtt_receive_callback_set(void* mqtt, flecs_mqtt_callback cbk, void* userp)

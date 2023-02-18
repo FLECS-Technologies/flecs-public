@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DAF95744_686F_407F_8FDD_4E2758FE3054
-#define DAF95744_686F_407F_8FDD_4E2758FE3054
+#pragma once
 
 #include <cstring>
 
@@ -25,5 +24,3 @@ struct string_comparator_t
 };
 
 } // namespace FLECS
-
-#endif // DAF95744_686F_407F_8FDD_4E2758FE3054

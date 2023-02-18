@@ -1,4 +1,4 @@
-# Copyright 2021-2022 FLECS Technologies GmbH
+# Copyright 2021-2023 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@ project(FLECS.mqtt)
 
 set(SRC_LIB
     src/mqtt_client.cpp
-    src/private/mqtt_client_private.cpp
+    src/impl/mqtt_client_impl.cpp
 )
 
 set(INCLUDE_LIB
     mqtt_client.h
-    private/mqtt_client_private.h
+    impl/mqtt_client_impl.h
 )
 
 add_library(FLECS.mqtt OBJECT ${SRC_LIB} ${HEADER_LIB})

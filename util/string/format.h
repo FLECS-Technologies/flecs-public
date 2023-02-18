@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef BBD64BC9_1978_4720_997A_89A9E7960503
-#define BBD64BC9_1978_4720_997A_89A9E7960503
+#pragma once
 
 #include <iomanip>
 #include <sstream>
@@ -109,7 +108,8 @@ enum leading_zeroes_e {
 } // namespace fmt
 
 template <typename T>
-inline auto int_to_hex(T val, fmt::case_e casing, fmt::prefix_e prefix, fmt::leading_zeroes_e leading_zeroes) //
+inline auto int_to_hex(
+    T val, fmt::case_e casing, fmt::prefix_e prefix, fmt::leading_zeroes_e leading_zeroes) //
     -> std::enable_if_t<std::is_integral_v<T>, std::string>
 {
     const auto fmt = impl::fmt_ctx_t<impl::hex_traits_t<T>>{
@@ -124,5 +124,3 @@ inline auto int_to_hex(T val, fmt::case_e casing, fmt::prefix_e prefix, fmt::lea
 }
 
 } // namespace FLECS
-
-#endif /* BBD64BC9_1978_4720_997A_89A9E7960503 */

@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -94,7 +94,9 @@ auto to_json(json_t& j, const sysinfo_t& sysinfo) //
           {"name", sysinfo._distro_name},
           {"version", sysinfo._distro_version}}},
         {"kernel",
-         {{"build", sysinfo._kernel_build}, {"machine", sysinfo._machine}, {"version", sysinfo._kernel_version}}},
+         {{"build", sysinfo._kernel_build},
+          {"machine", sysinfo._machine},
+          {"version", sysinfo._kernel_version}}},
         {"platform", sysinfo._platform},
     };
 }

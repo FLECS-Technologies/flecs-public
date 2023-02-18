@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef B120BAAC_A4C6_4736_BCBD_04477ACD982F
-#define B120BAAC_A4C6_4736_BCBD_04477ACD982F
+#pragma once
 
 #include <yaml-cpp/yaml.h>
 
@@ -32,5 +31,3 @@ inline auto yaml_from_file(std::string_view path)
 }
 
 } // namespace FLECS
-
-#endif // B120BAAC_A4C6_4736_BCBD_04477ACD982F

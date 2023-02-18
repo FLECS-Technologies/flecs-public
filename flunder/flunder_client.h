@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef C33E0442_0C18_433F_88A2_9738DDC82A5A
-#define C33E0442_0C18_433F_88A2_9738DDC82A5A
+#pragma once
 
 /*! @todo */
 #ifndef FLECS_EXPORT
@@ -43,9 +42,9 @@
 #include "util/string/string_utils.h"
 
 namespace FLECS {
-namespace Private {
-class flunder_client_private_t;
-} // namespace Private
+namespace impl {
+class flunder_client_t;
+} // namespace impl
 
 /*! DNS name of the default flunder broker */
 constexpr const char* FLUNDER_HOST = "flecs-flunder";
@@ -115,7 +114,8 @@ public:
     FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len) const //
         -> int;
     /* custom data */
-    FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
+    FLECS_EXPORT auto publish(
+        std::string_view topic, const void* data, size_t len, std::string_view encoding) const //
         -> int;
 
     /** @todo: non-const binary-compatibility hell: remove for 2.0.0 */
@@ -134,17 +134,20 @@ public:
         -> int;
     FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len) //
         -> int;
-    FLECS_EXPORT auto publish(std::string_view topic, const void* data, size_t len, std::string_view encoding) //
+    FLECS_EXPORT auto publish(
+        std::string_view topic, const void* data, size_t len, std::string_view encoding) //
         -> int;
 
     using subscribe_cbk_t = std::function<void(flunder_client_t*, const flunder_variable_t*)>;
-    using subscribe_cbk_userp_t = std::function<void(flunder_client_t*, const flunder_variable_t*, const void*)>;
+    using subscribe_cbk_userp_t =
+        std::function<void(flunder_client_t*, const flunder_variable_t*, const void*)>;
 
     /* subscribe to live data */
     FLECS_EXPORT auto subscribe(std::string_view topic, subscribe_cbk_t cbk) //
         -> int;
     /* subscribe to live data with userdata */
-    FLECS_EXPORT auto subscribe(std::string_view topic, subscribe_cbk_userp_t cbk, const void* userp) //
+    FLECS_EXPORT auto subscribe(
+        std::string_view topic, subscribe_cbk_userp_t cbk, const void* userp) //
         -> int;
     /* unsubscribe from live data */
     FLECS_EXPORT auto unsubscribe(std::string_view topic) //
@@ -171,7 +174,8 @@ private:
     FLECS_EXPORT auto publish_int(
         std::string_view topic, size_t size, bool is_signed, const std::string& value) const //
         -> int;
-    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) const //
+    FLECS_EXPORT auto publish_float(
+        std::string_view topic, size_t size, const std::string& value) const //
         -> int;
     FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) const //
         -> int;
@@ -184,18 +188,21 @@ private:
     /** @todo: non-const binary-compatibility hell: remove for 2.0.0 */
     FLECS_EXPORT auto publish_bool(std::string_view topic, const std::string& value) //
         -> int;
-    FLECS_EXPORT auto publish_int(std::string_view topic, size_t size, bool is_signed, const std::string& value) //
+    FLECS_EXPORT auto publish_int(
+        std::string_view topic, size_t size, bool is_signed, const std::string& value) //
         -> int;
-    FLECS_EXPORT auto publish_float(std::string_view topic, size_t size, const std::string& value) //
+    FLECS_EXPORT auto publish_float(
+        std::string_view topic, size_t size, const std::string& value) //
         -> int;
     FLECS_EXPORT auto publish_string(std::string_view topic, const std::string& value) //
         -> int;
     FLECS_EXPORT auto publish_raw(std::string_view topic, const void* data, size_t len) //
         -> int;
-    FLECS_EXPORT auto publish_custom(std::string_view topic, const void* data, size_t len, std::string_view encoding) //
+    FLECS_EXPORT auto publish_custom(
+        std::string_view topic, const void* data, size_t len, std::string_view encoding) //
         -> int;
 
-    std::unique_ptr<Private::flunder_client_private_t> _impl;
+    std::unique_ptr<impl::flunder_client_t> _impl;
 };
 
 template <typename T>
@@ -276,9 +283,14 @@ FLECS_EXPORT int flunder_publish_uint64(const void* flunder, const char* topic, 
 FLECS_EXPORT int flunder_publish_float(const void* flunder, const char* topic, float value);
 FLECS_EXPORT int flunder_publish_double(const void* flunder, const char* topic, double value);
 FLECS_EXPORT int flunder_publish_string(const void* flunder, const char* topic, const char* value);
-FLECS_EXPORT int flunder_publish_raw(const void* flunder, const char* topic, const void* value, size_t payloadlen);
+FLECS_EXPORT int flunder_publish_raw(
+    const void* flunder, const char* topic, const void* value, size_t payloadlen);
 FLECS_EXPORT int flunder_publish_custom(
-    const void* flunder, const char* topic, const void* value, size_t payloadlen, const char* encoding);
+    const void* flunder,
+    const char* topic,
+    const void* value,
+    size_t payloadlen,
+    const char* encoding);
 
 FLECS_EXPORT int flunder_add_mem_storage(void* flunder, const char* name, const char* topic);
 FLECS_EXPORT int flunder_remove_mem_storage(void* flunder, const char* name);
@@ -287,5 +299,3 @@ FLECS_EXPORT int flunder_remove_mem_storage(void* flunder, const char* name);
 } // extern "C"
 } // namespace FLECS
 #endif // __cplusplus
-
-#endif // C33E0442_0C18_433F_88A2_9738DDC82A5A

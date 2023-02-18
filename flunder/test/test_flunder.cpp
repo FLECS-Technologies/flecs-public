@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -84,12 +84,13 @@ constexpr auto is_signed(T)
     {                                   \
         return "application/" #type;    \
     }
-#define DEF_INT_ENCODING(type)                                                                             \
-    template <>                                                                                            \
-    auto encoding<type>(type)                                                                              \
-    {                                                                                                      \
-        using std::operator""s;                                                                            \
-        return "application/integer+"s.append(is_signed(type{})).append(std::to_string(8 * sizeof(type))); \
+#define DEF_INT_ENCODING(type)                                   \
+    template <>                                                  \
+    auto encoding<type>(type)                                    \
+    {                                                            \
+        using std::operator""s;                                  \
+        return "application/integer+"s.append(is_signed(type{})) \
+            .append(std::to_string(8 * sizeof(type)));           \
     }
 #define DEF_FLOAT_ENCODING(type)                                               \
     template <>                                                                \
@@ -152,7 +153,8 @@ auto val(const char*)
 }
 
 template <typename T>
-void flunder_cbk_userp(FLECS::flunder_client_t* client, const FLECS::flunder_variable_t* var, const void* userp)
+void flunder_cbk_userp(
+    FLECS::flunder_client_t* client, const FLECS::flunder_variable_t* var, const void* userp)
 {
     std::fprintf(stderr, "Received topic %s\n", var->topic().data());
     ASSERT_EQ(client, userp);
@@ -211,8 +213,10 @@ TEST(flunder, pub_sub)
     client_1.connect("172.17.0.1", 7447);
     client_2.connect("172.17.0.1", 7447);
 
-    auto res =
-        client_1.subscribe(topic(nullptr), flunder_cbk_userp<std::int32_t>, reinterpret_cast<const void*>(&client_1));
+    auto res = client_1.subscribe(
+        topic(nullptr),
+        flunder_cbk_userp<std::int32_t>,
+        reinterpret_cast<const void*>(&client_1));
     ASSERT_EQ(res, 0);
 
     res = client_1.subscribe(
@@ -233,13 +237,22 @@ TEST(flunder, pub_sub)
         reinterpret_cast<const void*>(&client_1));
     ASSERT_EQ(res, 0);
 
-    res = client_1.subscribe(topic(bool{}), flunder_cbk_userp<bool>, reinterpret_cast<const void*>(&client_1));
+    res = client_1.subscribe(
+        topic(bool{}),
+        flunder_cbk_userp<bool>,
+        reinterpret_cast<const void*>(&client_1));
     ASSERT_EQ(res, 0);
 
-    res = client_1.subscribe(topic(float{}), flunder_cbk_userp<float>, reinterpret_cast<const void*>(&client_1));
+    res = client_1.subscribe(
+        topic(float{}),
+        flunder_cbk_userp<float>,
+        reinterpret_cast<const void*>(&client_1));
     ASSERT_EQ(res, 0);
 
-    res = client_1.subscribe(topic(double{}), flunder_cbk_userp<double>, reinterpret_cast<const void*>(&client_1));
+    res = client_1.subscribe(
+        topic(double{}),
+        flunder_cbk_userp<double>,
+        reinterpret_cast<const void*>(&client_1));
     ASSERT_EQ(res, 0);
 
     res = client_1.subscribe(topic((void*)(nullptr)), &flunder_cbk);
@@ -323,27 +336,63 @@ TEST(flunder, c)
 
     res = flunder_subscribe_userp(client, topic(bool{}), flunder_cbk_c_userp<bool>, client);
     ASSERT_EQ(res, 0);
-    res = flunder_subscribe_userp(client, topic(std::int8_t{}), flunder_cbk_c_userp<std::int8_t>, client);
+    res = flunder_subscribe_userp(
+        client,
+        topic(std::int8_t{}),
+        flunder_cbk_c_userp<std::int8_t>,
+        client);
     ASSERT_EQ(res, 0);
-    res = flunder_subscribe_userp(client, topic(std::int16_t{}), flunder_cbk_c_userp<std::int16_t>, client);
+    res = flunder_subscribe_userp(
+        client,
+        topic(std::int16_t{}),
+        flunder_cbk_c_userp<std::int16_t>,
+        client);
     ASSERT_EQ(res, 0);
-    res = flunder_subscribe_userp(client, topic(std::int32_t{}), flunder_cbk_c_userp<std::int32_t>, client);
+    res = flunder_subscribe_userp(
+        client,
+        topic(std::int32_t{}),
+        flunder_cbk_c_userp<std::int32_t>,
+        client);
     ASSERT_EQ(res, 0);
-    res = flunder_subscribe_userp(client, topic(std::int64_t{}), flunder_cbk_c_userp<std::int64_t>, client);
+    res = flunder_subscribe_userp(
+        client,
+        topic(std::int64_t{}),
+        flunder_cbk_c_userp<std::int64_t>,
+        client);
     ASSERT_EQ(res, 0);
-    res = flunder_subscribe_userp(client, topic(std::uint8_t{}), flunder_cbk_c_userp<std::uint8_t>, client);
+    res = flunder_subscribe_userp(
+        client,
+        topic(std::uint8_t{}),
+        flunder_cbk_c_userp<std::uint8_t>,
+        client);
     ASSERT_EQ(res, 0);
-    res = flunder_subscribe_userp(client, topic(std::uint16_t{}), flunder_cbk_c_userp<std::uint16_t>, client);
+    res = flunder_subscribe_userp(
+        client,
+        topic(std::uint16_t{}),
+        flunder_cbk_c_userp<std::uint16_t>,
+        client);
     ASSERT_EQ(res, 0);
-    res = flunder_subscribe_userp(client, topic(std::uint32_t{}), flunder_cbk_c_userp<std::uint32_t>, client);
+    res = flunder_subscribe_userp(
+        client,
+        topic(std::uint32_t{}),
+        flunder_cbk_c_userp<std::uint32_t>,
+        client);
     ASSERT_EQ(res, 0);
-    res = flunder_subscribe_userp(client, topic(std::uint64_t{}), flunder_cbk_c_userp<std::uint64_t>, client);
+    res = flunder_subscribe_userp(
+        client,
+        topic(std::uint64_t{}),
+        flunder_cbk_c_userp<std::uint64_t>,
+        client);
     ASSERT_EQ(res, 0);
     res = flunder_subscribe_userp(client, topic(float{}), flunder_cbk_c_userp<float>, client);
     ASSERT_EQ(res, 0);
     res = flunder_subscribe_userp(client, topic(double{}), flunder_cbk_c_userp<double>, client);
     ASSERT_EQ(res, 0);
-    res = flunder_subscribe_userp(client, topic((const char*)(nullptr)), flunder_cbk_c_userp<const char*>, client);
+    res = flunder_subscribe_userp(
+        client,
+        topic((const char*)(nullptr)),
+        flunder_cbk_c_userp<const char*>,
+        client);
     ASSERT_EQ(res, 0);
     res = flunder_subscribe(client, topic((void*)(nullptr)), flunder_cbk_c);
     ASSERT_EQ(res, 0);
@@ -387,7 +436,8 @@ TEST(flunder, c)
     res = flunder_publish_double(client, topic(double{}), val(double{}));
     ASSERT_EQ(res, 0);
     usleep(250);
-    res = flunder_publish_string(client, topic((const char*)(nullptr)), val((const char*)(nullptr)));
+    res =
+        flunder_publish_string(client, topic((const char*)(nullptr)), val((const char*)(nullptr)));
     ASSERT_EQ(res, 0);
     usleep(250);
     res = flunder_publish_raw(client, topic((void*)(nullptr)), nullptr, 0);

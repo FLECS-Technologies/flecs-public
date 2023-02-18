@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef B924454A_EE02_4516_BAEE_4F84C9EC14AB
-#define B924454A_EE02_4516_BAEE_4F84C9EC14AB
+#pragma once
 
 #include <string>
 
@@ -89,5 +88,3 @@ inline volume_t::volume_type_t volume_type_from_string(std::string_view str)
 }
 
 } // namespace FLECS
-
-#endif // B924454A_EE02_4516_BAEE_4F84C9EC14AB

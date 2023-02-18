@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -165,7 +165,9 @@ TEST(daemon_app, complex_app)
     ASSERT_EQ(app.hostname(), "flecs-unit-test");
     ASSERT_EQ(app.multi_instance(), false);
     ASSERT_EQ(app.interactive(), true);
-    ASSERT_EQ((*app.env().cbegin()), (FLECS::mapped_env_var_t{FLECS::env_var_t{G_ENV_VAR_KEY}, G_ENV_VAR_VALUE}));
+    ASSERT_EQ(
+        (*app.env().cbegin()),
+        (FLECS::mapped_env_var_t{FLECS::env_var_t{G_ENV_VAR_KEY}, G_ENV_VAR_VALUE}));
     ASSERT_EQ(
         (std::find_if(
              app.volumes().cbegin(),

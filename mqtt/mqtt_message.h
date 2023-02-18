@@ -1,4 +1,4 @@
-// Copyright 2021-2022 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef C2E307A4_1114_43A5_974D_C3E7149F2F5B
-#define C2E307A4_1114_43A5_974D_C3E7149F2F5B
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -39,5 +38,3 @@ struct flecs_mqtt_message_t
 #ifdef __cplusplus
 } // namespace FLECS
 #endif // __cplusplus
-
-#endif // C2E307A4_1114_43A5_974D_C3E7149F2F5B
