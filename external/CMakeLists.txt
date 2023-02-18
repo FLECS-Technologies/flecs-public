@@ -24,7 +24,6 @@ set(LIBARCHIVE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libarchive-3.6.2)
 set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.15)
 set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-3.0.8)
 set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.10.3)
-set(SQLITE3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sqlite-3.40.0)
 set(YAMLCPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set(ZENOH_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.6.0-beta.1)
 set(ZLIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.13)
@@ -92,16 +91,6 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
     COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
-)
-
-# sqlite3
-add_custom_target(
-    FLECS.external.sqlite3.build
-    WORKING_DIRECTORY ${SQLITE3_DIR}
-    COMMAND autoreconf
-    COMMAND ./configure --prefix=${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH} --host=${CROSS_COMPILE}
-    COMMAND make install
-    COMMAND make clean
 )
 
 # yaml-cpp
@@ -204,11 +193,6 @@ set_property(TARGET external.ssl PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_
 # pybind11
 add_library(external.pybind11 INTERFACE)
 target_include_directories(external.pybind11 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
-
-# sqlite3
-add_library(FLECS.external.sqlite3 STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.sqlite3 PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libsqlite3.a)
-set_property(TARGET FLECS.external.sqlite3 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # yaml-cpp
 add_library(FLECS.external.yaml-cpp STATIC IMPORTED GLOBAL)
