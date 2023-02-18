@@ -50,14 +50,12 @@ target_link_libraries(FLECS.daemon PRIVATE
     FLECS.daemon.modules.apps
     FLECS.daemon.modules.data_layer
     FLECS.daemon.modules.factory
-    FLECS.daemon.modules.help
     FLECS.daemon.modules.instances
     FLECS.daemon.modules.jobs
     FLECS.daemon.modules.manifests
     FLECS.daemon.modules.marketplace
     FLECS.daemon.modules.module_base
     FLECS.daemon.modules.system
-    FLECS.daemon.modules.usage
     FLECS.daemon.modules.version
     FLECS.util.datetime
     FLECS.util.process
