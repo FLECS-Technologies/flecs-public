@@ -62,7 +62,6 @@ target_link_libraries(FLECS.daemon PRIVATE
     FLECS.util.datetime
     FLECS.util.process
     FLECS.util.signal_handler
-    FLECS.util.sqlite3_ext
     FLECS.external.yaml-cpp
 )
 

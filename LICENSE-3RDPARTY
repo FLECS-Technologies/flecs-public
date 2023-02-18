@@ -74,14 +74,6 @@ Copyright:  Wenzel Jakob
 ================================================================================
 
 ================================================================================
-Project:    sqlite3
-Version:    v3.40.0
-License:    Public Domain
-URL:        https://github.com/sqlite/sqlite
-Copyright:  Hipp, Wyrick & Company, Inc.
-================================================================================
-
-================================================================================
 Project:    yaml-cpp
 Version:    v0.7.0
 License:    MIT License
@@ -856,16 +848,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Please also refer to the file .github/CONTRIBUTING.md, which clarifies licensing of
 external contributions to this project including patches, pull requests, etc.
-
-================================================================================
-License for sqlite3
-================================================================================
-The author disclaims copyright to this source code. In place of a legal notice,
-here is a blessing:
-
-- May you do good and not evil.
-- May you find forgiveness for yourself and forgive others.
-- May you share freely, never taking more than you give.
 
 ================================================================================
 License for yaml-cpp
