@@ -46,6 +46,9 @@ auto module_jobs_t::do_init() //
     FLECS_V2_ROUTE("/jobs/<uint>").methods("GET"_method)([this](std::uint32_t job_id) {
         return list_jobs(job_id_t{job_id});
     });
+    FLECS_V2_ROUTE("/jobs/<uint>").methods("DELETE"_method)([this](std::uint32_t job_id) {
+        return delete_job(job_id_t{job_id});
+    });
 
     _impl->do_init();
 }
@@ -66,6 +69,12 @@ auto module_jobs_t::list_jobs(job_id_t job_id) const //
     -> crow::response
 {
     return _impl->do_list_jobs(std::move(job_id));
+}
+
+auto module_jobs_t::delete_job(job_id_t job_id) //
+    -> crow::response
+{
+    return _impl->do_delete_job(std::move(job_id));
 }
 
 auto module_jobs_t::wait_for_job(job_id_t job_id) const //

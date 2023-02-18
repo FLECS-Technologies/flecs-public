@@ -65,6 +65,9 @@ public:
     auto list_jobs(job_id_t job_id) const //
         -> crow::response;
 
+    auto delete_job(job_id_t job_id) //
+        -> crow::response;
+
     auto wait_for_job(job_id_t job_id) const //
         -> result_t;
 

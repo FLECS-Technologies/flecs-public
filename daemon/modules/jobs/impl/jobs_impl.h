@@ -47,6 +47,9 @@ private:
     auto do_list_jobs(job_id_t job_id) const //
         -> crow::response;
 
+    auto do_delete_job(job_id_t job_id) //
+        -> crow::response;
+
     auto do_wait_for_job(job_id_t job_id) const //
         -> result_t;
 

@@ -56,6 +56,34 @@ auto module_jobs_t::do_append(job_t job, std::string desc) //
     return _job_id;
 }
 
+auto module_jobs_t::do_delete_job(job_id_t job_id) //
+    -> crow::response
+{
+    auto job = std::find_if(
+        _job_progress.begin(),
+        _job_progress.end(),
+        [&job_id](const job_progress_t& elem) { return elem.job_id() == job_id; });
+
+    if (job == _job_progress.end()) {
+        return crow::response{
+            crow::status::NOT_FOUND,
+            "txt",
+            "No such job " + std::to_string(job_id)};
+    }
+
+    auto status = job->status();
+    if (status == job_status_e::Cancelled || status == job_status_e::Successful ||
+        status == job_status_e::Failed) {
+        _job_progress.erase(job);
+        return crow::response{crow::status::NO_CONTENT};
+    }
+
+    return {
+        crow::status::BAD_REQUEST,
+        "txt",
+        "Not removing unfinished job " + std::to_string(job_id)};
+}
+
 auto module_jobs_t::do_list_jobs(job_id_t job_id) const //
     -> crow::response
 {
