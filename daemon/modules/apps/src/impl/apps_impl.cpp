@@ -183,6 +183,23 @@ auto module_apps_t::do_save(const fs::path& base_path) const //
     json_file << apps_json;
 }
 
+auto module_apps_t::do_app_keys(const app_key_t& app_key) const //
+    -> std::vector<app_key_t>
+{
+    auto res = std::vector<app_key_t>{};
+
+    for (const auto& app : _apps) {
+        const auto apps_match = app_key.name().empty() || (app_key.name() == app->key().name());
+        const auto versions_match = app_key.name().empty() || app_key.version().empty() ||
+                                    (app_key.version() == app->key().version());
+        if (apps_match && versions_match) {
+            res.push_back(app->key());
+        }
+    }
+
+    return res;
+}
+
 auto module_apps_t::do_list(const app_key_t& app_key) const //
     -> crow::response
 {
@@ -201,7 +218,7 @@ auto module_apps_t::do_list(const app_key_t& app_key) const //
 }
 
 auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
-    -> crow::response
+    -> job_id_t
 {
     auto job = job_t{std::bind(
         &module_apps_t::do_install_from_marketplace,
@@ -210,13 +227,16 @@ auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::strin
         std::move(license_key),
         std::placeholders::_1)};
 
-    auto job_id = _jobs_api->append(std::move(job), "Installation of "s + to_string(app_key));
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    return _jobs_api->append(std::move(job), "Installation of "s + to_string(app_key));
 }
-
+auto module_apps_t::do_install_from_marketplace_sync(
+    app_key_t app_key,
+    std::string license_key) //
+    -> result_t
+{
+    auto _ = job_progress_t{};
+    return do_install_from_marketplace(std::move(app_key), std::move(license_key), _);
+}
 auto module_apps_t::do_install_from_marketplace(
     app_key_t app_key,
     std::string license_key,
@@ -236,7 +256,7 @@ auto module_apps_t::do_install_from_marketplace(
 }
 
 auto module_apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
-    -> crow::response
+    -> job_id_t
 {
     auto job = job_t{std::bind(
         &module_apps_t::do_sideload,
@@ -245,13 +265,14 @@ auto module_apps_t::queue_sideload(std::string manifest_string, std::string lice
         std::move(license_key),
         std::placeholders::_1)};
 
-    auto job_id = _jobs_api->append(std::move(job), "Sideloading App");
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    return _jobs_api->append(std::move(job), "Sideloading App");
 }
-
+auto module_apps_t::do_sideload_sync(std::string manifest_string, std::string license_key) //
+    -> result_t
+{
+    auto _ = job_progress_t{};
+    return do_sideload(std::move(manifest_string), std::move(license_key), _);
+}
 auto module_apps_t::do_sideload(
     std::string manifest_string, std::string license_key, job_progress_t& progress) //
     -> result_t
@@ -384,15 +405,8 @@ auto module_apps_t::do_install_impl(
 }
 
 auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
-    -> crow::response
+    -> job_id_t
 {
-    if (!_parent->is_installed(app_key)) {
-        auto response = json_t{};
-        response["additionalInfo"] =
-            "Cannot uninstall "s + to_string(app_key) + ", which is not installed";
-        return {crow::status::BAD_REQUEST, "json", response.dump()};
-    }
-
     auto job = job_t{std::bind(
         &module_apps_t::do_uninstall,
         this,
@@ -400,13 +414,14 @@ auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
         std::move(force),
         std::placeholders::_1)};
 
-    auto job_id = _jobs_api->append(std::move(job), "Uninstallation of "s + to_string(app_key));
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    return _jobs_api->append(std::move(job), "Uninstallation of "s + to_string(app_key));
 }
-
+auto module_apps_t::do_uninstall_sync(app_key_t app_key, bool force) //
+    -> result_t
+{
+    auto _ = job_progress_t{};
+    return do_uninstall(std::move(app_key), force, _);
+}
 auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
     -> result_t
 {
@@ -472,20 +487,26 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     return {0, {}};
 }
 
-auto module_apps_t::queue_archive(app_key_t app_key) const //
-    -> crow::response
+auto module_apps_t::queue_export_to(app_key_t app_key, fs::path dest_dir) const //
+    -> job_id_t
 {
-    auto job = job_t{
-        std::bind(&module_apps_t::do_archive, this, std::move(app_key), std::placeholders::_1)};
+    auto job = job_t{std::bind(
+        &module_apps_t::do_export_to,
+        this,
+        std::move(app_key),
+        std::move(dest_dir),
+        std::placeholders::_1)};
 
-    auto job_id = _jobs_api->append(std::move(job), "Exporting App " + to_string(app_key));
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    return _jobs_api->append(std::move(job), "Exporting App " + to_string(app_key));
 }
-
-auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& /*progress*/) const //
+auto module_apps_t::do_export_to_sync(app_key_t app_key, fs::path dest_dir) const //
+    -> result_t
+{
+    auto _ = job_progress_t{};
+    return do_export_to(std::move(app_key), std::move(dest_dir), _);
+}
+auto module_apps_t::do_export_to(
+    app_key_t app_key, fs::path /*dest_dir*/, job_progress_t& /*progress*/) const //
     -> result_t
 {
     // Step 1: Ensure App is actually installed
@@ -530,16 +551,6 @@ auto module_apps_t::do_archive(app_key_t app_key, job_progress_t& /*progress*/) 
     return {0, {}};
 }
 
-auto module_apps_t::do_contains(const app_key_t& app_key) const noexcept //
-    -> bool
-{
-    return std::find_if(
-               _apps.cbegin(),
-               _apps.cend(),
-               [&app_key](const std::shared_ptr<app_t>& elem) { return elem->key() == app_key; }) !=
-           _apps.cend();
-}
-
 auto module_apps_t::do_query(const app_key_t& app_key) const noexcept //
     -> std::shared_ptr<app_t>
 {
@@ -554,11 +565,9 @@ auto module_apps_t::do_query(const app_key_t& app_key) const noexcept //
 auto module_apps_t::do_is_installed(const app_key_t& app_key) const noexcept //
     -> bool
 {
-    if (auto app = _parent->query(app_key)) {
-        return app->status() == app_status_e::Installed;
-    }
+    auto app = _parent->query(app_key);
 
-    return false;
+    return app ? (app->status() == app_status_e::Installed) : false;
 }
 
 } // namespace impl

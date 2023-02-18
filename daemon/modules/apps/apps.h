@@ -16,8 +16,10 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "module_base/module.h"
+#include "modules/jobs/job_id.h"
 #include "util/fs/fs.h"
 
 namespace FLECS {
@@ -53,20 +55,32 @@ public:
     auto do_save(const fs::path& base_path) const //
         -> void override;
 
-    /*! @brief Lists all installed Apps
-     *
-     * @param app_key (optional) limit list to all or specific version of specific App
-     *
-     * @return HTTP response
-     */
-    auto list(const app_key_t& app_key) const //
+    auto http_list(const app_key_t& app_key) const //
         -> crow::response;
-    auto list(std::string app_name, std::string version) const //
+
+    auto http_install(app_key_t app_key, std::string license_key) //
         -> crow::response;
-    auto list(std::string app_name) const //
+
+    auto http_sideload(std::string manifest_string, std::string license_key) //
         -> crow::response;
-    auto list() const //
+
+    auto http_uninstall(app_key_t app_key) //
         -> crow::response;
+
+    auto http_export_to(app_key_t) //
+        -> crow::response;
+
+    auto app_keys(const app_key_t& app_key) const //
+        -> std::vector<app_key_t>;
+    auto app_keys(std::string app_name, std::string version) const //
+        -> std::vector<app_key_t>;
+    auto app_keys(std::string app_name) const //
+        -> std::vector<app_key_t>;
+    auto app_keys() const //
+        -> std::vector<app_key_t>;
+
+    auto query(const app_key_t& app_key) const noexcept //
+        -> std::shared_ptr<app_t>;
 
     /*! @brief Installs an App from the FLECS marketplace
      *
@@ -76,12 +90,9 @@ public:
      * @return HTTP response
      */
     auto install_from_marketplace(app_key_t app_key, std::string license_key) //
-        -> crow::response;
-    auto install_from_marketplace(
-        std::string app_name, std::string version, std::string license_key) //
-        -> crow::response;
-    auto install_from_marketplace(std::string app_name, std::string version) //
-        -> crow::response;
+        -> result_t;
+    auto install_from_marketplace(app_key_t app_key) //
+        -> result_t;
 
     /*! @brief Sideloads an App from its manifest
      *
@@ -91,9 +102,9 @@ public:
      * @return HTTP response
      */
     auto sideload(std::string manifest_string, std::string license_key) //
-        -> crow::response;
+        -> result_t;
     auto sideload(std::string manifest_string) //
-        -> crow::response;
+        -> result_t;
 
     /*! @brief Uninstalls an App
      *
@@ -102,26 +113,16 @@ public:
      * @return HTTP response
      */
     auto uninstall(app_key_t app_key, bool force) //
-        -> crow::response;
-    auto uninstall(std::string app_name, std::string version, bool force) //
-        -> crow::response;
+        -> result_t;
 
     /*! @brief Exports an App as compressed archive
      *
      * @param[in] app_key Key of the App to export, all or specific version @sa app_key_t
      *
      */
-    auto archive(app_key_t app_key) const //
-        -> crow::response;
-    auto archive(std::string app_name, std::string version) const //
-        -> crow::response;
-    auto archive(std::string app_name) const //
-        -> crow::response;
+    auto export_to(app_key_t app_key, fs::path dest_dir) const //
+        -> result_t;
 
-    auto contains(const app_key_t& app_key) const noexcept //
-        -> bool;
-    auto query(const app_key_t& app_key) const noexcept //
-        -> std::shared_ptr<app_t>;
     auto is_installed(const app_key_t& app_key) const noexcept //
         -> bool;
 
