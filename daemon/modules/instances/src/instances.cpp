@@ -61,6 +61,14 @@ auto module_instances_t::do_init() //
     });
 
     FLECS_V2_ROUTE("/instances/<string>")
+        .methods("PATCH"_method)([this](const crow::request& req, const std::string& instance_id) {
+            auto response = json_t{};
+            const auto args = parse_json(req.body);
+            REQUIRED_JSON_VALUE(args, to);
+            return http_update(instance_id_t{instance_id}, std::move(to));
+        });
+
+    FLECS_V2_ROUTE("/instances/<string>")
         .methods("DELETE"_method)([this](const std::string& instance_id) {
             return http_remove(instance_id_t{instance_id});
         });
@@ -98,11 +106,6 @@ auto module_instances_t::do_init() //
     FLECS_V2_ROUTE("/instances/<string>/logs")
         .methods("GET"_method)([this](const std::string& instance_id) {
             return http_logs(instance_id_t{instance_id});
-        });
-
-    FLECS_V2_ROUTE("/instances/<string>/export")
-        .methods("POST"_method)([this](const std::string& instance_id) {
-            return http_export_to(instance_id_t{instance_id}, "/var/lib/flecs/exports/");
         });
 
     return _impl->do_init();

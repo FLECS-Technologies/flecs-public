@@ -69,38 +69,6 @@ auto module_apps_t::do_init() //
         return http_sideload(std::move(appYaml), std::move(licenseKey));
     });
 
-#if 0
-    FLECS_V2_ROUTE("/apps/export").methods("POST"_method)([this](const crow::request& req) {
-        auto response = json_t{};
-        const auto args = parse_json(req.body);
-
-        if (!args.contains("apps") && !args.contains("instances")) {
-            return crow::response{crow::status::OK, response.dump()};
-        }
-
-        auto tmpdir = tmpdir_t{"/var/lib/flecs/export-tmp/"};
-        if (!tmpdir.created()) {
-            response["additionalInfo"] = "Could not create export-tmp directory";
-            return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
-        }
-
-        /* export apps */
-        if (args.contains("apps")) {
-            for (const auto& j : args["apps"]) {
-                REQUIRED_JSON_VALUE(j, app);
-                REQUIRED_JSON_VALUE(j, version);
-                auto res = _impl->do_archive(app, version);
-                if (res.code != crow::status::OK) {
-                    return res;
-                }
-            }
-        }
-
-    response["additionalInfo"] = "OK";
-    return crow::response{crow::status::OK, response.dump()};
-});
-#endif // 0
-
     _impl->do_init();
 }
 
