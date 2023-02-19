@@ -18,5 +18,5 @@ flecs_add_module(
     src/impl/flecsport_impl.cpp
     ADDITIONAL_HEADERS
     impl/flecsport_impl.h
-    LIBS_PUBLIC FLECS.daemon.common
+    LIBS_PUBLIC daemon.common
 )

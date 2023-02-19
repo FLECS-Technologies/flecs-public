@@ -15,19 +15,19 @@
 if(BUILD_TESTING)
     project(util.network.test)
 
-    add_executable(FLECS.test.util.network
+    add_executable(test.util.network
         test_ip_addr.cpp
         test_netif_type.cpp
         test_network.cpp
     )
 
-    set_target_properties(FLECS.test.util.network PROPERTIES OUTPUT_NAME test_util_network)
+    set_target_properties(test.util.network PROPERTIES OUTPUT_NAME test_util_network)
 
-    target_link_libraries(FLECS.test.util.network PRIVATE
+    target_link_libraries(test.util.network PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.util.network
+        util.network
     )
 
-    add_test(NAME FLECS.test.util.network COMMAND FLECS.test.util.network)
+    add_test(NAME test.util.network COMMAND test.util.network)
 endif()

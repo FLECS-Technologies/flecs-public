@@ -49,4 +49,4 @@ cmake --build out/${ARCH}
 cmake --build out/${ARCH} --target <target>
 ```
 
-Relevant single `<target>`s might be `FLECS.flunder` or `FLECS.mqtt`.
+Relevant single `<target>`s might be `flunder` or `mqtt`.

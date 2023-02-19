@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME FLECS.daemon.common.deployment)
+set(PROJECT_NAME daemon.common.deployment)
 
 project(${PROJECT_NAME})
 
@@ -36,11 +36,11 @@ target_link_libraries(
     ${PROJECT_NAME} PRIVATE
     daemon.common.app
     daemon.common.instance
-    FLECS.daemon.common.app.manifest
-    FLECS.daemon.modules.factory
-    FLECS.daemon.modules.system
-    FLECS.util.network
-    FLECS.util.process
+    daemon.common.app.manifest
+    daemon.modules.factory
+    daemon.modules.system
+    util.network
+    util.process
 )
 
 target_link_libraries(

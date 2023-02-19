@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME FLECS.util.usb)
+set(PROJECT_NAME util.usb)
 project(${PROJECT_NAME})
 
 add_library(${PROJECT_NAME} STATIC
@@ -25,12 +25,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
-    FLECS.external.json
+    external.json
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    FLECS.util.udev
-    FLECS.util.sysfs
+    util.udev
+    util.sysfs
     usb-1.0
 )
 

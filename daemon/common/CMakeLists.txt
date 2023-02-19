@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.common)
+project(daemon.common)
 
 add_subdirectory(app)
 add_subdirectory(deployment)
 add_subdirectory(instance)
 add_subdirectory(network)
 
-add_library(FLECS.daemon.common INTERFACE)
+add_library(daemon.common INTERFACE)
 
 target_include_directories(
-    FLECS.daemon.common INTERFACE
+    daemon.common INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(
-    FLECS.daemon.common INTERFACE
-    FLECS.daemon.common.deployment
+    daemon.common INTERFACE
+    daemon.common.deployment
     daemon.common.app
     daemon.common.instance
     daemon.common.network

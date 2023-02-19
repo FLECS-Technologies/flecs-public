@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME FLECS.daemon.common.app.manifest)
+set(PROJECT_NAME daemon.common.app.manifest)
 
 project(${PROJECT_NAME})
 
@@ -39,17 +39,17 @@ target_include_directories(
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC
     daemon.common.network
-    FLECS.daemon.common.app.manifest.conffile
-    FLECS.daemon.common.app.manifest.env_var
-    FLECS.daemon.common.app.manifest.port_range
-    FLECS.daemon.common.app.manifest.startup_option
-    FLECS.daemon.common.app.manifest.volume
+    daemon.common.app.manifest.conffile
+    daemon.common.app.manifest.env_var
+    daemon.common.app.manifest.port_range
+    daemon.common.app.manifest.startup_option
+    daemon.common.app.manifest.volume
 )
 
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC
-    FLECS.external.json
-    FLECS.external.yaml-cpp
+    external.json
+    external.yaml-cpp
 )
 
 add_subdirectory(test)

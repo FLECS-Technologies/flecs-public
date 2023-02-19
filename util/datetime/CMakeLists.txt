@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.util.datetime)
+project(util.datetime)
 
 set(SRC_ARCHIVE
     src/datetime.cpp
@@ -22,9 +22,9 @@ set (HEADER_ARCHIVE
     datetime.h
 )
 
-add_library(FLECS.util.datetime OBJECT ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
+add_library(util.datetime OBJECT ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-target_include_directories(FLECS.util.datetime PRIVATE
+target_include_directories(util.datetime PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 

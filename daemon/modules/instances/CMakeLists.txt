@@ -18,5 +18,5 @@ flecs_add_module(
     src/impl/instances_impl.cpp
     ADDITIONAL_HEADERS
     impl/instances_impl.h
-    LIBS_PUBLIC FLECS.daemon.common
+    LIBS_PUBLIC daemon.common
 )

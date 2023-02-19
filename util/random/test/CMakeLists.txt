@@ -13,7 +13,7 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    set(PROJECT_NAME FLECS.util.random.test)
+    set(PROJECT_NAME util.random.test)
     project(${PROJECT_NAME})
 
     add_executable(${PROJECT_NAME}

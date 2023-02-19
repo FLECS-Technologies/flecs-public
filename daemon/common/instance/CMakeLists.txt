@@ -32,8 +32,8 @@ target_include_directories(
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
     daemon.common.app
-    FLECS.external.json
-    FLECS.util.usb
+    external.json
+    util.usb
 )
 
 add_subdirectory(test)

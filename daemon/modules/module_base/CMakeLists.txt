@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.modules.module_base)
+project(daemon.modules.module_base)
 
-add_library(FLECS.daemon.modules.module_base STATIC
+add_library(daemon.modules.module_base STATIC
     src/module.cpp
     module.h
 )
 
 target_include_directories(
-    FLECS.daemon.modules.module_base PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    daemon.modules.module_base PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_include_directories(
-    FLECS.daemon.modules.module_base INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
+    daemon.modules.module_base INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
 
 target_link_libraries(
-    FLECS.daemon.modules.module_base PUBLIC
-    FLECS.daemon.api
-    FLECS.external.json
+    daemon.modules.module_base PUBLIC
+    daemon.api
+    external.json
 )

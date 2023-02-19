@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon)
+project(daemon)
 
 add_subdirectory(api)
 add_subdirectory(common)
@@ -33,61 +33,61 @@ add_custom_target(
 include(flecs-package)
 
 # build executable flecsd
-add_executable(FLECS.daemon
+add_executable(daemon
     src/main.cpp
 )
-set_target_properties(FLECS.daemon PROPERTIES OUTPUT_NAME flecsd)
+set_target_properties(daemon PROPERTIES OUTPUT_NAME flecsd)
 
 # own includes
-target_include_directories(FLECS.daemon PRIVATE
+target_include_directories(daemon PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # FLECS link libraries
-target_link_libraries(FLECS.daemon PRIVATE
-    FLECS.daemon.api
-    FLECS.daemon.common
-    FLECS.daemon.modules.apps
-    FLECS.daemon.modules.data_layer
-    FLECS.daemon.modules.factory
-    FLECS.daemon.modules.instances
-    FLECS.daemon.modules.jobs
-    FLECS.daemon.modules.manifests
-    FLECS.daemon.modules.marketplace
-    FLECS.daemon.modules.module_base
-    FLECS.daemon.modules.system
-    FLECS.daemon.modules.version
-    FLECS.util.datetime
-    FLECS.util.process
-    FLECS.util.signal_handler
-    FLECS.external.yaml-cpp
+target_link_libraries(daemon PRIVATE
+    daemon.api
+    daemon.common
+    daemon.modules.apps
+    daemon.modules.data_layer
+    daemon.modules.factory
+    daemon.modules.instances
+    daemon.modules.jobs
+    daemon.modules.manifests
+    daemon.modules.marketplace
+    daemon.modules.module_base
+    daemon.modules.system
+    daemon.modules.version
+    util.datetime
+    util.process
+    util.signal_handler
+    external.yaml-cpp
 )
 
 # install executable flecsd for packaging
 install(
-    TARGETS FLECS.daemon RUNTIME
+    TARGETS daemon RUNTIME
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )
 
 # install shared objects for packaging
 install(
-    TARGETS FLECS.daemon.lib FLECS.mqtt.shared LIBRARY
+    TARGETS daemon.lib mqtt.shared LIBRARY
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
 )
 
 install(
-    TARGETS FLECS.daemon.lib FLECS.flunder.shared LIBRARY
+    TARGETS daemon.lib flunder.shared LIBRARY
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
 )
 
 install(
-    FILES $<TARGET_FILE:FLECS.external.zenoh-c>
+    FILES $<TARGET_FILE:external.zenoh-c>
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
 )
 
 # install FLECS cli for packaging
 install(
-    TARGETS FLECS.cli RUNTIME
+    TARGETS cli RUNTIME
     DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )
 

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.cli)
+project(cli)
 
 set(SRC_BINARY
     src/main.cpp
 )
 
-add_executable(FLECS.cli ${SRC_BINARY})
-set_target_properties(FLECS.cli PROPERTIES OUTPUT_NAME flecs)
+add_executable(cli ${SRC_BINARY})
+set_target_properties(cli PROPERTIES OUTPUT_NAME flecs)
 
-target_link_libraries(FLECS.cli PRIVATE FLECS.daemon.lib)
+target_link_libraries(cli PRIVATE daemon.lib)

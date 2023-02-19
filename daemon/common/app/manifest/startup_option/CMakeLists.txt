@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME FLECS.daemon.common.app.manifest.startup_option)
+set(PROJECT_NAME daemon.common.app.manifest.startup_option)
 
 project(${PROJECT_NAME})
 
@@ -31,7 +31,7 @@ target_include_directories(
 )
 
 target_link_libraries(
-    ${PROJECT_NAME} PUBLIC FLECS.external.json
+    ${PROJECT_NAME} PUBLIC external.json
 )
 
 add_subdirectory(test)

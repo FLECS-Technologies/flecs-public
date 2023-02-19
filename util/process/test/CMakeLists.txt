@@ -13,19 +13,19 @@
 # limitations under the License.
 
 if (BUILD_TESTING)
-    project(FLECS.util.process.test)
+    project(util.process.test)
 
-    add_executable(FLECS.test.util.process
+    add_executable(test.util.process
         test_process.cpp
     )
 
-    set_target_properties(FLECS.test.util.process PROPERTIES OUTPUT_NAME test_util_process)
+    set_target_properties(test.util.process PROPERTIES OUTPUT_NAME test_util_process)
 
-    target_link_libraries(FLECS.test.util.process PRIVATE
+    target_link_libraries(test.util.process PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.util.process
+        util.process
     )
 
-    add_test(NAME FLECS.test.util.process COMMAND FLECS.test.util.process)
+    add_test(NAME test.util.process COMMAND test.util.process)
 endif()

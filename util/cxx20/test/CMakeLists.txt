@@ -13,18 +13,18 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    project(FLECS.util.cxx20.test)
+    project(util.cxx20.test)
 
-    add_executable(FLECS.util.cxx20.test
+    add_executable(util.cxx20.test
         test_cxx20.cpp
     )
 
-    set_target_properties(FLECS.util.cxx20.test PROPERTIES OUTPUT_NAME test_util_string_utils)
+    set_target_properties(util.cxx20.test PROPERTIES OUTPUT_NAME test_util_string_utils)
 
-    target_link_libraries(FLECS.util.cxx20.test PRIVATE
+    target_link_libraries(util.cxx20.test PRIVATE
         external.gtest
         external.gtest_main
     )
 
-    add_test(NAME FLECS.util.cxx20.test COMMAND FLECS.util.cxx20.test)
+    add_test(NAME util.cxx20.test COMMAND util.cxx20.test)
 endif()

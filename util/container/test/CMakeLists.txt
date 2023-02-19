@@ -13,18 +13,18 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    project(FLECS.util.container.test)
+    project(util.container.test)
 
-    add_executable(FLECS.util.container.test
+    add_executable(util.container.test
         test_sorted_vector.cpp
     )
 
-    set_target_properties(FLECS.util.container.test PROPERTIES OUTPUT_NAME test_util_container)
+    set_target_properties(util.container.test PROPERTIES OUTPUT_NAME test_util_container)
 
-    target_link_libraries(FLECS.util.container.test PRIVATE
+    target_link_libraries(util.container.test PRIVATE
         external.gtest
         external.gtest_main
     )
 
-    add_test(NAME FLECS.util.container.test COMMAND FLECS.util.container.test)
+    add_test(NAME util.container.test COMMAND util.container.test)
 endif()

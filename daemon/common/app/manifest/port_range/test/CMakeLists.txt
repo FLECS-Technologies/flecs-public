@@ -13,19 +13,19 @@
 # limitations under the License.
 
 if (BUILD_TESTING)
-    project(FLECS.daemon.app.port_range.test)
+    project(daemon.app.port_range.test)
 
-    add_executable(FLECS.daemon.app.port_range.test
+    add_executable(daemon.app.port_range.test
         test_port_range.cpp
     )
 
-    set_target_properties(FLECS.daemon.app.port_range.test PROPERTIES OUTPUT_NAME test_daemon_app_port_range)
+    set_target_properties(daemon.app.port_range.test PROPERTIES OUTPUT_NAME test_daemon_app_port_range)
 
-    target_link_libraries(FLECS.daemon.app.port_range.test PRIVATE
+    target_link_libraries(daemon.app.port_range.test PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.daemon.common.app.manifest.port_range
+        daemon.common.app.manifest.port_range
     )
 
-    add_test(NAME FLECS.daemon.app.port_range.test COMMAND FLECS.daemon.app.port_range.test)
+    add_test(NAME daemon.app.port_range.test COMMAND daemon.app.port_range.test)
 endif()

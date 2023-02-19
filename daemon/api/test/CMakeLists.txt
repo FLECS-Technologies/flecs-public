@@ -13,7 +13,7 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    set(PROJECT_NAME FLECS.daemon.api.test)
+    set(PROJECT_NAME daemon.api.test)
     project(${PROJECT_NAME})
 
     add_executable(${PROJECT_NAME}
@@ -26,9 +26,9 @@ if(BUILD_TESTING)
         external.cpr
         external.gtest
         external.gtest_main
-        FLECS.external.json
-        FLECS.daemon.api
-        FLECS.util.signal_handler
+        external.json
+        daemon.api
+        util.signal_handler
     )
 
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
