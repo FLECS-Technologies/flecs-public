@@ -506,46 +506,52 @@ auto module_apps_t::do_export_to_sync(app_key_t app_key, fs::path dest_dir) cons
     return do_export_to(std::move(app_key), std::move(dest_dir), _);
 }
 auto module_apps_t::do_export_to(
-    app_key_t app_key, fs::path /*dest_dir*/, job_progress_t& /*progress*/) const //
+    app_key_t app_key, fs::path dest_dir, job_progress_t& progress) const //
     -> result_t
 {
+    progress.num_steps(4);
+
     // Step 1: Ensure App is actually installed
+    progress.next_step("Loading Manifest");
     if (!_parent->is_installed(app_key)) {
-        return {-1, "Cannot export "s + to_string(app_key) + ", which is not installed"};
+        return {-1, "App is not installed"};
     }
 
     // Step 2: Load App manifest
     auto app = _parent->query(app_key);
     auto manifest = app->manifest();
+    if (!manifest) {
+        return {-1, "App not connected to a Manifest"};
+    }
 
     // Step 3: Create export directory
+    progress.next_step("Creating export directory");
     auto ec = std::error_code{};
-    fs::create_directories("/var/lib/flecs/export-tmp/apps/");
+    fs::create_directories(dest_dir);
     if (ec) {
-        return {-1, "Could not create export directory for "s + to_string(app_key)};
+        return {-1, "Could not create export directory "s + dest_dir.c_str()};
     }
 
     // Step 4: Export image
+    progress.next_step("Exporting App");
     auto docker_process = process_t{};
-    const auto filename = std::string{"/var/lib/flecs/export-tmp/apps/"}
-                              .append(app->key().name())
-                              .append("_")
-                              .append(app->key().version())
-                              .append(".tar");
-    docker_process.spawnp("docker", "save", "--output", filename, manifest->image_with_tag());
+    const auto filename =
+        dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".tar");
+    docker_process
+        .spawnp("docker", "save", "--output", filename.string(), manifest->image_with_tag());
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0) {
         return {-1, docker_process.stderr()};
     }
 
     // Step 5: Copy manifest
-    const auto manifest_src = fs::path{"/var/lib/flecs/apps"} / app_key.name().data() /
-                              app_key.version().data() / "manifest.yml";
-    const auto manifest_dst = fs::path{"/var/lib/flecs/export-tmp/apps/"} /
-                              (app_key.name().data() + "_"s + app_key.version().data() + ".yml");
+    progress.next_step("Exporting Manifest");
+    const auto manifest_src = _manifests_api->path(app_key);
+    const auto manifest_dst =
+        dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".json");
     fs::copy_file(manifest_src, manifest_dst, ec);
     if (ec) {
-        return {-1, "Could not copy app manifest for "s + to_string(app_key)};
+        return {-1, "Could not copy Manifest"};
     }
 
     return {0, {}};
