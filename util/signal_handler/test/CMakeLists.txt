@@ -13,19 +13,19 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    project(FLECS.util.signal_handler.test)
+    project(util.signal_handler.test)
 
-    add_executable(FLECS.util.signal_handler.test
+    add_executable(util.signal_handler.test
         test_signal_handler.cpp
     )
 
-    set_target_properties(FLECS.util.signal_handler.test PROPERTIES OUTPUT_NAME test_signal_handler)
+    set_target_properties(util.signal_handler.test PROPERTIES OUTPUT_NAME test_signal_handler)
 
-    target_link_libraries(FLECS.util.signal_handler.test PRIVATE
+    target_link_libraries(util.signal_handler.test PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.util.signal_handler
+        util.signal_handler
     )
 
-    add_test(NAME FLECS.util.signal_handler.test COMMAND FLECS.util.signal_handler.test)
+    add_test(NAME util.signal_handler.test COMMAND util.signal_handler.test)
 endif()

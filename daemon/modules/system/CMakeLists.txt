@@ -14,7 +14,7 @@
 
 flecs_add_module(
     MODULE_NAME system
-    LIBS_PRIVATE FLECS.util.network FLECS.util.sysinfo
+    LIBS_PRIVATE util.network util.sysinfo
 )
 
 add_subdirectory(test)

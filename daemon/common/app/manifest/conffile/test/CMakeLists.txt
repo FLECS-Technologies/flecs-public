@@ -13,19 +13,19 @@
 # limitations under the License.
 
 if (BUILD_TESTING)
-    project(FLECS.daemon.app.conffile.test)
+    project(daemon.app.conffile.test)
 
-    add_executable(FLECS.daemon.app.conffile.test
+    add_executable(daemon.app.conffile.test
         test_conffile.cpp
     )
 
-    set_target_properties(FLECS.daemon.app.conffile.test PROPERTIES OUTPUT_NAME test_conffile)
+    set_target_properties(daemon.app.conffile.test PROPERTIES OUTPUT_NAME test_conffile)
 
-    target_link_libraries(FLECS.daemon.app.conffile.test PRIVATE
+    target_link_libraries(daemon.app.conffile.test PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.daemon.common.app.manifest.conffile
+        daemon.common.app.manifest.conffile
     )
 
-    add_test(NAME FLECS.daemon.app.conffile.test COMMAND FLECS.daemon.app.conffile.test)
+    add_test(NAME daemon.app.conffile.test COMMAND daemon.app.conffile.test)
 endif()

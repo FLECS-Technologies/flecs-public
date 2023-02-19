@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.modules)
+project(daemon.modules)
 
 macro(flecs_add_module)
     set(options "")
@@ -22,30 +22,30 @@ macro(flecs_add_module)
         mod "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN}
     )
 
-    project(FLECS.daemon.modules.${mod_MODULE_NAME})
+    project(daemon.modules.${mod_MODULE_NAME})
 
     add_library(
-        FLECS.daemon.modules.${mod_MODULE_NAME} OBJECT
+        daemon.modules.${mod_MODULE_NAME} OBJECT
         src/${mod_MODULE_NAME}.cpp ${mod_ADDITIONAL_SOURCES}
         ${mod_MODULE_NAME}.h ${mod_ADDITIONAL_HEADERS}
     )
 
     target_include_directories(
-        FLECS.daemon.modules.${mod_MODULE_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
+        daemon.modules.${mod_MODULE_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
     )
 
     target_include_directories(
-        FLECS.daemon.modules.${mod_MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+        daemon.modules.${mod_MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-    target_link_libraries(FLECS.daemon.modules.${mod_MODULE_NAME} PUBLIC
-        FLECS.daemon.api
-        FLECS.daemon.modules.factory
-        FLECS.daemon.modules.module_base
+    target_link_libraries(daemon.modules.${mod_MODULE_NAME} PUBLIC
+        daemon.api
+        daemon.modules.factory
+        daemon.modules.module_base
         ${mod_LIBS_PUBLIC}
     )
 
-    target_link_libraries(FLECS.daemon.modules.${mod_MODULE_NAME} PRIVATE
+    target_link_libraries(daemon.modules.${mod_MODULE_NAME} PRIVATE
         ${mod_LIBS_PRIVATE}
     )
 endmacro()

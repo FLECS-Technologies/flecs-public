@@ -13,7 +13,7 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    set(PROJECT_NAME FLECS.util.udev.test)
+    set(PROJECT_NAME util.udev.test)
     project(${PROJECT_NAME})
 
     add_executable(${PROJECT_NAME}
@@ -26,7 +26,7 @@ if(BUILD_TESTING)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.util.udev
+        util.udev
     )
 
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

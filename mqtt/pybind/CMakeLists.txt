@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.mqtt.pybind)
+project(mqtt.pybind)
 
 execute_process(
     COMMAND python3 -m pybind11 --includes
@@ -28,30 +28,30 @@ execute_process(
 
 separate_arguments(PYBIND_INCLUDES UNIX_COMMAND "${PYBIND_INCLUDES}")
 
-add_library(FLECS.mqtt_client.pybind SHARED mqtt_client_pybind.cpp)
-set_target_properties(FLECS.mqtt_client.pybind PROPERTIES LIBRARY_OUTPUT_NAME mqtt_client${PYBIND_SUFFIX})
-set_target_properties(FLECS.mqtt_client.pybind PROPERTIES PREFIX "")
-set_target_properties(FLECS.mqtt_client.pybind PROPERTIES SUFFIX "")
+add_library(mqtt_client.pybind SHARED mqtt_client_pybind.cpp)
+set_target_properties(mqtt_client.pybind PROPERTIES LIBRARY_OUTPUT_NAME mqtt_client${PYBIND_SUFFIX})
+set_target_properties(mqtt_client.pybind PROPERTIES PREFIX "")
+set_target_properties(mqtt_client.pybind PROPERTIES SUFFIX "")
 
-add_library(FLECS.mqtt_message.pybind SHARED mqtt_message_pybind.cpp)
-set_target_properties(FLECS.mqtt_message.pybind PROPERTIES LIBRARY_OUTPUT_NAME mqtt_message${PYBIND_SUFFIX})
-set_target_properties(FLECS.mqtt_message.pybind PROPERTIES PREFIX "")
-set_target_properties(FLECS.mqtt_message.pybind PROPERTIES SUFFIX "")
+add_library(mqtt_message.pybind SHARED mqtt_message_pybind.cpp)
+set_target_properties(mqtt_message.pybind PROPERTIES LIBRARY_OUTPUT_NAME mqtt_message${PYBIND_SUFFIX})
+set_target_properties(mqtt_message.pybind PROPERTIES PREFIX "")
+set_target_properties(mqtt_message.pybind PROPERTIES SUFFIX "")
 
 foreach(path ${PYBIND_INCLUDES})
-    target_compile_options(FLECS.mqtt_client.pybind PRIVATE
+    target_compile_options(mqtt_client.pybind PRIVATE
         ${path}
     )
-    target_compile_options(FLECS.mqtt_message.pybind PRIVATE
+    target_compile_options(mqtt_message.pybind PRIVATE
         ${path}
     )
 endforeach()
 
-target_link_libraries(FLECS.mqtt_client.pybind PRIVATE
+target_link_libraries(mqtt_client.pybind PRIVATE
     external.pybind11
-    FLECS.mqtt.shared
+    mqtt.shared
 )
 
-target_link_libraries(FLECS.mqtt_message.pybind PRIVATE
+target_link_libraries(mqtt_message.pybind PRIVATE
     external.pybind11
 )

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 if (BUILD_TESTING)
-    set(PROJECT_NAME FLECS.daemon.common.app.manifest.test)
+    set(PROJECT_NAME daemon.common.app.manifest.test)
     project(${PROJECT_NAME})
 
     add_executable(${PROJECT_NAME}
@@ -25,7 +25,7 @@ if (BUILD_TESTING)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.daemon.common.app.manifest
+        daemon.common.app.manifest
     )
 
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

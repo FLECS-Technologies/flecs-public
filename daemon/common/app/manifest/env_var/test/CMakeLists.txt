@@ -13,19 +13,19 @@
 # limitations under the License.
 
 if (BUILD_TESTING)
-    project(FLECS.daemon.app.env_var.test)
+    project(daemon.app.env_var.test)
 
-    add_executable(FLECS.daemon.app.env_var.test
+    add_executable(daemon.app.env_var.test
         test_env_var.cpp
     )
 
-    set_target_properties(FLECS.daemon.app.env_var.test PROPERTIES OUTPUT_NAME test_env_var)
+    set_target_properties(daemon.app.env_var.test PROPERTIES OUTPUT_NAME test_env_var)
 
-    target_link_libraries(FLECS.daemon.app.env_var.test PRIVATE
+    target_link_libraries(daemon.app.env_var.test PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.daemon.common.app.manifest.env_var
+        daemon.common.app.manifest.env_var
     )
 
-    add_test(NAME FLECS.daemon.app.env_var.test COMMAND FLECS.daemon.app.env_var.test)
+    add_test(NAME daemon.app.env_var.test COMMAND daemon.app.env_var.test)
 endif()

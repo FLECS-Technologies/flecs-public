@@ -13,19 +13,19 @@
 # limitations under the License.
 
 if (BUILD_TESTING)
-    project(FLECS.util.datetime.test)
+    project(util.datetime.test)
 
-    add_executable(FLECS.util.datetime.test
+    add_executable(util.datetime.test
         test_datetime.cpp
     )
 
-    set_target_properties(FLECS.util.datetime.test PROPERTIES OUTPUT_NAME test_util_datetime)
+    set_target_properties(util.datetime.test PROPERTIES OUTPUT_NAME test_util_datetime)
 
-    target_link_libraries(FLECS.util.datetime.test PRIVATE
+    target_link_libraries(util.datetime.test PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.util.datetime
+        util.datetime
     )
 
-    add_test(NAME FLECS.util.datetime.test COMMAND FLECS.util.datetime.test)
+    add_test(NAME util.datetime.test COMMAND util.datetime.test)
 endif()

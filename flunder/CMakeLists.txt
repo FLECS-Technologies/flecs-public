@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.flunder)
+project(flunder)
 
 set(SRC_LIB
     src/flunder_client.cpp
@@ -26,35 +26,35 @@ set(HEADER_LIB
     impl/flunder_client_impl.h
 )
 
-add_library(FLECS.flunder OBJECT ${SRC_LIB} ${HEADER_LIB})
+add_library(flunder OBJECT ${SRC_LIB} ${HEADER_LIB})
 
-set_property(TARGET FLECS.flunder PROPERTY POSITION_INDEPENDENT_CODE 1)
+set_property(TARGET flunder PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-add_library(FLECS.flunder.shared SHARED $<TARGET_OBJECTS:FLECS.flunder>)
-set_target_properties(FLECS.flunder.shared PROPERTIES OUTPUT_NAME FLECS.flunder)
+add_library(flunder.shared SHARED $<TARGET_OBJECTS:flunder>)
+set_target_properties(flunder.shared PROPERTIES OUTPUT_NAME FLECS.flunder)
 
-add_library(FLECS.flunder.static STATIC $<TARGET_OBJECTS:FLECS.flunder>)
-set_target_properties(FLECS.flunder.static PROPERTIES OUTPUT_NAME FLECS.flunder)
+add_library(flunder.static STATIC $<TARGET_OBJECTS:flunder>)
+set_target_properties(flunder.static PROPERTIES OUTPUT_NAME FLECS.flunder)
 
-target_include_directories(FLECS.flunder PRIVATE
+target_include_directories(flunder PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(FLECS.flunder PRIVATE
+target_link_libraries(flunder PRIVATE
     external.cpr
-    FLECS.external.json
-    FLECS.external.zenoh-c
+    external.json
+    external.zenoh-c
 )
 
-target_link_libraries(FLECS.flunder.static INTERFACE
+target_link_libraries(flunder.static INTERFACE
     external.cpr
-    FLECS.external.zenoh-c
+    external.zenoh-c
 )
 
-target_link_libraries(FLECS.flunder.shared PRIVATE
+target_link_libraries(flunder.shared PRIVATE
     -Wl,--whole-archive
     external.cpr
-    FLECS.external.zenoh-c
+    external.zenoh-c
     -Wl,--no-whole-archive
 )
 

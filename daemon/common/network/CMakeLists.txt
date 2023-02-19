@@ -32,7 +32,7 @@ target_include_directories(
 
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC
-    FLECS.external.json
+    external.json
 )
 
 add_subdirectory(test)

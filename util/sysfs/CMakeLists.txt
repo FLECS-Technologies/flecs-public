@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME FLECS.util.sysfs)
+set(PROJECT_NAME util.sysfs)
 project(${PROJECT_NAME})
 
 add_library(${PROJECT_NAME} STATIC

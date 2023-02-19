@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.apps.mqtt-bridge)
+project(apps.mqtt-bridge)
 
-add_executable(FLECS.apps.mqtt-bridge
+add_executable(apps.mqtt-bridge
     src/mqtt_bridge.cpp
     mqtt_bridge.h
 )
-set_target_properties(FLECS.apps.mqtt-bridge PROPERTIES OUTPUT_NAME mqtt_bridge)
+set_target_properties(apps.mqtt-bridge PROPERTIES OUTPUT_NAME mqtt_bridge)
 
 # own includes
-target_include_directories(FLECS.apps.mqtt-bridge PRIVATE
+target_include_directories(apps.mqtt-bridge PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(FLECS.apps.mqtt-bridge PRIVATE
-    FLECS.external.mosquitto
-    FLECS.flunder.static
-    FLECS.util.signal_handler
+target_link_libraries(apps.mqtt-bridge PRIVATE
+    external.mosquitto
+    flunder.static
+    util.signal_handler
 )
 
 # configure Docker image
@@ -38,12 +38,12 @@ set(APP_VERSION ${VERSION})
 set(DOCKER_TAG ${APP_VERSION})
 
 install(
-    TARGETS FLECS.apps.mqtt-bridge
+    TARGETS apps.mqtt-bridge
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docker
 )
 
 install(
-    FILES $<TARGET_FILE:FLECS.external.zenoh-c>
+    FILES $<TARGET_FILE:external.zenoh-c>
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docker
 )
 

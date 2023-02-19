@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.mqtt)
+project(mqtt)
 
 set(SRC_LIB
     src/mqtt_client.cpp
@@ -24,31 +24,31 @@ set(INCLUDE_LIB
     impl/mqtt_client_impl.h
 )
 
-add_library(FLECS.mqtt OBJECT ${SRC_LIB} ${HEADER_LIB})
+add_library(mqtt OBJECT ${SRC_LIB} ${HEADER_LIB})
 
-set_property(TARGET FLECS.mqtt PROPERTY POSITION_INDEPENDENT_CODE 1)
+set_property(TARGET mqtt PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-add_library(FLECS.mqtt.shared SHARED $<TARGET_OBJECTS:FLECS.mqtt>)
-set_target_properties(FLECS.mqtt.shared PROPERTIES OUTPUT_NAME FLECS.mqtt)
+add_library(mqtt.shared SHARED $<TARGET_OBJECTS:mqtt>)
+set_target_properties(mqtt.shared PROPERTIES OUTPUT_NAME FLECS.mqtt)
 
-add_library(FLECS.mqtt.static STATIC $<TARGET_OBJECTS:FLECS.mqtt>)
-set_target_properties(FLECS.mqtt.static PROPERTIES OUTPUT_NAME FLECS.mqtt)
+add_library(mqtt.static STATIC $<TARGET_OBJECTS:mqtt>)
+set_target_properties(mqtt.static PROPERTIES OUTPUT_NAME FLECS.mqtt)
 
-target_include_directories(FLECS.mqtt PRIVATE
+target_include_directories(mqtt PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(FLECS.mqtt PRIVATE
-    FLECS.external.mosquitto
+target_link_libraries(mqtt PRIVATE
+    external.mosquitto
 )
 
-target_link_libraries(FLECS.mqtt.static INTERFACE
-    FLECS.external.mosquitto
+target_link_libraries(mqtt.static INTERFACE
+    external.mosquitto
 )
 
-target_link_libraries(FLECS.mqtt.shared PRIVATE
+target_link_libraries(mqtt.shared PRIVATE
     -Wl,--whole-archive
-    FLECS.external.mosquitto
+    external.mosquitto
     -Wl,--no-whole-archive
 )
 

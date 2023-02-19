@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.util.process)
+project(util.process)
 
 set(SRC_ARCHIVE
     src/process.cpp
@@ -23,9 +23,9 @@ set (HEADER_ARCHIVE
     process.h
 )
 
-add_library(FLECS.util.process STATIC ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
+add_library(util.process STATIC ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-target_include_directories(FLECS.util.process PRIVATE
+target_include_directories(util.process PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 

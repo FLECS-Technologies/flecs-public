@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.util.signal_handler)
+project(util.signal_handler)
 
-add_library(FLECS.util.signal_handler OBJECT
+add_library(util.signal_handler OBJECT
     src/signal_handler.cpp
     signal_handler.h
 )
 
-target_include_directories(FLECS.util.signal_handler PRIVATE
+target_include_directories(util.signal_handler PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 

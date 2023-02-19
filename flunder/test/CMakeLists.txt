@@ -13,7 +13,7 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    set(PROJECT_NAME FLECS.flunder.test)
+    set(PROJECT_NAME flunder.test)
     project(${PROJECT_NAME})
 
     add_executable(${PROJECT_NAME}
@@ -25,11 +25,11 @@ if(BUILD_TESTING)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.external.zenoh-c
-        FLECS.flunder
+        external.zenoh-c
+        flunder
     )
 
-    add_test(NAME FLECS.flunder.test.init COMMAND bash -c "docker rm -f flecs-flunder-test && docker run -d --name flecs-flunder-test -p 7447:7447 -p 8000:8000 --env RUST_LOG=debug flecs/tech.flecs.service-mesh:1.5.4-porpoise --adminspace-permissions=rw")
+    add_test(NAME flunder.test.init COMMAND bash -c "docker rm -f flecs-flunder-test && docker run -d --name flecs-flunder-test -p 7447:7447 -p 8000:8000 --env RUST_LOG=debug flecs/tech.flecs.service-mesh:1.5.4-porpoise --adminspace-permissions=rw")
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
-    set_tests_properties(${PROJECT_NAME} PROPERTIES DEPENDS FLECS.flunder.test.init)
+    set_tests_properties(${PROJECT_NAME} PROPERTIES DEPENDS flunder.test.init)
 endif()

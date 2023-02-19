@@ -13,24 +13,24 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    project(FLECS.daemon.deployment.test)
+    project(daemon.deployment.test)
 
-    add_executable(FLECS.daemon.deployment.test
+    add_executable(daemon.deployment.test
         test_deployment.cpp
     )
 
-    set_target_properties(FLECS.daemon.deployment.test PROPERTIES OUTPUT_NAME test_daemon_deployment)
+    set_target_properties(daemon.deployment.test PROPERTIES OUTPUT_NAME test_daemon_deployment)
 
-    target_include_directories(FLECS.daemon.deployment.test PRIVATE ${CMAKE_SOURCE_DIR}/daemon)
+    target_include_directories(daemon.deployment.test PRIVATE ${CMAKE_SOURCE_DIR}/daemon)
 
-    target_link_libraries(FLECS.daemon.deployment.test PRIVATE
-        FLECS.daemon.common.deployment
-        FLECS.external.gmock
+    target_link_libraries(daemon.deployment.test PRIVATE
+        daemon.common.deployment
+        external.gmock
         external.gtest
         external.gtest_main
-        FLECS.external.json
-        FLECS.external.yaml-cpp
+        external.json
+        external.yaml-cpp
     )
 
-    add_test(NAME FLECS.daemon.deployment.test COMMAND FLECS.daemon.deployment.test)
+    add_test(NAME daemon.deployment.test COMMAND daemon.deployment.test)
 endif()

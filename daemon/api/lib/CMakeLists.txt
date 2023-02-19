@@ -12,25 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.lib)
+project(daemon.lib)
 
-add_library(FLECS.daemon.lib SHARED
+add_library(daemon.lib SHARED
     src/libflecs.cpp
     src/impl/libflecs_impl.cpp
     libflecs.h
     impl/libflecs_impl.h
 )
 
-set_target_properties(FLECS.daemon.lib PROPERTIES OUTPUT_NAME FLECS.daemon)
+set_target_properties(daemon.lib PROPERTIES OUTPUT_NAME FLECS.daemon)
 
-target_include_directories(FLECS.daemon.lib PUBLIC
+target_include_directories(daemon.lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(FLECS.daemon.lib PRIVATE
-    FLECS.daemon.modules.module_base
+target_link_libraries(daemon.lib PRIVATE
+    daemon.modules.module_base
     external.cpr
-    FLECS.external.json
+    external.json
 )
 
 add_subdirectory(test)

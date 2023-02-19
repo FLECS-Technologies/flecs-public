@@ -12,30 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.flunder.examples)
+project(flunder.examples)
 
-add_executable(FLECS.flunder.examples.c
+add_executable(flunder.examples.c
     flunder_client_example.c
 )
 
-set_target_properties(FLECS.flunder.examples.c PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(flunder.examples.c PROPERTIES LINKER_LANGUAGE C)
 
-set_target_properties(FLECS.flunder.examples.c PROPERTIES OUTPUT_NAME
+set_target_properties(flunder.examples.c PROPERTIES OUTPUT_NAME
     flunder_client_example_c
 )
 
-target_link_libraries(FLECS.flunder.examples.c PRIVATE
-    FLECS.flunder.shared
+target_link_libraries(flunder.examples.c PRIVATE
+    flunder.shared
 )
 
-add_executable(FLECS.flunder.examples.cpp
+add_executable(flunder.examples.cpp
     flunder_client_example.cpp
 )
 
-set_target_properties(FLECS.flunder.examples.cpp PROPERTIES OUTPUT_NAME
+set_target_properties(flunder.examples.cpp PROPERTIES OUTPUT_NAME
     flunder_client_example_cpp
 )
 
-target_link_libraries(FLECS.flunder.examples.cpp PRIVATE
-    FLECS.flunder.shared
+target_link_libraries(flunder.examples.cpp PRIVATE
+    flunder.shared
 )

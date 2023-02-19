@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.external)
+project(external)
 
 # define source directories
 set(CMAKE_ARGS -B build/${ARCH} -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH} -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} -DCMAKE_CXX_STANDARD=17 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release)
@@ -40,7 +40,7 @@ add_custom_target(
 
 # crow
 add_custom_target(
-    FLECS.external.crow.build
+    external.crow.build
     WORKING_DIRECTORY ${CROW_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DCROW_BUILD_EXAMPLES=OFF -DCROW_BUILD_TESTS=OFF
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
@@ -58,7 +58,7 @@ add_custom_target(
 
 # libarchive
 add_custom_target(
-    FLECS.external.libarchive.build
+    external.libarchive.build
     WORKING_DIRECTORY ${LIBARCHIVE_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DENABLE_OPENSSL=OFF -DENABLE_LIBXML2=OFF -DENABLE_EXPAT=OFF
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
@@ -67,7 +67,7 @@ add_custom_target(
 
 # libmosquitto
 add_custom_target(
-    FLECS.external.mosquitto.build
+    external.mosquitto.build
     WORKING_DIRECTORY ${MOSQUITTO_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DDOCUMENTATION=NO -DWITH_STATIC_LIBRARIES=YES -DWITH_PIC=YES -DWITH_APPS=NO -DWITH_BROKER=NO -DWITH_CLIENTS=NO -DWITH_PLUGINS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${ARCH}
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
@@ -95,7 +95,7 @@ add_custom_target(
 
 # yaml-cpp
 add_custom_target(
-    FLECS.external.yaml-cpp.build
+    external.yaml-cpp.build
     WORKING_DIRECTORY ${YAMLCPP_DIR}
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DYAML_CPP_BUILD_TESTS=NO
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
@@ -135,20 +135,20 @@ target_link_libraries(external.cpr INTERFACE
 )
 
 # crow
-add_library(FLECS.external.crow INTERFACE)
-target_include_directories(FLECS.external.crow INTERFACE
+add_library(external.crow INTERFACE)
+target_include_directories(external.crow INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include
     ${Boost_INCLUDE_DIRS}
 )
 
 # gtest
-add_library(FLECS.external.gmock_main STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gmock_main PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/libgmock_main.a)
-set_property(TARGET FLECS.external.gmock_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
+add_library(external.gmock_main STATIC IMPORTED GLOBAL)
+set_property(TARGET external.gmock_main PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/libgmock_main.a)
+set_property(TARGET external.gmock_main PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
-add_library(FLECS.external.gmock STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.gmock PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libgmock.a)
-set_property(TARGET FLECS.external.gmock PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
+add_library(external.gmock STATIC IMPORTED GLOBAL)
+set_property(TARGET external.gmock PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libgmock.a)
+set_property(TARGET external.gmock PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 add_library(external.gtest_main STATIC IMPORTED GLOBAL)
 set_property(TARGET external.gtest_main PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libgtest_main.a)
@@ -159,24 +159,24 @@ set_property(TARGET external.gtest PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SO
 set_property(TARGET external.gtest PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # nlohmann/json
-add_library(FLECS.external.json INTERFACE)
-target_include_directories(FLECS.external.json INTERFACE
+add_library(external.json INTERFACE)
+target_include_directories(external.json INTERFACE
     ${JSON_DIR}/include
 )
 
 # libarchive
-add_library(FLECS.external.libarchive STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.libarchive PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libarchive.a)
-target_include_directories(FLECS.external.libarchive INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
-target_link_libraries(FLECS.external.libarchive INTERFACE
+add_library(external.libarchive STATIC IMPORTED GLOBAL)
+set_property(TARGET external.libarchive PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libarchive.a)
+target_include_directories(external.libarchive INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
+target_link_libraries(external.libarchive INTERFACE
     external.zlib
 )
 
 # libmosquitto
-add_library(FLECS.external.mosquitto STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.mosquitto PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libmosquitto_static.a)
-set_property(TARGET FLECS.external.mosquitto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
-target_link_libraries(FLECS.external.mosquitto INTERFACE
+add_library(external.mosquitto STATIC IMPORTED GLOBAL)
+set_property(TARGET external.mosquitto PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libmosquitto_static.a)
+set_property(TARGET external.mosquitto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
+target_link_libraries(external.mosquitto INTERFACE
     external.ssl
     external.crypto
 )
@@ -195,15 +195,15 @@ add_library(external.pybind11 INTERFACE)
 target_include_directories(external.pybind11 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # yaml-cpp
-add_library(FLECS.external.yaml-cpp STATIC IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.yaml-cpp PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libyaml-cpp.a)
-set_property(TARGET FLECS.external.yaml-cpp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
+add_library(external.yaml-cpp STATIC IMPORTED GLOBAL)
+set_property(TARGET external.yaml-cpp PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libyaml-cpp.a)
+set_property(TARGET external.yaml-cpp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # zenoh-c
-add_library(FLECS.external.zenoh-c SHARED IMPORTED GLOBAL)
-set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_LOCATION ${ZENOH_C_DIR}/out/${ARCH}/lib/libzenohc.so)
-set_property(TARGET FLECS.external.zenoh-c PROPERTY IMPORTED_NO_SONAME TRUE)
-set_property(TARGET FLECS.external.zenoh-c PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZENOH_C_DIR}/out/${ARCH}/include)
+add_library(external.zenoh-c SHARED IMPORTED GLOBAL)
+set_property(TARGET external.zenoh-c PROPERTY IMPORTED_LOCATION ${ZENOH_C_DIR}/out/${ARCH}/lib/libzenohc.so)
+set_property(TARGET external.zenoh-c PROPERTY IMPORTED_NO_SONAME TRUE)
+set_property(TARGET external.zenoh-c PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZENOH_C_DIR}/out/${ARCH}/include)
 
 # zlib
 add_library(external.zlib STATIC IMPORTED GLOBAL)

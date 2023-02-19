@@ -16,5 +16,5 @@ flecs_add_module(
     MODULE_NAME data_layer
     ADDITIONAL_SOURCES src/impl/data_layer_impl.cpp
     ADDITIONAL_HEADERS impl/data_layer_impl.h
-    LIBS_PRIVATE FLECS.flunder.static
+    LIBS_PRIVATE flunder.static
 )

@@ -12,31 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(FLECS.daemon.api)
+project(daemon.api)
 
 add_library(
-    FLECS.daemon.api OBJECT
+    daemon.api OBJECT
     src/api.cpp
     api.h
 )
 
 target_include_directories(
-    FLECS.daemon.api INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
+    daemon.api INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
 
 target_include_directories(
-    FLECS.daemon.api PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    daemon.api PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(FLECS.daemon.api PUBLIC
-    FLECS.external.crow
+target_link_libraries(daemon.api PUBLIC
+    external.crow
 )
 
-target_link_libraries(FLECS.daemon.api PRIVATE
-    FLECS.external.json
+target_link_libraries(daemon.api PRIVATE
+    external.json
 )
 
-target_compile_options(FLECS.daemon.api PUBLIC
+target_compile_options(daemon.api PUBLIC
     -Wno-type-limits
 )
 

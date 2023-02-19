@@ -13,22 +13,22 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    project(FLECS.daemon.modules.marketplace.test)
+    project(daemon.modules.marketplace.test)
 
-    add_executable(FLECS.daemon.modules.marketplace.test
+    add_executable(daemon.modules.marketplace.test
         test_marketplace.cpp
     )
 
-    set_target_properties(FLECS.daemon.modules.marketplace.test PROPERTIES OUTPUT_NAME test_daemon_modules_marketplace)
+    set_target_properties(daemon.modules.marketplace.test PROPERTIES OUTPUT_NAME test_daemon_modules_marketplace)
 
-    target_link_libraries(FLECS.daemon.modules.marketplace.test PRIVATE
+    target_link_libraries(daemon.modules.marketplace.test PRIVATE
         external.cpr
         external.gtest
         external.gtest_main
-        FLECS.daemon.modules.factory
-        FLECS.daemon.modules.module_base
-        FLECS.daemon.modules.marketplace
+        daemon.modules.factory
+        daemon.modules.module_base
+        daemon.modules.marketplace
     )
 
-    add_test(NAME FLECS.daemon.modules.marketplace.test COMMAND FLECS.daemon.modules.marketplace.test)
+    add_test(NAME daemon.modules.marketplace.test COMMAND daemon.modules.marketplace.test)
 endif()

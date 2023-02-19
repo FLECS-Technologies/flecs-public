@@ -25,8 +25,8 @@ if(BUILD_TESTING)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         external.gtest
         external.gtest_main
-        FLECS.daemon.common.app.manifest
-        FLECS.daemon.modules.manifests
+        daemon.common.app.manifest
+        daemon.modules.manifests
     )
 
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
