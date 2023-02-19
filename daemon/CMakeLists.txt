@@ -50,6 +50,7 @@ target_link_libraries(daemon PRIVATE
     daemon.modules.apps
     daemon.modules.data_layer
     daemon.modules.factory
+    daemon.modules.flecsport
     daemon.modules.instances
     daemon.modules.jobs
     daemon.modules.manifests

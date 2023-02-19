@@ -11,3 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include "impl/flecsport_impl.h"
+
+namespace FLECS {
+namespace impl {
+
+module_flecsport_t::module_flecsport_t(FLECS::module_flecsport_t* parent)
+    : _parent{parent}
+{}
+
+} // namespace impl
+} // namespace FLECS
