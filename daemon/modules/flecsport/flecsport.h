@@ -14,9 +14,16 @@
 
 #pragma once
 
+#include <vector>
+
 #include "module_base/module.h"
+#include "modules/jobs/job_id.h"
+#include "util/fs/fs.h"
 
 namespace FLECS {
+
+class app_key_t;
+class instance_id_t;
 
 namespace impl {
 class module_flecsport_t;
@@ -27,14 +34,20 @@ class module_flecsport_t FLECS_FINAL_UNLESS_TESTED : public module_t
 public:
     ~module_flecsport_t() override;
 
+    auto http_export_to(std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
+        -> crow::response;
+
+    auto export_to(
+        std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path base_dir) //
+        -> result_t;
+
 protected:
     friend class module_factory_t;
 
     module_flecsport_t();
 
     auto do_init() //
-        -> void override
-    {}
+        -> void override;
 
     auto do_deinit() //
         -> void override
