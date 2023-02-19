@@ -14,8 +14,11 @@
 
 #include "flecsport.h"
 
+#include "common/app/app_key.h"
+#include "common/instance/instance_id.h"
 #include "factory/factory.h"
 #include "impl/flecsport_impl.h"
+#include "util/datetime/datetime.h"
 
 namespace FLECS {
 
@@ -29,5 +32,42 @@ module_flecsport_t::module_flecsport_t()
 
 module_flecsport_t::~module_flecsport_t()
 {}
+
+auto module_flecsport_t::do_init() //
+    -> void
+{
+    FLECS_V2_ROUTE("/exports/create").methods("POST"_method)([this](const crow::request& req) {
+        auto response = json_t{};
+        const auto args = parse_json(req.body);
+        auto apps = std::vector<app_key_t>{};
+        if (args.contains("apps")) {
+            args["apps"].get_to(apps);
+        }
+        auto instances = std::vector<instance_id_t>{};
+        if (args.contains("instances")) {
+            args["instances"].get_to(instances);
+        }
+        if (apps.empty() && instances.empty()) {
+            return crow::response{crow::status::BAD_REQUEST, "", {}};
+        }
+        return http_export_to(std::move(apps), std::move(instances));
+    });
+
+    return _impl->do_init();
+}
+
+auto module_flecsport_t::http_export_to(
+    std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
+    -> crow::response
+{
+    const auto now = unix_time(precision_e::seconds);
+    auto dest_dir = fs::path{"/var/lib/flecs/exports"} / now;
+    auto job_id =
+        _impl->queue_export_to(std::move(apps), std::move(instances), std::move(dest_dir));
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
+}
 
 } // namespace FLECS
