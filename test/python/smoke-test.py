@@ -175,8 +175,21 @@ def test_version():
     expected_version = resp.text
 
     actual_version = version()
-    assert expected_version == actual_version
-    # TODO actual version contains dash
+    actual_version_split = actual_version.split("-")        # X.Y.Z-releasename-shorthash
+    expected_version_split = expected_version.split("-")    # X.Y.Z-releasename
+
+    # make sure number of elements are as expected
+    assert 2 == len(expected_version_split)
+    assert 3 == len(actual_version_split)
+
+    # make sure version and release name match
+    assert expected_version_split[0] == actual_version_split[0]
+    assert expected_version_split[1] == actual_version_split[1]
+
+    # make sure last entry is (any) git commit hash (SHA-1, truncated to 7 hex characters)
+    assert 7 == len(actual_version_split[2])
+    hex_chars = "0123456789abcdef"
+    assert all(char in hex_chars for char in actual_version_split[2])
 
 ###
 ### Test: Rate app
@@ -310,8 +323,6 @@ def test_get_apps():
         assert 1 == len(app_instance_idx)
         assert "running" == instance_list[app_instance_idx[0]]["status"]
 
-    # TODO: system apps not listed in v2 api response yet -> test fails
-
 ###
 ### Test: Login with JWT works
 ###
@@ -361,12 +372,15 @@ def install_app(user_app: str, user_app_version: str, offset):
 
     header = {"content-type": "application/json"}
     payload = {
-        "app": user_app,
-        "version": user_app_version,
+        "appKey": {
+            "name": user_app,
+            "version": user_app_version
+        },
         "licenseKey": license_key
     }
 
     resp = requests.post(install_url, headers=header, data=format_json_data(payload))
+    return resp
 
 def test_install_apps():
     """
@@ -491,7 +505,7 @@ def test_uninstall_app():
     installed_apps_post = get_apps()
     assert len(installed_apps_post) == len(installed_apps_pre) - app_count
 
-    for app in installed_apps_pre:
+    for app in user_apps:
         # make sure app is no longer installed
         assert app not in installed_apps_post
 
