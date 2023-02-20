@@ -407,6 +407,13 @@ auto deployment_docker_t::do_export_instance(
     return {0, {}};
 }
 
+auto deployment_docker_t::do_import_instance(
+    std::shared_ptr<instance_t> /*instance*/, fs::path /*base_dir*/) //
+    -> result_t
+{
+    return {0, {}};
+}
+
 auto deployment_docker_t::do_is_instance_running(std::shared_ptr<instance_t> instance) const //
     -> bool
 {

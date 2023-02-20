@@ -88,6 +88,8 @@ public:
         -> result_t;
     auto export_instance(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
         -> result_t;
+    auto import_instance(std::shared_ptr<instance_t> instance, fs::path base_dir) //
+        -> result_t;
     auto is_instance_runnable(std::shared_ptr<instance_t> instance) const //
         -> bool;
     auto is_instance_running(std::shared_ptr<instance_t> instance) const //
@@ -136,6 +138,11 @@ public:
         std::shared_ptr<instance_t> instance,
         const conffile_t& config_file,
         fs::path dest_dir) const //
+        -> result_t;
+    auto import_config_files(std::shared_ptr<instance_t> instance, fs::path base_dir) //
+        -> result_t;
+    auto import_config_file(
+        std::shared_ptr<instance_t> instance, const conffile_t& config_file, fs::path base_dir) //
         -> result_t;
     auto delete_volumes(std::shared_ptr<instance_t> instance) //
         -> result_t;
@@ -187,6 +194,8 @@ private:
         -> result_t = 0;
     virtual auto do_export_instance(
         std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
+        -> result_t = 0;
+    virtual auto do_import_instance(std::shared_ptr<instance_t> instance, fs::path base_dir) //
         -> result_t = 0;
     virtual auto do_is_instance_running(std::shared_ptr<instance_t> instance) const //
         -> bool = 0;

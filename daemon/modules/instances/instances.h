@@ -127,6 +127,12 @@ public:
     auto remove(instance_id_t instance_id) //
         -> result_t;
 
+    auto export_to(instance_id_t instance_id, fs::path base_path) const //
+        -> result_t;
+
+    auto import_from(instance_id_t, fs::path base_path) //
+        -> result_t;
+
 protected:
     friend class module_factory_t;
 
