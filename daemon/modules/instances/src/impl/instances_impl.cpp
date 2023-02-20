@@ -23,6 +23,7 @@
 #include "modules/jobs/jobs.h"
 #include "modules/system/system.h"
 #include "util/cxx20/string.h"
+#include "util/datetime/datetime.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
 
@@ -596,9 +597,73 @@ auto module_instances_t::do_update_sync(instance_id_t instance_id, std::string t
 }
 
 auto module_instances_t::do_update(
-    instance_id_t /*instance_id*/, std::string /*to*/, job_progress_t& /*progress*/) //
+    instance_id_t instance_id, std::string to, job_progress_t& /*progress*/) //
     -> result_t
 {
+    // Step 1: Verify instance does actually exist, is fully created and valid
+    auto instance = _deployment->query_instance(instance_id);
+    if (!instance) {
+        return {-1, "Instance does not exist"};
+    }
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an App"};
+    }
+
+    auto to_app_key = app_key_t{app->key().name().data(), to};
+    auto to_app = _apps_api->query(to_app_key);
+    // Step 3: Make sure to-app is installed
+    if (!to_app) {
+        return {-1, "Updated App is not installed"};
+    }
+
+    // Step 4: Stop running instance
+    auto [res, message] = _parent->stop(instance->id());
+    if (res != 0) {
+        return {-1, "Could not stop instance"};
+    }
+
+    // Step 5: Create backup of existing instance (volumes + config)
+    using std::operator""s;
+    const auto backup_path_base = fs::path{"/var/lib/flecs/backup/"} / instance->id().hex();
+    const auto backup_path =
+        backup_path_base / app->key().version().data() / unix_time(precision_e::seconds);
+    std::tie(res, message) = _parent->export_to(instance->id(), backup_path);
+    if (res != 0) {
+        return {-1, "Could not backup instance"};
+    }
+
+    // Step 6: Restore previous backup on downgrade, if possible
+    const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
+    if (app->key().version() > to) {
+        auto latest_path = fs::path{};
+        auto ec = std::error_code{};
+        auto backup_dir = fs::directory_iterator{backup_path_base / to, ec};
+        for (; backup_dir != fs::directory_iterator{}; ++backup_dir) {
+            if (backup_dir->path().filename() > latest_path.filename()) {
+                latest_path = backup_dir->path();
+            }
+        }
+
+        if (!latest_path.empty()) {
+            _deployment->import_instance(instance, latest_path);
+        }
+    }
+
+    // Step 7: Update instance structure
+    instance->app(to_app);
+
+    // Step 8: Persist updated instance into deployment
+    _deployment->save();
+
+    // Final step: Start instance
+    if (instance->desired() == instance_status_e::Running) {
+        std::tie(res, message) = _parent->start(instance->id());
+        if (res != 0) {
+            return {-1, "Could not start instance"};
+        }
+    }
+
     return {0, {}};
 }
 
