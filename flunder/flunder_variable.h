@@ -87,6 +87,7 @@ FLECS_EXPORT const char* flunder_variable_encoding(const flunder_variable_t* var
 FLECS_EXPORT const char* flunder_variable_timestamp(const flunder_variable_t* var);
 
 FLECS_EXPORT void flunder_variable_destroy(flunder_variable_t* var);
+FLECS_EXPORT void flunder_variable_list_destroy(flunder_variable_t* vars, size_t n);
 
 #ifdef __cplusplus
 } // extern "C"
