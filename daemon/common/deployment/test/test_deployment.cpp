@@ -40,6 +40,11 @@ public:
         (const, override));
     MOCK_METHOD(
         result_t,
+        do_import_instance,
+        (std::shared_ptr<instance_t> instance, fs::path base_dir),
+        (override));
+    MOCK_METHOD(
+        result_t,
         do_create_network,
         ((network_type_e network_type),
          (std::string_view network),

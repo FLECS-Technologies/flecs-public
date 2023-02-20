@@ -602,23 +602,28 @@ auto module_instances_t::do_update(
     return {0, {}};
 }
 
-auto module_instances_t::queue_export_to(instance_id_t instance_id, fs::path dest_dir) //
+auto module_instances_t::queue_export_to(instance_id_t instance_id, fs::path base_path) //
     -> job_id_t
 {
+    auto desc = "Exporting instance " + instance_id.hex() + " to " + base_path.string();
+
     auto job = job_t{std::bind(
         &module_instances_t::do_export_to,
         this,
         std::move(instance_id),
-        std::move(dest_dir),
+        std::move(base_path),
         std::placeholders::_1)};
 
-    return _jobs_api->append(
-        std::move(job),
-        "Exporting instance " + instance_id.hex() + " to " + dest_dir.string());
+    return _jobs_api->append(std::move(job), std::move(desc));
 }
-
+auto module_instances_t::do_export_to_sync(instance_id_t instance_id, fs::path base_path) //
+    -> result_t
+{
+    auto _ = job_progress_t{};
+    return do_export_to(std::move(instance_id), std::move(base_path), _);
+}
 auto module_instances_t::do_export_to(
-    instance_id_t instance_id, fs::path dest_dir, job_progress_t& /*progress*/) //
+    instance_id_t instance_id, fs::path base_path, job_progress_t& /*progress*/) //
     -> result_t
 {
     // Step 1: Verify instance does actually exist, is fully created and valid
@@ -627,9 +632,37 @@ auto module_instances_t::do_export_to(
         return {-1, "Instance does not exist"};
     }
 
-    const auto [res, additional_info] = _deployment->export_instance(instance, std::move(dest_dir));
+    const auto [res, additional_info] =
+        _deployment->export_instance(instance, std::move(base_path));
 
     return {res, additional_info};
+}
+
+auto module_instances_t::queue_import_from(instance_id_t instance_id, fs::path base_path) //
+    -> job_id_t
+{
+    auto desc = "Importing instance " + instance_id.hex() + " from " + base_path.string();
+
+    auto job = job_t{std::bind(
+        &module_instances_t::do_import_from,
+        this,
+        std::move(instance_id),
+        std::move(base_path),
+        std::placeholders::_1)};
+
+    return _jobs_api->append(std::move(job), std::move(desc));
+}
+auto module_instances_t::do_import_from_sync(instance_id_t instance_id, fs::path base_path) //
+    -> result_t
+{
+    auto _ = job_progress_t{};
+    return do_import_from(std::move(instance_id), std::move(base_path), _);
+}
+auto module_instances_t::do_import_from(
+    instance_id_t /*instance_id*/, fs::path /*base_path*/, job_progress_t& /*progress*/) //
+    -> result_t
+{
+    return {0, {}};
 }
 
 } // namespace impl

@@ -300,6 +300,34 @@ auto deployment_t::export_instance(std::shared_ptr<instance_t> instance, fs::pat
     return do_export_instance(instance, dest_dir);
 }
 
+auto deployment_t::import_instance(std::shared_ptr<instance_t> instance, fs::path base_dir) //
+    -> result_t
+{
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+
+    auto manifest = app->manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
+    base_dir /= instance->id().hex();
+
+    auto [res, additional_info] = import_volumes(instance, base_dir / "volumes");
+    if (res != 0) {
+        return {res, additional_info};
+    }
+
+    std::tie(res, additional_info) = import_config_files(instance, base_dir / "conf");
+    if (res != 0) {
+        return {res, additional_info};
+    }
+
+    return do_import_instance(instance, base_dir);
+}
+
 auto deployment_t::is_instance_runnable(std::shared_ptr<instance_t> instance) const //
     -> bool
 {
@@ -543,6 +571,47 @@ auto deployment_t::export_config_file(
         if (ec) {
             return {-1, "Could not export conffile from local directory"};
         }
+    }
+
+    return {0, {}};
+}
+
+auto deployment_t::import_config_files(std::shared_ptr<instance_t> instance, fs::path base_dir) //
+    -> result_t
+{
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+    auto manifest = app->manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
+    }
+
+    for (auto& config_file : manifest->conffiles()) {
+        const auto [res, additional_info] = import_config_file(instance, config_file, base_dir);
+        if (res != 0) {
+            return {res, additional_info};
+        }
+    }
+
+    return {0, {}};
+}
+
+auto deployment_t::import_config_file(
+    std::shared_ptr<instance_t> instance, const conffile_t& config_file, fs::path base_dir) //
+    -> result_t
+{
+    const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
+    /* copy config files from local dir for stopped instances */
+    auto ec = std::error_code{};
+    fs::copy(
+        conf_path + config_file.local(),
+        base_dir / "conf" / config_file.local(),
+        fs::copy_options::overwrite_existing,
+        ec);
+    if (ec) {
+        return {-1, "Could not import conffile"};
     }
 
     return {0, {}};

@@ -43,6 +43,8 @@ private:
         -> result_t override;
     auto do_export_instance(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
         -> result_t override;
+    auto do_import_instance(std::shared_ptr<instance_t> instance, fs::path base_dir) //
+        -> result_t override;
     auto do_is_instance_running(std::shared_ptr<instance_t> instance) const //
         -> bool override;
     auto do_create_network(
