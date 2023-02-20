@@ -39,7 +39,6 @@ docker run \
     -p 8951:8951 \
     flecs/flecs-test:latest
 
-docker cp flecs-test:/test-report.html report/test-report.html
-docker cp flecs-test:/assets report/assets
+docker cp flecs-test:/report out/
 
 docker rm -f flecs-test

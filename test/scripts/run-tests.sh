@@ -16,4 +16,4 @@
 
 REPORTNAME="test-report.html"
 
-pytest smoke-test.py --html=${REPORTNAME}
+pytest smoke-test.py --html=report/${REPORTNAME}
