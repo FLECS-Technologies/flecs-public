@@ -151,6 +151,8 @@ auto module_instances_t::do_is_running(std::shared_ptr<instance_t> instance) con
 auto module_instances_t::queue_create(app_key_t app_key, std::string instance_name) //
     -> job_id_t
 {
+    auto desc = "Creating new instance of " + to_string(app_key);
+
     auto job = job_t{std::bind(
         &module_instances_t::do_create,
         this,
@@ -158,7 +160,7 @@ auto module_instances_t::queue_create(app_key_t app_key, std::string instance_na
         std::move(instance_name),
         std::placeholders::_1)};
 
-    return _jobs_api->append(std::move(job), "Creating new instance of " + to_string(app_key));
+    return _jobs_api->append(std::move(job), std::move(desc));
 }
 
 auto module_instances_t::do_create_sync(app_key_t app_key, std::string instance_name) //

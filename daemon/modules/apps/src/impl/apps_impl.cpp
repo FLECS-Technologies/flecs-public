@@ -220,6 +220,8 @@ auto module_apps_t::do_list(const app_key_t& app_key) const //
 auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
     -> job_id_t
 {
+    auto desc = "Installation of "s + to_string(app_key);
+
     auto job = job_t{std::bind(
         &module_apps_t::do_install_from_marketplace,
         this,
@@ -227,7 +229,7 @@ auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::strin
         std::move(license_key),
         std::placeholders::_1)};
 
-    return _jobs_api->append(std::move(job), "Installation of "s + to_string(app_key));
+    return _jobs_api->append(std::move(job), std::move(desc));
 }
 auto module_apps_t::do_install_from_marketplace_sync(
     app_key_t app_key,
@@ -407,6 +409,8 @@ auto module_apps_t::do_install_impl(
 auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
     -> job_id_t
 {
+    auto desc = "Uninstallation of "s + to_string(app_key);
+
     auto job = job_t{std::bind(
         &module_apps_t::do_uninstall,
         this,
@@ -414,7 +418,7 @@ auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
         std::move(force),
         std::placeholders::_1)};
 
-    return _jobs_api->append(std::move(job), "Uninstallation of "s + to_string(app_key));
+    return _jobs_api->append(std::move(job), std::move(desc));
 }
 auto module_apps_t::do_uninstall_sync(app_key_t app_key, bool force) //
     -> result_t
