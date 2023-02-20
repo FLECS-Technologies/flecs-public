@@ -7,6 +7,7 @@
                 "${workspaceFolder}/apps/tech.flecs.mqtt-bridge",
                 "${workspaceFolder}/external/json-3.11.2/include",
                 "${workspaceFolder}/external/out/amd64/include",
+                "${workspaceFolder}/external/zenoh-c-0.6.0-beta.1/include",
                 "${workspaceFolder}/flunder/**",
                 "${workspaceFolder}/mqtt",
                 "${workspaceFolder}/mqtt/impl",

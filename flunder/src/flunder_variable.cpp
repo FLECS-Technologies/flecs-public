@@ -159,4 +159,11 @@ FLECS_EXPORT void flunder_variable_destroy(flunder_variable_t* var)
     delete var;
 }
 
+FLECS_EXPORT void flunder_variable_list_destroy(flunder_variable_t* vars, size_t n)
+{
+    if (vars && n > 0) {
+        delete[] vars;
+    }
+}
+
 } // extern "C"

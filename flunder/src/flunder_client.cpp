@@ -286,6 +286,26 @@ FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* topic)
     return static_cast<FLECS::flunder_client_t*>(flunder)->unsubscribe(topic);
 }
 
+FLECS_EXPORT int flunder_get(
+    const void* flunder, const char* topic, flunder_variable_t** vars, size_t* n)
+{
+    *n = 0;
+    *vars = nullptr;
+
+    auto [res, v] = static_cast<const FLECS::flunder_client_t*>(flunder)->get(topic);
+    if (v.empty()) {
+        return res;
+    }
+
+    *n = v.size();
+    *vars = new flunder_variable_t[*n];
+    for (std::size_t i = 0; i < v.size(); ++i) {
+        (*vars)[i] = std::move(v[i]);
+    }
+
+    return res;
+}
+
 FLECS_EXPORT int flunder_publish_bool(const void* flunder, const char* topic, bool value)
 {
     return static_cast<const FLECS::flunder_client_t*>(flunder)->publish(topic, value);

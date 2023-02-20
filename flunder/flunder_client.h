@@ -268,6 +268,10 @@ FLECS_EXPORT int flunder_subscribe_userp(
 
 FLECS_EXPORT int flunder_unsubscribe(void* flunder, const char* topic);
 
+/** make sure to call flunder_variable_list_destroy with the exact values returned */
+FLECS_EXPORT int flunder_get(
+    const void* flunder, const char* topic, flunder_variable_t** vars, size_t* n);
+
 FLECS_EXPORT int flunder_publish_bool(const void* flunder, const char* topic, bool value);
 
 FLECS_EXPORT int flunder_publish_int(const void* flunder, const char* topic, int value);
