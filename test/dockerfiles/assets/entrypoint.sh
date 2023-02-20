@@ -26,4 +26,4 @@ VERSION=`curl -s -f ${BASE_URL}/dl/latest`
 mkdir -p /var/run/flecs/
 /opt/flecs/bin/flecsd >/tmp/flecsd.log 2>&1 &
 
-bash
+/run-tests.sh

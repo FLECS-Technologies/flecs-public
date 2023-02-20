@@ -18,11 +18,11 @@ RUN apt-get -y update
 RUN apt-get -y install ca-certificates curl gnupg lsb-release net-tools jq libusb-1.0-0 python3-pip
 RUN pip install requests pytest pytest-html
 
-COPY scripts/install-docker.sh /tmp/
+COPY dockerfiles/assets/install-docker.sh /tmp/
 RUN /tmp/install-docker.sh
 
 COPY python/smoke-test.py /
-COPY scripts/run-tests.sh /
+COPY dockerfiles/assets/run-tests.sh /
 
-COPY scripts/entrypoint.sh /
+COPY dockerfiles/assets/entrypoint.sh /
 ENTRYPOINT [ "/entrypoint.sh" ]
