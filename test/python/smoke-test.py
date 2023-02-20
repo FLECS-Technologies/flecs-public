@@ -400,7 +400,7 @@ def test_install_apps():
     # check if correct amount of tickets were consumed
     ticked_count_post = count_tickets()
     tickets_consumed = ticked_count_pre - ticked_count_post
-    assert len(user_apps) <= tickets_consumed # until there is a separate testing account, someone else might use tickets at the same time
+    assert len(user_apps) == tickets_consumed
 
 ###
 ### Test: Instances of installed apps can be created
@@ -417,7 +417,6 @@ def test_start_instances():
         resp = create_instance(appname, appversion)
         assert True == resp.ok
         create_jobId = resp.json()["jobId"]
-        # wait_til_jobs_finished()
         res = wait_til_job_finished(create_jobId)
         if (res["code"] == 0):
             instanceId = res["message"]
@@ -436,8 +435,6 @@ def open_app(app: str):
     Send GET request to port corresponding to app
     """
 
-    # TODO: ports need to be forwarded from inside docker image to host. Currently hardcoded in scripts/build-image.sh
-
     port = user_apps_ports[app]
     url = "http://localhost:" + str(port)
     resp = requests.get(url)
@@ -454,8 +451,6 @@ def test_open_apps():
     for app in user_apps_ports:
         resp = open_app(app)
         assert True == resp.ok
-
-    # TODO: currently getting 'connection reset by peer' error
 
 ###
 ### Test: app uninstallation works
