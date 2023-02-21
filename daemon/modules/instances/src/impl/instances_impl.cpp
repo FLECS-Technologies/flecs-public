@@ -213,26 +213,30 @@ auto module_instances_t::do_create(
     return {0, instance_id};
 }
 
-auto module_instances_t::queue_start(instance_id_t instance_id) //
+auto module_instances_t::queue_start(instance_id_t instance_id, bool once) //
     -> job_id_t
 {
+    auto desc = "Starting instance " + instance_id.hex();
+
     auto job = job_t{std::bind(
         &module_instances_t::do_start,
         this,
         std::move(instance_id),
+        std::move(once),
         std::placeholders::_1)};
 
-    return _jobs_api->append(std::move(job), "Starting instance " + instance_id.hex());
+    return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto module_instances_t::do_start_sync(instance_id_t instance_id) //
+auto module_instances_t::do_start_sync(instance_id_t instance_id, bool once) //
     -> result_t
 {
     auto _ = job_progress_t{};
-    return do_start(std::move(instance_id), _);
+    return do_start(std::move(instance_id), std::move(once), _);
 }
 
-auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& /*progress*/) //
+auto module_instances_t::do_start(
+    instance_id_t instance_id, bool once, job_progress_t& /*progress*/) //
     -> result_t
 {
     auto instance = _deployment->query_instance(instance_id);
@@ -247,8 +251,9 @@ auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& /*p
     }
 
     // Step 3: Persist desired status into deployment
-    /** @todo implement start_once without persistence */
-    instance->desired(instance_status_e::Running);
+    if (!once) {
+        instance->desired(instance_status_e::Running);
+    }
 
     // Step 4: Forward to deployment
     const auto [res, additional_info] = _deployment->start_instance(instance);
@@ -259,26 +264,30 @@ auto module_instances_t::do_start(instance_id_t instance_id, job_progress_t& /*p
     return {res, additional_info};
 }
 
-auto module_instances_t::queue_stop(instance_id_t instance_id) //
+auto module_instances_t::queue_stop(instance_id_t instance_id, bool once) //
     -> job_id_t
 {
+    auto desc = "Stopping instance " + instance_id.hex();
+
     auto job = job_t{std::bind(
         &module_instances_t::do_stop,
         this,
         std::move(instance_id),
+        std::move(once),
         std::placeholders::_1)};
 
-    return _jobs_api->append(std::move(job), "Stopping instance " + instance_id.hex());
+    return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto module_instances_t::do_stop_sync(instance_id_t instance_id) //
+auto module_instances_t::do_stop_sync(instance_id_t instance_id, bool once) //
     -> result_t
 {
     auto _ = job_progress_t{};
-    return do_stop(std::move(instance_id), _);
+    return do_stop(std::move(instance_id), std::move(once), _);
 }
 
-auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& /*progress*/) //
+auto module_instances_t::do_stop(
+    instance_id_t instance_id, bool once, job_progress_t& /*progress*/) //
     -> result_t
 {
     // get instance details from database
@@ -294,7 +303,9 @@ auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& /*pr
     }
 
     // Step 4: Persist desired status into db
-    instance->desired(instance_status_e::Stopped);
+    if (!once) {
+        instance->desired(instance_status_e::Stopped);
+    }
 
     // Step 5: Forward to deployment
     const auto [res, additional_info] = _deployment->stop_instance(instance);
@@ -629,7 +640,7 @@ auto module_instances_t::do_update(
     }
 
     // Step 4: Stop running instance
-    auto [res, message] = _parent->stop(instance->id());
+    auto [res, message] = _parent->stop_once(instance->id());
     if (res != 0) {
         return {-1, "Could not stop instance"};
     }
@@ -669,7 +680,7 @@ auto module_instances_t::do_update(
 
     // Final step: Start instance
     if (instance->desired() == instance_status_e::Running) {
-        std::tie(res, message) = _parent->start(instance->id());
+        std::tie(res, message) = _parent->start_once(instance->id());
         if (res != 0) {
             return {-1, "Could not start instance"};
         }

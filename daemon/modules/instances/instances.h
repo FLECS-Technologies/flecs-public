@@ -120,8 +120,12 @@ public:
 
     auto start(instance_id_t instance_id) //
         -> result_t;
+    auto start_once(instance_id_t instance_id) //
+        -> result_t;
 
     auto stop(instance_id_t instance_id) //
+        -> result_t;
+    auto stop_once(instance_id_t instance_id) //
         -> result_t;
 
     auto remove(instance_id_t instance_id) //
