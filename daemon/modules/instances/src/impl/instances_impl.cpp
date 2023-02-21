@@ -308,13 +308,15 @@ auto module_instances_t::do_stop(instance_id_t instance_id, job_progress_t& /*pr
 auto module_instances_t::queue_remove(instance_id_t instance_id) //
     -> job_id_t
 {
+    auto desc = "Removing instance " + instance_id.hex();
+
     auto job = job_t{std::bind(
         &module_instances_t::do_remove,
         this,
         std::move(instance_id),
         std::placeholders::_1)};
 
-    return _jobs_api->append(std::move(job), "Removing instance " + instance_id.hex());
+    return _jobs_api->append(std::move(job), std::move(desc));
 }
 
 auto module_instances_t::do_remove_sync(instance_id_t instance_id) //
@@ -583,10 +585,19 @@ auto module_instances_t::do_logs(instance_id_t instance_id) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto module_instances_t::queue_update(instance_id_t /*instance_id*/, std::string /*to*/) //
+auto module_instances_t::queue_update(instance_id_t instance_id, std::string to) //
     -> job_id_t
 {
-    return {};
+    auto desc = "Updating instance " + instance_id.hex() + " to " + to;
+
+    auto job = job_t{std::bind(
+        &module_instances_t::do_update,
+        this,
+        std::move(instance_id),
+        std::move(to),
+        std::placeholders::_1)};
+
+    return _jobs_api->append(std::move(job), std::move(desc));
 }
 
 auto module_instances_t::do_update_sync(instance_id_t instance_id, std::string to) //
