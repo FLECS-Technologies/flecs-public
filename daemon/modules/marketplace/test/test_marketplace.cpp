@@ -91,22 +91,12 @@ TEST(marketplace, init)
 
 TEST(marketplace, login)
 {
-    const auto post_json = FLECS::json_t({{"user", user}, {"token", token}});
-
-    auto res = cpr::Post(
-        cpr::Url{"http://127.0.0.1:18951/marketplace/login"},
-        cpr::Header{{{"Content-Type"}, {"application/json"}}},
-        cpr::Body{post_json.dump()},
-        cpr::Redirect{false});
-
-    ASSERT_EQ(res.status_code, cpr::status::HTTP_PERMANENT_REDIRECT);
-    ASSERT_EQ(res.header.find("Location")->second, "http://127.0.0.1:18951/v2/marketplace/login");
-
     using std::operator""s;
 
+    const auto post_json = FLECS::json_t({{"user", user}, {"token", token}});
     const auto out_expected = R"({"additionalInfo":"OK"})"s;
 
-    res = cpr::Post(
+    auto res = cpr::Post(
         cpr::Url{"http://127.0.0.1:18951/v2/marketplace/login"},
         cpr::Header{{{"Content-Type"}, {"application/json"}}},
         cpr::Body{post_json.dump()});
@@ -120,22 +110,12 @@ TEST(marketplace, login)
 
 TEST(marketplace, logout)
 {
-    const auto post_json = FLECS::json_t({{"user", user}});
-
-    auto res = cpr::Post(
-        cpr::Url{"http://127.0.0.1:18951/marketplace/logout"},
-        cpr::Header{{{"Content-Type"}, {"application/json"}}},
-        cpr::Body{post_json.dump()},
-        cpr::Redirect{false});
-
-    ASSERT_EQ(res.status_code, cpr::status::HTTP_PERMANENT_REDIRECT);
-    ASSERT_EQ(res.header.find("Location")->second, "http://127.0.0.1:18951/v2/marketplace/logout");
-
     using std::operator""s;
 
+    const auto post_json = FLECS::json_t({{"user", user}});
     const auto out_expected = R"({"additionalInfo":"OK"})"s;
 
-    res = cpr::Post(
+    auto res = cpr::Post(
         cpr::Url{"http://127.0.0.1:18951/v2/marketplace/logout"},
         cpr::Header{{{"Content-Type"}, {"application/json"}}},
         cpr::Body{post_json.dump()});

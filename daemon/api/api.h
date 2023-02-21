@@ -16,7 +16,6 @@
 
 #include <crow.h>
 
-#define FLECS_ROUTE(url) CROW_ROUTE(FLECS::flecs_api_t::instance().app(), url)
 #define FLECS_V2_ROUTE(url) CROW_BP_ROUTE(FLECS::flecs_api_t::instance().v2_api(), url)
 
 namespace FLECS {

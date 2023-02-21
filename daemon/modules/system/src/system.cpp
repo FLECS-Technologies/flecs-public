@@ -43,12 +43,6 @@ module_system_t::module_system_t()
 auto module_system_t::do_init() //
     -> void
 {
-    FLECS_ROUTE("/system/ping").methods("GET"_method)([]() {
-        auto response = crow::response{};
-        response.moved_perm("/v2/system/ping");
-        return response;
-    });
-
     FLECS_V2_ROUTE("/system/ping").methods("GET"_method)([=]() { return ping(); });
 
     FLECS_V2_ROUTE("/system/info").methods("GET"_method)([=]() { return info(); });
