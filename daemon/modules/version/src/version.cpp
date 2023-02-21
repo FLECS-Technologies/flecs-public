@@ -40,11 +40,6 @@ auto module_version_t::version() const //
 auto module_version_t::do_init() //
     -> void
 {
-    FLECS_ROUTE("/system/version").methods("GET"_method)([]() {
-        auto res = crow::response{};
-        res.moved_perm("/v2/system/version");
-        return res;
-    });
     FLECS_V2_ROUTE("/system/version").methods("GET"_method)([=]() { return version(); });
 }
 

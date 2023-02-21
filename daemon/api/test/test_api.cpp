@@ -26,13 +26,13 @@ class test_flecs_api_t
 public:
     test_flecs_api_t()
     {
-        FLECS_ROUTE("/test/get").methods("GET"_method)([]() {
+        FLECS_V2_ROUTE("/test/get").methods("GET"_method)([]() {
             auto response = FLECS::json_t{};
             response["additionalInfo"] = "OK";
             return crow::response{crow::status::OK, response.dump()};
         });
 
-        FLECS_ROUTE("/test/post").methods("POST"_method)([](const crow::request& req) {
+        FLECS_V2_ROUTE("/test/post").methods("POST"_method)([](const crow::request& req) {
             auto response = FLECS::json_t{};
             const auto args = FLECS::parse_json(req.body);
             if (!args.contains("arg")) {
@@ -63,14 +63,14 @@ static auto test_api = test_flecs_api_t{};
 
 TEST(api, tcp_socket_not_found)
 {
-    const auto res = cpr::Get(cpr::Url{"http://localhost:8951/test/invalid_endpoint"});
+    const auto res = cpr::Get(cpr::Url{"http://localhost:8951/v2/test/invalid_endpoint"});
 
     ASSERT_EQ(res.status_code, crow::status::NOT_FOUND);
 }
 
 TEST(api, endpoint_get)
 {
-    const auto res = cpr::Get(cpr::Url{"http://localhost:8951/test/get"});
+    const auto res = cpr::Get(cpr::Url{"http://localhost:8951/v2/test/get"});
 
     ASSERT_EQ(res.status_code, crow::status::OK);
     ASSERT_EQ(res.text, R"({"additionalInfo":"OK"})");
@@ -82,7 +82,7 @@ TEST(api, endpoint_post)
     json["arg"] = "value";
 
     const auto res = cpr::Post(
-        cpr::Url{"http://localhost:8951/test/post"},
+        cpr::Url{"http://localhost:8951/v2/test/post"},
         cpr::Body{json.dump()},
         cpr::Header{{"Content-Type", "application/json"}});
 
@@ -93,7 +93,7 @@ TEST(api, endpoint_post)
 TEST(api, bad_request)
 {
     const auto res = cpr::Post(
-        cpr::Url{"http://localhost:8951/test/post"},
+        cpr::Url{"http://localhost:8951/v2/test/post"},
         cpr::Body{"Not a JSON body"},
         cpr::Header{{"Content-Type", "application/json"}});
 
@@ -102,7 +102,7 @@ TEST(api, bad_request)
 
 TEST(api, not_allowed)
 {
-    const auto res = cpr::Patch(cpr::Url{"http://localhost:8951/test/get"});
+    const auto res = cpr::Patch(cpr::Url{"http://localhost:8951/v2/test/get"});
 
     ASSERT_EQ(res.status_code, crow::status::METHOD_NOT_ALLOWED);
 }

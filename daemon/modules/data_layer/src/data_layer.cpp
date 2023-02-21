@@ -35,12 +35,6 @@ auto module_data_layer_t::do_init() //
 {
     _impl->do_init();
 
-    FLECS_ROUTE("/data-layer/browse").methods("GET"_method)([]() {
-        auto response = crow::response{};
-        response.moved_perm("/v2/data-layer/browse");
-        return response;
-    });
-
     FLECS_V2_ROUTE("/data-layer/browse").methods("GET"_method)([=]() { return browse(""); });
 }
 

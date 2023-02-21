@@ -50,11 +50,6 @@ TEST(module_version, print_version)
     auto req = crow::request{};
     auto res = crow::response{};
 
-    req.url = "/system/version";
-    FLECS::flecs_api_t::instance().app().handle(req, res);
-    ASSERT_EQ(res.code, crow::status::MOVED_PERMANENTLY);
-    ASSERT_EQ(res.headers.find("Location")->second, "/v2/system/version");
-
     const auto json_expected = FLECS::json_t({{"core", FLECS_VERSION + "-"s + FLECS_GIT_SHA}});
 
     req.url = "/v2/system/version";

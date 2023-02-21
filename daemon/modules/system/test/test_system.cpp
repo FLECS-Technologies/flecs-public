@@ -51,11 +51,6 @@ TEST(system, ping)
     auto req = crow::request{};
     auto res = crow::response{};
 
-    req.url = "/system/ping";
-    FLECS::flecs_api_t::instance().app().handle(req, res);
-    ASSERT_EQ(res.code, crow::status::MOVED_PERMANENTLY);
-    ASSERT_EQ(res.headers.find("Location")->second, "/v2/system/ping");
-
     const auto out_expected = R"({"additionalInfo":"OK"})"s;
 
     req.url = "/v2/system/ping";

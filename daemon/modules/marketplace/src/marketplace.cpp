@@ -28,18 +28,6 @@ module_marketplace_t::module_marketplace_t()
 auto module_marketplace_t::do_init() //
     -> void
 {
-    FLECS_ROUTE("/marketplace/login").methods("POST"_method)([]() {
-        auto response = crow::response{};
-        response.redirect_perm("/v2/marketplace/login");
-        return response;
-    });
-
-    FLECS_ROUTE("/marketplace/logout").methods("POST"_method)([]() {
-        auto response = crow::response{};
-        response.redirect_perm("/v2/marketplace/logout");
-        return response;
-    });
-
     FLECS_V2_ROUTE("/marketplace/login").methods("POST"_method)([=](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
