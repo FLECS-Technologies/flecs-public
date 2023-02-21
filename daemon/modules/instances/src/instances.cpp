@@ -161,7 +161,7 @@ auto module_instances_t::http_create(app_key_t app_key, std::string instance_nam
 auto module_instances_t::http_start(instance_id_t instance_id) //
     -> crow::response
 {
-    auto job_id = _impl->queue_start(std::move(instance_id));
+    auto job_id = _impl->queue_start(std::move(instance_id), false);
     return crow::response{
         crow::status::ACCEPTED,
         "json",
@@ -171,7 +171,7 @@ auto module_instances_t::http_start(instance_id_t instance_id) //
 auto module_instances_t::http_stop(instance_id_t instance_id) //
     -> crow::response
 {
-    auto job_id = _impl->queue_stop(std::move(instance_id));
+    auto job_id = _impl->queue_stop(std::move(instance_id), false);
     return crow::response{
         crow::status::ACCEPTED,
         "json",
@@ -285,13 +285,23 @@ auto module_instances_t::create(std::string app_name, std::string version) //
 auto module_instances_t::start(instance_id_t instance_id) //
     -> result_t
 {
-    return _impl->do_start_sync(std::move(instance_id));
+    return _impl->do_start_sync(std::move(instance_id), false);
+}
+auto module_instances_t::start_once(instance_id_t instance_id) //
+    -> result_t
+{
+    return _impl->do_start_sync(std::move(instance_id), true);
 }
 
 auto module_instances_t::stop(instance_id_t instance_id) //
     -> result_t
 {
-    return _impl->do_stop_sync(std::move(instance_id));
+    return _impl->do_stop_sync(std::move(instance_id), false);
+}
+auto module_instances_t::stop_once(instance_id_t instance_id) //
+    -> result_t
+{
+    return _impl->do_stop_sync(std::move(instance_id), true);
 }
 
 auto module_instances_t::remove(instance_id_t instance_id) //

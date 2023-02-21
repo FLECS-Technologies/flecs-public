@@ -64,18 +64,18 @@ private:
     auto do_create(app_key_t app_key, std::string instance_name, job_progress_t& progress) //
         -> result_t;
 
-    auto queue_start(instance_id_t instance_id) //
+    auto queue_start(instance_id_t instance_id, bool once) //
         -> job_id_t;
-    auto do_start_sync(instance_id_t instance_id) //
+    auto do_start_sync(instance_id_t instance_id, bool once) //
         -> result_t;
-    auto do_start(instance_id_t instance_id, job_progress_t& progress) //
+    auto do_start(instance_id_t instance_id, bool once, job_progress_t& progress) //
         -> result_t;
 
-    auto queue_stop(instance_id_t instance_id) //
+    auto queue_stop(instance_id_t instance_id, bool once) //
         -> job_id_t;
-    auto do_stop_sync(instance_id_t instance_id) //
+    auto do_stop_sync(instance_id_t instance_id, bool once) //
         -> result_t;
-    auto do_stop(instance_id_t instance_id, job_progress_t& progress) //
+    auto do_stop(instance_id_t instance_id, bool once, job_progress_t& progress) //
         -> result_t;
 
     auto queue_remove(instance_id_t instance_id) //
