@@ -41,7 +41,7 @@ components:
         ]
     installed_app:
       properties:
-        app_key:
+        appKey:
           $ref: "#/components/schemas/app_key"
         status:
           $ref: "#/components/schemas/app_status"
@@ -79,9 +79,11 @@ components:
     app_instance:
       description: Instance of an App
       properties:
-        instance_id:
+        instanceId:
           $ref: "#/components/schemas/instance_id"
-        app_key:
+        instanceName:
+          $ref: "#/components/schemas/instance_name"
+        appKey:
           $ref: "#/components/schemas/app_key"
         status:
           $ref: "#/components/schemas/instance_status"
@@ -333,8 +335,6 @@ paths:
           $ref: "#/components/responses/response_202"
         "404":
           description: No such app or app/version combination
-        "500":
-          $ref: "#/components/responses/response_500"
   /apps/install:
     post:
       tags: ["Apps"]
@@ -346,9 +346,9 @@ paths:
             schema:
               type: object
               properties:
-                app_key:
+                appKey:
                   $ref: "#/components/schemas/app_key"
-                license_key:
+                licenseKey:
                   $ref: "#/components/schemas/license_key"
       responses:
         "202":
@@ -377,8 +377,6 @@ paths:
           $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
-        "500":
-          $ref: "#/components/responses/response_500"
   # Instance related paths
   /instances:
     get:
@@ -409,19 +407,64 @@ paths:
   /instances/{instance_id}:
     get:
       tags: ["Instances"]
-      summary: Query single instance
+      summary: Obtain details of an App instance
       parameters:
         - name: instance_id
           in: path
           schema:
             $ref: "#/components/schemas/instance_id"
+          required: true
       responses:
         "200":
           description: Success
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/app_instance"
+                type: object
+                properties:
+                  instanceId:
+                    $ref: "#/components/schemas/instance_id"
+                  instanceName:
+                    $ref: "#/components/schemas/instance_name"
+                  appKey:
+                    $ref: "#/components/schemas/app_key"
+                  status:
+                    $ref: "#/components/schemas/instance_status"
+                  desired:
+                    $ref: "#/components/schemas/instance_status"
+                  conffiles:
+                    $ref: "#/components/schemas/instance_detail_conffiles"
+                  hostname:
+                    $ref: "#/components/schemas/instance_detail_hostname"
+                  ipAddress:
+                    $ref: "#/components/schemas/instance_detail_ip_address"
+                  ports:
+                    $ref: "#/components/schemas/instance_detail_ports"
+                  volumes:
+                    $ref: "#/components/schemas/instance_detail_volumes"
+        "404":
+          description: No instance with this instance_id found
+    patch:
+      tags: ["Instances"]
+      summary: Update or downgrade Instance to another App version
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                to:
+                  type: string
+      responses:
+        "202":
+          $ref: "#/components/responses/response_202"
         "404":
           description: No instance with this instance_id found
     delete:
@@ -438,8 +481,6 @@ paths:
           $ref: "#/components/responses/response_202"
         "404":
           description: No instance with this instance_id found
-        "500":
-          $ref: "#/components/responses/response_500"
   /instances/create:
     post:
       tags: ["Instances"]
@@ -450,52 +491,16 @@ paths:
           application/json:
             schema:
               properties:
-                app_key:
+                appKey:
                   $ref: "#/components/schemas/app_key"
-                instance_name:
+                instanceName:
                   $ref: "#/components/schemas/instance_name"
       responses:
         "202":
           $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
-        "500":
-          $ref: "#/components/responses/response_500"
-  /instance/{instance_id}/details:
-    get:
-      tags: ["Instances"]
-      summary: Obtain details of an App instance
-      parameters:
-        - name: instance_id
-          in: path
-          schema:
-            $ref: "#/components/schemas/instance_id"
-          required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  instance_id:
-                    $ref: "#/components/schemas/instance_id"
-                  app_key:
-                    $ref: "#/components/schemas/app_key"
-                  conffiles:
-                    $ref: "#/components/schemas/instance_detail_conffiles"
-                  hostname:
-                    $ref: "#/components/schemas/instance_detail_hostname"
-                  ip_address:
-                    $ref: "#/components/schemas/instance_detail_ip_address"
-                  ports:
-                    $ref: "#/components/schemas/instance_detail_ports"
-                  volumes:
-                    $ref: "#/components/schemas/instance_detail_volumes"
-        "404":
-          description: No instance with this instance_id found
-  /instance/{id}/start:
+  /instance/{instance_id}/start:
     post:
       tags: ["Instances"]
       summary: Start an App instance
@@ -510,9 +515,7 @@ paths:
           $ref: "#/components/responses/response_202"
         "404":
           description: No instance with this instance_id found
-        "500":
-          $ref: "#/components/responses/response_500"
-  /instance/{id}/stop:
+  /instance/{instance_id}/stop:
     post:
       tags: ["Instances"]
       summary: Stop an App instance
@@ -528,8 +531,130 @@ paths:
           $ref: "#/components/responses/response_202"
         "404":
           description: No instance with this instance_id found
-        "500":
-          $ref: "#/components/responses/response_500"
+  /instance/{instance_id}/config:
+    get:
+      tags: ["Instances"]
+      summary: Get configuration of an Instance
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  networkAdapters:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        active:
+                          type: boolean
+                        connected:
+                          type: boolean
+                        ipAddress:
+                          type: string
+                          format: ipv4
+                        subnetMask:
+                          type: string
+                          format: ipv4
+                        gateway:
+                          type: string
+                          format: ipv4
+                  usbDevices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        device:
+                          type: string
+                        pid:
+                          type: integer
+                        port:
+                          type: string
+                        vendor:
+                          type: string
+                        vid:
+                          type: integer
+                        active:
+                          type: boolean
+                        connected:
+                          type: boolean
+    post:
+      tags: ["Instances"]
+      summary: Update configuration of an Instance
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                networkAdapters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      active:
+                        type: boolean
+                      ipAddress:
+                        type: string
+                        format: ipv4
+                usbDevices:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      device:
+                        type: string
+                      pid:
+                        type: integer
+                      port:
+                        type: string
+                      vendor:
+                        type: string
+                      vid:
+                        type: integer
+                      active:
+                        type: boolean
+  /instance/{instance_id}/logs:
+    get:
+      tags: ["Instances"]
+      summary: Retrieve logs of an Instance
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stdout:
+                    type: string
+                  stderr:
+                    type: string
   # flunder related paths
   /flunder/browse:
     get:

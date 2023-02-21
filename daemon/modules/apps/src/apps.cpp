@@ -55,18 +55,17 @@ auto module_apps_t::do_init() //
     FLECS_V2_ROUTE("/apps/install").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, app);
-        REQUIRED_JSON_VALUE(args, version);
+        REQUIRED_TYPED_JSON_VALUE(args, appKey, app_key_t);
         OPTIONAL_JSON_VALUE(args, licenseKey);
-        return http_install(app_key_t{std::move(app), std::move(version)}, std::move(licenseKey));
+        return http_install(std::move(appKey), std::move(licenseKey));
     });
 
     FLECS_V2_ROUTE("/apps/sideload").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, appYaml);
+        REQUIRED_JSON_VALUE(args, manifest);
         OPTIONAL_JSON_VALUE(args, licenseKey);
-        return http_sideload(std::move(appYaml), std::move(licenseKey));
+        return http_sideload(std::move(manifest), std::move(licenseKey));
     });
 
     _impl->do_init();
