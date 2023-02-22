@@ -45,10 +45,12 @@ auto module_flecsport_t::do_init() //
         }
         auto instances = std::vector<instance_id_t>{};
         if (args.contains("instances")) {
-            args["instances"].get_to(instances);
+            for (const auto& instance_id : args["instances"]) {
+                instances.emplace_back(instance_id_t{instance_id.get<std::string_view>()});
+            }
         }
         if (apps.empty() && instances.empty()) {
-            return crow::response{crow::status::BAD_REQUEST, "", {}};
+            return crow::response{crow::status::BAD_REQUEST};
         }
         return http_export_to(std::move(apps), std::move(instances));
     });
