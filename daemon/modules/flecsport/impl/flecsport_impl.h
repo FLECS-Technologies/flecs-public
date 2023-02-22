@@ -35,6 +35,9 @@ private:
     auto do_init() //
         -> void;
 
+    auto do_exports() const //
+        -> std::vector<std::string>;
+
     auto queue_export_to(
         std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
         -> job_id_t;

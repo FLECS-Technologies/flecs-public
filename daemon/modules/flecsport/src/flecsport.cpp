@@ -36,6 +36,8 @@ module_flecsport_t::~module_flecsport_t()
 auto module_flecsport_t::do_init() //
     -> void
 {
+    FLECS_V2_ROUTE("/exports").methods("GET"_method)([this]() { return http_list(); });
+
     FLECS_V2_ROUTE("/exports/create").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
@@ -56,6 +58,19 @@ auto module_flecsport_t::do_init() //
     });
 
     return _impl->do_init();
+}
+
+auto module_flecsport_t::http_list() //
+    -> crow::response
+{
+    auto res = json_t::array();
+    auto exports = _impl->do_exports();
+
+    for (auto& e : exports) {
+        res.push_back(e);
+    }
+
+    return {crow::status::OK, "json", res.dump()};
 }
 
 auto module_flecsport_t::http_export_to(
