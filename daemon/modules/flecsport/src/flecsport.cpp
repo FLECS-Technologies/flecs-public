@@ -38,6 +38,10 @@ auto module_flecsport_t::do_init() //
 {
     FLECS_V2_ROUTE("/exports").methods("GET"_method)([this]() { return http_list(); });
 
+    FLECS_V2_ROUTE("/exports/<string>").methods("GET"_method)([this](const std::string& export_id) {
+        return http_download(export_id);
+    });
+
     FLECS_V2_ROUTE("/exports/create").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
@@ -71,6 +75,29 @@ auto module_flecsport_t::http_list() //
     }
 
     return {crow::status::OK, "json", res.dump()};
+}
+
+auto module_flecsport_t::http_download(const std::string& export_id) //
+    -> crow::response
+{
+    const auto export_path = fs::path{"/var/lib/flecs/exports"} / export_id;
+
+    const auto pos = export_id.find(".tar.gz");
+    if (pos == export_id.size() - 7) {
+        auto ec = std::error_code{};
+        if (fs::is_regular_file(export_path, ec)) {
+            auto res = crow::response{};
+            res.set_static_file_info_unsafe(export_path.string());
+            res.set_header("content-type", "application/gzip");
+            return res;
+        }
+    } else {
+        auto res = crow::response{};
+        res.moved_perm("/v2/exports/" + export_id + ".tar.gz");
+        return res;
+    }
+
+    return crow::response{crow::status::NOT_FOUND};
 }
 
 auto module_flecsport_t::http_export_to(

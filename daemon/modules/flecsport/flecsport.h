@@ -37,6 +37,9 @@ public:
     auto http_list() //
         -> crow::response;
 
+    auto http_download(const std::string& export_id) //
+        -> crow::response;
+
     auto http_export_to(std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
         -> crow::response;
 
