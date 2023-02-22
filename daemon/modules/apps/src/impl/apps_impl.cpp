@@ -381,6 +381,16 @@ auto module_apps_t::do_install_impl(
         case app_status_e::ImageDownloaded: {
             progress.next_step("Expiring download token");
 
+            auto docker_size_process = process_t{};
+            docker_size_process
+                .spawnp("docker", "inspect", "-f", "{{ .Size }}", manifest->image_with_tag());
+            docker_size_process.wait(false, true);
+
+            if (docker_size_process.exit_code() == 0) {
+                auto image_size = stoi(docker_size_process.stdout());
+                app->installed_size(image_size);
+            }
+
             // Step 5: Expire download token
             const auto args = split(app->download_token(), ';');
             if (args.size() == 3) {
