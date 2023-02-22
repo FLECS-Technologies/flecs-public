@@ -19,4 +19,5 @@ flecs_add_module(
     ADDITIONAL_HEADERS
     impl/flecsport_impl.h
     LIBS_PUBLIC daemon.common
+    LIBS_PRIVATE util.archive
 )
