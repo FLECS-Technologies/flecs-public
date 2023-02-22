@@ -34,6 +34,9 @@ class module_flecsport_t FLECS_FINAL_UNLESS_TESTED : public module_t
 public:
     ~module_flecsport_t() override;
 
+    auto http_list() //
+        -> crow::response;
+
     auto http_export_to(std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
         -> crow::response;
 

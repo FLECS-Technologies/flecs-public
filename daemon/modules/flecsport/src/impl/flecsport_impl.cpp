@@ -41,6 +41,25 @@ auto module_flecsport_t::do_init() //
     _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
 }
 
+auto module_flecsport_t::do_exports() const //
+    -> std::vector<std::string>
+{
+    auto res = std::vector<std::string>{};
+
+    auto ec = std::error_code{};
+    auto it = fs::directory_iterator("/var/lib/flecs/exports", ec);
+    for (; it != fs::directory_iterator{}; ++it) {
+        if (!fs::is_regular_file(*it, ec)) {
+            continue;
+        }
+        if ((it->path().extension() == ".gz") && (it->path().stem().extension() == ".tar")) {
+            res.push_back(it->path().stem().stem());
+        }
+    }
+
+    return res;
+}
+
 auto module_flecsport_t::queue_export_to(
     std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
     -> job_id_t
