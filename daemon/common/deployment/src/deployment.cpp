@@ -554,11 +554,17 @@ auto deployment_t::export_config_file(
     fs::path dest_dir) const //
     -> result_t
 {
+    auto ec = std::error_code{};
+    fs::create_directories(dest_dir, ec);
+    if (ec) {
+        return {-1, "Could not create export directory"};
+    }
+
     if (is_instance_running(instance)) {
         const auto [res, additional_info] = copy_file_from_instance(
             instance,
             config_file.container(),
-            dest_dir / "conf" / config_file.local());
+            dest_dir / config_file.local());
         if (res != 0) {
             return {res, additional_info};
         }
@@ -566,7 +572,7 @@ auto deployment_t::export_config_file(
         const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
         /* copy config files from local dir for stopped instances */
         auto ec = std::error_code{};
-        fs::copy(conf_path + config_file.local(), dest_dir / "conf" / config_file.local(), ec);
+        fs::copy(conf_path + config_file.local(), dest_dir / config_file.local(), ec);
         if (ec) {
             return {-1, "Could not export conffile from local directory"};
         }
