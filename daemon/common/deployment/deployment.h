@@ -44,11 +44,6 @@ public:
         network_type_e type;
     };
 
-    enum version_filter_e {
-        MatchVersion = 0,
-        AllVersions = 1,
-    };
-
     deployment_t() = default;
 
     virtual ~deployment_t() = default;
@@ -61,8 +56,7 @@ public:
     auto save(const fs::path& base_path = "/var/lib/flecs/") //
         -> result_t;
 
-    auto instance_ids(
-        const app_key_t& app_key, version_filter_e version_filter = AllVersions) const //
+    auto instance_ids(const app_key_t& app_key) const //
         -> std::vector<instance_id_t>;
     auto instance_ids(std::string_view app, std::string_view version) const //
         -> std::vector<instance_id_t>;
