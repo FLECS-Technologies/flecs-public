@@ -48,29 +48,28 @@ auto deployment_t::save(const fs::path& base_path) //
 auto deployment_t::instance_ids() const //
     -> std::vector<instance_id_t>
 {
-    return instance_ids(app_key_t{}, AllVersions);
+    return instance_ids(app_key_t{});
 }
 
 auto deployment_t::instance_ids(std::string_view app) const //
     -> std::vector<instance_id_t>
 {
-    return instance_ids(app_key_t{app.data(), ""}, AllVersions);
+    return instance_ids(app_key_t{app.data(), ""});
 }
 
 auto deployment_t::instance_ids(std::string_view app, std::string_view version) const //
     -> std::vector<instance_id_t>
 {
-    return instance_ids(app_key_t{app.data(), version.data()}, MatchVersion);
+    return instance_ids(app_key_t{app.data(), version.data()});
 }
 
-auto deployment_t::instance_ids(const app_key_t& app_key, version_filter_e version_filter) const //
+auto deployment_t::instance_ids(const app_key_t& app_key) const //
     -> std::vector<instance_id_t>
 {
     auto ids = std::vector<instance_id_t>{};
     for (const auto& instance : _instances) {
         const auto apps_match = app_key.name().empty() || (app_key.name() == instance->app_name());
         const auto versions_match = app_key.name().empty() || app_key.version().empty() ||
-                                    version_filter == AllVersions ||
                                     (app_key.version() == instance->app_version());
         if (apps_match && versions_match) {
             ids.emplace_back(instance->id());

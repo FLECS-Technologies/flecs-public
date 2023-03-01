@@ -191,7 +191,7 @@ auto module_instances_t::do_create(
 
     // Step 3: Ensure there is only one instance of single-instance apps
     if (!manifest->multi_instance()) {
-        const auto instance_ids = _deployment->instance_ids(app->key(), deployment_t::MatchVersion);
+        const auto instance_ids = _deployment->instance_ids(app->key());
         if (!instance_ids.empty()) {
             auto instance = _deployment->query_instance(instance_ids.front());
             instance->app(std::move(app));
