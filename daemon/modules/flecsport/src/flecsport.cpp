@@ -80,20 +80,14 @@ auto module_flecsport_t::http_list() //
 auto module_flecsport_t::http_download(const std::string& export_id) //
     -> crow::response
 {
-    const auto export_path = fs::path{"/var/lib/flecs/exports"} / export_id;
+    const auto export_filename = export_id + ".tar.gz";
+    const auto export_path = fs::path{"/var/lib/flecs/exports"} / export_filename;
 
-    const auto pos = export_id.find(".tar.gz");
-    if (pos == export_id.size() - 7) {
-        auto ec = std::error_code{};
-        if (fs::is_regular_file(export_path, ec)) {
-            auto res = crow::response{};
-            res.set_static_file_info_unsafe(export_path.string());
-            res.set_header("content-type", "application/gzip");
-            return res;
-        }
-    } else {
+    if (fs::is_regular_file(export_path)) {
         auto res = crow::response{};
-        res.moved_perm("/v2/exports/" + export_id + ".tar.gz");
+        res.set_static_file_info_unsafe(export_path.string());
+        res.set_header("Content-Type", "application/gzip");
+        res.set_header("Content-Disposition", "attachment; filename=\"" + export_filename + "\"");
         return res;
     }
 
