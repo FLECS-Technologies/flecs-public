@@ -119,7 +119,7 @@ auto module_flecsport_t::do_export_to(
         return {res, "Could not create compressed archive"};
     }
 
-    return {0, {}};
+    return {0, dest_dir.filename()};
 }
 
 } // namespace impl
