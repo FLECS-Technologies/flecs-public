@@ -61,6 +61,11 @@ auto module_flecsport_t::do_init() //
         return http_export_to(std::move(apps), std::move(instances));
     });
 
+    FLECS_V2_ROUTE("/imports").methods("POST"_method)([this](const crow::request& req) {
+        std::cerr << req.body.length() << std::endl;
+        return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":17}"};
+    });
+
     return _impl->do_init();
 }
 
