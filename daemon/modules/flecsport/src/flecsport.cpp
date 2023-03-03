@@ -42,6 +42,10 @@ auto module_flecsport_t::do_init() //
         return http_download(export_id);
     });
 
+    FLECS_V2_ROUTE("/exports/<string>")
+        .methods("DELETE"_method)(
+            [this](const std::string& export_id) { return http_remove(export_id); });
+
     FLECS_V2_ROUTE("/exports/create").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
@@ -105,11 +109,29 @@ auto module_flecsport_t::http_download(const std::string& export_id) //
     return crow::response{crow::status::NOT_FOUND};
 }
 
+auto module_flecsport_t::http_remove(const std::string& export_id) //
+    -> crow::response
+{
+    const auto archive = fs::path{"/var/lib/flecs/exports"} / (export_id + ".tar.gz");
+
+    auto ec = std::error_code{};
+    if (!fs::is_regular_file(archive)) {
+        return crow::response{crow::status::NOT_FOUND};
+    }
+
+    fs::remove(archive, ec);
+    if (ec) {
+        return crow::response{crow::status::INTERNAL_SERVER_ERROR};
+    }
+
+    return crow::response{crow::status::OK};
+}
+
 auto module_flecsport_t::http_export_to(
     std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
     -> crow::response
 {
-    const auto now = unix_time(precision_e::seconds);
+    const auto now = unix_time(precision_e::milliseconds);
     auto dest_dir = fs::path{"/var/lib/flecs/exports"} / now;
     auto job_id =
         _impl->queue_export_to(std::move(apps), std::move(instances), std::move(dest_dir));
