@@ -19,8 +19,10 @@ include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
 project(FLECS)
 
 # set version
-set(VERSION 2.0.0-draft)
-add_definitions(-DFLECS_VERSION="${VERSION}")
+set(CORE_VERSION 2.0.0-draft)
+set(API_VERSION 2.0.0-draft)
+add_definitions(-DFLECS_VERSION="${CORE_VERSION}")
+add_definitions(-DFLECS_API_VERSION="${API_VERSION}")
 
 if(FLECS_BUILD_TESTS)
     include(CTest)

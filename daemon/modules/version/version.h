@@ -22,6 +22,16 @@ class module_version_t FLECS_FINAL_UNLESS_TESTED : public module_t
 {
     friend class module_factory_t;
 
+public:
+    auto http_version() const //
+        -> crow::response;
+
+    auto core_version() const //
+        -> std::string;
+
+    auto api_version() const //
+        -> std::string;
+
 protected:
     module_version_t();
 
@@ -29,9 +39,6 @@ protected:
         -> void override;
     auto do_deinit() //
         -> void override;
-
-    auto version() const //
-        -> crow::response;
 };
 
 } // namespace FLECS

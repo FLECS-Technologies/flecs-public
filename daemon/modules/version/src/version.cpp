@@ -27,24 +27,37 @@ register_module_t<module_version_t> _reg("version");
 module_version_t::module_version_t()
 {}
 
-auto module_version_t::version() const //
-    -> crow::response
-{
-    using std::operator""s;
-
-    auto response = json_t({{"core", FLECS_VERSION + "-"s + FLECS_GIT_SHA}});
-
-    return crow::response{crow::status::OK, "json", response.dump()};
-}
-
 auto module_version_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/system/version").methods("GET"_method)([=]() { return version(); });
+    FLECS_V2_ROUTE("/system/version").methods("GET"_method)([=]() { return http_version(); });
 }
 
 auto module_version_t::do_deinit() //
     -> void
 {}
+
+auto module_version_t::http_version() const //
+    -> crow::response
+{
+    using std::operator""s;
+
+    auto response = json_t{};
+    response["core"] = core_version();
+
+    return crow::response{crow::status::OK, "json", response.dump()};
+}
+
+auto module_version_t::core_version() const //
+    -> std::string
+{
+    return std::string{FLECS_VERSION} + "-" + FLECS_GIT_SHA;
+}
+
+auto module_version_t::api_version() const //
+    -> std::string
+{
+    return FLECS_API_VERSION;
+}
 
 } // namespace FLECS
