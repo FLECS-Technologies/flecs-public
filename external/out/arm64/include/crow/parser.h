@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
+#include <fstream>
+#include <filesystem>
 
 #include "crow/http_request.h"
 #include "crow/http_parser_merged.h"
@@ -72,12 +74,43 @@ namespace crow
             self->set_connection_parameters();
 
             self->process_header();
+
+            const auto pos = self->raw_url.find("imports");
+            if (pos == (self->raw_url.length() - 7))
+            {
+                const auto it = self->headers.find("X-Uploaded-Filename");
+                if (it == self->headers.cend() || it->second.empty())
+                {
+                    return -1;
+                }
+
+                auto ec = std::error_code{};
+                auto dir = std::filesystem::path{"/var/lib/flecs/imports/"};
+                std::filesystem::create_directories(dir, ec);
+                if (ec)
+                {
+                    return -1;
+                }
+
+                self->file = std::ofstream{dir / it->second, std::ios::trunc | std::ios::binary};
+                if (!self->file)
+                {
+                    return -1;
+                }
+            }
             return 0;
         }
         static int on_body(http_parser* self_, const char* at, size_t length)
         {
             HTTPParser* self = static_cast<HTTPParser*>(self_);
-            self->body.insert(self->body.end(), at, at + length);
+            if (self->file)
+            {
+                self->file.write(at, length);
+            }
+            else
+            {
+                self->body.insert(self->body.end(), at, at + length);
+            }
             return 0;
         }
         static int on_message_complete(http_parser* self_)
@@ -137,6 +170,7 @@ namespace crow
             headers.clear();
             url_params.clear();
             body.clear();
+            file.close();
             header_building_state = 0;
             qs_point = 0;
             http_major = 0;
@@ -188,6 +222,7 @@ namespace crow
         ci_map headers;
         query_string url_params; ///< What comes after the `?` in the URL.
         std::string body;
+        std::ofstream file;
         bool keep_alive;       ///< Whether or not the server should send a `connection: Keep-Alive` header to the client.
         bool close_connection; ///< Whether or not the server should shut down the TCP connection once a response is sent.
 
