@@ -43,6 +43,9 @@ public:
     auto http_export_to(std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
         -> crow::response;
 
+    auto http_import_from(std::string archive) //
+        -> crow::response;
+
     auto export_to(
         std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path base_dir) //
         -> result_t;
