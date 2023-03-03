@@ -42,6 +42,7 @@
             "defines": [
                 "FLECS_EXPORT=__attribute__((visibility(\"default\")))",
                 "FLECS_VERSION=\"2.0.0-draft\"",
+                "FLECS_API_VERSION=\"2.0.0-draft\"",
                 "FLECS_GIT_SHA=\"abcd1234\"",
                 "FLECS_FINAL_UNLESS_TESTED=",
                 "FLECS_CONSTEXPR_UNLESS_TESTED="
