@@ -62,8 +62,14 @@ auto module_flecsport_t::do_init() //
     });
 
     FLECS_V2_ROUTE("/imports").methods("POST"_method)([this](const crow::request& req) {
-        std::cerr << req.body.length() << std::endl;
-        return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":17}"};
+        const auto it = req.headers.find("X-Uploaded-Filename");
+        if (it == req.headers.cend()) {
+            return crow::response{
+                crow::status::BAD_REQUEST,
+                "json",
+                "{\"additionalInfo\":\"Missing header X-Uploaded-Filename in request\"}"};
+        }
+        return http_import_from(fs::path{"/var/lib/flecs/imports"} / it->second);
     });
 
     return _impl->do_init();
@@ -107,6 +113,16 @@ auto module_flecsport_t::http_export_to(
     auto dest_dir = fs::path{"/var/lib/flecs/exports"} / now;
     auto job_id =
         _impl->queue_export_to(std::move(apps), std::move(instances), std::move(dest_dir));
+    return crow::response{
+        crow::status::ACCEPTED,
+        "json",
+        "{\"jobId\":" + std::to_string(job_id) + "}"};
+}
+
+auto module_flecsport_t::http_import_from(std::string archive) //
+    -> crow::response
+{
+    auto job_id = _impl->queue_import_from(std::move(archive));
     return crow::response{
         crow::status::ACCEPTED,
         "json",

@@ -122,5 +122,53 @@ auto module_flecsport_t::do_export_to(
     return {0, dest_dir.filename()};
 }
 
+auto module_flecsport_t::queue_import_from(fs::path archive) //
+    -> job_id_t
+{
+    auto desc = "Importing " + archive.filename().string();
+
+    auto job = job_t{std::bind(
+        &module_flecsport_t::do_import_from,
+        this,
+        std::move(archive),
+        std::placeholders::_1)};
+
+    return _jobs_api->append(std::move(job), std::move(desc));
+}
+auto module_flecsport_t::do_import_from_sync(fs::path archive) //
+    -> result_t
+{
+    auto _ = job_progress_t{};
+    return do_import_from(std::move(archive), _);
+}
+auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progress) //
+    -> result_t
+{
+    progress.num_steps(3);
+    progress.next_step("Extracting archive");
+
+    auto basename = archive.filename();
+    while (basename.has_extension()) {
+        basename = basename.stem();
+    }
+
+    /* extract 12345.tar.gz to ${base_path}/12345 */
+    auto res = archive::decompress(archive, archive.parent_path() / basename);
+    auto ec = std::error_code{};
+    fs::remove(archive, ec);
+    if (res != 0) {
+        return {-1, "Could not extract archive"};
+    }
+
+    /* exports contain a directory named like the archive */
+    /* ${base_path}/12345/12345 should therefore exist */
+    if (!fs::is_directory(archive.parent_path() / basename / basename, ec)) {
+        fs::remove_all(archive.parent_path() / basename, ec);
+        return {-1, "Archive does not contain a valid export"};
+    }
+
+    return {0, {}};
+}
+
 } // namespace impl
 } // namespace FLECS

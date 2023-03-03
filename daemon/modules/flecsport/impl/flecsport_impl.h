@@ -51,6 +51,13 @@ private:
         job_progress_t& progress) //
         -> result_t;
 
+    auto queue_import_from(fs::path archive) //
+        -> job_id_t;
+    auto do_import_from_sync(fs::path archive) //
+        -> result_t;
+    auto do_import_from(fs::path archive, job_progress_t& progress) //
+        -> result_t;
+
     FLECS::module_flecsport_t* _parent;
 
     std::shared_ptr<FLECS::module_apps_t> _apps_api;
