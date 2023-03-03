@@ -14,13 +14,18 @@
 
 #include "impl/flecsport_impl.h"
 
+#include <unistd.h>
+
 #include "common/app/app.h"
-#include "common/instance/instance_id.h"
+#include "common/instance/instance.h"
 #include "modules/apps/apps.h"
 #include "modules/factory/factory.h"
 #include "modules/instances/instances.h"
 #include "modules/jobs/jobs.h"
+#include "modules/version/version.h"
 #include "util/archive/archive.h"
+#include "util/datetime/datetime.h"
+#include "util/sysinfo/sysinfo.h"
 
 namespace FLECS {
 namespace impl {
@@ -90,7 +95,12 @@ auto module_flecsport_t::do_export_to(
     job_progress_t& progress) //
     -> result_t
 {
-    progress.num_steps(apps.size() + instances.size() + 2);
+    progress.num_steps(apps.size() + instances.size() + 3);
+
+    auto manifest_json = json_t();
+    manifest_json["time"] =
+        time_to_iso(std::atoll(dest_dir.stem().c_str()), precision_e::milliseconds);
+
     for (auto& app_key : apps) {
         progress.next_step("Exporting App " + to_string(app_key));
         auto [res, message] = _apps_api->export_to(app_key, dest_dir / "apps");
@@ -99,7 +109,9 @@ auto module_flecsport_t::do_export_to(
             fs::remove_all(dest_dir, ec);
             return {res, message};
         }
+        manifest_json["contents"]["apps"].push_back(app_key);
     }
+
     for (auto& instance_id : instances) {
         progress.next_step("Exporting Instance " + instance_id.hex());
         auto [res, message] = _instances_api->export_to(instance_id, dest_dir / "instances");
@@ -108,6 +120,12 @@ auto module_flecsport_t::do_export_to(
             fs::remove_all(dest_dir, ec);
             return {res, message};
         }
+        auto instance_json = json_t();
+        instance_json["instanceId"] = instance_id.hex();
+        auto instance = _instances_api->query(instance_id);
+        instance_json["appKey"] =
+            app_key_t{instance->app_name().data(), instance->app_version().data()};
+        manifest_json["contents"]["instances"].push_back(std::move(instance_json));
     }
 
     progress.next_step("Exporting deployment");
@@ -120,7 +138,26 @@ auto module_flecsport_t::do_export_to(
         fs::copy_options::overwrite_existing,
         ec);
     if (ec) {
+        fs::remove_all(dest_dir, ec);
         return {-1, "Could not export deployment"};
+    }
+
+    progress.next_step("Writing manifest");
+    manifest_json["device"]["sysinfo"] = json_t(sysinfo_t{});
+    char hostname[HOST_NAME_MAX + 1] = {};
+    gethostname(hostname, HOST_NAME_MAX);
+    manifest_json["device"]["hostname"] = hostname;
+
+    manifest_json["version"]["core"] =
+        std::dynamic_pointer_cast<module_version_t>(api::query_module("version"))->core_version();
+    manifest_json["version"]["api"] =
+        std::dynamic_pointer_cast<module_version_t>(api::query_module("version"))->api_version();
+
+    auto manifest_file = std::ofstream{dest_dir / "manifest.json"};
+    manifest_file << manifest_json.dump(4);
+    if (!manifest_file) {
+        fs::remove_all(dest_dir, ec);
+        return {-1, "Could not write manifest"};
     }
 
     progress.next_step("Creating compressed archive");
@@ -131,6 +168,7 @@ auto module_flecsport_t::do_export_to(
         return {res, "Could not create compressed archive"};
     }
 
+    fs::remove_all(dest_dir, ec);
     return {0, dest_dir.filename()};
 }
 
