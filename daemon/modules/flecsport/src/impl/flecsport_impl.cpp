@@ -90,7 +90,7 @@ auto module_flecsport_t::do_export_to(
     job_progress_t& progress) //
     -> result_t
 {
-    progress.num_steps(apps.size() + instances.size() + 1);
+    progress.num_steps(apps.size() + instances.size() + 2);
     for (auto& app_key : apps) {
         progress.next_step("Exporting App " + to_string(app_key));
         auto [res, message] = _apps_api->export_to(app_key, dest_dir / "apps");
@@ -110,11 +110,23 @@ auto module_flecsport_t::do_export_to(
         }
     }
 
+    progress.next_step("Exporting deployment");
+    /** @todo there should be an interface for that */
+    auto ec = std::error_code{};
+    fs::create_directories(dest_dir / "deployment", ec);
+    fs::copy_file(
+        "/var/lib/flecs/deployment/docker.json",
+        dest_dir / "deployment/docker.json",
+        fs::copy_options::overwrite_existing,
+        ec);
+    if (ec) {
+        return {-1, "Could not export deployment"};
+    }
+
     progress.next_step("Creating compressed archive");
     auto archive_name = fs::canonical(dest_dir).string() + ".tar.gz";
     auto res = archive::compress(archive_name, {dest_dir}, dest_dir.parent_path());
     if (res != 0) {
-        auto ec = std::error_code{};
         fs::remove_all(dest_dir, ec);
         return {res, "Could not create compressed archive"};
     }
