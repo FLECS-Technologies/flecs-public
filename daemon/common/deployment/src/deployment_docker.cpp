@@ -662,7 +662,7 @@ auto deployment_docker_t::do_import_volume(
     using std::operator""s;
 
     const auto name = "flecs-"s + instance->id().hex() + "-"s + volume_name.data();
-    const auto archive = src_dir.string() + "/" + name + "tar.gz";
+    const auto archive = src_dir.string() + "/" + name + ".tar.gz";
 
     auto ec = std::error_code{};
     if (!fs::exists(archive, ec)) {

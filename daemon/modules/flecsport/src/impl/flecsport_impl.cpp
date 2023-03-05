@@ -182,7 +182,7 @@ auto module_flecsport_t::do_import_from_sync(fs::path archive) //
 auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progress) //
     -> result_t
 {
-    progress.num_steps(3);
+    progress.num_steps(4);
     progress.next_step("Extracting archive");
 
     auto basename = archive.filename();
@@ -222,6 +222,25 @@ auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progre
     if (manifest.device.sysinfo.arch() != sysinfo.arch()) {
         fs::remove_all(archive.parent_path() / basename, ec);
         return {-1, "Architecture mismatch"};
+    }
+
+    progress.next_step("Importing Apps");
+    for (const auto& app : manifest.contents.apps) {
+        auto [res, message] = _apps_api->import_from(app, dir->path() / "apps");
+        if (res != 0) {
+            return {res, message};
+        }
+    }
+
+    progress.next_step("Importing Instances");
+    for (const auto& instance : manifest.contents.instances) {
+        auto [res, message] = _instances_api->import_from(
+            instance.instance_id,
+            instance.app_key,
+            dir->path() / "instances");
+        if (res != 0) {
+            return {res, message};
+        }
     }
 
     return {0, {}};

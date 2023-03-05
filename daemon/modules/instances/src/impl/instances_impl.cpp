@@ -764,6 +764,8 @@ auto module_instances_t::do_import_from(
     if (!instance) {
         instance = _deployment->insert_instance(instance_t{instance_id, app, std::string{}});
     }
+    instance->status(instance_status_e::Created);
+    instance->desired(instance_status_e::Running);
     auto [res, message] = _deployment->import_instance(instance, base_path);
 
     return {res, message};
