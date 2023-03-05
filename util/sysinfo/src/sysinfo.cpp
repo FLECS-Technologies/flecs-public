@@ -46,6 +46,7 @@ sysinfo_t::sysinfo_t()
     _kernel_version = buf.release;
     _kernel_build = buf.version;
     _machine = buf.machine;
+    _arch = machine_to_arch(_machine);
 
     auto ec = std::error_code{};
     if (fs::exists("/etc/os-release", ec)) {
@@ -56,6 +57,12 @@ sysinfo_t::sysinfo_t()
     if (cxx20::contains(_kernel_version, "weidmueller")) {
         _platform = "weidmueller";
     }
+}
+
+auto sysinfo_t::arch() const noexcept //
+    -> const std::string&
+{
+    return _arch;
 }
 
 auto sysinfo_t::parse_os_release(fs::path path) //
@@ -87,7 +94,7 @@ auto to_json(json_t& j, const sysinfo_t& sysinfo) //
     -> void
 {
     j = json_t{
-        {"arch", machine_to_arch(sysinfo._machine)},
+        {"arch", sysinfo._arch},
         {"distro",
          {{"codename", sysinfo._distro_code},
           {"id", sysinfo._distro_id},

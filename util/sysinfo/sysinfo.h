@@ -26,6 +26,9 @@ class sysinfo_t
 public:
     sysinfo_t();
 
+    auto arch() const noexcept //
+        -> const std::string&;
+
 private:
     friend auto to_json(json_t& j, const sysinfo_t& sysinfo) //
         -> void;
