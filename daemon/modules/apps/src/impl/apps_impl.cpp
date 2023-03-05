@@ -571,6 +571,31 @@ auto module_apps_t::do_export_to(
     return {0, {}};
 }
 
+auto module_apps_t::queue_import_from(app_key_t app_key, fs::path src_dir) //
+    -> job_id_t
+{
+    auto job = job_t{std::bind(
+        &module_apps_t::do_import_from,
+        this,
+        std::move(app_key),
+        std::move(src_dir),
+        std::placeholders::_1)};
+
+    return _jobs_api->append(std::move(job), "Exporting App " + to_string(app_key));
+}
+auto module_apps_t::do_import_from_sync(app_key_t app_key, fs::path src_dir) //
+    -> result_t
+{
+    auto _ = job_progress_t{};
+    return do_import_from(std::move(app_key), std::move(src_dir), _);
+}
+auto module_apps_t::do_import_from(
+    app_key_t /*app_key*/, fs::path /*src_dir*/, job_progress_t& /*progress*/) //
+    -> result_t
+{
+    return {0, {}};
+}
+
 auto module_apps_t::do_query(const app_key_t& app_key) const noexcept //
     -> std::shared_ptr<app_t>
 {

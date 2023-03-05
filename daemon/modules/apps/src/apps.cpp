@@ -209,6 +209,12 @@ auto module_apps_t::export_to(app_key_t app_key, fs::path dest_dir) const //
     return _impl->do_export_to_sync(std::move(app_key), std::move(dest_dir));
 }
 
+auto module_apps_t::import_from(app_key_t app_key, fs::path src_dir) //
+    -> result_t
+{
+    return _impl->do_import_from_sync(std::move(app_key), std::move(src_dir));
+}
+
 auto module_apps_t::query(const app_key_t& app_key) const noexcept //
     -> std::shared_ptr<app_t>
 {
