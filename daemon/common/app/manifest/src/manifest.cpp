@@ -139,6 +139,10 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
         OPTIONAL_TYPED_YAML_VALUE(yaml, avatar, _avatar);
         OPTIONAL_TYPED_YAML_VALUE(yaml, category, _category);
 
+        OPTIONAL_YAML_NODE(yaml, capabilities, capabilities);
+        for (const auto& cap : capabilities) {
+            _capabilities.push_back(cap.as<std::string>());
+        }
         OPTIONAL_YAML_NODE(yaml, conffiles, conffiles);
         for (const auto& conf : conffiles) {
             _conffiles.emplace_back(conffile_t{conf.as<std::string>()});
@@ -249,6 +253,7 @@ auto to_json(json_t& json, const app_manifest_t& app_manifest) //
          {"editor", app_manifest._editor},
 
          {"args", app_manifest._args},
+         {"capabilities", app_manifest._capabilities},
          {"conffiles", app_manifest._conffiles},
          {"devices", app_manifest._devices},
          {"env", app_manifest._env},
@@ -276,6 +281,7 @@ auto from_json(const json_t& json, app_manifest_t& app_manifest) //
     OPTIONAL_JSON_VALUE(json, editor, app_manifest._editor);
 
     OPTIONAL_JSON_VALUE(json, args, app_manifest._args);
+    OPTIONAL_JSON_VALUE(json, capabilities, app_manifest._capabilities);
     OPTIONAL_JSON_VALUE(json, conffiles, app_manifest._conffiles);
     OPTIONAL_JSON_VALUE(json, devices, app_manifest._devices);
     OPTIONAL_JSON_VALUE(json, env, app_manifest._env);
