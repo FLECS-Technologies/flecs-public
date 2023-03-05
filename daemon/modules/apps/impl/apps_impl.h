@@ -90,6 +90,13 @@ private:
     auto do_export_to(app_key_t app_key, fs::path dest_dir, job_progress_t& progress) const //
         -> result_t;
 
+    auto queue_import_from(app_key_t app_key, fs::path src_dir) //
+        -> job_id_t;
+    auto do_import_from_sync(app_key_t app_key, fs::path src_dir) //
+        -> result_t;
+    auto do_import_from(app_key_t app_key, fs::path src_dir, job_progress_t& progress) //
+        -> result_t;
+
     auto do_install_impl(
         std::shared_ptr<app_manifest_t> manifest,
         std::string_view license_key,

@@ -123,6 +123,9 @@ public:
     auto export_to(app_key_t app_key, fs::path dest_dir) const //
         -> result_t;
 
+    auto import_from(app_key_t app_key, fs::path src_dir) //
+        -> result_t;
+
     auto is_installed(const app_key_t& app_key) const noexcept //
         -> bool;
 
