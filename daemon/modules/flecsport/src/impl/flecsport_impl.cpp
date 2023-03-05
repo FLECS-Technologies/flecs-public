@@ -190,7 +190,7 @@ auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progre
         basename = basename.stem();
     }
 
-    /* extract 12345.tar.gz to ${base_path}/12345 */
+    /* extract 12345.tar.gz to ${base_path}/12345/ */
     auto res = archive::decompress(archive, archive.parent_path() / basename);
     auto ec = std::error_code{};
     fs::remove(archive, ec);
@@ -198,11 +198,30 @@ auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progre
         return {-1, "Could not extract archive"};
     }
 
-    /* exports contain a directory named like the archive */
-    /* ${base_path}/12345/12345 should therefore exist */
-    if (!fs::is_directory(archive.parent_path() / basename / basename, ec)) {
+    progress.next_step("Loading export manifest");
+    /* valid exports contain one directory, which contains an export manifest */
+    auto dir = fs::directory_iterator{archive.parent_path() / basename, ec};
+    if (dir == fs::directory_iterator{}) {
         fs::remove_all(archive.parent_path() / basename, ec);
-        return {-1, "Archive does not contain a valid export"};
+        return {-1, "Archive does not contain an export directory"};
+    }
+    auto manifest_path = dir->path() / "manifest.json";
+    if (!fs::is_regular_file(manifest_path, ec)) {
+        fs::remove_all(archive.parent_path() / basename, ec);
+        return {-1, "Archive does not contain an export manifest"};
+    }
+
+    auto manifest_file = std::ifstream{manifest_path};
+    auto manifest = json_t::parse(manifest_file).get<export_manifest_t>();
+    if (manifest.time.empty()) {
+        fs::remove_all(archive.parent_path() / basename, ec);
+        return {-1, "Archive does not contain a valid export manifest"};
+    }
+
+    auto sysinfo = sysinfo_t{};
+    if (manifest.device.sysinfo.arch() != sysinfo.arch()) {
+        fs::remove_all(archive.parent_path() / basename, ec);
+        return {-1, "Architecture mismatch"};
     }
 
     return {0, {}};

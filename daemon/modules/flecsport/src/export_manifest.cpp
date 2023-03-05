@@ -58,10 +58,11 @@ auto from_json(const json_t& j, export_manifest_t& export_manifest) //
     -> void
 {
     try {
+        j.at("time").get_to(export_manifest.time);
         j.at("contents").at("apps").get_to(export_manifest.contents.apps);
         for (const auto& i : j.at("contents").at("instances")) {
             export_manifest.contents.instances.emplace_back(
-                i.at("instance_id").get<instance_id_t>(),
+                i.at("instanceId").get<instance_id_t>(),
                 i.at("appKey").get<app_key_t>());
         }
         j.at("device").at("sysinfo").get_to(export_manifest.device.sysinfo);
