@@ -590,9 +590,35 @@ auto module_apps_t::do_import_from_sync(app_key_t app_key, fs::path src_dir) //
     return do_import_from(std::move(app_key), std::move(src_dir), _);
 }
 auto module_apps_t::do_import_from(
-    app_key_t /*app_key*/, fs::path /*src_dir*/, job_progress_t& /*progress*/) //
+    app_key_t app_key, fs::path src_dir, job_progress_t& /*progress*/) //
     -> result_t
 {
+    /* add App manifest */
+    auto path = src_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".json");
+    const auto [manifest, _] = _manifests_api->add_from_json_file(path);
+    if (!manifest) {
+        return {-1, "Could not add App manifest"};
+    }
+
+    /* import image */
+    path.replace_extension(".tar");
+    auto docker_process = process_t{};
+    docker_process.spawnp("docker", "load", "--input", path.c_str());
+    docker_process.wait(false, true);
+    if (docker_process.exit_code() != 0) {
+        return {-1, docker_process.stderr()};
+    }
+
+    /* add to installed Apps */
+    auto app = _parent->query(app_key);
+    if (!app) {
+        auto tmp = app_t{app_key, manifest};
+        _apps.push_back(std::make_shared<app_t>(std::move(tmp)));
+        app = *_apps.rbegin();
+    }
+    app->status(app_status_e::Installed);
+    app->desired(app_status_e::Installed);
+
     return {0, {}};
 }
 
