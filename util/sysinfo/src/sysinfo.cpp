@@ -101,6 +101,24 @@ auto to_json(json_t& j, const sysinfo_t& sysinfo) //
     };
 }
 
+auto from_json(const json_t& j, sysinfo_t& sysinfo) //
+    -> void
+{
+    try {
+        j.at("arch").get_to(sysinfo._arch);
+        j.at("distro").at("codename").get_to(sysinfo._distro_code);
+        j.at("distro").at("id").get_to(sysinfo._distro_id);
+        j.at("distro").at("name").get_to(sysinfo._distro_name);
+        j.at("distro").at("version").get_to(sysinfo._distro_version);
+        j.at("kernel").at("build").get_to(sysinfo._kernel_build);
+        j.at("kernel").at("machine").get_to(sysinfo._machine);
+        j.at("kernel").at("version").get_to(sysinfo._kernel_version);
+        j.at("platform").get_to(sysinfo._platform);
+    } catch (...) {
+        sysinfo = {};
+    }
+}
+
 auto machine_to_arch(std::string_view machine) //
     -> std::string
 {
