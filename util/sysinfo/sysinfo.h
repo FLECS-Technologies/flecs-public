@@ -30,6 +30,9 @@ private:
     friend auto to_json(json_t& j, const sysinfo_t& sysinfo) //
         -> void;
 
+    friend auto from_json(const json_t& j, sysinfo_t& sysinfo) //
+        -> void;
+
     auto parse_os_release(fs::path path) //
         -> void;
 
