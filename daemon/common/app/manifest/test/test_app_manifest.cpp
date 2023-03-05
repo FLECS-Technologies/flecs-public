@@ -231,6 +231,7 @@ TEST(daemon_app, to_json)
         R"-("multiInstance":false,)-"
         R"-("editor":"",)-"
         R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
+        R"-("capabilities":[],)-"
         R"-("conffiles":[{"local":"local.conf","container":"/etc/container.conf","init":false,"ro":false}],)-"
         R"-("devices":["/dev/device0"],)-"
         R"-("env":[{"var":"MY_ENV_VAR","value":"ENV_VAR_VALUE"}],)-"

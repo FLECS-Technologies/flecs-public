@@ -33,6 +33,7 @@ class app_manifest_t
 {
 public:
     using args_t = std::vector<std::string>;
+    using capabilities_t = std::vector<std::string>;
     using conffiles_t = std::vector<conffile_t>;
     using devices_t = std::set<std::string>;
     using envs_t = std::set<mapped_env_var_t>;
@@ -58,6 +59,7 @@ public:
     auto& args() const noexcept { return _args; }
     auto& author() const noexcept { return _author; }
     auto& avatar() const noexcept { return _avatar; }
+    auto& capabilities() const noexcept { return _capabilities; }
     auto& category() const noexcept { return _category; }
     auto& conffiles() const noexcept { return _conffiles; }
     auto& description() const noexcept { return _description; }
@@ -91,6 +93,7 @@ private:
     args_t _args;
     std::string _author;
     std::string _avatar;
+    capabilities_t _capabilities;
     std::string _category;
     conffiles_t _conffiles;
     std::string _description;
