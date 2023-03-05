@@ -15,9 +15,9 @@
 flecs_add_module(
     MODULE_NAME flecsport
     ADDITIONAL_SOURCES
-    src/impl/flecsport_impl.cpp
+    src/export_manifest.cpp src/impl/flecsport_impl.cpp
     ADDITIONAL_HEADERS
-    impl/flecsport_impl.h
+    export_manifest.h impl/flecsport_impl.h
     LIBS_PUBLIC daemon.common
     LIBS_PRIVATE util.archive
 )
