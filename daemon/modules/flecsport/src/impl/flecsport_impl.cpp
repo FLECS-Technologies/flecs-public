@@ -182,7 +182,7 @@ auto module_flecsport_t::do_import_from_sync(fs::path archive) //
 auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progress) //
     -> result_t
 {
-    progress.num_steps(5);
+    progress.num_steps(6);
     progress.next_step("Extracting archive");
 
     auto basename = archive.filename();
@@ -246,6 +246,11 @@ auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progre
         if (res != 0) {
             return {res, message};
         }
+    }
+
+    progress.next_step("Starting Instances");
+    for (const auto& instance : manifest.contents.instances) {
+        _instances_api->start(instance.instance_id);
     }
 
     return {0, {}};
