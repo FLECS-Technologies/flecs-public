@@ -200,23 +200,6 @@ auto module_apps_t::do_app_keys(const app_key_t& app_key) const //
     return res;
 }
 
-auto module_apps_t::do_list(const app_key_t& app_key) const //
-    -> crow::response
-{
-    auto response = json_t::array();
-
-    for (decltype(auto) app : _apps) {
-        const auto apps_match = app_key.name().empty() || (app_key.name() == app->key().name());
-        const auto versions_match = app_key.name().empty() || app_key.version().empty() ||
-                                    (app_key.version() == app->key().version());
-        if (apps_match && versions_match) {
-            response.push_back(*app);
-        }
-    }
-
-    return {crow::status::OK, "json", response.dump()};
-}
-
 auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
     -> job_id_t
 {

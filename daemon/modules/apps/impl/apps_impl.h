@@ -53,9 +53,6 @@ private:
     auto do_app_keys(const app_key_t& app_key) const //
         -> std::vector<app_key_t>;
 
-    auto do_list(const app_key_t& app_key) const //
-        -> crow::response;
-
     auto queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
         -> job_id_t;
     auto do_install_from_marketplace_sync(
