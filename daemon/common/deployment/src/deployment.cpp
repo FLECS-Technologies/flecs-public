@@ -607,12 +607,13 @@ auto deployment_t::import_config_file(
     std::shared_ptr<instance_t> instance, const conffile_t& config_file, fs::path base_dir) //
     -> result_t
 {
-    const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
+    const auto conf_dir = fs::path{"/var/lib/flecs/instances/"} / instance->id().hex() / "conf";
     /* copy config files from local dir for stopped instances */
     auto ec = std::error_code{};
+    fs::create_directories(conf_dir, ec);
     fs::copy(
-        conf_path + config_file.local(),
-        base_dir / "conf" / config_file.local(),
+        base_dir / config_file.local(),
+        conf_dir / config_file.local(),
         fs::copy_options::overwrite_existing,
         ec);
     if (ec) {

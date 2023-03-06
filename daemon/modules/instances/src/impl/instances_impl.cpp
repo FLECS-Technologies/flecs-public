@@ -725,48 +725,44 @@ auto module_instances_t::do_export_to(
     return {res, additional_info};
 }
 
-auto module_instances_t::queue_import_from(
-    instance_id_t instance_id, app_key_t app_key, fs::path base_path) //
+auto module_instances_t::queue_import_from(instance_t instance, fs::path base_path) //
     -> job_id_t
 {
-    auto desc = "Importing instance " + instance_id.hex() + " from " + base_path.string();
+    auto desc = "Importing instance " + instance.id().hex() + " from " + base_path.string();
 
     auto job = job_t{std::bind(
         &module_instances_t::do_import_from,
         this,
-        std::move(instance_id),
-        std::move(app_key),
+        std::move(instance),
         std::move(base_path),
         std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto module_instances_t::do_import_from_sync(
-    instance_id_t instance_id, app_key_t app_key, fs::path base_path) //
+auto module_instances_t::do_import_from_sync(instance_t instance, fs::path base_path) //
     -> result_t
 {
     auto _ = job_progress_t{};
-    return do_import_from(std::move(instance_id), std::move(app_key), std::move(base_path), _);
+    return do_import_from(std::move(instance), std::move(base_path), _);
 }
 auto module_instances_t::do_import_from(
-    instance_id_t instance_id,
-    app_key_t app_key,
-    fs::path base_path,
-    job_progress_t& /*progress*/) //
+    instance_t instance, fs::path base_path, job_progress_t& /*progress*/) //
     -> result_t
 {
-    auto app = _apps_api->query(app_key);
+    auto app =
+        _apps_api->query(app_key_t{instance.app_name().data(), instance.app_version().data()});
     if (!app) {
         return {-1, "App is not installed"};
     }
+    instance.app(std::move(app));
 
-    auto instance = _deployment->query_instance(instance_id);
-    if (!instance) {
-        instance = _deployment->insert_instance(instance_t{instance_id, app, std::string{}});
+    auto p = _deployment->query_instance(instance.id());
+    if (!p) {
+        p = _deployment->insert_instance(std::move(instance));
+    } else {
+        *p = std::move(instance);
     }
-    instance->status(instance_status_e::Created);
-    instance->desired(instance_status_e::Running);
-    auto [res, message] = _deployment->import_instance(instance, base_path);
+    auto [res, message] = _deployment->import_instance(p, base_path);
 
     return {res, message};
 }
