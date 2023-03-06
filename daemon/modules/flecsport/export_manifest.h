@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "common/app/app_key.h"
-#include "common/instance/instance_id.h"
+#include "common/instance/instance.h"
 #include "util/json/json.h"
 #include "util/sysinfo/sysinfo.h"
 
@@ -34,16 +34,7 @@ struct export_manifest_t
     struct
     {
         std::vector<app_key_t> apps;
-        struct instance
-        {
-            instance(instance_id_t instance_id, app_key_t app_key)
-                : instance_id{std::move(instance_id)}
-                , app_key(std::move(app_key))
-            {}
-            instance_id_t instance_id;
-            app_key_t app_key;
-        };
-        std::vector<instance> instances;
+        std::vector<instance_t> instances;
     } contents;
 
     // device info

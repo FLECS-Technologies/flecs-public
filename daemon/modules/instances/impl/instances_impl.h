@@ -111,15 +111,11 @@ private:
     auto do_export_to(instance_id_t instance_id, fs::path base_path, job_progress_t& progress) //
         -> result_t;
 
-    auto queue_import_from(instance_id_t instance_id, app_key_t app_key, fs::path base_path) //
+    auto queue_import_from(instance_t instance, fs::path base_path) //
         -> job_id_t;
-    auto do_import_from_sync(instance_id_t instance_id, app_key_t app_key, fs::path base_path) //
+    auto do_import_from_sync(instance_t instance, fs::path base_path) //
         -> result_t;
-    auto do_import_from(
-        instance_id_t instance_id,
-        app_key_t app_key,
-        fs::path base_path,
-        job_progress_t& progress) //
+    auto do_import_from(instance_t instance, fs::path base_path, job_progress_t& progress) //
         -> result_t;
 
     FLECS::module_instances_t* _parent;

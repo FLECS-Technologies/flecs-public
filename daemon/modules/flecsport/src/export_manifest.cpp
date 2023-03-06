@@ -45,10 +45,7 @@ auto to_json(json_t& j, const export_manifest_t& export_manifest) //
     j["_schemaVersion"] = "2.0.0";
     j["time"] = export_manifest.time;
     j["contents"]["apps"] = export_manifest.contents.apps;
-    for (const auto& i : export_manifest.contents.instances) {
-        auto instance_json = json_t({{"instanceId", i.instance_id.hex()}, {"appKey", i.app_key}});
-        j["contents"]["instances"].push_back(std::move(instance_json));
-    }
+    j["contents"]["instances"] = export_manifest.contents.instances;
     j["device"]["sysinfo"] = export_manifest.device.sysinfo;
     j["device"]["hostname"] = export_manifest.device.hostname;
     j["version"]["core"] = export_manifest.version.core;
@@ -61,11 +58,7 @@ auto from_json(const json_t& j, export_manifest_t& export_manifest) //
     try {
         j.at("time").get_to(export_manifest.time);
         j.at("contents").at("apps").get_to(export_manifest.contents.apps);
-        for (const auto& i : j.at("contents").at("instances")) {
-            export_manifest.contents.instances.emplace_back(
-                i.get<instance_id_t>(),
-                i.at("appKey").get<app_key_t>());
-        }
+        j.at("contents").at("instances").get_to(export_manifest.contents.instances);
         j.at("device").at("sysinfo").get_to(export_manifest.device.sysinfo);
         j.at("device").at("hostname").get_to(export_manifest.device.hostname);
         j.at("version").at("core").get_to(export_manifest.version.core);

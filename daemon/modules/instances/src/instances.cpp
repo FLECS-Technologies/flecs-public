@@ -316,14 +316,10 @@ auto module_instances_t::export_to(instance_id_t instance_id, fs::path base_path
     return _impl->do_export_to_sync(std::move(instance_id), std::move(base_path));
 }
 
-auto module_instances_t::import_from(
-    instance_id_t instance_id, app_key_t app_key, fs::path base_path) //
+auto module_instances_t::import_from(instance_t instance, fs::path base_path) //
     -> result_t
 {
-    return _impl->do_import_from_sync(
-        std::move(instance_id),
-        std::move(app_key),
-        std::move(base_path));
+    return _impl->do_import_from_sync(std::move(instance), std::move(base_path));
 }
 
 } // namespace FLECS

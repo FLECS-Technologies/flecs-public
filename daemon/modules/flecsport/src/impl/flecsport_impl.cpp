@@ -120,10 +120,8 @@ auto module_flecsport_t::do_export_to(
             fs::remove_all(dest_dir, ec);
             return {res, message};
         }
-        auto instance = _instances_api->query(instance_id);
-        manifest.contents.instances.emplace_back(
-            instance->id(),
-            app_key_t{instance->app_name().data(), instance->app_version().data()});
+        auto instance = *_instances_api->query(instance_id);
+        manifest.contents.instances.push_back(std::move(instance));
     }
 
     progress.next_step("Exporting deployment");
@@ -239,18 +237,15 @@ auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progre
 
     progress.next_step("Importing Instances");
     for (const auto& instance : manifest.contents.instances) {
-        auto [res, message] = _instances_api->import_from(
-            instance.instance_id,
-            instance.app_key,
-            dir->path() / "instances");
+        auto [res, message] = _instances_api->import_from(instance, dir->path() / "instances");
         if (res != 0) {
             return {res, message};
         }
     }
 
     progress.next_step("Starting Instances");
-    for (const auto& instance : manifest.contents.instances) {
-        _instances_api->start(instance.instance_id);
+    for (const auto& instance_id : _instances_api->instance_ids()) {
+        _instances_api->start_once(instance_id);
     }
 
     return {0, {}};
