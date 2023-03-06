@@ -68,8 +68,10 @@ protected:
     auto info() const //
         -> crow::response;
 
-    sysload_t _load{};
-    int run_load_loop();
+    auto run_load_loop() //
+        -> int;
+
+    sysload_t _load;
 };
 
 } // namespace FLECS
