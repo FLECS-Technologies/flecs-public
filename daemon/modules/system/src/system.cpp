@@ -29,6 +29,7 @@
 #include "util/cxx20/string.h"
 #include "util/network/ip_addr.h"
 #include "util/network/network.h"
+#include "util/signal_handler/signal_handler.h"
 #include "util/string/string_utils.h"
 #include "util/sysinfo/sysinfo.h"
 #include "util/sysload/sysload.h"
@@ -75,12 +76,14 @@ auto module_system_t::info() const //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-int module_system_t::run_load_loop()
+auto module_system_t::run_load_loop() //
+    -> int
 {
     const int interval_ms = 1000;
-    while (1) {
+    while (!g_stop) {
         auto start = std::chrono::high_resolution_clock::now();
 
+        _load.check_connection();
         _load.update_load();
         _load.publish_load();
 

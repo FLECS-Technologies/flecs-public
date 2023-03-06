@@ -29,33 +29,24 @@ class sysload_t
 public:
     sysload_t();
 
-    void update_load();
-    void publish_load();
+    auto update_load() //
+        -> void;
+    auto publish_load() //
+        -> void;
+    auto check_connection() //
+        -> void;
 
 private:
-    // CPU
-    int _core_count;
-    std::vector<float> _cpu_load;
-    std::vector<unsigned long> _usage_total_old;
-    std::vector<unsigned long> _idle_total_old;
-    std::vector<float> _cpu_clock;
-
     auto get_cpu_load() //
         -> std::vector<float>;
     auto get_cpu_clock() //
         -> std::vector<float>;
 
-    // RAM
-    // get RAM usage (avail, total). 32 bits may not be enough (256GiB needs 40 bits)
-    std::vector<uint64_t> _ram_load;
     auto get_ram_load() //
         -> std::vector<uint64_t>;
 
-    // Uptime
-    // get system uptime (in seconds)
-    std::chrono::duration<float> _uptime;
     auto get_uptime() //
-        -> std::chrono::duration<float>;
+        -> std::chrono::seconds;
 
     // Processes
     // get number of running processes
@@ -65,10 +56,24 @@ private:
     auto get_app_utilization() //
         -> std::vector<float>;
 
+    // CPU
+    int _core_count;
+    std::vector<float> _cpu_load;
+    std::vector<uint64_t> _usage_total_old;
+    std::vector<uint64_t> _idle_total_old;
+    std::vector<float> _cpu_clock;
+
+    // RAM
+    // get RAM usage (avail, total). 32 bits may not be enough (256GiB needs 40 bits)
+    std::vector<uint64_t> _ram_load;
+
+    // Uptime
+    // get system uptime (in seconds)
+    std::chrono::seconds _uptime;
+
     // Misc
     int _clock_ticks; // number of clock ticks per second
-    const std::string _base_path{"/proc"};
-    flunder_client_t flunder_client = flunder_client_t{};
+    flunder_client_t _flunder_client;
 };
 
 } // namespace FLECS
