@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(archive)
-add_subdirectory(container)
-add_subdirectory(cxx20)
-add_subdirectory(datetime)
-add_subdirectory(network)
-add_subdirectory(process)
-add_subdirectory(random)
-add_subdirectory(signal_handler)
-add_subdirectory(string)
-add_subdirectory(sysfs)
-add_subdirectory(sysinfo)
-add_subdirectory(sysload)
-add_subdirectory(udev)
-add_subdirectory(usb)
+set(PROJECT_NAME util.sysload)
+project(${PROJECT_NAME})
+
+add_library(${PROJECT_NAME} STATIC
+    src/sysload.cpp
+    sysload.h
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    external.json
+)
+
+# add_subdirectory(test)
