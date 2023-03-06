@@ -14,6 +14,7 @@
 
 #include "apps.h"
 
+#include "common/app/manifest/manifest.h"
 #include "factory/factory.h"
 #include "impl/apps_impl.h"
 #include "util/datetime/datetime.h"
@@ -93,6 +94,15 @@ auto module_apps_t::http_list(const app_key_t& app_key) const //
         auto app = query(key);
         if (app) {
             response.push_back(*app);
+            /** @todo this should be done some other way */
+            auto& val = *response.rbegin();
+            if (auto manifest = app->manifest()) {
+                val["multiInstance"] = manifest->multi_instance();
+                val["editor"] = manifest->editor();
+            } else {
+                val["multiInstance"] = false;
+                val["editor"] = std::string{};
+            }
         }
     }
 
