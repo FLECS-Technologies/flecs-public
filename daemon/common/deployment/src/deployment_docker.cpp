@@ -157,6 +157,13 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
         }
     }
 
+    for (const auto& cap : manifest->capabilities()) {
+        if (cap == "NET_ADMIN") {
+            docker_process.arg("--cap-add");
+            docker_process.arg(cap);
+        }
+    }
+
     if (std::find(
             instance->startup_options().cbegin(),
             instance->startup_options().cend(),
