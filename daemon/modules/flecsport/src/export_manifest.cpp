@@ -43,6 +43,7 @@ auto to_json(json_t& j, const export_manifest_t& export_manifest) //
     -> void
 {
     j["_schemaVersion"] = "2.0.0";
+    j["time"] = export_manifest.time;
     j["contents"]["apps"] = export_manifest.contents.apps;
     for (const auto& i : export_manifest.contents.instances) {
         auto instance_json = json_t({{"instanceId", i.instance_id.hex()}, {"appKey", i.app_key}});
@@ -62,7 +63,7 @@ auto from_json(const json_t& j, export_manifest_t& export_manifest) //
         j.at("contents").at("apps").get_to(export_manifest.contents.apps);
         for (const auto& i : j.at("contents").at("instances")) {
             export_manifest.contents.instances.emplace_back(
-                i.at("instanceId").get<instance_id_t>(),
+                i.get<instance_id_t>(),
                 i.at("appKey").get<app_key_t>());
         }
         j.at("device").at("sysinfo").get_to(export_manifest.device.sysinfo);
