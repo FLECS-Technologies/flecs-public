@@ -182,7 +182,7 @@ auto module_flecsport_t::do_import_from_sync(fs::path archive) //
 auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progress) //
     -> result_t
 {
-    progress.num_steps(4);
+    progress.num_steps(5);
     progress.next_step("Extracting archive");
 
     auto basename = archive.filename();
@@ -230,6 +230,11 @@ auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progre
         if (res != 0) {
             return {res, message};
         }
+    }
+
+    progress.next_step("Removing existing Instances");
+    for (const auto& instance_id : _instances_api->instance_ids()) {
+        _instances_api->remove(instance_id);
     }
 
     progress.next_step("Importing Instances");
