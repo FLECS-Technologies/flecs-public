@@ -58,7 +58,7 @@ add_subdirectory(daemon)
 include(flecs-rules)
 
 add_custom_command(TARGET packages POST_BUILD
-    COMMAND echo -n ${VERSION} >latest_flecs_${ARCH}
+    COMMAND echo -n ${CORE_VERSION} >latest_flecs_${ARCH}
 )
 
 add_custom_target(

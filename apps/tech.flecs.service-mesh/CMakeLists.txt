@@ -16,7 +16,7 @@ project(apps.service-mesh)
 
 # configure Docker image
 set(DOCKER_IMAGE "tech.flecs.service-mesh")
-set(APP_VERSION ${VERSION})
+set(APP_VERSION ${CORE_VERSION})
 
 set(DOCKER_TAG ${APP_VERSION})
 

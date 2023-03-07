@@ -33,7 +33,7 @@ target_link_libraries(apps.mqtt-bridge PRIVATE
 
 # configure Docker image
 set(DOCKER_IMAGE "tech.flecs.mqtt-bridge")
-set(APP_VERSION ${VERSION})
+set(APP_VERSION ${CORE_VERSION})
 
 set(DOCKER_TAG ${APP_VERSION})
 
