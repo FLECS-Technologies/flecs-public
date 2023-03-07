@@ -132,7 +132,7 @@ public:
         , _container_port_range{container_port_range}
     {}
 
-    mapped_port_range_t(const std::string& map_str);
+    mapped_port_range_t(std::string_view map_str);
 
     constexpr bool is_valid() const noexcept
     {

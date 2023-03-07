@@ -78,20 +78,19 @@ TEST(volume, to_json)
 {
     const auto volume_1 = FLECS::volume_t{"mnt:/path/to/mnt"};
     const auto json_1 = FLECS::json_t(volume_1);
-    const auto expected_1 = R"({"container":"/path/to/mnt","host":"mnt","type":"volume"})";
+    const auto expected_1 = R"("mnt:/path/to/mnt")";
 
     ASSERT_EQ(json_1.dump(), expected_1);
 
     const auto bind_mount_1 = FLECS::volume_t{"/path/to/host:/path/to/container"};
     const auto json_2 = FLECS::json_t(bind_mount_1);
-    const auto expected_2 =
-        R"({"container":"/path/to/container","host":"/path/to/host","type":"bind mount"})";
+    const auto expected_2 = R"("/path/to/host:/path/to/container")";
 
     ASSERT_EQ(json_2.dump(), expected_2);
 
     const auto invalid_1 = FLECS::volume_t{"invalid"};
     const auto json_3 = FLECS::json_t(invalid_1);
-    const auto expected_3 = R"({"container":"","host":"","type":"unknown"})";
+    const auto expected_3 = R"("")";
 
     ASSERT_EQ(json_3.dump(), expected_3);
 }

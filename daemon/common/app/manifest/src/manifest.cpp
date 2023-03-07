@@ -178,7 +178,7 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
 
         OPTIONAL_YAML_NODE(yaml, ports, ports);
         for (const auto& port_range : ports) {
-            _ports.emplace_back(mapped_port_range_t{port_range.as<std::string>()});
+            _ports.emplace_back(mapped_port_range_t{port_range.as<std::string>().data()});
         }
 
         OPTIONAL_YAML_NODE(yaml, startupOptions, startup_options);

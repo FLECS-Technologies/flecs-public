@@ -116,24 +116,20 @@ bool conffile_t::is_valid() const noexcept
     return true;
 }
 
-auto to_json(json_t& json, const conffile_t& conffile) //
+auto to_json(json_t& j, const conffile_t& conffile) //
     -> void
 {
-    json = json_t{
-        {"local", conffile._local},
-        {"container", conffile._container},
-        {"init", conffile._init},
-        {"ro", conffile._ro},
-    };
+    j = json_t(to_string(conffile));
 }
 
-auto from_json(const json_t& json, conffile_t& conffile) //
+auto from_json(const json_t& j, conffile_t& conffile) //
     -> void
 {
-    json.at("local").get_to(conffile._local);
-    json.at("container").get_to(conffile._container);
-    json.at("init").get_to(conffile._init);
-    json.at("ro").get_to(conffile._ro);
+    try {
+        conffile = conffile_t{j.get<std::string_view>()};
+    } catch (...) {
+        conffile = conffile_t{};
+    }
 }
 
 auto to_string(const conffile_t& conffile) //

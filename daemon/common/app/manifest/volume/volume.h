@@ -31,7 +31,7 @@ public:
 
     volume_t() noexcept;
 
-    explicit volume_t(const std::string& volume_str) noexcept;
+    explicit volume_t(std::string_view volume_str) noexcept;
 
     bool is_valid() const noexcept;
 
@@ -49,6 +49,9 @@ private:
     std::string _container;
     volume_type_t _type;
 };
+
+auto to_string(const volume_t& volume) //
+    -> std::string;
 
 inline bool operator<(const volume_t& lhs, const volume_t& rhs)
 {

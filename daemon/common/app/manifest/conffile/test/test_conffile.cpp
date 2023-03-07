@@ -163,15 +163,10 @@ TEST(conffile, invalid_properties_3)
 
 TEST(conffile, to_json)
 {
-    const auto conffile = FLECS::conffile_t{std::string{"file.cfg:/etc/file.cfg:rw,init"}};
+    const auto conffile = FLECS::conffile_t{std::string{"file.cfg:/etc/file.cfg:init"}};
 
     const auto json = FLECS::json_t(conffile);
-    const auto json_expected = R"({)"
-                               R"("local":"file.cfg",)"
-                               R"("container":"/etc/file.cfg",)"
-                               R"("init":true,)"
-                               R"("ro":false)"
-                               R"(})";
+    const auto json_expected = R"("file.cfg:/etc/file.cfg:rw,init")";
 
     ASSERT_TRUE(conffile.is_valid());
     ASSERT_EQ(json.dump(), json_expected);
@@ -179,8 +174,7 @@ TEST(conffile, to_json)
 
 TEST(conffile, from_json)
 {
-    const auto json_string =
-        R"({"container":"/etc/file.cfg","init":true,"local":"file.cfg","ro":false})";
+    const auto json_string = R"("file.cfg:/etc/file.cfg:rw,init")";
     const auto json = FLECS::parse_json(json_string);
 
     const auto conffile = json.get<FLECS::conffile_t>();
