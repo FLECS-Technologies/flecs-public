@@ -232,15 +232,15 @@ TEST(daemon_app, to_json)
         R"-("editor":"",)-"
         R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
         R"-("capabilities":[],)-"
-        R"-("conffiles":[{"local":"local.conf","container":"/etc/container.conf","init":false,"ro":false}],)-"
+        R"-("conffiles":["local.conf:/etc/container.conf:rw,no_init"],)-"
         R"-("devices":["/dev/device0"],)-"
-        R"-("env":[{"var":"MY_ENV_VAR","value":"ENV_VAR_VALUE"}],)-"
+        R"-("env":["MY_ENV_VAR:ENV_VAR_VALUE"],)-"
         R"-("hostname":"flecs-unit-test",)-"
         R"-("interactive":true,)-"
         R"-("networks":[{"mac_address":"","name":"flecs","parent":"","type":"bridge"}],)-"
-        R"-("ports":[{"container":"1234","host":"1234"},{"container":"10000-10005","host":"8000-8005"}],)-"
+        R"-("ports":["1234:1234","8000-8005:10000-10005"],)-"
         R"-("startupOptions":[1],)-"
-        R"-("volumes":[{"container":"/var/","host":"var","type":"volume"},{"container":"/etc/","host":"etc","type":"volume"},{"container":"/home/","host":"/home/app1/dir","type":"bind mount"}]})-";
+        R"-("volumes":["var:/var/","etc:/etc/","/home/app1/dir:/home/"]})-";
 
     ASSERT_EQ(json.dump(), json_expected);
 }

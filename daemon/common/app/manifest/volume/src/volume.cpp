@@ -26,7 +26,7 @@ volume_t::volume_t() noexcept
     : volume_t{""}
 {}
 
-volume_t::volume_t(const std::string& volume_str) noexcept
+volume_t::volume_t(std::string_view volume_str) noexcept
     : _host{}
     , _container{}
     , _type{volume_type_t::NONE}
@@ -74,21 +74,27 @@ bool volume_t::is_valid() const noexcept
     return (!_host.empty() && !_container.empty() && (_type != volume_t::NONE));
 }
 
-auto to_json(json_t& json, const volume_t& volume) //
-    -> void
+auto to_string(const volume_t& volume) //
+    -> std::string
 {
-    json = json_t{
-        {"container", volume._container},
-        {"host", volume._host},
-        {"type", stringify(volume._type)}};
+    return volume.is_valid() ? stringify_delim(':', volume.host(), volume.container())
+                             : std::string{};
 }
 
-auto from_json(const json_t& json, volume_t& volume) //
+auto to_json(json_t& j, const volume_t& volume) //
     -> void
 {
-    json.at("container").get_to(volume._container);
-    json.at("host").get_to(volume._host);
-    volume._type = volume_type_from_string(json.at("type").get<std::string_view>());
+    j = json_t(to_string(volume));
+}
+
+auto from_json(const json_t& j, volume_t& volume) //
+    -> void
+{
+    try {
+        volume = volume_t{j.get<std::string_view>()};
+    } catch (...) {
+        volume = volume_t{};
+    }
 }
 
 } // namespace FLECS

@@ -56,7 +56,7 @@ port_range_t::port_range_t(const std::string& range_str) noexcept
     }
 }
 
-mapped_port_range_t::mapped_port_range_t(const std::string& map_str)
+mapped_port_range_t::mapped_port_range_t(std::string_view map_str)
 {
     const auto ranges = split(map_str, ':');
     if (ranges.size() == 1) {
@@ -87,25 +87,20 @@ mapped_port_range_t::mapped_port_range_t(const std::string& map_str)
     }
 }
 
-auto to_json(json_t& json, const mapped_port_range_t& mapped_port_range) //
+auto to_json(json_t& j, const mapped_port_range_t& mapped_port_range) //
     -> void
 {
-    json = json_t{
-        {"container", stringify(mapped_port_range.container_port_range())},
-        {"host", stringify(mapped_port_range.host_port_range())},
-    };
+    j = json_t(to_string(mapped_port_range));
 }
 
-auto from_json(const json_t& json, mapped_port_range_t& mapped_port_range) //
+auto from_json(const json_t& j, mapped_port_range_t& mapped_port_range) //
     -> void
 {
-    auto host = std::string{};
-    auto container = std::string{};
-
-    json.at("host").get_to(host);
-    json.at("container").get_to(container);
-
-    mapped_port_range = mapped_port_range_t{host + ":" + container};
+    try {
+        mapped_port_range = mapped_port_range_t{j.get<std::string_view>()};
+    } catch (...) {
+        mapped_port_range = mapped_port_range_t{};
+    }
 }
 
 } // namespace FLECS

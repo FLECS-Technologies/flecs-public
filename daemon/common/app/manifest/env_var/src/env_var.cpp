@@ -78,23 +78,20 @@ auto mapped_env_var_t::value() const noexcept //
     return _value;
 }
 
-auto to_json(json_t& json, const mapped_env_var_t& mapped_env_var) //
+auto to_json(json_t& j, const mapped_env_var_t& mapped_env_var) //
     -> void
 {
-    json = json_t({
-        {"var", mapped_env_var._env_var.var()},
-        {"value", mapped_env_var._value},
-    });
+    j = json_t(to_string(mapped_env_var));
 }
 
-auto from_json(const json_t& json, mapped_env_var_t& mapped_env_var) //
+auto from_json(const json_t& j, mapped_env_var_t& mapped_env_var) //
     -> void
 {
-    auto value = std::string{};
-    auto var = std::string{};
-    json.at("value").get_to(value);
-    json.at("var").get_to(var);
-    mapped_env_var = mapped_env_var_t{var + ":" + value};
+    try {
+        mapped_env_var = mapped_env_var_t{j.get<std::string_view>()};
+    } catch (...) {
+        mapped_env_var = mapped_env_var_t{};
+    }
 }
 
 auto operator<(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
@@ -137,7 +134,7 @@ auto to_string(const mapped_env_var_t& mapped_env_var) //
     -> std::string
 {
     return mapped_env_var.is_valid()
-               ? stringify_delim('=', mapped_env_var.var(), mapped_env_var.value())
+               ? stringify_delim(':', mapped_env_var.var(), mapped_env_var.value())
                : std::string{};
 }
 
