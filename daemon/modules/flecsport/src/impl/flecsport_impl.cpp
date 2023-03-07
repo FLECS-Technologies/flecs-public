@@ -145,6 +145,7 @@ auto module_flecsport_t::do_export_to(
         fs::remove_all(dest_dir, ec);
         return {-1, "Could not write manifest"};
     }
+    manifest_file.flush();
 
     progress.next_step("Creating compressed archive");
     auto archive_name = fs::canonical(dest_dir).string() + ".tar.gz";
