@@ -39,10 +39,13 @@ public:
 private:
     explicit module_instances_t(FLECS::module_instances_t* parent);
 
-    auto do_load(const fs::path& base_path) //
+    auto do_module_load(const fs::path& base_path) //
         -> void;
 
-    auto do_init() //
+    auto do_module_init() //
+        -> void;
+
+    auto do_module_start() //
         -> void;
 
     auto do_instance_ids(const app_key_t& app_key) const //

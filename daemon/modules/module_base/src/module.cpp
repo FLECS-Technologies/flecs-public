@@ -28,6 +28,12 @@ auto module_t::init() //
     return do_init();
 }
 
+auto module_t::start() //
+    -> void
+{
+    return do_start();
+}
+
 auto module_t::save(const fs::path& base_path) const //
     -> void
 {
@@ -41,6 +47,10 @@ auto module_t::deinit() //
 }
 
 auto module_t::do_load(const fs::path& /*base_path*/) //
+    -> void
+{}
+
+auto module_t::do_start() //
     -> void
 {}
 

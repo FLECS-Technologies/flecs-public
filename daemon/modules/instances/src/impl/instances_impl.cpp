@@ -118,18 +118,22 @@ module_instances_t::module_instances_t(FLECS::module_instances_t* parent)
 module_instances_t::~module_instances_t()
 {}
 
-auto module_instances_t::do_load(const fs::path& base_path) //
+auto module_instances_t::do_module_load(const fs::path& base_path) //
     -> void
 {
     _deployment->load(base_path);
 }
 
-auto module_instances_t::do_init() //
+auto module_instances_t::do_module_init() //
     -> void
 {
     _apps_api = std::dynamic_pointer_cast<FLECS::module_apps_t>(api::query_module("apps"));
     _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
 }
+
+auto module_instances_t::do_module_start() //
+    -> void
+{}
 
 auto module_instances_t::do_instance_ids(const app_key_t& app_key) const //
     -> std::vector<instance_id_t>

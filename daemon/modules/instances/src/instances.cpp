@@ -35,7 +35,7 @@ module_instances_t::~module_instances_t()
 auto module_instances_t::do_load(const fs::path& base_path) //
     -> void
 {
-    return _impl->do_load(base_path);
+    return _impl->do_module_load(base_path);
 }
 
 auto module_instances_t::do_init() //
@@ -108,7 +108,13 @@ auto module_instances_t::do_init() //
             return http_logs(instance_id_t{instance_id});
         });
 
-    return _impl->do_init();
+    return _impl->do_module_init();
+}
+
+auto module_instances_t::do_start() //
+    -> void
+{
+    return _impl->do_module_start();
 }
 
 auto module_instances_t::http_list(const app_key_t& app_key) const //

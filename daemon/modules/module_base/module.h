@@ -56,6 +56,8 @@ public:
         -> void;
     auto init() //
         -> void;
+    auto start() //
+        -> void;
     auto deinit() //
         -> void;
     auto save(const fs::path& base_path = "/var/lib/flecs/") const //
@@ -70,6 +72,8 @@ private:
         -> void;
     virtual auto do_init() //
         -> void = 0;
+    virtual auto do_start() //
+        -> void;
     virtual auto do_deinit() //
         -> void = 0;
     virtual auto do_save(const fs::path& base_path) const //
