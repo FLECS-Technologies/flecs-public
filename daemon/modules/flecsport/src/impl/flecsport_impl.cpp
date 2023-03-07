@@ -246,7 +246,11 @@ auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progre
 
     progress.next_step("Starting Instances");
     for (const auto& instance_id : _instances_api->instance_ids()) {
-        _instances_api->start_once(instance_id);
+        if (auto instance = _instances_api->query(instance_id)) {
+            if (instance->desired() == instance_status_e::Running) {
+                _instances_api->start_once(instance_id);
+            }
+        }
     }
 
     return {0, {}};
