@@ -46,6 +46,9 @@ public:
     auto do_load(const fs::path& base_path) //
         -> void override;
 
+    auto do_start() //
+        -> void override;
+
     /*! @brief Save installed apps to apps.json
      *
      * @param[in] base_path Path to store apps.json
