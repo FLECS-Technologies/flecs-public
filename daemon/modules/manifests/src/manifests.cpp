@@ -44,6 +44,12 @@ auto module_manifests_t::base_path() const noexcept //
     return _impl->do_base_path();
 }
 
+auto module_manifests_t::migrate(const fs::path& base_path) //
+    -> bool
+{
+    return _impl->do_migrate(base_path);
+}
+
 auto module_manifests_t::contains(const app_key_t& app_key) const noexcept //
     -> bool
 {

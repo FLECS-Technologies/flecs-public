@@ -54,6 +54,37 @@ auto module_manifests_t::do_base_path() const noexcept //
     return _base_path;
 }
 
+auto module_manifests_t::do_migrate(const fs::path& base_path) //
+    -> bool
+{
+    auto to_remove = std::vector<fs::path>{};
+
+    auto ec = std::error_code{};
+    auto it = fs::directory_iterator{_base_path, ec};
+    for (; it != fs::directory_iterator{}; ++it) {
+        if (fs::is_directory(it->path(), ec)) {
+            fs::create_directories(base_path / it->path().filename(), ec);
+            fs::copy(
+                it->path(),
+                base_path / it->path().filename(),
+                fs::copy_options::recursive | fs::copy_options::overwrite_existing,
+                ec);
+            if (ec) {
+                _parent->clear();
+                return false;
+            }
+            to_remove.push_back(it->path());
+        }
+    }
+
+    for (const auto& path : to_remove) {
+        fs::remove_all(path, ec);
+    }
+    _parent->base_path(base_path);
+
+    return true;
+}
+
 auto module_manifests_t::do_contains(const app_key_t& app_key) const noexcept //
     -> bool
 {

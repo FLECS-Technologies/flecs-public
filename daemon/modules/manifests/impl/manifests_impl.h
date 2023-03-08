@@ -37,6 +37,9 @@ public:
     auto do_base_path() const noexcept //
         -> const fs::path&;
 
+    auto do_migrate(const fs::path& base_path) //
+        -> bool;
+
     auto do_contains(const app_key_t& app_key) const noexcept //
         -> bool;
 
