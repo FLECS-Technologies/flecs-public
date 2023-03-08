@@ -66,15 +66,3 @@ TEST(instance_id, compare)
 
     ASSERT_EQ(uut1, uut1);
 }
-
-TEST(instance_id, json)
-{
-    const auto uut1 = FLECS::instance_id_t{12648430};
-    const auto json_expected = R"({"instanceId":"00c0ffee"})";
-
-    auto json = FLECS::json_t(uut1);
-    ASSERT_EQ(json.dump(), json_expected);
-
-    auto uut2 = json.get<FLECS::instance_id_t>();
-    ASSERT_EQ(uut1, uut2);
-}

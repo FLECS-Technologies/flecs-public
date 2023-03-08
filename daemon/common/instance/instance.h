@@ -97,6 +97,10 @@ private:
 
     friend auto to_json(json_t& json, const instance_t& instance) //
         -> void;
+    friend auto from_json_v2(const json_t& json, instance_t& instance) //
+        -> void;
+    friend auto from_json_v1(const json_t& json, instance_t& instance) //
+        -> void;
     friend auto from_json(const json_t& json, instance_t& instance) //
         -> void;
 

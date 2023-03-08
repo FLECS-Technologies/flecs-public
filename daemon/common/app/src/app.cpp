@@ -128,9 +128,9 @@ auto to_json(json_t& json, const app_t& app) //
     json = json_t(
         {{"_schemaVersion", "2.0.0"},
          {"appKey", static_cast<const app_key_t&>(app)},
-         {"status", to_string(app._status)},
-         {"desired", to_string(app._desired)},
-         {"installedSize", app._installed_size}});
+         {"status", to_string(app.status())},
+         {"desired", to_string(app.desired())},
+         {"installedSize", app.installed_size()}});
 }
 
 static auto from_json_v1(const json_t& j, app_t& app) //

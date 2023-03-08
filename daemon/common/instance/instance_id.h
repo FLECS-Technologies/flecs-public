@@ -41,11 +41,6 @@ public:
         -> void;
 
 private:
-    friend auto to_json(json_t& j, const instance_id_t& instance_id) //
-        -> void;
-    friend auto from_json(const json_t& j, instance_id_t& instance_id) //
-        -> void;
-
     std::uint32_t _id;
 };
 

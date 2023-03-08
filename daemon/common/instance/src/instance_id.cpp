@@ -60,22 +60,6 @@ auto instance_id_t::regenerate() //
     _id = rnd();
 }
 
-auto to_json(json_t& j, const instance_id_t& instance_id) //
-    -> void
-{
-    j = json_t({{"instanceId", instance_id.hex()}});
-}
-
-auto from_json(const json_t& j, instance_id_t& instance_id) //
-    -> void
-{
-    instance_id = instance_id_t{};
-    if (j.contains("instanceId")) {
-        auto id = std::stoul(j["instanceId"].get_ref<const std::string&>(), nullptr, 16);
-        instance_id = instance_id_t{static_cast<std::uint32_t>(id)};
-    }
-}
-
 auto operator<(const instance_id_t& lhs, const instance_id_t& rhs) //
     -> bool
 {
