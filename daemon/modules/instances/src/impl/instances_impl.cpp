@@ -129,6 +129,14 @@ auto module_instances_t::do_module_init() //
 {
     _apps_api = std::dynamic_pointer_cast<FLECS::module_apps_t>(api::query_module("apps"));
     _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
+
+    auto hosts_thread = std::thread([] {
+        pthread_setname_np(pthread_self(), "flecs-update-hosts");
+        auto hosts_process = process_t{};
+        hosts_process.spawnp("sh", "-c", "/opt/flecs/bin/flecs-update-hosts.sh");
+        hosts_process.wait(false, false);
+    });
+    hosts_thread.detach();
 }
 
 auto module_instances_t::do_module_start() //
