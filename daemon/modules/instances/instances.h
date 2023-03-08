@@ -151,6 +151,9 @@ protected:
     auto do_start() //
         -> void override;
 
+    auto do_stop() //
+        -> void override;
+
     auto do_deinit() //
         -> void override
     {}

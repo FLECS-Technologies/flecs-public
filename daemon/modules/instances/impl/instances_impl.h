@@ -48,6 +48,9 @@ private:
     auto do_module_start() //
         -> void;
 
+    auto do_module_stop() //
+        -> void;
+
     auto do_instance_ids(const app_key_t& app_key) const //
         -> std::vector<instance_id_t>;
 

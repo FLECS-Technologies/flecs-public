@@ -117,6 +117,12 @@ auto module_instances_t::do_start() //
     return _impl->do_module_start();
 }
 
+auto module_instances_t::do_stop() //
+    -> void
+{
+    return _impl->do_module_stop();
+}
+
 auto module_instances_t::http_list(const app_key_t& app_key) const //
     -> crow::response
 {
