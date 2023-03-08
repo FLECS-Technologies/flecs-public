@@ -41,13 +41,16 @@ public:
 private:
     explicit module_apps_t(FLECS::module_apps_t* parent);
 
-    auto do_init() //
+    auto do_module_init() //
         -> void;
 
-    auto do_load(const fs::path& base_path) //
+    auto do_module_load(const fs::path& base_path) //
         -> void;
 
-    auto do_save(const fs::path& base_path) const //
+    auto do_module_start() //
+        -> void;
+
+    auto do_module_save(const fs::path& base_path) const //
         -> void;
 
     auto do_app_keys(const app_key_t& app_key) const //

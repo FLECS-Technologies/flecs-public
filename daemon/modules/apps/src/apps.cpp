@@ -69,19 +69,25 @@ auto module_apps_t::do_init() //
         return http_sideload(std::move(manifest), std::move(licenseKey));
     });
 
-    _impl->do_init();
+    _impl->do_module_init();
 }
 
 auto module_apps_t::do_load(const fs::path& base_path) //
     -> void
 {
-    return _impl->do_load(base_path);
+    return _impl->do_module_load(base_path);
+}
+
+auto module_apps_t::do_start() //
+    -> void
+{
+    return _impl->do_module_start();
 }
 
 auto module_apps_t::do_save(const fs::path& base_path) const //
     -> void
 {
-    return _impl->do_save(base_path);
+    return _impl->do_module_save(base_path);
 }
 
 auto module_apps_t::http_list(const app_key_t& app_key) const //

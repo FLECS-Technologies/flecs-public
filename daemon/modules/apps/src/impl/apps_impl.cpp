@@ -123,7 +123,7 @@ module_apps_t::module_apps_t(FLECS::module_apps_t* parent)
 module_apps_t::~module_apps_t()
 {}
 
-auto module_apps_t::do_init() //
+auto module_apps_t::do_module_init() //
     -> void
 {
     _instances_api =
@@ -147,7 +147,7 @@ auto module_apps_t::do_init() //
     }
 }
 
-auto module_apps_t::do_load(const fs::path& base_path) //
+auto module_apps_t::do_module_load(const fs::path& base_path) //
     -> void
 {
     auto json_file = std::ifstream{base_path / "apps.json"};
@@ -164,7 +164,11 @@ auto module_apps_t::do_load(const fs::path& base_path) //
     }
 }
 
-auto module_apps_t::do_save(const fs::path& base_path) const //
+auto module_apps_t::do_module_start() //
+    -> void
+{}
+
+auto module_apps_t::do_module_save(const fs::path& base_path) const //
     -> void
 {
     auto ec = std::error_code{};
