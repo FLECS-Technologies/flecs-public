@@ -126,20 +126,19 @@ auto module_instances_t::http_list(const app_key_t& app_key) const //
         auto json = json_t::object();
 
         auto instance = query(instance_id);
-
         json["instanceId"] = instance->id().hex();
         json["instanceName"] = instance->instance_name();
-        if (auto app = instance->app()) {
-            json["appKey"] = app->key();
+        json["appKey"] = app_key_t{instance->app_name().data(), instance->app_version().data()};
+        auto app = instance->app();
+        if (!app || app->status() == app_status_e::Orphaned) {
+            json["status"] = to_string(instance_status_e::Orphaned);
+        } else {
             if (instance->status() == instance_status_e::Created) {
                 json["status"] = to_string(
                     is_running(instance) ? instance_status_e::Running : instance_status_e::Stopped);
             } else {
                 json["status"] = to_string(instance->status());
             }
-        } else {
-            json["appKey"] = app_key_t{instance->app_name().data(), instance->app_version().data()};
-            json["status"] = to_string(instance_status_e::Orphaned);
         }
         json["desired"] = to_string(instance->desired());
         response.push_back(std::move(json));

@@ -181,34 +181,61 @@ auto from_json(const json_t& json, instance_t::network_t& network) //
 auto to_json(json_t& json, const instance_t& instance) //
     -> void
 {
+    auto app_key = app_key_t{instance.app_name().data(), instance.app_version().data()};
     json = json_t(
-        {{"app", instance._app_name},
-         {"desired", to_string(instance._desired)},
-         {"id", instance._id},
-         {"instanceName", instance._instance_name},
-         {"networks", instance._networks},
-         {"startupOptions", instance._startup_options},
-         {"status", to_string(instance._status)},
-         {"usbDevices", instance._usb_devices},
-         {"version", instance._app_version}});
+        {{"_schemaVersion", "2.0.0"},
+         {"instanceId", instance.id().hex()},
+         {"instanceName", instance.instance_name()},
+         {"appKey", app_key},
+         {"status", to_string(instance.status())},
+         {"desired", to_string(instance.desired())},
+         {"networks", instance.networks()},
+         {"startupOptions", instance.startup_options()},
+         {"usbDevices", instance.usb_devices()}});
 }
 
-auto from_json(const json_t& json, instance_t& instance) //
+auto from_json_v1(const json_t& j, instance_t& instance) //
     -> void
 {
-    json.at("app").get_to(instance._app_name);
-    auto desired = std::string{};
-    json.at("desired").get_to(desired);
-    instance._desired = instance_status_from_string(desired);
-    json.at("id").get_to(instance._id);
-    json.at("instanceName").get_to(instance._instance_name);
-    json.at("networks").get_to(instance._networks);
-    json.at("startupOptions").get_to(instance._startup_options);
-    auto status = std::string{};
-    json.at("status").get_to(status);
-    instance._status = instance_status_from_string(status);
-    json.at("usbDevices").get_to(instance._usb_devices);
-    json.at("version").get_to(instance._app_version);
+    instance._id = instance_id_t{j.at("id").get<std::string_view>()};
+    instance._instance_name = j.at("instanceName").get<std::string>();
+    instance._app_name = j.at("app").get<std::string>();
+    instance._app_version = j.at("version").get<std::string>();
+    instance._status = instance_status_from_string(j.at("status").get<std::string_view>());
+    instance._desired = instance_status_from_string(j.at("desired").get<std::string_view>());
+    instance._networks = j.at("networks").get<decltype(instance._networks)>();
+    instance._startup_options = j.at("startupOptions").get<decltype(instance._startup_options)>();
+    instance._usb_devices = j.at("usbDevices").get<decltype(instance._usb_devices)>();
+}
+
+auto from_json_v2(const json_t& j, instance_t& instance) //
+    -> void
+{
+    instance._id = instance_id_t{j.at("instanceId").get<std::string_view>()};
+    instance._instance_name = j.at("instanceName").get<std::string>();
+    instance._app_name = j.at("appKey").at("name").get<std::string>();
+    instance._app_version = j.at("appKey").at("version").get<std::string>();
+    instance._status = instance_status_from_string(j.at("status").get<std::string_view>());
+    instance._desired = instance_status_from_string(j.at("desired").get<std::string_view>());
+    instance._networks = j.at("networks").get<decltype(instance._networks)>();
+    instance._startup_options = j.at("startupOptions").get<decltype(instance._startup_options)>();
+    instance._usb_devices = j.at("usbDevices").get<decltype(instance._usb_devices)>();
+}
+
+auto from_json(const json_t& j, instance_t& instance) //
+    -> void
+{
+    auto schema_version = std::string_view{"1.0.0"};
+    try {
+        j.at("_schemaVersion").get_to(schema_version);
+    } catch (...) {
+    }
+
+    try {
+        schema_version[0] == '1' ? from_json_v1(j, instance) : from_json_v2(j, instance);
+    } catch (...) {
+        instance = instance_t{};
+    }
 }
 
 auto operator==(const instance_t& lhs, const instance_t& rhs) //
