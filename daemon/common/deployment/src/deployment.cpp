@@ -156,9 +156,11 @@ auto deployment_t::create_instance(std::shared_ptr<const app_t> app, std::string
                 return {-1, instance->id().hex()};
             }
         }
+        auto mac_address =
+            manifest->networks().empty() ? std::string{} : manifest->networks()[0].mac_address();
         instance->networks().emplace_back(instance_t::network_t{
             .network_name = default_network_name().data(),
-            .mac_address = manifest->networks()[0].mac_address(),
+            .mac_address = std::move(mac_address),
             .ip_address = {},
         });
     }

@@ -27,8 +27,10 @@ set(PACKAGE_DEPENDS docker-ce libudev libusb-1.0-0)
 add_custom_target(
     flecs_deb-pkg-copy
     COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${CORE_VERSION}_${ARCH}.tar ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${CORE_VERSION}_${ARCH}.tar ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/
+    COMMAND cp -f ${CMAKE_SOURCE_DIR}/apps/tech.flecs.service-mesh/manifest.json ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/tech.flecs.service-mesh_${CORE_VERSION}.json
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${CORE_VERSION}_${ARCH}.tar ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/tech.flecs.service-mesh_${CORE_VERSION}.tar
+    COMMAND cp -f ${CMAKE_SOURCE_DIR}/apps/tech.flecs.mqtt-bridge/manifest.json ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/tech.flecs.mqtt-bridge_${CORE_VERSION}.json
+    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${CORE_VERSION}_${ARCH}.tar ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/tech.flecs.mqtt-bridge_${CORE_VERSION}.tar
 )
 
 include(flecs-package)
