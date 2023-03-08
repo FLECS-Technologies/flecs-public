@@ -87,7 +87,7 @@ auto module_apps_t::do_start() //
 auto module_apps_t::do_save(const fs::path& base_path) const //
     -> void
 {
-    return _impl->do_module_save(base_path);
+    return _impl->do_module_save(base_path / "apps");
 }
 
 auto module_apps_t::http_list(const app_key_t& app_key) const //

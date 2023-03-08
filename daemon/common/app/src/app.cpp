@@ -126,19 +126,46 @@ auto to_json(json_t& json, const app_t& app) //
     -> void
 {
     json = json_t(
-        {{"appKey", static_cast<const app_key_t&>(app)},
+        {{"_schemaVersion", "2.0.0"},
+         {"appKey", static_cast<const app_key_t&>(app)},
          {"status", to_string(app._status)},
          {"desired", to_string(app._desired)},
          {"installedSize", app._installed_size}});
 }
 
-auto from_json(const json_t& json, app_t& app) //
+static auto from_json_v1(const json_t& j, app_t& app) //
     -> void
 {
-    app = app_t{json.at("appKey").get<app_key_t>()};
-    app._status = app_status_from_string(json.at("status").get<std::string_view>());
-    app._desired = app_status_from_string(json.at("desired").get<std::string_view>());
-    json.at("installedSize").get_to(app._installed_size);
+    app = app_t{app_key_t{
+        j.at(1).at("app").get<std::string>(), //
+        j.at(1).at("version").get<std::string>()}};
+    app.status(app_status_from_string(j.at(1).at("status").get<std::string_view>()));
+    app.desired(app_status_from_string(j.at(1).at("desired").get<std::string_view>()));
+}
+
+static auto from_json_v2(const json_t& j, app_t& app) //
+    -> void
+{
+    app = app_t{j.at("appKey").get<app_key_t>()};
+    app.status(app_status_from_string(j.at("status").get<std::string_view>()));
+    app.desired(app_status_from_string(j.at("desired").get<std::string_view>()));
+    app.installed_size(j.at("installedSize").get<std::int32_t>());
+}
+
+auto from_json(const json_t& j, app_t& app) //
+    -> void
+{
+    auto schema_version = std::string_view{"1.0.0"};
+    try {
+        j.at("_schemaVersion").get_to(schema_version);
+    } catch (...) {
+    }
+
+    try {
+        schema_version[0] == '1' ? from_json_v1(j, app) : from_json_v2(j, app);
+    } catch (...) {
+        app = app_t{};
+    }
 }
 
 } // namespace FLECS
