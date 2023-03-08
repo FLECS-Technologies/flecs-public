@@ -166,7 +166,53 @@ auto module_apps_t::do_module_load(const fs::path& base_path) //
 
 auto module_apps_t::do_module_start() //
     -> void
-{}
+{
+    const auto system_apps = std::array<app_key_t, 2>{
+        app_key_t{"tech.flecs.mqtt-bridge", FLECS_VERSION},
+        app_key_t{"tech.flecs.service-mesh", FLECS_VERSION},
+    };
+
+    auto save = false;
+    for (const auto& app : system_apps) {
+        /* uninstall previous versions of system apps */
+        auto have_newer_version = false;
+        const auto versions = _parent->app_keys(app.name().data());
+        for (const auto& version : versions) {
+            if (version.version() < FLECS_VERSION) {
+                save = true;
+                std::fprintf(stdout, "Removing system app %s\n", to_string(version).c_str());
+                _parent->uninstall(version, true);
+            } else if (version.version() > FLECS_VERSION) {
+                have_newer_version = true;
+            }
+        }
+
+        /* install current version, if no newer version is present */
+        if (!have_newer_version && !_parent->is_installed(app)) {
+            save = true;
+            std::fprintf(stdout, "Installing system app %s\n", to_string(app).c_str());
+            auto [res, message] = _parent->import_from(app, "/opt/flecs/assets");
+            if (res != 0) {
+                std::fprintf(stderr, "%s\n", message.c_str());
+                continue;
+            }
+            std::tie(res, message) = _instances_api->create(app);
+            if (res != 0) {
+                std::fprintf(stderr, "%s\n", message.c_str());
+                continue;
+            }
+            std::tie(res, message) = _instances_api->start(instance_id_t{message});
+            if (res != 0) {
+                std::fprintf(stderr, "%s\n", message.c_str());
+                continue;
+            }
+        }
+    }
+
+    if (save) {
+        _parent->save();
+    }
+}
 
 auto module_apps_t::do_module_save(const fs::path& base_path) const //
     -> void
