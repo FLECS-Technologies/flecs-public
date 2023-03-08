@@ -131,7 +131,14 @@ auto module_apps_t::do_module_init() //
     _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
     _manifests_api =
         std::dynamic_pointer_cast<FLECS::module_manifests_t>(api::query_module("manifests"));
-    _manifests_api->base_path("/var/lib/flecs/manifests/");
+
+    auto ec = std::error_code{};
+    if (fs::is_directory("/var/lib/flecs/apps", ec)) {
+        _manifests_api->base_path("/var/lib/flecs/apps");
+        _manifests_api->migrate("/var/lib/flecs/manifests/");
+    } else {
+        _manifests_api->base_path("/var/lib/flecs/manifests/");
+    }
 
     for (auto& app : _apps) {
         auto manifest = _manifests_api->query(app->key());

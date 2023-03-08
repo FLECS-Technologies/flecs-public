@@ -60,6 +60,23 @@ public:
     auto base_path() const noexcept //
         -> const fs::path&;
 
+    /** @brief Migrate base directory to a new directory
+     *
+     * Moves all manifests from the current ${base_path} to the new path specified as argument.
+     * Contents of the new directory will be overwritten on conflict, but otherwise the new
+     * directory will not be altered.
+     *
+     * If migration is successful, the manifest cache will not be cleared and all references
+     * retrieved earlier will remain valid. On migration failure, the cache will be cleared
+     * and all references are invalidated.
+     *
+     * @param[in] base_path Path where to move local manifest storage
+     *
+     * @return true if migration was successful, false otherwise
+     */
+    auto migrate(const fs::path& base_path) //
+        -> bool;
+
     /** @brief Verify the existence of an app_key in the local manifest cache
      *
      * If an app_key exists in the local manifest store, but has not yet been loaded into the local
