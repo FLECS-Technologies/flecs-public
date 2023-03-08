@@ -75,7 +75,7 @@ auto module_apps_t::do_init() //
 auto module_apps_t::do_load(const fs::path& base_path) //
     -> void
 {
-    return _impl->do_module_load(base_path);
+    return _impl->do_module_load(base_path / "apps");
 }
 
 auto module_apps_t::do_start() //
