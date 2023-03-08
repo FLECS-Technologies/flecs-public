@@ -430,18 +430,20 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     progress.next_step("Loading App manifest");
 
     // Step 1: Ensure App is actually installed
-    if (!_parent->is_installed(app_key)) {
+    auto app = _parent->query(app_key);
+    if (!app) {
         return {-1, "Cannot uninstall "s + to_string(app_key) + ", which is not installed"};
     }
 
     // Step 2: Load App manifest
-    auto app = _parent->query(app_key);
     auto manifest = app->manifest();
 
-    progress.desc("Uninstallation of "s + manifest->title() + " (" + manifest->version() + ")");
+    if (manifest) {
+        progress.desc("Uninstallation of "s + manifest->title() + " (" + manifest->version() + ")");
+    }
 
     // Step 2a: Prevent removal of system apps
-    if (cxx20::contains(manifest->category(), "system") && !force) {
+    if (manifest && cxx20::contains(manifest->category(), "system") && !force) {
         return {-1, "Not uninstalling system app "s + to_string(app_key)};
     }
 
@@ -458,17 +460,19 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     // Step 4: Remove Docker image of the App
     progress.next_step("Removing App image");
 
-    const auto image = manifest->image_with_tag();
-    auto docker_process = process_t{};
-    docker_process.spawnp("docker", "rmi", "-f", image);
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        std::fprintf(
-            stderr,
-            "Warning: Could not remove image %s of app %s (%s)\n",
-            image.c_str(),
-            app_key.name().data(),
-            app_key.version().data());
+    if (manifest) {
+        const auto image = manifest->image_with_tag();
+        auto docker_process = process_t{};
+        docker_process.spawnp("docker", "rmi", "-f", image);
+        docker_process.wait(false, true);
+        if (docker_process.exit_code() != 0) {
+            std::fprintf(
+                stderr,
+                "Warning: Could not remove image %s of app %s (%s)\n",
+                image.c_str(),
+                app_key.name().data(),
+                app_key.version().data());
+        }
     }
 
     // Step 5: Persist removal of App into db
