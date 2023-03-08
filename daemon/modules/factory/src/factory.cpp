@@ -38,6 +38,9 @@ void module_factory_t::init_modules()
 void module_factory_t::deinit_modules()
 {
     for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it) {
+        it->second->stop();
+    }
+    for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it) {
         it->second->deinit();
     }
 }

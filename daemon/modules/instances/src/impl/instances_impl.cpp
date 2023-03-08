@@ -133,7 +133,23 @@ auto module_instances_t::do_module_init() //
 
 auto module_instances_t::do_module_start() //
     -> void
-{}
+{
+    for (const auto& instance_id : _parent->instance_ids()) {
+        if (auto instance = _parent->query(instance_id)) {
+            if (instance->desired() == instance_status_e::Running) {
+                _parent->start_once(instance_id);
+            }
+        }
+    }
+}
+
+auto module_instances_t::do_module_stop() //
+    -> void
+{
+    for (const auto& instance_id : _parent->instance_ids()) {
+        _parent->stop_once(instance_id);
+    }
+}
 
 auto module_instances_t::do_instance_ids(const app_key_t& app_key) const //
     -> std::vector<instance_id_t>
