@@ -17,14 +17,16 @@ import json
 import time
 import os
 
+is_testing_container = os.environ.get("IS_TESTING_CONTAINER", 0)
+
 mp_url = "https://marketplace.flecs.tech:8443"
 local_mp_url = "http://localhost:8001"
-flecs_core_url = "http://localhost:8951"
+flecs_core_url = "http://localhost:" + ("8951" if is_testing_container else "18951")
 flecs_webapp_url = "http://localhost:80"
 
 # Login information
-mp_user = os.environ["MP_USER"]
-mp_password = os.environ["MP_PASSWORD"]
+mp_user = os.environ["MP_USER" + ("_TEST" if not is_testing_container else "")]
+mp_password = os.environ["MP_PASSWORD" + ("_TEST" if not is_testing_container else "")]
 login_response = None
 
 # Test apps
@@ -38,7 +40,7 @@ user_apps = [
     "com.grafana.grafana-oss",
     "com.influxdata.influxdb"]
 user_apps_versions = [
-    "2.0.14-openssl",
+    "2.0.15-openssl",
     "0.9.6.0",
     "9.3.1",
     "2.5.1"]
@@ -410,6 +412,7 @@ def test_install_apps():
     for user_app in user_apps:
         assert user_app in list(installed_app["appKey"]["name"] for installed_app in installed_apps)
         # installed_apps is a list of dicts, we need to look at the "app" entry of each dict
+        # TODO check if status is actually "installed"...
 
     # check if correct amount of tickets were consumed
     ticked_count_post = count_tickets()
@@ -508,6 +511,95 @@ def test_uninstall_app():
     for app in user_apps:
         # make sure app is no longer installed
         assert app not in installed_apps_post
+
+###
+### Test: export-import works
+###
+def prepare_export_state(apps, versions):
+    """
+    Install some apps to export later
+    """
+
+    for i in range(len(apps)):
+        resp = install_app(apps[i], versions[i], i)
+        jobId = resp.json()["jobId"]
+
+def export(apps, versions, instances):
+    """
+    Export versions of apps and instances
+    """
+
+    export_url = flecs_core_url + "/v2/exports/create"
+
+    header = {"content-type":"application/json"}
+
+    payload = '{"apps":['
+    if (apps):
+        for i in range(len(apps)):
+            payload_app_snippet = '{"name":"%s","version":"%s"}' % (apps[i], versions[i])
+            if i>0: payload = payload + ','
+            payload = payload + payload_app_snippet
+    payload = payload + '],"instances":['
+    if (instances):
+        for i in range(len(instances)):
+            payload = payload + '"' + instances[i] + '",'
+    payload = payload + ']}'
+
+    resp = requests.post(export_url, headers=header, data=payload)
+    return resp
+
+def test_export():
+    """
+    TC13: Install and export apps, uninstall apps, import again.
+    """
+
+    test_apps = user_apps
+    test_versions = user_apps_versions
+
+    prepare_export_state(test_apps, test_versions)
+    export_resp = export (test_apps, test_versions, None)
+    export_job_id = export_resp.json()["jobId"]
+    export_result = wait_til_job_finished(export_job_id)
+    assert 0 == export_result["code"]
+
+    # download
+    export_id = export_result["message"]
+    resp = requests.get(flecs_core_url + "/v2/exports/" + export_id)
+    export_archive = open(export_id + ".tar.gz", "wb")
+    export_archive.write(resp.content)
+    export_archive.close()
+
+    # uninstall apps
+    for i in range (len(test_apps)):
+        uninstall_app(test_apps[i], test_versions[i])
+
+    # wait for uninstalls to finish
+    running_ids = get_ongoing_job_ids()
+    for id in running_ids:
+        wait_til_job_finished(id)
+
+    # make sure apps are actually uninstalled
+    installed_apps = get_apps()
+    for test_app in test_apps:
+        app_matches_idx = list(idx for idx in range(len(installed_apps)) if installed_apps[idx]["appKey"]["name"] == test_app)
+        assert 0 == len(app_matches_idx)
+
+    # import again
+    import_archive = open(export_id + ".tar.gz", "rb")
+    header = {"content-type":"application/gzip"}
+    import_resp = requests.post(flecs_webapp_url + "/api/v3/imports", files={"upload_file" : import_archive})
+    print(import_resp.text)
+
+    # wait for import to finish
+    running_ids = get_ongoing_job_ids()
+    for id in running_ids:
+        wait_til_job_finished(id)
+
+    # make sure apps are installed again
+    installed_apps = get_apps()
+    for test_app in test_apps:
+        app_matches_idx = list(idx for idx in range(len(installed_apps)) if installed_apps[idx]["appKey"]["name"] == test_app)
+        assert 1 == len(app_matches_idx)
 
 ###
 ### main

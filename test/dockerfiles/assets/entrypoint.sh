@@ -20,7 +20,7 @@
 BASE_URL="https://marketplace.flecs.tech:8443"
 curl -L ${BASE_URL}/install.sh | bash
 
-VERSION=`curl -s -f ${BASE_URL}/dl/latest`
+VERSION=`curl -s -f ${BASE_URL}/dl/latest_flecs-webapp_amd64`
 /usr/bin/docker run -d -p 80:80 --add-host=host.docker.internal:172.18.0.1 --name flecs-webapp flecs/webapp:${VERSION}
 
 mkdir -p /var/run/flecs/
