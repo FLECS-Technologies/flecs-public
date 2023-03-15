@@ -2,7 +2,7 @@ FROM debian:bullseye-slim
 
 ARG ARCH
 
-ADD assets/zenoh-0.6.0-beta.1-${ARCH}.tar.gz /
+ADD assets/zenoh-0.7.0-rc-${ARCH}.tar.gz /
 
 COPY assets/entrypoint.sh /
 

@@ -1,0 +1,8 @@
+prefix=/home/alex/git/flecs-public/external/out/arm64
+
+Name: zenohc
+Description: The C bindings for Zenoh
+URL: https://github.com/eclipse-zenoh/zenoh-c
+Version: 0.7.0.1
+Cflags: -I${prefix}/include/zenohc
+Libs: -L${prefix}/lib -lzenohc

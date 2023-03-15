@@ -25,7 +25,7 @@ set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.15)
 set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-3.0.8)
 set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.10.3)
 set(YAMLCPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
-set(ZENOH_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.6.0-beta.1)
+set(ZENOH_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.7.0-rc)
 set(ZLIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.13)
 
 # custom build rules
@@ -112,7 +112,14 @@ add_custom_target(
 )
 
 # Zenoh-C
-# Use prebuilt
+add_custom_target(
+    external.zenoh-c.build
+    WORKING_DIRECTORY ${ZENOH_C_DIR}
+    COMMAND rustup target add ${RUSTC_TARGET}
+    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
+    COMMAND ${CMAKE_COMMAND} --build build/${ARCH} --config Release
+    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
+)
 
 # imported libraries
 # cpr
@@ -201,9 +208,9 @@ set_property(TARGET external.yaml-cpp PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${C
 
 # zenoh-c
 add_library(external.zenoh-c SHARED IMPORTED GLOBAL)
-set_property(TARGET external.zenoh-c PROPERTY IMPORTED_LOCATION ${ZENOH_C_DIR}/out/${ARCH}/lib/libzenohc.so)
+set_property(TARGET external.zenoh-c PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libzenohc.so)
 set_property(TARGET external.zenoh-c PROPERTY IMPORTED_NO_SONAME TRUE)
-set_property(TARGET external.zenoh-c PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ZENOH_C_DIR}/out/${ARCH}/include)
+set_property(TARGET external.zenoh-c PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include/zenohc)
 
 # zlib
 add_library(external.zlib STATIC IMPORTED GLOBAL)

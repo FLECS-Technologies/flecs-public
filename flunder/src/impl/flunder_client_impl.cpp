@@ -280,7 +280,7 @@ auto flunder_client_t::publish(
         value.size(),
         &options);
 
-    return (res == 1) ? 0 : -1;
+    return (res == 0) ? 0 : -1;
 }
 
 auto flunder_client_t::subscribe(
