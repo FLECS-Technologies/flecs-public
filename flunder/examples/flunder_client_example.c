@@ -26,27 +26,31 @@ void signal_handler(int signum)
     g_stop = 1;
 }
 
-void print_variable(const flunder_variable_t* var) {
-    fprintf(
-        stdout,
-        "\ttopic:     %s\n"
-        "\tlength:    %zu\n"
-        "\tvalue:     %s\n"
-        "\tencoding:  %s\n"
-        "\ttimestamp: %s ns\n",
-        flunder_variable_topic(var),
-        flunder_variable_len(var),
-        flunder_variable_value(var),
-        flunder_variable_encoding(var),
-        flunder_variable_timestamp(var));
+void print_variables(const flunder_variable_t* var, size_t n)
+{
+    for (size_t i = 0; i < n; ++i) {
+        fprintf(
+            stdout,
+            "[%zu]:\n"
+            "\ttopic:     %s\n"
+            "\tlength:    %zu\n"
+            "\tvalue:     %s\n"
+            "\tencoding:  %s\n"
+            "\ttimestamp: %s ns\n",
+            i,
+            flunder_variable_topic(var),
+            flunder_variable_len(var),
+            flunder_variable_value(var),
+            flunder_variable_encoding(var),
+            flunder_variable_timestamp(var));
+        var = flunder_variable_next(var);
+    }
 }
 
 void flunder_subscribe_callback(void* client, const flunder_variable_t* var)
 {
-    fprintf(
-        stdout,
-        "Received flunder message on client %p!\n", client);
-    print_variable(var);
+    fprintf(stdout, "Received flunder message on client %p!\n", client);
+    print_variables(var, 1);
 }
 
 int main(void)
@@ -72,12 +76,9 @@ int main(void)
         flunder_variable_t* vars;
         size_t n;
         flunder_get(flunder_client, "**", &vars, &n);
-        for (size_t i = 0; i < n; ++i) {
-            fprintf(stdout, "get() result:\n");
-            print_variable(vars);
-        }
+        fprintf(stdout, "get() result:\n");
+        print_variables(vars, n);
         flunder_variable_list_destroy(vars, n);
-        g_stop = 1;
     }
 
     flunder_remove_mem_storage(flunder_client, "flunder-c");

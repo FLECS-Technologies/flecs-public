@@ -166,4 +166,9 @@ FLECS_EXPORT void flunder_variable_list_destroy(flunder_variable_t* vars, size_t
     }
 }
 
+FLECS_EXPORT const flunder_variable_t* flunder_variable_next(const flunder_variable_t* var)
+{
+    return ++var;
+}
+
 } // extern "C"
