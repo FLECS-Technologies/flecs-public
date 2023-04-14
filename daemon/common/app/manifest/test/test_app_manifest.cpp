@@ -234,7 +234,7 @@ TEST(daemon_app, to_json)
         R"-("capabilities":[],)-"
         R"-("conffiles":["local.conf:/etc/container.conf:rw,no_init"],)-"
         R"-("devices":["/dev/device0"],)-"
-        R"-("env":["MY_ENV_VAR:ENV_VAR_VALUE"],)-"
+        R"-("env":["MY_ENV_VAR=ENV_VAR_VALUE"],)-"
         R"-("hostname":"flecs-unit-test",)-"
         R"-("interactive":true,)-"
         R"-("networks":[{"mac_address":"","name":"flecs","parent":"","type":"bridge"}],)-"
