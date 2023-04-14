@@ -51,7 +51,7 @@ TEST(env_var, mapped_valid)
     auto another_mapped_env_var1 = FLECS::mapped_env_var_t("ANOTHER_VALID_ENV_VAR"s, "VALUE"s);
 
     ASSERT_TRUE(mapped_env_var1.is_valid());
-    ASSERT_EQ(FLECS::stringify(mapped_env_var1), "VALID_ENV_VAR:VALUE");
+    ASSERT_EQ(FLECS::stringify(mapped_env_var1), "VALID_ENV_VAR=VALUE");
     ASSERT_EQ(mapped_env_var1, mapped_env_var2);
     ASSERT_EQ(mapped_env_var1, mapped_env_var3);
     ASSERT_NE(mapped_env_var1, another_mapped_env_var1);
@@ -78,7 +78,7 @@ TEST(env_var, to_json)
     const auto mapped_env_var_1 = FLECS::mapped_env_var_t{"ENV_VAR"s, "VALUE"s};
 
     const auto json = FLECS::json_t(mapped_env_var_1);
-    const auto json_expected = R"("ENV_VAR:VALUE")";
+    const auto json_expected = R"("ENV_VAR=VALUE")";
 
     ASSERT_TRUE(mapped_env_var_1.is_valid());
     ASSERT_EQ(json.dump(), json_expected);
@@ -86,10 +86,17 @@ TEST(env_var, to_json)
 
 TEST(env_var, from_json)
 {
-    const auto json = R"("ENV_VAR:VALUE")"_json;
-
     auto uut = FLECS::mapped_env_var_t{};
-    from_json(json, uut);
+
+    const auto json_1 = R"("ENV_VAR:VALUE")"_json;
+    from_json(json_1, uut);
+
+    ASSERT_TRUE(uut.is_valid());
+    ASSERT_EQ(uut.var(), "ENV_VAR");
+    ASSERT_EQ(uut.value(), "VALUE");
+
+    const auto json_2 = R"("ENV_VAR=VALUE")"_json;
+    from_json(json_2, uut);
 
     ASSERT_TRUE(uut.is_valid());
     ASSERT_EQ(uut.var(), "ENV_VAR");
@@ -100,7 +107,7 @@ TEST(env_var, to_string)
 {
     const auto uut = FLECS::mapped_env_var_t{"ENV_VAR"s, "VALUE"s};
 
-    ASSERT_EQ(to_string(uut), "ENV_VAR:VALUE");
+    ASSERT_EQ(to_string(uut), "ENV_VAR=VALUE");
 }
 
 TEST(env_var, sort)

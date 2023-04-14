@@ -51,13 +51,19 @@ mapped_env_var_t::mapped_env_var_t(std::string_view str)
     : _env_var{}
     , _value{}
 {
-    const auto parts = split(str, ':');
-    if (parts.size() < 2) {
+    auto parts = split(str, ':');
+    if (parts.size() == 2) {
+        _env_var = parts[0];
+        _value = parts[1];
         return;
     }
 
-    _env_var = parts[0];
-    _value = parts[1];
+    parts = split(str, '=');
+    if (parts.size() == 2) {
+        _env_var = parts[0];
+        _value = parts[1];
+        return;
+    }
 }
 
 auto mapped_env_var_t::is_valid() const noexcept //
@@ -134,7 +140,7 @@ auto to_string(const mapped_env_var_t& mapped_env_var) //
     -> std::string
 {
     return mapped_env_var.is_valid()
-               ? stringify_delim(':', mapped_env_var.var(), mapped_env_var.value())
+               ? stringify_delim('=', mapped_env_var.var(), mapped_env_var.value())
                : std::string{};
 }
 
