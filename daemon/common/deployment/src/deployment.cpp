@@ -271,13 +271,17 @@ auto deployment_t::stop_instance(std::shared_ptr<instance_t> instance) //
 auto deployment_t::export_instance(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
+    LOG_TRACE("--> %s Request to export instance %s\n", __FUNCTION__, instance->id().hex().c_str());
+
     auto app = instance->app();
     if (!app) {
+        LOG_TRACE("<-- %s Instance not connected to an app\n", __FUNCTION__);
         return {-1, "Instance not connected to an app"};
     }
 
     auto manifest = app->manifest();
     if (!manifest) {
+        LOG_TRACE("<-- %s Could not access app manifest\n", __FUNCTION__);
         return {-1, "Could not access app manifest"};
     }
 
@@ -285,6 +289,7 @@ auto deployment_t::export_instance(std::shared_ptr<instance_t> instance, fs::pat
     auto ec = std::error_code{};
     fs::create_directories(dest_dir, ec);
     if (ec) {
+        LOG_TRACE("<-- %s Could not create export directory %s\n", __FUNCTION__, dest_dir.c_str());
         return {-1, "Could not create export directory"};
     }
 
@@ -298,7 +303,10 @@ auto deployment_t::export_instance(std::shared_ptr<instance_t> instance, fs::pat
         return {res, additional_info};
     }
 
-    return do_export_instance(instance, dest_dir);
+    std::tie(res, additional_info) = do_export_instance(instance, dest_dir);
+    LOG_TRACE("<-- %s %s\n", __FUNCTION__, additional_info.c_str());
+
+    return {res, additional_info};
 }
 
 auto deployment_t::import_instance(std::shared_ptr<instance_t> instance, fs::path base_dir) //
@@ -494,12 +502,20 @@ auto deployment_t::import_volume(
 auto deployment_t::export_volumes(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
+    LOG_TRACE(
+        "--> %s Request to export volumes of instance %s to %s\n",
+        __FUNCTION__,
+        instance->id().hex().c_str(),
+        dest_dir.c_str());
+
     auto app = instance->app();
     if (!app) {
+        LOG_TRACE("<-- %s Instance not connected to an app\n", __FUNCTION__);
         return {-1, "Instance not connected to an app"};
     }
     auto manifest = app->manifest();
     if (!manifest) {
+        LOG_TRACE("<-- %s Could not access app manifest\n", __FUNCTION__);
         return {-1, "Could not access app manifest"};
     }
 
@@ -519,25 +535,45 @@ auto deployment_t::export_volume(
     fs::path dest_dir) const //
     -> result_t
 {
+    LOG_TRACE(
+        "--> %s Request to export volume %s of instance %s to %s\n",
+        __FUNCTION__,
+        volume_name.data(),
+        instance->id().hex().c_str(),
+        dest_dir.c_str());
+
     auto ec = std::error_code{};
     fs::create_directories(dest_dir, ec);
     if (ec) {
+        LOG_TRACE("<-- %s Could not create export directory\n", __FUNCTION__);
         return {-1, "Could not create export directory"};
     }
 
-    return do_export_volume(std::move(instance), std::move(volume_name), std::move(dest_dir));
+    auto [res, message] =
+        do_export_volume(std::move(instance), std::move(volume_name), std::move(dest_dir));
+
+    LOG_TRACE("<-- %s %s\n", __FUNCTION__, message.c_str());
+    return {res, message};
 }
 
 auto deployment_t::export_config_files(
     std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
+    LOG_TRACE(
+        "--> %s Request to export config files of instance %s to %s\n",
+        __FUNCTION__,
+        instance->id().hex().c_str(),
+        dest_dir.c_str());
+
     auto app = instance->app();
     if (!app) {
+        LOG_TRACE("<-- %s Instance not connected to an app\n", __FUNCTION__);
         return {-1, "Instance not connected to an app"};
     }
     auto manifest = app->manifest();
     if (!manifest) {
+        LOG_TRACE("<-- %s Could not access app manifest\n", __FUNCTION__);
         return {-1, "Could not access app manifest"};
     }
 
@@ -548,6 +584,7 @@ auto deployment_t::export_config_files(
         }
     }
 
+    LOG_TRACE("<-- %s\n", __FUNCTION__);
     return {0, {}};
 }
 auto deployment_t::export_config_file(
@@ -556,13 +593,22 @@ auto deployment_t::export_config_file(
     fs::path dest_dir) const //
     -> result_t
 {
+    LOG_TRACE(
+        "--> %s Request to export config file %s of instance %s to %s\n",
+        __FUNCTION__,
+        config_file.container().c_str(),
+        instance->id().hex().c_str(),
+        dest_dir.c_str());
+
     auto ec = std::error_code{};
     fs::create_directories(dest_dir, ec);
     if (ec) {
+        LOG_TRACE("<-- %s Could not create export directory\n", __FUNCTION__);
         return {-1, "Could not create export directory"};
     }
 
     if (is_instance_running(instance)) {
+        LOG_TRACE("--- %s Exporting config file from running instance\n", __FUNCTION__);
         const auto [res, additional_info] = copy_file_from_instance(
             instance,
             config_file.container(),
@@ -571,15 +617,18 @@ auto deployment_t::export_config_file(
             return {res, additional_info};
         }
     } else {
+        LOG_TRACE("--- %s Exporting config file from local directory\n", __FUNCTION__);
         const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
         /* copy config files from local dir for stopped instances */
         auto ec = std::error_code{};
         fs::copy(conf_path + config_file.local(), dest_dir / config_file.local(), ec);
         if (ec) {
+            LOG_TRACE("<-- %s Could not export conffile from local directory\n", __FUNCTION__);
             return {-1, "Could not export conffile from local directory"};
         }
     }
 
+    LOG_TRACE("<-- %s\n", __FUNCTION__);
     return {0, {}};
 }
 
