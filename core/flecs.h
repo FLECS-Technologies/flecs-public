@@ -20,6 +20,15 @@
 
 namespace FLECS {
 
+#define LOG_TRACE(...) // trace logging disabled by default
+#ifndef LOG_TRACE
+template <typename... Args>
+inline auto LOG_TRACE(const char* msg, Args&&... args)
+{
+    return std::fprintf(stdout, msg, std::forward<Args>(args)...);
+}
+#endif // LOG_TRACE
+
 // generalized function return type: result code + error message
 using result_t = std::tuple<int, std::string>;
 
