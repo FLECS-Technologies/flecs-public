@@ -685,7 +685,6 @@ auto deployment_docker_t::do_import_volume(
     auto docker_create_process = process_t{};
     docker_create_process.arg("create");
     docker_create_process.arg("--quiet");
-    docker_create_process.arg("--rm");
     docker_create_process.arg("--volume");
     docker_create_process.arg(name + ":/mnt/restore:rw");
     docker_create_process.arg("--workdir");
@@ -738,31 +737,57 @@ auto deployment_docker_t::do_export_volume(
     -> result_t
 {
     const auto name = "flecs-" + instance->id().hex() + "-" + volume_name.data();
+    const auto archive = name + ".tar.gz";
 
-    auto docker_process = process_t{};
-
-    docker_process.arg("run");
-    docker_process.arg("--rm");
-    docker_process.arg("--network");
-    docker_process.arg("none");
-    docker_process.arg("--volume");
-    docker_process.arg(name + ":/mnt/backup:ro");
-    docker_process.arg("--volume");
-    docker_process.arg(dest_dir.string() + ":" + dest_dir.string());
-    docker_process.arg("--workdir");
-    docker_process.arg(dest_dir.string());
-    docker_process.arg("alpine");
-    docker_process.arg("tar");
-    docker_process.arg("-C");
-    docker_process.arg("/mnt/backup");
-    docker_process.arg("-czf");
-    docker_process.arg(name + ".tar.gz");
-    docker_process.arg(".");
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    auto docker_create_process = process_t{};
+    docker_create_process.arg("create");
+    docker_create_process.arg("--quiet");
+    docker_create_process.arg("--network");
+    docker_create_process.arg("none");
+    docker_create_process.arg("--volume");
+    docker_create_process.arg(name + ":/mnt/backup:ro");
+    docker_create_process.arg("--workdir");
+    docker_create_process.arg("/tmp");
+    docker_create_process.arg("alpine");
+    docker_create_process.arg("tar");
+    docker_create_process.arg("-C");
+    docker_create_process.arg("/mnt/backup");
+    docker_create_process.arg("-czf");
+    docker_create_process.arg(name + ".tar.gz");
+    docker_create_process.arg(".");
+    docker_create_process.spawnp("docker");
+    docker_create_process.wait(false, true);
+    if (docker_create_process.exit_code() != 0) {
+        return {-1, docker_create_process.stderr()};
     }
+    auto container_id = docker_create_process.stdout();
+    trim(container_id);
+
+    auto docker_start_process = process_t{};
+    docker_start_process.arg("start");
+    docker_start_process.arg(container_id);
+    docker_start_process.spawnp("docker");
+    docker_start_process.wait(false, true);
+    if (docker_start_process.exit_code() != 0) {
+        return {-1, docker_start_process.stderr()};
+    }
+
+    auto docker_cp_process = process_t{};
+    docker_cp_process.arg("cp");
+    docker_cp_process.arg(container_id + ":/tmp/" + archive);
+    docker_cp_process.arg(dest_dir);
+    docker_cp_process.spawnp("docker");
+    docker_cp_process.wait(false, true);
+    if (docker_cp_process.exit_code() != 0) {
+        return {-1, docker_cp_process.stderr()};
+    }
+
+    auto docker_rm_process = process_t{};
+    docker_rm_process.arg("rm");
+    docker_rm_process.arg("--force");
+    docker_rm_process.arg(container_id);
+    docker_rm_process.spawnp("docker");
+    docker_rm_process.wait(false, true);
 
     return {0, {}};
 }
