@@ -684,7 +684,8 @@ auto deployment_docker_t::do_import_volume(
 
     auto docker_create_process = process_t{};
     docker_create_process.arg("create");
-    docker_create_process.arg("--quiet");
+    docker_create_process.arg("--network");
+    docker_create_process.arg("none");
     docker_create_process.arg("--volume");
     docker_create_process.arg(name + ":/mnt/restore:rw");
     docker_create_process.arg("--workdir");
@@ -698,7 +699,7 @@ auto deployment_docker_t::do_import_volume(
     if (docker_create_process.exit_code() != 0) {
         return {-1, docker_create_process.stderr()};
     }
-    auto container_id = docker_create_process.stdout();
+    auto container_id = *split(docker_create_process.stdout(), '\n').rbegin();
     trim(container_id);
 
     auto docker_cp_process = process_t{};
@@ -741,7 +742,6 @@ auto deployment_docker_t::do_export_volume(
 
     auto docker_create_process = process_t{};
     docker_create_process.arg("create");
-    docker_create_process.arg("--quiet");
     docker_create_process.arg("--network");
     docker_create_process.arg("none");
     docker_create_process.arg("--volume");
@@ -760,7 +760,7 @@ auto deployment_docker_t::do_export_volume(
     if (docker_create_process.exit_code() != 0) {
         return {-1, docker_create_process.stderr()};
     }
-    auto container_id = docker_create_process.stdout();
+    auto container_id = *split(docker_create_process.stdout(), '\n').rbegin();
     trim(container_id);
 
     auto docker_start_process = process_t{};
