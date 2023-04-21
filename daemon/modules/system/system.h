@@ -19,7 +19,6 @@
 #include <vector>
 
 #include "module_base/module.h"
-#include "util/sysload/sysload.h"
 
 namespace FLECS {
 
@@ -67,9 +66,6 @@ protected:
 
     auto info() const //
         -> crow::response;
-
-    sysload_t _load{};
-    int run_load_loop();
 };
 
 } // namespace FLECS

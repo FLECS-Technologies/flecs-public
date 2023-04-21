@@ -23,7 +23,6 @@
 #include <fstream>
 #include <limits>
 #include <sstream>
-#include <thread>
 
 #include "factory/factory.h"
 #include "util/cxx20/string.h"
@@ -31,7 +30,6 @@
 #include "util/network/network.h"
 #include "util/string/string_utils.h"
 #include "util/sysinfo/sysinfo.h"
-#include "util/sysload/sysload.h"
 
 namespace FLECS {
 
@@ -48,9 +46,6 @@ auto module_system_t::do_init() //
     FLECS_V2_ROUTE("/system/ping").methods("GET"_method)([=]() { return ping(); });
 
     FLECS_V2_ROUTE("/system/info").methods("GET"_method)([=]() { return info(); });
-
-    std::thread load_thread(&module_system_t::run_load_loop, this);
-    load_thread.detach();
 }
 
 auto module_system_t::do_deinit() //
@@ -73,20 +68,6 @@ auto module_system_t::info() const //
     const auto response = json_t(sysinfo_t{});
 
     return crow::response{crow::status::OK, "json", response.dump()};
-}
-
-int module_system_t::run_load_loop()
-{
-    const int interval_ms = 1000;
-    while (1) {
-        auto start = std::chrono::high_resolution_clock::now();
-
-        _load.update_load();
-        _load.publish_load();
-
-        std::this_thread::sleep_until(start + std::chrono::milliseconds(interval_ms));
-    }
-    return 0;
 }
 
 auto module_system_t::get_network_adapters() const //
