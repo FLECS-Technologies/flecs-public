@@ -26,8 +26,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
     external.json
-    flunder
-    util.signal_handler
 )
 
 # add_subdirectory(test)
