@@ -161,6 +161,9 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
         if (cap == "NET_ADMIN") {
             docker_process.arg("--cap-add");
             docker_process.arg(cap);
+        } else if (cap == "DOCKER") {
+            docker_process.arg("--volume");
+            docker_process.arg("/run/docker.sock:/run/docker.sock");
         }
     }
 
