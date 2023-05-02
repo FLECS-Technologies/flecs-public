@@ -21,6 +21,7 @@ set(CROW_DIR ${CMAKE_CURRENT_SOURCE_DIR}/crow-1.0+5)
 set(GTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/googletest-1.13.0)
 set(JSON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/json-3.11.2)
 set(LIBARCHIVE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libarchive-3.6.2)
+set(LIBUSB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libusb-1.0.26)
 set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.15)
 set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-3.1.0)
 set(YAMLCPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
@@ -71,6 +72,15 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS} -DDOCUMENTATION=NO -DWITH_STATIC_LIBRARIES=YES -DWITH_PIC=YES -DWITH_APPS=NO -DWITH_BROKER=NO -DWITH_CLIENTS=NO -DWITH_PLUGINS=NO -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}/out/${ARCH}
     COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
     COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
+)
+
+# libusb
+add_custom_target(
+    external.libusb.build
+    WORKING_DIRECTORY ${LIBUSB_DIR}
+    COMMAND ./configure --prefix=${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH} --host=${CROSS_COMPILE}
+    COMMAND make all
+    COMMAND make install-strip
 )
 
 # OpenSSL
@@ -170,6 +180,11 @@ target_link_libraries(external.mosquitto INTERFACE
     external.ssl
     external.crypto
 )
+
+# libmosquitto
+add_library(external.libusb STATIC IMPORTED GLOBAL)
+set_property(TARGET external.libusb PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libusb-1.0.a)
+set_property(TARGET external.libusb PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # OpenSSL
 add_library(external.crypto STATIC IMPORTED GLOBAL)

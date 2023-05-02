@@ -31,7 +31,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PRIVATE
     util.udev
     util.sysfs
-    usb-1.0
+    external.libusb
 )
 
 add_subdirectory(test)
