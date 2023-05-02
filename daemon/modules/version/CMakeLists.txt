@@ -17,17 +17,7 @@ flecs_add_module(
 )
 
 execute_process(
-    COMMAND stat -c "%u" ${CMAKE_SOURCE_DIR}/.git
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    OUTPUT_VARIABLE FLECS_GIT_UID
-    ERROR_VARIABLE FLECS_GIT_UID_ERROR
-)
-if ("${FLECS_GIT_UID}" STREQUAL "")
-    message(FATAL_ERROR ${FLECS_GIT_UID_ERROR})
-endif()
-
-execute_process(
-    COMMAND sudo -u \#${FLECS_GIT_UID} git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
+    COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
     OUTPUT_STRIP_TRAILING_WHITESPACE
     OUTPUT_VARIABLE FLECS_GIT_SHA
     ERROR_VARIABLE FLECS_GIT_SHA_ERROR
