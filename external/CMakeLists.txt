@@ -23,7 +23,6 @@ set(JSON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/json-3.11.2)
 set(LIBARCHIVE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libarchive-3.6.2)
 set(MOSQUITTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mosquitto-2.0.15)
 set(OPENSSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/openssl-3.1.0)
-set(PYBIND11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pybind11-2.10.3)
 set(YAMLCPP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-0.7.0)
 set(ZENOH_C_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zenoh-c-0.6.0-beta.1)
 set(ZLIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.13)
@@ -82,15 +81,6 @@ add_custom_target(
     COMMAND make all
     COMMAND make install_sw
     COMMAND make clean
-)
-
-# pybind11
-add_custom_target(
-    external.pybind11.build
-    WORKING_DIRECTORY ${PYBIND11_DIR}
-    COMMAND ${CMAKE_COMMAND} ${CMAKE_ARGS}
-    COMMAND ${CMAKE_COMMAND} --build build/${ARCH}
-    COMMAND ${CMAKE_COMMAND} --install build/${ARCH}
 )
 
 # yaml-cpp
@@ -189,10 +179,6 @@ set_property(TARGET external.crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMA
 add_library(external.ssl STATIC IMPORTED GLOBAL)
 set_property(TARGET external.ssl PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libssl.a)
 set_property(TARGET external.ssl PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
-
-# pybind11
-add_library(external.pybind11 INTERFACE)
-target_include_directories(external.pybind11 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/include)
 
 # yaml-cpp
 add_library(external.yaml-cpp STATIC IMPORTED GLOBAL)

@@ -60,5 +60,3 @@ target_link_libraries(flunder.shared PRIVATE
 
 add_subdirectory(examples)
 add_subdirectory(test)
-
-# add_subdirectory(pybind)

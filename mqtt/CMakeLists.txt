@@ -51,5 +51,3 @@ target_link_libraries(mqtt.shared PRIVATE
     external.mosquitto
     -Wl,--no-whole-archive
 )
-
-add_subdirectory(pybind)
