@@ -41,7 +41,7 @@
             ],
             "defines": [
                 "FLECS_EXPORT=__attribute__((visibility(\"default\")))",
-                "FLECS_VERSION=\"2.0.2-dormouse\"",
+                "FLECS_VERSION=\"2.1.0-dormouse\"",
                 "FLECS_API_VERSION=\"2.0.0\"",
                 "FLECS_GIT_SHA=\"abcd1234\"",
                 "FLECS_FINAL_UNLESS_TESTED=",
