@@ -19,7 +19,7 @@ include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
 project(FLECS)
 
 # set version
-set(CORE_VERSION 2.0.2-dormouse)
+set(CORE_VERSION 2.1.0-dormouse)
 set(API_VERSION 2.0.0)
 add_definitions(-DFLECS_VERSION="${CORE_VERSION}")
 add_definitions(-DFLECS_API_VERSION="${API_VERSION}")
