@@ -291,7 +291,7 @@ auto module_apps_t::do_install_from_marketplace(
     // Download App manifest and forward to manifest installation, if download successful
     const auto [manifest, _] = _manifests_api->add_from_marketplace(app_key);
     if (manifest) {
-        return do_install_impl(std::move(manifest), license_key, progress);
+        return do_install_impl(manifest, license_key, progress);
     }
 
     return {-1, "Could not download manifest"};
@@ -323,7 +323,7 @@ auto module_apps_t::do_sideload(
     // Step 1: Validate transferred manifest
     if (manifest) {
         // Step 2: Forward to manifest installation
-        return do_install_impl(std::move(manifest), license_key, progress);
+        return do_install_impl(manifest, license_key, progress);
     }
 
     return {-1, "Could not parse manifest"};
