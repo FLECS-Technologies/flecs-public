@@ -38,6 +38,7 @@
 *.app
 
 # FLECS binaries
+build/**
 **/out/**
 **/usr/bin/**
 **/usr/lib/**

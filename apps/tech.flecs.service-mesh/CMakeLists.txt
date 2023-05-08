@@ -14,15 +14,19 @@
 
 project(apps.service-mesh)
 
-# configure Docker image
-set(DOCKER_IMAGE "tech.flecs.service-mesh")
+# configure FLECS App
+set(APP_NAME tech.flecs.service-mesh)
 set(APP_VERSION ${CORE_VERSION})
 
+include(flecs-app)
+
+# configure Docker image
+set(DOCKER_IMAGE ${APP_NAME})
 set(DOCKER_TAG ${APP_VERSION})
 
 install(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/assets
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+    DESTINATION ${PROJECT_NAME}
     USE_SOURCE_PERMISSIONS
 )
 

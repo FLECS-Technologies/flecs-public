@@ -24,15 +24,6 @@ set(PACKAGE_VERSION ${CORE_VERSION})
 set(PACKAGE_DESC FLECS)
 set(PACKAGE_DEPENDS docker-ce libudev libusb-1.0-0)
 
-add_custom_target(
-    flecs_deb-pkg-copy
-    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/
-    COMMAND cp -f ${CMAKE_SOURCE_DIR}/apps/tech.flecs.service-mesh/manifest.json ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/tech.flecs.service-mesh_${CORE_VERSION}.json
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.service-mesh/tech.flecs.service-mesh_${CORE_VERSION}_${ARCH}.tar ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/tech.flecs.service-mesh_${CORE_VERSION}.tar
-    COMMAND cp -f ${CMAKE_SOURCE_DIR}/apps/tech.flecs.mqtt-bridge/manifest.json ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/tech.flecs.mqtt-bridge_${CORE_VERSION}.json
-    COMMAND cp -f ${CMAKE_BINARY_DIR}/apps/tech.flecs.mqtt-bridge/tech.flecs.mqtt-bridge_${CORE_VERSION}_${ARCH}.tar ${CMAKE_CURRENT_BINARY_DIR}/pkg/debian/opt/flecs/assets/tech.flecs.mqtt-bridge_${CORE_VERSION}.tar
-)
-
 include(flecs-package)
 
 # build executable flecsd
@@ -70,33 +61,62 @@ target_link_libraries(daemon PRIVATE
 # install executable flecsd for packaging
 install(
     TARGETS daemon RUNTIME
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/bin
 )
 
 # install shared objects for packaging
 install(
     TARGETS daemon.lib mqtt.shared LIBRARY
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/lib
 )
 
 install(
     TARGETS daemon.lib flunder.shared LIBRARY
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/lib
 )
 
 install(
     FILES $<TARGET_FILE:external.zenoh-c>
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/lib
 )
 
 # install FLECS cli for packaging
 install(
     TARGETS cli RUNTIME
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/bin
 )
 
 # install hosts script for packaging
 install(
     PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/bin
+)
+
+# install Docker images
+get_target_property(DOCKER_ARCHIVE tech.flecs.mqtt-bridge_docker DOCKER_ARCHIVE)
+get_filename_component(DOCKER_ARCHIVE ${DOCKER_ARCHIVE} NAME)
+string(REPLACE _${ARCH} "" DOCKER_ARCHIVE ${DOCKER_ARCHIVE})
+install(
+    FILES $<TARGET_PROPERTY:tech.flecs.mqtt-bridge_docker,DOCKER_ARCHIVE>
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/assets
+    RENAME ${DOCKER_ARCHIVE}
+)
+get_target_property(DOCKER_ARCHIVE tech.flecs.service-mesh_docker DOCKER_ARCHIVE)
+get_filename_component(DOCKER_ARCHIVE ${DOCKER_ARCHIVE} NAME)
+string(REPLACE _${ARCH} "" DOCKER_ARCHIVE ${DOCKER_ARCHIVE})
+install(
+    FILES $<TARGET_PROPERTY:tech.flecs.service-mesh_docker,DOCKER_ARCHIVE>
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/assets
+    RENAME ${DOCKER_ARCHIVE}
+)
+
+# install App manifests
+install(
+    FILES $<TARGET_PROPERTY:tech.flecs.mqtt-bridge_app,MANIFEST>
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/assets
+)
+
+install(
+    FILES $<TARGET_PROPERTY:tech.flecs.service-mesh_app,MANIFEST>
+    DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/assets
 )

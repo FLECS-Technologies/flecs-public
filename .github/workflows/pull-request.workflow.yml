@@ -23,13 +23,13 @@ jobs:
       - name: "CMake: Configure"
         run: |
           git config --system --add safe.directory "*"
-          cmake -G Ninja -B out/${{ matrix.arch }} -DARCH=${{ matrix.arch }}
+          cmake -G Ninja -B build/${{ matrix.arch }} -DARCH=${{ matrix.arch }} -DCMAKE_INSTALL_PREFIX=out/${{ matrix.arch }}
       - name: "CMake: Build"
         run: |
-          cmake --build out/${{ matrix.arch }}
+          cmake --build build/${{ matrix.arch }}
       - name: "CMake: Install"
         run: |
-          cmake --build out/${{ matrix.arch }} --target install
+          cmake --build build/${{ matrix.arch }} --target install
 
   test:
     runs-on: ubuntu-22.04
@@ -49,10 +49,10 @@ jobs:
       - name: "CMake: Configure"
         run: |
           git config --system --add safe.directory "*"
-          cmake -G Ninja -B out/${{ matrix.arch }} -DARCH=${{ matrix.arch }} -DFLECS_BUILD_TESTS=Yes
+          cmake -G Ninja -B build/${{ matrix.arch }} -DARCH=${{ matrix.arch }} -DFLECS_BUILD_TESTS=Yes -DCMAKE_INSTALL_PREFIX=out/${{ matrix.arch }}
       - name: "CMake: Build"
         run: |
-          cmake --build out/${{ matrix.arch }}
+          cmake --build build/${{ matrix.arch }}
       - name: "CMake: Test"
         run: |
-          cmake --build out/${{ matrix.arch }} --target test
+          cmake --build build/${{ matrix.arch }} --target test
