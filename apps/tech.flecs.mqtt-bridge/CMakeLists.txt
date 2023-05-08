@@ -31,20 +31,24 @@ target_link_libraries(apps.mqtt-bridge PRIVATE
     util.signal_handler
 )
 
-# configure Docker image
-set(DOCKER_IMAGE "tech.flecs.mqtt-bridge")
+# configure FLECS App
+set(APP_NAME tech.flecs.mqtt-bridge)
 set(APP_VERSION ${CORE_VERSION})
 
+include(flecs-app)
+
+# configure Docker image
+set(DOCKER_IMAGE ${APP_NAME})
 set(DOCKER_TAG ${APP_VERSION})
 
 install(
     TARGETS apps.mqtt-bridge
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docker
+    DESTINATION ${PROJECT_NAME}/docker
 )
 
 install(
     FILES $<TARGET_FILE:external.zenoh-c>
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/docker
+    DESTINATION ${PROJECT_NAME}/docker
 )
 
 include(flecs-docker)

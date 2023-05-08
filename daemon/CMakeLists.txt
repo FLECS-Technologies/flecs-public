@@ -70,33 +70,33 @@ target_link_libraries(daemon PRIVATE
 # install executable flecsd for packaging
 install(
     TARGETS daemon RUNTIME
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
+    DESTINATION ${PKGBUILD_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )
 
 # install shared objects for packaging
 install(
     TARGETS daemon.lib mqtt.shared LIBRARY
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
+    DESTINATION ${PKGBUILD_DIR}/debian/${FLECS_INSTALL_DIR}/lib
 )
 
 install(
     TARGETS daemon.lib flunder.shared LIBRARY
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
+    DESTINATION ${PKGBUILD_DIR}/debian/${FLECS_INSTALL_DIR}/lib
 )
 
 install(
     FILES $<TARGET_FILE:external.zenoh-c>
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/lib
+    DESTINATION ${PKGBUILD_DIR}/debian/${FLECS_INSTALL_DIR}/lib
 )
 
 # install FLECS cli for packaging
 install(
     TARGETS cli RUNTIME
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
+    DESTINATION ${PKGBUILD_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )
 
 # install hosts script for packaging
 install(
     PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
-    DESTINATION ${PACKAGE_DIR}/debian/${FLECS_INSTALL_DIR}/bin
+    DESTINATION ${PKGBUILD_DIR}/debian/${FLECS_INSTALL_DIR}/bin
 )

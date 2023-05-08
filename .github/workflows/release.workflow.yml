@@ -24,17 +24,25 @@ jobs:
       - name: "CMake: Configure"
         run: |
           git config --system --add safe.directory "*"
-          cmake -G Ninja -B out/${{ matrix.arch }} -DARCH=${{ matrix.arch }} -DCMAKE_BUILD_TYPE=Release -DNDEBUG=1
+          cmake -G Ninja -B build/${{ matrix.arch }} -DARCH=${{ matrix.arch }} -DCMAKE_BUILD_TYPE=Release -DNDEBUG=1 -DCMAKE_INSTALL_PREFIX=out/${ARCH}
       - name: "CMake: Build"
         run: |
-          cmake --build out/${{ matrix.arch }}
+          cmake --build build/${{ matrix.arch }}
       - name: "CMake: Install"
         run: |
-          cmake --build out/${{ matrix.arch }} --target install
+          cmake --build build/${{ matrix.arch }} --target install
 
       - name: Tar raw artifacts
-        run: tar cvf out_${{ matrix.arch }}.tar out/${{ matrix.arch }}
-      - name: Upload raw artifacts
+        run: |
+          tar cvf build_${{ matrix.arch }}.tar build/${{ matrix.arch }}
+          tar cvf out_${{ matrix.arch }}.tar out/${{ matrix.arch }}
+      - name: Upload raw artifacts (build)
+        uses: actions/upload-artifact@v3
+        with:
+          name: build_${{ matrix.arch }}
+          path: build_${{ matrix.arch }}.tar
+          retention-days: 1
+      - name: Upload raw artifacts (out)
         uses: actions/upload-artifact@v3
         with:
           name: out_${{ matrix.arch }}
@@ -67,6 +75,9 @@ jobs:
         uses: actions/download-artifact@v3
       - name: Untar raw artifacts
         run: |
+          tar xf build_amd64/build_amd64.tar
+          tar xf build_armhf/build_armhf.tar
+          tar xf build_arm64/build_arm64.tar
           tar xf out_amd64/out_amd64.tar
           tar xf out_armhf/out_armhf.tar
           tar xf out_arm64/out_arm64.tar
@@ -76,17 +87,25 @@ jobs:
           git config --system --add safe.directory "*"
       - name: "Docker: native"
         run: |
-          cmake --build out/amd64 --target docker
+          cmake --build build/amd64 --target docker
       - name: "Docker: armhf"
         run: |
-          cmake --build out/armhf --target docker
+          cmake --build build/armhf --target docker
       - name: "Docker: aarch64"
         run: |
-          cmake --build out/arm64 --target docker
+          cmake --build build/arm64 --target docker
 
       - name: Tar raw artifacts
-        run: tar cvf out.tar out/
-      - name: Upload raw artifacts
+        run: |
+          tar cvf build.tar build/
+          tar cvf out.tar out/
+      - name: Upload raw artifacts (build)
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: build.tar
+          retention-days: 1
+      - name: Upload raw artifacts (out)
         uses: actions/upload-artifact@v3
         with:
           name: out
@@ -108,9 +127,9 @@ jobs:
           submodules: recursive
       - name: Download workflow artifacts
         uses: actions/download-artifact@v3
-        with:
-          name: out
-      - name: Untar raw artifacts
+      - name: Untar raw artifacts (build)
+        run: tar xf build.tar
+      - name: Untar raw artifacts (out)
         run: tar xf out.tar
 
       - name: "Disable git security"
@@ -118,7 +137,7 @@ jobs:
           git config --system --add safe.directory "*"
       - name: "CMake: Package"
         run: |
-          cmake --build out/${{ matrix.arch }} --target packages
+          cmake --build build/${{ matrix.arch }} --target packages
 
       - name: Archive packages
         uses: actions/upload-artifact@v3

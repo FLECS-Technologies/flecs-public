@@ -35,18 +35,18 @@ If you don't want to use our Docker image for whatever reason, please take a pee
 ## Building
 1. Configuration:
 ```
-cmake -G Ninja -B out/${ARCH} -DARCH=${ARCH}
+cmake -G Ninja -B build/${ARCH} -DARCH=${ARCH} -DCMAKE_INSTALL_PREFIX=out/${ARCH}
 ```
 `ARCH` has to be one of `(amd64|arm64|armhf)`
 
 2a. Building the whole project
 ```
-cmake --build out/${ARCH}
+cmake --build build/${ARCH}
 ```
 
 2b. Building single targets
 ```
-cmake --build out/${ARCH} --target <target>
+cmake --build build/${ARCH} --target <target>
 ```
 
 Relevant single `<target>`s might be `flunder` or `mqtt`.
