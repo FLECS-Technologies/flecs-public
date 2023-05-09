@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(daemon)
+project(flecsd)
 
 add_subdirectory(api)
 add_subdirectory(common)
@@ -63,6 +63,10 @@ install(
     TARGETS daemon RUNTIME
     DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/bin
 )
+install(
+    TARGETS daemon RUNTIME
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/opt/flecs/bin
+)
 
 # install shared objects for packaging
 install(
@@ -79,17 +83,39 @@ install(
     FILES $<TARGET_FILE:external.zenoh-c>
     DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/lib
 )
+install(
+    TARGETS daemon.lib mqtt.shared LIBRARY
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/opt/flecs/lib
+)
+
+install(
+    TARGETS daemon.lib flunder.shared LIBRARY
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/opt/flecs/lib
+)
+
+install(
+    FILES $<TARGET_FILE:external.zenoh-c>
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/opt/flecs/lib
+)
 
 # install FLECS cli for packaging
 install(
     TARGETS cli RUNTIME
     DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/bin
 )
+install(
+    TARGETS cli RUNTIME
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/opt/flecs/bin
+)
 
 # install hosts script for packaging
 install(
     PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
     DESTINATION ${PKGBUILD_DIR}/debian/opt/flecs/bin
+)
+install(
+    PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/flecs-update-hosts.sh
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/opt/flecs/bin
 )
 
 # install Docker images
