@@ -22,7 +22,7 @@ add_subdirectory(modules)
 set(PACKAGE flecs)
 set(PACKAGE_VERSION ${CORE_VERSION})
 set(PACKAGE_DESC FLECS)
-set(PACKAGE_DEPENDS docker-ce libudev libusb-1.0-0)
+set(PACKAGE_DEPENDS "net-tools, docker-ce (>= 20.10.5) | docker.io (>= 20.10.5), libudev")
 
 include(flecs-package)
 
