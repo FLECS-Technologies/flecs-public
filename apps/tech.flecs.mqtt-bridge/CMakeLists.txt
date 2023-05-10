@@ -43,12 +43,12 @@ set(DOCKER_TAG ${APP_VERSION})
 
 install(
     TARGETS apps.mqtt-bridge
-    DESTINATION ${PROJECT_NAME}/docker
+    DESTINATION ${PROJECT_NAME}/docker/fs/usr/bin/
 )
 
 install(
     FILES $<TARGET_FILE:external.zenoh-c>
-    DESTINATION ${PROJECT_NAME}/docker
+    DESTINATION ${PROJECT_NAME}/docker/fs/usr/lib/
 )
 
 include(flecs-docker)
