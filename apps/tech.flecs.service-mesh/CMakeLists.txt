@@ -23,11 +23,4 @@ include(flecs-app)
 # configure Docker image
 set(DOCKER_IMAGE ${APP_NAME})
 set(DOCKER_TAG ${APP_VERSION})
-
-install(
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/assets
-    DESTINATION ${PROJECT_NAME}
-    USE_SOURCE_PERMISSIONS
-)
-
 include(flecs-docker)
