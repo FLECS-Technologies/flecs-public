@@ -22,7 +22,6 @@ jobs:
           git config --system --add safe.directory "*"
       - name: "CMake: Configure"
         run: |
-          git config --system --add safe.directory "*"
           cmake -G Ninja -B build/${{ matrix.arch }} -DARCH=${{ matrix.arch }} -DCMAKE_INSTALL_PREFIX=out/${{ matrix.arch }}
       - name: "CMake: Build"
         run: |
@@ -48,7 +47,6 @@ jobs:
           git config --system --add safe.directory "*"
       - name: "CMake: Configure"
         run: |
-          git config --system --add safe.directory "*"
           cmake -G Ninja -B build/${{ matrix.arch }} -DARCH=${{ matrix.arch }} -DFLECS_BUILD_TESTS=Yes -DCMAKE_INSTALL_PREFIX=out/${{ matrix.arch }}
       - name: "CMake: Build"
         run: |
