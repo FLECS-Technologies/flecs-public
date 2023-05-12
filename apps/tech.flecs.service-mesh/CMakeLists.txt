@@ -22,5 +22,9 @@ include(flecs-app)
 
 # configure Docker image
 set(DOCKER_IMAGE ${APP_NAME})
-set(DOCKER_TAG ${APP_VERSION})
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+    set(DOCKER_TAG "${APP_VERSION}")
+else()
+    set(DOCKER_TAG "${APP_VERSION}-dev")
+endif()
 include(flecs-docker)
