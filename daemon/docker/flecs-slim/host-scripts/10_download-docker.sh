@@ -20,13 +20,13 @@ cd ${DIRNAME}/../tmp
 
 case ${ARCH} in
   amd64)
-    wget https://download.docker.com/linux/static/stable/x86_64/docker-20.10.24.tgz
+    wget https://download.docker.com/linux/static/stable/x86_64/docker-23.0.6.tgz
     ;;
   armhf)
-    wget https://download.docker.com/linux/static/stable/armhf/docker-20.10.24.tgz
+    wget https://download.docker.com/linux/static/stable/armhf/docker-23.0.6.tgz
     ;;
   arm64)
-    wget https://download.docker.com/linux/static/stable/aarch64/docker-20.10.24.tgz
+    wget https://download.docker.com/linux/static/stable/aarch64/docker-23.0.6.tgz
     ;;
 esac
 
