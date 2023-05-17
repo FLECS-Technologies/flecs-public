@@ -1,7 +1,7 @@
 {
     "_schemaVersion": "2.0.0",
     "app": "tech.flecs.service-mesh",
-    "version": "2.1.0-dormouse",
+    "version": "2.1.1-dormouse",
     "title": "FLECS Service Mesh",
     "author": "info@flecs.tech",
     "image": "flecs/tech.flecs.service-mesh",
