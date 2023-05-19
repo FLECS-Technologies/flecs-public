@@ -2,8 +2,16 @@
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
-case "$1" in
-  *)
+case $1 in
+  failed-upgrade)
+    ;;
+  upgrade)
+    # TODO implement graceful detach in flecsd
+    echo "Detaching ##PACKAGE##.service"
+    systemctl kill --signal=KILL ##PACKAGE##
+    ;;
+  remove)
+    echo "Disabling ##PACKAGE##.service"
     systemctl disable --now ##PACKAGE##
     ;;
 esac

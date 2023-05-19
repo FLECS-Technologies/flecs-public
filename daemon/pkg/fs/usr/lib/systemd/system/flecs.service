@@ -1,0 +1,23 @@
+[Unit]
+Description=FLECS Daemon
+After=network-online.target
+Wants=network-online.target
+After=docker.service
+Requires=docker.service
+After=containerd.service
+Wants=containerd.service
+
+[Service]
+Type=exec
+TimeoutStartSec=infinity
+TimeoutStopSec=infinity
+ExecStartPre=/bin/bash -x /opt/flecsd/bin/flecsd.sh pull
+ExecStartPre=/bin/bash -x /opt/flecsd/bin/flecsd.sh remove
+ExecStartPre=/bin/bash -x /opt/flecsd/bin/flecsd.sh create
+ExecStart=/usr/bin/docker start -a flecs-flecsd
+ExecStop=/usr/bin/docker stop --time 120 flecs-flecsd
+ExecStopPost=/bin/bash -x /opt/flecsd/bin/flecsd.sh remove
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
