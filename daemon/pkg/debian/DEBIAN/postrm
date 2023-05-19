@@ -5,8 +5,12 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 case $1 in
   abort-upgrade)
     ;;
-  configure|abort-remove)
-    systemctl preset --now ##PACKAGE##
+  failed-upgrade)
+    ;;
+  upgrade)
+    ;;
+  purge)
+    rm -rf /var/lib/flecs
     ;;
 esac
 
