@@ -51,19 +51,18 @@ mapped_env_var_t::mapped_env_var_t(std::string_view str)
     : _env_var{}
     , _value{}
 {
-    auto parts = split(str, ':');
-    if (parts.size() == 2) {
-        _env_var = parts[0];
-        _value = parts[1];
+    std::tie(_env_var, _value) = split_first(str, ':');
+    if (!_env_var.var().empty() && _env_var.is_valid()) {
         return;
     }
 
-    parts = split(str, '=');
-    if (parts.size() == 2) {
-        _env_var = parts[0];
-        _value = parts[1];
+    std::tie(_env_var, _value) = split_first(str, '=');
+    if (!_env_var.var().empty() && _env_var.is_valid()) {
         return;
     }
+
+    _env_var = {};
+    _value = {};
 }
 
 auto mapped_env_var_t::is_valid() const noexcept //
