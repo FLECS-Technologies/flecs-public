@@ -104,6 +104,20 @@ TEST(env_var, from_json)
     ASSERT_TRUE(uut.is_valid());
     ASSERT_EQ(uut.var(), "ENV_VAR");
     ASSERT_EQ(uut.value(), "VALUE");
+
+    const auto json_3 = R"("PATH:/bin:/usr/bin:/sbin:/usr/sbin")"_json;
+    from_json(json_3, uut);
+
+    ASSERT_TRUE(uut.is_valid());
+    ASSERT_EQ(uut.var(), "PATH");
+    ASSERT_EQ(uut.value(), "/bin:/usr/bin:/sbin:/usr/sbin");
+
+    const auto json_4 = R"("PATH=/bin:/usr/bin:/sbin:/usr/sbin")"_json;
+    from_json(json_4, uut);
+
+    ASSERT_TRUE(uut.is_valid());
+    ASSERT_EQ(uut.var(), "PATH");
+    ASSERT_EQ(uut.value(), "/bin:/usr/bin:/sbin:/usr/sbin");
 }
 
 TEST(env_var, to_string)
