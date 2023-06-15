@@ -107,6 +107,46 @@ TEST(string_utils, split3)
     ASSERT_EQ(actual[2], "case");
 }
 
+TEST(string_utils, split_first1)
+{
+    const auto str = std::string{"flecs-test-case"};
+
+    const auto [first, second] = FLECS::split_first(str, '-');
+
+    ASSERT_EQ(first, "flecs");
+    ASSERT_EQ(second, "test-case");
+}
+
+TEST(string_utils, split_first2)
+{
+    const auto str = std::string{"flecs-"};
+
+    const auto [first, second] = FLECS::split_first(str, '-');
+
+    ASSERT_EQ(first, "flecs");
+    ASSERT_EQ(second, "");
+}
+
+TEST(string_utils, split_first3)
+{
+    const auto str = std::string{"flecs"};
+
+    const auto [first, second] = FLECS::split_first(str, '-');
+
+    ASSERT_EQ(first, "flecs");
+    ASSERT_EQ(second, "");
+}
+
+TEST(string_utils, split_first4)
+{
+    const auto str = std::string{"-"};
+
+    const auto [first, second] = FLECS::split_first(str, '-');
+
+    ASSERT_EQ(first, "");
+    ASSERT_EQ(second, "");
+}
+
 TEST(string_utils, ltrim)
 {
     using std::operator""s;

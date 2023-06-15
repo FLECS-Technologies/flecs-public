@@ -120,6 +120,31 @@ inline auto split(const CharT* s, CharT delim)
 }
 
 template <typename CharT, typename Traits>
+auto split_first(const std::basic_string<CharT, Traits>& str, CharT delim)
+    -> std::tuple<std::basic_string<CharT, Traits>, std::basic_string<CharT, Traits>>
+{
+    auto pos = str.find(delim);
+
+    if (pos >= str.size()) {
+        return {str, std::string{}};
+    }
+
+    return {str.substr(0, pos), str.substr(pos + 1)};
+}
+
+template <typename CharT, typename Traits>
+inline auto split_first(const std::basic_string_view<CharT, Traits>& sv, CharT delim)
+{
+    return split_first(std::basic_string<CharT, Traits>{sv}, delim);
+}
+
+template <typename CharT>
+inline auto split_first(const CharT* s, CharT delim)
+{
+    return split_first(std::basic_string<CharT>{s}, delim);
+}
+
+template <typename CharT, typename Traits>
 inline auto ltrim(std::basic_string<CharT, Traits>& str) //
 {
     str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](CharT c) {
