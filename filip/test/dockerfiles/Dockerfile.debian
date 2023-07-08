@@ -1,0 +1,6 @@
+ARG OS
+ARG SUITE
+
+FROM ${OS}:${SUITE}-slim
+
+RUN apt-get update && apt-get -y install sed && rm -rf /var/cache/apt/* && rm -rf /var/lib/apt/lists/*
