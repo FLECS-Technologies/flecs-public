@@ -41,10 +41,12 @@ target_link_libraries(
     daemon.modules.system
     util.network
     util.process
+    external.libdocker
 )
 
 target_link_libraries(
     ${PROJECT_NAME} INTERFACE
+    external.libdocker
 )
 
 add_subdirectory(test)

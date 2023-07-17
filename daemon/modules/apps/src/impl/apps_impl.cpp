@@ -15,6 +15,7 @@
 #include "impl/apps_impl.h"
 
 #include <cpr/cpr.h>
+#include "util/docker/libdocker_api_client.h"
 
 #include <algorithm>
 #include <fstream>
@@ -376,6 +377,7 @@ auto module_apps_t::do_install_impl(
 
                 auto login_attempts = 3;
                 while (login_attempts-- > 0) {
+                    /** @todo authentication */
                     docker_login_process = process_t{};
                     docker_login_process
                         .spawnp("docker", "login", "--username", "flecs", "--password", args[1]);
@@ -395,14 +397,14 @@ auto module_apps_t::do_install_impl(
 
             auto pull_attempts = 3;
             while (pull_attempts-- > 0) {
-                docker_pull_process = process_t{};
-                docker_pull_process.spawnp("docker", "pull", manifest->image_with_tag());
-                docker_pull_process.wait(true, true);
-                if (docker_pull_process.exit_code() == 0) {
+                auto docker_pull_client = setup_api_client();
+                auto pull_arg = json_t({"fromImage", manifest->image_with_tag()});
+                auto response = docker_pull_client.create_image(pull_arg);
+                if (response.empty()) {
                     break;
                 }
             }
-
+            /** @todo authentication */
             docker_logout_process.spawnp("docker", "logout");
             docker_logout_process.wait(true, true);
 
@@ -415,6 +417,15 @@ auto module_apps_t::do_install_impl(
         }
         case app_status_e::ImageDownloaded: {
             progress.next_step("Expiring download token");
+
+            auto docker_size_client = setup_api_client();
+            auto response = docker_size_client.inspect_image(manifest->image_with_tag());
+
+            if (! response.has_value()) {
+                auto size = response->size();
+                auto image_size = stoi(docker_size_process.stdout());
+                app->installed_size(image_size);
+            }
 
             auto docker_size_process = process_t{};
             docker_size_process
