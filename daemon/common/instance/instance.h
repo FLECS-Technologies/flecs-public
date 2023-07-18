@@ -28,11 +28,6 @@ namespace FLECS {
 
 class app_t;
 
-/*
-class instance_t
-{
-};
-*/
 class instance_t
 {
 public:
