@@ -1,7 +1,23 @@
+FROM debian:bullseye-slim AS docker-downloader
+
+ARG ARCH
+
+ENV BASE_URL=https://s3-eu-central-2.ionoscloud.com/flecs-public/flecs-docker-ce
+
+COPY utils/docker/scripts/debian/install-packages.sh /tmp/
+
+RUN /tmp/install-packages.sh curl wget
+
+RUN wget ${BASE_URL}/flecs-docker-ce_`curl -s -f ${BASE_URL}/latest-docker-ce`~debian.10~buster_${ARCH}.deb
+
+RUN mkdir -p /fs && ar x *.deb && tar -C /fs -xf data.tar.gz
+
 FROM debian:bullseye-slim
 
 ADD fs/ /
 ADD flecs/fs/ /
+
+COPY --from=docker-downloader /fs /
 
 COPY utils/docker/scripts/debian/install-packages.sh /tmp/
 
