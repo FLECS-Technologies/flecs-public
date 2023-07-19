@@ -10,7 +10,7 @@ RUN /tmp/install-packages.sh ca-certificates curl wget
 
 RUN wget ${BASE_URL}/flecs-docker-ce_`curl -s -f ${BASE_URL}/latest-docker-ce`~debian.10~buster_${ARCH}.deb
 
-RUN mkdir -p /fs && ar x *.deb && tar -C /fs -xf data.tar.gz
+RUN dpkg-deb -x *.deb /fs
 
 FROM debian:bullseye-slim
 
