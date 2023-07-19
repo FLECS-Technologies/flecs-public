@@ -23,6 +23,10 @@ COPY utils/docker/scripts/debian/install-packages.sh /tmp/
 
 RUN /tmp/install-packages.sh ca-certificates
 
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg]\
+    https://download.docker.com/linux/debian buster stable" >\
+    /etc/apt/sources.list.d/docker.list
+
 RUN /tmp/install-packages.sh containerd.io docker-ce-cli git \
     iptables libusb-1.0-0 procps
 
