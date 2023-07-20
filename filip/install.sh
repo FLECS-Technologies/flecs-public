@@ -20,7 +20,7 @@ SCRIPTNAME=`readlink -f ${0}`
 ARGS="$*"
 
 SCHEME=https://
-BASE_URL=marketplace.flecs.tech
+BASE_URL=s3-eu-central-2.ionoscloud.com/flecs-dl
 
 # some log functions...
 log_debug() {
@@ -791,12 +791,12 @@ determine_latest_version() {
   log_info -n "Determining latest FLECS version..."
   # try through curl first, if available
   if [ ! -z "${CURL}" ]; then
-    VERSION_CORE=`${CURL} -s -f ${SCHEME}${BASE_URL}/dl/latest_flecs_${ARCH}`
-    VERSION_WEBAPP=`${CURL} -s -f ${SCHEME}${BASE_URL}/dl/latest_flecs-webapp_${ARCH}`
+    VERSION_CORE=`${CURL} -s -f ${SCHEME}${BASE_URL}/latest_flecs_${ARCH}`
+    VERSION_WEBAPP=`${CURL} -s -f ${SCHEME}${BASE_URL}/latest_flecs-webapp_${ARCH}`
   # use wget as fallback, if available
   elif [ ! -z "${WGET}" ]; then
-    VERSION_CORE=`${WGET} -q -O - ${SCHEME}${BASE_URL}/dl/latest_flecs_${ARCH}`
-    VERSION_WEBAPP=`${WGET} -q -O - ${SCHEME}${BASE_URL}/dl/latest_flecs-webapp_${ARCH}`
+    VERSION_CORE=`${WGET} -q -O - ${SCHEME}${BASE_URL}/latest_flecs_${ARCH}`
+    VERSION_WEBAPP=`${WGET} -q -O - ${SCHEME}${BASE_URL}/latest_flecs-webapp_${ARCH}`
   fi
   if [ ! -z "${VERSION_CORE}" ] && [ ! -z "${VERSION_WEBAPP}" ]; then
     echo " OK"
@@ -853,11 +853,11 @@ download_flecs() {
   PACKAGES=(flecs_${VERSION_CORE}_${ARCH}.${PKGFORMAT} flecs-webapp_${VERSION_WEBAPP}_${ARCH}.${PKGFORMAT})
   for PACKAGE in ${PACKAGES[@]}; do
     if [ ! -z "${CURL}" ]; then
-      if ! ${CURL} -s -f -O ${SCHEME}${BASE_URL}/dl/${PKGFORMAT}/${PACKAGE}; then
+      if ! ${CURL} -s -f -O ${SCHEME}${BASE_URL}/${PKGFORMAT}/${PACKAGE}; then
         log_fatal "Could not download ${PACKAGE} through ${CURL}"
       fi
     elif [ ! -z "${WGET}" ]; then
-      if ! ${WGET} -q ${SCHEME}${BASE_URL}/dl/${PKGFORMAT}/${PACKAGE}; then
+      if ! ${WGET} -q ${SCHEME}${BASE_URL}/${PKGFORMAT}/${PACKAGE}; then
         log_fatal "Could not download ${PACKAGE} through ${WGET}"
       fi
     fi
