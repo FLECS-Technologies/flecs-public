@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+cat <<'EOF' > /tmp/filip.sh
+#!/bin/bash
 ME="FILiP"
 SCRIPTNAME=`readlink -f ${0}`
 ARGS="$*"
@@ -1034,4 +1036,15 @@ if [ -z "${FLECS_TESTING}" ]; then
   enable_flecs
 
   log_info "FLECS was successfully installed!"
+fi
+EOF
+
+SCRIPTNAME=`readlink -f "${0}"`
+if [ "${SCRIPTNAME}" != "/tmp/filip.sh" ]; then
+  chmod +x /tmp/filip.sh
+  if [ ! -t 0 ]; then
+    exec /tmp/filip.sh $* </dev/tty
+  else
+    exec /tmp/filip.sh $*
+  fi
 fi
