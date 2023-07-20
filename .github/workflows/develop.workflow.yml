@@ -54,29 +54,42 @@ jobs:
           name: packages_${{ matrix.arch }}
           path: |
             out/${{ matrix.arch }}/*.deb
+            out/${{ matrix.arch }}/latest_flecs_*
           retention-days: 3
 
-      - name: Deploy packages
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.MP_GITHUB_SERVER }}
-          username: ${{ secrets.MP_GITHUB_USER }}
-          key: ${{ secrets.MP_GITHUB_SSH_KEY }}
-          passphrase: ${{ secrets.MP_GITHUB_SSH_KEY_PW }}
-          source: "out/${{ matrix.arch }}/*.deb"
-          target: "${{ secrets.MP_GITHUB_DEVELOP_DIR }}/deb/"
-          strip_components: 2
+  deploy-s3:
+    needs: build
+    runs-on: ubuntu-22.04
 
-      - name: Deploy latest file
-        uses: appleboy/scp-action@master
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v3
         with:
-          host: ${{ secrets.MP_GITHUB_SERVER }}
-          username: ${{ secrets.MP_GITHUB_USER }}
-          key: ${{ secrets.MP_GITHUB_SSH_KEY }}
-          passphrase: ${{ secrets.MP_GITHUB_SSH_KEY_PW }}
-          source: "out/${{ matrix.arch }}/latest_flecs_${{ matrix.arch }}"
-          target: "${{ secrets.MP_GITHUB_DEVELOP_DIR }}/"
-          strip_components: 2
+          path: out/
+
+      - name: Setup AWS CLI
+        env:
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          S3_HOST: ${{ secrets.S3_HOST }}
+          S3_REGION: ${{ secrets.S3_REGION }}
+        run: |
+          aws configure set aws_access_key_id ${S3_ACCESS_KEY}
+          aws configure set aws_secret_access_key ${S3_SECRET_KEY}
+
+      - name: Deploy packages and latest files
+        env:
+          S3_HOST: ${{ secrets.S3_HOST }}
+          S3_REGION: ${{ secrets.S3_REGION }}
+        run: |
+          for i in `find out/ -mindepth 2 -maxdepth 2 -name "latest_flecs_*"`; do \
+            echo "Uploading ${i}"; \
+            aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key `basename ${i}` --body ${i}; \
+          done
+          for i in `find out/ -mindepth 2 -maxdepth 2 -name "*.deb"`; do \
+            echo "Uploading ${i}"; \
+            aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key deb/`basename ${i}` --body ${i}; \
+          done
 
   docker-hub:
     needs: build
