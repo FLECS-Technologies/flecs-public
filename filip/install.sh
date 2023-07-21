@@ -20,7 +20,7 @@ SCRIPTNAME=`readlink -f ${0}`
 ARGS="$*"
 
 SCHEME=https://
-BASE_URL=s3-eu-central-2.ionoscloud.com/flecs-dl
+BASE_URL=dl.flecs.tech
 
 # some log functions...
 log_debug() {
@@ -851,13 +851,14 @@ download_flecs() {
   log_info "Downloading FLECS as ${PKGFORMAT}"
 
   PACKAGES=(flecs_${VERSION_CORE}_${ARCH}.${PKGFORMAT} flecs-webapp_${VERSION_WEBAPP}_${ARCH}.${PKGFORMAT})
-  for PACKAGE in ${PACKAGES[@]}; do
+  DIRS=(flecs flecs-webapp)
+  for PACKAGE in ${!PACKAGES[@]}; do
     if [ ! -z "${CURL}" ]; then
-      if ! ${CURL} -s -f -O ${SCHEME}${BASE_URL}/${PKGFORMAT}/${PACKAGE}; then
+      if ! ${CURL} -s -f -O ${SCHEME}${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGE[$i]}; then
         log_fatal "Could not download ${PACKAGE} through ${CURL}"
       fi
     elif [ ! -z "${WGET}" ]; then
-      if ! ${WGET} -q ${SCHEME}${BASE_URL}/${PKGFORMAT}/${PACKAGE}; then
+      if ! ${WGET} -q ${SCHEME}${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGE[$i]}; then
         log_fatal "Could not download ${PACKAGE} through ${WGET}"
       fi
     fi
