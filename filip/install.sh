@@ -151,6 +151,9 @@ parse_args() {
       --no-banner)
         NO_BANNER=1
         ;;
+      --dev)
+        BASE_URL=dl-dev.flecs.tech
+        ;;
     esac
     shift
   done
@@ -791,8 +794,8 @@ determine_latest_version() {
   log_info -n "Determining latest FLECS version..."
   # try through curl first, if available
   if [ ! -z "${CURL}" ]; then
-    VERSION_CORE=`${CURL} -s -f ${SCHEME}${BASE_URL}/latest_flecs_${ARCH}`
-    VERSION_WEBAPP=`${CURL} -s -f ${SCHEME}${BASE_URL}/latest_flecs-webapp_${ARCH}`
+    VERSION_CORE=`${CURL} -fsSL ${SCHEME}${BASE_URL}/latest_flecs_${ARCH}`
+    VERSION_WEBAPP=`${CURL} -fsSL ${SCHEME}${BASE_URL}/latest_flecs-webapp_${ARCH}`
   # use wget as fallback, if available
   elif [ ! -z "${WGET}" ]; then
     VERSION_CORE=`${WGET} -q -O - ${SCHEME}${BASE_URL}/latest_flecs_${ARCH}`
@@ -854,7 +857,7 @@ download_flecs() {
   DIRS=(flecs flecs-webapp)
   for PACKAGE in ${!PACKAGES[@]}; do
     if [ ! -z "${CURL}" ]; then
-      if ! ${CURL} -s -f -O ${SCHEME}${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGE[$i]}; then
+      if ! ${CURL} -fsSL -O ${SCHEME}${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGE[$i]}; then
         log_fatal "Could not download ${PACKAGE} through ${CURL}"
       fi
     elif [ ! -z "${WGET}" ]; then
