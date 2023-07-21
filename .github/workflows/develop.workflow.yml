@@ -88,7 +88,7 @@ jobs:
           done
           for i in `find out/ -mindepth 2 -maxdepth 2 -name "*.deb"`; do \
             echo "Uploading ${i}"; \
-            aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key deb/`basename ${i}` --body ${i}; \
+            aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key flecs/deb/`basename ${i}` --body ${i}; \
           done
 
   docker-hub:
