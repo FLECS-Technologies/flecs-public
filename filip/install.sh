@@ -19,7 +19,6 @@ ME="FILiP"
 SCRIPTNAME=`readlink -f ${0}`
 ARGS="$*"
 
-SCHEME=https://
 BASE_URL=dl.flecs.tech
 
 # some log functions...
@@ -794,12 +793,12 @@ determine_latest_version() {
   log_info -n "Determining latest FLECS version..."
   # try through curl first, if available
   if [ ! -z "${CURL}" ]; then
-    VERSION_CORE=`${CURL} -fsSL ${SCHEME}${BASE_URL}/latest_flecs_${ARCH}`
-    VERSION_WEBAPP=`${CURL} -fsSL ${SCHEME}${BASE_URL}/latest_flecs-webapp_${ARCH}`
+    VERSION_CORE=`${CURL} -fsSL ${BASE_URL}/latest_flecs_${ARCH}`
+    VERSION_WEBAPP=`${CURL} -fsSL ${BASE_URL}/latest_flecs-webapp_${ARCH}`
   # use wget as fallback, if available
   elif [ ! -z "${WGET}" ]; then
-    VERSION_CORE=`${WGET} -q -O - ${SCHEME}${BASE_URL}/latest_flecs_${ARCH}`
-    VERSION_WEBAPP=`${WGET} -q -O - ${SCHEME}${BASE_URL}/latest_flecs-webapp_${ARCH}`
+    VERSION_CORE=`${WGET} -q -O - ${BASE_URL}/latest_flecs_${ARCH}`
+    VERSION_WEBAPP=`${WGET} -q -O - ${BASE_URL}/latest_flecs-webapp_${ARCH}`
   fi
   if [ ! -z "${VERSION_CORE}" ] && [ ! -z "${VERSION_WEBAPP}" ]; then
     echo " OK"
@@ -857,11 +856,11 @@ download_flecs() {
   DIRS=(flecs flecs-webapp)
   for PACKAGE in ${!PACKAGES[@]}; do
     if [ ! -z "${CURL}" ]; then
-      if ! ${CURL} -fsSL -O ${SCHEME}${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGE[$i]}; then
+      if ! ${CURL} -fsSL -O ${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGE[$i]}; then
         log_fatal "Could not download ${PACKAGE} through ${CURL}"
       fi
     elif [ ! -z "${WGET}" ]; then
-      if ! ${WGET} -q ${SCHEME}${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGE[$i]}; then
+      if ! ${WGET} -q ${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGE[$i]}; then
         log_fatal "Could not download ${PACKAGE} through ${WGET}"
       fi
     fi
