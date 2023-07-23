@@ -6,7 +6,8 @@ case $1 in
   abort-upgrade)
     ;;
   configure|abort-remove)
-    systemctl preset --now ##PACKAGE##
+    systemctl preset ##PACKAGE##
+    systemctl is-enabled ##PACKAGE## >/dev/null && systemctl start ##PACKAGE## || true
     ;;
 esac
 
