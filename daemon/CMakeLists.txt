@@ -18,14 +18,6 @@ add_subdirectory(api)
 add_subdirectory(common)
 add_subdirectory(modules)
 
-# configure package
-set(PACKAGE flecs)
-set(PACKAGE_VERSION ${CORE_VERSION})
-set(PACKAGE_DESC FLECS)
-set(PACKAGE_DEPENDS "docker-ce (>= 20.10.5) | docker.io (>= 20.10.5)")
-
-include(flecs-package)
-
 # build executable flecsd
 add_executable(daemon
     src/main.cpp
@@ -90,3 +82,19 @@ include(flecs-docker)
 # configure Docker image flecs-slim
 set(DOCKER_IMAGE flecs-slim)
 include(flecs-docker)
+
+
+# configure package
+set(PACKAGE flecs)
+set(PACKAGE_VERSION ${CORE_VERSION})
+set(PACKAGE_DESC FLECS)
+set(PACKAGE_DEPENDS "docker-ce (>= 20.10.5) | docker.io (>= 20.10.5)")
+
+add_custom_target(
+    flecs_deb-pkg-copy
+    WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/pkg
+    COMMAND pwd
+    COMMAND sed -i 's/^DOCKER_TAG.*/DOCKER_TAG=${DOCKER_TAG}/g' */opt/flecsd/bin/flecsd.sh
+)
+
+include(flecs-package)
