@@ -16,7 +16,7 @@
 SCRIPTNAME=$(basename $(readlink -f ${0}))
 
 DOCKER_IMAGE=flecs/flecs
-DOCKER_TAG=2.1.0-dormouse-slim
+DOCKER_TAG=
 CONTAINER=flecs-flecsd
 
 print_usage() {
