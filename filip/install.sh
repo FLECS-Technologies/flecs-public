@@ -531,7 +531,7 @@ determine_docker_version() {
     TIMEOUT=$((TIMEOUT-1))
   done
   if [ ! -z "${GREP}" ]; then
-    DOCKER_CLIENT_VERSION=`${DOCKER} -v 2>/dev/null | ${GREP} -oP "([0-9]+[\.]){2}[0-9]+"`
+    DOCKER_CLIENT_VERSION=`${DOCKER} -v 2>/dev/null | ${GREP} -oP "([0-9]+[\.]){2}[0-9]+" | ${HEAD} -n1`
   elif [ ! -z "${SED}" ]; then
     DOCKER_CLIENT_VERSION=`${DOCKER} -v 2>/dev/null | ${SED} -nE 's/^[^0-9]+([0-9\.]+).*$/\1/p'`
   fi
