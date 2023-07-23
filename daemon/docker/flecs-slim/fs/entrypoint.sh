@@ -20,4 +20,4 @@ while ! docker version >/dev/null 2>&1; do
     sleep 1
 done
 
-flecsd
+exec flecsd $*
