@@ -33,6 +33,51 @@ print_usage() {
   echo
 }
 
+create_network() {
+  # check if we have created network 'flecs' before
+  GATEWAY=`docker network inspect --format "{{range .IPAM.Config}}{{.Gateway}}{{end}}" flecs 2>/dev/null`
+
+  # if network 'flecs' does not exist, create it
+  if [ -z "${GATEWAY}" ]; then
+    # list all in-use IP addresses
+    if ifconfig -a >/dev/null 2>&1; then
+      IPS=`ifconfig -a | sed -n -E 's/^[[:space:]]+inet ([0-9\.]+).+$/\1/p'`
+    elif ip addr >/dev/null 2>&1; then
+      IPS=`ip addr -a | sed -n -E 's/^[[:space:]]+inet ([0-9\.]+).+$/\1/p'`
+    else
+      echo "Warning: Cannot determine in-use IP addresses" 1>&2
+    fi
+    # try subnets 172.21.0.0/16 --> 172.31.0.0/16
+    SUBNETS=(21 22 23 24 25 26 27 28 29 30 31)
+    for SUBNET in ${SUBNETS[*]}; do
+      # skip subnets that overlap with in-use IP addresses
+      SKIP_SUBNET=
+      for IP in ${IPS}; do
+        if [[ ${IP} == 172.${SUBNET}.* ]]; then
+          echo "${IP} collides with subnet 172.${SUBNET}.0.0/16 -- skipping"
+          SKIP_SUBNET="true"
+        fi
+      done
+      if [ ! -z "${SKIP_SUBNET}" ]; then
+        continue
+      fi
+      # try to create flecs network as Docker bridge network
+      if docker network create --driver bridge --subnet 172.${SUBNET}.0.0/16 --gateway 172.${SUBNET}.0.1 flecs >/dev/null 2>&1; then
+        GATEWAY="172.${SUBNET}.0.1"
+        break;
+      fi
+    done
+  fi
+
+  if [ -z "${GATEWAY}" ]; then
+    echo "Network 'flecs' does not exist and could not create it" 2>&1
+    exit 1
+  fi
+
+  IP=`echo ${GATEWAY} | sed -E 's/[0-9]+\.[0-9]+$/255.254/g'`
+  echo "Assigning IP ${IP} to ${CONTAINER}"
+}
+
 case ${1} in
   pull)
     # If pulling fails but an image is already present locally,
@@ -49,8 +94,15 @@ case ${1} in
     fi
     ;;
   create)
+    create_network
+    if [ -z "${IP}" ]; then
+      echo "Could not calculate IP address to assign to ${CONTAINER}"
+      exit 1
+    fi
     docker create \
       --name ${CONTAINER} \
+      --network flecs \
+      --ip ${IP} \
       --volume /run/docker.sock:/run/docker.sock \
       --volume flecsd:/var/lib/flecs \
       --rm ${DOCKER_IMAGE}:${DOCKER_TAG}
