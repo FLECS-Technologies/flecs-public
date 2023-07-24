@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container: flecs/flecs-build
+    container: flecs/flecs-build:${{ github.ref_name }}
 
     strategy:
       matrix:
@@ -79,7 +79,7 @@ jobs:
   docker-hub:
     needs: build
     runs-on: ubuntu-22.04
-    container: flecs/flecs-build
+    container: flecs/flecs-build:${{ github.ref_name }}
 
     steps:
       - name: Download Docker image archives
