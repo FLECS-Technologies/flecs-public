@@ -126,10 +126,12 @@ auto to_json(json_t& json, const app_t& app) //
     -> void
 {
     json = json_t(
-        {{"_schemaVersion", "2.0.0"},
+        {{"_schemaVersion", "2.1.0"},
          {"appKey", static_cast<const app_key_t&>(app)},
          {"status", to_string(app.status())},
          {"desired", to_string(app.desired())},
+         {"licenseKey", to_string(app.desired())},
+         {"downloadToken", to_string(app.desired())},
          {"installedSize", app.installed_size()}});
 }
 
@@ -150,6 +152,10 @@ static auto from_json_v2(const json_t& j, app_t& app) //
     app.status(app_status_from_string(j.at("status").get<std::string_view>()));
     app.desired(app_status_from_string(j.at("desired").get<std::string_view>()));
     app.installed_size(j.at("installedSize").get<std::int32_t>());
+    if (j.at("_schemaVersion").get<std::string_view>() == "2.1.0") {
+        app.license_key(j.at("licenseKey").get<std::string>());
+        app.download_token(j.at("downloadToken").get<std::string>());
+    }
 }
 
 auto from_json(const json_t& j, app_t& app) //
