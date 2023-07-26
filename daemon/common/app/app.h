@@ -38,7 +38,7 @@ public:
     auto download_token() const noexcept //
         -> const std::string&;
     auto installed_size() const noexcept //
-        -> std::int32_t;
+        -> std::int64_t;
     auto license_key() const noexcept //
         -> const std::string&;
     auto status() const noexcept //
@@ -50,7 +50,7 @@ public:
 
     auto download_token(std::string download_token) //
         -> void;
-    auto installed_size(std::int32_t installed_size) //
+    auto installed_size(std::int64_t installed_size) //
         -> void;
     auto license_key(std::string license_key) //
         -> void;
@@ -69,7 +69,7 @@ private:
 
     std::string _license_key;
     std::string _download_token;
-    std::int32_t _installed_size;
+    std::int64_t _installed_size;
     app_status_e _status;
     app_status_e _desired;
     std::weak_ptr<app_manifest_t> _manifest;

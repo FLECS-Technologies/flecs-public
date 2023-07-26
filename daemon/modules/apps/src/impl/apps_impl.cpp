@@ -427,8 +427,12 @@ auto module_apps_t::do_install_impl(
             docker_size_process.wait(false, true);
 
             if (docker_size_process.exit_code() == 0) {
-                auto image_size = stoi(docker_size_process.stdout());
-                app->installed_size(image_size);
+                try {
+                    auto image_size = stoll(docker_size_process.stdout());
+                    app->installed_size(image_size);
+                }
+                catch (...)
+                {}
             }
 
             // Step 5: Expire download token

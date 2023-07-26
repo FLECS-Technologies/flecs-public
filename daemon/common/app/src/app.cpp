@@ -57,7 +57,7 @@ auto app_t::download_token() const noexcept //
 }
 
 auto app_t::installed_size() const noexcept //
-    -> std::int32_t
+    -> std::int64_t
 {
     return _installed_size;
 }
@@ -92,7 +92,7 @@ auto app_t::download_token(std::string download_token) //
     _download_token = std::move(download_token);
 }
 
-auto app_t::installed_size(std::int32_t installed_size) //
+auto app_t::installed_size(std::int64_t installed_size) //
     -> void
 {
     _installed_size = installed_size;
