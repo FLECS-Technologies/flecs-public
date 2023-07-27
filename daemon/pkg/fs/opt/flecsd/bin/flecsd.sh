@@ -27,7 +27,8 @@ print_usage() {
   echo "Actions:"
   echo "      pull      Pull FLECS Core Docker image"
   echo "      create    Create FLECS Core Docker container"
-  echo "      delete    Delete FLECS Core Docker container"
+  echo "      remove    Delete FLECS Core Docker container"
+  echo "      migrate   Migrate local userdata into FLECS Core Docker container"
   echo "      stop      Cleanly shutdown FLECS Core Docker container"
   echo "      kill      Kill FLECS Core Docker container"
   echo
@@ -78,6 +79,36 @@ create_network() {
   echo "Assigning IP ${IP} to ${CONTAINER}"
 }
 
+create_container() {
+  if [ "${1}" = "--migrate" ]; then
+    ENTRYPOINT="--entrypoint bash"
+    COMMAND=("-c" "rm -rf /var/lib/flecs/* && cp -prTv /host/var/lib/flecs/ /var/lib/flecs/")
+    NETWORK="--network none"
+    CONTAINER_IP=""
+    VOLUME="--volume /var/lib/flecs:/host/var/lib/flecs"
+  else
+    ENTRYPOINT=""
+    COMMAND=()
+    NETWORK="--network flecs"
+    CONTAINER_IP="--ip ${IP}"
+    VOLUME="--volume /run/docker.sock:/run/docker.sock"
+  fi
+  docker create \
+    --rm \
+    --name ${CONTAINER} \
+    ${NETWORK} \
+    ${IP} \
+    ${ENTRYPOINT} \
+    ${VOLUME} \
+    --volume flecsd:/var/lib/flecs \
+    ${DOCKER_IMAGE}:${DOCKER_TAG} \
+    "${COMMAND[@]}"
+}
+
+remove_container() {
+  docker rm -f ${CONTAINER} >/dev/null 2>&1
+}
+
 case ${1} in
   pull)
     # If pulling fails but an image is already present locally,
@@ -99,17 +130,21 @@ case ${1} in
       echo "Could not calculate IP address to assign to ${CONTAINER}"
       exit 1
     fi
-    docker create \
-      --name ${CONTAINER} \
-      --network flecs \
-      --ip ${IP} \
-      --volume /run/docker.sock:/run/docker.sock \
-      --volume flecsd:/var/lib/flecs \
-      --rm ${DOCKER_IMAGE}:${DOCKER_TAG}
+    create_container
     exit $?
     ;;
   remove)
-    docker rm -f ${CONTAINER} >/dev/null 2>&1
+    remove_container
+    exit $?
+    ;;
+  migrate)
+    if [ ! -d "/var/lib/flecs" ]; then
+      # No local userdata present, nothing to migrate
+      exit 0
+    fi
+    remove_container
+    create_container --migrate || exit 1
+    docker start -a ${CONTAINER}
     exit $?
     ;;
   stop)
