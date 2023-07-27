@@ -6,8 +6,9 @@ case $1 in
   abort-upgrade)
     ;;
   configure|abort-remove)
+    /opt/flecsd/bin/flecsd.sh migrate || exit 1
     systemctl preset ##PACKAGE##
-    systemctl is-enabled ##PACKAGE## >/dev/null && systemctl start ##PACKAGE## || true
+    systemctl is-enabled ##PACKAGE## >/dev/null && systemctl start ##PACKAGE##
     ;;
 esac
 
