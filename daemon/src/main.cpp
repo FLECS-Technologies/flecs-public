@@ -16,10 +16,12 @@
 #include "factory/factory.h"
 #include "util/signal_handler/signal_handler.h"
 
-int main(int /*argc*/, char** /*argv*/)
+int main(int argc, char* argv[])
 {
+    const auto bindaddr = argc > 1 ? argv[1] : "127.0.0.1";
+
     FLECS::api::init_modules();
-    FLECS::flecs_api_t::instance().app().multithreaded().port(8951).run();
+    FLECS::flecs_api_t::instance().app().multithreaded().port(8951).bindaddr(bindaddr).run();
 
     FLECS::g_stop = true;
 
