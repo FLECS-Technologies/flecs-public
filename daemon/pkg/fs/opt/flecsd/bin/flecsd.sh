@@ -74,9 +74,6 @@ create_network() {
     echo "Network 'flecs' does not exist and could not create it" 2>&1
     exit 1
   fi
-
-  IP=`echo ${GATEWAY} | sed -E 's/[0-9]+\.[0-9]+$/255.254/g'`
-  echo "Assigning IP ${IP} to ${CONTAINER}"
 }
 
 create_container() {
@@ -84,25 +81,24 @@ create_container() {
     ENTRYPOINT="--entrypoint bash"
     COMMAND=("-c" "rm -rf /var/lib/flecs/* && cp -prTv /host/var/lib/flecs/ /var/lib/flecs/")
     NETWORK="--network none"
-    CONTAINER_IP=""
     VOLUME="--volume /var/lib/flecs:/host/var/lib/flecs"
+    shift
   else
     ENTRYPOINT=""
     COMMAND=()
-    NETWORK="--network flecs"
-    CONTAINER_IP="--ip ${IP}"
+    NETWORK="--network host"
     VOLUME="--volume /run/docker.sock:/run/docker.sock"
   fi
   docker create \
     --rm \
     --name ${CONTAINER} \
     ${NETWORK} \
-    ${IP} \
     ${ENTRYPOINT} \
     ${VOLUME} \
     --volume flecsd:/var/lib/flecs \
     ${DOCKER_IMAGE}:${DOCKER_TAG} \
-    "${COMMAND[@]}"
+    "${COMMAND[@]}" \
+    $*
 }
 
 remove_container() {
@@ -126,11 +122,7 @@ case ${1} in
     ;;
   create)
     create_network
-    if [ -z "${IP}" ]; then
-      echo "Could not calculate IP address to assign to ${CONTAINER}"
-      exit 1
-    fi
-    create_container
+    create_container ${GATEWAY}
     exit $?
     ;;
   remove)
