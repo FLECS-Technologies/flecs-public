@@ -202,7 +202,7 @@ apt_update() {
 }
 # wrapper for apt-get install
 apt_install() {
-  if [ -z "${APT_GET}" ] || ! ${APT_GET} -y install $@ >/dev/null 2>&1; then
+  if [ -z "${APT_GET}" ] || ! ${APT_GET} -y install --reinstall $@ >/dev/null 2>&1; then
     return 1
   fi
   return 0
