@@ -177,7 +177,7 @@ auto module_instances_t::do_is_running(std::shared_ptr<instance_t> instance) con
     return _deployment->is_instance_running(std::move(instance));
 }
 
-auto module_instances_t::queue_create(app_key_t app_key, std::string instance_name) //
+auto module_instances_t::queue_create(app_key_t app_key, std::string instance_name, bool running) //
     -> job_id_t
 {
     auto desc = "Creating new instance of " + to_string(app_key);
@@ -187,20 +187,21 @@ auto module_instances_t::queue_create(app_key_t app_key, std::string instance_na
         this,
         std::move(app_key),
         std::move(instance_name),
+        std::move(running),
         std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto module_instances_t::do_create_sync(app_key_t app_key, std::string instance_name) //
+auto module_instances_t::do_create_sync(app_key_t app_key, std::string instance_name, bool running) //
     -> result_t
 {
     auto _ = job_progress_t{};
-    return do_create(std::move(app_key), std::move(instance_name), _);
+    return do_create(std::move(app_key), std::move(instance_name), running, _);
 }
 
 auto module_instances_t::do_create(
-    app_key_t app_key, std::string instance_name, job_progress_t& progress) //
+    app_key_t app_key, std::string instance_name, bool running, job_progress_t& progress) //
     -> result_t
 {
     // Step 1: Ensure app is actually installed
@@ -236,6 +237,10 @@ auto module_instances_t::do_create(
 
     if (res != 0) {
         return {-1, "Could not create instance of " + to_string(app_key)};
+    }
+
+    if (running) {
+        return _parent->start(instance_id_t{instance_id});
     }
 
     return {0, instance_id};
