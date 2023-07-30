@@ -39,11 +39,7 @@ include(flecs-app)
 
 # configure Docker image
 set(DOCKER_IMAGE ${APP_NAME})
-if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-    set(DOCKER_TAG "${APP_VERSION}")
-else()
-    set(DOCKER_TAG "${APP_VERSION}-dev")
-endif()
+set(DOCKER_TAG "${APP_VERSION}")
 
 install(
     TARGETS apps.mqtt-bridge

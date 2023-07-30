@@ -72,11 +72,7 @@ install(
 
 # configure Docker image flecs
 set(DOCKER_IMAGE flecs)
-if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-    set(DOCKER_TAG "${CORE_VERSION}")
-else()
-    set(DOCKER_TAG "${CORE_VERSION}-dev")
-endif()
+set(DOCKER_TAG "${CORE_VERSION}")
 include(flecs-docker)
 
 # configure Docker image flecs-slim
