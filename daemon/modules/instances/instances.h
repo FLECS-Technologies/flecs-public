@@ -49,7 +49,7 @@ public:
     auto http_details(instance_id_t instance_id) const //
         -> crow::response;
 
-    auto http_create(app_key_t app_key, std::string instance_name) //
+    auto http_create(app_key_t app_key, std::string instance_name, bool running) //
         -> crow::response;
 
     auto http_start(instance_id_t instance_id) //
@@ -109,7 +109,7 @@ public:
     auto is_running(std::shared_ptr<instance_t> instance) const //
         -> bool;
 
-    auto create(app_key_t app_key, std::string instance_name) //
+    auto create(app_key_t app_key, std::string instance_name, bool running) //
         -> result_t;
     auto create(app_key_t app_key) //
         -> result_t;

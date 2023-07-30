@@ -57,7 +57,7 @@ auto module_instances_t::do_init() //
         const auto args = parse_json(req.body);
         REQUIRED_TYPED_JSON_VALUE(args, appKey, app_key_t);
         OPTIONAL_JSON_VALUE(args, instanceName);
-        return http_create(std::move(appKey), std::move(instanceName));
+        return http_create(std::move(appKey), std::move(instanceName), false);
     });
 
     FLECS_V2_ROUTE("/instances/<string>")
@@ -159,10 +159,10 @@ auto module_instances_t::http_details(instance_id_t instance_id) const //
     return _impl->do_details(std::move(instance_id));
 }
 
-auto module_instances_t::http_create(app_key_t app_key, std::string instance_name) //
+auto module_instances_t::http_create(app_key_t app_key, std::string instance_name, bool running) //
     -> crow::response
 {
-    auto job_id = _impl->queue_create(std::move(app_key), std::move(instance_name));
+    auto job_id = _impl->queue_create(std::move(app_key), std::move(instance_name), running);
     return crow::response{
         crow::status::ACCEPTED,
         "json",
@@ -271,26 +271,26 @@ auto module_instances_t::is_running(std::shared_ptr<instance_t> instance) const 
     return _impl->do_is_running(std::move(instance));
 }
 
-auto module_instances_t::create(app_key_t app_key, std::string instance_name) //
+auto module_instances_t::create(app_key_t app_key, std::string instance_name, bool running) //
     -> result_t
 {
-    return _impl->do_create_sync(std::move(app_key), std::move(instance_name));
+    return _impl->do_create_sync(std::move(app_key), std::move(instance_name), running);
 }
 auto module_instances_t::create(app_key_t app_key) //
     -> result_t
 {
-    return create(std::move(app_key), {});
+    return create(std::move(app_key), {}, false);
 }
 auto module_instances_t::create(
     std::string app_name, std::string version, std::string instance_name) //
     -> result_t
 {
-    return create(app_key_t{std::move(app_name), std::move(version)}, std::move(instance_name));
+    return create(app_key_t{std::move(app_name), std::move(version)}, std::move(instance_name), false);
 }
 auto module_instances_t::create(std::string app_name, std::string version) //
     -> result_t
 {
-    return create(app_key_t{std::move(app_name), std::move(version)}, {});
+    return create(app_key_t{std::move(app_name), std::move(version)}, {}, false);
 }
 
 auto module_instances_t::start(instance_id_t instance_id) //

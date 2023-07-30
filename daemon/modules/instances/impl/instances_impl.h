@@ -63,11 +63,11 @@ private:
     auto do_list(const app_key_t& app_key) const //
         -> std::vector<instance_id_t>;
 
-    auto queue_create(app_key_t app_key, std::string instance_name) //
+    auto queue_create(app_key_t app_key, std::string instance_name, bool running) //
         -> job_id_t;
-    auto do_create_sync(app_key_t app_key, std::string instance_name) //
+    auto do_create_sync(app_key_t app_key, std::string instance_name, bool running) //
         -> result_t;
-    auto do_create(app_key_t app_key, std::string instance_name, job_progress_t& progress) //
+    auto do_create(app_key_t app_key, std::string instance_name, bool running, job_progress_t& progress) //
         -> result_t;
 
     auto queue_start(instance_id_t instance_id, bool once) //
