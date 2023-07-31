@@ -52,7 +52,7 @@ static auto acquire_download_token(std::string_view license_key) //
     post_json["license_key"] = license_key;
 
 #ifndef NDEBUG
-    const auto url = cpr::Url{"https://marketplace.flecs.tech:8443/api/v1/app/download"};
+    const auto url = cpr::Url{"https://marketplace-staging.flecs.tech/api/v1/app/download"};
 #else
     const auto url = cpr::Url{"https://marketplace.flecs.tech/api/v1/app/download"};
 #endif // NDEBUG

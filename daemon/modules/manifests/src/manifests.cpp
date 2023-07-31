@@ -139,7 +139,7 @@ auto module_manifests_t::add_from_marketplace(const app_key_t& app_key) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
 #ifndef NDEBUG
-    auto url = std::string{"https://marketplace.flecs.tech:8443/manifests/apps/"};
+    auto url = std::string{"https://marketplace-staging.flecs.tech/manifests/apps/"};
 #else
     auto url = std::string{"https://marketplace.flecs.tech/manifests/apps/"};
 #endif // NDEBUG
