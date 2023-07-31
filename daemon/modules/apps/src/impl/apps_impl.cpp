@@ -199,12 +199,12 @@ auto module_apps_t::do_module_start() //
             save = true;
             std::fprintf(stdout, "Installing system app %s\n", to_string(app).c_str());
             auto res = _parent->http_install(app, {});
-            if (res.code != crow::status::OK) {
+            if (res.code != crow::status::ACCEPTED) {
                 std::fprintf(stderr, "%s\n", res.body.c_str());
                 continue;
             }
             res = _instances_api->http_create(app, {}, true);
-            if (res.code != crow::status::OK) {
+            if (res.code != crow::status::ACCEPTED) {
                 std::fprintf(stderr, "%s\n", res.body.c_str());
                 continue;
             }
