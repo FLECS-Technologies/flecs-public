@@ -198,19 +198,14 @@ auto module_apps_t::do_module_start() //
         if (!have_newer_version && !_parent->is_installed(app)) {
             save = true;
             std::fprintf(stdout, "Installing system app %s\n", to_string(app).c_str());
-            auto [res, message] = _parent->import_from(app, "/opt/flecs/assets");
-            if (res != 0) {
-                std::fprintf(stderr, "%s\n", message.c_str());
+            auto res = _parent->http_install(app, {});
+            if (res.code != crow::status::OK) {
+                std::fprintf(stderr, "%s\n", res.body.c_str());
                 continue;
             }
-            std::tie(res, message) = _instances_api->create(app);
-            if (res != 0) {
-                std::fprintf(stderr, "%s\n", message.c_str());
-                continue;
-            }
-            std::tie(res, message) = _instances_api->start(instance_id_t{message});
-            if (res != 0) {
-                std::fprintf(stderr, "%s\n", message.c_str());
+            res = _instances_api->http_create(app, {}, true);
+            if (res.code != crow::status::OK) {
+                std::fprintf(stderr, "%s\n", res.body.c_str());
                 continue;
             }
         }
