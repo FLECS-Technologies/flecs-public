@@ -53,7 +53,7 @@ jobs:
         with:
           name: packages_${{ matrix.arch }}
           path: |
-            out/${{ matrix.arch }}/*.deb
+            out/${{ matrix.arch }}/pkg/*.deb
             out/${{ matrix.arch }}/latest_flecs_*
           retention-days: 3
 
@@ -82,14 +82,19 @@ jobs:
           S3_HOST: ${{ secrets.S3_HOST }}
           S3_REGION: ${{ secrets.S3_REGION }}
         run: |
-          for i in `find out/ -mindepth 2 -maxdepth 2 -name "latest_flecs_*"`; do \
+          for i in `find out/*/ -mindepth 1 -maxdepth 1 -name "latest_flecs_*"`; do \
             echo "Uploading ${i}"; \
             aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key `basename ${i}` --body ${i}; \
           done
-          for i in `find out/ -mindepth 2 -maxdepth 2 -name "*.deb"`; do \
+          for i in `find out/*/pkg -name "*.deb"`; do \
             echo "Uploading ${i}"; \
             aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key flecs/deb/`basename ${i}` --body ${i}; \
           done
+          for i in `find out/*/pkg -name "*.tar"`; do \
+            echo "Uploading ${i}"; \
+            aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key flecs/tar/`basename ${i}` --body ${i}; \
+          done
+        shell: bash
 
   docker-hub:
     needs: build
@@ -110,7 +115,7 @@ jobs:
 
       - name: Push Docker images
         run: |
-          for archive in `find out/ -name "*.tar"`; do \
+          for archive in `find out/*/docker -name "*.tar"`; do \
             DOCKER_IMAGE=$(docker load --quiet --input ${archive} | cut -f2- -d ':'); \
             DOCKER_IMAGES="${DOCKER_IMAGES} `echo ${DOCKER_IMAGE} | sed -E 's/(.*)-.+$/\1/p'`"; \
             docker push ${DOCKER_IMAGE}; \
