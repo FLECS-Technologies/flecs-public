@@ -175,8 +175,8 @@ auto module_apps_t::do_module_start() //
     -> void
 {
     const auto system_apps = std::array<app_key_t, 2>{
-        app_key_t{"tech.flecs.service-mesh", FLECS_VERSION},
-        app_key_t{"tech.flecs.mqtt-bridge", FLECS_VERSION},
+        app_key_t{"tech.flecs.service-mesh", "2.1.1-dormouse"},
+        app_key_t{"tech.flecs.mqtt-bridge", "2.1.1-dormouse"},
     };
 
     auto save = false;
