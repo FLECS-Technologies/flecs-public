@@ -240,7 +240,7 @@ auto module_instances_t::do_create(
     }
 
     if (running) {
-        return _parent->start(instance_id_t{instance_id});
+        _parent->start(instance_id_t{instance_id});
     }
 
     return {0, instance_id};
