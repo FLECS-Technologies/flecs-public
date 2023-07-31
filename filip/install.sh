@@ -18,6 +18,8 @@ cat <<'EOF' > /tmp/filip.sh
 ME="FILiP"
 SCRIPTNAME=`readlink -f ${0}`
 ARGS="$*"
+STDOUT=/dev/null
+STDERR=/dev/null
 
 BASE_URL=dl.flecs.tech
 
@@ -139,6 +141,8 @@ parse_args() {
     case ${1} in
       -d|--debug)
         LOG_DEBUG=1
+        STDOUT=/dev/stdout
+        STDERR=/dev/stderr
         log_debug "Running with debug output"
         ;;
       -y|--yes)
@@ -195,42 +199,44 @@ have() {
 
 # wrapper for apt-get update
 apt_update() {
-  if [ -z "${APT_GET}" ] || ! ${APT_GET} update >/dev/null 2>&1; then
+  log_debug "apt-get update"
+  if [ -z "${APT_GET}" ] || ! ${APT_GET} update 1>${STDOUT} 2>${STDERR}; then
     return 1
   fi
   return 0
 }
 # wrapper for apt-get install
 apt_install() {
-  if [ -z "${APT_GET}" ] || ! ${APT_GET} -y install --reinstall $@ >/dev/null 2>&1; then
+  log_debug "apt-get install $@"
+  if [ -z "${APT_GET}" ] || ! ${APT_GET} -y install --reinstall $@ 1>${STDOUT} 2>${STDERR}; then
     return 1
   fi
   return 0
 }
 # wrapper for pacman -Syu
 pacman_update() {
-  if [ -z "${PACMAN}" ] || ! ${PACMAN} -Syu --noconfirm >/dev/null 2>&1; then
+  if [ -z "${PACMAN}" ] || ! ${PACMAN} -Syu --noconfirm 1>${STDOUT} 2>${STDERR}; then
     return 1
   fi
   return 0
 }
 # wrapper for pacman -S
 pacman_install() {
-  if [ -z "${PACMAN}" ] || ! ${PACMAN} -S --needed --noconfirm $@ >/dev/null 2>&1; then
+  if [ -z "${PACMAN}" ] || ! ${PACMAN} -S --needed --noconfirm $@ 1>${STDOUT} 2>${STDERR}; then
     return 1
   fi
   return 0
 }
 # wrapper for yum update
 yum_update() {
-  if [ -z "${YUM}" ] || ! ${YUM} update --assumeno >/dev/null 2>&1; then
+  if [ -z "${YUM}" ] || ! ${YUM} update --assumeno 1>${STDOUT} 2>${STDERR}; then
     return 1
   fi
   return 0
 }
 # wrapper for yum install
 yum_install() {
-  if [ -z "${YUM}" ] || ! ${YUM} install --assumeyes >/dev/null 2>&1; then
+  if [ -z "${YUM}" ] || ! ${YUM} install --assumeyes 1>${STDOUT} 2>${STDERR}; then
     return 1
   fi
   return 0
@@ -331,12 +337,12 @@ verify_tools() {
 check_connectivity() {
   log_info -n "Checking internet connectivity..."
   if [ ! -z "${CURL}" ]; then
-    if ${CURL} ${BASE_URL} >/dev/null 2>&1; then
+    if ${CURL} ${BASE_URL} 1>${STDOUT} 2>${STDERR}; then
       echo "OK"
       return 0
     fi
  elif [ ! -z "${WGET}" ]; then
-    if ${WGET} -q ${BASE_URL} >/dev/null 2>&1; then
+    if ${WGET} -q ${BASE_URL} 1>${STDOUT} 2>${STDERR}; then
       echo "OK"
       return 0
     fi
@@ -616,10 +622,10 @@ add_debian_keys() {
   local KEYSERVER="keyserver.ubuntu.com"
   local KEYS=(04EE7237B7D453EC 648ACFD622F3D138)
   for KEY in "${KEYS[@]}"; do
-    if ! ${GPG} --keyserver ${KEYSERVER} --recv-keys ${KEY} >/dev/null 2>&1; then
+    if ! ${GPG} --keyserver ${KEYSERVER} --recv-keys ${KEY} 1>${STDOUT} 2>${STDERR}; then
       log_fatal "Failed to receive key ${KEY}"
     fi
-    if ! ${GPG} --export ${KEY} | ${APT_KEY} add - >/dev/null 2>&1; then
+    if ! ${GPG} --export ${KEY} | ${APT_KEY} add - 1>${STDOUT} 2>${STDERR}; then
       log_fatal "Failed to trust key ${KEY}"
     fi
   done
@@ -885,11 +891,11 @@ install_flecs() {
           fi
         done
       elif [ ! -z "${DPKG}" ]; then
-        if ! ${DPKG} --install ${PACKAGE} >/dev/null 2>&1; then
+        if ! ${DPKG} --install ${PACKAGE} 1>${STDOUT} 2>${STDERR}; then
           log_fatal "Could not install ${PACKAGE} through dpkg"
         fi
       elif [ ! -z "${OPKG}" ]; then
-        if ! ${OPKG} --install ${PACKAGE} >/dev/null 2>&1; then
+        if ! ${OPKG} --install ${PACKAGE} 1>${STDOUT} 2>${STDERR}; then
           log_fatal "Could not install ${PACKAGE} through opkg"
         fi
       else
