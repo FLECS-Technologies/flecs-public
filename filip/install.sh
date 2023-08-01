@@ -891,13 +891,19 @@ install_flecs() {
           fi
         done
       elif [ ! -z "${DPKG}" ]; then
-        if ! ${DPKG} --install ${PACKAGE} 1>${STDOUT} 2>${STDERR}; then
-          log_fatal "Could not install ${PACKAGE} through dpkg"
-        fi
+        log_info -q " dpkg"
+        for PACKAGE in "${PACKAGES[@]}"; do
+          if ! ${DPKG} --install ${DOWNLOAD_DIR}/${PACKAGE} 1>${STDOUT} 2>${STDERR}; then
+            log_fatal "Could not install ${PACKAGE} through dpkg"
+          fi
+        done
       elif [ ! -z "${OPKG}" ]; then
-        if ! ${OPKG} --install ${PACKAGE} 1>${STDOUT} 2>${STDERR}; then
-          log_fatal "Could not install ${PACKAGE} through opkg"
-        fi
+        log_info -q " opkg"
+        for PACKAGE in "${PACKAGES[@]}"; do
+          if ! ${OPKG} --install ${DOWNLOAD_DIR}/${PACKAGE} 1>${STDOUT} 2>${STDERR}; then
+            log_fatal "Could not install ${PACKAGE} through opkg"
+          fi
+        done
       else
         internal_error "Neither apt-get nor dpkg/opkg available to install deb package"
       fi
@@ -907,6 +913,18 @@ install_flecs() {
       log_fatal "rpm package format is currently unsupported"
       ;;
     tar)
+      log_info -q " tar"
+      for PACKAGE in "${PACKAGES[@]}"; do
+        if [ ! -z "${SYSTEMCTL}" ]; then
+          if ! ${TAR} -C / -xf ${PACKAGE} --exclude=etc; then
+            log_fatal "Could not install ${PACKAGE} through tar"
+          fi
+        else
+          if ! ${TAR} -C / -xf ${PACKAGE} --exclude=usr; then
+            log_fatal "Could not install ${PACKAGE} through tar"
+          fi
+        fi
+      done
       ;;
   esac
   :;
