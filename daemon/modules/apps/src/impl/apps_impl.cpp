@@ -180,30 +180,30 @@ auto module_apps_t::do_module_start() //
     };
 
     auto save = false;
-    for (const auto& app : system_apps) {
+    for (const auto& system_app : system_apps) {
         /* uninstall previous versions of system apps */
         auto have_newer_version = false;
-        const auto versions = _parent->app_keys(app.name().data());
-        for (const auto& version : versions) {
-            if (version.version() < FLECS_VERSION) {
+        const auto installed_versions = _parent->app_keys(system_app.name().data());
+        for (const auto& installed_version : installed_versions) {
+            if (installed_version.version() < system_app.version()) {
                 save = true;
-                std::fprintf(stdout, "Removing system app %s\n", to_string(version).c_str());
-                _parent->uninstall(version, true);
-            } else if (version.version() > FLECS_VERSION) {
+                std::fprintf(stdout, "Removing system app %s\n", to_string(installed_version).c_str());
+                _parent->uninstall(installed_version, true);
+            } else if (installed_version.version() > system_app.version()) {
                 have_newer_version = true;
             }
         }
 
         /* install current version, if no newer version is present */
-        if (!have_newer_version && !_parent->is_installed(app)) {
+        if (!have_newer_version && !_parent->is_installed(system_app)) {
             save = true;
-            std::fprintf(stdout, "Installing system app %s\n", to_string(app).c_str());
-            auto res = _parent->http_install(app, {});
+            std::fprintf(stdout, "Installing system app %s\n", to_string(system_app).c_str());
+            auto res = _parent->http_install(system_app, {});
             if (res.code != crow::status::ACCEPTED) {
                 std::fprintf(stderr, "%s\n", res.body.c_str());
                 continue;
             }
-            res = _instances_api->http_create(app, {}, true);
+            res = _instances_api->http_create(system_app, {}, true);
             if (res.code != crow::status::ACCEPTED) {
                 std::fprintf(stderr, "%s\n", res.body.c_str());
                 continue;
