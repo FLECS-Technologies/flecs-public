@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PATH=/sbin:/usr/sbin:/bin:/usr/bin:/opt/flecs/bin
+PATH=${PATH}:/opt/flecs/bin
 
 # verify docker socket is ready
 while ! docker version >/dev/null 2>&1; do
