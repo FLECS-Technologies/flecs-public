@@ -16,6 +16,11 @@ RUN mkdir -p /fs/usr/local/bin && tar -C /fs/usr/local/bin --strip-components=1 
 
 FROM debian:bullseye-slim
 
+RUN apt-get update && \
+    apt-get --yes --no-install-recommends install ca-certificates && \
+    apt-get --yes clean && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=docker-downloader /fs /
 ADD fs/ /
 ADD flecs-slim/fs/ /
