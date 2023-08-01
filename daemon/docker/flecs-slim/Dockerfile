@@ -12,7 +12,7 @@ RUN [ "${ARCH}" = "amd64" ] && wget https://download.docker.com/linux/static/sta
 RUN [ "${ARCH}" = "armhf" ] && wget https://download.docker.com/linux/static/stable/armhf/docker-24.0.4.tgz || true
 RUN [ "${ARCH}" = "arm64" ] && wget https://download.docker.com/linux/static/stable/aarch64/docker-24.0.4.tgz || true
 
-RUN mkdir -p /fs && tar -C /fs --strip-components=1 -xf docker-*.tgz docker/docker
+RUN mkdir -p /fs/usr/local/bin && tar -C /fs/usr/local/bin --strip-components=1 -xf docker-*.tgz docker/docker
 
 FROM debian:bullseye-slim
 
