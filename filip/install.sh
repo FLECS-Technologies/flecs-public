@@ -23,6 +23,17 @@ STDERR=/dev/null
 
 BASE_URL=dl.flecs.tech
 
+print_usage() {
+  echo "Usage: ${SCRIPTNAME}" [options]
+  echo
+  echo "  -d --debug           print additional debug messages"
+  echo "  -y --yes             assume yes as answer to all prompts (unattended mode)"
+  echo "     --no-banner       do not print ${ME} banner"
+  echo "     --no-welcome      do not print welcome message"
+  echo "     --root-dir <dir>  install files relative do <dir> instead of /"
+  echo "     --help            print this help and exit"
+}
+
 # some log functions...
 log_debug() {
   if [ ! -z "${LOG_DEBUG}" ]; then
@@ -156,6 +167,10 @@ parse_args() {
         ;;
       --dev)
         BASE_URL=dl-dev.flecs.tech
+        ;;
+      --help)
+        print_usage
+        exit 0
         ;;
     esac
     shift
