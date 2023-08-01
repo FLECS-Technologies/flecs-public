@@ -87,10 +87,24 @@ log_warning() {
   fi
 }
 log_error() {
-  if [ -z "$@" ]; then
-    echo 1>&2
+  while true; do
+    case ${1} in
+      -n)
+        local ECHO_ARGS="-n"
+        shift
+        ;;
+      -q)
+        local NO_PREFIX=true
+        shift
+        ;;
+      *)
+        break;;
+    esac
+  done
+  if [ -z "${NO_PREFIX}" ]; then
+    echo ${ECHO_ARGS} "Error: $@" 1>&2
   else
-    echo "Error: $@" 1>&2
+    echo ${ECHO_ARGS} "$@" 1>&2
   fi
 }
 # log_fatal will terminate with exit code 1 after logging
