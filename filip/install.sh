@@ -394,13 +394,13 @@ check_connectivity() {
 
 machine_to_arch() {
   case ${MACHINE} in
-    x86_64|x86-64)
+    amd64|x86_64|x86-64)
       ARCH="amd64"
       ;;
-    aarch64)
+    arm64|aarch64)
       ARCH="arm64"
       ;;
-    armv7l)
+    armhf|armv7l)
       ARCH="armhf"
       ;;
     *)
@@ -410,7 +410,9 @@ machine_to_arch() {
 }
 detect_arch() {
   log_debug -n "Detecting system architecture..."
-  if [ ! -z "${UNAME}" ]; then
+  if [ ! -z "${DPKG}" ]; then
+    MACHINE=`${DPKG} --print-architecture`
+  elif [ ! -z "${UNAME}" ]; then
     MACHINE=`${UNAME} -m` 
   elif [ ! -z "${LDCONFIG}" ] && [ ! -z "${GREP}" ]; then
     MACHINE=`${LDCONFIG} -p | ${GREP} -oP "(?<=\/ld-linux-)[^.]+"`
