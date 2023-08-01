@@ -14,10 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ ! -f "/etc/hosts.old" ]; then
-	cp -f /etc/hosts /etc/hosts.old
-fi
-
 (echo "init" && docker events --filter 'type=network' --filter 'event=connect' --filter 'event=disconnect' --filter 'network=flecs') | \
 while read line; do
 	# delete existing FLECS block from /etc/hosts

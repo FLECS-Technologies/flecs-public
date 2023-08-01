@@ -70,6 +70,13 @@ install(
     DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/lib
 )
 
+# install helper scripts for packaging
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/scripts/
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/bin
+    USE_SOURCE_PERMISSIONS
+)
+
 # configure Docker image flecs
 set(DOCKER_IMAGE flecs)
 set(DOCKER_TAG "${CORE_VERSION}")
@@ -78,7 +85,6 @@ include(flecs-docker)
 # configure Docker image flecs-slim
 set(DOCKER_IMAGE flecs-slim)
 include(flecs-docker)
-
 
 # configure package
 set(PACKAGE flecs)
