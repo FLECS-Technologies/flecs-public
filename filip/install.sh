@@ -18,6 +18,7 @@ cat <<'EOF' > /tmp/filip.sh
 ME="FILiP"
 SCRIPTNAME=`readlink -f ${0}`
 ARGS="$*"
+ROOT_DIR=/
 STDOUT=/dev/null
 STDERR=/dev/null
 
@@ -30,7 +31,7 @@ print_usage() {
   echo "  -y --yes             assume yes as answer to all prompts (unattended mode)"
   echo "     --no-banner       do not print ${ME} banner"
   echo "     --no-welcome      do not print welcome message"
-  echo "     --root-dir <dir>  install files relative do <dir> instead of /"
+  echo "     --root-dir <dir>  install files relative do <dir> instead of / (currently .tar only)"
   echo "     --help            print this help and exit"
 }
 
@@ -955,11 +956,18 @@ install_flecs() {
       log_info -q " tar"
       for PACKAGE in "${PACKAGES[@]}"; do
         if [ ! -z "${SYSTEMCTL}" ]; then
-          if ! ${TAR} -C / -xf ${PACKAGE} --exclude=etc; then
+          #systemd
+          if ! ${TAR} -C ${ROOT_DIR} -xf ${PACKAGE} --exclude=etc; then
+            log_fatal "Could not install ${PACKAGE} through tar"
+          fi
+        elif [ ! -z "${DOCKER_COMPOSE}" ]; then
+          #docker-compose
+          if ! ${TAR} -C ${ROOT_DIR} -xf ${PACKAGE} --exclude=usr --exclude=etc/init.d; then
             log_fatal "Could not install ${PACKAGE} through tar"
           fi
         else
-          if ! ${TAR} -C / -xf ${PACKAGE} --exclude=usr; then
+          #init.d
+          if ! ${TAR} -C ${ROOT_DIR} -xf ${PACKAGE} --exclude=usr; then
             log_fatal "Could not install ${PACKAGE} through tar"
           fi
         fi
