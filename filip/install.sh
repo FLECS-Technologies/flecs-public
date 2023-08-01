@@ -193,6 +193,7 @@ have() {
   log_debug -n "Looking for ${1}..."
   local TOOL=${1^^}
   local TOOL=${TOOL//-/_}
+  local TOOL=${TOOL//./_}
   declare -g ${TOOL}=`have_program ${1}`
   [ ! -z "${!TOOL}" ] && log_debug -q " found" || log_debug -q " not found"
 }
@@ -292,7 +293,7 @@ install_program() {
 # detect which tools are available on the system
 detect_tools() {
   log_debug "Checking availability of required tools..."
-  TOOLS=(apt-get apt-key curl docker docker-compose docker-init dpkg grep gpg head ldconfig mktemp opkg pacman rpm sed sort systemctl uname wget yum)
+  TOOLS=(apt-get apt-key curl docker docker-compose docker-init dpkg grep gpg head ldconfig mktemp opkg pacman rpm sed sort systemctl uname update-rc.d wget yum)
   for TOOL in ${TOOLS[@]}; do
     have ${TOOL}
   done
@@ -938,6 +939,11 @@ enable_flecs() {
         ${SYSTEMCTL} enable --now flecs >/dev/null 2>&1
         ${SYSTEMCTL} enable --now flecs-webapp >/dev/null 2>&1
       fi
+    fi
+  elif [ ! -z "${UPDATE_RC_D}" ]; then
+    if confirm_yn "FLECS is not enabled by default on your system. Enable and start FLECS now"; then
+      ${UPDATE_RC_D} flecs defaults
+      /etc/init.d/flecs start
     fi
   fi
 }
