@@ -16,8 +16,13 @@
 
 (echo "init" && docker events --filter 'type=network' --filter 'event=connect' --filter 'event=disconnect' --filter 'network=flecs') | \
 while read line; do
-	# delete existing FLECS block from /etc/hosts
-	sed -i '/### BEGIN FLECS ###/,/### END FLECS ###/d' /etc/hosts
+	# sed -i won't work in containerized environments as /etc/hosts is locked (device or resource busy)
+	# workaround by creating temporary hosts.flecs without FLECS block from /etc/hosts...
+	sed '/### BEGIN FLECS ###/,/### END FLECS ###/d' /etc/hosts >/etc/hosts.flecs
+
+	# ...and copy it back like this
+	echo "" >/etc/hosts
+	cat /etc/hosts.flecs >>/etc/hosts
 
 	# create a new FLECS block in /etc/hosts
 	echo "### BEGIN FLECS ###" >>/etc/hosts
