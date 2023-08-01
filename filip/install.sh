@@ -971,7 +971,7 @@ enable_flecs() {
     fi
   elif [ ! -z "${UPDATE_RC_D}" ]; then
     if confirm_yn "FLECS is not enabled by default on your system. Enable and start FLECS now"; then
-      ${UPDATE_RC_D} flecs defaults
+      ${UPDATE_RC_D} flecs defaults 80 80
       /etc/init.d/flecs start
     fi
   fi
