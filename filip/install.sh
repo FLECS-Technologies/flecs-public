@@ -233,7 +233,9 @@ have() {
   local TOOL=${1^^}
   local TOOL=${TOOL//-/_}
   local TOOL=${TOOL//./_}
-  declare -g ${TOOL}=`have_program ${1}`
+  if [ -z "${!TOOL}" ]; then
+    declare -g ${TOOL}=`have_program ${1}`
+  fi
   [ ! -z "${!TOOL}" ] && log_debug -q " found" || log_debug -q " not found"
 }
 
@@ -332,7 +334,7 @@ install_program() {
 # detect which tools are available on the system
 detect_tools() {
   log_debug "Checking availability of required tools..."
-  TOOLS=(apt-get apt-key curl docker docker-compose docker-init dpkg grep gpg head ldconfig mktemp opkg pacman rpm sed sort systemctl uname update-rc.d wget yum)
+  TOOLS=(apt-get apt-key curl docker docker-compose docker-init dpkg grep gpg head ldconfig mktemp opkg pacman rpm sed sort tar systemctl uname update-rc.d wget yum)
   for TOOL in ${TOOLS[@]}; do
     have ${TOOL}
   done
@@ -578,10 +580,10 @@ determine_docker_version() {
     sleep 1
     TIMEOUT=$((TIMEOUT-1))
   done
-  if [ ! -z "${GREP}" ]; then
-    DOCKER_CLIENT_VERSION=`${DOCKER} -v 2>/dev/null | ${GREP} -oP "([0-9]+[\.]){2}[0-9]+" | ${HEAD} -n1`
-  elif [ ! -z "${SED}" ]; then
+  if [ ! -z "${SED}" ]; then
     DOCKER_CLIENT_VERSION=`${DOCKER} -v 2>/dev/null | ${SED} -nE 's/^[^0-9]+([0-9\.]+).*$/\1/p'`
+  elif [ ! -z "${GREP}" ]; then
+    DOCKER_CLIENT_VERSION=`${DOCKER} -v 2>/dev/null | ${GREP} -oP "([0-9]+[\.]){2}[0-9]+" | ${HEAD} -n1`
   fi
 
   echo " found ${DOCKER_NAME}"
@@ -904,7 +906,7 @@ download_flecs() {
   DIRS=(flecs flecs-webapp)
   for i in ${!PACKAGES[@]}; do
     if [ ! -z "${CURL}" ]; then
-      if ! ${CURL} -fsSL -O ${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGES[$i]}; then
+      if ! ${CURL} -fsSL --output - ${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGES[$i]} >${PACKAGES[$i]}; then
         log_fatal "Could not download ${PACKAGES[$i]} through ${CURL}"
       fi
     elif [ ! -z "${WGET}" ]; then
@@ -986,12 +988,34 @@ enable_flecs() {
       if confirm_yn "FLECS is not enabled by default on your system. Enable and start FLECS now"; then
         ${SYSTEMCTL} enable --now flecs >/dev/null 2>&1
         ${SYSTEMCTL} enable --now flecs-webapp >/dev/null 2>&1
+      else
+        log_info "Use"
+        log_info "  systemctl enable --now flecs"
+        log_info "  systemctl enable --now flecs-webapp"
+        log_info "to enable and start FLECS"
       fi
     fi
   elif [ ! -z "${UPDATE_RC_D}" ]; then
     if confirm_yn "FLECS is not enabled by default on your system. Enable and start FLECS now"; then
-      ${UPDATE_RC_D} flecs defaults 80 80
+      ${UPDATE_RC_D} flecs defaults 81 81
+      ${UPDATE_RC_D} flecs-webapp defaults 80 80
+      /etc/init.d/flecs-webapp start
       /etc/init.d/flecs start
+    else
+      log_info "Use"
+      log_info "  update-rc.d flecs defaults 81 81"
+      log_info "  update-rc.d flecs-webapp defaults 80 80"
+      log_info "  /etc/init.d/flecs-webapp start"
+      log_info "  /etc/init.d/flecs start"
+      log_info "to enable and start FLECS"
+    fi
+  elif [ ! -z "${DOCKER_COMPOSE}" ]; then
+    if confirm_yn "FLECS is not enabled by default on your system. Enable and start FLECS now"; then
+      ${DOCKER_COMPOSE} -f `readlink -f ${ROOT_DIR}/etc/opt/flecs/docker-compose.yml` up -d
+    else
+      log_info "Use"
+      log_info "  docker-compose -f `readlink -f ${ROOT_DIR}/etc/opt/flecs/docker-compose.yml` up -d"
+      log_info "to enable and start FLECS"
     fi
   fi
 }
