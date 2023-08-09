@@ -40,12 +40,6 @@ else()
     add_definitions(-DFLECS_FINAL_UNLESS_TESTED=final)
 endif()
 
-set(BOOST_ROOT /opt/boost)
-find_package(Boost
-    1.78.0
-    REQUIRED
-)
-
 # add install directory to rpath
 set(CMAKE_INSTALL_RPATH "/opt/flecs/lib")
 

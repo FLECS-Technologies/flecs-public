@@ -28,7 +28,6 @@ if(BUILD_TESTING)
         external.gmock
         external.gtest
         external.gtest_main
-        external.json
         external.yaml-cpp
     )
 

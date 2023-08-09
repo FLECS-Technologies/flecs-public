@@ -48,7 +48,6 @@ target_link_libraries(
 
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC
-    external.json
     external.yaml-cpp
 )
 

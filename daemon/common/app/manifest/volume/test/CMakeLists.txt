@@ -26,7 +26,6 @@ if (BUILD_TESTING)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         external.gtest
         external.gtest_main
-        external.json
         daemon.common.app.manifest.volume
     )
 

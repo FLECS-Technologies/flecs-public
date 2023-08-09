@@ -25,10 +25,9 @@ target_include_directories(apps.mqtt-bridge PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(apps.mqtt-bridge PRIVATE
-    external.mosquitto
-    flunder.static
-    util.signal_handler
+target_link_libraries(apps.mqtt-bridge
+    PUBLIC external.mosquitto flunder.static
+    PRIVATE util.signal_handler
 )
 
 # configure FLECS App
@@ -44,11 +43,6 @@ set(DOCKER_TAG "${APP_VERSION}")
 install(
     TARGETS apps.mqtt-bridge
     DESTINATION ${PROJECT_NAME}/docker/fs/usr/bin/
-)
-
-install(
-    FILES $<TARGET_FILE:external.zenoh-c>
-    DESTINATION ${PROJECT_NAME}/docker/fs/usr/lib/
 )
 
 include(flecs-docker)

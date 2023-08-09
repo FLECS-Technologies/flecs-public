@@ -26,7 +26,6 @@ if(BUILD_TESTING)
         external.cpr
         external.gtest
         external.gtest_main
-        external.json
         daemon.api
         util.signal_handler
     )
