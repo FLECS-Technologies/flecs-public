@@ -30,5 +30,4 @@ target_include_directories(
 target_link_libraries(
     daemon.modules.module_base PUBLIC
     daemon.api
-    external.json
 )

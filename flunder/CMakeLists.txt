@@ -42,7 +42,6 @@ target_include_directories(flunder PRIVATE
 
 target_link_libraries(flunder PRIVATE
     external.cpr
-    external.json
     external.zenoh-c
 )
 

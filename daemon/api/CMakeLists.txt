@@ -28,14 +28,6 @@ target_include_directories(
     daemon.api PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(daemon.api PUBLIC
-    external.crow
-)
-
-target_link_libraries(daemon.api PRIVATE
-    external.json
-)
-
 target_compile_options(daemon.api PUBLIC
     -Wno-type-limits
 )

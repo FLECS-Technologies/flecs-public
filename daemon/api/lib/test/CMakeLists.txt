@@ -22,10 +22,8 @@ if (BUILD_TESTING)
     set_target_properties(daemon.api.lib.test PROPERTIES OUTPUT_NAME test_api_lib)
 
     target_link_libraries(daemon.api.lib.test PRIVATE
-        external.crow
         external.gtest
         external.gtest_main
-        external.json
         daemon.lib
     )
 

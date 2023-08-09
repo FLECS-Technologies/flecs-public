@@ -65,10 +65,6 @@ install(
     TARGETS daemon.lib flunder.shared LIBRARY
     DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/lib
 )
-install(
-    FILES $<TARGET_FILE:external.zenoh-c>
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/lib
-)
 
 # install helper scripts for packaging
 install(
