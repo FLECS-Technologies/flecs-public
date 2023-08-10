@@ -1,4 +1,6 @@
 [submodule "flecs-build"]
 	path = flecs-build
 	url = https://github.com/flecs-technologies/flecs-build
-	branch = migration
+[submodule "flecs-external"]
+	path = flecs-external
+	url = https://github.com/FLECS-Technologies/flecs-external.git
