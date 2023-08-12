@@ -239,6 +239,10 @@ auto module_instances_t::do_create(
         return {-1, "Could not create instance of " + to_string(app_key)};
     }
 
+    auto desc = progress.desc();
+    desc += " -> " + instance_id;
+    progress.desc(std::move(desc));
+
     if (running) {
         _parent->start(instance_id_t{instance_id});
     }
@@ -269,7 +273,7 @@ auto module_instances_t::do_start_sync(instance_id_t instance_id, bool once) //
 }
 
 auto module_instances_t::do_start(
-    instance_id_t instance_id, bool once, job_progress_t& /*progress*/) //
+    instance_id_t instance_id, bool once, job_progress_t& progress) //
     -> result_t
 {
     auto instance = _deployment->query_instance(instance_id);
@@ -278,6 +282,9 @@ auto module_instances_t::do_start(
         return {-1, instance ? "Instance not fully created" : "Instance does not exist"};
     }
 
+    auto desc = progress.desc();
+    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    progress.desc(std::move(desc));
     // Step 3: Return if instance is already running
     if (_deployment->is_instance_running(instance)) {
         return {0, "Instance already running"};
@@ -320,7 +327,7 @@ auto module_instances_t::do_stop_sync(instance_id_t instance_id, bool once) //
 }
 
 auto module_instances_t::do_stop(
-    instance_id_t instance_id, bool once, job_progress_t& /*progress*/) //
+    instance_id_t instance_id, bool once, job_progress_t& progress) //
     -> result_t
 {
     // get instance details from database
@@ -329,6 +336,10 @@ auto module_instances_t::do_stop(
     if (!instance) {
         return {-1, "Instance does not exist"};
     }
+
+    auto desc = progress.desc();
+    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    progress.desc(std::move(desc));
 
     // Step 3: Return if instance is not running
     if (!_deployment->is_instance_running(instance)) {
@@ -380,6 +391,10 @@ auto module_instances_t::do_remove(instance_id_t instance_id, job_progress_t& pr
     if (!instance) {
         return {-1, "Instance does not exist"};
     }
+
+    auto desc = progress.desc();
+    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    progress.desc(std::move(desc));
 
     // Step 2: Attempt to stop instance
     progress.next_step("Stopping instance");
