@@ -62,11 +62,20 @@ private:
 #define G_DEVICES         \
     G_YAML_KEY("devices") \
     G_YAML_INDENT G_YAML_ITEM(G_DEVICE)
-#define G_ENV_VAR_KEY "MY_ENV_VAR"
-#define G_ENV_VAR_VALUE "ENV_VAR_VALUE"
+#define G_ENV_VAR1_KEY "MY_ENV_VAR"
+#define G_ENV_VAR1_VALUE "ENV_VAR_VALUE"
+#define G_ENV_VAR2_KEY "my.other.env"
+#define G_ENV_VAR2_VALUE "MY_OTHER_VALUE"
+#define G_ENV_VAR3_KEY "my.env.with.spaces"
+#define G_ENV_VAR3_VALUE "Value with spaces"
+#define G_ENV_VAR4_KEY "my-env-with-dashes"
+#define G_ENV_VAR4_VALUE "value-with-dashes"
 #define G_ENVS        \
     G_YAML_KEY("env") \
-    G_YAML_INDENT G_YAML_MAPPING(G_ENV_VAR_KEY, G_ENV_VAR_VALUE)
+    G_YAML_INDENT G_YAML_MAPPING(G_ENV_VAR1_KEY, G_ENV_VAR1_VALUE) \
+    G_YAML_INDENT G_YAML_MAPPING(G_ENV_VAR2_KEY, G_ENV_VAR2_VALUE) \
+    G_YAML_INDENT G_YAML_MAPPING(G_ENV_VAR3_KEY, G_ENV_VAR3_VALUE) \
+    G_YAML_INDENT G_YAML_MAPPING(G_ENV_VAR4_KEY, G_ENV_VAR4_VALUE)
 #define G_IMAGE "flecs/test-app"
 #define G_NETWORK_SETTINGS_KEY_1 "macAddress"
 #define G_NETWORK_SETTINGS_VALUE_1 "clone:eth0"
@@ -167,7 +176,10 @@ TEST(daemon_app, complex_app)
     ASSERT_EQ(app.interactive(), true);
     ASSERT_EQ(
         (*app.env().cbegin()),
-        (FLECS::mapped_env_var_t{FLECS::env_var_t{G_ENV_VAR_KEY}, G_ENV_VAR_VALUE}));
+        (FLECS::mapped_env_var_t{FLECS::env_var_t{G_ENV_VAR1_KEY}, G_ENV_VAR1_VALUE}));
+    ASSERT_EQ(
+        (*(++app.env().cbegin())),
+        (FLECS::mapped_env_var_t{FLECS::env_var_t{G_ENV_VAR4_KEY}, G_ENV_VAR4_VALUE}));
     ASSERT_EQ(
         (std::find_if(
              app.volumes().cbegin(),
@@ -234,7 +246,7 @@ TEST(daemon_app, to_json)
         R"-("capabilities":[],)-"
         R"-("conffiles":["local.conf:/etc/container.conf:rw,no_init"],)-"
         R"-("devices":["/dev/device0"],)-"
-        R"-("env":["MY_ENV_VAR=ENV_VAR_VALUE"],)-"
+        R"-("env":["MY_ENV_VAR=ENV_VAR_VALUE","my-env-with-dashes=value-with-dashes","my.env.with.spaces=Value with spaces","my.other.env=MY_OTHER_VALUE"],)-"
         R"-("hostname":"flecs-unit-test",)-"
         R"-("interactive":true,)-"
         R"-("networks":[{"mac_address":"","name":"flecs","parent":"","type":"bridge"}],)-"

@@ -27,7 +27,7 @@ env_var_t::env_var_t(std::string var)
 auto env_var_t::is_valid() const noexcept //
     -> bool
 {
-    const auto name_regex = std::regex{"^[a-zA-Z]+(?:[a-zA-Z0-9_]|[\\.][a-zA-Z0-9_])*$"};
+    const auto name_regex = std::regex{"^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$"};
 
     if (std::regex_match(_var, name_regex)) {
         return true;

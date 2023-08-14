@@ -24,11 +24,14 @@ TEST(env_var, valid)
     auto env_var1 = FLECS::env_var_t{"VALID_ENV_VAR1"};
     auto env_var2 = FLECS::env_var_t{"valid_env_var"};
     auto env_var3 = FLECS::env_var_t{"V1_"};
-    auto env_var4 = FLECS::env_var_t{"Valid.Env.Var"};
+    auto env_var4 = FLECS::env_var_t{"valid-env-var"};
+    auto env_var5 = FLECS::env_var_t{"valid.env_var-2"};
 
     ASSERT_TRUE(env_var1.is_valid());
     ASSERT_TRUE(env_var2.is_valid());
     ASSERT_TRUE(env_var3.is_valid());
+    ASSERT_TRUE(env_var4.is_valid());
+    ASSERT_TRUE(env_var5.is_valid());
 }
 
 TEST(env_var, invalid)
@@ -36,14 +39,10 @@ TEST(env_var, invalid)
     auto env_var1 = FLECS::env_var_t{"_INVALID_ENV_VAR1"};
     auto env_var2 = FLECS::env_var_t{"INVALID ENV VAR"};
     auto env_var3 = FLECS::env_var_t{"1Invalid"};
-    auto env_var4 = FLECS::env_var_t{"Invalid.Env.Var."};
-    auto env_var5 = FLECS::env_var_t{"Invalid..Env.Var."};
 
     ASSERT_FALSE(env_var1.is_valid());
     ASSERT_FALSE(env_var2.is_valid());
     ASSERT_FALSE(env_var3.is_valid());
-    ASSERT_FALSE(env_var4.is_valid());
-    ASSERT_FALSE(env_var5.is_valid());
 }
 
 TEST(env_var, mapped_valid)
@@ -51,13 +50,15 @@ TEST(env_var, mapped_valid)
     auto mapped_env_var1 = FLECS::mapped_env_var_t("VALID_ENV_VAR"s, "VALUE"s);
     auto mapped_env_var2 = FLECS::mapped_env_var_t("VALID_ENV_VAR"s, "VALUE"s);
     auto mapped_env_var3 = FLECS::mapped_env_var_t("VALID_ENV_VAR"s, "ANOTHER_VALUE"s);
-    auto another_mapped_env_var1 = FLECS::mapped_env_var_t("ANOTHER_VALID_ENV_VAR"s, "VALUE"s);
+    auto mapped_env_var4 = FLECS::mapped_env_var_t("another.valid-env_var.2"s, "some special! value?"s);
 
     ASSERT_TRUE(mapped_env_var1.is_valid());
     ASSERT_EQ(FLECS::stringify(mapped_env_var1), "VALID_ENV_VAR=VALUE");
     ASSERT_EQ(mapped_env_var1, mapped_env_var2);
     ASSERT_EQ(mapped_env_var1, mapped_env_var3);
-    ASSERT_NE(mapped_env_var1, another_mapped_env_var1);
+    ASSERT_NE(mapped_env_var1, mapped_env_var4);
+    ASSERT_TRUE(mapped_env_var4.is_valid());
+    ASSERT_EQ(FLECS::stringify(mapped_env_var4), "another.valid-env_var.2=some special! value?");
 }
 
 TEST(env_var, mapped_invalid_1)
