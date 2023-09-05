@@ -28,7 +28,7 @@ module_marketplace_t::module_marketplace_t()
 auto module_marketplace_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/marketplace/login").methods("POST"_method)([=](const crow::request& req) {
+    FLECS_V2_ROUTE("/marketplace/login").methods("POST"_method)([=, this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
         REQUIRED_JSON_VALUE(args, user);
@@ -37,7 +37,7 @@ auto module_marketplace_t::do_init() //
         return login(user, token);
     });
 
-    FLECS_V2_ROUTE("/marketplace/logout").methods("POST"_method)([=](const crow::request& req) {
+    FLECS_V2_ROUTE("/marketplace/logout").methods("POST"_method)([=, this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
         OPTIONAL_JSON_VALUE(args, user);

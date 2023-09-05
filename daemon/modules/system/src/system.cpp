@@ -43,9 +43,9 @@ module_system_t::module_system_t()
 auto module_system_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/system/ping").methods("GET"_method)([=]() { return ping(); });
+    FLECS_V2_ROUTE("/system/ping").methods("GET"_method)([=, this]() { return ping(); });
 
-    FLECS_V2_ROUTE("/system/info").methods("GET"_method)([=]() { return info(); });
+    FLECS_V2_ROUTE("/system/info").methods("GET"_method)([=, this]() { return info(); });
 }
 
 auto module_system_t::do_deinit() //

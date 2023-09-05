@@ -30,7 +30,7 @@ module_version_t::module_version_t()
 auto module_version_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/system/version").methods("GET"_method)([=]() { return http_version(); });
+    FLECS_V2_ROUTE("/system/version").methods("GET"_method)([=, this]() { return http_version(); });
 }
 
 auto module_version_t::do_deinit() //
