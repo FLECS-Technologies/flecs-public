@@ -24,6 +24,7 @@
 #include "modules/system/system.h"
 #include "util/cxx20/string.h"
 #include "util/datetime/datetime.h"
+#include "util/docker/libdocker_api_client.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
 
@@ -193,7 +194,8 @@ auto module_instances_t::queue_create(app_key_t app_key, std::string instance_na
     return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto module_instances_t::do_create_sync(app_key_t app_key, std::string instance_name, bool running) //
+auto module_instances_t::do_create_sync(
+    app_key_t app_key, std::string instance_name, bool running) //
     -> result_t
 {
     auto _ = job_progress_t{};
@@ -272,8 +274,7 @@ auto module_instances_t::do_start_sync(instance_id_t instance_id, bool once) //
     return do_start(std::move(instance_id), std::move(once), _);
 }
 
-auto module_instances_t::do_start(
-    instance_id_t instance_id, bool once, job_progress_t& progress) //
+auto module_instances_t::do_start(instance_id_t instance_id, bool once, job_progress_t& progress) //
     -> result_t
 {
     auto instance = _deployment->query_instance(instance_id);
@@ -283,7 +284,8 @@ auto module_instances_t::do_start(
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    desc += " (" + instance->app()->manifest()->title() + " " +
+            instance->app()->key().version().data() + ")";
     progress.desc(std::move(desc));
     // Step 3: Return if instance is already running
     if (_deployment->is_instance_running(instance)) {
@@ -326,8 +328,7 @@ auto module_instances_t::do_stop_sync(instance_id_t instance_id, bool once) //
     return do_stop(std::move(instance_id), std::move(once), _);
 }
 
-auto module_instances_t::do_stop(
-    instance_id_t instance_id, bool once, job_progress_t& progress) //
+auto module_instances_t::do_stop(instance_id_t instance_id, bool once, job_progress_t& progress) //
     -> result_t
 {
     // get instance details from database
@@ -338,7 +339,8 @@ auto module_instances_t::do_stop(
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    desc += " (" + instance->app()->manifest()->title() + " " +
+            instance->app()->key().version().data() + ")";
     progress.desc(std::move(desc));
 
     // Step 3: Return if instance is not running
@@ -393,7 +395,8 @@ auto module_instances_t::do_remove(instance_id_t instance_id, job_progress_t& pr
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    desc += " (" + instance->app()->manifest()->title() + " " +
+            instance->app()->key().version().data() + ")";
     progress.desc(std::move(desc));
 
     // Step 2: Attempt to stop instance
@@ -628,18 +631,21 @@ auto module_instances_t::do_logs(instance_id_t instance_id) const //
     auto response = json_t{};
 
     // Step 2: Obtain log from Docker
-    auto docker_process = process_t{};
-    docker_process.spawnp("docker", "logs", "flecs-" + instance->id().hex());
-    docker_process.wait(false, false);
+    auto client = setup_libdocker_client();
+    auto container_name = "flecs-" + instance->id().hex();
+    auto [code, logs] = client.logs_container(container_name);
+
+    std::cout << "Logs for container " << container_name << std::endl;
+    std::cout << logs << std::endl;
 
     // Step 3: Build response
-    if (docker_process.exit_code() != 0) {
+    if (logs.empty()) {
         response["additionalInfo"] = "Could not get logs for instance " + instance->id().hex();
         return {crow::status::INTERNAL_SERVER_ERROR, "json", response.dump()};
     }
 
-    response["stdout"] = docker_process.stdout();
-    response["stderr"] = docker_process.stderr();
+    response["stdout"] = ""; // docker_process.stdout();
+    response["stderr"] = ""; // docker_process.stderr();
 
     return {crow::status::OK, "json", response.dump()};
 }

@@ -15,7 +15,6 @@
 #include "impl/apps_impl.h"
 
 #include <cpr/cpr.h>
-#include "util/docker/libdocker_api_client.h"
 
 #include <algorithm>
 #include <fstream>
@@ -28,6 +27,7 @@
 #include "modules/jobs/jobs.h"
 #include "modules/manifests/manifests.h"
 #include "modules/marketplace/marketplace.h"
+#include "util/docker/libdocker_api_client.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 #include "util/process/process.h"
@@ -188,7 +188,10 @@ auto module_apps_t::do_module_start() //
         for (const auto& installed_version : installed_versions) {
             if (installed_version.version() < system_app.version()) {
                 save = true;
-                std::fprintf(stdout, "Removing system app %s\n", to_string(installed_version).c_str());
+                std::fprintf(
+                    stdout,
+                    "Removing system app %s\n",
+                    to_string(installed_version).c_str());
                 _parent->uninstall(installed_version, true);
             } else if (installed_version.version() > system_app.version()) {
                 have_newer_version = true;
@@ -367,78 +370,42 @@ auto module_apps_t::do_install_impl(
         }
         case app_status_e::TokenAcquired: {
             // Step 4: Pull Docker image for this App
-            auto docker_login_process = process_t{};
-            auto docker_pull_process = process_t{};
-            auto docker_logout_process = process_t{};
             const auto args = split(app->download_token(), ';');
 
-            if (args.size() == 3) {
-                progress.next_step("Authenticating");
-
-                auto login_attempts = 3;
-                while (login_attempts-- > 0) {
-                    /** @todo authentication */
-                    docker_login_process = process_t{};
-                    docker_login_process
-                        .spawnp("docker", "login", "--username", "flecs", "--password", args[1]);
-                    docker_login_process.wait(true, true);
-                    if (docker_login_process.exit_code() == 0) {
-                        break;
-                    }
-                }
-            }
-
-            if (docker_login_process.exit_code() != 0) {
-                _parent->save();
-                return {-1, docker_login_process.stderr()};
-            }
+            auto login_client = setup_libdocker_client();
 
             progress.next_step("Downloading App");
-
             auto pull_attempts = 3;
             while (pull_attempts-- > 0) {
-                auto docker_pull_client = setup_api_client();
-                auto pull_arg = json_t({"fromImage", manifest->image_with_tag()});
-                auto response = docker_pull_client.create_image(pull_arg);
-                if (response.empty()) {
+                auto pull_arg = json_t();
+                pull_arg["fromImage"] = manifest->image_with_tag();
+                //
+                int pull_code = -5;
+                std::string pull_response;
+                if (args.size() == 3) {
+                    auto auth_header =
+                        docker::auth_header_t("flecs", args[1], "", "https://index.docker.io/v1/");
+                    auto [pull_code, pull_response] =
+                        login_client.create_image(pull_arg, auth_header);
+                } else {
+                    auto [pull_code, pull_response] = login_client.create_image(pull_arg);
+                }
+                if (pull_code == 0) {
                     break;
                 }
             }
-            /** @todo authentication */
-            docker_logout_process.spawnp("docker", "logout");
-            docker_logout_process.wait(true, true);
 
-            if (docker_pull_process.exit_code() != 0) {
-                _parent->save();
-                return {-1, docker_pull_process.stderr()};
-            }
             app->status(app_status_e::ImageDownloaded);
             [[fallthrough]];
         }
         case app_status_e::ImageDownloaded: {
             progress.next_step("Expiring download token");
 
-            auto docker_size_client = setup_api_client();
+            auto docker_size_client = setup_libdocker_client();
             auto response = docker_size_client.inspect_image(manifest->image_with_tag());
 
-            if (! response.has_value()) {
-                auto size = response->size();
-                auto image_size = stoi(docker_size_process.stdout());
-                app->installed_size(image_size);
-            }
-
-            auto docker_size_process = process_t{};
-            docker_size_process
-                .spawnp("docker", "inspect", "-f", "{{ .Size }}", manifest->image_with_tag());
-            docker_size_process.wait(false, true);
-
-            if (docker_size_process.exit_code() == 0) {
-                try {
-                    auto image_size = stoll(docker_size_process.stdout());
-                    app->installed_size(image_size);
-                }
-                catch (...)
-                {}
+            if (response.has_value()) {
+                app->installed_size(response->size());
             }
 
             // Step 5: Expire download token
@@ -525,10 +492,10 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
 
     if (manifest) {
         const auto image = manifest->image_with_tag();
-        auto docker_process = process_t{};
-        docker_process.spawnp("docker", "rmi", "-f", image);
-        docker_process.wait(false, true);
-        if (docker_process.exit_code() != 0) {
+        auto client = setup_libdocker_client();
+        auto [code, response] = client.remove_image(image, true);
+
+        if (code != 0) {
             std::fprintf(
                 stderr,
                 "Warning: Could not remove image %s of app %s (%s)\n",
@@ -602,14 +569,13 @@ auto module_apps_t::do_export_to(
 
     // Step 4: Export image
     progress.next_step("Exporting App");
-    auto docker_process = process_t{};
+    auto client = setup_libdocker_client();
     const auto filename =
         dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".tar");
-    docker_process
-        .spawnp("docker", "save", "--output", filename.string(), manifest->image_with_tag());
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+
+    auto [code, res] = client.export_image(manifest->image_with_tag(), filename.string());
+    if (code != 0) {
+        return {code, res};
     }
 
     // Step 5: Copy manifest
@@ -656,11 +622,11 @@ auto module_apps_t::do_import_from(
 
     /* import image */
     path.replace_extension(".tar");
-    auto docker_process = process_t{};
-    docker_process.spawnp("docker", "load", "--input", path.c_str());
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    auto client = setup_libdocker_client();
+    auto [code, response] = client.import_image(path);
+
+    if (code != 0) {
+        return {code, response};
     }
 
     /* add to installed Apps */

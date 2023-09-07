@@ -24,5 +24,10 @@ add_custom_command(
 add_custom_target(external.libdocker.build DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libdocker.a)
 
 add_library(external.libdocker INTERFACE)
-set_property(TARGET external.libdocker PROPERTY INTERFACE_LINK_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libdocker.a gcov)
+set_property(TARGET external.libdocker PROPERTY INTERFACE_LINK_LIBRARIES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/out/${ARCH}/lib/libdocker.a 
+    external.base64pp
+    external.cpr
+    gcov
+)
 set_property(TARGET external.libdocker PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/libdocker ${CMAKE_CURRENT_SOURCE_DIR}/libdocker/libdocker)
