@@ -19,5 +19,5 @@ flecs_add_module(
     ADDITIONAL_HEADERS
     impl/apps_impl.h
     LIBS_PUBLIC daemon.common
-    LIBS_PRIVATE external.cpr daemon.common external.yaml-cpp util.usb
+    LIBS_PRIVATE external.cpr daemon.common external.yaml-cpp util.usb external.libdocker
 )

@@ -19,6 +19,7 @@
 #include "factory/factory.h"
 #include "system/system.h"
 #include "util/cxx20/string.h"
+#include "util/docker/libdocker_api_client.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
 #include "util/string/string_utils.h"
@@ -35,24 +36,21 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
     if (!is_instance_running(instance)) {
         delete_container(instance);
     }
+    auto client = setup_libdocker_client();
 
     {
-        auto docker_process = process_t{};
-        docker_process.arg("ps");
-        docker_process.arg("--all");
-        docker_process.arg("--format");
-        docker_process.arg("{{.Names}}");
-        docker_process.spawnp("docker");
-        docker_process.wait(false, false);
-        if (docker_process.exit_code() == 0) {
-            if (cxx20::contains(docker_process.stdout(), container_name.c_str())) {
-                return {0, "Container already exists"};
-            };
+        auto containers = client.list_containers(true, 0, false);
+        auto container_it = std::find_if(
+            containers.cbegin(),
+            containers.cend(),
+            [container_name](const auto& elem) {
+                return elem.image_name() == container_name.c_str();
+            });
+        auto container_exists = container_it != containers.cend();
+        if (container_exists) {
+            return {0, "Container already exists"};
         }
     }
-
-    auto docker_process = process_t{};
-    docker_process.arg("create");
 
     auto app = instance->app();
     if (!app) {
@@ -64,36 +62,51 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
         return {-1, "Could not access app manifest"};
     }
 
+    // check if image exists
+    auto im = client.inspect_image(manifest->image_with_tag());
+    if (!im.has_value()) {
+        auto image_name = manifest->image();
+        auto image_version = manifest->version();
+        auto j = json_t({{"fromImage", image_name}, {"tag", image_version}});
+        client.create_image(j);
+    }
+
+    /* See https://docs.docker.com/engine/api/v1.41/#tag/Container/operation/ContainerCreate */
+    auto create_args = json_t();
+
     for (const auto& env : manifest->env()) {
-        docker_process.arg("--env");
-        docker_process.arg(stringify(env));
+        create_args["Env"].push_back(stringify(env));
     }
     for (const auto& volume : manifest->volumes()) {
-        docker_process.arg("--volume");
-        docker_process.arg(container_name + "-" + volume.host() + ":" + volume.container());
+        create_args["Volumes"][volume.container()] = json_t::object();
+        create_args["HostConfig"]["Binds"].push_back(volume.host() + ":" + volume.container());
     }
     for (const auto& port_range : manifest->ports()) {
-        docker_process.arg("--publish");
-        docker_process.arg(stringify(port_range));
+        auto container_range = port_range.container_port_range();
+        auto host_range = port_range.host_port_range();
+        auto port_count = container_range.end_port() - container_range.start_port() + 1;
+        for (auto i = 0; i < port_count; i++) {
+            auto container_port = container_range.start_port() + i;
+            auto host_port = host_range.start_port() + i;
+            //
+            create_args["ExposedPorts"][stringify(host_port)] = json_t::object();
+            create_args["HostConfig"]["PortBindings"][stringify(container_port)] = json_t::array(
+                {json_t::object({{"HostPort", stringify(host_port)}})}); // really, docker engine?
+        }
     }
-    if (manifest->interactive()) {
-        docker_process.arg("--interactive");
-    }
-
-    docker_process.arg("--name");
-    docker_process.arg(container_name);
 
     if (!manifest->hostname().empty()) {
-        docker_process.arg("--hostname");
-        docker_process.arg(manifest->hostname());
+        create_args["Hostname"] = manifest->hostname();
     } else {
-        docker_process.arg("--hostname");
-        docker_process.arg(container_name);
+        create_args["Hostname"] = container_name;
     }
 
     for (const auto& device : manifest->devices()) {
-        docker_process.arg("--device");
-        docker_process.arg(device);
+        create_args["HostConfig"]["Devices"].push_back(json_t::object(
+            {{"PathInContainer", device},
+             {"PathOnHost", device},
+             {"CgroupPermissions",
+              "none"}})); /** @todo what are the options for CgroupPermissions? */
     }
 
     if (!instance->networks().empty()) {
@@ -107,15 +120,12 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
             }
         }
 
-        docker_process.arg("--network");
-        docker_process.arg(instance->networks()[0].network_name);
-
-        docker_process.arg("--ip");
-        docker_process.arg(network.ip_address);
+        create_args["HostConfig"]["NetworkMode"] = instance->networks()[0].network_name;
+        create_args["HostConfig"]["NetworkingConfig"]["EndpointsConfig"]
+                   [instance->networks()[0].network_name] =
+                       json_t::object({{"IPAddress", network.ip_address}});
 
         if (!network.mac_address.empty()) {
-            docker_process.arg("--mac-address");
-
             if (cxx20::starts_with(network.mac_address, "clone:")) {
                 const auto parts = split(network.mac_address, ':');
                 if (parts.size() != 2) {
@@ -133,7 +143,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
             } else {
                 network.mac_address = network.mac_address;
             }
-            docker_process.arg(network.mac_address);
+            create_args["MacAddress"] = network.mac_address;
         }
     }
 
@@ -151,19 +161,21 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
 
             auto ec = std::error_code{};
             if (std::filesystem::exists(path, ec)) {
-                docker_process.arg("--device");
-                docker_process.arg(path);
+                create_args["HostConfig"]["Devices"].push_back(json_t::object(
+                    {{"PathInContainer", path},
+                     {"PathOnHost", path},
+                     {"CgroupPermissions",
+                      "none"}})); /** @todo what are the options for CgroupPermissions? */
             }
         }
     }
 
     for (const auto& cap : manifest->capabilities()) {
         if (cap == "NET_ADMIN") {
-            docker_process.arg("--cap-add");
-            docker_process.arg(cap);
+            create_args["HostConfig"]["CapAdd"].push_back(cap);
         } else if (cap == "DOCKER") {
-            docker_process.arg("--volume");
-            docker_process.arg("/run/docker.sock:/run/docker.sock");
+            create_args["Volumes"]["/run/docker.sock"] = json_t::object();
+            create_args["HostConfig"]["Binds"].push_back("/run/docker.sock:/run/docker.sock");
         }
     }
 
@@ -172,25 +184,17 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
             instance->startup_options().cend(),
             (unsigned int)startup_option_t::INIT_NETWORK_AFTER_START) !=
         instance->startup_options().cend()) {
-        docker_process.arg("--mount");
-        docker_process.arg("type=tmpfs,destination=/flecs-tmp");
-
+        create_args["HostConfig"]["Mounts"].push_back(
+            {{"Type", "tmpfs"}, {"Target", "/flecs-tmp"}});
         auto cmd = std::string{};
         {
-            auto docker_process = process_t{};
-
-            docker_process.arg("inspect");
-            docker_process.arg("--format");
-            docker_process.arg("{{.Config.Cmd}}");
-            docker_process.arg(manifest->image_with_tag());
-
-            docker_process.spawnp("docker");
-            docker_process.wait(false, true);
-            if (docker_process.exit_code() != 0) {
+            auto img = client.inspect_image(manifest->image_with_tag());
+            auto config = img->config();
+            if (config.count("Cmd")) {
+                auto cmd = config["Cmd"];
+            } else {
                 return {-1, "Could not determine entrypoint"};
             }
-
-            cmd = docker_process.stdout();
         }
         trim(cmd);
         cmd.erase(cmd.find_first_of('['), 1);
@@ -215,20 +219,20 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
         entrypoint << "done\n\n";
         entrypoint << cmd << std::endl;
 
-        docker_process.arg("--entrypoint");
-        docker_process.arg("/flecs-entrypoint.sh");
+        create_args["Entrypoint"] = json_t::array({"/flecs-entrypoint.sh"});
     }
 
-    docker_process.arg(manifest->image_with_tag());
+    create_args["Image"] = manifest->image_with_tag();
 
     for (const auto& arg : manifest->args()) {
-        docker_process.arg(arg);
+        /** @todo what kinds of arguments are these? Where do they go in the JSON? */
+        // docker_process.arg(arg);
     }
 
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, "Could not create Docker container"};
+    auto [code, create_response] = client.create_container(create_args, container_name);
+
+    if (code != 0) {
+        return {code, "Could not create Docker container"};
     }
 
     const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
@@ -296,7 +300,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
     }
 
     return {0, {}};
-}
+} // namespace FLECS
 
 auto deployment_docker_t::delete_container(std::shared_ptr<instance_t> instance) //
     -> result_t
@@ -317,14 +321,11 @@ auto deployment_docker_t::delete_container(std::shared_ptr<instance_t> instance)
 
     const auto container_name = "flecs-" + instance->id().hex();
 
-    auto docker_process = process_t{};
-    docker_process.arg("rm");
-    docker_process.arg("--force");
-    docker_process.arg(container_name);
-    docker_process.spawnp("docker");
-    docker_process.wait(false, false);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    auto client = setup_libdocker_client();
+    auto [code, response] = client.remove_container(container_name, false, true); // rm -f
+
+    if (code != 0) {
+        return {code, response};
     }
 
     return {0, {}};
@@ -353,21 +354,18 @@ auto deployment_docker_t::do_start_instance(std::shared_ptr<instance_t> instance
     -> result_t
 {
     const auto [res, additional_info] = create_container(instance);
+
     if (res != 0) {
         return {res, additional_info};
     }
 
     const auto container_name = "flecs-" + instance->id().hex();
 
-    auto docker_process = process_t{};
+    auto client = setup_libdocker_client();
+    auto [code, response] = client.start_container(container_name);
 
-    docker_process.arg("start");
-    docker_process.arg(container_name);
-
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    if (code != 0) {
+        return {code, response};
     }
 
     return {0, {}};
@@ -378,17 +376,13 @@ auto deployment_docker_t::do_ready_instance(std::shared_ptr<instance_t> instance
 {
     const auto container_name = "flecs-" + instance->id().hex();
 
-    auto docker_process = process_t{};
+    auto client = setup_libdocker_client();
+    json_t args;
+    args["Cmd"] = {"touch /flecs-tmp/ready"};
 
-    docker_process.arg("exec");
-    docker_process.arg(container_name);
-    docker_process.arg("touch");
-    docker_process.arg("/flecs-tmp/ready");
-
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {0, docker_process.stderr()};
+    auto [code, response] = client.exec(container_name, args);
+    if (code != 0) {
+        return {0, response};
     }
 
     return {0, {}};
@@ -399,13 +393,8 @@ auto deployment_docker_t::do_stop_instance(std::shared_ptr<instance_t> instance)
 {
     const auto container_name = "flecs-" + instance->id().hex();
 
-    auto docker_process = process_t{};
-
-    docker_process.arg("stop");
-    docker_process.arg(container_name);
-
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
+    auto client = setup_libdocker_client();
+    auto [code, response] = client.stop_container(container_name, 0);
 
     return delete_container(instance);
 }
@@ -427,19 +416,12 @@ auto deployment_docker_t::do_import_instance(
 auto deployment_docker_t::do_is_instance_running(std::shared_ptr<instance_t> instance) const //
     -> bool
 {
-    auto docker_process = process_t{};
-    docker_process.arg("ps");
-    docker_process.arg("--quiet");
-    docker_process.arg("--filter");
-    docker_process.arg("name=flecs-" + instance->id().hex());
-    docker_process.spawnp("docker");
-    docker_process.wait(false, false);
-    // Consider instance running if Docker call was successful and returned a container id
-    if (docker_process.exit_code() == 0 && !docker_process.stdout().empty()) {
-        return true;
-    }
+    auto container_name = "flecs-" + instance->id().hex();
+    auto client = setup_libdocker_client();
+    auto response = client.inspect_container(container_name, false);
 
-    return false;
+    // Consider instance running if 'docker inspect' found the container
+    return response.has_value();
 }
 
 auto deployment_docker_t::do_create_network(
@@ -450,8 +432,7 @@ auto deployment_docker_t::do_create_network(
     std::string_view parent_adapter) //
     -> result_t
 {
-    // @todo review and cleanup
-    auto docker_process = process_t{};
+    auto client = setup_libdocker_client();
 
     auto subnet = std::string{cidr_subnet};
     auto gw = std::string{gateway};
@@ -494,24 +475,24 @@ auto deployment_docker_t::do_create_network(
             break;
         }
     }
-    docker_process.arg("network");
-    docker_process.arg("create");
-    docker_process.arg("--driver");
-    docker_process.arg(stringify(network_type));
-    docker_process.arg("--subnet");
-    docker_process.arg(subnet);
-    docker_process.arg("--gateway");
-    docker_process.arg(gw);
+
+    auto create_args = json_t();
+    create_args["Name"] = network;
+    create_args["Driver"] = stringify(network_type);
+    create_args["IPAM"]["Config"] = {{"Subnet", subnet}, {"Gateway", gw}};
+
+    /** @todo where to specify parent adapters? */
+    /*
     if (!parent_adapter.empty()) {
         docker_process.arg("--opt");
         docker_process.arg("parent=" + std::string{parent_adapter});
     }
-    docker_process.arg(std::string{network});
+    docker_process.arg(std::string{network}); */
 
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    auto [code, response] = client.create_network(create_args);
+
+    if (code != 0) {
+        return {code, response};
     }
 
     return {0, ""};
@@ -524,58 +505,34 @@ auto deployment_docker_t::do_query_network(std::string_view network) //
     res.name = network;
     {
         // Get type of network
-        auto docker_process = process_t{};
-
-        docker_process.arg("network");
-        docker_process.arg("inspect");
-        docker_process.arg("--format");
-        docker_process.arg("{{.IPAM.Driver}}");
-        docker_process.arg(std::string{network});
-
-        docker_process.spawnp("docker");
-        docker_process.wait(false, false);
-        if (docker_process.exit_code() != 0) {
+        auto client = setup_libdocker_client();
+        auto response = client.inspect_network(network, true, "local");
+        /** @todo Driver? */
+        if (!response.has_value()) {
             return {};
         }
-        auto out = docker_process.stdout();
-        res.type = network_type_from_string(trim(out));
+
+        res.type = network_type_from_string(response->name()); /** @todo network type */
     }
     {
         // Get base IP and subnet of network as "a.b.c.d/x"
-        auto docker_process = process_t{};
-
-        docker_process.arg("network");
-        docker_process.arg("inspect");
-        docker_process.arg("--format");
-        docker_process.arg("{{range .IPAM.Config}}{{.Subnet}}{{end}}");
-        docker_process.arg(std::string{network});
-
-        docker_process.spawnp("docker");
-        docker_process.wait(false, false);
-        if (docker_process.exit_code() != 0) {
+        auto client = setup_libdocker_client();
+        auto response = client.inspect_network(network, true, "local");
+        if (!response.has_value()) {
             return {};
         }
-        auto out = docker_process.stdout();
-        res.cidr_subnet = trim(out);
+
+        res.cidr_subnet = response->subnet();
     }
     {
         // Get gateway of network as "a.b.c.d"
-
-        auto docker_process = process_t{};
-
-        docker_process.arg("network");
-        docker_process.arg("inspect");
-        docker_process.arg("--format");
-        docker_process.arg("{{range .IPAM.Config}}{{.Gateway}}{{end}}");
-        docker_process.arg(std::string{network});
-
-        docker_process.spawnp("docker");
-        docker_process.wait(false, false);
-        if (docker_process.exit_code() != 0) {
+        auto client = setup_libdocker_client();
+        auto response = client.inspect_network(network, true, "local");
+        if (!response.has_value()) {
             return {};
         }
-        auto out = docker_process.stdout();
-        res.gateway = trim(out);
+
+        res.gateway = response->gateway();
     }
 
     return res;
@@ -584,16 +541,11 @@ auto deployment_docker_t::do_query_network(std::string_view network) //
 auto deployment_docker_t::do_delete_network(std::string_view network) //
     -> result_t
 {
-    auto docker_process = process_t{};
+    auto client = setup_libdocker_client();
+    auto [code, response] = client.remove_network(network);
 
-    docker_process.arg("network");
-    docker_process.arg("rm");
-    docker_process.arg(network.data());
-
-    docker_process.spawnp("docker");
-    docker_process.wait(false, false);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    if (code != 0) {
+        return {code, response};
     }
 
     return {0, {}};
@@ -605,19 +557,14 @@ auto deployment_docker_t::do_connect_network(
     std::string_view ip) //
     -> result_t
 {
-    auto docker_process = process_t{};
+    auto client = setup_libdocker_client();
 
-    docker_process.arg("network");
-    docker_process.arg("connect");
-    docker_process.arg("--ip");
-    docker_process.arg(std::string{ip});
-    docker_process.arg(std::string{network});
-    docker_process.arg("flecs-" + instance->id().hex());
+    auto container_name = "flecs-" + instance->id().hex();
+    auto [code, response] =
+        client.connect_container(network, container_name); /** @todo add IP option */
 
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    if (code != 0) {
+        return {code, response};
     }
 
     return {0, ""};
@@ -627,18 +574,13 @@ auto deployment_docker_t::do_disconnect_network(
     std::shared_ptr<instance_t> instance, std::string_view network) //
     -> result_t
 {
-    auto docker_process = process_t{};
+    auto client = setup_libdocker_client();
 
-    docker_process.arg("network");
-    docker_process.arg("disconnect");
-    docker_process.arg("--force");
-    docker_process.arg(std::string{network});
-    docker_process.arg("flecs-" + instance->id().hex());
+    auto container_name = "flecs-" + instance->id().hex();
+    auto [code, response] = client.disconnect_container(network, container_name, true);
 
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    if (code != 0) {
+        return {code, response};
     }
 
     return {0, ""};
@@ -650,16 +592,11 @@ auto deployment_docker_t::do_create_volume(
 {
     const auto name = "flecs-" + instance->id().hex() + "-" + std::string{volume_name};
 
-    auto docker_process = process_t{};
+    auto client = setup_libdocker_client();
+    auto [code, response] = client.create_volume(name);
 
-    docker_process.arg("volume");
-    docker_process.arg("create");
-    docker_process.arg(name);
-
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    if (code != 0) {
+        return {code, response};
     }
 
     return {0, ""};
@@ -685,51 +622,40 @@ auto deployment_docker_t::do_import_volume(
     delete_volume(instance, volume_name);
     create_volume(instance, volume_name);
 
-    auto docker_create_process = process_t{};
-    docker_create_process.arg("create");
-    docker_create_process.arg("--network");
-    docker_create_process.arg("none");
-    docker_create_process.arg("--volume");
-    docker_create_process.arg(name + ":/mnt/restore:rw");
-    docker_create_process.arg("--workdir");
-    docker_create_process.arg("/mnt/restore");
-    docker_create_process.arg("alpine");
-    docker_create_process.arg("tar");
-    docker_create_process.arg("-xf");
-    docker_create_process.arg("/tmp/" + name + ".tar.gz");
-    docker_create_process.spawnp("docker");
-    docker_create_process.wait(false, true);
-    if (docker_create_process.exit_code() != 0) {
-        return {-1, docker_create_process.stderr()};
-    }
-    auto container_id = *split(docker_create_process.stdout(), '\n').rbegin();
-    trim(container_id);
+    auto client = setup_libdocker_client();
 
-    auto docker_cp_process = process_t{};
-    docker_cp_process.arg("cp");
-    docker_cp_process.arg(archive);
-    docker_cp_process.arg(container_id + ":/tmp/");
-    docker_cp_process.spawnp("docker");
-    docker_cp_process.wait(false, true);
-    if (docker_cp_process.exit_code() != 0) {
-        return {-1, docker_cp_process.stderr()};
+    auto create_args = json_t();
+    // create_args["Volumes"][volume.container()] = json_t::object();
+    create_args["NetworkDisabled"] = true;
+    create_args["HostConfig"]["Binds"].push_back(name + ":/mnt/restore:rw");
+    create_args["WorkingDir"] = "/mnt/restore";
+    create_args["Image"] = "alpine";
+    create_args["Cmd"] = "tar -xf /tmp/" + name + ".tar.gz";
+
+    auto [code, response] = client.create_container("", "", to_string(create_args));
+    if (code != 0) {
+        return {code, response};
     }
 
-    auto docker_start_process = process_t{};
-    docker_start_process.arg("start");
-    docker_start_process.arg(container_id);
-    docker_start_process.spawnp("docker");
-    docker_start_process.wait(false, true);
-    if (docker_start_process.exit_code() != 0) {
-        return {-1, docker_start_process.stderr()};
+    auto container_id = to_string(response.at("Id"));
+
+    auto cp_client = setup_libdocker_client();
+    auto [cp_code, cp_response] = cp_client.copy_to_container(container_id, "/tmp/", archive);
+    if (cp_code != 0) {
+        return {cp_code, cp_response};
     }
 
-    auto docker_rm_process = process_t{};
-    docker_rm_process.arg("rm");
-    docker_rm_process.arg("--force");
-    docker_rm_process.arg(container_id);
-    docker_rm_process.spawnp("docker");
-    docker_rm_process.wait(false, true);
+    auto start_client = setup_libdocker_client();
+    auto [start_code, start_response] = start_client.start_container(container_id);
+    if (start_code != 0) {
+        return {start_code, start_response};
+    }
+
+    auto rm_client = setup_libdocker_client();
+    auto [rm_code, rm_response] = rm_client.remove_container(container_id, false, true);
+    if (rm_code != 0) {
+        return {rm_code, rm_response};
+    }
 
     return {0, {}};
 }
@@ -743,54 +669,40 @@ auto deployment_docker_t::do_export_volume(
     const auto name = "flecs-" + instance->id().hex() + "-" + volume_name.data();
     const auto archive = name + ".tar.gz";
 
-    auto docker_create_process = process_t{};
-    docker_create_process.arg("create");
-    docker_create_process.arg("--network");
-    docker_create_process.arg("none");
-    docker_create_process.arg("--volume");
-    docker_create_process.arg(name + ":/mnt/backup:ro");
-    docker_create_process.arg("--workdir");
-    docker_create_process.arg("/tmp");
-    docker_create_process.arg("alpine");
-    docker_create_process.arg("tar");
-    docker_create_process.arg("-C");
-    docker_create_process.arg("/mnt/backup");
-    docker_create_process.arg("-czf");
-    docker_create_process.arg(name + ".tar.gz");
-    docker_create_process.arg(".");
-    docker_create_process.spawnp("docker");
-    docker_create_process.wait(false, true);
-    if (docker_create_process.exit_code() != 0) {
-        return {-1, docker_create_process.stderr()};
-    }
-    auto container_id = *split(docker_create_process.stdout(), '\n').rbegin();
-    trim(container_id);
+    auto create_client = setup_libdocker_client();
+    auto create_args = json_t();
+    create_args["NetworkDisabled"] = true;
+    create_args["Image"] = "alpine";
+    create_args["Cmd"] = "tar -C /mnt/backup -czf " + archive + " . ";
+    create_args["WorkingDir"] = "/tmp";
+    // create_args["Volumes"] = json_t{{"/mnt/backup", {}}};
+    create_args["HostConfig"]["Binds"].push_back(name + ":/mnt/backup:ro");
 
-    auto docker_start_process = process_t{};
-    docker_start_process.arg("start");
-    docker_start_process.arg(container_id);
-    docker_start_process.spawnp("docker");
-    docker_start_process.wait(false, true);
-    if (docker_start_process.exit_code() != 0) {
-        return {-1, docker_start_process.stderr()};
+    auto [create_code, create_response] =
+        create_client.create_container("", "", to_string(create_args));
+    if (create_code != 0) {
+        return {create_code, create_response};
     }
 
-    auto docker_cp_process = process_t{};
-    docker_cp_process.arg("cp");
-    docker_cp_process.arg(container_id + ":/tmp/" + archive);
-    docker_cp_process.arg(dest_dir);
-    docker_cp_process.spawnp("docker");
-    docker_cp_process.wait(false, true);
-    if (docker_cp_process.exit_code() != 0) {
-        return {-1, docker_cp_process.stderr()};
+    auto container_id = to_string(create_response.at("Id"));
+
+    auto start_client = setup_libdocker_client();
+    auto [start_code, start_response] = start_client.start_container(container_id);
+    if (start_code != 0) {
+        return {start_code, start_response};
     }
 
-    auto docker_rm_process = process_t{};
-    docker_rm_process.arg("rm");
-    docker_rm_process.arg("--force");
-    docker_rm_process.arg(container_id);
-    docker_rm_process.spawnp("docker");
-    docker_rm_process.wait(false, true);
+    auto cp_client = setup_libdocker_client();
+    auto [cp_code, cp_response] = cp_client.extract_from_container(container_id, "/tmp/", dest_dir);
+    if (cp_code != 0) {
+        return {cp_code, cp_response};
+    }
+
+    auto rm_client = setup_libdocker_client();
+    auto [rm_code, rm_response] = rm_client.remove_container(container_id, false, true);
+    if (rm_code != 0) {
+        return {rm_code, rm_response};
+    }
 
     return {0, {}};
 }
@@ -799,14 +711,12 @@ auto deployment_docker_t::do_delete_volume(
     std::shared_ptr<instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
-    auto docker_process = process_t{};
-
+    auto client = setup_libdocker_client();
     const auto name = "flecs-" + instance->id().hex() + "-" + volume_name.data();
 
-    docker_process.spawnp("docker", "volume", "rm", name);
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, "Could not remove volume"};
+    auto [code, response] = client.remove_volume(name);
+    if (code != 0) {
+        return {code, "Could not remove volume"};
     }
 
     return {0, ""};
@@ -820,29 +730,35 @@ auto deployment_docker_t::do_copy_file_from_image(
 {
     auto container_id = std::string{};
     {
-        auto docker_process = process_t{};
-        docker_process.spawnp("docker", "create", image.data());
-        docker_process.wait(false, true);
-        if (docker_process.exit_code() != 0) {
-            return {-1, "Could not create container"};
+        auto client = setup_libdocker_client();
+        auto create_args = json_t();
+        create_args["Image"] = image;
+        auto [code, response] = client.create_container(create_args, "");
+
+        if (code != 0) {
+            return {code, "Could not create container"};
         }
-        container_id = docker_process.stdout();
+        container_id = response.at("Id");
         trim(container_id);
     }
+    /** @todo docker cp */
     {
-        auto docker_process = process_t{};
-        docker_process.spawnp("docker", "cp", container_id + ":" + file.string(), dest);
-        docker_process.wait(false, true);
-        if (docker_process.exit_code() != 0) {
-            return {-1, "Could not copy file from container"};
+        auto client = setup_libdocker_client();
+        auto [code, response] = client.extract_from_container(
+            container_id,
+            file.string(),
+            dest); /** @todo writes archive instead of file */
+        if (code != 0) {
+            return {code, "Could not copy file from container"};
         }
     }
     {
-        auto docker_process = process_t{};
-        docker_process.spawnp("docker", "rm", "-f", container_id);
-        docker_process.wait(false, true);
-        if (docker_process.exit_code() != 0) {
-            return {-1, "Could not remove container"};
+        auto client = setup_libdocker_client();
+
+        auto [code, response] =
+            client.remove_container(container_id, false, true); /** @todo swap args */
+        if (code != 0) {
+            return {code, "Could not remove container"};
         }
     }
 
@@ -855,22 +771,24 @@ auto deployment_docker_t::do_copy_file_to_instance(
     fs::path dest) //
     -> result_t
 {
-    auto docker_process = process_t{};
-    docker_process.arg("cp");
-    docker_process.arg(file.string());
-    docker_process.arg("flecs-" + instance->id().hex() + ":" + dest.string());
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
+    auto client = setup_libdocker_client();
+    auto name = "flecs-" + instance->id().hex();
+
+    auto [code, response] = client.copy_to_container(
+        name,
+        dest.string(),
+        file.string()); /** @todo reads archive instead of file */
+    if (code != 0) {
         using std::operator""s;
         return {
-            -1,
+            code,
             "Could not copy "s.append(file)
                 .append(" to ")
                 .append(instance->id().hex())
                 .append(":")
                 .append(dest)};
     }
+
     return {0, {}};
 }
 
@@ -880,22 +798,24 @@ auto deployment_docker_t::do_copy_file_from_instance(
     fs::path dest) const //
     -> result_t
 {
-    auto docker_process = process_t{};
-    docker_process.arg("cp");
-    docker_process.arg("flecs-" + instance->id().hex() + ":" + file.string());
-    docker_process.arg(dest.string());
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
+    auto client = setup_libdocker_client();
+    auto name = "flecs-" + instance->id().hex();
+
+    auto [code, response] = client.extract_from_container(
+        name,
+        file.string(),
+        dest.string()); /** @todo writes archive instead of file */
+    if (!response.empty()) {
         using std::operator""s;
         return {
-            -1,
+            code,
             "Could not copy "s.append(instance->id().hex())
                 .append(":")
                 .append(file)
                 .append(" to ")
                 .append(file)};
     }
+
     return {0, {}};
 }
 

@@ -4,3 +4,6 @@
 [submodule "flecs-external"]
 	path = flecs-external
 	url = https://github.com/FLECS-Technologies/flecs-external.git
+[submodule "libdocker"]
+	path = external/libdocker
+	url = https://github.com/FLECS-Technologies/libdocker.git
