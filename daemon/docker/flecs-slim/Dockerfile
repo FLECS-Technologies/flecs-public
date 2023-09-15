@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim AS docker-downloader
+FROM debian:bookworm-slim AS docker-downloader
 
 ARG ARCH
 
@@ -14,7 +14,7 @@ RUN [ "${ARCH}" = "arm64" ] && wget https://download.docker.com/linux/static/sta
 
 RUN mkdir -p /fs/usr/local/bin && tar -C /fs/usr/local/bin --strip-components=1 -xf docker-*.tgz docker/docker
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 RUN apt-get update && \
     apt-get --yes --no-install-recommends install ca-certificates && \

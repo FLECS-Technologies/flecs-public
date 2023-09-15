@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim AS docker-downloader
+FROM debian:bookworm-slim AS docker-downloader
 
 ARG ARCH
 
@@ -12,7 +12,7 @@ RUN wget ${BASE_URL}/flecs-docker-ce/deb/flecs-docker-ce_`curl -fsSL ${BASE_URL}
 
 RUN dpkg-deb -x *.deb /fs
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 ADD fs/ /
 ADD flecs/fs/ /
