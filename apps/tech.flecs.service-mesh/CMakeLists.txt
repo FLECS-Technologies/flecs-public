@@ -21,6 +21,7 @@ set(APP_VERSION ${CORE_VERSION})
 include(flecs-app)
 
 # configure Docker image
-set(DOCKER_IMAGE ${APP_NAME})
+set(DOCKER_REGISTRY "cr.flecs.tech")
+set(DOCKER_IMAGE "${APP_NAME}")
 set(DOCKER_TAG "${APP_VERSION}")
 include(flecs-docker)

@@ -4,7 +4,7 @@
     "version": "2.3.0-dormouse",
     "title": "FLECS MQTT bridge",
     "author": "info@flecs.tech",
-    "image": "flecs/tech.flecs.mqtt-bridge",
+    "image": "cr.flecs.tech/tech.flecs.mqtt-bridge",
     "description": "Bridge between FLECS MQTT broker and Service Mesh",
     "avatar": "",
     "category": "system,communication",

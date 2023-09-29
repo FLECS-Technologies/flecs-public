@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container: flecs/flecs-build
+    container: cr.flecs.tech/flecs-build
 
     strategy:
       matrix:
@@ -32,7 +32,7 @@ jobs:
 
   test:
     runs-on: ubuntu-22.04
-    container: flecs/flecs-build
+    container: cr.flecs.tech/flecs-build
 
     strategy:
       matrix:

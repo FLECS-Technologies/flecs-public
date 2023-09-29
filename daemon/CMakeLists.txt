@@ -74,12 +74,15 @@ install(
 )
 
 # configure Docker image flecs
-set(DOCKER_IMAGE flecs)
+set(DOCKER_REGISTRY "cr.flecs.tech")
+set(DOCKER_IMAGE "flecs")
 set(DOCKER_TAG "${CORE_VERSION}")
 include(flecs-docker)
 
 # configure Docker image flecs-slim
-set(DOCKER_IMAGE flecs-slim)
+set(DOCKER_REGISTRY "cr.flecs.tech")
+set(DOCKER_IMAGE "flecs-slim")
+set(DOCKER_TAG "${CORE_VERSION}")
 include(flecs-docker)
 
 # configure package
