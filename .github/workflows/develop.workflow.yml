@@ -57,7 +57,7 @@ jobs:
             out/${{ matrix.arch }}/latest_flecs_*
           retention-days: 3
 
-  deploy-s3:
+  deploy-dl:
     needs: build
     runs-on: ubuntu-22.04
 
@@ -67,34 +67,28 @@ jobs:
         with:
           path: out/
 
-      - name: Setup AWS CLI
-        env:
-          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
-          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
-          S3_HOST: ${{ secrets.S3_HOST }}
-          S3_REGION: ${{ secrets.S3_REGION }}
-        run: |
-          aws configure set aws_access_key_id ${S3_ACCESS_KEY}
-          aws configure set aws_secret_access_key ${S3_SECRET_KEY}
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy packages and latest files
-        env:
-          S3_HOST: ${{ secrets.S3_HOST }}
-          S3_REGION: ${{ secrets.S3_REGION }}
-        run: |
-          for i in `find out/*/ -mindepth 1 -maxdepth 1 -name "latest_flecs_*"`; do \
-            echo "Uploading ${i}"; \
-            aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key `basename ${i}` --body ${i}; \
-          done
-          for i in `find out/*/pkg -name "*.deb"`; do \
-            echo "Uploading ${i}"; \
-            aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key flecs/deb/`basename ${i}` --body ${i}; \
-          done
-          for i in `find out/*/pkg -name "*.tar"`; do \
-            echo "Uploading ${i}"; \
-            aws s3api put-object --acl public-read --endpoint-url https://${S3_HOST} --region ${S3_REGION} --bucket flecs-dev --key flecs/tar/`basename ${i}` --body ${i}; \
-          done
-        shell: bash
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.53.0
+          inlineScript: |
+            for i in `find out/*/ -mindepth 1 -maxdepth 1 -name "latest_flecs_*"`; do \
+              echo "Uploading ${i}"; \
+              az storage blob upload --account-name flecs --container-name flecs-dl --name dev/flecs/$(basename ${i}) --file ${i} --overwrite
+            done
+            for i in `find out/*/pkg -name "*.deb"`; do \
+              echo "Uploading ${i}"; \
+              az storage blob upload --account-name flecs --container-name flecs-dl --name dev/flecs/deb/$(basename ${i}) --file ${i} --overwrite
+            done
+            for i in `find out/*/pkg -name "*.tar"`; do \
+              echo "Uploading ${i}"; \
+              az storage blob upload --account-name flecs --container-name flecs-dl --name dev/flecs/tar/$(basename ${i}) --file ${i} --overwrite
+            done
 
   container-registry:
     needs: build
