@@ -843,12 +843,12 @@ determine_latest_version() {
   log_info -n "Determining latest FLECS version..."
   # try through curl first, if available
   if [ ! -z "${CURL}" ]; then
-    VERSION_CORE=`${CURL} -fsSL ${BASE_URL}/latest_flecs_${ARCH}`
-    VERSION_WEBAPP=`${CURL} -fsSL ${BASE_URL}/latest_flecs-webapp_${ARCH}`
+    VERSION_CORE=`${CURL} -fsSL ${BASE_URL}/flecs/latest_flecs_${ARCH}`
+    VERSION_WEBAPP=`${CURL} -fsSL ${BASE_URL}/webapp/latest_flecs-webapp_${ARCH}`
   # use wget as fallback, if available
   elif [ ! -z "${WGET}" ]; then
-    VERSION_CORE=`${WGET} -q -O - ${BASE_URL}/latest_flecs_${ARCH}`
-    VERSION_WEBAPP=`${WGET} -q -O - ${BASE_URL}/latest_flecs-webapp_${ARCH}`
+    VERSION_CORE=`${WGET} -q -O - ${BASE_URL}/flecs/latest_flecs_${ARCH}`
+    VERSION_WEBAPP=`${WGET} -q -O - ${BASE_URL}/webapp/latest_flecs-webapp_${ARCH}`
   fi
   if [ ! -z "${VERSION_CORE}" ] && [ ! -z "${VERSION_WEBAPP}" ]; then
     echo " OK"
@@ -903,14 +903,15 @@ download_flecs() {
   log_info "Downloading FLECS as ${PKGFORMAT}"
 
   PACKAGES=(flecs_${VERSION_CORE}_${ARCH}.${PKGFORMAT} flecs-webapp_${VERSION_WEBAPP}_${ARCH}.${PKGFORMAT})
-  DIRS=(flecs flecs-webapp)
+  DIRS=(flecs webapp)
+  VERSIONS=(${VERSION_CORE} ${VERSION_WEBAPP})
   for i in ${!PACKAGES[@]}; do
     if [ ! -z "${CURL}" ]; then
-      if ! ${CURL} -fsSL --output - ${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGES[$i]} >${PACKAGES[$i]}; then
+      if ! ${CURL} -fsSL --output - ${BASE_URL}/${DIRS[$i]}/${VERSIONS[$i]}/${PKGFORMAT}/${PACKAGES[$i]} >${PACKAGES[$i]}; then
         log_fatal "Could not download ${PACKAGES[$i]} through ${CURL}"
       fi
     elif [ ! -z "${WGET}" ]; then
-      if ! ${WGET} -q ${BASE_URL}/${DIRS[$i]}/${PKGFORMAT}/${PACKAGES[$i]}; then
+      if ! ${WGET} -q ${BASE_URL}/${DIRS[$i]}/${VERSIONS[$i]}/${PKGFORMAT}/${PACKAGES[$i]}; then
         log_fatal "Could not download ${PACKAGES[$i]} through ${WGET}"
       fi
     fi
