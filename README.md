@@ -17,14 +17,14 @@ git submodule update --init
 ### The recommended way
 It is recommended to use our official Docker image for building. To do so, run
 ```
-docker run -it --rm --name flecs-build -v $(pwd):$(pwd) -w $(pwd) cr.flecs.tech/flecs-build:v2.3.0-dormouse
+docker run -it --rm --name flecs-build -v $(pwd):$(pwd) -w $(pwd) cr.flecs.tech/flecs-build:v2.4.0-dormouse
 ```
 
 from the repository's root directory.
 
 If you intend to build Docker images as well (such as our System Apps), make sure to mount yout local Docker socket:
 ```
-docker run -it --rm --name flecs-build -v $(pwd):$(pwd) -v /run/docker.sock:/run/docker.sock -w $(pwd) cr.flecs.tech/flecs-build:v2.3.0-dormouse
+docker run -it --rm --name flecs-build -v $(pwd):$(pwd) -v /run/docker.sock:/run/docker.sock -w $(pwd) cr.flecs.tech/flecs-build:v2.4.0-dormouse
 ```
 
 **Note:** It is recommended to use the Docker image tag that corresponds to the Git tag you are building.

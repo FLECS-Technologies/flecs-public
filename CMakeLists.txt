@@ -20,9 +20,9 @@ project(FLECS)
 
 # set version
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-    set(CORE_VERSION 2.3.0-dormouse)
+    set(CORE_VERSION 2.4.0-dormouse)
 else()
-    set(CORE_VERSION 2.3.0-dormouse-dev)
+    set(CORE_VERSION 2.4.0-dormouse-dev)
 endif()
 set(API_VERSION 2.0.0)
 add_definitions(-DFLECS_VERSION="${CORE_VERSION}")
