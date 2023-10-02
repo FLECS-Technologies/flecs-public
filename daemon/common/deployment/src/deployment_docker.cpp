@@ -70,7 +70,11 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
     }
     for (const auto& volume : manifest->volumes()) {
         docker_process.arg("--volume");
-        docker_process.arg(container_name + "-" + volume.host() + ":" + volume.container());
+        if (volume.type() == volume_t::BIND_MOUNT) {
+            docker_process.arg(volume.host() + ":" + volume.container());
+        } else {
+            docker_process.arg(container_name + "-" + volume.host() + ":" + volume.container());
+        }
     }
     for (const auto& port_range : manifest->ports()) {
         docker_process.arg("--publish");
