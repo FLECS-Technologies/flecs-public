@@ -25,10 +25,10 @@ if(BUILD_TESTING)
 
     target_link_libraries(daemon.deployment.test PRIVATE
         daemon.common.deployment
-        external.gmock
-        external.gtest
-        external.gtest_main
-        external.yaml-cpp
+        GTest::gmock
+        GTest::gtest
+        GTest::gtest_main
+        yaml-cpp::yaml-cpp
     )
 
     add_test(NAME daemon.deployment.test COMMAND daemon.deployment.test)

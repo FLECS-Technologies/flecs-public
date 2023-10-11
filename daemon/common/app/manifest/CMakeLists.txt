@@ -48,7 +48,7 @@ target_link_libraries(
 
 target_link_libraries(
     ${PROJECT_NAME} PUBLIC
-    external.yaml-cpp
+    yaml-cpp::yaml-cpp
 )
 
 add_subdirectory(test)

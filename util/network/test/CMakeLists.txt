@@ -24,8 +24,8 @@ if(BUILD_TESTING)
     set_target_properties(test.util.network PROPERTIES OUTPUT_NAME test_util_network)
 
     target_link_libraries(test.util.network PRIVATE
-        external.gtest
-        external.gtest_main
+        GTest::gtest
+        GTest::gtest_main
         util.network
     )
 

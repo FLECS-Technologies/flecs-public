@@ -47,7 +47,7 @@ target_link_libraries(daemon PRIVATE
     util.datetime
     util.process
     util.signal_handler
-    external.yaml-cpp
+    yaml-cpp::yaml-cpp
 )
 
 # install executable flecsd for packaging
