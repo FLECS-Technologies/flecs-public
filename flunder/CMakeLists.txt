@@ -41,18 +41,18 @@ target_include_directories(flunder PRIVATE
 )
 
 target_link_libraries(flunder PRIVATE
-    external.cpr
+    cpr::cpr
     external.zenoh-c
 )
 
 target_link_libraries(flunder.static INTERFACE
-    external.cpr
+    cpr::cpr
     external.zenoh-c
 )
 
 target_link_libraries(flunder.shared PRIVATE
     -Wl,--whole-archive
-    external.cpr
+    cpr::cpr
     external.zenoh-c
     -Wl,--no-whole-archive
 )

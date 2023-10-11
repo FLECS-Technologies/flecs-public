@@ -26,7 +26,7 @@ target_include_directories(apps.mqtt-bridge PRIVATE
 )
 
 target_link_libraries(apps.mqtt-bridge
-    PUBLIC external.mosquitto flunder.static
+    PUBLIC PkgConfig::Mosquitto flunder.static
     PRIVATE util.signal_handler
 )
 

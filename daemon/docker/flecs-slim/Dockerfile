@@ -4,9 +4,11 @@ ARG ARCH
 
 ENV BASE_URL=dl.flecs.tech
 
-COPY utils/docker/scripts/debian/install-packages.sh /tmp/
-
-RUN /tmp/install-packages.sh ca-certificates wget
+RUN apt-get update && \
+    apt-get --yes --no-install-recommends install \
+    ca-certificates wget && \
+    apt-get --yes clean && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN [ "${ARCH}" = "amd64" ] && wget https://download.docker.com/linux/static/stable/x86_64/docker-24.0.6.tgz || true
 RUN [ "${ARCH}" = "armhf" ] && wget https://download.docker.com/linux/static/stable/armhf/docker-24.0.6.tgz || true

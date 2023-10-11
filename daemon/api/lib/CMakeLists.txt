@@ -29,7 +29,7 @@ target_include_directories(daemon.lib PUBLIC
 
 target_link_libraries(daemon.lib PRIVATE
     daemon.modules.module_base
-    external.cpr
+    cpr::cpr
 )
 
 add_subdirectory(test)

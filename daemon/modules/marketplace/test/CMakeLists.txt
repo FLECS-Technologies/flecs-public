@@ -22,9 +22,9 @@ if(BUILD_TESTING)
     set_target_properties(daemon.modules.marketplace.test PROPERTIES OUTPUT_NAME test_daemon_modules_marketplace)
 
     target_link_libraries(daemon.modules.marketplace.test PRIVATE
-        external.cpr
-        external.gtest
-        external.gtest_main
+        cpr::cpr
+        GTest::gtest
+        GTest::gtest_main
         daemon.modules.factory
         daemon.modules.module_base
         daemon.modules.marketplace

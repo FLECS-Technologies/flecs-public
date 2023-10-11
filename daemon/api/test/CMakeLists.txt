@@ -23,9 +23,9 @@ if(BUILD_TESTING)
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_api)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        external.cpr
-        external.gtest
-        external.gtest_main
+        cpr::cpr
+        GTest::gtest
+        GTest::gtest_main
         daemon.api
         util.signal_handler
     )

@@ -39,15 +39,15 @@ target_include_directories(mqtt PRIVATE
 )
 
 target_link_libraries(mqtt PRIVATE
-    external.mosquitto
+    PkgConfig::Mosquitto
 )
 
 target_link_libraries(mqtt.static INTERFACE
-    external.mosquitto
+    PkgConfig::Mosquitto
 )
 
 target_link_libraries(mqtt.shared PRIVATE
     -Wl,--whole-archive
-    external.mosquitto
+    PkgConfig::Mosquitto
     -Wl,--no-whole-archive
 )

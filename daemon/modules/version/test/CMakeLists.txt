@@ -22,8 +22,8 @@ if(BUILD_TESTING)
     set_target_properties(daemon.modules.version.test PROPERTIES OUTPUT_NAME test_daemon_modules_version)
 
     target_link_libraries(daemon.modules.version.test PRIVATE
-        external.gtest
-        external.gtest_main
+        GTest::gtest
+        GTest::gtest_main
         daemon.lib
         daemon.modules.factory
         daemon.modules.module_base

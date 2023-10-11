@@ -22,8 +22,8 @@ if(BUILD_TESTING)
     set_target_properties(daemon.app.startup_option.test PROPERTIES OUTPUT_NAME test_daemon_app_startup_option)
 
     target_link_libraries(daemon.app.startup_option.test PRIVATE
-        external.gtest
-        external.gtest_main
+        GTest::gtest
+        GTest::gtest_main
         daemon.common.app.manifest.startup_option
     )
 

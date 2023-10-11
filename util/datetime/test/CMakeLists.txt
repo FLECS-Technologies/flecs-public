@@ -22,8 +22,8 @@ if (BUILD_TESTING)
     set_target_properties(util.datetime.test PROPERTIES OUTPUT_NAME test_util_datetime)
 
     target_link_libraries(util.datetime.test PRIVATE
-        external.gtest
-        external.gtest_main
+        GTest::gtest
+        GTest::gtest_main
         util.datetime
     )
 

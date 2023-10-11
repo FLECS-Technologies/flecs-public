@@ -23,8 +23,8 @@ if (BUILD_TESTING)
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_app_manifest)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        external.gtest
-        external.gtest_main
+        GTest::gtest
+        GTest::gtest_main
         daemon.common.app.manifest
     )
 

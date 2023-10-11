@@ -22,8 +22,8 @@ if(BUILD_TESTING)
     set_target_properties(util.cxx20.test PROPERTIES OUTPUT_NAME test_util_string_utils)
 
     target_link_libraries(util.cxx20.test PRIVATE
-        external.gtest
-        external.gtest_main
+        GTest::gtest
+        GTest::gtest_main
     )
 
     add_test(NAME util.cxx20.test COMMAND util.cxx20.test)

@@ -22,8 +22,8 @@ if (BUILD_TESTING)
     set_target_properties(daemon.app.port_range.test PROPERTIES OUTPUT_NAME test_daemon_app_port_range)
 
     target_link_libraries(daemon.app.port_range.test PRIVATE
-        external.gtest
-        external.gtest_main
+        GTest::gtest
+        GTest::gtest_main
         daemon.common.app.manifest.port_range
     )
 

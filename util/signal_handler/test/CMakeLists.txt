@@ -22,8 +22,8 @@ if(BUILD_TESTING)
     set_target_properties(util.signal_handler.test PROPERTIES OUTPUT_NAME test_signal_handler)
 
     target_link_libraries(util.signal_handler.test PRIVATE
-        external.gtest
-        external.gtest_main
+        GTest::gtest
+        GTest::gtest_main
         util.signal_handler
     )
 
