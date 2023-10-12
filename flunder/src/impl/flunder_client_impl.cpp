@@ -40,9 +40,9 @@ static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
         return;
     }
 
-    const auto keyexpr = z_keyexpr_to_string(sample->keyexpr);
+    auto keyexpr = z_keyexpr_to_string(sample->keyexpr);
     const auto var = flunder_variable_t{
-        std::string{"/"} + std::string{keyexpr},
+        std::string{"/"} + std::string{keyexpr._cstr},
         std::string{reinterpret_cast<const char*>(sample->payload.start), sample->payload.len},
         to_string(
             sample->encoding.prefix,
@@ -50,7 +50,7 @@ static auto lib_subscribe_callback(const z_sample_t* sample, void* arg) //
                 reinterpret_cast<const char*>(sample->encoding.suffix.start),
                 sample->encoding.suffix.len}),
         stringify(ntp64_to_unix_time(sample->timestamp.time))};
-    free(keyexpr);
+    z_str_drop(z_move(keyexpr));
 
     std::visit(
         overload{// call callback without userdata
@@ -280,7 +280,7 @@ auto flunder_client_t::publish(
         value.size(),
         &options);
 
-    return (res == 1) ? 0 : -1;
+    return (res == 0) ? 0 : -1;
 }
 
 auto flunder_client_t::subscribe(
@@ -447,9 +447,9 @@ auto flunder_client_t::get(std::string_view topic) const //
          z_reply_channel_closure_call(&reply_channel.recv, &reply)) {
         if (z_reply_is_ok(&reply)) {
             const auto sample = z_reply_ok(&reply);
-            char* const keyexpr = z_keyexpr_to_string(sample.keyexpr);
-            auto keystr = std::string{"/"} + std::string{keyexpr};
-            free(keyexpr);
+            auto keyexpr = z_keyexpr_to_string(sample.keyexpr);
+            auto keystr = std::string{"/"} + std::string{keyexpr._cstr};
+            z_str_drop(z_move(keyexpr));
             if (cxx20::starts_with(keystr, "/@")) {
                 continue;
             }
@@ -482,7 +482,7 @@ auto flunder_client_t::erase(std::string_view topic) //
     auto options = z_delete_options_default();
     const auto res = z_delete(z_session_loan(&_z_session), z_keyexpr(keyexpr), &options);
 
-    return (res == 1) ? 0 : -1;
+    return (res == 0) ? 0 : -1;
 }
 
 auto ntp64_to_unix_time(std::uint64_t ntp_time) //
