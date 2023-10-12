@@ -1,7 +1,7 @@
 {
     "_schemaVersion": "2.0.0",
     "app": "tech.flecs.mqtt-bridge",
-    "version": "2.4.0-dormouse",
+    "version": "2.3.2-dormouse",
     "title": "FLECS MQTT bridge",
     "author": "info@flecs.tech",
     "image": "cr.flecs.tech/tech.flecs.mqtt-bridge",
