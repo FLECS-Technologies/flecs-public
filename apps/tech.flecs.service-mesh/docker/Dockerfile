@@ -4,6 +4,6 @@ ARG ARCH
 
 ADD fs/ /
 
-ADD assets/zenoh-0.6.0-beta.1-${ARCH}.tar.gz /
+ADD assets/zenoh-0.10.0-rc-${ARCH}.tar.gz /
 
 ENTRYPOINT [ "/entrypoint.sh" ]
