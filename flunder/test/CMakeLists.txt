@@ -25,7 +25,7 @@ if(BUILD_TESTING)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         GTest::gtest
         GTest::gtest_main
-        external.zenoh-c
+        zenohc::lib
         flunder
     )
 
