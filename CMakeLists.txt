@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.21)
 
 include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
 
@@ -45,13 +45,13 @@ set(CMAKE_INSTALL_RPATH "/opt/flecs/lib")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-include(flecs-external/flecs-external.cmake)
-add_subdirectory(apps)
+add_subdirectory(flecs-external)
 add_subdirectory(cli)
 add_subdirectory(flunder)
 add_subdirectory(mqtt)
 add_subdirectory(util)
 add_subdirectory(daemon)
+add_subdirectory(apps)
 
 include(flecs-rules)
 

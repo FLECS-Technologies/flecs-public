@@ -50,7 +50,8 @@ target_link_libraries(flunder.static INTERFACE
     zenohc::lib
 )
 
-target_link_libraries(flunder.shared PRIVATE
+target_link_libraries(flunder.shared
+    PRIVATE
     -Wl,--whole-archive
     cpr::cpr
     -Wl,--no-whole-archive
