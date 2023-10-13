@@ -26,7 +26,7 @@ target_include_directories(apps.mqtt-bridge PRIVATE
 )
 
 target_link_libraries(apps.mqtt-bridge
-    PUBLIC PkgConfig::Mosquitto flunder.static
+    PUBLIC PkgConfig::Mosquitto flunder.shared
     PRIVATE util.signal_handler
 )
 
@@ -44,6 +44,17 @@ set(DOCKER_TAG "${APP_VERSION}")
 install(
     TARGETS apps.mqtt-bridge
     DESTINATION ${PROJECT_NAME}/docker/fs/usr/bin/
+)
+
+install(
+    TARGETS flunder.shared
+    DESTINATION ${PROJECT_NAME}/docker/fs/opt/flecs/lib/
+)
+
+get_target_property(zenohc_lib zenohc::lib ALIASED_TARGET)
+install(
+    IMPORTED_RUNTIME_ARTIFACTS ${zenohc_lib}
+    DESTINATION ${PROJECT_NAME}/docker/fs/opt/flecs/lib/
 )
 
 include(flecs-docker)
