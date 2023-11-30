@@ -13,4 +13,3 @@
 # limitations under the License.
 
 add_subdirectory(tech.flecs.mqtt-bridge)
-add_subdirectory(tech.flecs.service-mesh)
