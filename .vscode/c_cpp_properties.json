@@ -4,7 +4,6 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}",
-                "${workspaceFolder}/apps/tech.flecs.mqtt-bridge",
                 "${workspaceFolder}/flunder/**",
                 "${workspaceFolder}/mqtt",
                 "${workspaceFolder}/mqtt/impl",

@@ -51,7 +51,6 @@ add_subdirectory(flunder)
 add_subdirectory(mqtt)
 add_subdirectory(util)
 add_subdirectory(daemon)
-add_subdirectory(apps)
 
 include(flecs-rules)
 
