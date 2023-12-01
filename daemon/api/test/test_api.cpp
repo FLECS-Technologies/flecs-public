@@ -18,7 +18,6 @@
 
 #include "daemon/api/api.h"
 #include "gtest/gtest.h"
-#include "util/cxx20/string.h"
 #include "util/json/json.h"
 
 class test_flecs_api_t

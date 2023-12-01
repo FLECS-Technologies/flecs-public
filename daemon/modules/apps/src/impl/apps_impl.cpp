@@ -27,6 +27,7 @@
 #include "modules/jobs/jobs.h"
 #include "modules/manifests/manifests.h"
 #include "modules/marketplace/marketplace.h"
+#include "util/cxx20/string.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 #include "util/process/process.h"

@@ -16,7 +16,6 @@
 
 #include <regex>
 
-#include "util/cxx20/string.h"
 #include "util/fs/fs.h"
 #include "util/string/string_utils.h"
 
@@ -37,7 +36,7 @@ volume_t::volume_t(std::string_view volume_str) noexcept
         return;
     }
 
-    if (cxx20::starts_with(parts[0], '/')) {
+    if (parts[0].starts_with('/')) {
         // bind mount
         try {
             const auto path = fs::path{parts[0]};

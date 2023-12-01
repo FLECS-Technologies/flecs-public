@@ -26,7 +26,6 @@
 #include "archive/impl/read_archive.h"
 #include "archive/impl/write_archive.h"
 #include "archive/impl/write_disk.h"
-#include "util/cxx20/string.h"
 #include "util/string/literals.h"
 
 namespace FLECS {

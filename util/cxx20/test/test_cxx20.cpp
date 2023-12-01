@@ -39,16 +39,4 @@ TEST(cxx20, string)
     ASSERT_FALSE(FLECS::cxx20::contains(s, "123"sv));
     ASSERT_FALSE(FLECS::cxx20::contains(str, "123"sv));
     ASSERT_FALSE(FLECS::cxx20::contains(sv, "123"sv));
-
-    ASSERT_TRUE(FLECS::cxx20::starts_with(s, "This"));
-    ASSERT_TRUE(FLECS::cxx20::starts_with(str, "This"));
-    ASSERT_TRUE(FLECS::cxx20::starts_with(sv, "This"));
-
-    ASSERT_TRUE(FLECS::cxx20::starts_with(s, "This"sv));
-    ASSERT_TRUE(FLECS::cxx20::starts_with(str, "This"sv));
-    ASSERT_TRUE(FLECS::cxx20::starts_with(sv, "This"sv));
-
-    ASSERT_TRUE(FLECS::cxx20::starts_with(s, 'T'));
-    ASSERT_TRUE(FLECS::cxx20::starts_with(str, 'T'));
-    ASSERT_TRUE(FLECS::cxx20::starts_with(sv, 'T'));
 }
