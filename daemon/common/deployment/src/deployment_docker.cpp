@@ -120,7 +120,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
         if (!network.mac_address.empty()) {
             docker_process.arg("--mac-address");
 
-            if (cxx20::starts_with(network.mac_address, "clone:")) {
+            if (network.mac_address.starts_with("clone:")) {
                 const auto parts = split(network.mac_address, ':');
                 if (parts.size() != 2) {
                     return {-1, "Cloned MAC address is invalid"};
@@ -199,7 +199,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
         trim(cmd);
         cmd.erase(cmd.find_first_of('['), 1);
         cmd.erase(cmd.find_last_of(']'), 1);
-        if (cxx20::starts_with(cmd, "/bin/sh -c ")) {
+        if (cmd.starts_with("/bin/sh -c ")) {
             cmd.erase(0, 11);
         }
 

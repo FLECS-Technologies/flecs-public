@@ -16,8 +16,6 @@
 
 #include <filesystem>
 
-#include "util/cxx20/string.h"
-
 namespace FLECS {
 
 namespace fs = std::filesystem;
@@ -28,7 +26,7 @@ public:
     explicit tmpdir_t(fs::path dir) noexcept
         : _dir{std::move(dir)}
     {
-        if (!_dir.is_absolute() || !cxx20::starts_with(_dir.c_str(), "/var/lib/flecs/")) {
+        if (!_dir.is_absolute() || !_dir.string().starts_with("/var/lib/flecs/")) {
             _dir.clear();
             return;
         }

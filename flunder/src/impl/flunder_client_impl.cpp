@@ -18,8 +18,6 @@
 
 #include <thread>
 
-#include "util/cxx20/string.h"
-
 namespace FLECS {
 namespace impl {
 
@@ -128,7 +126,7 @@ auto encoding_from_string(std::string_view encoding) //
     }
 
     for (const auto& it : encodings) {
-        if (!it.first.empty() && cxx20::starts_with(encoding, it.first)) {
+        if (!it.first.empty() && encoding.starts_with(it.first)) {
             return {it.second, encoding.substr(it.first.length())};
         }
     }
@@ -271,7 +269,7 @@ auto flunder_client_t::publish(
     options.encoding = encoding;
     options.congestion_control = z_congestion_control_t::Z_CONGESTION_CONTROL_BLOCK;
 
-    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+    const auto keyexpr = topic.starts_with('/') ? topic.data() + 1 : topic.data();
 
     const auto res = z_put(
         z_session_loan(&_z_session),
@@ -309,7 +307,7 @@ auto flunder_client_t::subscribe(
     const void* userp) //
     -> int
 {
-    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+    const auto keyexpr = topic.starts_with('/') ? topic.data() + 1 : topic.data();
 
     if (_subscriptions.count(keyexpr) > 0) {
         return -1;
@@ -356,7 +354,7 @@ auto flunder_client_t::subscribe(
 auto flunder_client_t::unsubscribe(std::string_view topic) //
     -> int
 {
-    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+    const auto keyexpr = topic.starts_with('/') ? topic.data() + 1 : topic.data();
 
     auto it = _subscriptions.find(keyexpr);
     if (it == _subscriptions.cend()) {
@@ -376,7 +374,7 @@ auto flunder_client_t::add_mem_storage(std::string name, std::string_view topic)
         return -1;
     }
 
-    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+    const auto keyexpr = topic.starts_with('/') ? topic.data() + 1 : topic.data();
 
     auto url = cpr::Url{std::string{"http://"}
                             .append(_host)
@@ -435,7 +433,7 @@ auto flunder_client_t::get(std::string_view topic) const //
     auto options = z_get_options_default();
     options.target = Z_QUERY_TARGET_ALL;
 
-    auto keyexpr = z_keyexpr(cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data());
+    auto keyexpr = z_keyexpr(topic.starts_with('/') ? topic.data() + 1 : topic.data());
     if (!z_keyexpr_is_initialized(&keyexpr)) {
         return {-1, vars};
     }
@@ -450,7 +448,7 @@ auto flunder_client_t::get(std::string_view topic) const //
             auto keyexpr = z_keyexpr_to_string(sample.keyexpr);
             auto keystr = std::string{"/"} + std::string{keyexpr._cstr};
             z_str_drop(z_move(keyexpr));
-            if (cxx20::starts_with(keystr, "/@")) {
+            if (keystr.starts_with("/@")) {
                 continue;
             }
 
@@ -477,7 +475,7 @@ auto flunder_client_t::get(std::string_view topic) const //
 auto flunder_client_t::erase(std::string_view topic) //
     -> int
 {
-    const auto keyexpr = cxx20::starts_with(topic, '/') ? topic.data() + 1 : topic.data();
+    const auto keyexpr = topic.starts_with('/') ? topic.data() + 1 : topic.data();
 
     auto options = z_delete_options_default();
     const auto res = z_delete(z_session_loan(&_z_session), z_keyexpr(keyexpr), &options);

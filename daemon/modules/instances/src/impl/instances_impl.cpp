@@ -22,7 +22,6 @@
 #include "modules/factory/factory.h"
 #include "modules/jobs/jobs.h"
 #include "modules/system/system.h"
-#include "util/cxx20/string.h"
 #include "util/datetime/datetime.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
@@ -63,7 +62,7 @@ auto build_network_adapters_json(std::shared_ptr<instance_t> instance)
         }
     }
     for (decltype(auto) network : instance->networks()) {
-        if (cxx20::starts_with(network.network_name, "flecs-macvlan-")) {
+        if (network.network_name.starts_with("flecs-macvlan-")) {
             const auto adapter = network.network_name.substr(14);
             if (!adapters.count(adapter)) {
                 auto adapter_json = json_t{};

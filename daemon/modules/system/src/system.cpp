@@ -25,7 +25,6 @@
 #include <sstream>
 
 #include "factory/factory.h"
-#include "util/cxx20/string.h"
 #include "util/network/ip_addr.h"
 #include "util/network/network.h"
 #include "util/string/string_utils.h"
@@ -171,17 +170,15 @@ auto module_system_t::get_network_adapters() const //
     }
 
     for (decltype(auto) adapter : adapters) {
-        if ((cxx20::starts_with(adapter.first, "en") ||
-             (cxx20::starts_with(adapter.first, "eth")))) {
+        if (adapter.first.starts_with("en") || adapter.first.starts_with("eth")) {
             adapter.second.type = netif_type_t::WIRED;
-        } else if ((cxx20::starts_with(adapter.first, "wl"))) {
+        } else if (adapter.first.starts_with("wl")) {
             adapter.second.type = netif_type_t::WIRELESS;
-        } else if ((cxx20::starts_with(adapter.first, "lo"))) {
+        } else if (adapter.first.starts_with("lo")) {
             adapter.second.type = netif_type_t::LOCAL;
-        } else if ((cxx20::starts_with(adapter.first, "veth"))) {
+        } else if (adapter.first.starts_with("veth")) {
             adapter.second.type = netif_type_t::VIRTUAL;
-        } else if ((cxx20::starts_with(adapter.first, "br") ||
-                    (cxx20::starts_with(adapter.first, "docker")))) {
+        } else if (adapter.first.starts_with("br") || adapter.first.starts_with("docker")) {
             adapter.second.type = netif_type_t::BRIDGE;
         } else {
             adapter.second.type = UNKNOWN;

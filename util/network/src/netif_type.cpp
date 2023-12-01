@@ -18,8 +18,6 @@
 #include <array>
 #include <tuple>
 
-#include "util/cxx20/string.h"
-
 namespace FLECS {
 namespace netif {
 
@@ -74,15 +72,15 @@ auto from_string(std::string_view str) //
 auto from_adapter_name(std::string_view str) //
     -> type
 {
-    if ((cxx20::starts_with(str, "en") || (cxx20::starts_with(str, "eth")))) {
+    if (str.starts_with("en") || str.starts_with("eth")) {
         return type::Wired;
-    } else if ((cxx20::starts_with(str, "wl"))) {
+    } else if (str.starts_with("wl")) {
         return type::Wireless;
-    } else if ((cxx20::starts_with(str, "lo"))) {
+    } else if (str.starts_with("lo")) {
         return type::Local;
-    } else if ((cxx20::starts_with(str, "veth"))) {
+    } else if (str.starts_with("veth")) {
         return type::Virtual;
-    } else if ((cxx20::starts_with(str, "br") || (cxx20::starts_with(str, "docker")))) {
+    } else if (str.starts_with("br") || (str.starts_with("docker"))) {
         return type::Bridge;
     }
 
