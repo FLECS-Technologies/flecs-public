@@ -35,7 +35,7 @@ auto module_data_layer_t::do_init() //
 {
     _impl->do_init();
 
-    FLECS_V2_ROUTE("/data-layer/browse").methods("GET"_method)([=]() { return browse(""); });
+    FLECS_V2_ROUTE("/data-layer/browse").methods("GET"_method)([this]() { return browse(""); });
 }
 
 auto module_data_layer_t::do_deinit() //
