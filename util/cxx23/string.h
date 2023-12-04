@@ -18,7 +18,7 @@
 #include <string_view>
 
 namespace FLECS {
-namespace cxx20 {
+namespace cxx23 {
 
 template <typename CharT, typename Traits>
 constexpr bool contains(
@@ -70,5 +70,5 @@ constexpr bool contains(const CharT* str, const CharT* s)
     return contains(std::basic_string_view<CharT>{str}, s);
 }
 
-} // namespace cxx20
+} // namespace cxx23
 } // namespace FLECS

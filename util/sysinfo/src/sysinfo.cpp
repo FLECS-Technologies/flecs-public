@@ -20,7 +20,7 @@
 #include <map>
 #include <regex>
 
-#include "util/cxx20/string.h"
+#include "util/cxx23/string.h"
 
 namespace FLECS {
 
@@ -54,7 +54,7 @@ sysinfo_t::sysinfo_t()
     } else if (fs::exists("/usr/lib/os-release")) {
         parse_os_release("/usr/lib/os-release");
     }
-    if (cxx20::contains(_kernel_version, "weidmueller")) {
+    if (cxx23::contains(_kernel_version, "weidmueller")) {
         _platform = "weidmueller";
     }
 }

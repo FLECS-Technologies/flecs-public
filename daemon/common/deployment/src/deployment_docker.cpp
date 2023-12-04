@@ -18,7 +18,7 @@
 #include "app/manifest/manifest.h"
 #include "factory/factory.h"
 #include "system/system.h"
-#include "util/cxx20/string.h"
+#include "util/cxx23/string.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
 #include "util/string/string_utils.h"
@@ -45,7 +45,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
         docker_process.spawnp("docker");
         docker_process.wait(false, false);
         if (docker_process.exit_code() == 0) {
-            if (cxx20::contains(docker_process.stdout(), container_name.c_str())) {
+            if (cxx23::contains(docker_process.stdout(), container_name.c_str())) {
                 return {0, "Container already exists"};
             };
         }
