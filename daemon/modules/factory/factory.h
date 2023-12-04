@@ -16,9 +16,9 @@
 
 #include <map>
 #include <memory>
+#include <string>
 
 #include "module_base/module.h"
-#include "util/string/comparator.h"
 
 namespace FLECS {
 
@@ -29,16 +29,16 @@ public:
     module_factory_t(module_factory_t&&) = delete;
     module_factory_t& operator=(module_factory_t) = delete;
 
-    using module_table_t = std::map<const char*, std::shared_ptr<module_t>, string_comparator_t>;
+    using module_table_t = std::map<std::string, std::shared_ptr<module_t>>;
 
     static module_factory_t& instance();
 
     template <typename T>
-    void register_module(const char* module_name);
+    void register_module(std::string module_name);
 
     void init_modules();
     void deinit_modules();
-    std::shared_ptr<module_t> query(const char* endpoint);
+    std::shared_ptr<module_t> query(const std::string& endpoint);
 
 private:
     module_factory_t() = default;
@@ -47,7 +47,7 @@ private:
 };
 
 template <typename T>
-void module_factory_t::register_module(const char* module_name)
+void module_factory_t::register_module(std::string module_name)
 {
     _module_table.try_emplace(module_name, new T{});
 }
@@ -56,11 +56,11 @@ template <typename T>
 class register_module_t
 {
 public:
-    register_module_t(const char* module_name);
+    register_module_t(std::string module_name);
 };
 
 template <typename T>
-register_module_t<T>::register_module_t(const char* module_name)
+register_module_t<T>::register_module_t(std::string module_name)
 {
     module_factory_t::instance().register_module<T>(module_name);
 }
@@ -68,7 +68,7 @@ register_module_t<T>::register_module_t(const char* module_name)
 namespace api {
 void init_modules();
 void deinit_modules();
-std::shared_ptr<module_t> query_module(const char* module_name);
+std::shared_ptr<module_t> query_module(const std::string& module_name);
 } // namespace api
 
 } // namespace FLECS

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 add_subdirectory(archive)
-add_subdirectory(container)
 add_subdirectory(cxx20)
 add_subdirectory(datetime)
 add_subdirectory(network)
