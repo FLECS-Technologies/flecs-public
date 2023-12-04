@@ -16,7 +16,7 @@
 
 #include <regex>
 
-#include "util/cxx20/string.h"
+#include "util/cxx23/string.h"
 
 namespace FLECS {
 
@@ -30,9 +30,9 @@ network_t::network_t(std::string_view str)
     , _mac_address{}
     , _type{network_type_e::None}
 {
-    if (cxx20::contains(str, "-internal-")) {
+    if (cxx23::contains(str, "-internal-")) {
         _type = network_type_e::Internal;
-    } else if (cxx20::contains(str, "-ipvlan-")) {
+    } else if (cxx23::contains(str, "-ipvlan-")) {
         _type = network_type_e::IPVLAN;
 
         const auto adapter_regex = std::regex{"ipvlan-(.+)$"};
@@ -41,7 +41,7 @@ network_t::network_t(std::string_view str)
         if ((m.size() > 1) && (m[1].matched)) {
             _parent = m[1];
         }
-    } else if (cxx20::contains(str, "-macvlan-")) {
+    } else if (cxx23::contains(str, "-macvlan-")) {
         _type = network_type_e::MACVLAN;
 
         const auto adapter_regex = std::regex{"macvlan-(.+)$"};

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "gtest/gtest.h"
-#include "util/cxx20/string.h"
+#include "util/cxx23/string.h"
 
 TEST(cxx20, string)
 {
@@ -24,19 +24,19 @@ TEST(cxx20, string)
     const auto str = "This is a string"s;
     const auto sv = "This is a string"sv;
 
-    ASSERT_TRUE(FLECS::cxx20::contains(s, "This"));
-    ASSERT_TRUE(FLECS::cxx20::contains(str, "This"));
-    ASSERT_TRUE(FLECS::cxx20::contains(sv, "This"));
+    ASSERT_TRUE(FLECS::cxx23::contains(s, "This"));
+    ASSERT_TRUE(FLECS::cxx23::contains(str, "This"));
+    ASSERT_TRUE(FLECS::cxx23::contains(sv, "This"));
 
-    ASSERT_TRUE(FLECS::cxx20::contains(s, "string"sv));
-    ASSERT_TRUE(FLECS::cxx20::contains(str, "string"sv));
-    ASSERT_TRUE(FLECS::cxx20::contains(sv, "string"sv));
+    ASSERT_TRUE(FLECS::cxx23::contains(s, "string"sv));
+    ASSERT_TRUE(FLECS::cxx23::contains(str, "string"sv));
+    ASSERT_TRUE(FLECS::cxx23::contains(sv, "string"sv));
 
-    ASSERT_FALSE(FLECS::cxx20::contains(s, "flecs"));
-    ASSERT_FALSE(FLECS::cxx20::contains(str, "flecs"));
-    ASSERT_FALSE(FLECS::cxx20::contains(sv, "flecs"));
+    ASSERT_FALSE(FLECS::cxx23::contains(s, "flecs"));
+    ASSERT_FALSE(FLECS::cxx23::contains(str, "flecs"));
+    ASSERT_FALSE(FLECS::cxx23::contains(sv, "flecs"));
 
-    ASSERT_FALSE(FLECS::cxx20::contains(s, "123"sv));
-    ASSERT_FALSE(FLECS::cxx20::contains(str, "123"sv));
-    ASSERT_FALSE(FLECS::cxx20::contains(sv, "123"sv));
+    ASSERT_FALSE(FLECS::cxx23::contains(s, "123"sv));
+    ASSERT_FALSE(FLECS::cxx23::contains(str, "123"sv));
+    ASSERT_FALSE(FLECS::cxx23::contains(sv, "123"sv));
 }

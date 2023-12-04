@@ -27,7 +27,7 @@
 #include "modules/jobs/jobs.h"
 #include "modules/manifests/manifests.h"
 #include "modules/marketplace/marketplace.h"
-#include "util/cxx20/string.h"
+#include "util/cxx23/string.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 #include "util/process/process.h"
@@ -496,7 +496,7 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     }
 
     // Step 2a: Prevent removal of system apps
-    if (manifest && cxx20::contains(manifest->category(), "system") && !force) {
+    if (manifest && cxx23::contains(manifest->category(), "system") && !force) {
         return {-1, "Not uninstalling system app "s + to_string(app_key)};
     }
 
