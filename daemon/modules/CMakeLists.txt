@@ -52,6 +52,7 @@ endmacro()
 
 add_subdirectory(apps)
 add_subdirectory(data_layer)
+add_subdirectory(device)
 add_subdirectory(factory)
 add_subdirectory(flecsport)
 add_subdirectory(instances)

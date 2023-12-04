@@ -35,6 +35,7 @@ target_link_libraries(daemon PRIVATE
     daemon.common
     daemon.modules.apps
     daemon.modules.data_layer
+    daemon.modules.device
     daemon.modules.factory
     daemon.modules.flecsport
     daemon.modules.instances
