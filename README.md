@@ -74,8 +74,6 @@ cmake --build build/${ARCH}
 cmake --build build/${ARCH} --target <target>
 ```
 
-Relevant single `<target>`s might be `flunder` or `mqtt`.
-
 3. Installing
 ```bash
 cmake --build build/${ARCH} --target install

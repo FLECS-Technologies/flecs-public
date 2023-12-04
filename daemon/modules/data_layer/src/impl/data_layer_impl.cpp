@@ -28,7 +28,7 @@ module_data_layer_t::~module_data_layer_t()
 auto module_data_layer_t::do_init() //
     -> void
 {
-    _client.connect(FLUNDER_HOST, FLUNDER_PORT);
+    _client.connect(flunder::FLUNDER_HOST, flunder::FLUNDER_PORT);
 }
 
 auto module_data_layer_t::do_deinit() //

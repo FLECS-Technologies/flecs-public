@@ -15,7 +15,7 @@
 #pragma once
 
 #include "data_layer/data_layer.h"
-#include "flunder/flunder_client.h"
+#include "flunder/client.h"
 
 namespace FLECS {
 namespace impl {
@@ -37,7 +37,7 @@ public:
         -> void;
 
 private:
-    FLECS::flunder_client_t _client;
+    flunder::client_t _client;
 };
 
 } // namespace impl
