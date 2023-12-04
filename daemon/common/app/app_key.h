@@ -40,20 +40,7 @@ public:
         -> std::string_view;
 
 private:
-    friend auto operator<(const app_key_t& lhs, const app_key_t& rhs) //
-        -> bool;
-    friend auto operator<(const app_key_t& lhs, const app_key_t& rhs) //
-        -> bool;
-    friend auto operator<=(const app_key_t& lhs, const app_key_t& rhs) //
-        -> bool;
-    friend auto operator>(const app_key_t& lhs, const app_key_t& rhs) //
-        -> bool;
-    friend auto operator>=(const app_key_t& lhs, const app_key_t& rhs) //
-        -> bool;
-    friend auto operator==(const app_key_t& lhs, const app_key_t& rhs) //
-        -> bool;
-    friend auto operator!=(const app_key_t& lhs, const app_key_t& rhs) //
-        -> bool;
+    friend auto operator<=>(const app_key_t&, const app_key_t&) = default;
 
     friend auto to_json(json_t& j, const app_key_t& app_key) //
         -> void;

@@ -25,19 +25,14 @@ namespace usb {
 
 struct device_t
 {
-    std::uint16_t pid;
     std::uint16_t vid;
-    std::string device;
+    std::uint16_t pid;
     std::string port;
+    std::string device;
     std::string vendor;
-};
 
-bool operator<(const device_t& lhs, const device_t& rhs);
-bool operator<=(const device_t& lhs, const device_t& rhs);
-bool operator>(const device_t& lhs, const device_t& rhs);
-bool operator>=(const device_t& lhs, const device_t& rhs);
-bool operator==(const device_t& lhs, const device_t& rhs);
-bool operator!=(const device_t& lhs, const device_t& rhs);
+    friend auto operator<=>(const device_t&, const device_t&) = default;
+};
 
 auto to_json(json_t& json, const device_t& device) //
     -> void;

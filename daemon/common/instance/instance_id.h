@@ -41,22 +41,9 @@ public:
         -> void;
 
 private:
+    friend auto operator<=>(const instance_id_t&, const instance_id_t&) = default;
+
     std::uint32_t _id;
 };
-
-auto operator<(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool;
-auto operator<(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool;
-auto operator<=(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool;
-auto operator>(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool;
-auto operator>=(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool;
-auto operator==(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool;
-auto operator!=(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool;
 
 } // namespace FLECS

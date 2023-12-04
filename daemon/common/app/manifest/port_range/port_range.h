@@ -52,11 +52,6 @@ inline std::string to_string(const port_t& port_t)
     return stringify(static_cast<port_t::value_t>(port_t));
 }
 
-inline constexpr bool operator<(const port_t& lhs, const port_t& rhs)
-{
-    return static_cast<port_t::value_t>(lhs) < static_cast<port_t::value_t>(rhs);
-}
-
 class port_range_t
 {
 public:
@@ -86,21 +81,13 @@ public:
     constexpr port_t end_port() const noexcept { return _end_port; }
 
 private:
+    friend auto operator<=>(const port_range_t&, const port_range_t&) = default;
+
     port_t _start_port;
     port_t _end_port;
 };
 
 constexpr auto invalid_port_range = port_range_t{port_t{0}, port_t{0}};
-
-inline bool operator<(const port_range_t& lhs, const port_range_t& rhs)
-{
-    return lhs.start_port() < rhs.start_port();
-}
-
-inline bool operator==(const port_range_t& lhs, const port_range_t& rhs)
-{
-    return (lhs.start_port() == rhs.start_port()) && (lhs.end_port() == rhs.end_port());
-}
 
 inline std::string to_string(const port_range_t& port_range)
 {
@@ -156,6 +143,8 @@ public:
     constexpr port_range_t container_port_range() const noexcept { return _container_port_range; }
 
 private:
+    friend auto operator<=>(const mapped_port_range_t&, const mapped_port_range_t&) = default;
+
     friend auto to_json(json_t& json, const mapped_port_range_t& mapped_port_range) //
         -> void;
     friend auto from_json(const json_t& json, mapped_port_range_t& mapped_port_range) //
@@ -164,17 +153,6 @@ private:
     port_range_t _host_port_range;
     port_range_t _container_port_range;
 };
-
-inline bool operator<(const mapped_port_range_t& lhs, const mapped_port_range_t& rhs)
-{
-    return lhs.host_port_range() < rhs.host_port_range();
-}
-
-inline bool operator==(const mapped_port_range_t& lhs, const mapped_port_range_t& rhs)
-{
-    return (lhs.host_port_range() == rhs.host_port_range()) &&
-           (lhs.container_port_range() == rhs.container_port_range());
-}
 
 inline std::string to_string(const mapped_port_range_t& mapped_port_range)
 {

@@ -40,6 +40,8 @@ public:
     auto& type() const noexcept { return _type; }
 
 private:
+    friend auto operator<=>(const volume_t&, const volume_t&) = default;
+
     friend auto to_json(json_t& json, const volume_t& volume) //
         -> void;
     friend auto from_json(const json_t& json, volume_t& volume) //
@@ -52,21 +54,6 @@ private:
 
 auto to_string(const volume_t& volume) //
     -> std::string;
-
-inline bool operator<(const volume_t& lhs, const volume_t& rhs)
-{
-    return lhs.host() < rhs.host();
-}
-
-inline bool operator==(const volume_t& lhs, const volume_t& rhs)
-{
-    return lhs.host() == rhs.host();
-}
-
-inline bool operator!=(const volume_t& lhs, const volume_t& rhs)
-{
-    return !(lhs.host() == rhs.host());
-}
 
 inline std::string to_string(const volume_t::volume_type_t& volume_type)
 {

@@ -30,34 +30,34 @@
 TEST(usb, compare)
 {
     const auto usb_device_1 = FLECS::usb::device_t{
-        .pid = USB_PID,
         .vid = USB_VID,
-        .device = USB_DEVICE,
+        .pid = USB_PID,
         .port = USB_PORT,
+        .device = USB_DEVICE,
         .vendor = USB_VENDOR,
     };
     // increment vid
     const auto usb_device_2 = FLECS::usb::device_t{
-        .pid = USB_PID,
         .vid = USB_VID_2,
-        .device = USB_DEVICE,
+        .pid = USB_PID,
         .port = USB_PORT,
+        .device = USB_DEVICE,
         .vendor = USB_VENDOR,
     };
     // increment pid
     const auto usb_device_3 = FLECS::usb::device_t{
-        .pid = USB_PID_2,
         .vid = USB_VID,
-        .device = USB_DEVICE,
+        .pid = USB_PID_2,
         .port = USB_PORT,
+        .device = USB_DEVICE,
         .vendor = USB_VENDOR,
     };
     // increment port
     const auto usb_device_4 = FLECS::usb::device_t{
-        .pid = USB_PID,
         .vid = USB_VID,
-        .device = USB_DEVICE,
+        .pid = USB_PID,
         .port = USB_PORT_2,
+        .device = USB_DEVICE,
         .vendor = USB_VENDOR,
     };
 
@@ -107,10 +107,10 @@ TEST(usb, compare)
 TEST(usb, to_json)
 {
     const auto usb_device = FLECS::usb::device_t{
-        .pid = USB_PID,
         .vid = USB_VID,
-        .device = USB_DEVICE,
+        .pid = USB_PID,
         .port = USB_PORT,
+        .device = USB_DEVICE,
         .vendor = USB_VENDOR};
 
     auto json = FLECS::json_t{};
