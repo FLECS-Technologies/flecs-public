@@ -4,3 +4,6 @@
 [submodule "flecs-external"]
 	path = flecs-external
 	url = https://github.com/FLECS-Technologies/flecs-external.git
+[submodule "flunder"]
+	path = flunder
+	url = https://github.com/FLECS-Technologies/flunder.git
