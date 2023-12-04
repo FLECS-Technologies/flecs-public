@@ -42,40 +42,4 @@ auto app_name_t::value() const noexcept //
     return _app_name;
 }
 
-auto operator<(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool
-{
-    return lhs.value() < rhs.value();
-}
-
-auto operator<=(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool
-{
-    return !(lhs > rhs);
-}
-
-auto operator>(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool
-{
-    return rhs < lhs;
-}
-
-auto operator>=(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool
-{
-    return !(lhs < rhs);
-}
-
-auto operator==(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool
-{
-    return lhs.value() == rhs.value();
-}
-
-auto operator!=(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool
-{
-    return !(lhs == rhs);
-}
-
 } // namespace FLECS

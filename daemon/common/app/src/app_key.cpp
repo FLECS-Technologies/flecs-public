@@ -46,42 +46,6 @@ auto app_key_t::version() const noexcept //
     return std::get<1>(_key);
 }
 
-auto operator<(const app_key_t& lhs, const app_key_t& rhs) //
-    -> bool
-{
-    return lhs._key < rhs._key;
-}
-
-auto operator<=(const app_key_t& lhs, const app_key_t& rhs) //
-    -> bool
-{
-    return !(lhs > rhs);
-}
-
-auto operator>(const app_key_t& lhs, const app_key_t& rhs) //
-    -> bool
-{
-    return rhs < lhs;
-}
-
-auto operator>=(const app_key_t& lhs, const app_key_t& rhs) //
-    -> bool
-{
-    return !(lhs < rhs);
-}
-
-auto operator==(const app_key_t& lhs, const app_key_t& rhs) //
-    -> bool
-{
-    return lhs._key == rhs._key;
-}
-
-auto operator!=(const app_key_t& lhs, const app_key_t& rhs) //
-    -> bool
-{
-    return !(lhs == rhs);
-}
-
 void to_json(json_t& j, const app_key_t& app_key)
 {
     j = json_t({{"name", app_key.name()}, {"version", app_key.version()}});

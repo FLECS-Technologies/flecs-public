@@ -60,40 +60,4 @@ auto instance_id_t::regenerate() //
     _id = rnd();
 }
 
-auto operator<(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool
-{
-    return lhs.get() < rhs.get();
-}
-
-auto operator<=(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool
-{
-    return !(lhs > rhs);
-}
-
-auto operator>(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool
-{
-    return rhs < lhs;
-}
-
-auto operator>=(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool
-{
-    return !(lhs < rhs);
-}
-
-auto operator==(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool
-{
-    return lhs.get() == rhs.get();
-}
-
-auto operator!=(const instance_id_t& lhs, const instance_id_t& rhs) //
-    -> bool
-{
-    return !(lhs == rhs);
-}
-
 } // namespace FLECS

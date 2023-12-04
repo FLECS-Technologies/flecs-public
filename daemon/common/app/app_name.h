@@ -50,22 +50,9 @@ public:
         -> std::string_view;
 
 private:
+    friend auto operator<=>(const app_name_t&, const app_name_t&) = default;
+
     std::string _app_name;
 };
-
-auto operator<(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool;
-auto operator<(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool;
-auto operator<=(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool;
-auto operator>(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool;
-auto operator>=(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool;
-auto operator==(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool;
-auto operator!=(const app_name_t& lhs, const app_name_t& rhs) //
-    -> bool;
 
 } // namespace FLECS

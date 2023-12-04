@@ -36,36 +36,6 @@ static auto __attribute__((destructor)) exit() //
     libusb_exit(nullptr);
 }
 
-bool operator<(const device_t& lhs, const device_t& rhs)
-{
-    return std::tie(lhs.vid, lhs.pid, lhs.port) < std::tie(rhs.vid, rhs.pid, rhs.port);
-}
-
-bool operator<=(const device_t& lhs, const device_t& rhs)
-{
-    return !(lhs > rhs);
-}
-
-bool operator>(const device_t& lhs, const device_t& rhs)
-{
-    return rhs < lhs;
-}
-
-bool operator>=(const device_t& lhs, const device_t& rhs)
-{
-    return !(lhs < rhs);
-}
-
-bool operator==(const device_t& lhs, const device_t& rhs)
-{
-    return std::tie(lhs.vid, lhs.pid, lhs.port) == std::tie(rhs.vid, rhs.pid, rhs.port);
-}
-
-bool operator!=(const device_t& lhs, const device_t& rhs)
-{
-    return !(lhs == rhs);
-}
-
 auto to_json(json_t& json, const device_t& device) //
     -> void
 {
@@ -126,10 +96,10 @@ auto get_devices() //
                                 .value_or(sysfs::usb_device(port).value_or(std::string{}));
 
         devices.emplace(device_t{
-            .pid = desc.idProduct,
             .vid = desc.idVendor,
-            .device = std::move(device),
+            .pid = desc.idProduct,
             .port = std::move(port),
+            .device = std::move(device),
             .vendor = std::move(vendor)});
     }
 
