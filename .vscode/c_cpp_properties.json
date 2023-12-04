@@ -5,8 +5,6 @@
             "includePath": [
                 "${workspaceFolder}",
                 "${workspaceFolder}/flunder/**",
-                "${workspaceFolder}/mqtt",
-                "${workspaceFolder}/mqtt/impl",
                 "${workspaceFolder}/daemon",
                 "${workspaceFolder}/daemon/api",
                 "${workspaceFolder}/daemon/api/lib",

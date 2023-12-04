@@ -58,10 +58,6 @@ install(
 
 # install shared objects for packaging
 install(
-    TARGETS daemon.lib mqtt.shared LIBRARY
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/lib
-)
-install(
     TARGETS daemon.lib flunder.shared LIBRARY
     DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/lib
 )
