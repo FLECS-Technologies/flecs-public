@@ -45,7 +45,7 @@ void module_factory_t::deinit_modules()
     }
 }
 
-std::shared_ptr<module_t> module_factory_t::query(const char* module_name)
+std::shared_ptr<module_t> module_factory_t::query(const std::string& module_name)
 {
     decltype(auto) it = _module_table.find(module_name);
     if (it != _module_table.end()) {
@@ -63,7 +63,7 @@ void deinit_modules()
 {
     return module_factory_t::instance().deinit_modules();
 }
-std::shared_ptr<module_t> query_module(const char* module_name)
+std::shared_ptr<module_t> query_module(const std::string& module_name)
 {
     return module_factory_t::instance().query(module_name);
 }

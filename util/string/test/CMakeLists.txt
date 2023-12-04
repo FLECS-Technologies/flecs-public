@@ -16,7 +16,6 @@ if(BUILD_TESTING)
     project(util.string.utils.test)
 
     add_executable(${PROJECT_NAME}
-        test_comparator.cpp
         test_format.cpp
         test_literals.cpp
         test_string_utils.cpp
