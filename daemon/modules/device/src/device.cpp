@@ -29,6 +29,12 @@ module_device_t::module_device_t()
 
 module_device_t::~module_device_t() = default;
 
+auto module_device_t::session_id() //
+    -> const std::string&
+{
+    return _impl->do_session_id();
+}
+
 auto module_device_t::do_init() //
     -> void
 {
@@ -39,6 +45,18 @@ auto module_device_t::do_deinit() //
     -> void
 {
     _impl->do_deinit();
+}
+
+auto module_device_t::do_load(const fs::path& base_path) //
+    -> void
+{
+    _impl->do_load(base_path);
+}
+
+auto module_device_t::do_save(const fs::path& base_path) const //
+    -> void
+{
+    _impl->do_save(base_path);
 }
 
 } // namespace FLECS

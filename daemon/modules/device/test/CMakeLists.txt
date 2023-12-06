@@ -20,12 +20,12 @@ if(BUILD_TESTING)
         test_device.cpp
     )
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_jobs)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_device)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.modules.jobs
+        daemon.modules.device
         util.signal_handler
     )
 
