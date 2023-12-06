@@ -14,6 +14,10 @@
 
 #pragma once
 
+#include <string>
+
+#include "util/fs/fs.h"
+
 namespace FLECS {
 
 class module_device_t;
@@ -32,6 +36,17 @@ private:
 
     auto do_deinit() //
         -> void;
+
+    auto do_load(const fs::path& base_path) //
+        -> void;
+
+    auto do_save(const fs::path& base_path) const //
+        -> void;
+
+    auto do_session_id() //
+        -> const std::string&;
+
+    std::string _session_id;
 };
 
 } // namespace impl

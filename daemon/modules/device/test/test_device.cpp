@@ -14,7 +14,39 @@
 
 #include <gtest/gtest.h>
 
+#include <regex>
+
 #include "daemon/modules/device/device.h"
 
-TEST(device, none)
-{}
+class test_module_device_t : public FLECS::module_device_t
+{
+public:
+    test_module_device_t() = default;
+};
+
+const auto session_id_regex = std::regex{"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}"};
+
+TEST(device, session_id)
+{
+    auto uut = test_module_device_t{};
+    auto session_id = std::string{};
+    {
+        uut.init();
+        uut.load(".");
+
+        session_id = uut.session_id();
+        ASSERT_TRUE(std::regex_match(session_id, session_id_regex));
+
+        uut.deinit();
+        uut.save(".");
+    }
+    {
+        uut.init();
+        uut.load(".");
+
+        ASSERT_EQ(session_id, uut.session_id());
+
+        uut.deinit();
+        uut.save(".");
+    }
+}

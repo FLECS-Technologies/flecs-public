@@ -29,6 +29,9 @@ class module_device_t FLECS_FINAL_UNLESS_TESTED : public module_t
 public:
     ~module_device_t();
 
+    auto session_id() //
+        -> const std::string&;
+
 protected:
     module_device_t();
 
@@ -36,6 +39,12 @@ protected:
         -> void override;
 
     auto do_deinit() //
+        -> void override;
+
+    auto do_load(const fs::path& base_path) //
+        -> void override;
+
+    auto do_save(const fs::path& base_path) const //
         -> void override;
 
     std::unique_ptr<impl::module_device_t> _impl;
