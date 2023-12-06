@@ -16,12 +16,10 @@
 
 #include <string>
 
+#include "daemon/modules/device/device.h"
 #include "util/fs/fs.h"
 
 namespace FLECS {
-
-class module_device_t;
-
 namespace impl {
 
 class module_device_t
@@ -38,10 +36,10 @@ private:
         -> void;
 
     auto do_load(const fs::path& base_path) //
-        -> void;
+        -> result_t;
 
     auto do_save(const fs::path& base_path) const //
-        -> void;
+        -> result_t;
 
     auto do_session_id() //
         -> const std::string&;

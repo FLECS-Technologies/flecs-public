@@ -143,7 +143,7 @@ protected:
     module_instances_t();
 
     auto do_load(const fs::path& base_path) //
-        -> void override;
+        -> result_t override;
 
     auto do_init() //
         -> void override;

@@ -88,7 +88,8 @@
         "typeindex": "cpp",
         "*.ipp": "cpp",
         "coroutine": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "format": "cpp"
     },
     "cSpell.words": [
         "flecs"

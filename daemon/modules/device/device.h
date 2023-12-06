@@ -42,10 +42,10 @@ protected:
         -> void override;
 
     auto do_load(const fs::path& base_path) //
-        -> void override;
+        -> result_t override;
 
     auto do_save(const fs::path& base_path) const //
-        -> void override;
+        -> result_t override;
 
     std::unique_ptr<impl::module_device_t> _impl;
 };

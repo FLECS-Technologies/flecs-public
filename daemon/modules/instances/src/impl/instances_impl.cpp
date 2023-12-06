@@ -117,10 +117,10 @@ module_instances_t::module_instances_t(FLECS::module_instances_t* parent)
 module_instances_t::~module_instances_t()
 {}
 
-auto module_instances_t::do_module_load(const fs::path& base_path) //
-    -> void
+auto module_instances_t::do_load(const fs::path& base_path) //
+    -> result_t
 {
-    _deployment->load(base_path);
+    return _deployment->load(base_path);
 }
 
 auto module_instances_t::do_module_init() //
@@ -192,7 +192,8 @@ auto module_instances_t::queue_create(app_key_t app_key, std::string instance_na
     return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto module_instances_t::do_create_sync(app_key_t app_key, std::string instance_name, bool running) //
+auto module_instances_t::do_create_sync(
+    app_key_t app_key, std::string instance_name, bool running) //
     -> result_t
 {
     auto _ = job_progress_t{};
@@ -271,8 +272,7 @@ auto module_instances_t::do_start_sync(instance_id_t instance_id, bool once) //
     return do_start(std::move(instance_id), std::move(once), _);
 }
 
-auto module_instances_t::do_start(
-    instance_id_t instance_id, bool once, job_progress_t& progress) //
+auto module_instances_t::do_start(instance_id_t instance_id, bool once, job_progress_t& progress) //
     -> result_t
 {
     auto instance = _deployment->query_instance(instance_id);
@@ -282,7 +282,8 @@ auto module_instances_t::do_start(
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    desc += " (" + instance->app()->manifest()->title() + " " +
+            instance->app()->key().version().data() + ")";
     progress.desc(std::move(desc));
     // Step 3: Return if instance is already running
     if (_deployment->is_instance_running(instance)) {
@@ -325,8 +326,7 @@ auto module_instances_t::do_stop_sync(instance_id_t instance_id, bool once) //
     return do_stop(std::move(instance_id), std::move(once), _);
 }
 
-auto module_instances_t::do_stop(
-    instance_id_t instance_id, bool once, job_progress_t& progress) //
+auto module_instances_t::do_stop(instance_id_t instance_id, bool once, job_progress_t& progress) //
     -> result_t
 {
     // get instance details from database
@@ -337,7 +337,8 @@ auto module_instances_t::do_stop(
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    desc += " (" + instance->app()->manifest()->title() + " " +
+            instance->app()->key().version().data() + ")";
     progress.desc(std::move(desc));
 
     // Step 3: Return if instance is not running
@@ -392,7 +393,8 @@ auto module_instances_t::do_remove(instance_id_t instance_id, job_progress_t& pr
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    desc += " (" + instance->app()->manifest()->title() + " " +
+            instance->app()->key().version().data() + ")";
     progress.desc(std::move(desc));
 
     // Step 2: Attempt to stop instance
