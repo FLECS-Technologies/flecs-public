@@ -32,9 +32,9 @@ export_manifest_t::export_manifest_t(bool init)
         gethostname(hostname, HOST_NAME_MAX);
         device.hostname = hostname;
 
-        version.core = std::dynamic_pointer_cast<module_version_t>(api::query_module("version"))
+        version.core = std::dynamic_pointer_cast<module::version_t>(api::query_module("version"))
                            ->core_version();
-        version.api = std::dynamic_pointer_cast<module_version_t>(api::query_module("version"))
+        version.api = std::dynamic_pointer_cast<module::version_t>(api::query_module("version"))
                           ->api_version();
     }
 }

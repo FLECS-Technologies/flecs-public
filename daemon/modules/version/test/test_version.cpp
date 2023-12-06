@@ -16,7 +16,7 @@
 #include "util/json/json.h"
 #include "version/version.h"
 
-class test_module_version_t : public FLECS::module_version_t
+class test_module_version_t : public FLECS::module::version_t
 {
 public:
     test_module_version_t() = default;
@@ -24,13 +24,13 @@ public:
     auto do_init() //
         -> void override
     {
-        return FLECS::module_version_t::do_init();
+        return FLECS::module::version_t::do_init();
     }
 
     auto do_deinit() //
         -> void override
     {
-        return FLECS::module_version_t::do_deinit();
+        return FLECS::module::version_t::do_deinit();
     }
 };
 

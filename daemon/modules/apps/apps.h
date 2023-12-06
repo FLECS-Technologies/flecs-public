@@ -24,18 +24,20 @@
 
 namespace FLECS {
 
-namespace impl {
-class module_apps_t;
-} // namespace impl
-
 class app_t;
 class app_key_t;
 class app_manifest_t;
 
-class module_apps_t FLECS_FINAL_UNLESS_TESTED : public module_t
+namespace module {
+namespace impl {
+
+class apps_t;
+} // namespace impl
+
+class apps_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
 public:
-    ~module_apps_t() override;
+    ~apps_t() override;
 
     /*! @brief Loads installed apps from apps.json
      *
@@ -133,14 +135,15 @@ public:
         -> bool;
 
 protected:
-    friend class module_factory_t;
+    friend class factory_t;
 
-    module_apps_t();
+    apps_t();
 
     void do_init() override;
     void do_deinit() override {}
 
-    std::unique_ptr<impl::module_apps_t> _impl;
+    std::unique_ptr<impl::apps_t> _impl;
 };
 
+} // namespace module
 } // namespace FLECS

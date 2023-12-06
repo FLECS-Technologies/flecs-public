@@ -18,19 +18,20 @@
 #include "impl/data_layer_impl.h"
 
 namespace FLECS {
+namespace module {
 
 namespace {
-register_module_t<module_data_layer_t> _reg("data-layer");
+register_module_t<data_layer_t> _reg("data-layer");
 }
 
-module_data_layer_t::module_data_layer_t()
-    : _impl{new impl::module_data_layer_t{}}
+data_layer_t::data_layer_t()
+    : _impl{new impl::data_layer_t{}}
 {}
 
-module_data_layer_t::~module_data_layer_t()
+data_layer_t::~data_layer_t()
 {}
 
-auto module_data_layer_t::do_init() //
+auto data_layer_t::do_init() //
     -> void
 {
     _impl->do_init();
@@ -38,16 +39,17 @@ auto module_data_layer_t::do_init() //
     FLECS_V2_ROUTE("/data-layer/browse").methods("GET"_method)([this]() { return browse(""); });
 }
 
-auto module_data_layer_t::do_deinit() //
+auto data_layer_t::do_deinit() //
     -> void
 {
     _impl->do_deinit();
 }
 
-auto module_data_layer_t::browse(std::string_view path) //
+auto data_layer_t::browse(std::string_view path) //
     -> crow::response
 {
     return _impl->do_browse(std::move(path));
 }
 
+} // namespace module
 } // namespace FLECS

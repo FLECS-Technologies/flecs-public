@@ -28,16 +28,17 @@ namespace FLECS {
 class app_key_t;
 class app_manifest_t;
 
+namespace module {
 namespace impl {
-class module_manifests_t;
+class manifests_t;
 } // namespace impl
 
-class module_manifests_t FLECS_FINAL_UNLESS_TESTED : public module_t
+class manifests_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
-    friend class module_factory_t;
+    friend class factory_t;
 
 public:
-    ~module_manifests_t() override;
+    ~manifests_t() override;
 
     /** @brief Define base_path for local manifest store
      *
@@ -169,14 +170,15 @@ public:
         -> fs::path;
 
 protected:
-    module_manifests_t();
+    manifests_t();
 
     auto do_init() //
         -> void override;
     auto do_deinit() //
         -> void override;
 
-    std::unique_ptr<impl::module_manifests_t> _impl;
+    std::unique_ptr<impl::manifests_t> _impl;
 };
 
+} // namespace module
 } // namespace FLECS

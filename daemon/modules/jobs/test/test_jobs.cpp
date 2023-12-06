@@ -21,7 +21,7 @@
 #include "daemon/modules/jobs/jobs.h"
 #include "util/signal_handler/signal_handler.h"
 
-class test_module_jobs_t : public FLECS::module_jobs_t
+class test_module_jobs_t : public FLECS::module::jobs_t
 {
 };
 

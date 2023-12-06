@@ -21,19 +21,20 @@
 #include "util/datetime/datetime.h"
 
 namespace FLECS {
+namespace module {
 
 namespace {
-register_module_t<module_flecsport_t> _reg("flecsport");
+register_module_t<flecsport_t> _reg("flecsport");
 }
 
-module_flecsport_t::module_flecsport_t()
-    : _impl{new impl::module_flecsport_t{this}}
+flecsport_t::flecsport_t()
+    : _impl{new impl::flecsport_t{this}}
 {}
 
-module_flecsport_t::~module_flecsport_t()
+flecsport_t::~flecsport_t()
 {}
 
-auto module_flecsport_t::do_init() //
+auto flecsport_t::do_init() //
     -> void
 {
     FLECS_V2_ROUTE("/exports").methods("GET"_method)([this]() { return http_list(); });
@@ -79,7 +80,7 @@ auto module_flecsport_t::do_init() //
     return _impl->do_init();
 }
 
-auto module_flecsport_t::http_list() //
+auto flecsport_t::http_list() //
     -> crow::response
 {
     auto res = json_t::array();
@@ -92,7 +93,7 @@ auto module_flecsport_t::http_list() //
     return {crow::status::OK, "json", res.dump()};
 }
 
-auto module_flecsport_t::http_download(const std::string& export_id) //
+auto flecsport_t::http_download(const std::string& export_id) //
     -> crow::response
 {
     const auto export_filename = export_id + ".tar.gz";
@@ -109,7 +110,7 @@ auto module_flecsport_t::http_download(const std::string& export_id) //
     return crow::response{crow::status::NOT_FOUND};
 }
 
-auto module_flecsport_t::http_remove(const std::string& export_id) //
+auto flecsport_t::http_remove(const std::string& export_id) //
     -> crow::response
 {
     const auto archive = fs::path{"/var/lib/flecs/exports"} / (export_id + ".tar.gz");
@@ -127,7 +128,7 @@ auto module_flecsport_t::http_remove(const std::string& export_id) //
     return crow::response{crow::status::OK};
 }
 
-auto module_flecsport_t::http_export_to(
+auto flecsport_t::http_export_to(
     std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
     -> crow::response
 {
@@ -141,7 +142,7 @@ auto module_flecsport_t::http_export_to(
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_flecsport_t::http_import_from(std::string archive) //
+auto flecsport_t::http_import_from(std::string archive) //
     -> crow::response
 {
     auto job_id = _impl->queue_import_from(std::move(archive));
@@ -151,4 +152,5 @@ auto module_flecsport_t::http_import_from(std::string archive) //
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
+} // namespace module
 } // namespace FLECS

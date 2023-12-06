@@ -20,9 +20,10 @@
 #include "util/signal_handler/signal_handler.h"
 
 namespace FLECS {
+namespace module {
 namespace impl {
 
-module_jobs_t::module_jobs_t()
+jobs_t::jobs_t()
     : _job_id{}
     , _next_job_id{}
     , _q{}
@@ -32,19 +33,19 @@ module_jobs_t::module_jobs_t()
     , _worker_thread{}
 {}
 
-auto module_jobs_t::do_init() //
+auto jobs_t::do_init() //
     -> void
 {
-    _worker_thread = std::thread{&module_jobs_t::worker_thread, this};
+    _worker_thread = std::thread{&jobs_t::worker_thread, this};
 }
 
-auto module_jobs_t::do_deinit() //
+auto jobs_t::do_deinit() //
     -> void
 {
     _worker_thread.join();
 }
 
-auto module_jobs_t::do_append(job_t job, std::string desc) //
+auto jobs_t::do_append(job_t job, std::string desc) //
     -> job_id_t
 {
     {
@@ -56,7 +57,7 @@ auto module_jobs_t::do_append(job_t job, std::string desc) //
     return _job_id;
 }
 
-auto module_jobs_t::do_delete_job(job_id_t job_id) //
+auto jobs_t::do_delete_job(job_id_t job_id) //
     -> crow::response
 {
     auto job = std::find_if(
@@ -84,7 +85,7 @@ auto module_jobs_t::do_delete_job(job_id_t job_id) //
         "Not removing unfinished job " + std::to_string(job_id)};
 }
 
-auto module_jobs_t::do_list_jobs(job_id_t job_id) const //
+auto jobs_t::do_list_jobs(job_id_t job_id) const //
     -> crow::response
 {
     auto response = json_t::array();
@@ -106,7 +107,7 @@ auto module_jobs_t::do_list_jobs(job_id_t job_id) const //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto module_jobs_t::do_wait_for_job(job_id_t job_id) const //
+auto jobs_t::do_wait_for_job(job_id_t job_id) const //
     -> result_t
 {
     if (job_id == job_id_t{}) {
@@ -134,7 +135,7 @@ auto module_jobs_t::do_wait_for_job(job_id_t job_id) const //
     return it->result();
 }
 
-auto module_jobs_t::fetch_job() //
+auto jobs_t::fetch_job() //
     -> std::optional<job_t>
 {
     auto lock = std::unique_lock{_q_mutex};
@@ -147,7 +148,7 @@ auto module_jobs_t::fetch_job() //
     return job;
 }
 
-auto module_jobs_t::worker_thread() //
+auto jobs_t::worker_thread() //
     -> void
 {
     pthread_setname_np(pthread_self(), "job_scheduler");
@@ -178,4 +179,5 @@ auto module_jobs_t::worker_thread() //
 }
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

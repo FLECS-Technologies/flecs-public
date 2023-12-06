@@ -28,14 +28,15 @@ class app_key_t;
 class instance_config_t;
 class instance_t;
 
+namespace module {
 namespace impl {
-class module_instances_t;
+class instances_t;
 } // namespace impl
 
-class module_instances_t FLECS_FINAL_UNLESS_TESTED : public module_t
+class instances_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
 public:
-    ~module_instances_t() override;
+    ~instances_t() override;
 
     /*! @brief Lists all available instances
      *
@@ -138,9 +139,9 @@ public:
         -> result_t;
 
 protected:
-    friend class module_factory_t;
+    friend class factory_t;
 
-    module_instances_t();
+    instances_t();
 
     auto do_load(const fs::path& base_path) //
         -> result_t override;
@@ -158,7 +159,8 @@ protected:
         -> void override
     {}
 
-    std::unique_ptr<impl::module_instances_t> _impl;
+    std::unique_ptr<impl::instances_t> _impl;
 };
 
+} // namespace module
 } // namespace FLECS

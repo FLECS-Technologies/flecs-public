@@ -20,19 +20,20 @@
 #include "util/datetime/datetime.h"
 
 namespace FLECS {
+namespace module {
 
 namespace {
-register_module_t<module_apps_t> _reg("apps");
+register_module_t<apps_t> _reg("apps");
 }
 
-module_apps_t::module_apps_t()
-    : _impl{new impl::module_apps_t{this}}
+apps_t::apps_t()
+    : _impl{new impl::apps_t{this}}
 {}
 
-module_apps_t::~module_apps_t()
+apps_t::~apps_t()
 {}
 
-auto module_apps_t::do_init() //
+auto apps_t::do_init() //
     -> void
 {
     FLECS_V2_ROUTE("/apps").methods("GET"_method)([this]() { return http_list({}); });
@@ -72,25 +73,25 @@ auto module_apps_t::do_init() //
     _impl->do_module_init();
 }
 
-auto module_apps_t::do_load(const fs::path& base_path) //
+auto apps_t::do_load(const fs::path& base_path) //
     -> result_t
 {
     return _impl->do_load(base_path / "apps");
 }
 
-auto module_apps_t::do_start() //
+auto apps_t::do_start() //
     -> void
 {
     return _impl->do_module_start();
 }
 
-auto module_apps_t::do_save(const fs::path& base_path) const //
+auto apps_t::do_save(const fs::path& base_path) const //
     -> result_t
 {
     return _impl->do_save(base_path / "apps");
 }
 
-auto module_apps_t::http_list(const app_key_t& app_key) const //
+auto apps_t::http_list(const app_key_t& app_key) const //
     -> crow::response
 {
     auto response = json_t::array();
@@ -115,7 +116,7 @@ auto module_apps_t::http_list(const app_key_t& app_key) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto module_apps_t::http_install(app_key_t app_key, std::string license_key) //
+auto apps_t::http_install(app_key_t app_key, std::string license_key) //
     -> crow::response
 {
     auto job_id = _impl->queue_install_from_marketplace(std::move(app_key), std::move(license_key));
@@ -125,7 +126,7 @@ auto module_apps_t::http_install(app_key_t app_key, std::string license_key) //
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_t::http_sideload(std::string manifest_string, std::string license_key) //
+auto apps_t::http_sideload(std::string manifest_string, std::string license_key) //
     -> crow::response
 {
     auto job_id = _impl->queue_sideload(std::move(manifest_string), std::move(license_key));
@@ -135,7 +136,7 @@ auto module_apps_t::http_sideload(std::string manifest_string, std::string licen
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_t::http_uninstall(app_key_t app_key) //
+auto apps_t::http_uninstall(app_key_t app_key) //
     -> crow::response
 {
     if (!is_installed(app_key)) {
@@ -152,7 +153,7 @@ auto module_apps_t::http_uninstall(app_key_t app_key) //
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_t::http_export_to(app_key_t app_key) //
+auto apps_t::http_export_to(app_key_t app_key) //
     -> crow::response
 {
     if (!is_installed(app_key)) {
@@ -169,78 +170,79 @@ auto module_apps_t::http_export_to(app_key_t app_key) //
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_apps_t::app_keys(const app_key_t& app_key) const //
+auto apps_t::app_keys(const app_key_t& app_key) const //
     -> std::vector<app_key_t>
 {
     return _impl->do_app_keys(app_key);
 }
 
-auto module_apps_t::app_keys(std::string app_name, std::string version) const //
+auto apps_t::app_keys(std::string app_name, std::string version) const //
     -> std::vector<app_key_t>
 {
     return app_keys(app_key_t{std::move(app_name), std::move(version)});
 }
-auto module_apps_t::app_keys(std::string app_name) const //
+auto apps_t::app_keys(std::string app_name) const //
     -> std::vector<app_key_t>
 {
     return app_keys(app_key_t{std::move(app_name), {}});
 }
-auto module_apps_t::app_keys() const //
+auto apps_t::app_keys() const //
     -> std::vector<app_key_t>
 {
     return app_keys(app_key_t{});
 }
 
-auto module_apps_t::install_from_marketplace(app_key_t app_key, std::string license_key) //
+auto apps_t::install_from_marketplace(app_key_t app_key, std::string license_key) //
     -> result_t
 {
     return _impl->do_install_from_marketplace_sync(std::move(app_key), std::move(license_key));
 }
-auto module_apps_t::install_from_marketplace(app_key_t app_key) //
+auto apps_t::install_from_marketplace(app_key_t app_key) //
     -> result_t
 {
     return install_from_marketplace(std::move(app_key), {});
 }
 
-auto module_apps_t::sideload(std::string manifest_string, std::string license_key) //
+auto apps_t::sideload(std::string manifest_string, std::string license_key) //
     -> result_t
 {
     return _impl->do_sideload_sync(std::move(manifest_string), std::move(license_key));
 }
-auto module_apps_t::sideload(std::string manifest_string) //
+auto apps_t::sideload(std::string manifest_string) //
     -> result_t
 {
     return sideload(std::move(manifest_string), {});
 }
 
-auto module_apps_t::uninstall(app_key_t app_key, bool force) //
+auto apps_t::uninstall(app_key_t app_key, bool force) //
     -> result_t
 {
     return _impl->do_uninstall_sync(std::move(app_key), force);
 }
 
-auto module_apps_t::export_to(app_key_t app_key, fs::path dest_dir) const //
+auto apps_t::export_to(app_key_t app_key, fs::path dest_dir) const //
     -> result_t
 {
     return _impl->do_export_to_sync(std::move(app_key), std::move(dest_dir));
 }
 
-auto module_apps_t::import_from(app_key_t app_key, fs::path src_dir) //
+auto apps_t::import_from(app_key_t app_key, fs::path src_dir) //
     -> result_t
 {
     return _impl->do_import_from_sync(std::move(app_key), std::move(src_dir));
 }
 
-auto module_apps_t::query(const app_key_t& app_key) const noexcept //
+auto apps_t::query(const app_key_t& app_key) const noexcept //
     -> std::shared_ptr<app_t>
 {
     return _impl->do_query(app_key);
 }
 
-auto module_apps_t::is_installed(const app_key_t& app_key) const noexcept //
+auto apps_t::is_installed(const app_key_t& app_key) const noexcept //
     -> bool
 {
     return _impl->do_is_installed(app_key);
 }
 
+} // namespace module
 } // namespace FLECS

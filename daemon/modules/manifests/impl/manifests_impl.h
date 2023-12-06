@@ -23,14 +23,15 @@ namespace FLECS {
 class app_key_t;
 class app_manifest_t;
 
+namespace module {
 namespace impl {
 
-class module_manifests_t
+class manifests_t
 {
-    friend class FLECS::module_manifests_t;
+    friend class FLECS::module::manifests_t;
 
 public:
-    ~module_manifests_t();
+    ~manifests_t();
 
     auto do_base_path(const fs::path& base_path) //
         -> void;
@@ -64,17 +65,18 @@ public:
         -> fs::path;
 
 private:
-    explicit module_manifests_t(FLECS::module_manifests_t* parent);
+    explicit manifests_t(FLECS::module::manifests_t* parent);
 
     auto do_init() //
         -> void;
     auto do_deinit() //
         -> void;
 
-    FLECS::module_manifests_t* _parent;
+    FLECS::module::manifests_t* _parent;
     fs::path _base_path;
     std::vector<std::shared_ptr<app_manifest_t>> _manifests;
 };
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

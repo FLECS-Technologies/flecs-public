@@ -17,10 +17,11 @@
 #include "module_base/module.h"
 
 namespace FLECS {
+namespace module {
 
-class module_version_t FLECS_FINAL_UNLESS_TESTED : public module_t
+class version_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
-    friend class module_factory_t;
+    friend class factory_t;
 
 public:
     auto http_version() const //
@@ -33,7 +34,7 @@ public:
         -> std::string;
 
 protected:
-    module_version_t();
+    version_t();
 
     auto do_init() //
         -> void override;
@@ -41,4 +42,5 @@ protected:
         -> void override;
 };
 
+} // namespace module
 } // namespace FLECS

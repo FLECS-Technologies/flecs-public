@@ -20,14 +20,15 @@
 #include "util/fs/fs.h"
 
 namespace FLECS {
+namespace module {
 namespace impl {
 
-class module_device_t
+class device_t
 {
-    friend class FLECS::module_device_t;
+    friend class FLECS::module::device_t;
 
 private:
-    module_device_t();
+    device_t();
 
     auto do_init() //
         -> void;
@@ -48,4 +49,5 @@ private:
 };
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

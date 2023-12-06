@@ -22,20 +22,21 @@
 #include "util/string/string_utils.h"
 
 namespace FLECS {
+namespace module {
 namespace impl {
 
-module_device_t::module_device_t()
+device_t::device_t()
 {}
 
-auto module_device_t::do_init() //
+auto device_t::do_init() //
     -> void
 {}
 
-auto module_device_t::do_deinit() //
+auto device_t::do_deinit() //
     -> void
 {}
 
-auto module_device_t::do_load(const fs::path& base_path) //
+auto device_t::do_load(const fs::path& base_path) //
     -> result_t
 {
     const auto sid_path = base_path / "device" / ".session_id";
@@ -58,7 +59,7 @@ auto module_device_t::do_load(const fs::path& base_path) //
     return {0, {}};
 }
 
-auto module_device_t::do_save(const fs::path& base_path) const //
+auto device_t::do_save(const fs::path& base_path) const //
     -> result_t
 {
     const auto dir = base_path / "device";
@@ -79,7 +80,7 @@ auto module_device_t::do_save(const fs::path& base_path) const //
     return {0, {}};
 }
 
-auto module_device_t::do_session_id() //
+auto device_t::do_session_id() //
     -> const std::string&
 {
     if (_session_id.empty()) {
@@ -90,4 +91,5 @@ auto module_device_t::do_session_id() //
 }
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

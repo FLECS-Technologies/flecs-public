@@ -27,10 +27,6 @@
 
 namespace FLECS {
 
-namespace impl {
-class module_jobs_t;
-}
-
 class job_t
 {
 public:
@@ -45,12 +41,17 @@ private:
     callable_t _callable;
 };
 
-class module_jobs_t FLECS_FINAL_UNLESS_TESTED : public module_t
+namespace module {
+namespace impl {
+class jobs_t;
+} // namespace impl
+
+class jobs_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
-    friend class module_factory_t;
+    friend class factory_t;
 
 public:
-    ~module_jobs_t();
+    ~jobs_t();
 
     /** @brief Appends a new job to the queue
      *
@@ -72,7 +73,7 @@ public:
         -> result_t;
 
 protected:
-    module_jobs_t();
+    jobs_t();
 
     auto do_init() //
         -> void override;
@@ -80,7 +81,8 @@ protected:
     auto do_deinit() //
         -> void override;
 
-    std::unique_ptr<impl::module_jobs_t> _impl;
+    std::unique_ptr<impl::jobs_t> _impl;
 };
 
+} // namespace module
 } // namespace FLECS

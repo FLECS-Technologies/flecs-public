@@ -24,17 +24,18 @@
 #include "util/string/literals.h"
 
 namespace FLECS {
+namespace module {
 namespace impl {
 
-module_manifests_t::module_manifests_t(FLECS::module_manifests_t* parent)
+manifests_t::manifests_t(FLECS::module::manifests_t* parent)
     : _parent{parent}
     , _base_path{}
 {}
 
-module_manifests_t::~module_manifests_t()
+manifests_t::~manifests_t()
 {}
 
-auto module_manifests_t::do_base_path(const fs::path& base_path) //
+auto manifests_t::do_base_path(const fs::path& base_path) //
     -> void
 {
     auto ec = std::error_code{};
@@ -48,13 +49,13 @@ auto module_manifests_t::do_base_path(const fs::path& base_path) //
     }
 }
 
-auto module_manifests_t::do_base_path() const noexcept //
+auto manifests_t::do_base_path() const noexcept //
     -> const fs::path&
 {
     return _base_path;
 }
 
-auto module_manifests_t::do_migrate(const fs::path& base_path) //
+auto manifests_t::do_migrate(const fs::path& base_path) //
     -> bool
 {
     auto to_remove = std::vector<fs::path>{};
@@ -85,7 +86,7 @@ auto module_manifests_t::do_migrate(const fs::path& base_path) //
     return true;
 }
 
-auto module_manifests_t::do_contains(const app_key_t& app_key) const noexcept //
+auto manifests_t::do_contains(const app_key_t& app_key) const noexcept //
     -> bool
 {
     return std::find_if(
@@ -96,7 +97,7 @@ auto module_manifests_t::do_contains(const app_key_t& app_key) const noexcept //
                }) != _manifests.cend();
 }
 
-auto module_manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
+auto manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
     -> std::shared_ptr<app_manifest_t>
 {
     auto it = std::find_if(
@@ -129,7 +130,7 @@ auto module_manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
     return {};
 }
 
-auto module_manifests_t::do_add(app_manifest_t manifest) //
+auto manifests_t::do_add(app_manifest_t manifest) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
     auto app_key = app_key_t{manifest.app(), manifest.version()};
@@ -160,7 +161,7 @@ auto module_manifests_t::do_add(app_manifest_t manifest) //
     return {p, true};
 }
 
-auto module_manifests_t::do_add_from_url(std::string_view url) //
+auto manifests_t::do_add_from_url(std::string_view url) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
     auto manifest = std::string{};
@@ -187,12 +188,12 @@ auto module_manifests_t::do_add_from_url(std::string_view url) //
     return _parent->add_from_string(manifest);
 }
 
-auto module_manifests_t::do_clear() //
+auto manifests_t::do_clear() //
     -> void
 {
     _manifests.clear();
 }
-auto module_manifests_t::do_erase(const app_key_t& app_key) //
+auto manifests_t::do_erase(const app_key_t& app_key) //
     -> void
 {
     auto ec_1 = std::error_code{};
@@ -212,7 +213,7 @@ auto module_manifests_t::do_erase(const app_key_t& app_key) //
 
     _parent->remove(app_key);
 }
-auto module_manifests_t::do_remove(const app_key_t& app_key) //
+auto manifests_t::do_remove(const app_key_t& app_key) //
     -> void
 {
     auto it = std::find_if(
@@ -226,18 +227,19 @@ auto module_manifests_t::do_remove(const app_key_t& app_key) //
     }
 }
 
-auto module_manifests_t::do_path(const app_key_t& app_key) //
+auto manifests_t::do_path(const app_key_t& app_key) //
     -> fs::path
 {
     return _base_path / app_key.name() / app_key.version() / "manifest.json";
 }
 
-auto module_manifests_t::do_init() //
+auto manifests_t::do_init() //
     -> void
 {}
-auto module_manifests_t::do_deinit() //
+auto manifests_t::do_deinit() //
     -> void
 {}
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

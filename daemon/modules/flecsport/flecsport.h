@@ -25,14 +25,15 @@ namespace FLECS {
 class app_key_t;
 class instance_id_t;
 
+namespace module {
 namespace impl {
-class module_flecsport_t;
+class flecsport_t;
 } // namespace impl
 
-class module_flecsport_t FLECS_FINAL_UNLESS_TESTED : public module_t
+class flecsport_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
 public:
-    ~module_flecsport_t() override;
+    ~flecsport_t() override;
 
     auto http_list() //
         -> crow::response;
@@ -54,9 +55,9 @@ public:
         -> result_t;
 
 protected:
-    friend class module_factory_t;
+    friend class factory_t;
 
-    module_flecsport_t();
+    flecsport_t();
 
     auto do_init() //
         -> void override;
@@ -65,7 +66,8 @@ protected:
         -> void override
     {}
 
-    std::unique_ptr<impl::module_flecsport_t> _impl;
+    std::unique_ptr<impl::flecsport_t> _impl;
 };
 
+} // namespace module
 } // namespace FLECS

@@ -29,25 +29,26 @@
 #include "util/sysinfo/sysinfo.h"
 
 namespace FLECS {
+namespace module {
 namespace impl {
 
-module_flecsport_t::module_flecsport_t(FLECS::module_flecsport_t* parent)
+flecsport_t::flecsport_t(FLECS::module::flecsport_t* parent)
     : _parent{parent}
     , _apps_api{}
     , _instances_api{}
     , _jobs_api{}
 {}
 
-auto module_flecsport_t::do_init() //
+auto flecsport_t::do_init() //
     -> void
 {
-    _apps_api = std::dynamic_pointer_cast<FLECS::module_apps_t>(api::query_module("apps"));
+    _apps_api = std::dynamic_pointer_cast<FLECS::module::apps_t>(api::query_module("apps"));
     _instances_api =
-        std::dynamic_pointer_cast<FLECS::module_instances_t>(api::query_module("instances"));
-    _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
+        std::dynamic_pointer_cast<FLECS::module::instances_t>(api::query_module("instances"));
+    _jobs_api = std::dynamic_pointer_cast<FLECS::module::jobs_t>(api::query_module("jobs"));
 }
 
-auto module_flecsport_t::do_exports() const //
+auto flecsport_t::do_exports() const //
     -> std::vector<std::string>
 {
     auto res = std::vector<std::string>{};
@@ -66,12 +67,12 @@ auto module_flecsport_t::do_exports() const //
     return res;
 }
 
-auto module_flecsport_t::queue_export_to(
+auto flecsport_t::queue_export_to(
     std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
     -> job_id_t
 {
     auto job = job_t{std::bind(
-        &module_flecsport_t::do_export_to,
+        &flecsport_t::do_export_to,
         this,
         std::move(apps),
         std::move(instances),
@@ -80,7 +81,7 @@ auto module_flecsport_t::queue_export_to(
 
     return _jobs_api->append(std::move(job), "Creating export");
 }
-auto module_flecsport_t::do_export_to_sync(
+auto flecsport_t::do_export_to_sync(
     std::vector<app_key_t> apps,
     std::vector<instance_id_t> instances,
     fs::path dest_dir) //
@@ -89,7 +90,7 @@ auto module_flecsport_t::do_export_to_sync(
     auto _ = job_progress_t{};
     return do_export_to(std::move(apps), std::move(instances), std::move(dest_dir), _);
 }
-auto module_flecsport_t::do_export_to(
+auto flecsport_t::do_export_to(
     std::vector<app_key_t> apps,
     std::vector<instance_id_t> instances,
     fs::path dest_dir,
@@ -159,26 +160,23 @@ auto module_flecsport_t::do_export_to(
     return {0, dest_dir.filename()};
 }
 
-auto module_flecsport_t::queue_import_from(fs::path archive) //
+auto flecsport_t::queue_import_from(fs::path archive) //
     -> job_id_t
 {
     auto desc = "Importing " + archive.filename().string();
 
-    auto job = job_t{std::bind(
-        &module_flecsport_t::do_import_from,
-        this,
-        std::move(archive),
-        std::placeholders::_1)};
+    auto job = job_t{
+        std::bind(&flecsport_t::do_import_from, this, std::move(archive), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto module_flecsport_t::do_import_from_sync(fs::path archive) //
+auto flecsport_t::do_import_from_sync(fs::path archive) //
     -> result_t
 {
     auto _ = job_progress_t{};
     return do_import_from(std::move(archive), _);
 }
-auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progress) //
+auto flecsport_t::do_import_from(fs::path archive, job_progress_t& progress) //
     -> result_t
 {
     progress.num_steps(6);
@@ -259,4 +257,5 @@ auto module_flecsport_t::do_import_from(fs::path archive, job_progress_t& progre
 }
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

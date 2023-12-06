@@ -17,15 +17,16 @@
 #include "factory/factory.h"
 
 namespace FLECS {
+namespace module {
 
 namespace {
-register_module_t<module_marketplace_t> _reg("mp");
+register_module_t<marketplace_t> _reg("mp");
 }
 
-module_marketplace_t::module_marketplace_t()
+marketplace_t::marketplace_t()
 {}
 
-auto module_marketplace_t::do_init() //
+auto marketplace_t::do_init() //
     -> void
 {
     FLECS_V2_ROUTE("/marketplace/login").methods("POST"_method)([this](const crow::request& req) {
@@ -46,11 +47,11 @@ auto module_marketplace_t::do_init() //
     });
 }
 
-auto module_marketplace_t::do_deinit() //
+auto marketplace_t::do_deinit() //
     -> void
 {}
 
-auto module_marketplace_t::login(std::string user, std::string token) //
+auto marketplace_t::login(std::string user, std::string token) //
     -> crow::response
 {
     _user = std::move(user);
@@ -62,7 +63,7 @@ auto module_marketplace_t::login(std::string user, std::string token) //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto module_marketplace_t::logout(std::string_view /*user*/) //
+auto marketplace_t::logout(std::string_view /*user*/) //
     -> crow::response
 {
     _user.clear();
@@ -74,4 +75,5 @@ auto module_marketplace_t::logout(std::string_view /*user*/) //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
+} // namespace module
 } // namespace FLECS

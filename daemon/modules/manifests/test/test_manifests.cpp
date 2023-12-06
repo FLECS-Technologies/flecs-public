@@ -23,7 +23,7 @@
 
 namespace fs = std::filesystem;
 
-class test_module_manifests_t : public FLECS::module_manifests_t
+class test_module_manifests_t : public FLECS::module::manifests_t
 {
 public:
     test_module_manifests_t() = default;

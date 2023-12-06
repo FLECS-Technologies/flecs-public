@@ -17,17 +17,18 @@
 #include "module_base/module.h"
 
 namespace FLECS {
+namespace module {
 
-class module_marketplace_t FLECS_FINAL_UNLESS_TESTED : public module_t
+class marketplace_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
-    friend class module_factory_t;
+    friend class factory_t;
 
 public:
     auto& user() const noexcept { return _user; }
     auto& token() const noexcept { return _token; }
 
 protected:
-    module_marketplace_t();
+    marketplace_t();
 
     auto do_init() //
         -> void override;
@@ -43,4 +44,5 @@ protected:
     std::string _token;
 };
 
+} // namespace module
 } // namespace FLECS

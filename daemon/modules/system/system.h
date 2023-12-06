@@ -46,15 +46,17 @@ struct netif_t
     std::string gateway;
 };
 
-class module_system_t FLECS_FINAL_UNLESS_TESTED : public module_t
+namespace module {
+
+class system_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
-    friend class module_factory_t;
+    friend class factory_t;
 
 public:
     auto get_network_adapters() const -> std::map<std::string, netif_t>;
 
 protected:
-    module_system_t();
+    system_t();
 
     auto do_init() //
         -> void override;
@@ -68,4 +70,5 @@ protected:
         -> crow::response;
 };
 
+} // namespace module
 } // namespace FLECS

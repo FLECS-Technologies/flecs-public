@@ -20,6 +20,7 @@
 #include "util/json/json.h"
 
 namespace FLECS {
+namespace module {
 
 // Helper macros to parse JSON arguments passed to endpoints
 #define REQUIRED_TYPED_JSON_VALUE(json, val, type)                                           \
@@ -49,7 +50,7 @@ namespace FLECS {
 #define OPTIONAL_JSON_VALUE(json, val) OPTIONAL_TYPED_JSON_VALUE(json, val, std::string)
 
 // Module base class - tbd
-class module_t
+class base_t
 {
 public:
     auto load(const fs::path& base_path = "/var/lib/flecs/") //
@@ -67,7 +68,7 @@ public:
     // std::string usage();
 
 protected:
-    virtual ~module_t() = default;
+    virtual ~base_t() = default;
 
 private:
     virtual auto do_load(const fs::path& base_path) //
@@ -85,4 +86,5 @@ private:
     // virtual std::string do_usage() = 0;
 };
 
+} // namespace module
 } // namespace FLECS

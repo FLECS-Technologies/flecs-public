@@ -15,61 +15,63 @@
 #include "module.h"
 
 namespace FLECS {
+namespace module {
 
-auto module_t::load(const fs::path& base_path) //
+auto base_t::load(const fs::path& base_path) //
     -> result_t
 {
     return do_load(base_path);
 }
 
-auto module_t::init() //
+auto base_t::init() //
     -> void
 {
     return do_init();
 }
 
-auto module_t::start() //
+auto base_t::start() //
     -> void
 {
     return do_start();
 }
 
-auto module_t::stop() //
+auto base_t::stop() //
     -> void
 {
     return do_stop();
 }
 
-auto module_t::save(const fs::path& base_path) const //
+auto base_t::save(const fs::path& base_path) const //
     -> result_t
 {
     return do_save(base_path);
 }
 
-auto module_t::deinit() //
+auto base_t::deinit() //
     -> void
 {
     return do_deinit();
 }
 
-auto module_t::do_load(const fs::path& /*base_path*/) //
+auto base_t::do_load(const fs::path& /*base_path*/) //
     -> result_t
 {
     return {0, {}};
 }
 
-auto module_t::do_start() //
+auto base_t::do_start() //
     -> void
 {}
 
-auto module_t::do_stop() //
+auto base_t::do_stop() //
     -> void
 {}
 
-auto module_t::do_save(const fs::path& /*base_path*/) const //
+auto base_t::do_save(const fs::path& /*base_path*/) const //
     -> result_t
 {
     return {0, {}};
 }
 
+} // namespace module
 } // namespace FLECS
