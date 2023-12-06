@@ -25,21 +25,24 @@
 namespace FLECS {
 
 class job_progress_t;
-class module_instances_t;
-class module_manifests_t;
-class module_jobs_t;
+
+namespace module {
+
+class instances_t;
+class manifests_t;
+class jobs_t;
 
 namespace impl {
 
-class module_apps_t
+class apps_t
 {
-    friend class FLECS::module_apps_t;
+    friend class FLECS::module::apps_t;
 
 public:
-    ~module_apps_t();
+    ~apps_t();
 
 private:
-    explicit module_apps_t(FLECS::module_apps_t* parent);
+    explicit apps_t(FLECS::module::apps_t* parent);
 
     auto do_module_init() //
         -> void;
@@ -116,15 +119,16 @@ private:
     auto do_is_installed(const app_key_t& app_key) const noexcept //
         -> bool;
 
-    FLECS::module_apps_t* _parent;
+    FLECS::module::apps_t* _parent;
 
     std::vector<std::shared_ptr<app_t>> _apps;
     std::mutex _apps_mutex;
 
-    std::shared_ptr<FLECS::module_instances_t> _instances_api;
-    std::shared_ptr<FLECS::module_manifests_t> _manifests_api;
-    std::shared_ptr<FLECS::module_jobs_t> _jobs_api;
+    std::shared_ptr<FLECS::module::instances_t> _instances_api;
+    std::shared_ptr<FLECS::module::manifests_t> _manifests_api;
+    std::shared_ptr<FLECS::module::jobs_t> _jobs_api;
 };
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

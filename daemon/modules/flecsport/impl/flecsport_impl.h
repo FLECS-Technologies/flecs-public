@@ -18,19 +18,22 @@
 
 namespace FLECS {
 
-class module_apps_t;
-class module_jobs_t;
-class module_instances_t;
 class job_progress_t;
+
+namespace module {
+
+class apps_t;
+class jobs_t;
+class instances_t;
 
 namespace impl {
 
-class module_flecsport_t
+class flecsport_t
 {
-    friend class FLECS::module_flecsport_t;
+    friend class FLECS::module::flecsport_t;
 
 private:
-    explicit module_flecsport_t(FLECS::module_flecsport_t* parent);
+    explicit flecsport_t(FLECS::module::flecsport_t* parent);
 
     auto do_init() //
         -> void;
@@ -58,12 +61,13 @@ private:
     auto do_import_from(fs::path archive, job_progress_t& progress) //
         -> result_t;
 
-    FLECS::module_flecsport_t* _parent;
+    FLECS::module::flecsport_t* _parent;
 
-    std::shared_ptr<FLECS::module_apps_t> _apps_api;
-    std::shared_ptr<FLECS::module_instances_t> _instances_api;
-    std::shared_ptr<FLECS::module_jobs_t> _jobs_api;
+    std::shared_ptr<FLECS::module::apps_t> _apps_api;
+    std::shared_ptr<FLECS::module::instances_t> _instances_api;
+    std::shared_ptr<FLECS::module::jobs_t> _jobs_api;
 };
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

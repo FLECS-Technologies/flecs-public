@@ -127,7 +127,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
                 }
 
                 const auto system_api =
-                    dynamic_cast<const module_system_t*>(api::query_module("system").get());
+                    dynamic_cast<const module::system_t*>(api::query_module("system").get());
                 const auto adapters = system_api->get_network_adapters();
                 const auto netif = adapters.find(parts[1]);
                 if (netif == adapters.cend()) {
@@ -470,7 +470,7 @@ auto deployment_docker_t::do_create_network(
             }
             if (cidr_subnet.empty() || gateway.empty()) {
                 const auto system_api =
-                    dynamic_cast<const module_system_t*>(api::query_module("system").get());
+                    dynamic_cast<const module::system_t*>(api::query_module("system").get());
                 const auto adapters = system_api->get_network_adapters();
                 const auto netif = adapters.find(parent_adapter.data());
                 if (netif == adapters.cend()) {

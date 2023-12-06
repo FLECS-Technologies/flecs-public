@@ -19,10 +19,6 @@
 
 namespace FLECS {
 
-namespace {
-register_module_t<module_jobs_t> _reg("jobs");
-}
-
 job_t::job_t(job_t::callable_t callable)
     : _callable{std::move(callable)}
 {}
@@ -33,13 +29,19 @@ auto job_t::callable() const noexcept //
     return _callable;
 }
 
-module_jobs_t::module_jobs_t()
-    : _impl{new impl::module_jobs_t{}}
+namespace module {
+
+namespace {
+register_module_t<jobs_t> _reg("jobs");
+}
+
+jobs_t::jobs_t()
+    : _impl{new impl::jobs_t{}}
 {}
 
-module_jobs_t::~module_jobs_t() = default;
+jobs_t::~jobs_t() = default;
 
-auto module_jobs_t::do_init() //
+auto jobs_t::do_init() //
     -> void
 {
     FLECS_V2_ROUTE("/jobs").methods("GET"_method)([this]() { return list_jobs({}); });
@@ -53,34 +55,35 @@ auto module_jobs_t::do_init() //
     _impl->do_init();
 }
 
-auto module_jobs_t::do_deinit() //
+auto jobs_t::do_deinit() //
     -> void
 {
     _impl->do_deinit();
 }
 
-auto module_jobs_t::append(job_t job, std::string desc) //
+auto jobs_t::append(job_t job, std::string desc) //
     -> job_id_t
 {
     return _impl->do_append(std::move(job), std::move(desc));
 }
 
-auto module_jobs_t::list_jobs(job_id_t job_id) const //
+auto jobs_t::list_jobs(job_id_t job_id) const //
     -> crow::response
 {
     return _impl->do_list_jobs(std::move(job_id));
 }
 
-auto module_jobs_t::delete_job(job_id_t job_id) //
+auto jobs_t::delete_job(job_id_t job_id) //
     -> crow::response
 {
     return _impl->do_delete_job(std::move(job_id));
 }
 
-auto module_jobs_t::wait_for_job(job_id_t job_id) const //
+auto jobs_t::wait_for_job(job_id_t job_id) const //
     -> result_t
 {
     return _impl->do_wait_for_job(std::move(job_id));
 }
 
+} // namespace module
 } // namespace FLECS

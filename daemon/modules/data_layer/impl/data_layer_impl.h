@@ -18,14 +18,15 @@
 #include "flunder/client.h"
 
 namespace FLECS {
+namespace module {
 namespace impl {
 
-class module_data_layer_t
+class data_layer_t
 {
 public:
-    module_data_layer_t();
+    data_layer_t();
 
-    ~module_data_layer_t();
+    ~data_layer_t();
 
     auto do_browse(std::string_view path) //
         -> crow::response;
@@ -41,4 +42,5 @@ private:
 };
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

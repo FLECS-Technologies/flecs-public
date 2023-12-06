@@ -19,20 +19,21 @@
 #include "module_base/module.h"
 
 namespace FLECS {
+namespace module {
 
 namespace impl {
-class module_data_layer_t;
+class data_layer_t;
 } // namespace impl
 
-class module_data_layer_t FLECS_FINAL_UNLESS_TESTED : public module_t
+class data_layer_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
-    friend class module_factory_t;
+    friend class factory_t;
 
 public:
-    ~module_data_layer_t() override;
+    ~data_layer_t() override;
 
 protected:
-    module_data_layer_t();
+    data_layer_t();
 
     auto do_init() //
         -> void override;
@@ -51,7 +52,8 @@ protected:
 #endif // 0
 
 private:
-    std::unique_ptr<impl::module_data_layer_t> _impl;
+    std::unique_ptr<impl::data_layer_t> _impl;
 };
 
+} // namespace module
 } // namespace FLECS

@@ -15,7 +15,7 @@
 #include "gtest/gtest.h"
 #include "system/system.h"
 
-class module_system_test_t : public FLECS::module_system_t
+class module_system_test_t : public FLECS::module::system_t
 {
 public:
     module_system_test_t() = default;
@@ -23,16 +23,16 @@ public:
     auto do_init() //
         -> void override
     {
-        return FLECS::module_system_t::do_init();
+        return FLECS::module::system_t::do_init();
     }
 
     auto do_deinit() //
         -> void override
     {
-        return FLECS::module_system_t::do_deinit();
+        return FLECS::module::system_t::do_deinit();
     }
 
-    auto ping() const { return FLECS::module_system_t::ping(); }
+    auto ping() const { return FLECS::module::system_t::ping(); }
 };
 
 static auto uut = module_system_test_t{};

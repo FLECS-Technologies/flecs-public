@@ -24,20 +24,22 @@ namespace FLECS {
 
 class deployment_t;
 class job_progress_t;
-class module_apps_t;
-class module_jobs_t;
+
+namespace module {
+class apps_t;
+class jobs_t;
 
 namespace impl {
 
-class module_instances_t
+class instances_t
 {
-    friend class FLECS::module_instances_t;
+    friend class FLECS::module::instances_t;
 
 public:
-    ~module_instances_t();
+    ~instances_t();
 
 private:
-    explicit module_instances_t(FLECS::module_instances_t* parent);
+    explicit instances_t(FLECS::module::instances_t* parent);
 
     auto do_load(const fs::path& base_path) //
         -> result_t;
@@ -125,12 +127,13 @@ private:
     auto do_import_from(instance_t instance, fs::path base_path, job_progress_t& progress) //
         -> result_t;
 
-    FLECS::module_instances_t* _parent;
+    FLECS::module::instances_t* _parent;
 
     std::unique_ptr<deployment_t> _deployment;
-    std::shared_ptr<FLECS::module_apps_t> _apps_api;
-    std::shared_ptr<FLECS::module_jobs_t> _jobs_api;
+    std::shared_ptr<FLECS::module::apps_t> _apps_api;
+    std::shared_ptr<FLECS::module::jobs_t> _jobs_api;
 };
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

@@ -19,25 +19,26 @@
 #include <cstdio>
 
 namespace FLECS {
+namespace module {
 
 namespace {
-register_module_t<module_version_t> _reg("version");
+register_module_t<version_t> _reg("version");
 }
 
-module_version_t::module_version_t()
+version_t::version_t()
 {}
 
-auto module_version_t::do_init() //
+auto version_t::do_init() //
     -> void
 {
     FLECS_V2_ROUTE("/system/version").methods("GET"_method)([this]() { return http_version(); });
 }
 
-auto module_version_t::do_deinit() //
+auto version_t::do_deinit() //
     -> void
 {}
 
-auto module_version_t::http_version() const //
+auto version_t::http_version() const //
     -> crow::response
 {
     using std::operator""s;
@@ -48,16 +49,17 @@ auto module_version_t::http_version() const //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto module_version_t::core_version() const //
+auto version_t::core_version() const //
     -> std::string
 {
     return std::string{FLECS_VERSION} + "-" + FLECS_GIT_SHA;
 }
 
-auto module_version_t::api_version() const //
+auto version_t::api_version() const //
     -> std::string
 {
     return FLECS_API_VERSION;
 }
 
+} // namespace module
 } // namespace FLECS

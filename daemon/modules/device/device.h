@@ -17,23 +17,24 @@
 #include "module_base/module.h"
 
 namespace FLECS {
+namespace module {
 
 namespace impl {
-class module_device_t;
+class device_t;
 }
 
-class module_device_t FLECS_FINAL_UNLESS_TESTED : public module_t
+class device_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
-    friend class module_factory_t;
+    friend class factory_t;
 
 public:
-    ~module_device_t();
+    ~device_t();
 
     auto session_id() //
         -> const std::string&;
 
 protected:
-    module_device_t();
+    device_t();
 
     auto do_init() //
         -> void override;
@@ -47,7 +48,8 @@ protected:
     auto do_save(const fs::path& base_path) const //
         -> result_t override;
 
-    std::unique_ptr<impl::module_device_t> _impl;
+    std::unique_ptr<impl::device_t> _impl;
 };
 
+} // namespace module
 } // namespace FLECS

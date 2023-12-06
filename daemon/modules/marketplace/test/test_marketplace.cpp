@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 #include "marketplace/marketplace.h"
 
-class module_marketplace_test_t : public FLECS::module_marketplace_t
+class module_marketplace_test_t : public FLECS::module::marketplace_t
 {
 public:
     module_marketplace_test_t() = default;
@@ -25,26 +25,26 @@ public:
     auto do_init() //
         -> void override
     {
-        return FLECS::module_marketplace_t::do_init();
+        return FLECS::module::marketplace_t::do_init();
     }
     auto do_deinit() //
         -> void override
     {
-        return FLECS::module_marketplace_t::do_deinit();
+        return FLECS::module::marketplace_t::do_deinit();
     }
 
     auto login(std::string user, std::string token)
     {
-        return FLECS::module_marketplace_t::login(std::move(user), std::move(token));
+        return FLECS::module::marketplace_t::login(std::move(user), std::move(token));
     }
 
     auto logout(std::string_view user)
     {
-        return FLECS::module_marketplace_t::logout(std::move(user));
+        return FLECS::module::marketplace_t::logout(std::move(user));
     }
 
-    auto& user() const noexcept { return FLECS::module_marketplace_t::user(); }
-    auto& token() const noexcept { return FLECS::module_marketplace_t::token(); }
+    auto& user() const noexcept { return FLECS::module::marketplace_t::user(); }
+    auto& token() const noexcept { return FLECS::module::marketplace_t::token(); }
 };
 
 class test_api_t

@@ -18,45 +18,47 @@
 #include "factory/factory.h"
 
 namespace FLECS {
+namespace module {
 
 namespace {
-register_module_t<module_device_t> _reg("device");
+register_module_t<device_t> _reg("device");
 }
 
-module_device_t::module_device_t()
-    : _impl{new impl::module_device_t{}}
+device_t::device_t()
+    : _impl{new impl::device_t{}}
 {}
 
-module_device_t::~module_device_t() = default;
+device_t::~device_t() = default;
 
-auto module_device_t::session_id() //
+auto device_t::session_id() //
     -> const std::string&
 {
     return _impl->do_session_id();
 }
 
-auto module_device_t::do_init() //
+auto device_t::do_init() //
     -> void
 {
     _impl->do_init();
 }
 
-auto module_device_t::do_deinit() //
+auto device_t::do_deinit() //
     -> void
 {
     _impl->do_deinit();
 }
 
-auto module_device_t::do_load(const fs::path& base_path) //
+auto device_t::do_load(const fs::path& base_path) //
     -> result_t
 {
     return _impl->do_load(base_path);
 }
 
-auto module_device_t::do_save(const fs::path& base_path) const //
+auto device_t::do_save(const fs::path& base_path) const //
     -> result_t
 {
     return _impl->do_save(base_path);
 }
 
+} // namespace module
 } // namespace FLECS

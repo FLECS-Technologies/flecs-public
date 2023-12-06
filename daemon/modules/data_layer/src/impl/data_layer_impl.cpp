@@ -17,27 +17,28 @@
 #include "util/json/json.h"
 
 namespace FLECS {
+namespace module {
 namespace impl {
 
-module_data_layer_t::module_data_layer_t()
+data_layer_t::data_layer_t()
 {}
 
-module_data_layer_t::~module_data_layer_t()
+data_layer_t::~data_layer_t()
 {}
 
-auto module_data_layer_t::do_init() //
+auto data_layer_t::do_init() //
     -> void
 {
     _client.connect(flunder::FLUNDER_HOST, flunder::FLUNDER_PORT);
 }
 
-auto module_data_layer_t::do_deinit() //
+auto data_layer_t::do_deinit() //
     -> void
 {
     _client.disconnect();
 }
 
-auto module_data_layer_t::do_browse(std::string_view path) //
+auto data_layer_t::do_browse(std::string_view path) //
     -> crow::response
 {
     auto response = json_t{};
@@ -70,4 +71,5 @@ auto module_data_layer_t::do_browse(std::string_view path) //
 }
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

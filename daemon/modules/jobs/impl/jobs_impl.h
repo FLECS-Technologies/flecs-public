@@ -26,17 +26,17 @@
 #include "jobs.h"
 
 namespace FLECS {
+namespace module {
 
-class module_jobs_t;
+class jobs_t;
 
 namespace impl {
-
-class module_jobs_t
+class jobs_t
 {
-    friend class FLECS::module_jobs_t;
+    friend class FLECS::module::jobs_t;
 
 private:
-    module_jobs_t();
+    jobs_t();
 
     auto do_init() //
         -> void;
@@ -75,4 +75,5 @@ private:
 };
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

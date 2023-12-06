@@ -36,12 +36,13 @@
 using std::operator""s;
 
 namespace FLECS {
+namespace module {
 namespace impl {
 
 static auto acquire_download_token(std::string_view license_key) //
     -> std::string
 {
-    const auto mp_api = dynamic_cast<const module_marketplace_t*>(api::query_module("mp").get());
+    const auto mp_api = dynamic_cast<const module::marketplace_t*>(api::query_module("mp").get());
     if (!mp_api) {
         return "";
     }
@@ -114,24 +115,24 @@ static auto expire_download_token(const std::string& user_token, const std::stri
     return response_json["success"].get<bool>();
 }
 
-module_apps_t::module_apps_t(FLECS::module_apps_t* parent)
+apps_t::apps_t(FLECS::module::apps_t* parent)
     : _parent{parent}
     , _apps{}
     , _apps_mutex{}
     , _jobs_api{}
 {}
 
-module_apps_t::~module_apps_t()
+apps_t::~apps_t()
 {}
 
-auto module_apps_t::do_module_init() //
+auto apps_t::do_module_init() //
     -> void
 {
     _instances_api =
-        std::dynamic_pointer_cast<FLECS::module_instances_t>(api::query_module("instances"));
-    _jobs_api = std::dynamic_pointer_cast<FLECS::module_jobs_t>(api::query_module("jobs"));
+        std::dynamic_pointer_cast<FLECS::module::instances_t>(api::query_module("instances"));
+    _jobs_api = std::dynamic_pointer_cast<FLECS::module::jobs_t>(api::query_module("jobs"));
     _manifests_api =
-        std::dynamic_pointer_cast<FLECS::module_manifests_t>(api::query_module("manifests"));
+        std::dynamic_pointer_cast<FLECS::module::manifests_t>(api::query_module("manifests"));
 
     auto ec = std::error_code{};
     if (fs::is_directory("/var/lib/flecs/apps", ec)) {
@@ -155,7 +156,7 @@ auto module_apps_t::do_module_init() //
     }
 }
 
-auto module_apps_t::do_load(const fs::path& base_path) //
+auto apps_t::do_load(const fs::path& base_path) //
     -> result_t
 {
     const auto json_path = base_path / "apps.json";
@@ -179,7 +180,7 @@ auto module_apps_t::do_load(const fs::path& base_path) //
     return {0, {}};
 }
 
-auto module_apps_t::do_module_start() //
+auto apps_t::do_module_start() //
     -> void
 {
     const auto system_apps = std::array<app_key_t, 2>{
@@ -227,7 +228,7 @@ auto module_apps_t::do_module_start() //
     }
 }
 
-auto module_apps_t::do_save(const fs::path& base_path) const //
+auto apps_t::do_save(const fs::path& base_path) const //
     -> result_t
 {
     auto ec = std::error_code{};
@@ -255,7 +256,7 @@ auto module_apps_t::do_save(const fs::path& base_path) const //
     return {0, {}};
 }
 
-auto module_apps_t::do_app_keys(const app_key_t& app_key) const //
+auto apps_t::do_app_keys(const app_key_t& app_key) const //
     -> std::vector<app_key_t>
 {
     auto res = std::vector<app_key_t>{};
@@ -272,13 +273,13 @@ auto module_apps_t::do_app_keys(const app_key_t& app_key) const //
     return res;
 }
 
-auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
+auto apps_t::queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
     -> job_id_t
 {
     auto desc = "Installation of "s + to_string(app_key);
 
     auto job = job_t{std::bind(
-        &module_apps_t::do_install_from_marketplace,
+        &apps_t::do_install_from_marketplace,
         this,
         std::move(app_key),
         std::move(license_key),
@@ -286,7 +287,7 @@ auto module_apps_t::queue_install_from_marketplace(app_key_t app_key, std::strin
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto module_apps_t::do_install_from_marketplace_sync(
+auto apps_t::do_install_from_marketplace_sync(
     app_key_t app_key,
     std::string license_key) //
     -> result_t
@@ -294,7 +295,7 @@ auto module_apps_t::do_install_from_marketplace_sync(
     auto _ = job_progress_t{};
     return do_install_from_marketplace(std::move(app_key), std::move(license_key), _);
 }
-auto module_apps_t::do_install_from_marketplace(
+auto apps_t::do_install_from_marketplace(
     app_key_t app_key,
     std::string license_key,
     job_progress_t& progress) //
@@ -312,11 +313,11 @@ auto module_apps_t::do_install_from_marketplace(
     return {-1, "Could not download manifest"};
 }
 
-auto module_apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
+auto apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
     -> job_id_t
 {
     auto job = job_t{std::bind(
-        &module_apps_t::do_sideload,
+        &apps_t::do_sideload,
         this,
         std::move(manifest_string),
         std::move(license_key),
@@ -324,13 +325,13 @@ auto module_apps_t::queue_sideload(std::string manifest_string, std::string lice
 
     return _jobs_api->append(std::move(job), "Sideloading App");
 }
-auto module_apps_t::do_sideload_sync(std::string manifest_string, std::string license_key) //
+auto apps_t::do_sideload_sync(std::string manifest_string, std::string license_key) //
     -> result_t
 {
     auto _ = job_progress_t{};
     return do_sideload(std::move(manifest_string), std::move(license_key), _);
 }
-auto module_apps_t::do_sideload(
+auto apps_t::do_sideload(
     std::string manifest_string, std::string license_key, job_progress_t& progress) //
     -> result_t
 {
@@ -344,7 +345,7 @@ auto module_apps_t::do_sideload(
     return {-1, "Could not parse manifest"};
 }
 
-auto module_apps_t::do_install_impl(
+auto apps_t::do_install_impl(
     std::shared_ptr<app_manifest_t> manifest,
     std::string_view license_key,
     job_progress_t& progress) //
@@ -474,13 +475,13 @@ auto module_apps_t::do_install_impl(
     return {0, {}};
 }
 
-auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
+auto apps_t::queue_uninstall(app_key_t app_key, bool force) //
     -> job_id_t
 {
     auto desc = "Uninstallation of "s + to_string(app_key);
 
     auto job = job_t{std::bind(
-        &module_apps_t::do_uninstall,
+        &apps_t::do_uninstall,
         this,
         std::move(app_key),
         std::move(force),
@@ -488,13 +489,13 @@ auto module_apps_t::queue_uninstall(app_key_t app_key, bool force) //
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto module_apps_t::do_uninstall_sync(app_key_t app_key, bool force) //
+auto apps_t::do_uninstall_sync(app_key_t app_key, bool force) //
     -> result_t
 {
     auto _ = job_progress_t{};
     return do_uninstall(std::move(app_key), force, _);
 }
-auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
+auto apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
     -> result_t
 {
     progress.num_steps(4);
@@ -563,11 +564,11 @@ auto module_apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& 
     return {0, {}};
 }
 
-auto module_apps_t::queue_export_to(app_key_t app_key, fs::path dest_dir) const //
+auto apps_t::queue_export_to(app_key_t app_key, fs::path dest_dir) const //
     -> job_id_t
 {
     auto job = job_t{std::bind(
-        &module_apps_t::do_export_to,
+        &apps_t::do_export_to,
         this,
         std::move(app_key),
         std::move(dest_dir),
@@ -575,14 +576,13 @@ auto module_apps_t::queue_export_to(app_key_t app_key, fs::path dest_dir) const 
 
     return _jobs_api->append(std::move(job), "Exporting App " + to_string(app_key));
 }
-auto module_apps_t::do_export_to_sync(app_key_t app_key, fs::path dest_dir) const //
+auto apps_t::do_export_to_sync(app_key_t app_key, fs::path dest_dir) const //
     -> result_t
 {
     auto _ = job_progress_t{};
     return do_export_to(std::move(app_key), std::move(dest_dir), _);
 }
-auto module_apps_t::do_export_to(
-    app_key_t app_key, fs::path dest_dir, job_progress_t& progress) const //
+auto apps_t::do_export_to(app_key_t app_key, fs::path dest_dir, job_progress_t& progress) const //
     -> result_t
 {
     progress.num_steps(4);
@@ -633,11 +633,11 @@ auto module_apps_t::do_export_to(
     return {0, {}};
 }
 
-auto module_apps_t::queue_import_from(app_key_t app_key, fs::path src_dir) //
+auto apps_t::queue_import_from(app_key_t app_key, fs::path src_dir) //
     -> job_id_t
 {
     auto job = job_t{std::bind(
-        &module_apps_t::do_import_from,
+        &apps_t::do_import_from,
         this,
         std::move(app_key),
         std::move(src_dir),
@@ -645,14 +645,13 @@ auto module_apps_t::queue_import_from(app_key_t app_key, fs::path src_dir) //
 
     return _jobs_api->append(std::move(job), "Exporting App " + to_string(app_key));
 }
-auto module_apps_t::do_import_from_sync(app_key_t app_key, fs::path src_dir) //
+auto apps_t::do_import_from_sync(app_key_t app_key, fs::path src_dir) //
     -> result_t
 {
     auto _ = job_progress_t{};
     return do_import_from(std::move(app_key), std::move(src_dir), _);
 }
-auto module_apps_t::do_import_from(
-    app_key_t app_key, fs::path src_dir, job_progress_t& /*progress*/) //
+auto apps_t::do_import_from(app_key_t app_key, fs::path src_dir, job_progress_t& /*progress*/) //
     -> result_t
 {
     /* add App manifest */
@@ -684,7 +683,7 @@ auto module_apps_t::do_import_from(
     return {0, {}};
 }
 
-auto module_apps_t::do_query(const app_key_t& app_key) const noexcept //
+auto apps_t::do_query(const app_key_t& app_key) const noexcept //
     -> std::shared_ptr<app_t>
 {
     auto it =
@@ -695,7 +694,7 @@ auto module_apps_t::do_query(const app_key_t& app_key) const noexcept //
     return it == _apps.cend() ? nullptr : *it;
 }
 
-auto module_apps_t::do_is_installed(const app_key_t& app_key) const noexcept //
+auto apps_t::do_is_installed(const app_key_t& app_key) const noexcept //
     -> bool
 {
     auto app = _parent->query(app_key);
@@ -704,4 +703,5 @@ auto module_apps_t::do_is_installed(const app_key_t& app_key) const noexcept //
 }
 
 } // namespace impl
+} // namespace module
 } // namespace FLECS

@@ -15,14 +15,15 @@
 #include "factory.h"
 
 namespace FLECS {
+namespace module {
 
-module_factory_t& module_factory_t::instance()
+factory_t& factory_t::instance()
 {
-    static module_factory_t factory;
+    static factory_t factory;
     return factory;
 }
 
-void module_factory_t::init_modules()
+void factory_t::init_modules()
 {
     for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it) {
         const auto [res, message] = it->second->load();
@@ -39,7 +40,7 @@ void module_factory_t::init_modules()
     }
 }
 
-void module_factory_t::deinit_modules()
+void factory_t::deinit_modules()
 {
     for (decltype(auto) it = _module_table.begin(); it != _module_table.end(); ++it) {
         it->second->stop();
@@ -49,7 +50,7 @@ void module_factory_t::deinit_modules()
     }
 }
 
-std::shared_ptr<module_t> module_factory_t::query(const std::string& module_name)
+std::shared_ptr<module::base_t> factory_t::query(const std::string& module_name)
 {
     decltype(auto) it = _module_table.find(module_name);
     if (it != _module_table.end()) {
@@ -58,18 +59,21 @@ std::shared_ptr<module_t> module_factory_t::query(const std::string& module_name
     return nullptr;
 }
 
+} // namespace module
+
 namespace api {
 void init_modules()
 {
-    return module_factory_t::instance().init_modules();
+    return module::factory_t::instance().init_modules();
 }
 void deinit_modules()
 {
-    return module_factory_t::instance().deinit_modules();
+    return module::factory_t::instance().deinit_modules();
 }
-std::shared_ptr<module_t> query_module(const std::string& module_name)
+std::shared_ptr<module::base_t> query_module(const std::string& module_name)
 {
-    return module_factory_t::instance().query(module_name);
+    return module::factory_t::instance().query(module_name);
 }
 } // namespace api
+
 } // namespace FLECS

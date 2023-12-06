@@ -20,25 +20,26 @@
 #include "impl/instances_impl.h"
 
 namespace FLECS {
+namespace module {
 
 namespace {
-register_module_t<module_instances_t> _reg("instances");
+register_module_t<instances_t> _reg("instances");
 }
 
-module_instances_t::module_instances_t()
-    : _impl{new impl::module_instances_t{this}}
+instances_t::instances_t()
+    : _impl{new impl::instances_t{this}}
 {}
 
-module_instances_t::~module_instances_t()
+instances_t::~instances_t()
 {}
 
-auto module_instances_t::do_load(const fs::path& base_path) //
+auto instances_t::do_load(const fs::path& base_path) //
     -> result_t
 {
     return _impl->do_load(base_path);
 }
 
-auto module_instances_t::do_init() //
+auto instances_t::do_init() //
     -> void
 {
     FLECS_V2_ROUTE("/instances").methods("GET"_method)([this](const crow::request& req) {
@@ -111,19 +112,19 @@ auto module_instances_t::do_init() //
     return _impl->do_module_init();
 }
 
-auto module_instances_t::do_start() //
+auto instances_t::do_start() //
     -> void
 {
     return _impl->do_module_start();
 }
 
-auto module_instances_t::do_stop() //
+auto instances_t::do_stop() //
     -> void
 {
     return _impl->do_module_stop();
 }
 
-auto module_instances_t::http_list(const app_key_t& app_key) const //
+auto instances_t::http_list(const app_key_t& app_key) const //
     -> crow::response
 {
     auto response = json_t::array();
@@ -153,13 +154,13 @@ auto module_instances_t::http_list(const app_key_t& app_key) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto module_instances_t::http_details(instance_id_t instance_id) const //
+auto instances_t::http_details(instance_id_t instance_id) const //
     -> crow::response
 {
     return _impl->do_details(std::move(instance_id));
 }
 
-auto module_instances_t::http_create(app_key_t app_key, std::string instance_name, bool running) //
+auto instances_t::http_create(app_key_t app_key, std::string instance_name, bool running) //
     -> crow::response
 {
     auto job_id = _impl->queue_create(std::move(app_key), std::move(instance_name), running);
@@ -169,7 +170,7 @@ auto module_instances_t::http_create(app_key_t app_key, std::string instance_nam
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_instances_t::http_start(instance_id_t instance_id) //
+auto instances_t::http_start(instance_id_t instance_id) //
     -> crow::response
 {
     auto job_id = _impl->queue_start(std::move(instance_id), false);
@@ -179,7 +180,7 @@ auto module_instances_t::http_start(instance_id_t instance_id) //
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_instances_t::http_stop(instance_id_t instance_id) //
+auto instances_t::http_stop(instance_id_t instance_id) //
     -> crow::response
 {
     auto job_id = _impl->queue_stop(std::move(instance_id), false);
@@ -189,7 +190,7 @@ auto module_instances_t::http_stop(instance_id_t instance_id) //
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_instances_t::http_remove(instance_id_t instance_id) //
+auto instances_t::http_remove(instance_id_t instance_id) //
     -> crow::response
 {
     auto job_id = _impl->queue_remove(std::move(instance_id));
@@ -199,26 +200,25 @@ auto module_instances_t::http_remove(instance_id_t instance_id) //
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_instances_t::http_get_config(instance_id_t instance_id) const //
+auto instances_t::http_get_config(instance_id_t instance_id) const //
     -> crow::response
 {
     return _impl->do_get_config(std::move(instance_id));
 }
 
-auto module_instances_t::http_post_config(
-    instance_id_t instance_id, const instance_config_t& config) //
+auto instances_t::http_post_config(instance_id_t instance_id, const instance_config_t& config) //
     -> crow::response
 {
     return _impl->do_post_config(std::move(instance_id), config);
 }
 
-auto module_instances_t::http_logs(instance_id_t instance_id) const //
+auto instances_t::http_logs(instance_id_t instance_id) const //
     -> crow::response
 {
     return _impl->do_logs(std::move(instance_id));
 }
 
-auto module_instances_t::http_update(instance_id_t instance_id, std::string to) //
+auto instances_t::http_update(instance_id_t instance_id, std::string to) //
     -> crow::response
 {
     auto job_id = _impl->queue_update(std::move(instance_id), std::move(to));
@@ -228,7 +228,7 @@ auto module_instances_t::http_update(instance_id_t instance_id, std::string to) 
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_instances_t::http_export_to(instance_id_t instance_id, fs::path dest_dir) const //
+auto instances_t::http_export_to(instance_id_t instance_id, fs::path dest_dir) const //
     -> crow::response
 {
     auto job_id = _impl->queue_export_to(std::move(instance_id), std::move(dest_dir));
@@ -238,51 +238,50 @@ auto module_instances_t::http_export_to(instance_id_t instance_id, fs::path dest
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto module_instances_t::instance_ids(const app_key_t& app_key) const //
+auto instances_t::instance_ids(const app_key_t& app_key) const //
     -> std::vector<instance_id_t>
 {
     return _impl->do_instance_ids(app_key);
 }
-auto module_instances_t::instance_ids(std::string app_name, std::string version) const //
+auto instances_t::instance_ids(std::string app_name, std::string version) const //
     -> std::vector<instance_id_t>
 {
     return instance_ids(app_key_t{std::move(app_name), std::move(version)});
 }
-auto module_instances_t::instance_ids(std::string app_name) const //
+auto instances_t::instance_ids(std::string app_name) const //
     -> std::vector<instance_id_t>
 {
     return instance_ids(app_key_t{std::move(app_name), {}});
 }
-auto module_instances_t::instance_ids() const //
+auto instances_t::instance_ids() const //
     -> std::vector<instance_id_t>
 {
     return instance_ids(app_key_t{});
 }
 
-auto module_instances_t::query(instance_id_t instance_id) const //
+auto instances_t::query(instance_id_t instance_id) const //
     -> std::shared_ptr<instance_t>
 {
     return _impl->do_query(std::move(instance_id));
 }
 
-auto module_instances_t::is_running(std::shared_ptr<instance_t> instance) const //
+auto instances_t::is_running(std::shared_ptr<instance_t> instance) const //
     -> bool
 {
     return _impl->do_is_running(std::move(instance));
 }
 
-auto module_instances_t::create(app_key_t app_key, std::string instance_name, bool running) //
+auto instances_t::create(app_key_t app_key, std::string instance_name, bool running) //
     -> result_t
 {
     return _impl->do_create_sync(std::move(app_key), std::move(instance_name), running);
 }
-auto module_instances_t::create(app_key_t app_key) //
+auto instances_t::create(app_key_t app_key) //
     -> result_t
 {
     return create(std::move(app_key), {}, false);
 }
-auto module_instances_t::create(
-    std::string app_name, std::string version, std::string instance_name) //
+auto instances_t::create(std::string app_name, std::string version, std::string instance_name) //
     -> result_t
 {
     return create(
@@ -290,50 +289,51 @@ auto module_instances_t::create(
         std::move(instance_name),
         false);
 }
-auto module_instances_t::create(std::string app_name, std::string version) //
+auto instances_t::create(std::string app_name, std::string version) //
     -> result_t
 {
     return create(app_key_t{std::move(app_name), std::move(version)}, {}, false);
 }
 
-auto module_instances_t::start(instance_id_t instance_id) //
+auto instances_t::start(instance_id_t instance_id) //
     -> result_t
 {
     return _impl->do_start_sync(std::move(instance_id), false);
 }
-auto module_instances_t::start_once(instance_id_t instance_id) //
+auto instances_t::start_once(instance_id_t instance_id) //
     -> result_t
 {
     return _impl->do_start_sync(std::move(instance_id), true);
 }
 
-auto module_instances_t::stop(instance_id_t instance_id) //
+auto instances_t::stop(instance_id_t instance_id) //
     -> result_t
 {
     return _impl->do_stop_sync(std::move(instance_id), false);
 }
-auto module_instances_t::stop_once(instance_id_t instance_id) //
+auto instances_t::stop_once(instance_id_t instance_id) //
     -> result_t
 {
     return _impl->do_stop_sync(std::move(instance_id), true);
 }
 
-auto module_instances_t::remove(instance_id_t instance_id) //
+auto instances_t::remove(instance_id_t instance_id) //
     -> result_t
 {
     return _impl->do_remove_sync(std::move(instance_id));
 }
 
-auto module_instances_t::export_to(instance_id_t instance_id, fs::path base_path) const //
+auto instances_t::export_to(instance_id_t instance_id, fs::path base_path) const //
     -> result_t
 {
     return _impl->do_export_to_sync(std::move(instance_id), std::move(base_path));
 }
 
-auto module_instances_t::import_from(instance_t instance, fs::path base_path) //
+auto instances_t::import_from(instance_t instance, fs::path base_path) //
     -> result_t
 {
     return _impl->do_import_from_sync(std::move(instance), std::move(base_path));
 }
 
+} // namespace module
 } // namespace FLECS

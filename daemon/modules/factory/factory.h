@@ -21,33 +21,34 @@
 #include "module_base/module.h"
 
 namespace FLECS {
+namespace module {
 
-class module_factory_t
+class factory_t
 {
 public:
-    module_factory_t(const module_factory_t&) = delete;
-    module_factory_t(module_factory_t&&) = delete;
-    module_factory_t& operator=(module_factory_t) = delete;
+    factory_t(const factory_t&) = delete;
+    factory_t(factory_t&&) = delete;
+    factory_t& operator=(factory_t) = delete;
 
-    using module_table_t = std::map<std::string, std::shared_ptr<module_t>>;
+    using module_table_t = std::map<std::string, std::shared_ptr<module::base_t>>;
 
-    static module_factory_t& instance();
+    static factory_t& instance();
 
     template <typename T>
     void register_module(std::string module_name);
 
     void init_modules();
     void deinit_modules();
-    std::shared_ptr<module_t> query(const std::string& endpoint);
+    std::shared_ptr<module::base_t> query(const std::string& endpoint);
 
 private:
-    module_factory_t() = default;
+    factory_t() = default;
 
     module_table_t _module_table;
 };
 
 template <typename T>
-void module_factory_t::register_module(std::string module_name)
+void factory_t::register_module(std::string module_name)
 {
     _module_table.try_emplace(module_name, new T{});
 }
@@ -62,13 +63,15 @@ public:
 template <typename T>
 register_module_t<T>::register_module_t(std::string module_name)
 {
-    module_factory_t::instance().register_module<T>(module_name);
+    factory_t::instance().register_module<T>(module_name);
 }
+
+} // namespace module
 
 namespace api {
 void init_modules();
 void deinit_modules();
-std::shared_ptr<module_t> query_module(const std::string& module_name);
+std::shared_ptr<module::base_t> query_module(const std::string& module_name);
 } // namespace api
 
 } // namespace FLECS

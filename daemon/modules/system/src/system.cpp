@@ -31,15 +31,16 @@
 #include "util/sysinfo/sysinfo.h"
 
 namespace FLECS {
+namespace module {
 
 namespace {
-register_module_t<module_system_t> _reg("system");
+register_module_t<system_t> _reg("system");
 }
 
-module_system_t::module_system_t()
+system_t::system_t()
 {}
 
-auto module_system_t::do_init() //
+auto system_t::do_init() //
     -> void
 {
     FLECS_V2_ROUTE("/system/ping").methods("GET"_method)([this]() { return ping(); });
@@ -47,11 +48,11 @@ auto module_system_t::do_init() //
     FLECS_V2_ROUTE("/system/info").methods("GET"_method)([this]() { return info(); });
 }
 
-auto module_system_t::do_deinit() //
+auto system_t::do_deinit() //
     -> void
 {}
 
-auto module_system_t::ping() const //
+auto system_t::ping() const //
     -> crow::response
 {
     const auto response = json_t({
@@ -61,7 +62,7 @@ auto module_system_t::ping() const //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto module_system_t::info() const //
+auto system_t::info() const //
     -> crow::response
 {
     const auto response = json_t(sysinfo_t{});
@@ -69,7 +70,7 @@ auto module_system_t::info() const //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto module_system_t::get_network_adapters() const //
+auto system_t::get_network_adapters() const //
     -> std::map<std::string, netif_t>
 {
     auto adapters = std::map<std::string, netif_t>{};
@@ -188,4 +189,5 @@ auto module_system_t::get_network_adapters() const //
     return adapters;
 }
 
+} // namespace module
 } // namespace FLECS
