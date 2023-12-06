@@ -17,7 +17,7 @@
 namespace FLECS {
 
 auto module_t::load(const fs::path& base_path) //
-    -> void
+    -> result_t
 {
     return do_load(base_path);
 }
@@ -41,7 +41,7 @@ auto module_t::stop() //
 }
 
 auto module_t::save(const fs::path& base_path) const //
-    -> void
+    -> result_t
 {
     return do_save(base_path);
 }
@@ -53,8 +53,10 @@ auto module_t::deinit() //
 }
 
 auto module_t::do_load(const fs::path& /*base_path*/) //
-    -> void
-{}
+    -> result_t
+{
+    return {0, {}};
+}
 
 auto module_t::do_start() //
     -> void
@@ -65,7 +67,9 @@ auto module_t::do_stop() //
 {}
 
 auto module_t::do_save(const fs::path& /*base_path*/) const //
-    -> void
-{}
+    -> result_t
+{
+    return {0, {}};
+}
 
 } // namespace FLECS

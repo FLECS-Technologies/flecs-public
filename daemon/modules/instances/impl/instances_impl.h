@@ -39,8 +39,8 @@ public:
 private:
     explicit module_instances_t(FLECS::module_instances_t* parent);
 
-    auto do_module_load(const fs::path& base_path) //
-        -> void;
+    auto do_load(const fs::path& base_path) //
+        -> result_t;
 
     auto do_module_init() //
         -> void;
@@ -67,7 +67,8 @@ private:
         -> job_id_t;
     auto do_create_sync(app_key_t app_key, std::string instance_name, bool running) //
         -> result_t;
-    auto do_create(app_key_t app_key, std::string instance_name, bool running, job_progress_t& progress) //
+    auto do_create(
+        app_key_t app_key, std::string instance_name, bool running, job_progress_t& progress) //
         -> result_t;
 
     auto queue_start(instance_id_t instance_id, bool once) //

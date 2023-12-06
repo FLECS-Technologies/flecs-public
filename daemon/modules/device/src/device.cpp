@@ -48,15 +48,15 @@ auto module_device_t::do_deinit() //
 }
 
 auto module_device_t::do_load(const fs::path& base_path) //
-    -> void
+    -> result_t
 {
-    _impl->do_load(base_path);
+    return _impl->do_load(base_path);
 }
 
 auto module_device_t::do_save(const fs::path& base_path) const //
-    -> void
+    -> result_t
 {
-    _impl->do_save(base_path);
+    return _impl->do_save(base_path);
 }
 
 } // namespace FLECS

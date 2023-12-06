@@ -53,7 +53,7 @@ class module_t
 {
 public:
     auto load(const fs::path& base_path = "/var/lib/flecs/") //
-        -> void;
+        -> result_t;
     auto init() //
         -> void;
     auto start() //
@@ -63,7 +63,7 @@ public:
     auto deinit() //
         -> void;
     auto save(const fs::path& base_path = "/var/lib/flecs/") const //
-        -> void;
+        -> result_t;
     // std::string usage();
 
 protected:
@@ -71,7 +71,7 @@ protected:
 
 private:
     virtual auto do_load(const fs::path& base_path) //
-        -> void;
+        -> result_t;
     virtual auto do_init() //
         -> void = 0;
     virtual auto do_start() //
@@ -81,7 +81,7 @@ private:
     virtual auto do_deinit() //
         -> void = 0;
     virtual auto do_save(const fs::path& base_path) const //
-        -> void;
+        -> result_t;
     // virtual std::string do_usage() = 0;
 };
 

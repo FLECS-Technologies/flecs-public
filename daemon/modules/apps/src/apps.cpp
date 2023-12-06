@@ -73,9 +73,9 @@ auto module_apps_t::do_init() //
 }
 
 auto module_apps_t::do_load(const fs::path& base_path) //
-    -> void
+    -> result_t
 {
-    return _impl->do_module_load(base_path / "apps");
+    return _impl->do_load(base_path / "apps");
 }
 
 auto module_apps_t::do_start() //
@@ -85,9 +85,9 @@ auto module_apps_t::do_start() //
 }
 
 auto module_apps_t::do_save(const fs::path& base_path) const //
-    -> void
+    -> result_t
 {
-    return _impl->do_module_save(base_path / "apps");
+    return _impl->do_save(base_path / "apps");
 }
 
 auto module_apps_t::http_list(const app_key_t& app_key) const //

@@ -44,14 +44,14 @@ private:
     auto do_module_init() //
         -> void;
 
-    auto do_module_load(const fs::path& base_path) //
-        -> void;
+    auto do_load(const fs::path& base_path) //
+        -> result_t;
 
     auto do_module_start() //
         -> void;
 
-    auto do_module_save(const fs::path& base_path) const //
-        -> void;
+    auto do_save(const fs::path& base_path) const //
+        -> result_t;
 
     auto do_app_keys(const app_key_t& app_key) const //
         -> std::vector<app_key_t>;

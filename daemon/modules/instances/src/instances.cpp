@@ -33,9 +33,9 @@ module_instances_t::~module_instances_t()
 {}
 
 auto module_instances_t::do_load(const fs::path& base_path) //
-    -> void
+    -> result_t
 {
-    return _impl->do_module_load(base_path);
+    return _impl->do_load(base_path);
 }
 
 auto module_instances_t::do_init() //
@@ -285,7 +285,10 @@ auto module_instances_t::create(
     std::string app_name, std::string version, std::string instance_name) //
     -> result_t
 {
-    return create(app_key_t{std::move(app_name), std::move(version)}, std::move(instance_name), false);
+    return create(
+        app_key_t{std::move(app_name), std::move(version)},
+        std::move(instance_name),
+        false);
 }
 auto module_instances_t::create(std::string app_name, std::string version) //
     -> result_t

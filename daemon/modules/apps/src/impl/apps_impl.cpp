@@ -155,21 +155,28 @@ auto module_apps_t::do_module_init() //
     }
 }
 
-auto module_apps_t::do_module_load(const fs::path& base_path) //
-    -> void
+auto module_apps_t::do_load(const fs::path& base_path) //
+    -> result_t
 {
-    auto json_file = std::ifstream{base_path / "apps.json"};
-    if (json_file.good()) {
-        auto apps_json = parse_json(json_file);
-        try {
-            _apps.reserve(apps_json.size());
-            for (const auto& app : apps_json) {
-                _apps.push_back(std::make_shared<app_t>(app.get<app_t>()));
-            }
-        } catch (const std::exception& ex) {
-            _apps.clear();
-        }
+    const auto json_path = base_path / "apps.json";
+    auto json_file = std::ifstream{json_path};
+
+    if (!json_file.good()) {
+        return {-1, "Could not open apps.json for reading"};
     }
+
+    auto apps_json = parse_json(json_file);
+    try {
+        _apps.reserve(apps_json.size());
+        for (const auto& app : apps_json) {
+            _apps.push_back(std::make_shared<app_t>(app.get<app_t>()));
+        }
+    } catch (const std::exception& ex) {
+        _apps.clear();
+        return {-1, "Could not read contents of apps.json"};
+    }
+
+    return {0, {}};
 }
 
 auto module_apps_t::do_module_start() //
@@ -188,7 +195,10 @@ auto module_apps_t::do_module_start() //
         for (const auto& installed_version : installed_versions) {
             if (installed_version.version() < system_app.version()) {
                 save = true;
-                std::fprintf(stdout, "Removing system app %s\n", to_string(installed_version).c_str());
+                std::fprintf(
+                    stdout,
+                    "Removing system app %s\n",
+                    to_string(installed_version).c_str());
                 _parent->uninstall(installed_version, true);
             } else if (installed_version.version() > system_app.version()) {
                 have_newer_version = true;
@@ -217,23 +227,32 @@ auto module_apps_t::do_module_start() //
     }
 }
 
-auto module_apps_t::do_module_save(const fs::path& base_path) const //
-    -> void
+auto module_apps_t::do_save(const fs::path& base_path) const //
+    -> result_t
 {
     auto ec = std::error_code{};
     fs::create_directories(base_path, ec);
     if (ec) {
-        return;
+        return {-1, "Could not create directory"};
     }
 
-    auto json_file =
-        std::ofstream{base_path / "apps.json", std::ios_base::out | std::ios_base::trunc};
+    const auto json_path = base_path / "apps.json";
+    auto json_file = std::ofstream{json_path, std::ios_base::out | std::ios_base::trunc};
+    if (!json_file.good()) {
+        return {-1, "Could not open apps.json for writing"};
+    }
+
     auto apps_json = json_t::array();
     for (const auto& app : _apps) {
         apps_json.push_back(*app);
     }
 
     json_file << apps_json;
+    if (!json_file.good()) {
+        return {-1, "Could not write apps.json"};
+    }
+
+    return {0, {}};
 }
 
 auto module_apps_t::do_app_keys(const app_key_t& app_key) const //
@@ -426,9 +445,8 @@ auto module_apps_t::do_install_impl(
                 try {
                     auto image_size = stoll(docker_size_process.stdout());
                     app->installed_size(image_size);
+                } catch (...) {
                 }
-                catch (...)
-                {}
             }
 
             // Step 5: Expire download token

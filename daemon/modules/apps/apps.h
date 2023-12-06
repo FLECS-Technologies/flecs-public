@@ -44,7 +44,7 @@ public:
      * @return HTTP response
      */
     auto do_load(const fs::path& base_path) //
-        -> void override;
+        -> result_t override;
 
     auto do_start() //
         -> void override;
@@ -56,7 +56,7 @@ public:
      * @return HTTP response
      */
     auto do_save(const fs::path& base_path) const //
-        -> void override;
+        -> result_t override;
 
     auto http_list(const app_key_t& app_key) const //
         -> crow::response;

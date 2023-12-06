@@ -36,13 +36,13 @@ auto module_device_t::do_deinit() //
 {}
 
 auto module_device_t::do_load(const fs::path& base_path) //
-    -> void
+    -> result_t
 {
-    auto sid_file = std::ifstream{base_path / "device" / ".session_id"};
-
+    const auto sid_path = base_path / "device" / ".session_id";
+    auto sid_file = std::ifstream{sid_path};
     if (!sid_file.good()) {
-        _session_id = {};
-        return;
+        _session_id.clear();
+        return {-1, "Could not open .session_id"};
     }
 
     sid_file >> _session_id;
@@ -51,26 +51,32 @@ auto module_device_t::do_load(const fs::path& base_path) //
     try {
         boost::lexical_cast<boost::uuids::uuid>(_session_id);
     } catch (...) {
-        _session_id = {};
+        _session_id.clear();
+        return {-1, "Could not parse session_id"};
     }
+
+    return {0, {}};
 }
 
 auto module_device_t::do_save(const fs::path& base_path) const //
-    -> void
+    -> result_t
 {
-    const auto path = base_path / "device";
+    const auto dir = base_path / "device";
     auto ec = std::error_code{};
-    fs::create_directories(path, ec);
+    fs::create_directories(dir, ec);
     if (ec) {
-        return;
+        return {-1, "Could not create directory"};
     }
 
-    auto sid_file = std::ofstream{path / ".session_id"};
+    const auto sid_path = dir / ".session_id";
+    auto sid_file = std::ofstream{sid_path, std::ios::out | std::ios::trunc};
     if (!sid_file.good()) {
-        return;
+        return {-1, "Could not open .session_id for writing"};
     }
 
     sid_file << _session_id;
+
+    return {0, {}};
 }
 
 auto module_device_t::do_session_id() //
