@@ -22,11 +22,11 @@
 #include "api/api.h"
 #include "common/app/manifest/manifest.h"
 #include "common/instance/instance.h"
+#include "modules/console/console.h"
 #include "modules/factory/factory.h"
 #include "modules/instances/instances.h"
 #include "modules/jobs/jobs.h"
 #include "modules/manifests/manifests.h"
-#include "modules/marketplace/marketplace.h"
 #include "util/cxx23/string.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
@@ -42,7 +42,7 @@ namespace impl {
 static auto acquire_download_token(std::string_view license_key) //
     -> std::string
 {
-    const auto mp_api = dynamic_cast<const module::marketplace_t*>(api::query_module("mp").get());
+    const auto mp_api = dynamic_cast<const module::console_t*>(api::query_module("console").get());
     if (!mp_api) {
         return "";
     }

@@ -14,37 +14,34 @@
 
 #include <cpr/cpr.h>
 
+#include "console/console.h"
 #include "gtest/gtest.h"
-#include "marketplace/marketplace.h"
 
-class module_marketplace_test_t : public flecs::module::marketplace_t
+class module_console_test_t : public flecs::module::console_t
 {
 public:
-    module_marketplace_test_t() = default;
+    module_console_test_t() = default;
 
     auto do_init() //
         -> void override
     {
-        return flecs::module::marketplace_t::do_init();
+        return flecs::module::console_t::do_init();
     }
     auto do_deinit() //
         -> void override
     {
-        return flecs::module::marketplace_t::do_deinit();
+        return flecs::module::console_t::do_deinit();
     }
 
     auto login(std::string user, std::string token)
     {
-        return flecs::module::marketplace_t::login(std::move(user), std::move(token));
+        return flecs::module::console_t::login(std::move(user), std::move(token));
     }
 
-    auto logout(std::string_view user)
-    {
-        return flecs::module::marketplace_t::logout(std::move(user));
-    }
+    auto logout(std::string_view user) { return flecs::module::console_t::logout(std::move(user)); }
 
-    auto& user() const noexcept { return flecs::module::marketplace_t::user(); }
-    auto& token() const noexcept { return flecs::module::marketplace_t::token(); }
+    auto& user() const noexcept { return flecs::module::console_t::user(); }
+    auto& token() const noexcept { return flecs::module::console_t::token(); }
 };
 
 class test_api_t
@@ -81,15 +78,15 @@ static constexpr auto user = "testuser";
 static constexpr auto token = "abcdef-1234-5678-XYZ";
 
 static auto api = test_api_t{};
-static auto uut = module_marketplace_test_t{};
+static auto uut = module_console_test_t{};
 
-TEST(marketplace, init)
+TEST(console, init)
 {
     uut.do_init();
     api.start();
 }
 
-TEST(marketplace, login)
+TEST(console, login)
 {
     using std::operator""s;
 
@@ -97,7 +94,7 @@ TEST(marketplace, login)
     const auto out_expected = R"({"additionalInfo":"OK"})"s;
 
     auto res = cpr::Post(
-        cpr::Url{"http://127.0.0.1:18951/v2/marketplace/login"},
+        cpr::Url{"http://127.0.0.1:18951/v2/console/login"},
         cpr::Header{{{"Content-Type"}, {"application/json"}}},
         cpr::Body{post_json.dump()});
 
@@ -108,7 +105,7 @@ TEST(marketplace, login)
     ASSERT_EQ(uut.token(), token);
 }
 
-TEST(marketplace, logout)
+TEST(console, logout)
 {
     using std::operator""s;
 
@@ -116,7 +113,7 @@ TEST(marketplace, logout)
     const auto out_expected = R"({"additionalInfo":"OK"})"s;
 
     auto res = cpr::Post(
-        cpr::Url{"http://127.0.0.1:18951/v2/marketplace/logout"},
+        cpr::Url{"http://127.0.0.1:18951/v2/console/logout"},
         cpr::Header{{{"Content-Type"}, {"application/json"}}},
         cpr::Body{post_json.dump()});
 
@@ -127,7 +124,7 @@ TEST(marketplace, logout)
     ASSERT_TRUE(uut.token().empty());
 }
 
-TEST(marketplace, deinit)
+TEST(console, deinit)
 {
     uut.do_deinit();
     api.stop();

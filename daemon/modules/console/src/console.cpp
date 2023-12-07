@@ -12,24 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "marketplace.h"
-
+#include "console.h"
 #include "factory/factory.h"
 
 namespace flecs {
 namespace module {
 
 namespace {
-register_module_t<marketplace_t> _reg("mp");
+register_module_t<console_t> _reg("console");
 }
 
-marketplace_t::marketplace_t()
+console_t::console_t()
 {}
 
-auto marketplace_t::do_init() //
+auto console_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/marketplace/login").methods("POST"_method)([this](const crow::request& req) {
+    FLECS_V2_ROUTE("/console/login").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
         REQUIRED_JSON_VALUE(args, user);
@@ -38,7 +37,7 @@ auto marketplace_t::do_init() //
         return login(user, token);
     });
 
-    FLECS_V2_ROUTE("/marketplace/logout").methods("POST"_method)([this](const crow::request& req) {
+    FLECS_V2_ROUTE("/console/logout").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
         OPTIONAL_JSON_VALUE(args, user);
@@ -47,11 +46,11 @@ auto marketplace_t::do_init() //
     });
 }
 
-auto marketplace_t::do_deinit() //
+auto console_t::do_deinit() //
     -> void
 {}
 
-auto marketplace_t::login(std::string user, std::string token) //
+auto console_t::login(std::string user, std::string token) //
     -> crow::response
 {
     _user = std::move(user);
@@ -63,7 +62,7 @@ auto marketplace_t::login(std::string user, std::string token) //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto marketplace_t::logout(std::string_view /*user*/) //
+auto console_t::logout(std::string_view /*user*/) //
     -> crow::response
 {
     _user.clear();

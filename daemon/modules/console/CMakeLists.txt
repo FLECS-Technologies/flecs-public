@@ -13,7 +13,7 @@
 # limitations under the License.
 
 flecs_add_module(
-    MODULE_NAME marketplace
+    MODULE_NAME console
 )
 
 add_subdirectory(test)
