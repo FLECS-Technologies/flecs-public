@@ -34,6 +34,7 @@ target_link_libraries(daemon PRIVATE
     daemon.api
     daemon.common
     daemon.modules.apps
+    daemon.modules.console
     daemon.modules.data_layer
     daemon.modules.device
     daemon.modules.factory
@@ -41,7 +42,6 @@ target_link_libraries(daemon PRIVATE
     daemon.modules.instances
     daemon.modules.jobs
     daemon.modules.manifests
-    daemon.modules.marketplace
     daemon.modules.module_base
     daemon.modules.system
     daemon.modules.version

@@ -103,5 +103,6 @@
     },
     "C_Cpp.default.cppStandard": "c++20",
     "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
-    "C_Cpp.clang_format_style": "file"
+    "C_Cpp.clang_format_style": "file",
+    "editor.formatOnSave": true
 }

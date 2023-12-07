@@ -13,22 +13,22 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    project(daemon.modules.marketplace.test)
+    project(daemon.modules.console.test)
 
-    add_executable(daemon.modules.marketplace.test
-        test_marketplace.cpp
+    add_executable(daemon.modules.console.test
+        test_console.cpp
     )
 
-    set_target_properties(daemon.modules.marketplace.test PROPERTIES OUTPUT_NAME test_daemon_modules_marketplace)
+    set_target_properties(daemon.modules.console.test PROPERTIES OUTPUT_NAME test_daemon_modules_console)
 
-    target_link_libraries(daemon.modules.marketplace.test PRIVATE
+    target_link_libraries(daemon.modules.console.test PRIVATE
         cpr::cpr
         GTest::gtest
         GTest::gtest_main
         daemon.modules.factory
         daemon.modules.module_base
-        daemon.modules.marketplace
+        daemon.modules.console
     )
 
-    add_test(NAME daemon.modules.marketplace.test COMMAND daemon.modules.marketplace.test)
+    add_test(NAME daemon.modules.console.test COMMAND daemon.modules.console.test)
 endif()
