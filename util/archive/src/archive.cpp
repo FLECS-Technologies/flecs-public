@@ -28,7 +28,7 @@
 #include "archive/impl/write_disk.h"
 #include "util/string/literals.h"
 
-namespace FLECS {
+namespace flecs {
 namespace archive {
 
 static auto compress_file(write_archive_t& aw, const fs::path& file, const fs::path& wd) //
@@ -226,4 +226,4 @@ auto decompress(const fs::path& archive, const fs::path& dest_dir) //
 }
 
 } // namespace archive
-} // namespace FLECS
+} // namespace flecs

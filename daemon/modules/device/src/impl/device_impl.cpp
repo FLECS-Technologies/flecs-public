@@ -21,7 +21,7 @@
 
 #include "util/string/string_utils.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 namespace impl {
 
@@ -92,4 +92,4 @@ auto device_t::do_session_id() //
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

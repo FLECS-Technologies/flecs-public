@@ -16,7 +16,7 @@
 
 #include <filesystem>
 
-namespace FLECS {
+namespace flecs {
 
 namespace fs = std::filesystem;
 
@@ -56,4 +56,4 @@ private:
     fs::path _dir;
 };
 
-} // namespace FLECS
+} // namespace flecs

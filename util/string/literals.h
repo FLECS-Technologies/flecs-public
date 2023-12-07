@@ -14,7 +14,7 @@
 
 #pragma once
 
-namespace FLECS {
+namespace flecs {
 
 inline FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_B(const unsigned long long num)
 {
@@ -41,4 +41,4 @@ inline FLECS_CONSTEXPR_UNLESS_TESTED auto operator""_TiB(const unsigned long lon
     return 1024 * operator""_GiB(num);
 }
 
-} // namespace FLECS
+} // namespace flecs

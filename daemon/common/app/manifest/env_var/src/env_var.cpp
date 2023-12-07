@@ -18,7 +18,7 @@
 
 #include "util/string/string_utils.h"
 
-namespace FLECS {
+namespace flecs {
 
 env_var_t::env_var_t(std::string var)
     : _var{std::move(var)}
@@ -143,4 +143,4 @@ auto to_string(const mapped_env_var_t& mapped_env_var) //
                : std::string{};
 }
 
-} // namespace FLECS
+} // namespace flecs

@@ -27,7 +27,7 @@ TEST(app_key, init)
 {
     /* default constructor */
     {
-        const auto uut = FLECS::app_key_t{};
+        const auto uut = flecs::app_key_t{};
 
         ASSERT_FALSE(uut.is_valid());
         ASSERT_EQ(uut.name(), "");
@@ -35,7 +35,7 @@ TEST(app_key, init)
     }
     /* app_key_t(std::string, std::string) */
     {
-        const auto uut = FLECS::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_1};
+        const auto uut = flecs::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_1};
 
         ASSERT_TRUE(uut.is_valid());
         ASSERT_EQ(uut.name(), VALID_APP_NAME_1);
@@ -43,8 +43,8 @@ TEST(app_key, init)
     }
     /* app_key_t(std::tuple<std::string, std::string>) */
     {
-        const auto uut = FLECS::app_key_t{
-            std::make_tuple(FLECS::app_name_t{VALID_APP_NAME_1}, VALID_APP_VERSION_1)};
+        const auto uut = flecs::app_key_t{
+            std::make_tuple(flecs::app_name_t{VALID_APP_NAME_1}, VALID_APP_VERSION_1)};
 
         ASSERT_TRUE(uut.is_valid());
         ASSERT_EQ(uut.name(), VALID_APP_NAME_1);
@@ -53,7 +53,7 @@ TEST(app_key, init)
     /* app_key_t(app_name_t, std::string) */
     {
         const auto uut =
-            FLECS::app_key_t{FLECS::app_name_t{std::string{INVALID_APP_NAME}}, VALID_APP_VERSION_1};
+            flecs::app_key_t{flecs::app_name_t{std::string{INVALID_APP_NAME}}, VALID_APP_VERSION_1};
 
         ASSERT_FALSE(uut.is_valid());
         ASSERT_EQ(uut.name(), "");
@@ -63,9 +63,9 @@ TEST(app_key, init)
 
 TEST(app_key, sort)
 {
-    const auto uut_1 = FLECS::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_1};
-    const auto uut_2 = FLECS::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_2};
-    const auto uut_3 = FLECS::app_key_t{VALID_APP_NAME_2, VALID_APP_VERSION_2};
+    const auto uut_1 = flecs::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_1};
+    const auto uut_2 = flecs::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_2};
+    const auto uut_3 = flecs::app_key_t{VALID_APP_NAME_2, VALID_APP_VERSION_2};
 
     ASSERT_LT(uut_1, uut_2);
     ASSERT_LE(uut_1, uut_2);
@@ -84,12 +84,12 @@ TEST(app_key, json)
 {
     const auto json_expected = R"-({"name":"tech.flecs.test-app","version":"1.2.3.4-f1"})-";
 
-    const auto uut_1 = FLECS::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_1};
-    const auto json = FLECS::json_t(uut_1);
+    const auto uut_1 = flecs::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_1};
+    const auto json = flecs::json_t(uut_1);
 
     ASSERT_EQ(json.dump(), json_expected);
 
-    const auto uut_2 = json.get<FLECS::app_key_t>();
+    const auto uut_2 = json.get<flecs::app_key_t>();
     ASSERT_EQ(uut_1, uut_2);
 }
 
@@ -97,7 +97,7 @@ TEST(app_key, to_string)
 {
     const auto expected = "tech.flecs.test-app (1.2.3.4-f1)";
 
-    const auto uut = FLECS::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_1};
+    const auto uut = flecs::app_key_t{VALID_APP_NAME_1, VALID_APP_VERSION_1};
     const auto str = to_string(uut);
 
     ASSERT_EQ(str, expected);

@@ -17,7 +17,7 @@
 #include "data_layer/data_layer.h"
 #include "flunder/client.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 namespace impl {
 
@@ -43,4 +43,4 @@ private:
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

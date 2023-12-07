@@ -19,11 +19,11 @@
 
 TEST(string_utils, literals)
 {
-    using FLECS::operator""_B;
-    using FLECS::operator""_kiB;
-    using FLECS::operator""_MiB;
-    using FLECS::operator""_GiB;
-    using FLECS::operator""_TiB;
+    using flecs::operator""_B;
+    using flecs::operator""_kiB;
+    using flecs::operator""_MiB;
+    using flecs::operator""_GiB;
+    using flecs::operator""_TiB;
 
     const auto B = 1_B;
     const auto kiB = 1_kiB;

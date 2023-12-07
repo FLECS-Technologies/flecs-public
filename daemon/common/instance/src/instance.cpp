@@ -21,7 +21,7 @@
 #include "util/random/random.h"
 #include "util/string/format.h"
 
-namespace FLECS {
+namespace flecs {
 
 instance_t::instance_t()
     : instance_t{instance_id_t{}, nullptr, std::string{}}
@@ -244,4 +244,4 @@ auto operator==(const instance_t& lhs, const instance_t& rhs) //
     return (lhs.id() == rhs.id());
 }
 
-} // namespace FLECS
+} // namespace flecs

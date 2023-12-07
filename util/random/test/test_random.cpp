@@ -18,8 +18,8 @@
 
 TEST(random, rnd)
 {
-    const auto r1 = FLECS::rnd();
-    const auto r2 = FLECS::rnd();
+    const auto r1 = flecs::rnd();
+    const auto r2 = flecs::rnd();
 
     ASSERT_TRUE(r1 != r2);
 }

@@ -19,7 +19,7 @@
 
 #include <string>
 
-namespace FLECS {
+namespace flecs {
 
 auto subnet_mask_to_cidr_v4(std::string_view subnet_mask) //
     -> std::size_t;
@@ -29,4 +29,4 @@ auto cidr_to_subnet_mask_v4(std::string_view cidr_subnet) //
 auto ipv4_to_network(std::string_view ip, std::string_view subnet_mask) //
     -> std::string;
 
-} // namespace FLECS
+} // namespace flecs

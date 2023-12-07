@@ -27,7 +27,7 @@
 #include "util/yaml/yaml.h"
 #include "volume/volume.h"
 
-namespace FLECS {
+namespace flecs {
 
 class app_manifest_t
 {
@@ -112,4 +112,4 @@ private:
     volumes_t _volumes;
 };
 
-} // namespace FLECS
+} // namespace flecs

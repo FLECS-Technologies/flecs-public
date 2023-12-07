@@ -35,7 +35,7 @@
 
 using std::operator""s;
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 namespace impl {
 
@@ -115,7 +115,7 @@ static auto expire_download_token(const std::string& user_token, const std::stri
     return response_json["success"].get<bool>();
 }
 
-apps_t::apps_t(FLECS::module::apps_t* parent)
+apps_t::apps_t(flecs::module::apps_t* parent)
     : _parent{parent}
     , _apps{}
     , _apps_mutex{}
@@ -129,10 +129,10 @@ auto apps_t::do_module_init() //
     -> void
 {
     _instances_api =
-        std::dynamic_pointer_cast<FLECS::module::instances_t>(api::query_module("instances"));
-    _jobs_api = std::dynamic_pointer_cast<FLECS::module::jobs_t>(api::query_module("jobs"));
+        std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
+    _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
     _manifests_api =
-        std::dynamic_pointer_cast<FLECS::module::manifests_t>(api::query_module("manifests"));
+        std::dynamic_pointer_cast<flecs::module::manifests_t>(api::query_module("manifests"));
 
     auto ec = std::error_code{};
     if (fs::is_directory("/var/lib/flecs/apps", ec)) {
@@ -704,4 +704,4 @@ auto apps_t::do_is_installed(const app_key_t& app_key) const noexcept //
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

@@ -14,7 +14,7 @@
 
 #include "api.h"
 
-namespace FLECS {
+namespace flecs {
 
 flecs_api_t::flecs_api_t()
     : _app{}
@@ -33,4 +33,4 @@ auto flecs_api_t::instance() noexcept //
     return instance;
 }
 
-} // namespace FLECS
+} // namespace flecs

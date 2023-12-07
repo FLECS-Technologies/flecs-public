@@ -24,7 +24,7 @@
 #include "util/json/json.h"
 #include "util/usb/usb.h"
 
-namespace FLECS {
+namespace flecs {
 
 class app_t;
 
@@ -115,4 +115,4 @@ private:
 auto operator==(const instance_t& lhs, const instance_t& rhs) //
     -> bool;
 
-} // namespace FLECS
+} // namespace flecs

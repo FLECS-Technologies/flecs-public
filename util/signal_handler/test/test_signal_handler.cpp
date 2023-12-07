@@ -27,33 +27,33 @@ pid_t flecs_gettid()
 
 TEST(signal_handler, sigint)
 {
-    FLECS::signal_handler_init();
+    flecs::signal_handler_init();
 
-    ASSERT_FALSE(FLECS::g_stop);
+    ASSERT_FALSE(flecs::g_stop);
 
     kill(flecs_gettid(), SIGINT);
 
-    ASSERT_TRUE(FLECS::g_stop);
+    ASSERT_TRUE(flecs::g_stop);
 }
 
 TEST(signal_handler, sigterm)
 {
-    FLECS::signal_handler_init();
+    flecs::signal_handler_init();
 
-    ASSERT_FALSE(FLECS::g_stop);
+    ASSERT_FALSE(flecs::g_stop);
 
     kill(flecs_gettid(), SIGTERM);
 
-    ASSERT_TRUE(FLECS::g_stop);
+    ASSERT_TRUE(flecs::g_stop);
 }
 
 TEST(signal_handler, sigcont)
 {
-    FLECS::signal_handler_init();
+    flecs::signal_handler_init();
 
-    ASSERT_FALSE(FLECS::g_stop);
+    ASSERT_FALSE(flecs::g_stop);
 
     kill(flecs_gettid(), SIGCONT);
 
-    ASSERT_FALSE(FLECS::g_stop);
+    ASSERT_FALSE(flecs::g_stop);
 }

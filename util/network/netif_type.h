@@ -17,7 +17,7 @@
 #include <string>
 #include <string_view>
 
-namespace FLECS {
+namespace flecs {
 namespace netif {
 
 enum class type {
@@ -42,4 +42,4 @@ auto from_adapter_name(std::string_view name) //
     -> type;
 
 } // namespace netif
-} // namespace FLECS
+} // namespace flecs

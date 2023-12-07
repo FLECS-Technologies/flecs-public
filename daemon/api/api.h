@@ -16,9 +16,9 @@
 
 #include <crow.h>
 
-#define FLECS_V2_ROUTE(url) CROW_BP_ROUTE(FLECS::flecs_api_t::instance().v2_api(), url)
+#define FLECS_V2_ROUTE(url) CROW_BP_ROUTE(flecs::flecs_api_t::instance().v2_api(), url)
 
-namespace FLECS {
+namespace flecs {
 
 /*! API for communication with the outside world. Runs an HTTP server handling requests on
  * registered endpoints.
@@ -61,4 +61,4 @@ private:
     crow::Blueprint _bp_v2;
 };
 
-} // namespace FLECS
+} // namespace flecs

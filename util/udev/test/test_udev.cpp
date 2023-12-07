@@ -20,22 +20,22 @@
 
 TEST(udev, init)
 {
-    auto udev_1 = FLECS::udev::udev_t{};
-    auto udev_2 = FLECS::udev::udev_t{};
-    auto udev_3 = FLECS::udev::udev_t{};
+    auto udev_1 = flecs::udev::udev_t{};
+    auto udev_2 = flecs::udev::udev_t{};
+    auto udev_3 = flecs::udev::udev_t{};
 
     ASSERT_NO_THROW((udev_2 = udev_1));
-    ASSERT_NO_THROW((udev_2 = FLECS::udev::udev_t{udev_1}));
-    ASSERT_NO_THROW((udev_2 = FLECS::udev::udev_t{std::move(udev_1)}));
+    ASSERT_NO_THROW((udev_2 = flecs::udev::udev_t{udev_1}));
+    ASSERT_NO_THROW((udev_2 = flecs::udev::udev_t{std::move(udev_1)}));
     ASSERT_NO_THROW((udev_3 = std::move(udev_2)));
 }
 
 TEST(udev, multithreading)
 {
-    auto udev_1 = FLECS::udev::udev_t{};
+    auto udev_1 = flecs::udev::udev_t{};
 
     auto t1 = std::thread{[&]() {
-        auto udev_2 = FLECS::udev::udev_t{};
+        auto udev_2 = flecs::udev::udev_t{};
         ASSERT_ANY_THROW(udev_2 = udev_1);
     }};
 

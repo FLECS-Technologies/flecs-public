@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <random>
 
-namespace FLECS {
+namespace flecs {
 
 inline auto rnd() //
     -> std::uint32_t
@@ -27,4 +27,4 @@ inline auto rnd() //
     return engine();
 }
 
-} // namespace FLECS
+} // namespace flecs

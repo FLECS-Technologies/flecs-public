@@ -18,7 +18,7 @@
 
 #include "archive/impl/archive_entry.h"
 
-namespace FLECS {
+namespace flecs {
 
 write_base_t::~write_base_t()
 {
@@ -38,4 +38,4 @@ auto write_base_t::do_close() //
     archive_write_free(get());
 }
 
-} // namespace FLECS
+} // namespace flecs

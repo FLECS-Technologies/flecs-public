@@ -19,7 +19,7 @@
 
 extern char** environ;
 
-namespace FLECS {
+namespace flecs {
 
 class flecs_posix_spawn_file_actions_t
 {
@@ -47,4 +47,4 @@ private:
     posix_spawnattr_t _attr;
 };
 
-} // namespace FLECS
+} // namespace flecs

@@ -19,7 +19,7 @@
 #include "util/fs/fs.h"
 #include "util/string/string_utils.h"
 
-namespace FLECS {
+namespace flecs {
 
 volume_t::volume_t() noexcept
     : volume_t{""}
@@ -96,4 +96,4 @@ auto from_json(const json_t& j, volume_t& volume) //
     }
 }
 
-} // namespace FLECS
+} // namespace flecs

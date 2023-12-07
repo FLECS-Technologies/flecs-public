@@ -16,7 +16,7 @@
 
 #include <atomic>
 
-namespace FLECS {
+namespace flecs {
 
 extern std::atomic_bool g_stop;
 
@@ -24,4 +24,4 @@ void signal_handler(int signum);
 
 void signal_handler_init();
 
-} // namespace FLECS
+} // namespace flecs

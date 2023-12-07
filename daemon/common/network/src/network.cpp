@@ -18,7 +18,7 @@
 
 #include "util/cxx23/string.h"
 
-namespace FLECS {
+namespace flecs {
 
 network_t::network_t()
     : network_t{""}
@@ -131,4 +131,4 @@ auto from_json(const json_t& json, network_t& network) //
     network._type = network_type_from_string(type);
 }
 
-} // namespace FLECS
+} // namespace flecs

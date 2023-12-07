@@ -25,7 +25,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace FLECS {
+namespace flecs {
 
 // static_assert is_std_string
 static_assert(is_std_string_v<std::string>);
@@ -57,4 +57,4 @@ static_assert(is_std_container_v<std::unordered_set<int8_t>>);
 static_assert(is_std_container_v<std::unordered_multiset<int8_t>>);
 static_assert(is_std_container_v<std::vector<int8_t>>);
 
-} // namespace FLECS
+} // namespace flecs

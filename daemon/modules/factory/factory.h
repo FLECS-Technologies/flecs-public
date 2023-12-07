@@ -20,7 +20,7 @@
 
 #include "module_base/module.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 class factory_t
@@ -74,4 +74,4 @@ void deinit_modules();
 std::shared_ptr<module::base_t> query_module(const std::string& module_name);
 } // namespace api
 
-} // namespace FLECS
+} // namespace flecs

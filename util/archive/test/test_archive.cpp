@@ -32,7 +32,7 @@ constexpr auto archives_unsupported = std::array<std::string_view, 2>{{
     "archive.tar.7z", /* unsupported */
 }};
 
-const auto files = std::array<FLECS::fs::path, 2>{{
+const auto files = std::array<flecs::fs::path, 2>{{
     "compress/1/hello_flecs.txt",
     "compress/2/main.cpp",
 }};
@@ -40,7 +40,7 @@ const auto files = std::array<FLECS::fs::path, 2>{{
 TEST(archive, init)
 {
     for (const auto& file : files) {
-        FLECS::fs::create_directories(file.parent_path());
+        flecs::fs::create_directories(file.parent_path());
     }
 
     {
@@ -56,24 +56,24 @@ TEST(archive, init)
 TEST(archive, compress_formats)
 {
     for (const auto& archive : archives_supported) {
-        const auto res = FLECS::archive::compress(archive, {{files[0]}, {files[1]}}, ".");
+        const auto res = flecs::archive::compress(archive, {{files[0]}, {files[1]}}, ".");
         ASSERT_EQ(res, 0);
-        ASSERT_TRUE(FLECS::fs::is_regular_file(archive));
+        ASSERT_TRUE(flecs::fs::is_regular_file(archive));
 
-        const auto list = FLECS::archive::list(archive);
+        const auto list = flecs::archive::list(archive);
         ASSERT_EQ(list.size(), 2);
         ASSERT_EQ(list[0], files[0]);
         ASSERT_EQ(list[1], files[1]);
 
-        FLECS::fs::remove(archive);
+        flecs::fs::remove(archive);
     }
 
     for (const auto& archive : archives_unsupported) {
-        const auto res = FLECS::archive::compress(archive, {{files[0]}, {files[1]}}, ".");
+        const auto res = flecs::archive::compress(archive, {{files[0]}, {files[1]}}, ".");
         ASSERT_EQ(res, -1);
-        ASSERT_FALSE(FLECS::fs::exists(archive));
+        ASSERT_FALSE(flecs::fs::exists(archive));
 
-        const auto list = FLECS::archive::list(archive);
+        const auto list = flecs::archive::list(archive);
         ASSERT_TRUE(list.empty());
     }
 }
@@ -84,27 +84,27 @@ TEST(archive, compress_dir)
 
     /* subdirectory of wd */
     {
-        const auto res = FLECS::archive::compress(archive, {"./compress/1"}, "./compress");
+        const auto res = flecs::archive::compress(archive, {"./compress/1"}, "./compress");
         ASSERT_EQ(res, 0);
-        ASSERT_TRUE(FLECS::fs::is_regular_file(archive));
+        ASSERT_TRUE(flecs::fs::is_regular_file(archive));
 
-        const auto list = FLECS::archive::list(archive);
+        const auto list = flecs::archive::list(archive);
         ASSERT_EQ(list.size(), 1);
         ASSERT_EQ(list[0], "1/hello_flecs.txt");
 
-        FLECS::fs::remove(archive);
+        flecs::fs::remove(archive);
     }
     /* sibling directory of wd*/
     {
-        const auto res = FLECS::archive::compress(archive, {"./compress/1"}, "./compress/2");
+        const auto res = flecs::archive::compress(archive, {"./compress/1"}, "./compress/2");
         ASSERT_EQ(res, 0);
-        ASSERT_TRUE(FLECS::fs::is_regular_file(archive));
+        ASSERT_TRUE(flecs::fs::is_regular_file(archive));
 
-        const auto list = FLECS::archive::list(archive);
+        const auto list = flecs::archive::list(archive);
         ASSERT_EQ(list.size(), 1);
         ASSERT_EQ(list[0], "1/hello_flecs.txt");
 
-        FLECS::fs::remove(archive);
+        flecs::fs::remove(archive);
     }
 }
 
@@ -114,10 +114,10 @@ TEST(archive, compress_files_err)
 
     /* file does not exist */
     {
-        const auto res = FLECS::archive::compress(archive, {"./compress/3/nosuch.file"}, ".");
+        const auto res = flecs::archive::compress(archive, {"./compress/3/nosuch.file"}, ".");
         ASSERT_EQ(res, -1);
 
-        const auto list = FLECS::archive::list(archive);
+        const auto list = flecs::archive::list(archive);
         ASSERT_TRUE(list.empty());
     }
 }
@@ -128,10 +128,10 @@ TEST(archive, compress_dir_err)
 
     /* wd does not exist */
     {
-        const auto res = FLECS::archive::compress(archive, {"./compress/1"}, "./compress/3");
+        const auto res = flecs::archive::compress(archive, {"./compress/1"}, "./compress/3");
         ASSERT_EQ(res, -1);
 
-        const auto list = FLECS::archive::list(archive);
+        const auto list = flecs::archive::list(archive);
         ASSERT_TRUE(list.empty());
     }
 }
@@ -142,19 +142,19 @@ TEST(archive, decompress)
 
     const auto& archive = archives_supported[0];
 
-    FLECS::archive::compress(archive, {"./compress"}, ".");
+    flecs::archive::compress(archive, {"./compress"}, ".");
     {
-        const auto res = FLECS::archive::decompress(archive, "./decompress");
+        const auto res = flecs::archive::decompress(archive, "./decompress");
 
         {
-            auto path = FLECS::fs::path{"./decompress"} / files[0];
+            auto path = flecs::fs::path{"./decompress"} / files[0];
             auto f = std::ifstream{path};
             auto str = std::string{};
             std::getline(f, str);
             ASSERT_EQ(str, "Hello, FLECS!");
         }
         {
-            auto path = FLECS::fs::path{"./decompress"} / files[1];
+            auto path = flecs::fs::path{"./decompress"} / files[1];
             auto f = std::ifstream{path};
             auto str = std::string{};
             std::getline(f, str);
@@ -163,19 +163,19 @@ TEST(archive, decompress)
 
         ASSERT_EQ(res, 0);
     }
-    FLECS::fs::remove_all("./decompress");
-    FLECS::fs::remove(archive);
+    flecs::fs::remove_all("./decompress");
+    flecs::fs::remove(archive);
 
-    FLECS::archive::compress(archive, {"./compress"}, "./compress");
+    flecs::archive::compress(archive, {"./compress"}, "./compress");
     {
-        const auto res = FLECS::archive::decompress(archive, "./decompress");
+        const auto res = flecs::archive::decompress(archive, "./decompress");
         ASSERT_EQ(res, 0);
     }
-    FLECS::fs::remove_all("./decompress");
-    FLECS::fs::remove(archive);
+    flecs::fs::remove_all("./decompress");
+    flecs::fs::remove(archive);
 }
 
 TEST(archive, teardown)
 {
-    FLECS::fs::remove_all("./compress");
+    flecs::fs::remove_all("./compress");
 }

@@ -16,7 +16,7 @@
 
 #include <archive.h>
 
-namespace FLECS {
+namespace flecs {
 
 auto base_archive_t::log_error(int res, int where) //
     -> void
@@ -42,4 +42,4 @@ auto base_archive_t::error_string() //
     return archive_error_string(get());
 }
 
-} // namespace FLECS
+} // namespace flecs

@@ -14,7 +14,7 @@
 
 #include "job_progress.h"
 
-namespace FLECS {
+namespace flecs {
 
 job_progress_t::job_progress_t(job_id_t job_id, std::string desc)
     : _job_id{job_id}
@@ -175,4 +175,4 @@ auto operator!=(const job_progress_t& lhs, const job_progress_t& rhs) //
     return !(lhs == rhs);
 }
 
-} // namespace FLECS
+} // namespace flecs

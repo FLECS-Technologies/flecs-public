@@ -17,7 +17,7 @@
 #include <string>
 #include <string_view>
 
-namespace FLECS {
+namespace flecs {
 
 /** @brief String wrapper class that validates App names against the specification.
  *
@@ -55,4 +55,4 @@ private:
     std::string _app_name;
 };
 
-} // namespace FLECS
+} // namespace flecs

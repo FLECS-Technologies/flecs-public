@@ -26,14 +26,14 @@ public:
     test_flecs_api_t()
     {
         FLECS_V2_ROUTE("/test/get").methods("GET"_method)([]() {
-            auto response = FLECS::json_t{};
+            auto response = flecs::json_t{};
             response["additionalInfo"] = "OK";
             return crow::response{crow::status::OK, response.dump()};
         });
 
         FLECS_V2_ROUTE("/test/post").methods("POST"_method)([](const crow::request& req) {
-            auto response = FLECS::json_t{};
-            const auto args = FLECS::parse_json(req.body);
+            auto response = flecs::json_t{};
+            const auto args = flecs::parse_json(req.body);
             if (!args.contains("arg")) {
                 return crow::response(crow::status::BAD_REQUEST);
             }
@@ -42,7 +42,7 @@ public:
             return crow::response(crow::status::OK, response.dump());
         });
 
-        auto& api = FLECS::flecs_api_t::instance();
+        auto& api = flecs::flecs_api_t::instance();
         auto& app = api.app().port(8951);
         app.loglevel(crow::LogLevel::CRITICAL);
         _api_thread = std::thread{&crow::SimpleApp::run, &app};
@@ -50,7 +50,7 @@ public:
 
     ~test_flecs_api_t()
     {
-        FLECS::flecs_api_t::instance().app().stop();
+        flecs::flecs_api_t::instance().app().stop();
         _api_thread.join();
     }
 
@@ -77,7 +77,7 @@ TEST(api, endpoint_get)
 
 TEST(api, endpoint_post)
 {
-    auto json = FLECS::json_t{};
+    auto json = flecs::json_t{};
     json["arg"] = "value";
 
     const auto res = cpr::Post(

@@ -34,7 +34,8 @@ constexpr auto INVALID_APP_NAMES = std::array<std::string_view, 11>{{
     "tech.flecs-app.-",  // ends with forbidden character
     "tech.flecs-app.",   // ends with forbidden character
     "tech.flecs-app",    // missing product name
-    "tech.flecs.perfectly-valid-app-name-but-in-the-end-just-waaaaaaaaaaaaaaaaaay-too-long-so-it-is-"
+    "tech.flecs.perfectly-valid-app-name-but-in-the-end-just-waaaaaaaaaaaaaaaaaay-too-long-so-it-"
+    "is-"
     "rejected-due-to-length-limitation", // exceeds character limit
     "com2.flecs.app-1",                  // forbidden character in TLD
     "tech.flecs.app_1",                  // forbidden character in product name
@@ -43,7 +44,7 @@ constexpr auto INVALID_APP_NAMES = std::array<std::string_view, 11>{{
 TEST(app_name, valid)
 {
     for (const auto& app_name : VALID_APP_NAMES) {
-        const auto uut = FLECS::app_name_t{std::string{app_name}};
+        const auto uut = flecs::app_name_t{std::string{app_name}};
 
         ASSERT_TRUE(uut.is_valid());
         ASSERT_EQ(uut.value(), app_name);
@@ -53,7 +54,7 @@ TEST(app_name, valid)
 TEST(app_name, invalid)
 {
     for (const auto& app_name : INVALID_APP_NAMES) {
-        const auto uut = FLECS::app_name_t{std::string{app_name}};
+        const auto uut = flecs::app_name_t{std::string{app_name}};
 
         ASSERT_FALSE(uut.is_valid());
         ASSERT_EQ(uut.value(), "");
@@ -62,8 +63,8 @@ TEST(app_name, invalid)
 
 TEST(app_name, sort)
 {
-    const auto app_1 = FLECS::app_name_t{"tech.flecs.app-1"};
-    const auto app_2 = FLECS::app_name_t{"tech.flecs.app-2"};
+    const auto app_1 = flecs::app_name_t{"tech.flecs.app-1"};
+    const auto app_2 = flecs::app_name_t{"tech.flecs.app-2"};
 
     ASSERT_LT(app_1, app_2);
     ASSERT_LE(app_1, app_2);

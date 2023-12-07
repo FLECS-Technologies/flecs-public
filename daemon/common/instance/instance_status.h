@@ -17,7 +17,7 @@
 #include <string>
 #include <string_view>
 
-namespace FLECS {
+namespace flecs {
 
 enum class instance_status_e {
     NotCreated,
@@ -39,4 +39,4 @@ auto to_string(const instance_status_e& instance_status) //
 auto instance_status_from_string(std::string_view str) //
     -> instance_status_e;
 
-} // namespace FLECS
+} // namespace flecs

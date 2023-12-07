@@ -30,10 +30,10 @@ TEST(datetime, strdate_time)
     const auto expected_ms = "2022-02-16T13:59:28.024Z";
     const auto expected_s = "2022-02-16T13:59:28Z";
 
-    const auto actual_ns = FLECS::time_to_iso(timestamp_ns, FLECS::precision_e::nanoseconds);
-    const auto actual_us = FLECS::time_to_iso(timestamp_us, FLECS::precision_e::microseconds);
-    const auto actual_ms = FLECS::time_to_iso(timestamp_ms, FLECS::precision_e::milliseconds);
-    const auto actual_s = FLECS::time_to_iso(timestamp_s, FLECS::precision_e::seconds);
+    const auto actual_ns = flecs::time_to_iso(timestamp_ns, flecs::precision_e::nanoseconds);
+    const auto actual_us = flecs::time_to_iso(timestamp_us, flecs::precision_e::microseconds);
+    const auto actual_ms = flecs::time_to_iso(timestamp_ms, flecs::precision_e::milliseconds);
+    const auto actual_s = flecs::time_to_iso(timestamp_s, flecs::precision_e::seconds);
 
     EXPECT_EQ(actual_ns, expected_ns);
     EXPECT_EQ(actual_us, expected_us);
@@ -57,10 +57,10 @@ TEST(datetime, strdate_now)
     const auto regex_s = std::regex{
         "^20[0-9]{2}-(?:1[0-2]|0[1-9])-(?:3[01]|[12][0-9]|0[1-9])T(?:2[0-3]|1[0-9]|0[0-9]):(?:[0-5][0-9]):(?:[0-5][0-9])Z$"s};
 
-    const auto actual_ns = FLECS::time_to_iso(FLECS::precision_e::nanoseconds);
-    const auto actual_us = FLECS::time_to_iso(FLECS::precision_e::microseconds);
-    const auto actual_ms = FLECS::time_to_iso(FLECS::precision_e::milliseconds);
-    const auto actual_s = FLECS::time_to_iso(FLECS::precision_e::seconds);
+    const auto actual_ns = flecs::time_to_iso(flecs::precision_e::nanoseconds);
+    const auto actual_us = flecs::time_to_iso(flecs::precision_e::microseconds);
+    const auto actual_ms = flecs::time_to_iso(flecs::precision_e::milliseconds);
+    const auto actual_s = flecs::time_to_iso(flecs::precision_e::seconds);
 
     ASSERT_TRUE(std::regex_search(actual_ns, regex_ns));
     ASSERT_TRUE(std::regex_search(actual_us, regex_us));
@@ -74,10 +74,10 @@ TEST(datetime, strdate_now)
 
 TEST(datetime, unix)
 {
-    const auto now_ns = FLECS::unix_time(FLECS::precision_e::nanoseconds);
-    const auto now_us = FLECS::unix_time(FLECS::precision_e::microseconds);
-    const auto now_ms = FLECS::unix_time(FLECS::precision_e::milliseconds);
-    const auto now_s = FLECS::unix_time(FLECS::precision_e::seconds);
+    const auto now_ns = flecs::unix_time(flecs::precision_e::nanoseconds);
+    const auto now_us = flecs::unix_time(flecs::precision_e::microseconds);
+    const auto now_ms = flecs::unix_time(flecs::precision_e::milliseconds);
+    const auto now_s = flecs::unix_time(flecs::precision_e::seconds);
 
     /* length assertions hold true  until Nov. 2286 */
     ASSERT_EQ(now_ns.length(), 19);

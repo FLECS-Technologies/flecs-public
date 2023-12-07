@@ -22,7 +22,7 @@
 #include "ip_addr.h"
 #include "util/string/string_utils.h"
 
-namespace FLECS {
+namespace flecs {
 
 auto subnet_mask_to_cidr_v4(std::string_view subnet_mask) //
     -> std::size_t
@@ -69,4 +69,4 @@ auto ipv4_to_network(std::string_view ip, std::string_view subnet_mask) //
     return stringify_delim('/', network_addr, subnet_mask_to_cidr_v4(subnet_mask));
 }
 
-} // namespace FLECS
+} // namespace flecs

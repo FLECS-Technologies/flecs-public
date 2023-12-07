@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace FLECS {
+namespace flecs {
 
 enum class job_status_e : std::uint32_t {
     Pending,
@@ -31,4 +31,4 @@ enum class job_status_e : std::uint32_t {
 auto to_string(job_status_e job_status) //
     -> std::string_view;
 
-} // namespace FLECS
+} // namespace flecs

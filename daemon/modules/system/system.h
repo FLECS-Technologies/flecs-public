@@ -20,7 +20,7 @@
 
 #include "module_base/module.h"
 
-namespace FLECS {
+namespace flecs {
 
 enum netif_type_t {
     UNKNOWN,
@@ -71,4 +71,4 @@ protected:
 };
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

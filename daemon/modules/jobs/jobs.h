@@ -25,7 +25,7 @@
 #include "job_progress.h"
 #include "module_base/module.h"
 
-namespace FLECS {
+namespace flecs {
 
 class job_t
 {
@@ -85,4 +85,4 @@ protected:
 };
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

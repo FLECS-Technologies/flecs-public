@@ -17,7 +17,7 @@
 #include "factory/factory.h"
 #include "impl/jobs_impl.h"
 
-namespace FLECS {
+namespace flecs {
 
 job_t::job_t(job_t::callable_t callable)
     : _callable{std::move(callable)}
@@ -86,4 +86,4 @@ auto jobs_t::wait_for_job(job_id_t job_id) const //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

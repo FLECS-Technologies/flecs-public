@@ -19,7 +19,7 @@
 
 #include "impl/libflecs_impl.h"
 
-namespace FLECS {
+namespace flecs {
 
 template <typename Impl>
 libflecs_t<Impl>::libflecs_t()
@@ -165,4 +165,4 @@ std::string libflecs_t<Impl>::json_response() const noexcept
 
 template class libflecs_t<impl::libflecs_t>;
 
-} // namespace FLECS
+} // namespace flecs

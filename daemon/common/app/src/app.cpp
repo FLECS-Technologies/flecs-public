@@ -14,7 +14,7 @@
 
 #include "app.h"
 
-namespace FLECS {
+namespace flecs {
 
 app_t::app_t()
     : app_key_t{}
@@ -174,4 +174,4 @@ auto from_json(const json_t& j, app_t& app) //
     }
 }
 
-} // namespace FLECS
+} // namespace flecs

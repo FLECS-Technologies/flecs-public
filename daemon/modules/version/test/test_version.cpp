@@ -16,7 +16,7 @@
 #include "util/json/json.h"
 #include "version/version.h"
 
-class test_module_version_t : public FLECS::module::version_t
+class test_module_version_t : public flecs::module::version_t
 {
 public:
     test_module_version_t() = default;
@@ -24,13 +24,13 @@ public:
     auto do_init() //
         -> void override
     {
-        return FLECS::module::version_t::do_init();
+        return flecs::module::version_t::do_init();
     }
 
     auto do_deinit() //
         -> void override
     {
-        return FLECS::module::version_t::do_deinit();
+        return flecs::module::version_t::do_deinit();
     }
 };
 
@@ -40,7 +40,7 @@ TEST(module_version, init)
 {
     uut.do_init();
 
-    FLECS::flecs_api_t::instance().app().validate();
+    flecs::flecs_api_t::instance().app().validate();
 }
 
 TEST(module_version, print_version)
@@ -50,10 +50,10 @@ TEST(module_version, print_version)
     auto req = crow::request{};
     auto res = crow::response{};
 
-    const auto json_expected = FLECS::json_t({{"core", FLECS_VERSION + "-"s + FLECS_GIT_SHA}});
+    const auto json_expected = flecs::json_t({{"core", FLECS_VERSION + "-"s + FLECS_GIT_SHA}});
 
     req.url = "/v2/system/version";
-    FLECS::flecs_api_t::instance().app().handle(req, res);
+    flecs::flecs_api_t::instance().app().handle(req, res);
     ASSERT_EQ(res.code, crow::status::OK);
     ASSERT_EQ(res.headers.find("Content-Type")->second, "application/json");
     ASSERT_EQ(res.body, json_expected.dump());

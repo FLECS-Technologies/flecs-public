@@ -22,7 +22,7 @@
 
 struct udev_hwdb;
 
-namespace FLECS {
+namespace flecs {
 namespace udev {
 
 class hwdb_t
@@ -53,4 +53,4 @@ private:
 };
 
 } // namespace udev
-} // namespace FLECS
+} // namespace flecs

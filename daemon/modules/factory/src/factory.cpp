@@ -14,7 +14,7 @@
 
 #include "factory.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 factory_t& factory_t::instance()
@@ -76,4 +76,4 @@ std::shared_ptr<module::base_t> query_module(const std::string& module_name)
 }
 } // namespace api
 
-} // namespace FLECS
+} // namespace flecs

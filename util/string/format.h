@@ -20,7 +20,7 @@
 
 #include "core/global/types/type_traits.h"
 
-namespace FLECS {
+namespace flecs {
 namespace impl {
 
 struct bin_traits_t
@@ -123,4 +123,4 @@ inline auto int_to_hex(
     return ss.str();
 }
 
-} // namespace FLECS
+} // namespace flecs

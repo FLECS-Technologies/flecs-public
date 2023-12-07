@@ -21,7 +21,7 @@
 struct stat;
 struct archive_entry;
 
-namespace FLECS {
+namespace flecs {
 
 class archive_entry_t : public archive::base_t<::archive_entry>
 {
@@ -46,4 +46,4 @@ private:
         -> void override;
 };
 
-} // namespace FLECS
+} // namespace flecs

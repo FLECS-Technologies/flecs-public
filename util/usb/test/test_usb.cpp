@@ -29,7 +29,7 @@
 
 TEST(usb, compare)
 {
-    const auto usb_device_1 = FLECS::usb::device_t{
+    const auto usb_device_1 = flecs::usb::device_t{
         .vid = USB_VID,
         .pid = USB_PID,
         .port = USB_PORT,
@@ -37,7 +37,7 @@ TEST(usb, compare)
         .vendor = USB_VENDOR,
     };
     // increment vid
-    const auto usb_device_2 = FLECS::usb::device_t{
+    const auto usb_device_2 = flecs::usb::device_t{
         .vid = USB_VID_2,
         .pid = USB_PID,
         .port = USB_PORT,
@@ -45,7 +45,7 @@ TEST(usb, compare)
         .vendor = USB_VENDOR,
     };
     // increment pid
-    const auto usb_device_3 = FLECS::usb::device_t{
+    const auto usb_device_3 = flecs::usb::device_t{
         .vid = USB_VID,
         .pid = USB_PID_2,
         .port = USB_PORT,
@@ -53,7 +53,7 @@ TEST(usb, compare)
         .vendor = USB_VENDOR,
     };
     // increment port
-    const auto usb_device_4 = FLECS::usb::device_t{
+    const auto usb_device_4 = flecs::usb::device_t{
         .vid = USB_VID,
         .pid = USB_PID,
         .port = USB_PORT_2,
@@ -106,17 +106,17 @@ TEST(usb, compare)
 
 TEST(usb, to_json)
 {
-    const auto usb_device = FLECS::usb::device_t{
+    const auto usb_device = flecs::usb::device_t{
         .vid = USB_VID,
         .pid = USB_PID,
         .port = USB_PORT,
         .device = USB_DEVICE,
         .vendor = USB_VENDOR};
 
-    auto json = FLECS::json_t{};
+    auto json = flecs::json_t{};
     to_json(json, usb_device);
 
-    ASSERT_TRUE(FLECS::is_valid_json(json));
+    ASSERT_TRUE(flecs::is_valid_json(json));
     ASSERT_EQ(json["pid"], USB_PID);
     ASSERT_EQ(json["vid"], USB_VID);
     ASSERT_EQ(json["device"], USB_DEVICE);
@@ -128,12 +128,12 @@ TEST(usb, from_json)
 {
     const auto json_string =
         R"({"pid":4660,"vid":43981,"device":"FLECS Test Device","port":"2.1-1","vendor":"FLECS Technologies GmbH"})";
-    const auto json = FLECS::parse_json(json_string);
+    const auto json = flecs::parse_json(json_string);
 
-    auto usb_device = FLECS::usb::device_t{};
+    auto usb_device = flecs::usb::device_t{};
     from_json(json, usb_device);
 
-    ASSERT_TRUE(FLECS::is_valid_json(json));
+    ASSERT_TRUE(flecs::is_valid_json(json));
     ASSERT_EQ(usb_device.pid, USB_PID);
     ASSERT_EQ(usb_device.vid, USB_VID);
     ASSERT_EQ(usb_device.device, USB_DEVICE);

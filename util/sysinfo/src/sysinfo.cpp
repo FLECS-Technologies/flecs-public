@@ -22,7 +22,7 @@
 
 #include "util/cxx23/string.h"
 
-namespace FLECS {
+namespace flecs {
 
 sysinfo_t::sysinfo_t()
     : _os{}
@@ -141,4 +141,4 @@ auto machine_to_arch(std::string_view machine) //
     return (it != m.cend()) ? std::string{it->second} : "unknown"s;
 }
 
-} // namespace FLECS
+} // namespace flecs

@@ -18,7 +18,7 @@
 #include <array>
 #include <tuple>
 
-namespace FLECS {
+namespace flecs {
 
 auto to_string_view(const instance_status_e& instance_status) //
     -> std::string_view
@@ -72,4 +72,4 @@ auto instance_status_from_string(std::string_view str) //
     return it == status.cend() ? instance_status_e::Unknown : std::get<1>(*it);
 }
 
-} // namespace FLECS
+} // namespace flecs

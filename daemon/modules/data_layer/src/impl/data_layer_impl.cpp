@@ -16,7 +16,7 @@
 
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 namespace impl {
 
@@ -72,4 +72,4 @@ auto data_layer_t::do_browse(std::string_view path) //
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

@@ -16,7 +16,7 @@
 
 #include <archive.h>
 
-namespace FLECS {
+namespace flecs {
 
 write_archive_t::write_archive_t(const fs::path& archive)
     : write_base_t{archive_write_new()}
@@ -74,4 +74,4 @@ write_archive_t::~write_archive_t()
     close();
 }
 
-} // namespace FLECS
+} // namespace flecs

@@ -18,7 +18,7 @@
 
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 
 class env_var_t
 {
@@ -84,4 +84,4 @@ auto operator!=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
 auto to_string(const mapped_env_var_t& mapped_env_var) //
     -> std::string;
 
-} // namespace FLECS
+} // namespace flecs

@@ -28,11 +28,11 @@
 #include "util/datetime/datetime.h"
 #include "util/sysinfo/sysinfo.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 namespace impl {
 
-flecsport_t::flecsport_t(FLECS::module::flecsport_t* parent)
+flecsport_t::flecsport_t(flecs::module::flecsport_t* parent)
     : _parent{parent}
     , _apps_api{}
     , _instances_api{}
@@ -42,10 +42,10 @@ flecsport_t::flecsport_t(FLECS::module::flecsport_t* parent)
 auto flecsport_t::do_init() //
     -> void
 {
-    _apps_api = std::dynamic_pointer_cast<FLECS::module::apps_t>(api::query_module("apps"));
+    _apps_api = std::dynamic_pointer_cast<flecs::module::apps_t>(api::query_module("apps"));
     _instances_api =
-        std::dynamic_pointer_cast<FLECS::module::instances_t>(api::query_module("instances"));
-    _jobs_api = std::dynamic_pointer_cast<FLECS::module::jobs_t>(api::query_module("jobs"));
+        std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
+    _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
 }
 
 auto flecsport_t::do_exports() const //
@@ -258,4 +258,4 @@ auto flecsport_t::do_import_from(fs::path archive, job_progress_t& progress) //
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

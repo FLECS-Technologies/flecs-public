@@ -16,7 +16,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace FLECS {
+namespace flecs {
 
 using json_t = nlohmann::ordered_json;
 
@@ -31,4 +31,4 @@ inline auto is_valid_json(const json_t& json)
     return !json.is_discarded();
 }
 
-} // namespace FLECS
+} // namespace flecs

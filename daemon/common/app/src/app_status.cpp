@@ -18,7 +18,7 @@
 #include <array>
 #include <tuple>
 
-namespace FLECS {
+namespace flecs {
 
 static constexpr auto strings = std::array<std::tuple<app_status_e, std::string_view>, 8>{{
     {app_status_e::NotInstalled, "not installed"},
@@ -63,4 +63,4 @@ auto app_status_from_string(std::string_view str) //
     return it == strings.cend() ? app_status_e::Unknown : std::get<0>(*it);
 }
 
-} // namespace FLECS
+} // namespace flecs

@@ -22,7 +22,7 @@
 #include "modules/jobs/job_id.h"
 #include "util/fs/fs.h"
 
-namespace FLECS {
+namespace flecs {
 
 class app_t;
 class app_key_t;
@@ -146,4 +146,4 @@ protected:
 };
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

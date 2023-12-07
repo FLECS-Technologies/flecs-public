@@ -19,7 +19,7 @@
 
 struct archive;
 
-namespace FLECS {
+namespace flecs {
 
 class write_disk_t : public write_base_t
 {
@@ -33,4 +33,4 @@ public:
         -> int;
 };
 
-} // namespace FLECS
+} // namespace flecs

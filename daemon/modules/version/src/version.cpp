@@ -18,7 +18,7 @@
 
 #include <cstdio>
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace {
@@ -62,4 +62,4 @@ auto version_t::api_version() const //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

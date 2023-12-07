@@ -17,7 +17,7 @@
 #include "base_archive.h"
 #include "util/fs/fs.h"
 
-namespace FLECS {
+namespace flecs {
 
 class archive_entry_t;
 
@@ -40,4 +40,4 @@ private:
         -> void override;
 };
 
-} // namespace FLECS
+} // namespace flecs

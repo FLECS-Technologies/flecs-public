@@ -19,7 +19,7 @@
 #include "network_type.h"
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 
 class network_t
 {
@@ -61,4 +61,4 @@ private:
     network_type_e _type;
 };
 
-} // namespace FLECS
+} // namespace flecs

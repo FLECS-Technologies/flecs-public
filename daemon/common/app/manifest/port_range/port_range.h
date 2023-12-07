@@ -22,7 +22,7 @@
 #include "util/json/json.h"
 #include "util/string/string_utils.h"
 
-namespace FLECS {
+namespace flecs {
 
 class port_t
 {
@@ -167,4 +167,4 @@ inline std::string to_string(const mapped_port_range_t& mapped_port_range)
     return res;
 }
 
-} // namespace FLECS
+} // namespace flecs

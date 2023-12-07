@@ -19,7 +19,7 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace FLECS {
+namespace flecs {
 
 ip_addr_t::ip_addr_t()
     : _addr{}
@@ -279,4 +279,4 @@ auto to_string(const ip_addr_t& addr) //
         addr._addr);
 }
 
-} // namespace FLECS
+} // namespace flecs

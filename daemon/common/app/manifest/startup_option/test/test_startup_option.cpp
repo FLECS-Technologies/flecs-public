@@ -19,15 +19,15 @@
 TEST(startup_option, valid)
 {
     const auto str = "initNetworkAfterStart";
-    const auto opt = FLECS::startup_option_from_string(str);
+    const auto opt = flecs::startup_option_from_string(str);
 
-    ASSERT_EQ(opt, FLECS::startup_option_t::INIT_NETWORK_AFTER_START);
+    ASSERT_EQ(opt, flecs::startup_option_t::INIT_NETWORK_AFTER_START);
 }
 
 TEST(startup_option, invalid)
 {
     const auto str = "invalidStartupOption";
-    const auto opt = FLECS::startup_option_from_string(str);
+    const auto opt = flecs::startup_option_from_string(str);
 
-    ASSERT_EQ(opt, FLECS::startup_option_t::INVALID);
+    ASSERT_EQ(opt, flecs::startup_option_t::INVALID);
 }

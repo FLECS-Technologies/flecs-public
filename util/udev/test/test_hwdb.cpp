@@ -30,19 +30,19 @@
 
 TEST(hwdb, init)
 {
-    auto hwdb_1 = FLECS::udev::hwdb_t{};
-    auto hwdb_2 = FLECS::udev::hwdb_t{};
-    auto hwdb_3 = FLECS::udev::hwdb_t{};
+    auto hwdb_1 = flecs::udev::hwdb_t{};
+    auto hwdb_2 = flecs::udev::hwdb_t{};
+    auto hwdb_3 = flecs::udev::hwdb_t{};
 
     ASSERT_NO_THROW((hwdb_2 = hwdb_1));
-    ASSERT_NO_THROW((hwdb_2 = FLECS::udev::hwdb_t{hwdb_1}));
-    ASSERT_NO_THROW((hwdb_2 = FLECS::udev::hwdb_t{std::move(hwdb_1)}));
+    ASSERT_NO_THROW((hwdb_2 = flecs::udev::hwdb_t{hwdb_1}));
+    ASSERT_NO_THROW((hwdb_2 = flecs::udev::hwdb_t{std::move(hwdb_1)}));
     ASSERT_NO_THROW((hwdb_3 = std::move(hwdb_2)));
 }
 
 TEST(hwdb, vendor)
 {
-    auto hwdb = FLECS::udev::hwdb_t{};
+    auto hwdb = flecs::udev::hwdb_t{};
 
     const auto vid_1 = VID_LINUX;
     const auto vid_2 = VID_INVALID;
@@ -57,7 +57,7 @@ TEST(hwdb, vendor)
 
 TEST(hwdb, model)
 {
-    auto hwdb = FLECS::udev::hwdb_t{};
+    auto hwdb = flecs::udev::hwdb_t{};
 
     const auto vid = VID_LINUX;
     const auto pid_1 = PID_ROOT_HUB_2;

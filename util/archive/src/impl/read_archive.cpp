@@ -18,7 +18,7 @@
 
 #include "archive/impl/archive_entry.h"
 
-namespace FLECS {
+namespace flecs {
 
 read_archive_t::read_archive_t()
     : base_archive_t{archive_read_new()}
@@ -59,4 +59,4 @@ auto read_archive_t::do_close() //
     archive_read_free(get());
 }
 
-} // namespace FLECS
+} // namespace flecs

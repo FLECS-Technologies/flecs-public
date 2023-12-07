@@ -22,7 +22,7 @@
 #include "util/fs/fs.h"
 #include "util/string/string_utils.h"
 
-namespace FLECS {
+namespace flecs {
 
 namespace impl {
 class libflecs_t;
@@ -80,4 +80,4 @@ private:
 
 extern template class FLECS_EXPORT libflecs_t<impl::libflecs_t>;
 
-} // namespace FLECS
+} // namespace flecs

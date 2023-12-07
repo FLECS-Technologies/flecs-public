@@ -25,7 +25,7 @@
 #include "util/network/ip_addr.h"
 #include "util/network/network.h"
 
-namespace FLECS {
+namespace flecs {
 
 auto deployment_t::deployment_id() const noexcept //
     -> std::string_view
@@ -865,4 +865,4 @@ auto deployment_t::do_save(const fs::path& base_path) //
     return {0, {}};
 }
 
-} // namespace FLECS
+} // namespace flecs

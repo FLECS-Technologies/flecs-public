@@ -18,7 +18,7 @@
 #include <array>
 #include <tuple>
 
-namespace FLECS {
+namespace flecs {
 namespace netif {
 
 auto to_string_view(type netif_type) //
@@ -88,4 +88,4 @@ auto from_adapter_name(std::string_view str) //
 }
 
 } // namespace netif
-} // namespace FLECS
+} // namespace flecs

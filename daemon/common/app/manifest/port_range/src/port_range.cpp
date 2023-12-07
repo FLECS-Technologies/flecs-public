@@ -18,7 +18,7 @@
 
 #include "util/string/string_utils.h"
 
-namespace FLECS {
+namespace flecs {
 
 port_t::port_t(const std::string& port_str) noexcept
     : _port{}
@@ -103,4 +103,4 @@ auto from_json(const json_t& j, mapped_port_range_t& mapped_port_range) //
     }
 }
 
-} // namespace FLECS
+} // namespace flecs

@@ -21,7 +21,7 @@
 #include "util/sysfs/sysfs.h"
 #include "util/udev/hwdb.h"
 
-namespace FLECS {
+namespace flecs {
 namespace usb {
 
 static auto __attribute__((constructor)) init() //
@@ -109,4 +109,4 @@ auto get_devices() //
 }
 
 } // namespace usb
-} // namespace FLECS
+} // namespace flecs

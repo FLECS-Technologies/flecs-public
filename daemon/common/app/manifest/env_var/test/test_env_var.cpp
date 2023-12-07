@@ -21,11 +21,11 @@ using std::operator""s;
 
 TEST(env_var, valid)
 {
-    auto env_var1 = FLECS::env_var_t{"VALID_ENV_VAR1"};
-    auto env_var2 = FLECS::env_var_t{"valid_env_var"};
-    auto env_var3 = FLECS::env_var_t{"V1_"};
-    auto env_var4 = FLECS::env_var_t{"valid-env-var"};
-    auto env_var5 = FLECS::env_var_t{"valid.env_var-2"};
+    auto env_var1 = flecs::env_var_t{"VALID_ENV_VAR1"};
+    auto env_var2 = flecs::env_var_t{"valid_env_var"};
+    auto env_var3 = flecs::env_var_t{"V1_"};
+    auto env_var4 = flecs::env_var_t{"valid-env-var"};
+    auto env_var5 = flecs::env_var_t{"valid.env_var-2"};
 
     ASSERT_TRUE(env_var1.is_valid());
     ASSERT_TRUE(env_var2.is_valid());
@@ -36,9 +36,9 @@ TEST(env_var, valid)
 
 TEST(env_var, invalid)
 {
-    auto env_var1 = FLECS::env_var_t{"_INVALID_ENV_VAR1"};
-    auto env_var2 = FLECS::env_var_t{"INVALID ENV VAR"};
-    auto env_var3 = FLECS::env_var_t{"1Invalid"};
+    auto env_var1 = flecs::env_var_t{"_INVALID_ENV_VAR1"};
+    auto env_var2 = flecs::env_var_t{"INVALID ENV VAR"};
+    auto env_var3 = flecs::env_var_t{"1Invalid"};
 
     ASSERT_FALSE(env_var1.is_valid());
     ASSERT_FALSE(env_var2.is_valid());
@@ -47,41 +47,42 @@ TEST(env_var, invalid)
 
 TEST(env_var, mapped_valid)
 {
-    auto mapped_env_var1 = FLECS::mapped_env_var_t("VALID_ENV_VAR"s, "VALUE"s);
-    auto mapped_env_var2 = FLECS::mapped_env_var_t("VALID_ENV_VAR"s, "VALUE"s);
-    auto mapped_env_var3 = FLECS::mapped_env_var_t("VALID_ENV_VAR"s, "ANOTHER_VALUE"s);
-    auto mapped_env_var4 = FLECS::mapped_env_var_t("another.valid-env_var.2"s, "some special! value?"s);
+    auto mapped_env_var1 = flecs::mapped_env_var_t("VALID_ENV_VAR"s, "VALUE"s);
+    auto mapped_env_var2 = flecs::mapped_env_var_t("VALID_ENV_VAR"s, "VALUE"s);
+    auto mapped_env_var3 = flecs::mapped_env_var_t("VALID_ENV_VAR"s, "ANOTHER_VALUE"s);
+    auto mapped_env_var4 =
+        flecs::mapped_env_var_t("another.valid-env_var.2"s, "some special! value?"s);
 
     ASSERT_TRUE(mapped_env_var1.is_valid());
-    ASSERT_EQ(FLECS::stringify(mapped_env_var1), "VALID_ENV_VAR=VALUE");
+    ASSERT_EQ(flecs::stringify(mapped_env_var1), "VALID_ENV_VAR=VALUE");
     ASSERT_EQ(mapped_env_var1, mapped_env_var2);
     ASSERT_EQ(mapped_env_var1, mapped_env_var3);
     ASSERT_NE(mapped_env_var1, mapped_env_var4);
     ASSERT_TRUE(mapped_env_var4.is_valid());
-    ASSERT_EQ(FLECS::stringify(mapped_env_var4), "another.valid-env_var.2=some special! value?");
+    ASSERT_EQ(flecs::stringify(mapped_env_var4), "another.valid-env_var.2=some special! value?");
 }
 
 TEST(env_var, mapped_invalid_1)
 {
-    auto mapped_env_var1 = FLECS::mapped_env_var_t{"_INVALID ENV_VAR"s, "val"s};
+    auto mapped_env_var1 = flecs::mapped_env_var_t{"_INVALID ENV_VAR"s, "val"s};
 
     ASSERT_FALSE(mapped_env_var1.is_valid());
-    ASSERT_EQ(FLECS::stringify(mapped_env_var1), "");
+    ASSERT_EQ(flecs::stringify(mapped_env_var1), "");
 }
 
 TEST(env_var, mapped_invalid_2)
 {
-    auto mapped_env_var1 = FLECS::mapped_env_var_t{"_INVALID ENV_VAR"s};
+    auto mapped_env_var1 = flecs::mapped_env_var_t{"_INVALID ENV_VAR"s};
 
     ASSERT_FALSE(mapped_env_var1.is_valid());
-    ASSERT_EQ(FLECS::stringify(mapped_env_var1), "");
+    ASSERT_EQ(flecs::stringify(mapped_env_var1), "");
 }
 
 TEST(env_var, to_json)
 {
-    const auto mapped_env_var_1 = FLECS::mapped_env_var_t{"ENV_VAR"s, "VALUE"s};
+    const auto mapped_env_var_1 = flecs::mapped_env_var_t{"ENV_VAR"s, "VALUE"s};
 
-    const auto json = FLECS::json_t(mapped_env_var_1);
+    const auto json = flecs::json_t(mapped_env_var_1);
     const auto json_expected = R"("ENV_VAR=VALUE")";
 
     ASSERT_TRUE(mapped_env_var_1.is_valid());
@@ -90,7 +91,7 @@ TEST(env_var, to_json)
 
 TEST(env_var, from_json)
 {
-    auto uut = FLECS::mapped_env_var_t{};
+    auto uut = flecs::mapped_env_var_t{};
 
     const auto json_1 = R"("ENV_VAR:VALUE")"_json;
     from_json(json_1, uut);
@@ -123,15 +124,15 @@ TEST(env_var, from_json)
 
 TEST(env_var, to_string)
 {
-    const auto uut = FLECS::mapped_env_var_t{"ENV_VAR"s, "VALUE"s};
+    const auto uut = flecs::mapped_env_var_t{"ENV_VAR"s, "VALUE"s};
 
     ASSERT_EQ(to_string(uut), "ENV_VAR=VALUE");
 }
 
 TEST(env_var, sort)
 {
-    const auto uut_1 = FLECS::mapped_env_var_t{"ENV_VAR_1"s, "VALUE_1"};
-    const auto uut_2 = FLECS::mapped_env_var_t{"ANOTHER_ENV_VAR"s, "A_VALUE"};
+    const auto uut_1 = flecs::mapped_env_var_t{"ENV_VAR_1"s, "VALUE_1"};
+    const auto uut_2 = flecs::mapped_env_var_t{"ANOTHER_ENV_VAR"s, "A_VALUE"};
 
     ASSERT_TRUE(uut_1.is_valid());
     ASSERT_TRUE(uut_2.is_valid());

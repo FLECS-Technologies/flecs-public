@@ -18,7 +18,7 @@
 #include <optional>
 #include <string>
 
-namespace FLECS {
+namespace flecs {
 namespace sysfs {
 
 auto usb_vendor(std::string_view port) //
@@ -34,4 +34,4 @@ auto usb_devnum(std::string_view port) //
     -> std::optional<std::uint16_t>;
 
 } // namespace sysfs
-} // namespace FLECS
+} // namespace flecs

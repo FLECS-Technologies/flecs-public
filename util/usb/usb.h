@@ -20,7 +20,7 @@
 
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 namespace usb {
 
 struct device_t
@@ -44,4 +44,4 @@ auto get_devices() //
     -> std::set<device_t>;
 
 } // namespace usb
-} // namespace FLECS
+} // namespace flecs

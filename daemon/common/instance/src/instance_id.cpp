@@ -19,7 +19,7 @@
 #include "util/random/random.h"
 #include "util/string/format.h"
 
-namespace FLECS {
+namespace flecs {
 
 instance_id_t::instance_id_t()
     : _id{rnd()}
@@ -60,4 +60,4 @@ auto instance_id_t::regenerate() //
     _id = rnd();
 }
 
-} // namespace FLECS
+} // namespace flecs

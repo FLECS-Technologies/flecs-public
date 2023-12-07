@@ -16,7 +16,7 @@
 
 #include <fstream>
 
-namespace FLECS {
+namespace flecs {
 namespace sysfs {
 
 #ifndef FLECS_UNIT_TEST
@@ -77,4 +77,4 @@ auto usb_devnum(std::string_view port) //
 }
 
 } // namespace sysfs
-} // namespace FLECS
+} // namespace flecs

@@ -18,7 +18,7 @@
 
 #include "module_base/module.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace impl {
@@ -56,4 +56,4 @@ private:
 };
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

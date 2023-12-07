@@ -23,7 +23,7 @@
 #include "util/json/json.h"
 #include "util/yaml/yaml.h"
 
-namespace FLECS {
+namespace flecs {
 
 class app_key_t;
 class app_manifest_t;
@@ -181,4 +181,4 @@ protected:
 };
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

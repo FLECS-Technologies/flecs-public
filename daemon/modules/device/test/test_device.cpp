@@ -18,7 +18,7 @@
 
 #include "daemon/modules/device/device.h"
 
-class test_module_device_t : public FLECS::module::device_t
+class test_module_device_t : public flecs::module::device_t
 {
 public:
     test_module_device_t() = default;

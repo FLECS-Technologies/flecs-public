@@ -16,7 +16,7 @@
 
 #include <archive.h>
 
-namespace FLECS {
+namespace flecs {
 namespace archive {
 
 static_assert(error_e::Ok == ARCHIVE_OK);
@@ -27,4 +27,4 @@ static_assert(error_e::Failed == ARCHIVE_FAILED);
 static_assert(error_e::Fatal == ARCHIVE_FATAL);
 
 } // namespace archive
-} // namespace FLECS
+} // namespace flecs

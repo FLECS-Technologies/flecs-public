@@ -26,7 +26,7 @@
 #include "util/network/network.h"
 #include "util/process/process.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 namespace impl {
 
@@ -109,7 +109,7 @@ auto build_usb_devices_json(std::shared_ptr<instance_t> instance)
 }
 } // namespace
 
-instances_t::instances_t(FLECS::module::instances_t* parent)
+instances_t::instances_t(flecs::module::instances_t* parent)
     : _parent{parent}
     , _deployment{new deployment_docker_t{}}
     , _apps_api{}
@@ -128,8 +128,8 @@ auto instances_t::do_load(const fs::path& base_path) //
 auto instances_t::do_module_init() //
     -> void
 {
-    _apps_api = std::dynamic_pointer_cast<FLECS::module::apps_t>(api::query_module("apps"));
-    _jobs_api = std::dynamic_pointer_cast<FLECS::module::jobs_t>(api::query_module("jobs"));
+    _apps_api = std::dynamic_pointer_cast<flecs::module::apps_t>(api::query_module("apps"));
+    _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
 
     auto hosts_thread = std::thread([] {
         pthread_setname_np(pthread_self(), "flecs-update-hosts");
@@ -816,4 +816,4 @@ auto instances_t::do_import_from(
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

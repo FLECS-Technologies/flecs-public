@@ -18,14 +18,14 @@
 
 TEST(job_status, to_string)
 {
-    const auto status = std::array<FLECS::job_status_e, 7>{{
-        FLECS::job_status_e::Pending,
-        FLECS::job_status_e::Queued,
-        FLECS::job_status_e::Running,
-        FLECS::job_status_e::Cancelled,
-        FLECS::job_status_e::Successful,
-        FLECS::job_status_e::Failed,
-        static_cast<FLECS::job_status_e>(-1),
+    const auto status = std::array<flecs::job_status_e, 7>{{
+        flecs::job_status_e::Pending,
+        flecs::job_status_e::Queued,
+        flecs::job_status_e::Running,
+        flecs::job_status_e::Cancelled,
+        flecs::job_status_e::Successful,
+        flecs::job_status_e::Failed,
+        static_cast<flecs::job_status_e>(-1),
     }};
 
     const auto expected = std::array<std::string_view, 7>{

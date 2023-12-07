@@ -16,7 +16,7 @@
 
 #include <cstdio>
 
-namespace FLECS {
+namespace flecs {
 namespace archive {
 
 enum error_e : int {
@@ -76,4 +76,4 @@ private:
 };
 
 } // namespace archive
-} // namespace FLECS
+} // namespace flecs

@@ -17,7 +17,7 @@
 
 TEST(util_process, spawn)
 {
-    auto test_process = FLECS::process_t{};
+    auto test_process = flecs::process_t{};
 
     const auto spawn_res = test_process.spawn("/bin/echo", "-n", "FLECS");
     ASSERT_EQ(spawn_res, 0);
@@ -31,7 +31,7 @@ TEST(util_process, spawn)
 
 TEST(util_process, spawnp)
 {
-    auto test_process = FLECS::process_t{};
+    auto test_process = flecs::process_t{};
 
     const auto spawn_res = test_process.spawnp("echo", "-n", "FLECS");
     ASSERT_EQ(spawn_res, 0);
@@ -45,7 +45,7 @@ TEST(util_process, spawnp)
 
 TEST(util_process, spawnp_args)
 {
-    auto test_process = FLECS::process_t{};
+    auto test_process = flecs::process_t{};
 
     test_process.arg("-n");
     test_process.arg("FLECS");
@@ -64,7 +64,7 @@ TEST(util_process, spawnp_args)
 
 TEST(util_process, spawn_fail)
 {
-    auto test_process = FLECS::process_t{};
+    auto test_process = flecs::process_t{};
 
     const auto spawn_res = test_process.spawnp("nonexistent-binary");
     ASSERT_NE(spawn_res, 0);
@@ -78,7 +78,7 @@ TEST(util_process, spawn_fail)
 
 TEST(util_process, spawnp_fail)
 {
-    auto test_process = FLECS::process_t{};
+    auto test_process = flecs::process_t{};
 
     const auto spawn_res = test_process.spawn("/this/path/does/not/exist");
     ASSERT_NE(spawn_res, 0);
@@ -92,12 +92,12 @@ TEST(util_process, spawnp_fail)
 
 TEST(util_process, move_construct)
 {
-    auto test_process = FLECS::process_t{};
+    auto test_process = flecs::process_t{};
 
     test_process.arg("-n");
     test_process.arg("FLECS");
 
-    auto test_process_2 = FLECS::process_t{std::move(test_process)};
+    auto test_process_2 = flecs::process_t{std::move(test_process)};
 
     const auto spawn_res = test_process_2.spawnp("echo");
     ASSERT_EQ(spawn_res, 0);
@@ -111,12 +111,12 @@ TEST(util_process, move_construct)
 
 TEST(util_process, assign)
 {
-    auto test_process = FLECS::process_t{};
+    auto test_process = flecs::process_t{};
 
     test_process.arg("-n");
     test_process.arg("FLECS");
 
-    test_process = FLECS::process_t{};
+    test_process = flecs::process_t{};
 
     const auto spawn_res = test_process.spawnp("echo");
     ASSERT_EQ(spawn_res, 0);

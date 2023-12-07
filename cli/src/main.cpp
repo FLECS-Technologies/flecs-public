@@ -16,7 +16,7 @@
 
 int main(int argc, char** argv)
 {
-    auto lib = FLECS::libflecs_t{};
+    auto lib = flecs::libflecs_t{};
     const auto host = "http://localhost";
     const auto port = 8951;
 

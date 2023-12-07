@@ -20,7 +20,7 @@
 
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 
 class instance_id_t
 {
@@ -46,4 +46,4 @@ private:
     std::uint32_t _id;
 };
 
-} // namespace FLECS
+} // namespace flecs

@@ -24,7 +24,7 @@
 
 #include "core/global/types/type_traits.h"
 
-namespace FLECS {
+namespace flecs {
 
 template <typename T>
 std::enable_if_t<
@@ -169,4 +169,4 @@ inline auto trim(std::basic_string<CharT, Traits>& str) //
     return rtrim(str);
 }
 
-} // namespace FLECS
+} // namespace flecs

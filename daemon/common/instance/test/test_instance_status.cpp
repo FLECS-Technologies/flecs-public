@@ -20,16 +20,16 @@
 
 TEST(instance_status, to_string)
 {
-    const auto values = std::array<FLECS::instance_status_e, 9>{
-        FLECS::instance_status_e::Created,
-        FLECS::instance_status_e::NotCreated,
-        FLECS::instance_status_e::Orphaned,
-        FLECS::instance_status_e::Requested,
-        FLECS::instance_status_e::ResourcesReady,
-        FLECS::instance_status_e::Running,
-        FLECS::instance_status_e::Stopped,
-        FLECS::instance_status_e::Unknown,
-        static_cast<FLECS::instance_status_e>(-1),
+    const auto values = std::array<flecs::instance_status_e, 9>{
+        flecs::instance_status_e::Created,
+        flecs::instance_status_e::NotCreated,
+        flecs::instance_status_e::Orphaned,
+        flecs::instance_status_e::Requested,
+        flecs::instance_status_e::ResourcesReady,
+        flecs::instance_status_e::Running,
+        flecs::instance_status_e::Stopped,
+        flecs::instance_status_e::Unknown,
+        static_cast<flecs::instance_status_e>(-1),
     };
 
     const auto strings = std::array<std::string_view, 9>{
@@ -45,15 +45,15 @@ TEST(instance_status, to_string)
     };
 
     for (size_t i = 0; i < values.size(); ++i) {
-        ASSERT_EQ(FLECS::to_string(values[i]), strings[i]);
+        ASSERT_EQ(flecs::to_string(values[i]), strings[i]);
     }
 
     for (size_t i = 0; i < values.size(); ++i) {
-        ASSERT_EQ(FLECS::to_string_view(values[i]), strings[i]);
+        ASSERT_EQ(flecs::to_string_view(values[i]), strings[i]);
     }
 
     /* skip last element as conversion is not bidirectional */
     for (size_t i = 0; i < values.size() - 1; ++i) {
-        ASSERT_EQ(FLECS::instance_status_from_string(strings[i]), values[i]);
+        ASSERT_EQ(flecs::instance_status_from_string(strings[i]), values[i]);
     }
 }
