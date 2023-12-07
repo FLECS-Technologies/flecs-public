@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <string_view>
+
 #include "module_base/module.h"
 
 namespace flecs {
@@ -24,6 +26,9 @@ class console_t FLECS_FINAL_UNLESS_TESTED : public base_t
     friend class factory_t;
 
 public:
+    static constexpr auto base_url() //
+        -> std::string_view;
+
     auto& user() const noexcept { return _user; }
     auto& token() const noexcept { return _token; }
 
@@ -43,6 +48,18 @@ protected:
     std::string _user;
     std::string _token;
 };
+
+constexpr auto console_t::base_url() //
+    -> std::string_view
+{
+    using std::operator""sv;
+
+#ifndef NDEBUG
+    return "https://console-dev.flecs.tech"sv;
+#else
+    return "https://console.flecs.tech"sv;
+#endif // NDEBUG
+}
 
 } // namespace module
 } // namespace flecs
