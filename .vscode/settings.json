@@ -89,11 +89,19 @@
         "*.ipp": "cpp",
         "coroutine": "cpp",
         "span": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "charconv": "cpp",
+        "shared_mutex": "cpp"
     },
     "cSpell.words": [
         "flecs"
     ],
     "cSpell.enabled": true,
-    "debug.internalConsoleOptions": "neverOpen"
+    "debug.internalConsoleOptions": "neverOpen",
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
+    "C_Cpp.clang_format_style": "file"
 }
