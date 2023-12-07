@@ -17,6 +17,7 @@ if(BUILD_TESTING)
 
     add_executable(daemon.modules.console.test
         test_console.cpp
+        test_types.cpp
     )
 
     set_target_properties(daemon.modules.console.test PROPERTIES OUTPUT_NAME test_daemon_modules_console)
