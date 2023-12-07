@@ -17,7 +17,7 @@
 #include <atomic>
 #include <csignal>
 
-namespace FLECS {
+namespace flecs {
 
 std::atomic_bool g_stop{};
 
@@ -33,9 +33,9 @@ void signal_handler_init()
     struct sigaction signal_action
     {
     };
-    signal_action.sa_handler = &FLECS::signal_handler;
+    signal_action.sa_handler = &flecs::signal_handler;
     sigaction(SIGTERM, &signal_action, nullptr);
     sigaction(SIGINT, &signal_action, nullptr);
 }
 
-} // namespace FLECS
+} // namespace flecs

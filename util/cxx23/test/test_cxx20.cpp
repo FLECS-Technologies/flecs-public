@@ -24,19 +24,19 @@ TEST(cxx20, string)
     const auto str = "This is a string"s;
     const auto sv = "This is a string"sv;
 
-    ASSERT_TRUE(FLECS::cxx23::contains(s, "This"));
-    ASSERT_TRUE(FLECS::cxx23::contains(str, "This"));
-    ASSERT_TRUE(FLECS::cxx23::contains(sv, "This"));
+    ASSERT_TRUE(flecs::cxx23::contains(s, "This"));
+    ASSERT_TRUE(flecs::cxx23::contains(str, "This"));
+    ASSERT_TRUE(flecs::cxx23::contains(sv, "This"));
 
-    ASSERT_TRUE(FLECS::cxx23::contains(s, "string"sv));
-    ASSERT_TRUE(FLECS::cxx23::contains(str, "string"sv));
-    ASSERT_TRUE(FLECS::cxx23::contains(sv, "string"sv));
+    ASSERT_TRUE(flecs::cxx23::contains(s, "string"sv));
+    ASSERT_TRUE(flecs::cxx23::contains(str, "string"sv));
+    ASSERT_TRUE(flecs::cxx23::contains(sv, "string"sv));
 
-    ASSERT_FALSE(FLECS::cxx23::contains(s, "flecs"));
-    ASSERT_FALSE(FLECS::cxx23::contains(str, "flecs"));
-    ASSERT_FALSE(FLECS::cxx23::contains(sv, "flecs"));
+    ASSERT_FALSE(flecs::cxx23::contains(s, "flecs"));
+    ASSERT_FALSE(flecs::cxx23::contains(str, "flecs"));
+    ASSERT_FALSE(flecs::cxx23::contains(sv, "flecs"));
 
-    ASSERT_FALSE(FLECS::cxx23::contains(s, "123"sv));
-    ASSERT_FALSE(FLECS::cxx23::contains(str, "123"sv));
-    ASSERT_FALSE(FLECS::cxx23::contains(sv, "123"sv));
+    ASSERT_FALSE(flecs::cxx23::contains(s, "123"sv));
+    ASSERT_FALSE(flecs::cxx23::contains(str, "123"sv));
+    ASSERT_FALSE(flecs::cxx23::contains(sv, "123"sv));
 }

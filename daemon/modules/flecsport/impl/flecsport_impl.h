@@ -16,7 +16,7 @@
 
 #include "flecsport.h"
 
-namespace FLECS {
+namespace flecs {
 
 class job_progress_t;
 
@@ -30,10 +30,10 @@ namespace impl {
 
 class flecsport_t
 {
-    friend class FLECS::module::flecsport_t;
+    friend class flecs::module::flecsport_t;
 
 private:
-    explicit flecsport_t(FLECS::module::flecsport_t* parent);
+    explicit flecsport_t(flecs::module::flecsport_t* parent);
 
     auto do_init() //
         -> void;
@@ -61,13 +61,13 @@ private:
     auto do_import_from(fs::path archive, job_progress_t& progress) //
         -> result_t;
 
-    FLECS::module::flecsport_t* _parent;
+    flecs::module::flecsport_t* _parent;
 
-    std::shared_ptr<FLECS::module::apps_t> _apps_api;
-    std::shared_ptr<FLECS::module::instances_t> _instances_api;
-    std::shared_ptr<FLECS::module::jobs_t> _jobs_api;
+    std::shared_ptr<flecs::module::apps_t> _apps_api;
+    std::shared_ptr<flecs::module::instances_t> _instances_api;
+    std::shared_ptr<flecs::module::jobs_t> _jobs_api;
 };
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

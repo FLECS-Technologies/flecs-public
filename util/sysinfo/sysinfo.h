@@ -19,7 +19,7 @@
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 
 class sysinfo_t
 {
@@ -59,4 +59,4 @@ private:
 auto machine_to_arch(std::string_view machine) //
     -> std::string;
 
-} // namespace FLECS
+} // namespace flecs

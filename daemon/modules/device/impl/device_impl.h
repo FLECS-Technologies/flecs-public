@@ -19,13 +19,13 @@
 #include "daemon/modules/device/device.h"
 #include "util/fs/fs.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 namespace impl {
 
 class device_t
 {
-    friend class FLECS::module::device_t;
+    friend class flecs::module::device_t;
 
 private:
     device_t();
@@ -50,4 +50,4 @@ private:
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

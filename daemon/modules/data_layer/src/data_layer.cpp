@@ -17,7 +17,7 @@
 #include "factory/factory.h"
 #include "impl/data_layer_impl.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace {
@@ -52,4 +52,4 @@ auto data_layer_t::browse(std::string_view path) //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

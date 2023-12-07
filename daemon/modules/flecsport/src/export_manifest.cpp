@@ -19,7 +19,7 @@
 #include "modules/factory/factory.h"
 #include "modules/version/version.h"
 
-namespace FLECS {
+namespace flecs {
 
 export_manifest_t::export_manifest_t(bool init)
     : time{}
@@ -68,4 +68,4 @@ auto from_json(const json_t& j, export_manifest_t& export_manifest) //
     }
 }
 
-} // namespace FLECS
+} // namespace flecs

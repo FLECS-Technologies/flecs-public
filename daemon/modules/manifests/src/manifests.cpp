@@ -19,7 +19,7 @@
 #include "factory/factory.h"
 #include "impl/manifests_impl.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace {
@@ -199,4 +199,4 @@ auto manifests_t::do_deinit() //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

@@ -19,7 +19,7 @@
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 // Helper macros to parse JSON arguments passed to endpoints
@@ -87,4 +87,4 @@ private:
 };
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

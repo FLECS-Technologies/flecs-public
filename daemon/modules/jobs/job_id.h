@@ -16,8 +16,8 @@
 
 #include <cstdint>
 
-namespace FLECS {
+namespace flecs {
 
 using job_id_t = std::uint32_t;
 
-} // namespace FLECS
+} // namespace flecs

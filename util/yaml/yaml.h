@@ -16,7 +16,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-namespace FLECS {
+namespace flecs {
 
 using yaml_t = YAML::Node;
 
@@ -30,4 +30,4 @@ inline auto yaml_from_file(std::string_view path)
     return YAML::LoadFile(path.data());
 }
 
-} // namespace FLECS
+} // namespace flecs

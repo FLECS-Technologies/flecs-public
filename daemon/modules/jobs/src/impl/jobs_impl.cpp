@@ -19,7 +19,7 @@
 #include "jobs.h"
 #include "util/signal_handler/signal_handler.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 namespace impl {
 
@@ -180,4 +180,4 @@ auto jobs_t::worker_thread() //
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

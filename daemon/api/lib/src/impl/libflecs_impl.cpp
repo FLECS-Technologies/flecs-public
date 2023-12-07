@@ -22,7 +22,7 @@
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 namespace impl {
 
 template <typename Key, typename Value, typename... Args>
@@ -348,4 +348,4 @@ int libflecs_t::put(const std::string& endpoint, const char* data)
 }
 
 } // namespace impl
-} // namespace FLECS
+} // namespace flecs

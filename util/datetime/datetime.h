@@ -19,7 +19,7 @@
 #include <string>
 #include <utility>
 
-namespace FLECS {
+namespace flecs {
 
 using system_clock_t = std::chrono::system_clock;
 
@@ -66,4 +66,4 @@ auto time_to_iso(
 auto unix_time(precision_e precision = precision_e::seconds) //
     -> std::string;
 
-} // namespace FLECS
+} // namespace flecs

@@ -18,7 +18,7 @@
 
 struct archive;
 
-namespace FLECS {
+namespace flecs {
 
 class base_archive_t : public archive::base_t<::archive>
 {
@@ -34,4 +34,4 @@ public:
         -> const char*;
 };
 
-} // namespace FLECS
+} // namespace flecs

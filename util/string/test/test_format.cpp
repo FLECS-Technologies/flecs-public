@@ -19,7 +19,7 @@
 
 TEST(string_utils, format_uint32)
 {
-    using namespace FLECS;
+    using namespace flecs;
 
     const std::uint32_t i = 15;
 
@@ -44,7 +44,7 @@ TEST(string_utils, format_uint32)
 
 TEST(string_utils, format_uint16)
 {
-    using namespace FLECS;
+    using namespace flecs;
 
     const std::uint16_t i = 15;
 

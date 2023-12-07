@@ -23,11 +23,11 @@
 #include "common/app/manifest/manifest.h"
 #include "util/string/literals.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 namespace impl {
 
-manifests_t::manifests_t(FLECS::module::manifests_t* parent)
+manifests_t::manifests_t(flecs::module::manifests_t* parent)
     : _parent{parent}
     , _base_path{}
 {}
@@ -242,4 +242,4 @@ auto manifests_t::do_deinit() //
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

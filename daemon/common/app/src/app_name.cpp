@@ -16,7 +16,7 @@
 
 #include <regex>
 
-namespace FLECS {
+namespace flecs {
 
 app_name_t::app_name_t(std::string app_name)
     : _app_name{}
@@ -42,4 +42,4 @@ auto app_name_t::value() const noexcept //
     return _app_name;
 }
 
-} // namespace FLECS
+} // namespace flecs

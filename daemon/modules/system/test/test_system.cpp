@@ -15,7 +15,7 @@
 #include "gtest/gtest.h"
 #include "system/system.h"
 
-class module_system_test_t : public FLECS::module::system_t
+class module_system_test_t : public flecs::module::system_t
 {
 public:
     module_system_test_t() = default;
@@ -23,16 +23,16 @@ public:
     auto do_init() //
         -> void override
     {
-        return FLECS::module::system_t::do_init();
+        return flecs::module::system_t::do_init();
     }
 
     auto do_deinit() //
         -> void override
     {
-        return FLECS::module::system_t::do_deinit();
+        return flecs::module::system_t::do_deinit();
     }
 
-    auto ping() const { return FLECS::module::system_t::ping(); }
+    auto ping() const { return flecs::module::system_t::ping(); }
 };
 
 static auto uut = module_system_test_t{};
@@ -41,7 +41,7 @@ TEST(system, init)
 {
     uut.do_init();
 
-    FLECS::flecs_api_t::instance().app().validate();
+    flecs::flecs_api_t::instance().app().validate();
 }
 
 TEST(system, ping)
@@ -54,7 +54,7 @@ TEST(system, ping)
     const auto out_expected = R"({"additionalInfo":"OK"})"s;
 
     req.url = "/v2/system/ping";
-    FLECS::flecs_api_t::instance().app().handle(req, res);
+    flecs::flecs_api_t::instance().app().handle(req, res);
 
     ASSERT_EQ(res.code, crow::status::OK);
     ASSERT_EQ(res.headers.find("Content-Type")->second, "application/json");
@@ -67,7 +67,7 @@ TEST(system, info)
     auto res = crow::response{};
 
     req.url = "/v2/system/info";
-    FLECS::flecs_api_t::instance().app().handle(req, res);
+    flecs::flecs_api_t::instance().app().handle(req, res);
 
     ASSERT_EQ(res.code, crow::status::OK);
     ASSERT_EQ(res.headers.find("Content-Type")->second, "application/json");

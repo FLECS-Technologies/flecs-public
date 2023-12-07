@@ -16,7 +16,7 @@
 
 #include <map>
 
-namespace FLECS {
+namespace flecs {
 
 auto startup_option_from_string(std::string_view str) //
     -> startup_option_t
@@ -28,4 +28,4 @@ auto startup_option_from_string(std::string_view str) //
     return options.count(str) ? options.at(str) : startup_option_t::INVALID;
 }
 
-} // namespace FLECS
+} // namespace flecs

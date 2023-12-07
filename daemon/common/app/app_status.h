@@ -17,7 +17,7 @@
 #include <string>
 #include <string_view>
 
-namespace FLECS {
+namespace flecs {
 
 enum class app_status_e {
     NotInstalled,
@@ -40,4 +40,4 @@ auto to_string(app_status_e app_status) //
 auto app_status_from_string(std::string_view str) //
     -> app_status_e;
 
-} // namespace FLECS
+} // namespace flecs

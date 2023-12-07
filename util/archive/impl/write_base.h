@@ -19,7 +19,7 @@
 
 struct archive;
 
-namespace FLECS {
+namespace flecs {
 
 class archive_entry_t;
 
@@ -38,4 +38,4 @@ private:
         -> void override;
 };
 
-} // namespace FLECS
+} // namespace flecs

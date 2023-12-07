@@ -16,7 +16,7 @@
 
 #include <archive_entry.h>
 
-namespace FLECS {
+namespace flecs {
 
 archive_entry_t::archive_entry_t()
     : base_t{archive_entry_new()}
@@ -58,4 +58,4 @@ auto archive_entry_t::do_close() //
     archive_entry_free(get());
 }
 
-} // namespace FLECS
+} // namespace flecs

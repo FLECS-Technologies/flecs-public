@@ -18,7 +18,7 @@
 
 #include <cstring>
 
-namespace FLECS {
+namespace flecs {
 namespace udev {
 
 hwdb_t::hwdb_t()
@@ -99,4 +99,4 @@ auto hwdb_t::usb_device(std::uint16_t vid, std::uint16_t pid) //
 }
 
 } // namespace udev
-} // namespace FLECS
+} // namespace flecs

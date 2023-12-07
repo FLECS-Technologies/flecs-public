@@ -35,8 +35,8 @@ TEST(sysfs, prepare)
     constexpr auto base_path = "flecs-sysfs/";
     const auto port_path = std::string{base_path}.append("2-1/");
 
-    ASSERT_NO_THROW(FLECS::fs::remove_all(base_path));
-    ASSERT_NO_THROW(FLECS::fs::create_directories(port_path));
+    ASSERT_NO_THROW(flecs::fs::remove_all(base_path));
+    ASSERT_NO_THROW(flecs::fs::create_directories(port_path));
 
     auto file_device = std::ofstream{port_path + "product"};
     file_device << USB_DEVICE;
@@ -57,44 +57,44 @@ TEST(sysfs, prepare)
 
 TEST(sysfs, usb_device)
 {
-    const auto device = FLECS::sysfs::usb_device(port);
+    const auto device = flecs::sysfs::usb_device(port);
 
     ASSERT_TRUE(device.has_value());
     ASSERT_EQ(device.value(), USB_DEVICE);
 
-    const auto device_invalid = FLECS::sysfs::usb_device(port_invalid);
+    const auto device_invalid = flecs::sysfs::usb_device(port_invalid);
     ASSERT_FALSE(device_invalid.has_value());
 }
 
 TEST(sysfs, usb_vendor)
 {
-    const auto vendor = FLECS::sysfs::usb_vendor(port);
+    const auto vendor = flecs::sysfs::usb_vendor(port);
 
     ASSERT_TRUE(vendor.has_value());
     ASSERT_EQ(vendor.value(), USB_VENDOR);
 
-    const auto vendor_invalid = FLECS::sysfs::usb_vendor(port_invalid);
+    const auto vendor_invalid = flecs::sysfs::usb_vendor(port_invalid);
     ASSERT_FALSE(vendor_invalid.has_value());
 }
 
 TEST(sysfs, usb_busnum)
 {
-    const auto busnum = FLECS::sysfs::usb_busnum(port);
+    const auto busnum = flecs::sysfs::usb_busnum(port);
 
     ASSERT_TRUE(busnum.has_value());
     ASSERT_EQ(busnum.value(), USB_BUSNUM);
 
-    const auto busnum_invalid = FLECS::sysfs::usb_busnum(port_invalid);
+    const auto busnum_invalid = flecs::sysfs::usb_busnum(port_invalid);
     ASSERT_FALSE(busnum_invalid.has_value());
 }
 
 TEST(sysfs, usb_devnum)
 {
-    const auto devnum = FLECS::sysfs::usb_devnum(port);
+    const auto devnum = flecs::sysfs::usb_devnum(port);
 
     ASSERT_TRUE(devnum.has_value());
     ASSERT_EQ(devnum.value(), USB_DEVNUM);
 
-    const auto devnum_invalid = FLECS::sysfs::usb_devnum(port_invalid);
+    const auto devnum_invalid = flecs::sysfs::usb_devnum(port_invalid);
     ASSERT_FALSE(devnum_invalid.has_value());
 }

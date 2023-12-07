@@ -22,7 +22,7 @@
 #include "apps.h"
 #include "common/app/app.h"
 
-namespace FLECS {
+namespace flecs {
 
 class job_progress_t;
 
@@ -36,13 +36,13 @@ namespace impl {
 
 class apps_t
 {
-    friend class FLECS::module::apps_t;
+    friend class flecs::module::apps_t;
 
 public:
     ~apps_t();
 
 private:
-    explicit apps_t(FLECS::module::apps_t* parent);
+    explicit apps_t(flecs::module::apps_t* parent);
 
     auto do_module_init() //
         -> void;
@@ -119,16 +119,16 @@ private:
     auto do_is_installed(const app_key_t& app_key) const noexcept //
         -> bool;
 
-    FLECS::module::apps_t* _parent;
+    flecs::module::apps_t* _parent;
 
     std::vector<std::shared_ptr<app_t>> _apps;
     std::mutex _apps_mutex;
 
-    std::shared_ptr<FLECS::module::instances_t> _instances_api;
-    std::shared_ptr<FLECS::module::manifests_t> _manifests_api;
-    std::shared_ptr<FLECS::module::jobs_t> _jobs_api;
+    std::shared_ptr<flecs::module::instances_t> _instances_api;
+    std::shared_ptr<flecs::module::manifests_t> _manifests_api;
+    std::shared_ptr<flecs::module::jobs_t> _jobs_api;
 };
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

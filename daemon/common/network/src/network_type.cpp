@@ -18,7 +18,7 @@
 #include <array>
 #include <tuple>
 
-namespace FLECS {
+namespace flecs {
 
 static const auto mapping = std::array<std::tuple<network_type_e, std::string_view>, 5>{{
     {network_type_e::None, "none"},
@@ -60,4 +60,4 @@ auto network_type_from_string(std::string_view str) //
     return it == mapping.cend() ? network_type_e::Unknown : std::get<0>(*it);
 }
 
-} // namespace FLECS
+} // namespace flecs

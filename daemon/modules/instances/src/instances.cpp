@@ -19,7 +19,7 @@
 #include "factory/factory.h"
 #include "impl/instances_impl.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace {
@@ -336,4 +336,4 @@ auto instances_t::import_from(instance_t instance, fs::path base_path) //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

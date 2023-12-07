@@ -16,7 +16,7 @@
 
 #include <archive.h>
 
-namespace FLECS {
+namespace flecs {
 
 write_disk_t::write_disk_t(const fs::path& path)
     : write_base_t{archive_write_disk_new()}
@@ -50,4 +50,4 @@ write_disk_t::~write_disk_t()
     close();
 }
 
-} // namespace FLECS
+} // namespace flecs

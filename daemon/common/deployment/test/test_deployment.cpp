@@ -23,7 +23,7 @@
 #include "daemon/common/deployment/deployment.h"
 #include "util/fs/fs.h"
 
-namespace FLECS {
+namespace flecs {
 class mock_deployment_t : public deployment_t
 {
 public:
@@ -76,14 +76,14 @@ public:
         do_import_volume,
         ((std::shared_ptr<instance_t> instance),
          (std::string_view volume_name),
-         (FLECS::fs::path dest_dir)),
+         (flecs::fs::path dest_dir)),
         (override));
     MOCK_METHOD(
         result_t,
         do_export_volume,
         ((std::shared_ptr<instance_t> instance),
          (std::string_view volume_name),
-         (FLECS::fs::path dest_dir)),
+         (flecs::fs::path dest_dir)),
         (const, override));
     MOCK_METHOD(
         result_t,
@@ -110,7 +110,7 @@ public:
     MOCK_METHOD(std::string_view, do_default_network_cidr_subnet, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_gateway, (), (const, override));
 };
-} // namespace FLECS
+} // namespace flecs
 
 using std::operator""s;
 using std::operator""sv;
@@ -120,8 +120,8 @@ using namespace testing;
 #define G_CIDR_SUBNET "172.20.0.0/24"
 #define G_GATEWAY "172.20.0.1"
 #define G_IMAGE "flecs/test-app"
-#define G_INSTANCE_ID_1 FLECS::instance_id_t(2882339107U)
-#define G_INSTANCE_ID_2 FLECS::instance_id_t(19114957U)
+#define G_INSTANCE_ID_1 flecs::instance_id_t(2882339107U)
+#define G_INSTANCE_ID_2 flecs::instance_id_t(19114957U)
 #define G_IP "172.20.0.2"
 #define G_INSTANCE_NAME_1 "Test instance 1"
 #define G_INSTANCE_NAME_2 "Test instance 2"
@@ -150,28 +150,28 @@ using namespace testing;
     "image: " G_IMAGE "\n"s
 
 static const auto manifest_1 =
-    std::make_shared<FLECS::app_manifest_t>(FLECS::app_manifest_t::from_yaml_string(G_MANIFEST_1));
+    std::make_shared<flecs::app_manifest_t>(flecs::app_manifest_t::from_yaml_string(G_MANIFEST_1));
 static const auto manifest_2 =
-    std::make_shared<FLECS::app_manifest_t>(FLECS::app_manifest_t::from_yaml_string(G_MANIFEST_2));
+    std::make_shared<flecs::app_manifest_t>(flecs::app_manifest_t::from_yaml_string(G_MANIFEST_2));
 
 static const auto app_1 =
-    std::make_shared<FLECS::app_t>(FLECS::app_key_t{G_APP, G_VERSION_1}, manifest_1);
+    std::make_shared<flecs::app_t>(flecs::app_key_t{G_APP, G_VERSION_1}, manifest_1);
 static const auto app_2 =
-    std::make_shared<FLECS::app_t>(FLECS::app_key_t{G_APP, G_VERSION_2}, manifest_2);
+    std::make_shared<flecs::app_t>(flecs::app_key_t{G_APP, G_VERSION_2}, manifest_2);
 
 TEST(deployment, interface)
 {
-    auto deployment = std::unique_ptr<FLECS::deployment_t>{new FLECS::mock_deployment_t{}};
-    auto& test_deployment = static_cast<FLECS::mock_deployment_t&>(*deployment.get());
-    const auto& test_deployment_c = static_cast<const FLECS::mock_deployment_t&>(test_deployment);
+    auto deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
+    auto& test_deployment = static_cast<flecs::mock_deployment_t&>(*deployment.get());
+    const auto& test_deployment_c = static_cast<const flecs::mock_deployment_t&>(test_deployment);
 
-    auto instance_1 = FLECS::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
-    instance_1.status(FLECS::instance_status_e::Created);
-    instance_1.desired(FLECS::instance_status_e::Running);
+    auto instance_1 = flecs::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
+    instance_1.status(flecs::instance_status_e::Created);
+    instance_1.desired(flecs::instance_status_e::Running);
 
-    auto instance_2 = FLECS::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
-    instance_2.status(FLECS::instance_status_e::Created);
-    instance_2.desired(FLECS::instance_status_e::Running);
+    auto instance_2 = flecs::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
+    instance_2.status(flecs::instance_status_e::Created);
+    instance_2.desired(flecs::instance_status_e::Running);
 
     // mock deployment id
     EXPECT_CALL(test_deployment, do_deployment_id()).Times(1).WillOnce(Return("test-deployment"sv));
@@ -248,14 +248,14 @@ TEST(deployment, interface)
         EXPECT_CALL(
             test_deployment,
             do_create_network(
-                FLECS::network_type_e::Bridge,
+                flecs::network_type_e::Bridge,
                 G_NETWORK_NAME,
                 G_CIDR_SUBNET,
                 G_GATEWAY,
                 G_PARENT))
             .Times(1);
         deployment->create_network(
-            FLECS::network_type_e::Bridge,
+            flecs::network_type_e::Bridge,
             G_NETWORK_NAME,
             G_CIDR_SUBNET,
             G_GATEWAY,
@@ -311,8 +311,8 @@ TEST(deployment, interface)
             test_deployment,
             do_copy_file_from_image(
                 G_IMAGE,
-                FLECS::fs::path{G_FILE_CONTAINER},
-                FLECS::fs::path{G_FILE_LOCAL}))
+                flecs::fs::path{G_FILE_CONTAINER},
+                flecs::fs::path{G_FILE_LOCAL}))
             .Times(1);
         deployment->copy_file_from_image(G_IMAGE, G_FILE_CONTAINER, G_FILE_LOCAL);
 
@@ -320,8 +320,8 @@ TEST(deployment, interface)
             test_deployment,
             do_copy_file_to_instance(
                 p,
-                FLECS::fs::path{G_FILE_LOCAL},
-                FLECS::fs::path{G_FILE_CONTAINER}))
+                flecs::fs::path{G_FILE_LOCAL},
+                flecs::fs::path{G_FILE_CONTAINER}))
             .Times(1);
         deployment->copy_file_to_instance(p, G_FILE_LOCAL, G_FILE_CONTAINER);
 
@@ -329,8 +329,8 @@ TEST(deployment, interface)
             test_deployment,
             do_copy_file_from_instance(
                 p,
-                FLECS::fs::path{G_FILE_CONTAINER},
-                FLECS::fs::path{G_FILE_LOCAL}))
+                flecs::fs::path{G_FILE_CONTAINER},
+                flecs::fs::path{G_FILE_LOCAL}))
             .Times(1);
         deployment->copy_file_from_instance(p, G_FILE_CONTAINER, G_FILE_LOCAL);
     }
@@ -338,19 +338,19 @@ TEST(deployment, interface)
 
 TEST(deployment, load_save)
 {
-    auto save_deployment = std::unique_ptr<FLECS::deployment_t>{new FLECS::mock_deployment_t{}};
-    auto& save_uut = static_cast<FLECS::mock_deployment_t&>(*save_deployment.get());
+    auto save_deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
+    auto& save_uut = static_cast<flecs::mock_deployment_t&>(*save_deployment.get());
 
-    auto instance_1 = FLECS::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
-    auto instance_2 = FLECS::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
+    auto instance_1 = flecs::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
+    auto instance_2 = flecs::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
 
     save_deployment->insert_instance(instance_1);
     save_deployment->insert_instance(instance_2);
     EXPECT_CALL(save_uut, do_deployment_id()).Times(1).WillOnce(testing::Return("test"));
     save_deployment->save(".");
 
-    auto load_deployment = std::unique_ptr<FLECS::deployment_t>{new FLECS::mock_deployment_t{}};
-    auto& load_uut = static_cast<FLECS::mock_deployment_t&>(*load_deployment.get());
+    auto load_deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
+    auto& load_uut = static_cast<flecs::mock_deployment_t&>(*load_deployment.get());
 
     EXPECT_CALL(load_uut, do_deployment_id()).Times(1).WillOnce(testing::Return("test"));
     load_deployment->load(".");
@@ -362,15 +362,15 @@ TEST(deployment, load_save)
 
 TEST(deployment, generate_ip_success)
 {
-    auto deployment = std::unique_ptr<FLECS::deployment_t>{new FLECS::mock_deployment_t{}};
+    auto deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
 
     {
         const auto ip = deployment->generate_instance_ip(G_CIDR_SUBNET, G_GATEWAY);
         EXPECT_EQ(ip, "172.20.0.2");
     }
 
-    auto instance = FLECS::instance_t{app_1, G_INSTANCE_NAME_1};
-    instance.networks().emplace_back(FLECS::instance_t::network_t{
+    auto instance = flecs::instance_t{app_1, G_INSTANCE_NAME_1};
+    instance.networks().emplace_back(flecs::instance_t::network_t{
         .network_name = "flecs-network",
         .mac_address = {},
         .ip_address = G_IP});
@@ -385,7 +385,7 @@ TEST(deployment, generate_ip_success)
 
 TEST(deployment, generate_ip_fail)
 {
-    auto deployment = std::unique_ptr<FLECS::deployment_t>{new FLECS::mock_deployment_t{}};
+    auto deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
 
     // invalid cidr subnet
     {

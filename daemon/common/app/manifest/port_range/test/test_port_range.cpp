@@ -20,9 +20,9 @@ TEST(port_range, single_port)
 {
     const auto str = "9000";
 
-    const auto mapped_range = FLECS::mapped_port_range_t{str};
+    const auto mapped_range = flecs::mapped_port_range_t{str};
     const auto mapped_range_expected =
-        FLECS::mapped_port_range_t{FLECS::port_range_t{9000}, FLECS::port_range_t{9000}};
+        flecs::mapped_port_range_t{flecs::port_range_t{9000}, flecs::port_range_t{9000}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -30,16 +30,16 @@ TEST(port_range, single_port)
     ASSERT_EQ(mapped_range.host_port_range().end_port(), 9000);
     ASSERT_EQ(mapped_range.container_port_range().start_port(), 9000);
     ASSERT_EQ(mapped_range.container_port_range().end_port(), 9000);
-    ASSERT_EQ(FLECS::to_string(mapped_range), "9000:9000");
+    ASSERT_EQ(flecs::to_string(mapped_range), "9000:9000");
 }
 
 TEST(port_range, single_port_map)
 {
     const auto str = "9000:9001";
 
-    const auto mapped_range = FLECS::mapped_port_range_t{str};
+    const auto mapped_range = flecs::mapped_port_range_t{str};
     const auto mapped_range_expected =
-        FLECS::mapped_port_range_t{FLECS::port_range_t{9000}, FLECS::port_range_t{9001}};
+        flecs::mapped_port_range_t{flecs::port_range_t{9000}, flecs::port_range_t{9001}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -47,15 +47,15 @@ TEST(port_range, single_port_map)
     ASSERT_EQ(mapped_range.host_port_range().end_port(), 9000);
     ASSERT_EQ(mapped_range.container_port_range().start_port(), 9001);
     ASSERT_EQ(mapped_range.container_port_range().end_port(), 9001);
-    ASSERT_EQ(FLECS::to_string(mapped_range), "9000:9001");
+    ASSERT_EQ(flecs::to_string(mapped_range), "9000:9001");
 }
 
 TEST(port_range, single_port_map_random)
 {
     const auto str = ":9001";
-    const auto mapped_range = FLECS::mapped_port_range_t{str};
+    const auto mapped_range = flecs::mapped_port_range_t{str};
     const auto mapped_range_expected =
-        FLECS::mapped_port_range_t{FLECS::port_range_t{0, 0}, FLECS::port_range_t{9001}};
+        flecs::mapped_port_range_t{flecs::port_range_t{0, 0}, flecs::port_range_t{9001}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -63,16 +63,16 @@ TEST(port_range, single_port_map_random)
     ASSERT_EQ(mapped_range.host_port_range().end_port(), 0);
     ASSERT_EQ(mapped_range.container_port_range().start_port(), 9001);
     ASSERT_EQ(mapped_range.container_port_range().end_port(), 9001);
-    ASSERT_EQ(FLECS::to_string(mapped_range), ":9001");
+    ASSERT_EQ(flecs::to_string(mapped_range), ":9001");
 }
 
 TEST(port_range, port_range)
 {
     const auto str = "9000-9005";
-    const auto mapped_range = FLECS::mapped_port_range_t{str};
-    const auto mapped_range_expected = FLECS::mapped_port_range_t{
-        FLECS::port_range_t{9000, 9005},
-        FLECS::port_range_t{9000, 9005}};
+    const auto mapped_range = flecs::mapped_port_range_t{str};
+    const auto mapped_range_expected = flecs::mapped_port_range_t{
+        flecs::port_range_t{9000, 9005},
+        flecs::port_range_t{9000, 9005}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -80,16 +80,16 @@ TEST(port_range, port_range)
     ASSERT_EQ(mapped_range.host_port_range().end_port(), 9005);
     ASSERT_EQ(mapped_range.container_port_range().start_port(), 9000);
     ASSERT_EQ(mapped_range.container_port_range().end_port(), 9005);
-    ASSERT_EQ(FLECS::to_string(mapped_range), "9000-9005:9000-9005");
+    ASSERT_EQ(flecs::to_string(mapped_range), "9000-9005:9000-9005");
 }
 
 TEST(port_range, port_range_map)
 {
     const auto str = "9000-9005:9001-9006";
-    const auto mapped_range = FLECS::mapped_port_range_t{str};
-    const auto mapped_range_expected = FLECS::mapped_port_range_t{
-        FLECS::port_range_t{9000, 9005},
-        FLECS::port_range_t{9001, 9006}};
+    const auto mapped_range = flecs::mapped_port_range_t{str};
+    const auto mapped_range_expected = flecs::mapped_port_range_t{
+        flecs::port_range_t{9000, 9005},
+        flecs::port_range_t{9001, 9006}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -97,15 +97,15 @@ TEST(port_range, port_range_map)
     ASSERT_EQ(mapped_range.host_port_range().end_port(), 9005);
     ASSERT_EQ(mapped_range.container_port_range().start_port(), 9001);
     ASSERT_EQ(mapped_range.container_port_range().end_port(), 9006);
-    ASSERT_EQ(FLECS::to_string(mapped_range), "9000-9005:9001-9006");
+    ASSERT_EQ(flecs::to_string(mapped_range), "9000-9005:9001-9006");
 }
 
 TEST(port_range, port_range_map_random)
 {
     const auto str = ":9001-9006";
-    const auto mapped_range = FLECS::mapped_port_range_t{str};
+    const auto mapped_range = flecs::mapped_port_range_t{str};
     const auto mapped_range_expected =
-        FLECS::mapped_port_range_t{FLECS::port_range_t{0, 0}, FLECS::port_range_t{9001, 9006}};
+        flecs::mapped_port_range_t{flecs::port_range_t{0, 0}, flecs::port_range_t{9001, 9006}};
 
     ASSERT_TRUE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range, mapped_range_expected);
@@ -113,13 +113,13 @@ TEST(port_range, port_range_map_random)
     ASSERT_EQ(mapped_range.host_port_range().end_port(), 0);
     ASSERT_EQ(mapped_range.container_port_range().start_port(), 9001);
     ASSERT_EQ(mapped_range.container_port_range().end_port(), 9006);
-    ASSERT_EQ(FLECS::to_string(mapped_range), ":9001-9006");
+    ASSERT_EQ(flecs::to_string(mapped_range), ":9001-9006");
 }
 
 TEST(port_range, single_port_err)
 {
     const auto str = "900a";
-    const auto mapped_range = FLECS::mapped_port_range_t{str};
+    const auto mapped_range = flecs::mapped_port_range_t{str};
 
     ASSERT_FALSE(mapped_range.is_valid());
     ASSERT_EQ(mapped_range.host_port_range().start_port(), 0);
@@ -131,9 +131,9 @@ TEST(port_range, single_port_map_err)
     const auto str2 = "900a:9000";
     const auto str3 = "900a:900a";
 
-    const auto mapped_range1 = FLECS::mapped_port_range_t{str1};
-    const auto mapped_range2 = FLECS::mapped_port_range_t{str2};
-    const auto mapped_range3 = FLECS::mapped_port_range_t{str3};
+    const auto mapped_range1 = flecs::mapped_port_range_t{str1};
+    const auto mapped_range2 = flecs::mapped_port_range_t{str2};
+    const auto mapped_range3 = flecs::mapped_port_range_t{str3};
 
     ASSERT_FALSE(mapped_range1.is_valid());
     ASSERT_FALSE(mapped_range2.is_valid());
@@ -144,7 +144,7 @@ TEST(port_range, single_port_map_random_err)
 {
     const auto str = ":900a";
 
-    const auto mapped_range = FLECS::mapped_port_range_t{str};
+    const auto mapped_range = flecs::mapped_port_range_t{str};
 
     ASSERT_FALSE(mapped_range.is_valid());
 }
@@ -156,10 +156,10 @@ TEST(port_range, port_range_err)
     const auto str3 = "🛫-🛬"; // airports are not allowed -.-
     const auto str4 = "∅";
 
-    const auto mapped_range1 = FLECS::mapped_port_range_t{str1};
-    const auto mapped_range2 = FLECS::mapped_port_range_t{str2};
-    const auto mapped_range3 = FLECS::mapped_port_range_t{str3};
-    const auto mapped_range4 = FLECS::mapped_port_range_t{str4};
+    const auto mapped_range1 = flecs::mapped_port_range_t{str1};
+    const auto mapped_range2 = flecs::mapped_port_range_t{str2};
+    const auto mapped_range3 = flecs::mapped_port_range_t{str3};
+    const auto mapped_range4 = flecs::mapped_port_range_t{str4};
 
     ASSERT_FALSE(mapped_range1.is_valid());
     ASSERT_FALSE(mapped_range2.is_valid());
@@ -173,9 +173,9 @@ TEST(port_range, port_range_invalid)
     const auto str2 = "9000:9000-9001";
     const auto str3 = "9000-9005:9000";
 
-    const auto mapped_range1 = FLECS::mapped_port_range_t{str1};
-    const auto mapped_range2 = FLECS::mapped_port_range_t{str2};
-    const auto mapped_range3 = FLECS::mapped_port_range_t{str3};
+    const auto mapped_range1 = flecs::mapped_port_range_t{str1};
+    const auto mapped_range2 = flecs::mapped_port_range_t{str2};
+    const auto mapped_range3 = flecs::mapped_port_range_t{str3};
 
     ASSERT_FALSE(mapped_range1.is_valid());
     ASSERT_FALSE(mapped_range2.is_valid());
@@ -184,9 +184,9 @@ TEST(port_range, port_range_invalid)
 
 TEST(port_range, to_json)
 {
-    const auto mapped_range_1 = FLECS::mapped_port_range_t{"8000-8005:10000-10005"};
+    const auto mapped_range_1 = flecs::mapped_port_range_t{"8000-8005:10000-10005"};
 
-    const auto json = FLECS::json_t(mapped_range_1);
+    const auto json = flecs::json_t(mapped_range_1);
     const auto json_expected = R"("8000-8005:10000-10005")";
 
     ASSERT_TRUE(mapped_range_1.is_valid());
@@ -196,9 +196,9 @@ TEST(port_range, to_json)
 TEST(port_range, from_json)
 {
     const auto json_string = R"("8000-8005:10000-10005")";
-    auto json = FLECS::parse_json(json_string);
+    auto json = flecs::parse_json(json_string);
 
-    const auto mapped_range_1 = json.get<FLECS::mapped_port_range_t>();
+    const auto mapped_range_1 = json.get<flecs::mapped_port_range_t>();
 
     ASSERT_TRUE(mapped_range_1.is_valid());
     ASSERT_EQ(mapped_range_1.host_port_range().start_port(), 8000);

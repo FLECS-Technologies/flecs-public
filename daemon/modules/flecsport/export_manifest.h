@@ -22,7 +22,7 @@
 #include "util/json/json.h"
 #include "util/sysinfo/sysinfo.h"
 
-namespace FLECS {
+namespace flecs {
 
 struct export_manifest_t
 {
@@ -58,4 +58,4 @@ auto to_json(json_t& j, const export_manifest_t& export_manifest) //
 auto from_json(const json_t& j, export_manifest_t& export_manifest) //
     -> void;
 
-} // namespace FLECS
+} // namespace flecs

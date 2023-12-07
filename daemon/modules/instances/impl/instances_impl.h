@@ -20,7 +20,7 @@
 
 #include "instances.h"
 
-namespace FLECS {
+namespace flecs {
 
 class deployment_t;
 class job_progress_t;
@@ -33,13 +33,13 @@ namespace impl {
 
 class instances_t
 {
-    friend class FLECS::module::instances_t;
+    friend class flecs::module::instances_t;
 
 public:
     ~instances_t();
 
 private:
-    explicit instances_t(FLECS::module::instances_t* parent);
+    explicit instances_t(flecs::module::instances_t* parent);
 
     auto do_load(const fs::path& base_path) //
         -> result_t;
@@ -127,13 +127,13 @@ private:
     auto do_import_from(instance_t instance, fs::path base_path, job_progress_t& progress) //
         -> result_t;
 
-    FLECS::module::instances_t* _parent;
+    flecs::module::instances_t* _parent;
 
     std::unique_ptr<deployment_t> _deployment;
-    std::shared_ptr<FLECS::module::apps_t> _apps_api;
-    std::shared_ptr<FLECS::module::jobs_t> _jobs_api;
+    std::shared_ptr<flecs::module::apps_t> _apps_api;
+    std::shared_ptr<flecs::module::jobs_t> _jobs_api;
 };
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

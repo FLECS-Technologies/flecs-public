@@ -18,7 +18,7 @@
 #include <array>
 #include <tuple>
 
-namespace FLECS {
+namespace flecs {
 
 auto to_string(job_status_e job_status) //
     -> std::string_view
@@ -42,4 +42,4 @@ auto to_string(job_status_e job_status) //
     return it == strings.cend() ? "unknown" : std::get<1>(*it);
 }
 
-} // namespace FLECS
+} // namespace flecs

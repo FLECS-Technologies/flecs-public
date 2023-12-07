@@ -18,7 +18,7 @@
 
 #include "libflecs.h"
 
-namespace FLECS {
+namespace flecs {
 namespace impl {
 
 class libflecs_t
@@ -92,4 +92,4 @@ private:
 };
 
 } // namespace impl
-} // namespace FLECS
+} // namespace flecs

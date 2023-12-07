@@ -17,7 +17,7 @@
 #include "daemon/modules/device/impl/device_impl.h"
 #include "factory/factory.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace {
@@ -61,4 +61,4 @@ auto device_t::do_save(const fs::path& base_path) const //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

@@ -14,7 +14,7 @@
 
 #include "instance_config.h"
 
-namespace FLECS {
+namespace flecs {
 
 auto to_json(json_t& json, const instance_config_t::network_adapter_t& network_adapter) //
     -> void
@@ -80,4 +80,4 @@ auto from_json(const json_t& json, instance_config_t& instance_config) //
     json.at("startupOptions").get_to(instance_config.startup_options);
 }
 
-} // namespace FLECS
+} // namespace flecs

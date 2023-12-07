@@ -26,7 +26,7 @@
 #include "instance/instance.h"
 #include "util/fs/fs.h"
 
-namespace FLECS {
+namespace flecs {
 
 class app_t;
 class app_key_t;
@@ -246,4 +246,4 @@ private:
         -> std::string_view = 0;
 };
 
-} // namespace FLECS
+} // namespace flecs

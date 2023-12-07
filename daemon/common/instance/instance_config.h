@@ -22,7 +22,7 @@
 #include "util/json/json.h"
 #include "util/usb/usb.h"
 
-namespace FLECS {
+namespace flecs {
 
 struct instance_config_t
 {
@@ -59,4 +59,4 @@ auto from_json(const json_t& json, instance_config_t::usb_device_t& usb_device) 
 auto from_json(const json_t& json, instance_config_t& instance_config) //
     -> void;
 
-} // namespace FLECS
+} // namespace flecs

@@ -14,7 +14,7 @@
 
 #include "module.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 auto base_t::load(const fs::path& base_path) //
@@ -74,4 +74,4 @@ auto base_t::do_save(const fs::path& /*base_path*/) const //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

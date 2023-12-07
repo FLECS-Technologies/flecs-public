@@ -27,7 +27,7 @@
 
 #include "posix_spawn.h"
 
-namespace FLECS {
+namespace flecs {
 
 process_t::process_t()
     : _args{}
@@ -157,4 +157,4 @@ void swap(process_t& lhs, process_t& rhs)
     swap(lhs._status, rhs._status);
 }
 
-} // namespace FLECS
+} // namespace flecs

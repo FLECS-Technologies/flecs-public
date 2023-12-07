@@ -18,7 +18,7 @@
 #include <string>
 #include <string_view>
 
-namespace FLECS {
+namespace flecs {
 
 enum class network_type_e {
     None,
@@ -46,4 +46,4 @@ auto to_string(const network_type_e& network_type) //
 auto network_type_from_string(std::string_view str) //
     -> network_type_e;
 
-} // namespace FLECS
+} // namespace flecs

@@ -24,7 +24,7 @@
 #include "util/string/string_utils.h"
 #include "util/sysfs/sysfs.h"
 
-namespace FLECS {
+namespace flecs {
 
 auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance) //
     -> result_t
@@ -927,4 +927,4 @@ auto deployment_docker_t::do_default_network_gateway() const //
     return "172.21.0.1";
 }
 
-} // namespace FLECS
+} // namespace flecs

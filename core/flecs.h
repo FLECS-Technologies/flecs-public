@@ -18,7 +18,7 @@
 #include <string_view>
 #include <tuple>
 
-namespace FLECS {
+namespace flecs {
 
 #define LOG_TRACE(...) // trace logging disabled by default
 #ifndef LOG_TRACE
@@ -32,4 +32,4 @@ inline auto LOG_TRACE(const char* msg, Args&&... args)
 // generalized function return type: result code + error message
 using result_t = std::tuple<int, std::string>;
 
-} // namespace FLECS
+} // namespace flecs

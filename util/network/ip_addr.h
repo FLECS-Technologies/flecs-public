@@ -22,7 +22,7 @@
 #include <tuple>
 #include <variant>
 
-namespace FLECS {
+namespace flecs {
 
 class ip_addr_t
 {
@@ -103,4 +103,4 @@ private:
 
 using subnet_mask_t = ip_addr_t;
 
-} // namespace FLECS
+} // namespace flecs

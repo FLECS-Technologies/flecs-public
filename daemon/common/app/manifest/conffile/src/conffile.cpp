@@ -18,7 +18,7 @@
 
 #include "util/string/string_utils.h"
 
-namespace FLECS {
+namespace flecs {
 
 conffile_t::conffile_t(std::string_view str)
     : _local{}
@@ -178,4 +178,4 @@ auto operator!=(const conffile_t& lhs, const conffile_t& rhs) //
     return !(lhs == rhs);
 }
 
-} // namespace FLECS
+} // namespace flecs

@@ -16,7 +16,7 @@
 
 #include "module_base/module.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 class marketplace_t FLECS_FINAL_UNLESS_TESTED : public base_t
@@ -45,4 +45,4 @@ protected:
 };
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

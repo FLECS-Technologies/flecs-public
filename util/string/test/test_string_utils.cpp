@@ -26,7 +26,7 @@ TEST(string_utils, stringify_delim1)
     auto str2 = "test";
     auto str3 = "case";
 
-    const auto actual = FLECS::stringify_delim('\0', str1, str2, str3);
+    const auto actual = flecs::stringify_delim('\0', str1, str2, str3);
 
     EXPECT_EQ(actual, expected);
 }
@@ -40,7 +40,7 @@ TEST(string_utils, stringify_delim2)
     auto str2 = "test";
     auto str3 = "case";
 
-    const auto actual = FLECS::stringify_delim('-', str1, str2, str3);
+    const auto actual = flecs::stringify_delim('-', str1, str2, str3);
 
     EXPECT_EQ(actual, expected);
 }
@@ -54,7 +54,7 @@ TEST(string_utils, stringify_delim3)
     auto str2 = "test-case";
     auto str3 = 3;
 
-    const auto actual = FLECS::stringify_delim('\0', str1, str2, str3);
+    const auto actual = flecs::stringify_delim('\0', str1, str2, str3);
 
     EXPECT_EQ(actual, expected);
 }
@@ -66,7 +66,7 @@ TEST(string_utils, stringify_delim4)
     const auto expected = std::string{"1,2,3,4,5"s};
     const auto v = std::vector<int>{1, 2, 3, 4, 5};
 
-    const auto actual = FLECS::stringify_delim(",", v);
+    const auto actual = flecs::stringify_delim(",", v);
 
     EXPECT_EQ(actual, expected);
 }
@@ -75,7 +75,7 @@ TEST(string_utils, split1)
 {
     const auto str = std::string{"flecs-test-case"};
 
-    const auto actual = FLECS::split(str, '-');
+    const auto actual = flecs::split(str, '-');
 
     ASSERT_EQ(actual.size(), 3);
     ASSERT_EQ(actual[0], "flecs");
@@ -87,7 +87,7 @@ TEST(string_utils, split2)
 {
     const auto str = std::string{"flecs-test-case"};
 
-    const auto actual = FLECS::split(std::string_view{str}, '-');
+    const auto actual = flecs::split(std::string_view{str}, '-');
 
     ASSERT_EQ(actual.size(), 3);
     ASSERT_EQ(actual[0], "flecs");
@@ -99,7 +99,7 @@ TEST(string_utils, split3)
 {
     const auto str = std::string{"flecs-test-case"};
 
-    const auto actual = FLECS::split(str.c_str(), '-');
+    const auto actual = flecs::split(str.c_str(), '-');
 
     ASSERT_EQ(actual.size(), 3);
     ASSERT_EQ(actual[0], "flecs");
@@ -111,7 +111,7 @@ TEST(string_utils, split_first1)
 {
     const auto str = std::string{"flecs-test-case"};
 
-    const auto [first, second] = FLECS::split_first(str, '-');
+    const auto [first, second] = flecs::split_first(str, '-');
 
     ASSERT_EQ(first, "flecs");
     ASSERT_EQ(second, "test-case");
@@ -121,7 +121,7 @@ TEST(string_utils, split_first2)
 {
     const auto str = std::string{"flecs-"};
 
-    const auto [first, second] = FLECS::split_first(str, '-');
+    const auto [first, second] = flecs::split_first(str, '-');
 
     ASSERT_EQ(first, "flecs");
     ASSERT_EQ(second, "");
@@ -131,7 +131,7 @@ TEST(string_utils, split_first3)
 {
     const auto str = std::string{"flecs"};
 
-    const auto [first, second] = FLECS::split_first(str, '-');
+    const auto [first, second] = flecs::split_first(str, '-');
 
     ASSERT_EQ(first, "flecs");
     ASSERT_EQ(second, "");
@@ -141,7 +141,7 @@ TEST(string_utils, split_first4)
 {
     const auto str = std::string{"-"};
 
-    const auto [first, second] = FLECS::split_first(str, '-');
+    const auto [first, second] = flecs::split_first(str, '-');
 
     ASSERT_EQ(first, "");
     ASSERT_EQ(second, "");
@@ -153,7 +153,7 @@ TEST(string_utils, ltrim)
 
     auto str = "\r\n\t    String with leading whitespaces    \t\r\n"s;
 
-    ASSERT_EQ(FLECS::ltrim(str), "String with leading whitespaces    \t\r\n");
+    ASSERT_EQ(flecs::ltrim(str), "String with leading whitespaces    \t\r\n");
 }
 
 TEST(string_utils, rtrim)
@@ -162,7 +162,7 @@ TEST(string_utils, rtrim)
 
     auto str = "\r\n\t    String with trailing whitespaces    \t\r\n"s;
 
-    ASSERT_EQ(FLECS::rtrim(str), "\r\n\t    String with trailing whitespaces");
+    ASSERT_EQ(flecs::rtrim(str), "\r\n\t    String with trailing whitespaces");
 }
 
 TEST(string_utils, trim)
@@ -171,5 +171,5 @@ TEST(string_utils, trim)
 
     auto str = "\r\n\t    String with leading and trailing whitespaces    \t\r\n"s;
 
-    ASSERT_EQ(FLECS::trim(str), "String with leading and trailing whitespaces");
+    ASSERT_EQ(flecs::trim(str), "String with leading and trailing whitespaces");
 }

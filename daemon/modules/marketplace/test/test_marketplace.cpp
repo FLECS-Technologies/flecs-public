@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 #include "marketplace/marketplace.h"
 
-class module_marketplace_test_t : public FLECS::module::marketplace_t
+class module_marketplace_test_t : public flecs::module::marketplace_t
 {
 public:
     module_marketplace_test_t() = default;
@@ -25,26 +25,26 @@ public:
     auto do_init() //
         -> void override
     {
-        return FLECS::module::marketplace_t::do_init();
+        return flecs::module::marketplace_t::do_init();
     }
     auto do_deinit() //
         -> void override
     {
-        return FLECS::module::marketplace_t::do_deinit();
+        return flecs::module::marketplace_t::do_deinit();
     }
 
     auto login(std::string user, std::string token)
     {
-        return FLECS::module::marketplace_t::login(std::move(user), std::move(token));
+        return flecs::module::marketplace_t::login(std::move(user), std::move(token));
     }
 
     auto logout(std::string_view user)
     {
-        return FLECS::module::marketplace_t::logout(std::move(user));
+        return flecs::module::marketplace_t::logout(std::move(user));
     }
 
-    auto& user() const noexcept { return FLECS::module::marketplace_t::user(); }
-    auto& token() const noexcept { return FLECS::module::marketplace_t::token(); }
+    auto& user() const noexcept { return flecs::module::marketplace_t::user(); }
+    auto& token() const noexcept { return flecs::module::marketplace_t::token(); }
 };
 
 class test_api_t
@@ -57,19 +57,19 @@ public:
     auto start() //
         -> void
     {
-        _ = FLECS::flecs_api_t::instance()
+        _ = flecs::flecs_api_t::instance()
                 .app()
                 .loglevel(crow::LogLevel::Critical)
                 .bindaddr("127.0.0.1")
                 .port(18951)
                 .run_async();
-        FLECS::flecs_api_t::instance().app().wait_for_server_start();
+        flecs::flecs_api_t::instance().app().wait_for_server_start();
     }
 
     auto stop() //
         -> void
     {
-        FLECS::flecs_api_t::instance().app().stop();
+        flecs::flecs_api_t::instance().app().stop();
         _.wait();
     }
 
@@ -93,7 +93,7 @@ TEST(marketplace, login)
 {
     using std::operator""s;
 
-    const auto post_json = FLECS::json_t({{"user", user}, {"token", token}});
+    const auto post_json = flecs::json_t({{"user", user}, {"token", token}});
     const auto out_expected = R"({"additionalInfo":"OK"})"s;
 
     auto res = cpr::Post(
@@ -112,7 +112,7 @@ TEST(marketplace, logout)
 {
     using std::operator""s;
 
-    const auto post_json = FLECS::json_t({{"user", user}});
+    const auto post_json = flecs::json_t({{"user", user}});
     const auto out_expected = R"({"additionalInfo":"OK"})"s;
 
     auto res = cpr::Post(

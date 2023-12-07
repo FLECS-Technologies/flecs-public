@@ -22,7 +22,7 @@
 #include "app_status.h"
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 
 class app_manifest_t;
 
@@ -75,4 +75,4 @@ private:
     std::weak_ptr<app_manifest_t> _manifest;
 };
 
-} // namespace FLECS
+} // namespace flecs

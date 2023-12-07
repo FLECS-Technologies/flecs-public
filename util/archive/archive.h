@@ -16,7 +16,7 @@
 
 #include "util/fs/fs.h"
 
-namespace FLECS {
+namespace flecs {
 namespace archive {
 
 auto compress(const fs::path& archive, const std::vector<fs::path>& files, const fs::path& wd) //
@@ -29,4 +29,4 @@ auto decompress(const fs::path& archive, const fs::path& dest_dir) //
     -> int;
 
 } // namespace archive
-} // namespace FLECS
+} // namespace flecs

@@ -14,7 +14,7 @@
 
 #include "app_key.h"
 
-namespace FLECS {
+namespace flecs {
 
 app_key_t::app_key_t(std::tuple<app_name_t, std::string> app_key)
     : _key{std::move(app_key)}
@@ -63,4 +63,4 @@ auto to_string(const app_key_t& app_key) //
     return app_key.name().data() + " ("s + app_key.version().data() + ")"s;
 }
 
-} // namespace FLECS
+} // namespace flecs

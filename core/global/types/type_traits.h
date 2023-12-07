@@ -17,7 +17,7 @@
 #include <string>
 #include <type_traits>
 
-namespace FLECS {
+namespace flecs {
 
 // is_std_string and is_std_string_v
 template <typename T>
@@ -91,4 +91,4 @@ struct is_std_container<
 template <typename T>
 inline constexpr bool is_std_container_v = is_std_container<T>::value;
 
-} // namespace FLECS
+} // namespace flecs

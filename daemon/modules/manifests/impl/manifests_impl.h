@@ -18,7 +18,7 @@
 
 #include "manifests.h"
 
-namespace FLECS {
+namespace flecs {
 
 class app_key_t;
 class app_manifest_t;
@@ -28,7 +28,7 @@ namespace impl {
 
 class manifests_t
 {
-    friend class FLECS::module::manifests_t;
+    friend class flecs::module::manifests_t;
 
 public:
     ~manifests_t();
@@ -65,18 +65,18 @@ public:
         -> fs::path;
 
 private:
-    explicit manifests_t(FLECS::module::manifests_t* parent);
+    explicit manifests_t(flecs::module::manifests_t* parent);
 
     auto do_init() //
         -> void;
     auto do_deinit() //
         -> void;
 
-    FLECS::module::manifests_t* _parent;
+    flecs::module::manifests_t* _parent;
     fs::path _base_path;
     std::vector<std::shared_ptr<app_manifest_t>> _manifests;
 };
 
 } // namespace impl
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

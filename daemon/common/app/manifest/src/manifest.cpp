@@ -16,7 +16,7 @@
 
 #include <fstream>
 
-namespace FLECS {
+namespace flecs {
 
 #define REQUIRED_TYPED_YAML_VALUE(yaml, value, target) \
     do {                                               \
@@ -295,4 +295,4 @@ auto from_json(const json_t& json, app_manifest_t& app_manifest) //
     app_manifest.validate();
 }
 
-} // namespace FLECS
+} // namespace flecs

@@ -16,7 +16,7 @@
 
 #include "factory/factory.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace {
@@ -76,4 +76,4 @@ auto marketplace_t::logout(std::string_view /*user*/) //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

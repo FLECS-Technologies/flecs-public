@@ -18,7 +18,7 @@
 
 #include <utility>
 
-namespace FLECS {
+namespace flecs {
 namespace udev {
 
 udev_t::udev_t()
@@ -75,4 +75,4 @@ auto udev_t::validate_owner() //
 }
 
 } // namespace udev
-} // namespace FLECS
+} // namespace flecs

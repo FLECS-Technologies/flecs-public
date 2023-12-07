@@ -20,7 +20,7 @@
 #include "app_name.h"
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 
 class app_key_t
 {
@@ -53,4 +53,4 @@ private:
 auto to_string(const app_key_t& app_key) //
     -> std::string;
 
-} // namespace FLECS
+} // namespace flecs

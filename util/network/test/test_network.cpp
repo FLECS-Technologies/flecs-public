@@ -21,9 +21,9 @@ TEST(util_network, subnet_mask_to_cidr_v4)
     const auto subnet_mask_2 = "255.255.0.0";
     const auto subnet_mask_invalid = "notasubnetmask";
 
-    ASSERT_EQ(FLECS::subnet_mask_to_cidr_v4(subnet_mask_1), 22);
-    ASSERT_EQ(FLECS::subnet_mask_to_cidr_v4(subnet_mask_2), 16);
-    ASSERT_EQ(FLECS::subnet_mask_to_cidr_v4(subnet_mask_invalid), 0);
+    ASSERT_EQ(flecs::subnet_mask_to_cidr_v4(subnet_mask_1), 22);
+    ASSERT_EQ(flecs::subnet_mask_to_cidr_v4(subnet_mask_2), 16);
+    ASSERT_EQ(flecs::subnet_mask_to_cidr_v4(subnet_mask_invalid), 0);
 }
 
 TEST(util_network, cidr_to_subnet_mask_v4)
@@ -32,9 +32,9 @@ TEST(util_network, cidr_to_subnet_mask_v4)
     const auto cidr_2 = "127.0.0.0/8";
     const auto cidr_invalid = "notacidrsubnet";
 
-    ASSERT_EQ(FLECS::cidr_to_subnet_mask_v4(cidr_1), "255.255.255.0");
-    ASSERT_EQ(FLECS::cidr_to_subnet_mask_v4(cidr_2), "255.0.0.0");
-    ASSERT_EQ(FLECS::cidr_to_subnet_mask_v4(cidr_invalid), "");
+    ASSERT_EQ(flecs::cidr_to_subnet_mask_v4(cidr_1), "255.255.255.0");
+    ASSERT_EQ(flecs::cidr_to_subnet_mask_v4(cidr_2), "255.0.0.0");
+    ASSERT_EQ(flecs::cidr_to_subnet_mask_v4(cidr_invalid), "");
 }
 
 TEST(util_network, ipv4_to_network)
@@ -46,7 +46,7 @@ TEST(util_network, ipv4_to_network)
     const auto ip_3 = "169.254.52.1";
     const auto subnet_mask_3 = "255.255.0.0";
 
-    ASSERT_EQ(FLECS::ipv4_to_network(ip_1, subnet_mask_1), "192.168.96.0/22");
-    ASSERT_EQ(FLECS::ipv4_to_network(ip_2, subnet_mask_2), "127.0.0.0/8");
-    ASSERT_EQ(FLECS::ipv4_to_network(ip_3, subnet_mask_3), "169.254.0.0/16");
+    ASSERT_EQ(flecs::ipv4_to_network(ip_1, subnet_mask_1), "192.168.96.0/22");
+    ASSERT_EQ(flecs::ipv4_to_network(ip_2, subnet_mask_2), "127.0.0.0/8");
+    ASSERT_EQ(flecs::ipv4_to_network(ip_3, subnet_mask_3), "169.254.0.0/16");
 }

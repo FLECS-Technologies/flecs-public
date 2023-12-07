@@ -27,7 +27,7 @@ public:
         std::ofstream{filename} << content;
     }
 
-    ~manifest_writer_t() { FLECS::fs::remove(_filename); }
+    ~manifest_writer_t() { flecs::fs::remove(_filename); }
 
     auto& filename() const noexcept { return _filename; }
 
@@ -70,8 +70,8 @@ private:
 #define G_ENV_VAR3_VALUE "Value with spaces"
 #define G_ENV_VAR4_KEY "my-env-with-dashes"
 #define G_ENV_VAR4_VALUE "value-with-dashes"
-#define G_ENVS        \
-    G_YAML_KEY("env") \
+#define G_ENVS                                                     \
+    G_YAML_KEY("env")                                              \
     G_YAML_INDENT G_YAML_MAPPING(G_ENV_VAR1_KEY, G_ENV_VAR1_VALUE) \
     G_YAML_INDENT G_YAML_MAPPING(G_ENV_VAR2_KEY, G_ENV_VAR2_VALUE) \
     G_YAML_INDENT G_YAML_MAPPING(G_ENV_VAR3_KEY, G_ENV_VAR3_VALUE) \
@@ -141,7 +141,7 @@ TEST(daemon_app, minimal_app)
 {
     auto manifest = manifest_writer_t{"minimal_app.yml", manifest_header()};
 
-    auto app = FLECS::app_manifest_t::from_yaml_file(manifest.filename());
+    auto app = flecs::app_manifest_t::from_yaml_file(manifest.filename());
 
     ASSERT_TRUE(app.is_valid());
     ASSERT_EQ(app.app(), G_APP);
@@ -156,7 +156,7 @@ TEST(daemon_app, empty_app)
 {
     auto manifest = manifest_writer_t{"empty_app.yml", std::string{}};
 
-    auto app = FLECS::app_manifest_t::from_yaml_file(manifest.filename());
+    auto app = flecs::app_manifest_t::from_yaml_file(manifest.filename());
 
     ASSERT_FALSE(app.is_valid());
 }
@@ -166,7 +166,7 @@ TEST(daemon_app, complex_app)
     auto yaml = manifest_header();
     extend_manifest(yaml);
 
-    auto app = FLECS::app_manifest_t::from_yaml_string(yaml);
+    auto app = flecs::app_manifest_t::from_yaml_string(yaml);
 
     ASSERT_TRUE(app.is_valid());
     ASSERT_EQ(app.description(), G_DESCRIPTION);
@@ -176,49 +176,49 @@ TEST(daemon_app, complex_app)
     ASSERT_EQ(app.interactive(), true);
     ASSERT_EQ(
         (*app.env().cbegin()),
-        (FLECS::mapped_env_var_t{FLECS::env_var_t{G_ENV_VAR1_KEY}, G_ENV_VAR1_VALUE}));
+        (flecs::mapped_env_var_t{flecs::env_var_t{G_ENV_VAR1_KEY}, G_ENV_VAR1_VALUE}));
     ASSERT_EQ(
         (*(++app.env().cbegin())),
-        (FLECS::mapped_env_var_t{FLECS::env_var_t{G_ENV_VAR4_KEY}, G_ENV_VAR4_VALUE}));
+        (flecs::mapped_env_var_t{flecs::env_var_t{G_ENV_VAR4_KEY}, G_ENV_VAR4_VALUE}));
     ASSERT_EQ(
         (std::find_if(
              app.volumes().cbegin(),
              app.volumes().cend(),
-             [](const FLECS::volume_t& v) { return v.host() == G_VOLUME_LOCAL_1; })
+             [](const flecs::volume_t& v) { return v.host() == G_VOLUME_LOCAL_1; })
              ->container()),
         G_VOLUME_CONTAINER_1);
     ASSERT_EQ(
         (std::find_if(
              app.volumes().cbegin(),
              app.volumes().cend(),
-             [](const FLECS::volume_t& v) { return v.host() == G_VOLUME_LOCAL_2; })
+             [](const flecs::volume_t& v) { return v.host() == G_VOLUME_LOCAL_2; })
              ->container()),
         G_VOLUME_CONTAINER_2);
     ASSERT_EQ(
         (std::find_if(
              app.volumes().cbegin(),
              app.volumes().cend(),
-             [](const FLECS::volume_t& v) { return v.host() == G_VOLUME_LOCAL_3; })
+             [](const flecs::volume_t& v) { return v.host() == G_VOLUME_LOCAL_3; })
              ->container()),
         G_VOLUME_CONTAINER_3);
     ASSERT_EQ((app.args()[0]), G_ARG_1);
     ASSERT_EQ((app.args()[1]), G_ARG_2);
     ASSERT_EQ((app.args()[2]), G_ARG_3);
     ASSERT_EQ((app.networks()[0].name()), "flecs");
-    ASSERT_EQ((app.networks()[0].type()), FLECS::network_type_e::Bridge);
-    ASSERT_EQ((app.ports()[0].host_port_range()), FLECS::port_range_t{G_PORT_LOCAL_1});
-    ASSERT_EQ((app.ports()[0].container_port_range()), FLECS::port_range_t{G_PORT_CONTAINER_1});
-    ASSERT_EQ((app.ports()[1].host_port_range()), FLECS::port_range_t{G_PORT_LOCAL_2});
-    ASSERT_EQ((app.ports()[1].container_port_range()), FLECS::port_range_t{G_PORT_CONTAINER_2});
+    ASSERT_EQ((app.networks()[0].type()), flecs::network_type_e::Bridge);
+    ASSERT_EQ((app.ports()[0].host_port_range()), flecs::port_range_t{G_PORT_LOCAL_1});
+    ASSERT_EQ((app.ports()[0].container_port_range()), flecs::port_range_t{G_PORT_CONTAINER_1});
+    ASSERT_EQ((app.ports()[1].host_port_range()), flecs::port_range_t{G_PORT_LOCAL_2});
+    ASSERT_EQ((app.ports()[1].container_port_range()), flecs::port_range_t{G_PORT_CONTAINER_2});
     ASSERT_EQ((app.conffiles()[0].local()), G_CONFFILE_LOCAL);
     ASSERT_EQ((app.conffiles()[0].container()), G_CONFFILE_CONTAINER);
     ASSERT_EQ((*app.devices().begin()), G_DEVICE);
-    ASSERT_EQ((app.startup_options()[0]), FLECS::startup_option_t::INIT_NETWORK_AFTER_START);
+    ASSERT_EQ((app.startup_options()[0]), flecs::startup_option_t::INIT_NETWORK_AFTER_START);
 }
 
 TEST(daemon_app, invalid_file)
 {
-    const auto app_manifest = FLECS::app_manifest_t::from_yaml_file("/no/such/manifest.yml");
+    const auto app_manifest = flecs::app_manifest_t::from_yaml_file("/no/such/manifest.yml");
 
     ASSERT_FALSE(app_manifest.is_valid());
 }
@@ -228,9 +228,9 @@ TEST(daemon_app, to_json)
     auto yaml = manifest_header();
     extend_manifest(yaml);
 
-    const auto app_manifest = FLECS::app_manifest_t::from_yaml_string(yaml);
+    const auto app_manifest = flecs::app_manifest_t::from_yaml_string(yaml);
 
-    const auto json = FLECS::json_t(app_manifest);
+    const auto json = flecs::json_t(app_manifest);
     const auto json_expected =
         R"-({"app":"tech.flecs.test-app",)-"
         R"-("version":"1.2.3.4-f1",)-"

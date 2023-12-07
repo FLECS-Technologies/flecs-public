@@ -30,7 +30,7 @@
 #include "util/string/string_utils.h"
 #include "util/sysinfo/sysinfo.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace {
@@ -190,4 +190,4 @@ auto system_t::get_network_adapters() const //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

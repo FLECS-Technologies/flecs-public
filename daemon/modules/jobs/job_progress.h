@@ -23,7 +23,7 @@
 #include "job_status.h"
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 
 class job_progress_t
 {

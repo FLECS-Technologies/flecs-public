@@ -19,14 +19,14 @@
 
 TEST(netif_type, to_string)
 {
-    const auto types = std::array<FLECS::netif::type, 7>{
-        FLECS::netif::type::Wired,
-        FLECS::netif::type::Wireless,
-        FLECS::netif::type::Local,
-        FLECS::netif::type::Bridge,
-        FLECS::netif::type::Virtual,
-        FLECS::netif::type::Unknown,
-        static_cast<FLECS::netif::type>(-1),
+    const auto types = std::array<flecs::netif::type, 7>{
+        flecs::netif::type::Wired,
+        flecs::netif::type::Wireless,
+        flecs::netif::type::Local,
+        flecs::netif::type::Bridge,
+        flecs::netif::type::Virtual,
+        flecs::netif::type::Unknown,
+        static_cast<flecs::netif::type>(-1),
     };
 
     const auto strings = std::array<std::string_view, 7>{
@@ -44,7 +44,7 @@ TEST(netif_type, to_string)
     }
 
     for (size_t i = 0; i < types.size() - 1; ++i) {
-        ASSERT_EQ(FLECS::netif::from_string(strings[i]), types[i]);
+        ASSERT_EQ(flecs::netif::from_string(strings[i]), types[i]);
     }
 }
 
@@ -64,21 +64,21 @@ TEST(netif_type, from_adapter_name)
         "custom-interface",
     };
 
-    const auto types = std::array<FLECS::netif::type, 11>{
-        FLECS::netif::type::Local,
-        FLECS::netif::type::Local,
-        FLECS::netif::type::Wired,
-        FLECS::netif::type::Wired,
-        FLECS::netif::type::Wireless,
-        FLECS::netif::type::Wireless,
-        FLECS::netif::type::Bridge,
-        FLECS::netif::type::Bridge,
-        FLECS::netif::type::Virtual,
-        FLECS::netif::type::Unknown,
-        FLECS::netif::type::Unknown,
+    const auto types = std::array<flecs::netif::type, 11>{
+        flecs::netif::type::Local,
+        flecs::netif::type::Local,
+        flecs::netif::type::Wired,
+        flecs::netif::type::Wired,
+        flecs::netif::type::Wireless,
+        flecs::netif::type::Wireless,
+        flecs::netif::type::Bridge,
+        flecs::netif::type::Bridge,
+        flecs::netif::type::Virtual,
+        flecs::netif::type::Unknown,
+        flecs::netif::type::Unknown,
     };
 
     for (size_t i = 0; i < adapter_names.size(); ++i) {
-        ASSERT_EQ(FLECS::netif::from_adapter_name(adapter_names[i]), types[i]);
+        ASSERT_EQ(flecs::netif::from_adapter_name(adapter_names[i]), types[i]);
     }
 }

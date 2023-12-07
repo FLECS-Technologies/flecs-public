@@ -19,7 +19,7 @@
 
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 
 class conffile_t
 {
@@ -86,4 +86,4 @@ auto operator==(const conffile_t& lhs, const conffile_t& rhs) //
 auto operator!=(const conffile_t& lhs, const conffile_t& rhs) //
     -> bool;
 
-} // namespace FLECS
+} // namespace flecs

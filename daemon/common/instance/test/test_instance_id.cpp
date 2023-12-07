@@ -19,29 +19,29 @@
 TEST(instance_id, init)
 {
     {
-        const auto uut = FLECS::instance_id_t{13};
+        const auto uut = flecs::instance_id_t{13};
         ASSERT_EQ(uut.get(), 13);
     }
 
     {
-        const auto uut = FLECS::instance_id_t{"01a55555"};
+        const auto uut = flecs::instance_id_t{"01a55555"};
         ASSERT_EQ(uut.get(), 0x01a55555);
     }
 
     {
-        const auto uut = FLECS::instance_id_t{"invalid"};
+        const auto uut = flecs::instance_id_t{"invalid"};
         ASSERT_EQ(uut.get(), 0);
     }
 
     {
-        const auto uut = FLECS::instance_id_t{"1a2b3c4d5e6f"};
+        const auto uut = flecs::instance_id_t{"1a2b3c4d5e6f"};
         ASSERT_EQ(uut.get(), 0);
     }
 }
 
 TEST(instance_id, regenerate)
 {
-    auto uut = FLECS::instance_id_t{};
+    auto uut = flecs::instance_id_t{};
     const auto old_id = uut.get();
     uut.regenerate();
     ASSERT_NE(old_id, uut.get());
@@ -49,14 +49,14 @@ TEST(instance_id, regenerate)
 
 TEST(instance_id, hex)
 {
-    auto uut = FLECS::instance_id_t{12648430};
+    auto uut = flecs::instance_id_t{12648430};
     ASSERT_EQ(uut.hex(), "00c0ffee");
 }
 
 TEST(instance_id, compare)
 {
-    const auto uut1 = FLECS::instance_id_t{2};
-    const auto uut2 = FLECS::instance_id_t{3};
+    const auto uut1 = flecs::instance_id_t{2};
+    const auto uut2 = flecs::instance_id_t{3};
 
     ASSERT_LT(uut1, uut2);
     ASSERT_LE(uut1, uut2);

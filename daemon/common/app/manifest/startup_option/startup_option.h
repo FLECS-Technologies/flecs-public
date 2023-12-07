@@ -16,7 +16,7 @@
 
 #include <string_view>
 
-namespace FLECS {
+namespace flecs {
 
 enum class startup_option_t : unsigned {
     INVALID = 0x00000000,
@@ -26,4 +26,4 @@ enum class startup_option_t : unsigned {
 auto startup_option_from_string(std::string_view str) //
     -> startup_option_t;
 
-} // namespace FLECS
+} // namespace flecs

@@ -21,7 +21,7 @@
 #include <list>
 #include <string>
 
-namespace FLECS {
+namespace flecs {
 
 class process_t
 {
@@ -76,4 +76,4 @@ private:
     int _status;
 };
 
-} // namespace FLECS
+} // namespace flecs

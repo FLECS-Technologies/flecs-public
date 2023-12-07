@@ -18,7 +18,7 @@
 
 #include "deployment.h"
 
-namespace FLECS {
+namespace flecs {
 
 class deployment_docker_t : public deployment_t
 {
@@ -102,4 +102,4 @@ private:
         -> result_t;
 };
 
-} // namespace FLECS
+} // namespace flecs

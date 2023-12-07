@@ -19,7 +19,7 @@
 #include "impl/apps_impl.h"
 #include "util/datetime/datetime.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace {
@@ -245,4 +245,4 @@ auto apps_t::is_installed(const app_key_t& app_key) const noexcept //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs

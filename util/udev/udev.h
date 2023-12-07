@@ -19,7 +19,7 @@
 
 struct udev;
 
-namespace FLECS {
+namespace flecs {
 namespace udev {
 
 class udev_t
@@ -61,4 +61,4 @@ private:
 };
 
 } // namespace udev
-} // namespace FLECS
+} // namespace flecs

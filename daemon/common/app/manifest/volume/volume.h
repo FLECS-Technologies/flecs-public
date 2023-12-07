@@ -18,7 +18,7 @@
 
 #include "util/json/json.h"
 
-namespace FLECS {
+namespace flecs {
 
 class volume_t
 {
@@ -77,4 +77,4 @@ inline volume_t::volume_type_t volume_type_from_string(std::string_view str)
     return volume_types.count(str) ? volume_types.at(str) : volume_t::volume_type_t::NONE;
 }
 
-} // namespace FLECS
+} // namespace flecs

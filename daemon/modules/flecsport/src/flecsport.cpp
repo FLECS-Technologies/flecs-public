@@ -20,7 +20,7 @@
 #include "impl/flecsport_impl.h"
 #include "util/datetime/datetime.h"
 
-namespace FLECS {
+namespace flecs {
 namespace module {
 
 namespace {
@@ -153,4 +153,4 @@ auto flecsport_t::http_import_from(std::string archive) //
 }
 
 } // namespace module
-} // namespace FLECS
+} // namespace flecs
