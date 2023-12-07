@@ -39,9 +39,6 @@ public:
     }
 
     auto logout(std::string_view user) { return flecs::module::console_t::logout(std::move(user)); }
-
-    auto& user() const noexcept { return flecs::module::console_t::user(); }
-    auto& token() const noexcept { return flecs::module::console_t::token(); }
 };
 
 class test_api_t
@@ -84,6 +81,13 @@ TEST(console, init)
 {
     uut.do_init();
     api.start();
+}
+
+TEST(console, base_url)
+{
+    const auto url = uut.base_url();
+
+    ASSERT_EQ(url, "https://console-dev.flecs.tech");
 }
 
 TEST(console, login)
