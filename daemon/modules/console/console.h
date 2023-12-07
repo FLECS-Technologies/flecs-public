@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <cinttypes>
+#include <string>
 #include <string_view>
 
 #include "module_base/module.h"

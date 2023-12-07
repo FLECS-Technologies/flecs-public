@@ -14,6 +14,17 @@
 
 flecs_add_module(
     MODULE_NAME console
+    ADDITIONAL_HEADERS
+        types/auth_response.h
+        types/feature_flags.h
+        types/jwt.h
+        types/user.h
+        types.h
+    ADDITIONAL_SOURCES
+        src/types/auth_response.cpp
+        src/types/feature_flags.cpp
+        src/types/jwt.cpp
+        src/types/user.cpp
 )
 
 add_subdirectory(test)
