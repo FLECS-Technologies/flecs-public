@@ -42,16 +42,18 @@ namespace impl {
 static auto acquire_download_token(std::string_view license_key) //
     -> std::string
 {
-    const auto mp_api = dynamic_cast<const module::console_t*>(api::query_module("console").get());
-    if (!mp_api) {
+    const auto console_api =
+        dynamic_cast<const module::console_t*>(api::query_module("console").get());
+    if (!console_api) {
         return "";
     }
 
-    const auto wc_user_token = mp_api->token();
+    const auto auth = console_api->authentication();
 
-    auto post_json = json_t{};
-    post_json["wc_user_token"] = wc_user_token;
-    post_json["license_key"] = license_key;
+    auto post_json = json_t({
+        {"wc_user_token", auth.jwt().token()},
+        {"license_key", license_key},
+    });
 
 #ifndef NDEBUG
     const auto url = cpr::Url{"https://marketplace-staging.flecs.tech/api/v1/app/download"};

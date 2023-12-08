@@ -17,6 +17,7 @@ if(BUILD_TESTING)
 
     add_executable(daemon.modules.console.test
         test_console.cpp
+        test_constants.cpp
         test_types.cpp
     )
 

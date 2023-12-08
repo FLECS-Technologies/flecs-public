@@ -14,28 +14,11 @@
 
 #include "daemon/modules/console/types.h"
 #include "gtest/gtest.h"
+#include "test_constants.h"
 
 TEST(console, types)
 {
-    auto user_json = flecs::json_t::parse(R"-(
-    {
-        "user": {
-            "ID": 123,
-            "user_email": "user@flecs.tech",
-            "user_login": "user",
-            "display_name": "Some FLECS user"
-        },
-        "jwt": {
-            "token": "eyJ0eXAiO...",
-            "token_expires": 1641034800
-        },
-        "feature_flags": {
-            "isVendor": true,
-            "isWhitelabeled": false
-        }
-    })-");
-
-    const auto uut = user_json.get<flecs::console::auth_response_t>();
+    const auto uut = auth_json.get<flecs::console::auth_response_t>();
 
     ASSERT_EQ(uut.user().id(), 123);
     ASSERT_EQ(uut.user().user_email(), "user@flecs.tech");

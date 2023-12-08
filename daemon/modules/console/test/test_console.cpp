@@ -16,6 +16,7 @@
 
 #include "console/console.h"
 #include "gtest/gtest.h"
+#include "test_constants.h"
 
 class module_console_test_t : public flecs::module::console_t
 {
@@ -32,13 +33,6 @@ public:
     {
         return flecs::module::console_t::do_deinit();
     }
-
-    auto login(std::string user, std::string token)
-    {
-        return flecs::module::console_t::login(std::move(user), std::move(token));
-    }
-
-    auto logout(std::string_view user) { return flecs::module::console_t::logout(std::move(user)); }
 };
 
 class test_api_t
@@ -90,42 +84,27 @@ TEST(console, base_url)
     ASSERT_EQ(url, "https://console-dev.flecs.tech");
 }
 
-TEST(console, login)
+TEST(console, store_authentication)
 {
     using std::operator""s;
 
-    const auto post_json = flecs::json_t({{"user", user}, {"token", token}});
-    const auto out_expected = R"({"additionalInfo":"OK"})"s;
-
-    auto res = cpr::Post(
-        cpr::Url{"http://127.0.0.1:18951/v2/console/login"},
+    auto res = cpr::Put(
+        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
         cpr::Header{{{"Content-Type"}, {"application/json"}}},
-        cpr::Body{post_json.dump()});
+        cpr::Body{auth_json.dump()});
 
-    ASSERT_EQ(res.status_code, cpr::status::HTTP_OK);
-    ASSERT_EQ(res.header.find("Content-Type")->second, "application/json");
-    ASSERT_EQ(res.text, out_expected);
-    ASSERT_EQ(uut.user(), user);
-    ASSERT_EQ(uut.token(), token);
+    ASSERT_EQ(res.status_code, cpr::status::HTTP_NO_CONTENT);
 }
 
-TEST(console, logout)
+TEST(console, delete_authentication)
 {
     using std::operator""s;
 
-    const auto post_json = flecs::json_t({{"user", user}});
-    const auto out_expected = R"({"additionalInfo":"OK"})"s;
+    auto res = cpr::Delete(
+        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
+        cpr::Header{{{"Content-Type"}, {"application/json"}}});
 
-    auto res = cpr::Post(
-        cpr::Url{"http://127.0.0.1:18951/v2/console/logout"},
-        cpr::Header{{{"Content-Type"}, {"application/json"}}},
-        cpr::Body{post_json.dump()});
-
-    ASSERT_EQ(res.status_code, cpr::status::HTTP_OK);
-    ASSERT_EQ(res.header.find("Content-Type")->second, "application/json");
-    ASSERT_EQ(res.text, out_expected);
-    ASSERT_TRUE(uut.user().empty());
-    ASSERT_TRUE(uut.token().empty());
+    ASSERT_EQ(res.status_code, cpr::status::HTTP_NO_CONTENT);
 }
 
 TEST(console, deinit)
