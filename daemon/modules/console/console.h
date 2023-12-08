@@ -15,24 +15,32 @@
 #pragma once
 
 #include <cinttypes>
+#include <memory>
 #include <string>
 #include <string_view>
 
 #include "module_base/module.h"
+#include "types.h"
 
 namespace flecs {
 namespace module {
+
+namespace impl {
+class console_t;
+} // namespace impl
 
 class console_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
     friend class factory_t;
 
 public:
+    ~console_t() override;
+
     static constexpr auto base_url() //
         -> std::string_view;
 
-    auto& user() const noexcept { return _user; }
-    auto& token() const noexcept { return _token; }
+    auto authentication() const noexcept //
+        -> const console::auth_response_t&;
 
 protected:
     console_t();
@@ -42,13 +50,12 @@ protected:
     auto do_deinit() //
         -> void override;
 
-    auto login(std::string user, std::string token) //
+    auto store_authentication(console::auth_response_t auth) //
         -> crow::response;
-    auto logout(std::string_view user) //
+    auto delete_authentication() //
         -> crow::response;
 
-    std::string _user;
-    std::string _token;
+    std::unique_ptr<impl::console_t> _impl;
 };
 
 constexpr auto console_t::base_url() //

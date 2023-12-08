@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "console.h"
+#include "daemon/modules/console/console.h"
+
+#include "daemon/modules/console/impl/console_impl.h"
 #include "factory/factory.h"
 
 namespace flecs {
@@ -23,55 +25,48 @@ register_module_t<console_t> _reg("console");
 }
 
 console_t::console_t()
+    : _impl{std::make_unique<impl::console_t>()}
 {}
+
+console_t::~console_t() = default;
 
 auto console_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/console/login").methods("POST"_method)([this](const crow::request& req) {
-        auto response = json_t{};
-        const auto args = parse_json(req.body);
-        REQUIRED_JSON_VALUE(args, user);
-        REQUIRED_JSON_VALUE(args, token);
+    FLECS_V2_ROUTE("/console/authentication")
+        .methods("PUT"_method)([this](const crow::request& req) {
+            auto response = json_t{};
+            const auto args = parse_json(req.body);
+            REQUIRED_TYPED_JSON(args, auth, console::auth_response_t);
 
-        return login(user, token);
-    });
+            return store_authentication(auth);
+        });
 
-    FLECS_V2_ROUTE("/console/logout").methods("POST"_method)([this](const crow::request& req) {
-        auto response = json_t{};
-        const auto args = parse_json(req.body);
-        OPTIONAL_JSON_VALUE(args, user);
-
-        return logout(user);
-    });
+    FLECS_V2_ROUTE("/console/authentication")
+        .methods("DELETE"_method)(
+            [this](const crow::request& /* req */) { return delete_authentication(); });
 }
 
 auto console_t::do_deinit() //
     -> void
 {}
 
-auto console_t::login(std::string user, std::string token) //
-    -> crow::response
+auto console_t::authentication() const noexcept //
+    -> const console::auth_response_t&
 {
-    _user = std::move(user);
-    _token = std::move(token);
-
-    const auto response = json_t({
-        {"additionalInfo", "OK"},
-    });
-    return crow::response{crow::status::OK, "json", response.dump()};
+    return _impl->do_authentication();
 }
 
-auto console_t::logout(std::string_view /*user*/) //
+auto console_t::store_authentication(console::auth_response_t auth) //
     -> crow::response
 {
-    _user.clear();
-    _token.clear();
+    return _impl->do_store_authentication(auth);
+}
 
-    const auto response = json_t({
-        {"additionalInfo", "OK"},
-    });
-    return crow::response{crow::status::OK, "json", response.dump()};
+auto console_t::delete_authentication() //
+    -> crow::response
+{
+    return _impl->do_delete_authentication();
 }
 
 } // namespace module

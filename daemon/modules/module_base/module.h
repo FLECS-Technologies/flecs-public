@@ -23,6 +23,15 @@ namespace flecs {
 namespace module {
 
 // Helper macros to parse JSON arguments passed to endpoints
+#define REQUIRED_TYPED_JSON(json, val, type)                                \
+    auto val = type{};                                                      \
+    try {                                                                   \
+        json.get_to(val);                                                   \
+    } catch (nlohmann::detail::exception & ex) {                            \
+        response["additionalInfo"] = std::string{"Malformed request body"}; \
+        return crow::response{crow::status::BAD_REQUEST, response.dump()};  \
+    }
+
 #define REQUIRED_TYPED_JSON_VALUE(json, val, type)                                           \
     if (!json.contains(#val)) {                                                              \
         response["additionalInfo"] = std::string{"Missing field "} + #val + " in request";   \
