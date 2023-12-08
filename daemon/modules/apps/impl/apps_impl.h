@@ -59,24 +59,18 @@ private:
     auto do_app_keys(const app_key_t& app_key) const //
         -> std::vector<app_key_t>;
 
-    auto queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
+    auto queue_install_from_marketplace(app_key_t app_key) //
         -> job_id_t;
-    auto do_install_from_marketplace_sync(
-        app_key_t app_key,
-        std::string license_key) //
+    auto do_install_from_marketplace_sync(app_key_t app_key) //
         -> result_t;
-    auto do_install_from_marketplace(
-        app_key_t app_key,
-        std::string license_key,
-        job_progress_t& progress) //
+    auto do_install_from_marketplace(app_key_t app_key, job_progress_t& progress) //
         -> result_t;
 
-    auto queue_sideload(std::string manifest_string, std::string license_key) //
+    auto queue_sideload(std::string manifest_string) //
         -> job_id_t;
-    auto do_sideload_sync(std::string manifest_string, std::string license_key) //
+    auto do_sideload_sync(std::string manifest_string) //
         -> result_t;
-    auto do_sideload(
-        std::string manifest_string, std::string license_key, job_progress_t& progress) //
+    auto do_sideload(std::string manifest_string, job_progress_t& progress) //
         -> result_t;
 
     auto queue_uninstall(app_key_t app_key, bool force) //
@@ -102,7 +96,6 @@ private:
 
     auto do_install_impl(
         std::shared_ptr<app_manifest_t> manifest,
-        std::string_view license_key,
         job_progress_t& progress) //
         -> result_t;
 
