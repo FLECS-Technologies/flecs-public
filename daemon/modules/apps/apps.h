@@ -63,10 +63,10 @@ public:
     auto http_list(const app_key_t& app_key) const //
         -> crow::response;
 
-    auto http_install(app_key_t app_key, std::string license_key) //
+    auto http_install(app_key_t app_key) //
         -> crow::response;
 
-    auto http_sideload(std::string manifest_string, std::string license_key) //
+    auto http_sideload(std::string manifest_string) //
         -> crow::response;
 
     auto http_uninstall(app_key_t app_key) //
@@ -90,24 +90,18 @@ public:
     /*! @brief Installs an App from the FLECS marketplace
      *
      * @param[in] app_key Key of the App to install, version required @sa app_key_t
-     * @param[in] license_key License key to activate with the marketplace
      *
      * @return HTTP response
      */
-    auto install_from_marketplace(app_key_t app_key, std::string license_key) //
-        -> result_t;
     auto install_from_marketplace(app_key_t app_key) //
         -> result_t;
 
     /*! @brief Sideloads an App from its manifest
      *
      * @param[in] manifest_string A valid App manifest as string
-     * @param[in] license_key License key to activate with the marketplace
      *
      * @return HTTP response
      */
-    auto sideload(std::string manifest_string, std::string license_key) //
-        -> result_t;
     auto sideload(std::string manifest_string) //
         -> result_t;
 

@@ -39,84 +39,6 @@ namespace flecs {
 namespace module {
 namespace impl {
 
-static auto acquire_download_token(std::string_view license_key) //
-    -> std::string
-{
-    const auto console_api =
-        dynamic_cast<const module::console_t*>(api::query_module("console").get());
-    if (!console_api) {
-        return "";
-    }
-
-    const auto auth = console_api->authentication();
-
-    auto post_json = json_t({
-        {"wc_user_token", auth.jwt().token()},
-        {"license_key", license_key},
-    });
-
-#ifndef NDEBUG
-    const auto url = cpr::Url{"https://marketplace-staging.flecs.tech/api/v1/app/download"};
-#else
-    const auto url = cpr::Url{"https://marketplace.flecs.tech/api/v1/app/download"};
-#endif // NDEBUG
-
-    const auto http_res = cpr::Post(
-        url,
-        cpr::Header{{"content-type", "application/json"}},
-        cpr::Body{post_json.dump()});
-
-    if (http_res.status_code != 200) {
-        return "";
-    }
-
-    const auto response_json = parse_json(http_res.text);
-    if (!is_valid_json(response_json)) {
-        return "";
-    }
-
-    const auto success = response_json["success"].get<bool>();
-    const auto user_token = response_json["user_token"].get<std::string>();
-    const auto access_token = response_json["access_token"]["token"].get<std::string>();
-    const auto uuid = response_json["access_token"]["uuid"].get<std::string>();
-
-    if (!success || user_token.empty() || access_token.empty() || uuid.empty()) {
-        return "";
-    }
-
-    return stringify_delim(';', user_token, access_token, uuid);
-}
-
-static auto expire_download_token(const std::string& user_token, const std::string& access_token) //
-    -> bool
-{
-    auto post_json = json_t{};
-    post_json["user_token"] = user_token;
-    post_json["access_token"] = access_token;
-
-#ifndef NDEBUG
-    const auto url = cpr::Url{"https://marketplace.flecs.tech/api/v1/app/finish"};
-#else
-    const auto url = cpr::Url{"https://marketplace.flecs.tech/api/v1/app/finish"};
-#endif // NDEBUG
-
-    const auto http_res = cpr::Post(
-        url,
-        cpr::Header{{"content-type", "application/json"}},
-        cpr::Body{post_json.dump()});
-
-    if (http_res.status_code != 200) {
-        return false;
-    }
-
-    const auto response_json = parse_json(http_res.text);
-    if (!is_valid_json(response_json)) {
-        return false;
-    }
-
-    return response_json["success"].get<bool>();
-}
-
 apps_t::apps_t(flecs::module::apps_t* parent)
     : _parent{parent}
     , _apps{}
@@ -212,7 +134,7 @@ auto apps_t::do_module_start() //
         if (!have_newer_version && !_parent->is_installed(system_app)) {
             save = true;
             std::fprintf(stdout, "Installing system app %s\n", to_string(system_app).c_str());
-            auto res = _parent->http_install(system_app, {});
+            auto res = _parent->http_install(system_app);
             if (res.code != crow::status::ACCEPTED) {
                 std::fprintf(stderr, "%s\n", res.body.c_str());
                 continue;
@@ -275,7 +197,7 @@ auto apps_t::do_app_keys(const app_key_t& app_key) const //
     return res;
 }
 
-auto apps_t::queue_install_from_marketplace(app_key_t app_key, std::string license_key) //
+auto apps_t::queue_install_from_marketplace(app_key_t app_key) //
     -> job_id_t
 {
     auto desc = "Installation of "s + to_string(app_key);
@@ -284,23 +206,17 @@ auto apps_t::queue_install_from_marketplace(app_key_t app_key, std::string licen
         &apps_t::do_install_from_marketplace,
         this,
         std::move(app_key),
-        std::move(license_key),
         std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto apps_t::do_install_from_marketplace_sync(
-    app_key_t app_key,
-    std::string license_key) //
+auto apps_t::do_install_from_marketplace_sync(app_key_t app_key) //
     -> result_t
 {
     auto _ = job_progress_t{};
-    return do_install_from_marketplace(std::move(app_key), std::move(license_key), _);
+    return do_install_from_marketplace(std::move(app_key), _);
 }
-auto apps_t::do_install_from_marketplace(
-    app_key_t app_key,
-    std::string license_key,
-    job_progress_t& progress) //
+auto apps_t::do_install_from_marketplace(app_key_t app_key, job_progress_t& progress) //
     -> result_t
 {
     progress.num_steps(6);
@@ -309,39 +225,34 @@ auto apps_t::do_install_from_marketplace(
     // Download App manifest and forward to manifest installation, if download successful
     const auto [manifest, _] = _manifests_api->add_from_marketplace(app_key);
     if (manifest) {
-        return do_install_impl(manifest, license_key, progress);
+        return do_install_impl(manifest, progress);
     }
 
     return {-1, "Could not download manifest"};
 }
 
-auto apps_t::queue_sideload(std::string manifest_string, std::string license_key) //
+auto apps_t::queue_sideload(std::string manifest_string) //
     -> job_id_t
 {
-    auto job = job_t{std::bind(
-        &apps_t::do_sideload,
-        this,
-        std::move(manifest_string),
-        std::move(license_key),
-        std::placeholders::_1)};
+    auto job = job_t{
+        std::bind(&apps_t::do_sideload, this, std::move(manifest_string), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), "Sideloading App");
 }
-auto apps_t::do_sideload_sync(std::string manifest_string, std::string license_key) //
+auto apps_t::do_sideload_sync(std::string manifest_string) //
     -> result_t
 {
     auto _ = job_progress_t{};
-    return do_sideload(std::move(manifest_string), std::move(license_key), _);
+    return do_sideload(std::move(manifest_string), _);
 }
-auto apps_t::do_sideload(
-    std::string manifest_string, std::string license_key, job_progress_t& progress) //
+auto apps_t::do_sideload(std::string manifest_string, job_progress_t& progress) //
     -> result_t
 {
     const auto [manifest, _] = _manifests_api->add_from_string(manifest_string);
     // Step 1: Validate transferred manifest
     if (manifest) {
         // Step 2: Forward to manifest installation
-        return do_install_impl(manifest, license_key, progress);
+        return do_install_impl(manifest, progress);
     }
 
     return {-1, "Could not parse manifest"};
@@ -349,7 +260,6 @@ auto apps_t::do_sideload(
 
 auto apps_t::do_install_impl(
     std::shared_ptr<app_manifest_t> manifest,
-    std::string_view license_key,
     job_progress_t& progress) //
     -> result_t
 {
@@ -377,7 +287,7 @@ auto apps_t::do_install_impl(
         case app_status_e::ManifestDownloaded: {
             progress.next_step("Acquiring download token");
 
-            // Step 3: Acquire download token for App
+#if 0  /// @todo replace by new functionality
             app->download_token(acquire_download_token(license_key));
 
             if (app->download_token().empty()) {
@@ -385,6 +295,7 @@ auto apps_t::do_install_impl(
             } else {
                 app->status(app_status_e::TokenAcquired);
             }
+#endif // 0
             [[fallthrough]];
         }
         case app_status_e::TokenAcquired: {
@@ -452,7 +363,7 @@ auto apps_t::do_install_impl(
                 }
             }
 
-            // Step 5: Expire download token
+#if 0  /// @todo replace by new functionality
             const auto args = split(app->download_token(), ';');
             if (args.size() == 3) {
                 const auto success = expire_download_token(args[0], args[2]);
@@ -466,6 +377,7 @@ auto apps_t::do_install_impl(
                 app->download_token("");
                 app->status(app_status_e::Installed);
             }
+#endif // 0
             break;
         }
         default: {

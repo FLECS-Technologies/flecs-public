@@ -58,16 +58,14 @@ auto apps_t::do_init() //
         auto response = json_t{};
         const auto args = parse_json(req.body);
         REQUIRED_TYPED_JSON_VALUE(args, appKey, app_key_t);
-        OPTIONAL_JSON_VALUE(args, licenseKey);
-        return http_install(std::move(appKey), std::move(licenseKey));
+        return http_install(std::move(appKey));
     });
 
     FLECS_V2_ROUTE("/apps/sideload").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
         REQUIRED_JSON_VALUE(args, manifest);
-        OPTIONAL_JSON_VALUE(args, licenseKey);
-        return http_sideload(std::move(manifest), std::move(licenseKey));
+        return http_sideload(std::move(manifest));
     });
 
     _impl->do_module_init();
@@ -116,20 +114,20 @@ auto apps_t::http_list(const app_key_t& app_key) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto apps_t::http_install(app_key_t app_key, std::string license_key) //
+auto apps_t::http_install(app_key_t app_key) //
     -> crow::response
 {
-    auto job_id = _impl->queue_install_from_marketplace(std::move(app_key), std::move(license_key));
+    auto job_id = _impl->queue_install_from_marketplace(std::move(app_key));
     return crow::response{
         crow::status::ACCEPTED,
         "json",
         "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto apps_t::http_sideload(std::string manifest_string, std::string license_key) //
+auto apps_t::http_sideload(std::string manifest_string) //
     -> crow::response
 {
-    auto job_id = _impl->queue_sideload(std::move(manifest_string), std::move(license_key));
+    auto job_id = _impl->queue_sideload(std::move(manifest_string));
     return crow::response{
         crow::status::ACCEPTED,
         "json",
@@ -192,26 +190,16 @@ auto apps_t::app_keys() const //
     return app_keys(app_key_t{});
 }
 
-auto apps_t::install_from_marketplace(app_key_t app_key, std::string license_key) //
-    -> result_t
-{
-    return _impl->do_install_from_marketplace_sync(std::move(app_key), std::move(license_key));
-}
 auto apps_t::install_from_marketplace(app_key_t app_key) //
     -> result_t
 {
-    return install_from_marketplace(std::move(app_key), {});
+    return _impl->do_install_from_marketplace_sync(std::move(app_key));
 }
 
-auto apps_t::sideload(std::string manifest_string, std::string license_key) //
-    -> result_t
-{
-    return _impl->do_sideload_sync(std::move(manifest_string), std::move(license_key));
-}
 auto apps_t::sideload(std::string manifest_string) //
     -> result_t
 {
-    return sideload(std::move(manifest_string), {});
+    return _impl->do_sideload_sync(std::move(manifest_string));
 }
 
 auto apps_t::uninstall(app_key_t app_key, bool force) //
