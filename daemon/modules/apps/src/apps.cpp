@@ -144,7 +144,7 @@ auto apps_t::http_uninstall(app_key_t app_key) //
         return {crow::status::BAD_REQUEST, "json", response.dump()};
     }
 
-    auto job_id = _impl->queue_uninstall(std::move(app_key), false);
+    auto job_id = _impl->queue_uninstall(std::move(app_key));
     return crow::response{
         crow::status::ACCEPTED,
         "json",
@@ -202,10 +202,10 @@ auto apps_t::sideload(std::string manifest_string) //
     return _impl->do_sideload_sync(std::move(manifest_string));
 }
 
-auto apps_t::uninstall(app_key_t app_key, bool force) //
+auto apps_t::uninstall(app_key_t app_key) //
     -> result_t
 {
-    return _impl->do_uninstall_sync(std::move(app_key), force);
+    return _impl->do_uninstall_sync(std::move(app_key));
 }
 
 auto apps_t::export_to(app_key_t app_key, fs::path dest_dir) const //

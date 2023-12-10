@@ -111,7 +111,7 @@ public:
      *
      * @return HTTP response
      */
-    auto uninstall(app_key_t app_key, bool force) //
+    auto uninstall(app_key_t app_key) //
         -> result_t;
 
     /*! @brief Exports an App as compressed archive

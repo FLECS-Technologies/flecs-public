@@ -106,51 +106,7 @@ auto apps_t::do_load(const fs::path& base_path) //
 
 auto apps_t::do_module_start() //
     -> void
-{
-    const auto system_apps = std::array<app_key_t, 2>{
-        app_key_t{"tech.flecs.service-mesh", FLECS_VERSION},
-        app_key_t{"tech.flecs.mqtt-bridge", FLECS_VERSION},
-    };
-
-    auto save = false;
-    for (const auto& system_app : system_apps) {
-        /* uninstall previous versions of system apps */
-        auto have_newer_version = false;
-        const auto installed_versions = _parent->app_keys(system_app.name().data());
-        for (const auto& installed_version : installed_versions) {
-            if (installed_version.version() < system_app.version()) {
-                save = true;
-                std::fprintf(
-                    stdout,
-                    "Removing system app %s\n",
-                    to_string(installed_version).c_str());
-                _parent->uninstall(installed_version, true);
-            } else if (installed_version.version() > system_app.version()) {
-                have_newer_version = true;
-            }
-        }
-
-        /* install current version, if no newer version is present */
-        if (!have_newer_version && !_parent->is_installed(system_app)) {
-            save = true;
-            std::fprintf(stdout, "Installing system app %s\n", to_string(system_app).c_str());
-            auto res = _parent->http_install(system_app);
-            if (res.code != crow::status::ACCEPTED) {
-                std::fprintf(stderr, "%s\n", res.body.c_str());
-                continue;
-            }
-            res = _instances_api->http_create(system_app, {}, true);
-            if (res.code != crow::status::ACCEPTED) {
-                std::fprintf(stderr, "%s\n", res.body.c_str());
-                continue;
-            }
-        }
-    }
-
-    if (save) {
-        _parent->save();
-    }
-}
+{}
 
 auto apps_t::do_save(const fs::path& base_path) const //
     -> result_t
@@ -389,27 +345,23 @@ auto apps_t::do_install_impl(
     return {0, {}};
 }
 
-auto apps_t::queue_uninstall(app_key_t app_key, bool force) //
+auto apps_t::queue_uninstall(app_key_t app_key) //
     -> job_id_t
 {
     auto desc = "Uninstallation of "s + to_string(app_key);
 
-    auto job = job_t{std::bind(
-        &apps_t::do_uninstall,
-        this,
-        std::move(app_key),
-        std::move(force),
-        std::placeholders::_1)};
+    auto job =
+        job_t{std::bind(&apps_t::do_uninstall, this, std::move(app_key), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto apps_t::do_uninstall_sync(app_key_t app_key, bool force) //
+auto apps_t::do_uninstall_sync(app_key_t app_key) //
     -> result_t
 {
     auto _ = job_progress_t{};
-    return do_uninstall(std::move(app_key), force, _);
+    return do_uninstall(std::move(app_key), _);
 }
-auto apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
+auto apps_t::do_uninstall(app_key_t app_key, job_progress_t& progress) //
     -> result_t
 {
     progress.num_steps(4);
@@ -426,11 +378,6 @@ auto apps_t::do_uninstall(app_key_t app_key, bool force, job_progress_t& progres
 
     if (manifest) {
         progress.desc("Uninstallation of "s + manifest->title() + " (" + manifest->version() + ")");
-    }
-
-    // Step 2a: Prevent removal of system apps
-    if (manifest && cxx23::contains(manifest->category(), "system") && !force) {
-        return {-1, "Not uninstalling system app "s + to_string(app_key)};
     }
 
     app->desired(app_status_e::NotInstalled);
