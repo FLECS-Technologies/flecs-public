@@ -73,11 +73,11 @@ private:
     auto do_sideload(std::string manifest_string, job_progress_t& progress) //
         -> result_t;
 
-    auto queue_uninstall(app_key_t app_key, bool force) //
+    auto queue_uninstall(app_key_t app_key) //
         -> job_id_t;
-    auto do_uninstall_sync(app_key_t app_key, bool force) //
+    auto do_uninstall_sync(app_key_t app_key) //
         -> result_t;
-    auto do_uninstall(app_key_t app_key, bool force, job_progress_t& progress) //
+    auto do_uninstall(app_key_t app_key, job_progress_t& progress) //
         -> result_t;
 
     auto queue_export_to(app_key_t app_key, fs::path dest_dir) const //
