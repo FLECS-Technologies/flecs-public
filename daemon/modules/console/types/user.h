@@ -25,6 +25,8 @@ namespace console {
 class user_t
 {
 public:
+    user_t();
+
     auto id() const noexcept //
         -> std::uint64_t;
     auto user_email() const noexcept //

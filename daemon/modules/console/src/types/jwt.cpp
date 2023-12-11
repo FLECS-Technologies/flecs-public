@@ -17,6 +17,11 @@
 namespace flecs {
 namespace console {
 
+jwt_t::jwt_t()
+    : _token{}
+    , _token_expires{}
+{}
+
 auto jwt_t::token() const noexcept //
     -> const std::string&
 {

@@ -17,6 +17,12 @@
 namespace flecs {
 namespace console {
 
+base_response_t::base_response_t()
+    : _status_code{}
+    , _status_text{}
+    , _data{}
+{}
+
 auto base_response_t::status_code() const noexcept //
     -> int
 {

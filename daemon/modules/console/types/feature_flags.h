@@ -22,6 +22,8 @@ namespace console {
 class feature_flags_t
 {
 public:
+    feature_flags_t();
+
     auto is_vendor() const noexcept //
         -> bool;
     auto is_white_labeled() const noexcept //
