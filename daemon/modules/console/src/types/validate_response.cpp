@@ -26,27 +26,27 @@ auto validate_response_data_t::is_valid() const noexcept //
 auto from_json(const json_t& j, validate_response_data_t& response) //
     -> void
 {
-    j.at("data").at("isValid").get_to(response._is_valid);
+    j.at("isValid").get_to(response._is_valid);
 }
 
 auto to_json(json_t& j, const validate_response_data_t& response) //
     -> void
 {
-    j["data"] = json_t({{"isValid", response.is_valid()}});
+    j = json_t({{"isValid", response.is_valid()}});
 }
 
 auto from_json(const json_t& j, validate_response_t& response) //
     -> void
 {
     from_json(j, static_cast<base_response_t&>(response));
-    from_json(j, static_cast<validate_response_data_t&>(response));
+    from_json(j.at("data"), static_cast<validate_response_data_t&>(response));
 }
 
 auto to_json(json_t& j, const validate_response_t& response) //
     -> void
 {
     to_json(j, static_cast<const base_response_t&>(response));
-    to_json(j, static_cast<const validate_response_data_t&>(response));
+    to_json(j["data"], static_cast<const validate_response_data_t&>(response));
 }
 
 } // namespace console

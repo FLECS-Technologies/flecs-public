@@ -26,27 +26,27 @@ auto activate_response_data_t::session_id() const noexcept //
 auto from_json(const json_t& j, activate_response_data_t& response) //
     -> void
 {
-    j.at("data").at("sessionId").get_to(response._session_id);
+    j.at("sessionId").get_to(response._session_id);
 }
 
 auto to_json(json_t& j, const activate_response_data_t& response) //
     -> void
 {
-    j["data"] = json_t({{"sessionId", response.session_id()}});
+    j = json_t({{"sessionId", response.session_id()}});
 }
 
 auto from_json(const json_t& j, activate_response_t& response) //
     -> void
 {
     from_json(j, static_cast<base_response_t&>(response));
-    from_json(j, static_cast<activate_response_data_t&>(response));
+    from_json(j.at("data"), static_cast<activate_response_data_t&>(response));
 }
 
 auto to_json(json_t& j, const activate_response_t& response) //
     -> void
 {
     to_json(j, static_cast<const base_response_t&>(response));
-    to_json(j, static_cast<const activate_response_data_t&>(response));
+    to_json(j["data"], static_cast<const activate_response_data_t&>(response));
 }
 
 } // namespace console

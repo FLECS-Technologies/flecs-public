@@ -38,15 +38,15 @@ auto auth_response_data_t::feature_flags() const noexcept //
 auto from_json(const json_t& j, auth_response_data_t& response) //
     -> void
 {
-    j.at("data").at("user").get_to(response._user);
-    j.at("data").at("jwt").get_to(response._jwt);
-    j.at("data").at("feature_flags").get_to(response._ff);
+    j.at("user").get_to(response._user);
+    j.at("jwt").get_to(response._jwt);
+    j.at("feature_flags").get_to(response._ff);
 }
 
 auto to_json(json_t& j, const auth_response_data_t& response) //
     -> void
 {
-    j["data"] = json_t(
+    j = json_t(
         {{"user", response.user()},
          {"jwt", response.jwt()},
          {"feature_flags", response.feature_flags()}});
@@ -56,14 +56,14 @@ auto from_json(const json_t& j, auth_response_t& auth_response) //
     -> void
 {
     from_json(j, static_cast<base_response_t&>(auth_response));
-    from_json(j, static_cast<auth_response_data_t&>(auth_response));
+    from_json(j.at("data"), static_cast<auth_response_data_t&>(auth_response));
 }
 
 auto to_json(json_t& j, const auth_response_t& auth_response) //
     -> void
 {
     to_json(j, static_cast<const base_response_t&>(auth_response));
-    to_json(j, static_cast<const auth_response_data_t&>(auth_response));
+    to_json(j["data"], static_cast<const auth_response_data_t&>(auth_response));
 }
 
 } // namespace console
