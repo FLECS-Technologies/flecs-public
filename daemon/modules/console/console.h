@@ -42,6 +42,12 @@ public:
     auto authentication() const noexcept //
         -> const console::auth_response_t&;
 
+    auto activate_license(std::string_view session_id) //
+        -> result_t;
+
+    auto validate_license(std::string_view session_id) //
+        -> result_t;
+
 protected:
     console_t();
 

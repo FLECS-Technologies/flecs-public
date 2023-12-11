@@ -38,6 +38,13 @@ private:
 
     auto do_authentication() const noexcept //
         -> const console::auth_response_t&;
+
+    auto do_activate_license(std::string_view session_id) //
+        -> result_t;
+
+    auto do_validate_license(std::string_view session_id) //
+        -> result_t;
+
     auto do_store_authentication(console::auth_response_t auth) //
         -> crow::response;
     auto do_delete_authentication() //

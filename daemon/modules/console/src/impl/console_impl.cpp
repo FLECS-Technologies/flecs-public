@@ -40,6 +40,18 @@ auto console_t::do_authentication() const noexcept //
     return _auth;
 }
 
+auto console_t::do_activate_license(std::string_view /*session_id*/) //
+    -> result_t
+{
+    return {0, {}};
+}
+
+auto console_t::do_validate_license(std::string_view /*session_id*/) //
+    -> result_t
+{
+    return {0, {}};
+}
+
 auto console_t::do_store_authentication(console::auth_response_t auth) //
     -> crow::response
 {
