@@ -14,43 +14,35 @@
 
 #pragma once
 
-#include "base_response.h"
-#include "feature_flags.h"
-#include "jwt.h"
-#include "user.h"
+#include <string>
+
 #include "util/json/json.h"
 
 namespace flecs {
 namespace console {
 
-class auth_response_data_t
+class base_response_t
 {
 public:
-    auto user() const noexcept //
-        -> const user_t&;
-    auto jwt() const noexcept //
-        -> const jwt_t&;
-    auto feature_flags() const noexcept //
-        -> const feature_flags_t&;
+    auto status_code() const noexcept //
+        -> int;
+
+    auto status_text() const noexcept //
+        -> const std::string&;
+
+protected:
+    auto data() const noexcept //
+        -> const json_t&;
 
 private:
-    friend auto from_json(const json_t& j, auth_response_data_t& ff) //
+    friend auto from_json(const json_t& j, base_response_t& response) //
         -> void;
-    friend auto to_json(json_t& j, const auth_response_data_t& ff) //
+    friend auto to_json(json_t& j, const base_response_t& response) //
         -> void;
 
-    user_t _user;
-    jwt_t _jwt;
-    feature_flags_t _ff;
-};
-
-class auth_response_t : public base_response_t, public auth_response_data_t
-{
-private:
-    friend auto from_json(const json_t& j, auth_response_t& ff) //
-        -> void;
-    friend auto to_json(json_t& j, const auth_response_t& ff) //
-        -> void;
+    int _status_code;
+    std::string _status_text;
+    json_t _data;
 };
 
 } // namespace console

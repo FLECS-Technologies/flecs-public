@@ -14,7 +14,10 @@
 
 #pragma once
 
+#include "types/activate_response.h"
 #include "types/auth_response.h"
+#include "types/base_response.h"
 #include "types/feature_flags.h"
 #include "types/jwt.h"
 #include "types/user.h"
+#include "types/validate_response.h"

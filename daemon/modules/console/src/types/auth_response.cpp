@@ -17,40 +17,53 @@
 namespace flecs {
 namespace console {
 
-auto auth_response_t::user() const noexcept //
+auto auth_response_data_t::user() const noexcept //
     -> const user_t&
 {
     return _user;
 }
 
-auto auth_response_t::jwt() const noexcept //
+auto auth_response_data_t::jwt() const noexcept //
     -> const jwt_t&
 {
     return _jwt;
 }
 
-auto auth_response_t::feature_flags() const noexcept //
+auto auth_response_data_t::feature_flags() const noexcept //
     -> const feature_flags_t&
 {
     return _ff;
 }
 
+auto from_json(const json_t& j, auth_response_data_t& response) //
+    -> void
+{
+    j.at("data").at("user").get_to(response._user);
+    j.at("data").at("jwt").get_to(response._jwt);
+    j.at("data").at("feature_flags").get_to(response._ff);
+}
+
+auto to_json(json_t& j, const auth_response_data_t& response) //
+    -> void
+{
+    j["data"] = json_t(
+        {{"user", response.user()},
+         {"jwt", response.jwt()},
+         {"feature_flags", response.feature_flags()}});
+}
+
 auto from_json(const json_t& j, auth_response_t& auth_response) //
     -> void
 {
-    j.at("user").get_to(auth_response._user);
-    j.at("jwt").get_to(auth_response._jwt);
-    j.at("feature_flags").get_to(auth_response._ff);
+    from_json(j, static_cast<base_response_t&>(auth_response));
+    from_json(j, static_cast<auth_response_data_t&>(auth_response));
 }
 
 auto to_json(json_t& j, const auth_response_t& auth_response) //
     -> void
 {
-    j = json_t({
-        {"user", auth_response.user()},
-        {"jwt", auth_response.jwt()},
-        {"feature_flags", auth_response.feature_flags()},
-    });
+    to_json(j, static_cast<const base_response_t&>(auth_response));
+    to_json(j, static_cast<const auth_response_data_t&>(auth_response));
 }
 
 } // namespace console

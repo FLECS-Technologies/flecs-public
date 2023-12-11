@@ -16,4 +16,7 @@
 
 #include "util/json/json.h"
 
-extern const flecs::json_t auth_json;
+extern const flecs::json_t auth_response_json;
+extern const flecs::json_t activate_response_json;
+extern const flecs::json_t activate_response_json;
+extern const flecs::json_t validate_response_json;
