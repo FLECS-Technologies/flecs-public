@@ -90,6 +90,18 @@ auto device_t::do_session_id() //
     return _session_id;
 }
 
+auto device_t::do_activate_license() //
+    -> result_t
+{
+    return {0, {}};
+}
+
+auto device_t::do_validate_license() //
+    -> result_t
+{
+    return {0, {}};
+}
+
 } // namespace impl
 } // namespace module
 } // namespace flecs

@@ -33,6 +33,12 @@ public:
     auto session_id() //
         -> const std::string&;
 
+    auto activate_license() //
+        -> result_t;
+
+    auto validate_license() //
+        -> result_t;
+
 protected:
     device_t();
 

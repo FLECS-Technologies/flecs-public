@@ -36,6 +36,18 @@ auto device_t::session_id() //
     return _impl->do_session_id();
 }
 
+auto device_t::activate_license() //
+    -> result_t
+{
+    return _impl->do_activate_license();
+}
+
+auto device_t::validate_license() //
+    -> result_t
+{
+    return _impl->do_validate_license();
+}
+
 auto device_t::do_init() //
     -> void
 {
