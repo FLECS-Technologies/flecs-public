@@ -37,7 +37,7 @@ private:
         -> void;
 
     auto do_authentication() const noexcept //
-        -> const console::auth_response_t&;
+        -> const console::auth_response_data_t&;
 
     auto do_activate_license(std::string_view session_id) //
         -> result_t;
@@ -45,12 +45,12 @@ private:
     auto do_validate_license(std::string_view session_id) //
         -> result_t;
 
-    auto do_store_authentication(console::auth_response_t auth) //
+    auto do_store_authentication(console::auth_response_data_t auth) //
         -> crow::response;
     auto do_delete_authentication() //
         -> crow::response;
 
-    console::auth_response_t _auth;
+    console::auth_response_data_t _auth;
 };
 
 } // namespace impl

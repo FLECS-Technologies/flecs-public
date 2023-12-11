@@ -37,7 +37,7 @@ auto console_t::do_init() //
         .methods("PUT"_method)([this](const crow::request& req) {
             auto response = json_t{};
             const auto args = parse_json(req.body);
-            REQUIRED_TYPED_JSON(args, auth, console::auth_response_t);
+            REQUIRED_TYPED_JSON(args, auth, console::auth_response_data_t);
 
             return store_authentication(auth);
         });
@@ -56,7 +56,7 @@ auto console_t::do_deinit() //
 }
 
 auto console_t::authentication() const noexcept //
-    -> const console::auth_response_t&
+    -> const console::auth_response_data_t&
 {
     return _impl->do_authentication();
 }
@@ -73,7 +73,7 @@ auto console_t::validate_license(std::string_view session_id) //
     return _impl->do_validate_license(session_id);
 }
 
-auto console_t::store_authentication(console::auth_response_t auth) //
+auto console_t::store_authentication(console::auth_response_data_t auth) //
     -> crow::response
 {
     return _impl->do_store_authentication(auth);

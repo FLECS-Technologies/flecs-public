@@ -20,7 +20,7 @@
 #include <string_view>
 
 #include "module_base/module.h"
-#include "types.h"
+#include "types/auth_response.h"
 
 namespace flecs {
 namespace module {
@@ -40,7 +40,7 @@ public:
         -> std::string_view;
 
     auto authentication() const noexcept //
-        -> const console::auth_response_t&;
+        -> const console::auth_response_data_t&;
 
     auto activate_license(std::string_view session_id) //
         -> result_t;
@@ -56,7 +56,7 @@ protected:
     auto do_deinit() //
         -> void override;
 
-    auto store_authentication(console::auth_response_t auth) //
+    auto store_authentication(console::auth_response_data_t auth) //
         -> crow::response;
     auto delete_authentication() //
         -> crow::response;
