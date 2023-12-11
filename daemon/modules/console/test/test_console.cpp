@@ -91,7 +91,7 @@ TEST(console, store_authentication)
     auto res = cpr::Put(
         cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
         cpr::Header{{{"Content-Type"}, {"application/json"}}},
-        cpr::Body{auth_json.dump()});
+        cpr::Body{auth_response_json.dump()});
 
     ASSERT_EQ(res.status_code, cpr::status::HTTP_NO_CONTENT);
 }

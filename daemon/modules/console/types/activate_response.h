@@ -14,42 +14,34 @@
 
 #pragma once
 
+#include <string>
+
 #include "base_response.h"
-#include "feature_flags.h"
-#include "jwt.h"
-#include "user.h"
-#include "util/json/json.h"
 
 namespace flecs {
 namespace console {
 
-class auth_response_data_t
+class activate_response_data_t
 {
 public:
-    auto user() const noexcept //
-        -> const user_t&;
-    auto jwt() const noexcept //
-        -> const jwt_t&;
-    auto feature_flags() const noexcept //
-        -> const feature_flags_t&;
+    auto session_id() const noexcept //
+        -> const std::string&;
 
 private:
-    friend auto from_json(const json_t& j, auth_response_data_t& ff) //
+    friend auto from_json(const json_t& j, activate_response_data_t& response) //
         -> void;
-    friend auto to_json(json_t& j, const auth_response_data_t& ff) //
+    friend auto to_json(json_t& j, const activate_response_data_t& response) //
         -> void;
 
-    user_t _user;
-    jwt_t _jwt;
-    feature_flags_t _ff;
+    std::string _session_id;
 };
 
-class auth_response_t : public base_response_t, public auth_response_data_t
+class activate_response_t final : public base_response_t, public activate_response_data_t
 {
 private:
-    friend auto from_json(const json_t& j, auth_response_t& ff) //
+    friend auto from_json(const json_t& j, activate_response_t& response) //
         -> void;
-    friend auto to_json(json_t& j, const auth_response_t& ff) //
+    friend auto to_json(json_t& j, const activate_response_t& response) //
         -> void;
 };
 

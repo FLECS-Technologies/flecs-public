@@ -16,9 +16,37 @@
 #include "gtest/gtest.h"
 #include "test_constants.h"
 
-TEST(console, types)
+class test_response_t : public flecs::console::base_response_t
 {
-    const auto uut = auth_json.get<flecs::console::auth_response_t>();
+public:
+    auto data() const noexcept { return flecs::console::base_response_t::data(); }
+};
+
+TEST(console, base_response)
+{
+    const auto uut = activate_response_json.get<test_response_t>();
+
+    ASSERT_EQ(uut.status_code(), 200);
+    ASSERT_EQ(uut.status_text(), "OK");
+    ASSERT_EQ(uut.data(), flecs::json_t({{"sessionId", "{00000000-1111-2222-3333-444444444444}"}}));
+
+    ASSERT_EQ(flecs::json_t(uut), activate_response_json);
+}
+
+TEST(console, activate_response)
+{
+    const auto uut = activate_response_json.get<flecs::console::activate_response_t>();
+
+    ASSERT_EQ(uut.status_code(), 200);
+    ASSERT_EQ(uut.status_text(), "OK");
+    ASSERT_EQ(uut.session_id(), "{00000000-1111-2222-3333-444444444444}");
+
+    ASSERT_EQ(flecs::json_t(uut), activate_response_json);
+}
+
+TEST(console, auth_response)
+{
+    const auto uut = auth_response_json.get<flecs::console::auth_response_t>();
 
     ASSERT_EQ(uut.user().id(), 123);
     ASSERT_EQ(uut.user().user_email(), "user@flecs.tech");
@@ -30,4 +58,17 @@ TEST(console, types)
 
     ASSERT_EQ(uut.feature_flags().is_vendor(), true);
     ASSERT_EQ(uut.feature_flags().is_white_labeled(), false);
+
+    ASSERT_EQ(flecs::json_t(uut), auth_response_json);
+}
+
+TEST(console, validate_response)
+{
+    const auto uut = validate_response_json.get<flecs::console::validate_response_t>();
+
+    ASSERT_EQ(uut.status_code(), 200);
+    ASSERT_EQ(uut.status_text(), "OK");
+    ASSERT_EQ(uut.is_valid(), true);
+
+    ASSERT_EQ(flecs::json_t(uut), validate_response_json);
 }
