@@ -45,6 +45,12 @@ private:
     auto do_session_id() //
         -> const std::string&;
 
+    auto do_activate_license() //
+        -> result_t;
+
+    auto do_validate_license() //
+        -> result_t;
+
     std::string _session_id;
 };
 
