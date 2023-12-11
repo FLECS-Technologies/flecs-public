@@ -17,6 +17,11 @@
 namespace flecs {
 namespace console {
 
+feature_flags_t::feature_flags_t()
+    : _is_vendor{}
+    , _is_white_labeled()
+{}
+
 auto feature_flags_t::is_vendor() const noexcept //
     -> bool
 {

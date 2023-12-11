@@ -24,6 +24,8 @@ namespace console {
 class base_response_t
 {
 public:
+    base_response_t();
+
     auto status_code() const noexcept //
         -> int;
 

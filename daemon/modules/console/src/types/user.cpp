@@ -17,6 +17,13 @@
 namespace flecs {
 namespace console {
 
+user_t::user_t()
+    : _id{}
+    , _user_email{}
+    , _user_login{}
+    , _display_name{}
+{}
+
 auto user_t::id() const noexcept //
     -> std::uint64_t
 {

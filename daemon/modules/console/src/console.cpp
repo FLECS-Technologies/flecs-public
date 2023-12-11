@@ -45,11 +45,15 @@ auto console_t::do_init() //
     FLECS_V2_ROUTE("/console/authentication")
         .methods("DELETE"_method)(
             [this](const crow::request& /* req */) { return delete_authentication(); });
+
+    return _impl->do_init();
 }
 
 auto console_t::do_deinit() //
     -> void
-{}
+{
+    _impl->do_deinit();
+}
 
 auto console_t::authentication() const noexcept //
     -> const console::auth_response_t&

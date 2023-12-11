@@ -73,7 +73,7 @@ static auto uut = module_console_test_t{};
 
 TEST(console, init)
 {
-    uut.do_init();
+    uut.init();
     api.start();
 }
 
@@ -84,31 +84,52 @@ TEST(console, base_url)
     ASSERT_EQ(url, "https://console-dev.flecs.tech");
 }
 
-TEST(console, store_authentication)
+TEST(console, store_delete_authentication)
 {
     using std::operator""s;
+
+    ASSERT_EQ(uut.authentication().user().id(), 0);
+    ASSERT_EQ(uut.authentication().user().user_email(), std::string{});
+    ASSERT_EQ(uut.authentication().user().user_login(), std::string{});
+    ASSERT_EQ(uut.authentication().user().display_name(), std::string{});
+    ASSERT_EQ(uut.authentication().jwt().token(), std::string{});
+    ASSERT_EQ(uut.authentication().jwt().token_expires(), 0);
+    ASSERT_EQ(uut.authentication().feature_flags().is_vendor(), false);
+    ASSERT_EQ(uut.authentication().feature_flags().is_white_labeled(), false);
 
     auto res = cpr::Put(
         cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
         cpr::Header{{{"Content-Type"}, {"application/json"}}},
         cpr::Body{auth_response_json.dump()});
-
     ASSERT_EQ(res.status_code, cpr::status::HTTP_NO_CONTENT);
-}
 
-TEST(console, delete_authentication)
-{
-    using std::operator""s;
+    ASSERT_EQ(uut.authentication().user().id(), 123);
+    ASSERT_EQ(uut.authentication().user().user_email(), "user@flecs.tech");
+    ASSERT_EQ(uut.authentication().user().user_login(), "user");
+    ASSERT_EQ(uut.authentication().user().display_name(), "Some FLECS user");
+    ASSERT_EQ(uut.authentication().jwt().token(), "eyJ0eXAiO...");
+    ASSERT_EQ(uut.authentication().jwt().token_expires(), 1641034800);
+    ASSERT_EQ(uut.authentication().feature_flags().is_vendor(), true);
+    ASSERT_EQ(uut.authentication().feature_flags().is_white_labeled(), false);
 
-    auto res = cpr::Delete(
+    res = cpr::Delete(
         cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
         cpr::Header{{{"Content-Type"}, {"application/json"}}});
 
     ASSERT_EQ(res.status_code, cpr::status::HTTP_NO_CONTENT);
+
+    ASSERT_EQ(uut.authentication().user().id(), 0);
+    ASSERT_EQ(uut.authentication().user().user_email(), std::string{});
+    ASSERT_EQ(uut.authentication().user().user_login(), std::string{});
+    ASSERT_EQ(uut.authentication().user().display_name(), std::string{});
+    ASSERT_EQ(uut.authentication().jwt().token(), std::string{});
+    ASSERT_EQ(uut.authentication().jwt().token_expires(), 0);
+    ASSERT_EQ(uut.authentication().feature_flags().is_vendor(), false);
+    ASSERT_EQ(uut.authentication().feature_flags().is_white_labeled(), false);
 }
 
 TEST(console, deinit)
 {
-    uut.do_deinit();
+    uut.deinit();
     api.stop();
 }

@@ -25,6 +25,8 @@ namespace console {
 class jwt_t
 {
 public:
+    jwt_t();
+
     auto token() const noexcept //
         -> const std::string&;
 
