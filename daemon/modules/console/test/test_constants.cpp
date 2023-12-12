@@ -20,7 +20,7 @@ const flecs::json_t auth_response_json = flecs::json_t::parse(R"-(
                 "isWhitelabeled": false
             }
         }
-    })-");
+})-");
 
 const flecs::json_t activate_response_json = flecs::json_t::parse(R"-(
     {
@@ -30,7 +30,15 @@ const flecs::json_t activate_response_json = flecs::json_t::parse(R"-(
             "sessionId": "{00000000-1111-2222-3333-444444444444}"
         }
     }
-    )-");
+)-");
+
+const flecs::json_t error_response_json = flecs::json_t::parse(R"-(
+    {
+        "status": 500,
+        "statusText": "Internal Server Error",
+        "reason": "Something went wrong..."
+    }
+)-");
 
 const flecs::json_t validate_response_json = flecs::json_t::parse(R"-(
     {
@@ -40,4 +48,4 @@ const flecs::json_t validate_response_json = flecs::json_t::parse(R"-(
             "isValid": true
         }
     }
-    )-");
+)-");

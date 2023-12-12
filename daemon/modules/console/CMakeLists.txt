@@ -19,6 +19,7 @@ flecs_add_module(
         types/activate_response.h
         types/auth_response.h
         types/base_response.h
+        types/error_response.h
         types/feature_flags.h
         types/jwt.h
         types/user.h
@@ -29,10 +30,11 @@ flecs_add_module(
         src/types/activate_response.cpp
         src/types/auth_response.cpp
         src/types/base_response.cpp
+        src/types/error_response.cpp
         src/types/feature_flags.cpp
-        src/types/validate_response.cpp
         src/types/jwt.cpp
         src/types/user.cpp
+        src/types/validate_response.cpp
 )
 
 add_subdirectory(test)

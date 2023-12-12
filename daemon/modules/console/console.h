@@ -42,7 +42,7 @@ public:
     auto authentication() const noexcept //
         -> const console::auth_response_data_t&;
 
-    auto activate_license(std::string_view session_id) //
+    auto activate_license(std::string session_id) //
         -> result_t;
 
     auto validate_license(std::string_view session_id) //
@@ -69,11 +69,13 @@ constexpr auto console_t::base_url() //
 {
     using std::operator""sv;
 
-#ifndef NDEBUG
-    return "https://console-dev.flecs.tech"sv;
-#else
+#if defined FLECS_UNIT_TEST
+    return "http://127.0.0.1:18952"sv;
+#elif defined NDEBUG
     return "https://console.flecs.tech"sv;
-#endif // NDEBUG
+#else
+    return "https://console-dev.flecs.tech"sv;
+#endif // FLECS_UNIT_TEST
 }
 
 } // namespace module
