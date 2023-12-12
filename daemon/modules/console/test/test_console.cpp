@@ -90,11 +90,6 @@ public:
                 }
 
                 const auto session_id = req.get_header_value("x-session-id");
-                if (session_id.empty()) {
-                    /* expected behavior for missing authorization */
-                    return crow::response(403);
-                }
-
                 if (session_id == "200-valid") {
                     /* expected behavior for successful activation */
                     const auto response = flecs::json_t({
@@ -119,6 +114,65 @@ public:
                         {"reason", "No remaining activations"},
                     });
                     return crow::response(500, response.dump());
+                } else if (session_id == "500") {
+                    /* expected behavior for errors during activation */
+                    const auto response = flecs::json_t({
+                        {"status", 500},
+                        {"statusText", "Internal Server Error"},
+                        {"reason", "Could not retrieve device licenses"},
+                    });
+                    return crow::response(500, response.dump());
+                } else if (session_id == "500-unhandled") {
+                    /* unexpected behavior, unhandled error during activation */
+                    const auto response = flecs::json_t({
+                        {"status", 500},
+                        {"statusText", "Internal Server Error"},
+                    });
+                    return crow::response(500, response.dump());
+                }
+
+                return crow::response{500, std::string{}};
+            });
+
+        CROW_ROUTE(_app, "/api/v2/device/license/validate")
+            .methods("POST"_method)([](const crow::request& req) {
+                auto response = flecs::json_t{};
+                const auto auth = req.get_header_value("authorization").substr(7);
+                if (auth.empty()) {
+                    const auto response = flecs::json_t({
+                        {"status", 403},
+                        {"statusText", "Forbidden"},
+                        {"reason", "Invalid header: Authorization (expected Bearer)"},
+                    });
+                    return crow::response(403, response.dump());
+                }
+
+                const auto session_id = req.get_header_value("x-session-id");
+                if (session_id == "200-active") {
+                    /* expected behavior for successful validation of active device */
+                    const auto response = flecs::json_t({
+                        {"status", 200},
+                        {"statusText", "OK"},
+                        {"data",
+                         {
+                             {"isValid", true},
+                         }},
+                    });
+                    return crow::response(200, response.dump());
+                } else if (session_id == "200-inactive") {
+                    /* expected behavior for successful validation of inactive device */
+                    const auto response = flecs::json_t({
+                        {"status", 200},
+                        {"statusText", "OK"},
+                        {"data",
+                         {
+                             {"isValid", false},
+                         }},
+                    });
+                    return crow::response(200, response.dump());
+                } else if (session_id == "200-invalid") {
+                    /* unexpected response for successful validation */
+                    return crow::response(200);
                 } else if (session_id == "500") {
                     /* expected behavior for errors during activation */
                     const auto response = flecs::json_t({
@@ -227,6 +281,9 @@ TEST(console, store_delete_authentication)
 
 TEST(console, activate_license)
 {
+    cpr::Delete(
+        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
+        cpr::Header{{{"Content-Type"}, {"application/json"}}});
     /** Valid sessionId, but user is not logged in */
     {
         const auto session_id = "200-valid";
@@ -292,6 +349,70 @@ TEST(console, activate_license)
 
         ASSERT_EQ(res, -1);
         ASSERT_EQ(message, "Activation failed with status code 500");
+    }
+}
+
+TEST(console, validate_license)
+{
+    cpr::Delete(
+        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
+        cpr::Header{{{"Content-Type"}, {"application/json"}}});
+    /** Valid sessionId, but user is not logged in */
+    {
+        const auto session_id = "200-active";
+        const auto [res, message] = uut.validate_license(session_id);
+
+        ASSERT_EQ(res, -1);
+        ASSERT_EQ(message, "Invalid header: Authorization (expected Bearer)");
+    }
+
+    cpr::Put(
+        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
+        cpr::Header{{{"Content-Type"}, {"application/json"}}},
+        cpr::Body{auth_response_json["data"].dump()});
+    /** User logged in, sessionId is active */
+    {
+        const auto session_id = "200-active";
+        const auto [res, message] = uut.validate_license(session_id);
+
+        ASSERT_EQ(res, 0);
+        ASSERT_EQ(message, "");
+    }
+
+    /** User logged in, sessionId is inactive */
+    {
+        const auto session_id = "200-inactive";
+        const auto [res, message] = uut.validate_license(session_id);
+
+        ASSERT_EQ(res, -1);
+        ASSERT_EQ(message, "Device is not activated");
+    }
+
+    /** User logged in, sessionId is inactive. Invalid response from server */
+    {
+        const auto session_id = "200-invalid";
+        const auto [res, message] = uut.validate_license(session_id);
+
+        ASSERT_EQ(res, -1);
+        ASSERT_EQ(message, "Invalid JSON response for status code 200");
+    }
+
+    /** Server-side exception occurred during validation */
+    {
+        const auto session_id = "500";
+        const auto [res, message] = uut.validate_license(session_id);
+
+        ASSERT_EQ(res, -1);
+        ASSERT_EQ(message, "Could not retrieve device licenses");
+    }
+
+    /** Unhandled server-side exception occurred during activation */
+    {
+        const auto session_id = "500-unhandled";
+        const auto [res, message] = uut.validate_license(session_id);
+
+        ASSERT_EQ(res, -1);
+        ASSERT_EQ(message, "Validation failed with status code 500");
     }
 }
 

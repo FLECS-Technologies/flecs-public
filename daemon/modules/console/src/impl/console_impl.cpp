@@ -81,10 +81,39 @@ auto console_t::do_activate_license(std::string session_id) //
     return {-1, response.reason()};
 }
 
-auto console_t::do_validate_license(std::string_view /*session_id*/) //
+auto console_t::do_validate_license(std::string_view session_id) //
     -> result_t
 {
-    return {0, {}};
+    const auto url = std::string{_parent->base_url()} + "/api/v2/device/license/validate";
+
+    const auto res = cpr::Post(
+        cpr::Url(std::move(url)),
+        cpr::Header{
+            {"Authorization", std::string{"Bearer " + _auth.jwt().token()}},
+            {"X-Session-Id", std::string{session_id}},
+        });
+
+    if (res.status_code == 200) {
+        auto response = console::validate_response_t{};
+        try {
+            parse_json(res.text).get_to(response);
+        } catch (...) {
+            return {-1, "Invalid JSON response for status code 200"};
+        }
+        if (response.is_valid()) {
+            return {0, {}};
+        }
+        return {-1, "Device is not activated"};
+    }
+
+    auto response = console::error_response_t{};
+    try {
+        parse_json(res.text).get_to(response);
+    } catch (...) {
+        return {-1, "Validation failed with status code " + std::to_string(res.status_code)};
+    }
+
+    return {-1, response.reason()};
 }
 
 auto console_t::do_store_authentication(console::auth_response_data_t auth) //
