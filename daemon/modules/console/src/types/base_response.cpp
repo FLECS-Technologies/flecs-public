@@ -20,7 +20,6 @@ namespace console {
 base_response_t::base_response_t()
     : _status_code{}
     , _status_text{}
-    , _data{}
 {}
 
 auto base_response_t::status_code() const noexcept //
@@ -35,18 +34,11 @@ auto base_response_t::status_text() const noexcept //
     return _status_text;
 }
 
-auto base_response_t::data() const noexcept //
-    -> const json_t&
-{
-    return _data;
-}
-
 auto from_json(const json_t& j, base_response_t& response) //
     -> void
 {
     j.at("status").get_to(response._status_code);
     j.at("statusText").get_to(response._status_text);
-    j.at("data").get_to(response._data);
 }
 
 auto to_json(json_t& j, const base_response_t& response) //
@@ -55,7 +47,6 @@ auto to_json(json_t& j, const base_response_t& response) //
     j = json_t({
         {"status", response.status_code()},
         {"statusText", response.status_text()},
-        {"data", response.data()},
     });
 }
 

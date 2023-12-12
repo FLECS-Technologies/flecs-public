@@ -25,7 +25,7 @@ register_module_t<console_t> _reg("console");
 }
 
 console_t::console_t()
-    : _impl{std::make_unique<impl::console_t>()}
+    : _impl{std::make_unique<impl::console_t>(this)}
 {}
 
 console_t::~console_t() = default;
@@ -61,7 +61,7 @@ auto console_t::authentication() const noexcept //
     return _impl->do_authentication();
 }
 
-auto console_t::activate_license(std::string_view session_id) //
+auto console_t::activate_license(std::string session_id) //
     -> result_t
 {
     return _impl->do_activate_license(session_id);

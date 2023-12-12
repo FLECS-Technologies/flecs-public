@@ -14,13 +14,18 @@
 
 #include "daemon/modules/console/impl/console_impl.h"
 
+#include <cpr/cpr.h>
+
+#include "daemon/modules/console/types.h"
 #include "util/json/json.h"
 
 namespace flecs {
 namespace module {
 namespace impl {
 
-console_t::console_t()
+console_t::console_t(flecs::module::console_t* parent)
+    : _parent{parent}
+    , _auth{}
 {}
 
 console_t::~console_t()
@@ -40,10 +45,40 @@ auto console_t::do_authentication() const noexcept //
     return _auth;
 }
 
-auto console_t::do_activate_license(std::string_view /*session_id*/) //
+auto console_t::do_activate_license(std::string session_id) //
     -> result_t
 {
-    return {0, {}};
+    const auto url = std::string{_parent->base_url()} + "/api/v2/device/license/activate";
+
+    const auto res = cpr::Post(
+        cpr::Url(std::move(url)),
+        cpr::Header{
+            {"Authorization", std::string{"Bearer " + _auth.jwt().token()}},
+            {"X-Session-Id", session_id},
+        });
+
+    if (res.status_code == 200) {
+        auto response = console::activate_response_t{};
+        try {
+            parse_json(res.text).get_to(response);
+        } catch (...) {
+            return {-1, "Invalid JSON response for status code 200"};
+        }
+        return {0, response.session_id()};
+    }
+
+    if (res.status_code == 204) {
+        return {0, session_id};
+    }
+
+    auto response = console::error_response_t{};
+    try {
+        parse_json(res.text).get_to(response);
+    } catch (...) {
+        return {-1, "Activation failed with status code " + std::to_string(res.status_code)};
+    }
+
+    return {-1, response.reason()};
 }
 
 auto console_t::do_validate_license(std::string_view /*session_id*/) //

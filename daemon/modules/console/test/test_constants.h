@@ -19,4 +19,5 @@
 extern const flecs::json_t auth_response_json;
 extern const flecs::json_t activate_response_json;
 extern const flecs::json_t activate_response_json;
+extern const flecs::json_t error_response_json;
 extern const flecs::json_t validate_response_json;

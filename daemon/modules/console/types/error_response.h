@@ -16,30 +16,33 @@
 
 #include <string>
 
-#include "util/json/json.h"
+#include "base_response.h"
 
 namespace flecs {
 namespace console {
 
-class base_response_t
+class error_response_data_t
 {
 public:
-    base_response_t();
-
-    auto status_code() const noexcept //
-        -> int;
-
-    auto status_text() const noexcept //
+    auto reason() const noexcept //
         -> const std::string&;
 
 private:
-    friend auto from_json(const json_t& j, base_response_t& response) //
+    friend auto from_json(const json_t& j, error_response_data_t& response) //
         -> void;
-    friend auto to_json(json_t& j, const base_response_t& response) //
+    friend auto to_json(json_t& j, const error_response_data_t& response) //
         -> void;
 
-    int _status_code;
-    std::string _status_text;
+    std::string _reason;
+};
+
+class error_response_t : public base_response_t, public error_response_data_t
+{
+private:
+    friend auto from_json(const json_t& j, error_response_t& response) //
+        -> void;
+    friend auto to_json(json_t& j, const error_response_t& response) //
+        -> void;
 };
 
 } // namespace console

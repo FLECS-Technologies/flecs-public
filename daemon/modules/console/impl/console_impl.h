@@ -25,7 +25,7 @@ class console_t
     friend class flecs::module::console_t;
 
 public:
-    console_t();
+    explicit console_t(flecs::module::console_t* parent);
 
     ~console_t();
 
@@ -39,7 +39,7 @@ private:
     auto do_authentication() const noexcept //
         -> const console::auth_response_data_t&;
 
-    auto do_activate_license(std::string_view session_id) //
+    auto do_activate_license(std::string session_id) //
         -> result_t;
 
     auto do_validate_license(std::string_view session_id) //
@@ -49,6 +49,8 @@ private:
         -> crow::response;
     auto do_delete_authentication() //
         -> crow::response;
+
+    flecs::module::console_t* _parent;
 
     console::auth_response_data_t _auth;
 };
