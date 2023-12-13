@@ -36,26 +36,69 @@ const auto session_id_regex = std::regex{"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f
 
 TEST(device, session_id)
 {
-    auto uut = test_module_device_t{};
     auto session_id = std::string{};
     {
-        uut.init();
-        uut.load(".");
+        std::filesystem::remove_all("./device");
 
+        auto uut = test_module_device_t{};
+        uut.init();
+
+        /* No .session_id file present -- loading should fail */
+        auto [res, message] = uut.load(".");
+        ASSERT_EQ(res, -1);
+
+        /* This will generate an initial, random session_id */
         session_id = uut.session_id();
         ASSERT_TRUE(std::regex_match(session_id, session_id_regex));
 
+        /* Should successfully create .session_id */
+        std::tie(res, message) = uut.save(".");
+        ASSERT_EQ(res, 0);
+
         uut.deinit();
-        uut.save(".");
     }
     {
+        auto uut = test_module_device_t{};
+        uut.init();
+
+        /* .session_id created in previous test case -- loading should succeed */
+        auto [res, message] = uut.load(".");
+        ASSERT_EQ(res, 0);
+        ASSERT_EQ(session_id, uut.session_id());
+
+        /* Should successfully overwrite .session_id */
+        std::tie(res, message) = uut.save(".");
+        ASSERT_EQ(res, 0);
+
+        uut.deinit();
+    }
+    {
+        {
+            auto f = std::ofstream{"./device/.session_id", std::ios::trunc};
+            f << "invalid-session-id";
+        }
+
+        auto uut = test_module_device_t{};
+        uut.init();
+
+        /* .session_id contains garbage -- loading should fail */
+        const auto [res, message] = uut.load(".");
+        ASSERT_EQ(res, -1);
+        /* new, random session_id should be generated */
+        ASSERT_NE(session_id, uut.session_id());
+
+        uut.save();
+        uut.deinit();
+    }
+    {
+        auto uut = test_module_device_t{};
         uut.init();
         uut.load(".");
 
-        ASSERT_EQ(session_id, uut.session_id());
-
+        /* Saving under /proc should fail */
+        const auto [res, message] = uut.save("/proc");
+        ASSERT_EQ(res, -1);
         uut.deinit();
-        uut.save(".");
     }
 }
 
