@@ -19,13 +19,21 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <fstream>
 
+#ifdef FLECS_MOCK_MODULES
+#include "daemon/modules/console/__mocks__/console.h"
+#else
+#include "daemon/modules/console/console.h"
+#endif // FLECS_MOCK_MODULES
+#include "daemon/modules/factory/factory.h"
 #include "util/string/string_utils.h"
 
 namespace flecs {
 namespace module {
 namespace impl {
 
-device_t::device_t()
+device_t::device_t(flecs::module::device_t* parent)
+    : _parent{parent}
+    , _session_id{}
 {}
 
 auto device_t::do_init() //
@@ -93,7 +101,10 @@ auto device_t::do_session_id() //
 auto device_t::do_activate_license() //
     -> result_t
 {
-    return {0, {}};
+    auto console_api =
+        std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
+
+    return console_api->activate_license(_parent->session_id());
 }
 
 auto device_t::do_validate_license() //

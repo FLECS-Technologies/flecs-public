@@ -25,7 +25,7 @@ register_module_t<device_t> _reg("device");
 }
 
 device_t::device_t()
-    : _impl{new impl::device_t{}}
+    : _impl{new impl::device_t{this}}
 {}
 
 device_t::~device_t() = default;

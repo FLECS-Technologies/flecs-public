@@ -28,7 +28,7 @@ class device_t
     friend class flecs::module::device_t;
 
 private:
-    device_t();
+    device_t(flecs::module::device_t* parent);
 
     auto do_init() //
         -> void;
@@ -51,6 +51,7 @@ private:
     auto do_validate_license() //
         -> result_t;
 
+    flecs::module::device_t* _parent;
     std::string _session_id;
 };
 

@@ -12,29 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+project(modules.console.types)
+
+add_library(${PROJECT_NAME} STATIC
+    src/types/activate_response.cpp
+    src/types/auth_response.cpp
+    src/types/base_response.cpp
+    src/types/error_response.cpp
+    src/types/feature_flags.cpp
+    src/types/jwt.cpp
+    src/types/user.cpp
+    src/types/validate_response.cpp
+    types/activate_response.h
+    types/auth_response.h
+    types/base_response.h
+    types/error_response.h
+    types/feature_flags.h
+    types/jwt.h
+    types/user.h
+    types/validate_response.h
+    types.h
+)
+
 flecs_add_module(
     MODULE_NAME console
     ADDITIONAL_HEADERS
         impl/console_impl.h
-        types/activate_response.h
-        types/auth_response.h
-        types/base_response.h
-        types/error_response.h
-        types/feature_flags.h
-        types/jwt.h
-        types/user.h
-        types/validate_response.h
-        types.h
     ADDITIONAL_SOURCES
         src/impl/console_impl.cpp
-        src/types/activate_response.cpp
-        src/types/auth_response.cpp
-        src/types/base_response.cpp
-        src/types/error_response.cpp
-        src/types/feature_flags.cpp
-        src/types/jwt.cpp
-        src/types/user.cpp
-        src/types/validate_response.cpp
+    LIBS_PUBLIC cpr::cpr modules.console.types
 )
 
 add_subdirectory(test)
