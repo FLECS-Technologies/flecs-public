@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "impl/instances_impl.h"
+#include "daemon/modules/instances/impl/instances_impl.h"
 
 #include "api/api.h"
 #include "common/app/app.h"

@@ -20,3 +20,23 @@ flecs_add_module(
     impl/instances_impl.h
     LIBS_PUBLIC daemon.common
 )
+
+add_library(daemon.modules.instances.mocked_modules STATIC
+    src/instances.cpp
+    src/impl/instances_impl.cpp
+    instances.h
+    impl/instances_impl.h
+)
+
+target_link_libraries(
+    daemon.modules.instances.mocked_modules PUBLIC
+    GTest::gmock
+    daemon.common
+    daemon.modules.factory
+    daemon.modules.module_base
+)
+
+target_compile_definitions(
+    daemon.modules.instances.mocked_modules PRIVATE
+    -DFLECS_MOCK_MODULES
+)
