@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "apps.h"
+#include "daemon/modules/apps/apps.h"
 
 #include "common/app/manifest/manifest.h"
-#include "factory/factory.h"
-#include "impl/apps_impl.h"
+#include "daemon/modules/apps/impl/apps_impl.h"
+#include "daemon/modules/factory/factory.h"
 #include "util/datetime/datetime.h"
 
 namespace flecs {
@@ -38,15 +38,14 @@ auto apps_t::do_init() //
 {
     FLECS_V2_ROUTE("/apps").methods("GET"_method)([this]() { return http_list({}); });
 
-    FLECS_V2_ROUTE("/apps/<string>")
-        .methods("GET"_method)([this](const crow::request& req, std::string app) {
-            const auto version = req.url_params.get("version");
-            if (version) {
-                return http_list(app_key_t{std::move(app), version});
-            } else {
-                return http_list(app_key_t{std::move(app), {}});
-            }
-        });
+    FLECS_V2_ROUTE("/apps/<string>").methods("GET"_method)([this](const crow::request& req, std::string app) {
+        const auto version = req.url_params.get("version");
+        if (version) {
+            return http_list(app_key_t{std::move(app), version});
+        } else {
+            return http_list(app_key_t{std::move(app), {}});
+        }
+    });
 
     FLECS_V2_ROUTE("/apps/<string>")
         .methods("DELETE"_method)([this](const crow::request& req, std::string app) {
@@ -118,20 +117,14 @@ auto apps_t::http_install(app_key_t app_key) //
     -> crow::response
 {
     auto job_id = _impl->queue_install_from_marketplace(std::move(app_key));
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 auto apps_t::http_sideload(std::string manifest_string) //
     -> crow::response
 {
     auto job_id = _impl->queue_sideload(std::move(manifest_string));
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 auto apps_t::http_uninstall(app_key_t app_key) //
@@ -139,16 +132,12 @@ auto apps_t::http_uninstall(app_key_t app_key) //
 {
     if (!is_installed(app_key)) {
         auto response = json_t{};
-        response["additionalInfo"] =
-            "Cannot uninstall " + to_string(app_key) + ", which is not installed";
+        response["additionalInfo"] = "Cannot uninstall " + to_string(app_key) + ", which is not installed";
         return {crow::status::BAD_REQUEST, "json", response.dump()};
     }
 
     auto job_id = _impl->queue_uninstall(std::move(app_key));
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 auto apps_t::http_export_to(app_key_t app_key) //
@@ -156,16 +145,12 @@ auto apps_t::http_export_to(app_key_t app_key) //
 {
     if (!is_installed(app_key)) {
         auto response = json_t{};
-        response["additionalInfo"] =
-            "Cannot export " + to_string(app_key) + ", which is not installed";
+        response["additionalInfo"] = "Cannot export " + to_string(app_key) + ", which is not installed";
         return {crow::status::BAD_REQUEST, "json", response.dump()};
     }
 
     auto job_id = _impl->queue_export_to(std::move(app_key), "/var/lib/flecs/exports/");
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 auto apps_t::app_keys(const app_key_t& app_key) const //

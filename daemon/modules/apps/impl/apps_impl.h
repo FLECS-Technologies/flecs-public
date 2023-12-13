@@ -19,8 +19,8 @@
 #include <mutex>
 #include <string>
 
-#include "apps.h"
-#include "common/app/app.h"
+#include "daemon/common/app/app.h"
+#include "daemon/modules/apps/apps.h"
 
 namespace flecs {
 namespace jobs {

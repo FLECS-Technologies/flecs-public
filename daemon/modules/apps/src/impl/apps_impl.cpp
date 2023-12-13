@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "impl/apps_impl.h"
+#include "daemon/modules/apps/impl/apps_impl.h"
 
 #include <cpr/cpr.h>
 
@@ -52,11 +52,9 @@ apps_t::~apps_t()
 auto apps_t::do_module_init() //
     -> void
 {
-    _instances_api =
-        std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
+    _instances_api = std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
     _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
-    _manifests_api =
-        std::dynamic_pointer_cast<flecs::module::manifests_t>(api::query_module("manifests"));
+    _manifests_api = std::dynamic_pointer_cast<flecs::module::manifests_t>(api::query_module("manifests"));
 
     auto ec = std::error_code{};
     if (fs::is_directory("/var/lib/flecs/apps", ec)) {
@@ -75,8 +73,7 @@ auto apps_t::do_module_init() //
 
     for (auto id : _instances_api->instance_ids()) {
         auto instance = _instances_api->query(id);
-        instance->app(
-            _parent->query(app_key_t{instance->app_name().data(), instance->app_version().data()}));
+        instance->app(_parent->query(app_key_t{instance->app_name().data(), instance->app_version().data()}));
     }
 }
 
@@ -158,11 +155,8 @@ auto apps_t::queue_install_from_marketplace(app_key_t app_key) //
 {
     auto desc = "Installation of "s + to_string(app_key);
 
-    auto job = jobs::job_t{std::bind(
-        &apps_t::do_install_from_marketplace,
-        this,
-        std::move(app_key),
-        std::placeholders::_1)};
+    auto job = jobs::job_t{
+        std::bind(&apps_t::do_install_from_marketplace, this, std::move(app_key), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
@@ -190,8 +184,8 @@ auto apps_t::do_install_from_marketplace(app_key_t app_key, jobs::progress_t& pr
 auto apps_t::queue_sideload(std::string manifest_string) //
     -> jobs::id_t
 {
-    auto job = jobs::job_t{
-        std::bind(&apps_t::do_sideload, this, std::move(manifest_string), std::placeholders::_1)};
+    auto job =
+        jobs::job_t{std::bind(&apps_t::do_sideload, this, std::move(manifest_string), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), "Sideloading App");
 }
@@ -307,8 +301,7 @@ auto apps_t::do_install_impl(
             progress.next_step("Expiring download token");
 
             auto docker_size_process = process_t{};
-            docker_size_process
-                .spawnp("docker", "inspect", "-f", "{{ .Size }}", manifest->image_with_tag());
+            docker_size_process.spawnp("docker", "inspect", "-f", "{{ .Size }}", manifest->image_with_tag());
             docker_size_process.wait(false, true);
 
             if (docker_size_process.exit_code() == 0) {
@@ -350,8 +343,7 @@ auto apps_t::queue_uninstall(app_key_t app_key) //
 {
     auto desc = "Uninstallation of "s + to_string(app_key);
 
-    auto job = jobs::job_t{
-        std::bind(&apps_t::do_uninstall, this, std::move(app_key), std::placeholders::_1)};
+    auto job = jobs::job_t{std::bind(&apps_t::do_uninstall, this, std::move(app_key), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
@@ -472,10 +464,8 @@ auto apps_t::do_export_to(app_key_t app_key, fs::path dest_dir, jobs::progress_t
     // Step 4: Export image
     progress.next_step("Exporting App");
     auto docker_process = process_t{};
-    const auto filename =
-        dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".tar");
-    docker_process
-        .spawnp("docker", "save", "--output", filename.string(), manifest->image_with_tag());
+    const auto filename = dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".tar");
+    docker_process.spawnp("docker", "save", "--output", filename.string(), manifest->image_with_tag());
     docker_process.wait(false, true);
     if (docker_process.exit_code() != 0) {
         return {-1, docker_process.stderr()};
@@ -484,8 +474,7 @@ auto apps_t::do_export_to(app_key_t app_key, fs::path dest_dir, jobs::progress_t
     // Step 5: Copy manifest
     progress.next_step("Exporting Manifest");
     const auto manifest_src = _manifests_api->path(app_key);
-    const auto manifest_dst =
-        dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".json");
+    const auto manifest_dst = dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".json");
     fs::copy_file(manifest_src, manifest_dst, ec);
     if (ec) {
         return {-1, "Could not copy Manifest"};
@@ -547,10 +536,9 @@ auto apps_t::do_import_from(app_key_t app_key, fs::path src_dir, jobs::progress_
 auto apps_t::do_query(const app_key_t& app_key) const noexcept //
     -> std::shared_ptr<app_t>
 {
-    auto it =
-        std::find_if(_apps.cbegin(), _apps.cend(), [&app_key](const std::shared_ptr<app_t>& elem) {
-            return elem->key() == app_key;
-        });
+    auto it = std::find_if(_apps.cbegin(), _apps.cend(), [&app_key](const std::shared_ptr<app_t>& elem) {
+        return elem->key() == app_key;
+    });
 
     return it == _apps.cend() ? nullptr : *it;
 }

@@ -20,7 +20,8 @@
 #include <tuple>
 
 #include "core/flecs.h"
-#include "module_base/module.h"
+#include "daemon/common/app/manifest/manifest.h"
+#include "daemon/modules/module_base/module.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 #include "util/yaml/yaml.h"
