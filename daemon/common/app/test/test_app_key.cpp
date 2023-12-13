@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gtest/gtest.h>
+
 #include "daemon/common/app/app_key.h"
-#include "gtest/gtest.h"
 
 constexpr auto VALID_APP_NAME_1 = "tech.flecs.test-app";
 constexpr auto VALID_APP_NAME_2 = "tech.flecs.test-app-2";
@@ -43,8 +44,8 @@ TEST(app_key, init)
     }
     /* app_key_t(std::tuple<std::string, std::string>) */
     {
-        const auto uut = flecs::app_key_t{
-            std::make_tuple(flecs::app_name_t{VALID_APP_NAME_1}, VALID_APP_VERSION_1)};
+        const auto uut =
+            flecs::app_key_t{std::make_tuple(flecs::app_name_t{VALID_APP_NAME_1}, VALID_APP_VERSION_1)};
 
         ASSERT_TRUE(uut.is_valid());
         ASSERT_EQ(uut.name(), VALID_APP_NAME_1);

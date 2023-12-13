@@ -14,10 +14,10 @@
 
 #include "daemon/modules/instances/instances.h"
 
-#include "common/app/app.h"
-#include "common/instance/instance.h"
+#include "daemon/common/app/app.h"
+#include "daemon/common/instance/instance.h"
 #include "daemon/modules/instances/impl/instances_impl.h"
-#include "factory/factory.h"
+#include "daemon/modules/factory/factory.h"
 
 namespace flecs {
 namespace module {

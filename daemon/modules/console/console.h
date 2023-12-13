@@ -19,7 +19,7 @@
 #include <string>
 #include <string_view>
 
-#include "module_base/module.h"
+#include "daemon/modules/module_base/module.h"
 #include "types/auth_response.h"
 
 namespace flecs {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "app_name.h"
+#include "daemon/common/app/app_name.h"
 
 #include <regex>
 

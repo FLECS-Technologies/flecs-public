@@ -20,14 +20,6 @@ add_library(
     factory.h
 )
 
-target_include_directories(
-    daemon.modules.factory INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
-
-target_include_directories(
-    daemon.modules.factory PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 target_link_libraries(daemon.modules.factory PUBLIC
     daemon.modules.module_base
 )

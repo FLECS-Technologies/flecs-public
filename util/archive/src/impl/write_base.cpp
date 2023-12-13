@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "archive/impl/write_base.h"
+#include "util/archive/impl/write_base.h"
 
 #include <archive.h>
 
-#include "archive/impl/archive_entry.h"
+#include "util/archive/impl/archive_entry.h"
 
 namespace flecs {
 

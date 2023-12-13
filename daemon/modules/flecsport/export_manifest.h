@@ -17,8 +17,8 @@
 #include <string>
 #include <vector>
 
-#include "common/app/app_key.h"
-#include "common/instance/instance.h"
+#include "daemon/common/app/app_key.h"
+#include "daemon/common/instance/instance.h"
 #include "util/json/json.h"
 #include "util/sysinfo/sysinfo.h"
 

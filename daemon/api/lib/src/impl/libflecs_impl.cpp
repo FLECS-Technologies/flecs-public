@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "impl/libflecs_impl.h"
+#include "daemon/api/lib/impl/libflecs_impl.h"
 
 #include <cpr/cpr.h>
 

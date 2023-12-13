@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gtest/gtest.h>
+
 #include <array>
 
 #include "daemon/common/app/app_name.h"
-#include "gtest/gtest.h"
 
 constexpr auto VALID_APP_NAMES = std::array<std::string_view, 4>{{
     "tech.flecs.a",

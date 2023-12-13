@@ -33,10 +33,6 @@ add_library(${PROJECT_NAME} STATIC
     src/impl/write_disk.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
-
 target_link_libraries(${PROJECT_NAME} PRIVATE
     LibArchive::LibArchive
 )

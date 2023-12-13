@@ -21,8 +21,6 @@ if(BUILD_TESTING)
 
     set_target_properties(daemon.deployment.test PROPERTIES OUTPUT_NAME test_daemon_deployment)
 
-    target_include_directories(daemon.deployment.test PRIVATE ${CMAKE_SOURCE_DIR}/daemon)
-
     target_link_libraries(daemon.deployment.test PRIVATE
         daemon.common.deployment
         GTest::gmock

@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
+#include "daemon/modules/version/version.h"
 #include "util/json/json.h"
-#include "version/version.h"
 
 class test_module_version_t : public flecs::module::version_t
 {

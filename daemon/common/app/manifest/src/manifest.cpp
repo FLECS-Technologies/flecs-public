@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "manifest.h"
+#include "daemon/common/app/manifest/manifest.h"
 
 #include <fstream>
 
@@ -183,8 +183,7 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
 
         OPTIONAL_YAML_NODE(yaml, startupOptions, startup_options);
         for (const auto& startup_option : startup_options) {
-            _startup_options.emplace_back(
-                startup_option_from_string(startup_option.as<std::string>()));
+            _startup_options.emplace_back(startup_option_from_string(startup_option.as<std::string>()));
         }
 
         REQUIRED_TYPED_YAML_VALUE(yaml, title, _title);

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "system.h"
+#include "daemon/modules/system/system.h"
 
 #include <ifaddrs.h>
 #include <linux/if_link.h>
@@ -24,7 +24,7 @@
 #include <limits>
 #include <sstream>
 
-#include "factory/factory.h"
+#include "daemon/modules/factory/factory.h"
 #include "util/network/ip_addr.h"
 #include "util/network/network.h"
 #include "util/string/string_utils.h"
@@ -108,8 +108,7 @@ auto system_t::get_network_adapters() const //
                 auto ip = ipaddr_t{};
 
                 ip.addr = to_string(ip_addr_t{((struct sockaddr_in*)ifa->ifa_addr)->sin_addr});
-                ip.subnet_mask =
-                    to_string(ip_addr_t{((struct sockaddr_in*)ifa->ifa_netmask)->sin_addr});
+                ip.subnet_mask = to_string(ip_addr_t{((struct sockaddr_in*)ifa->ifa_netmask)->sin_addr});
 
                 adapters[ifa->ifa_name].ipv4_addr.emplace_back(ip);
                 break;
@@ -118,8 +117,7 @@ auto system_t::get_network_adapters() const //
                 auto ip = ipaddr_t{};
 
                 ip.addr = to_string(ip_addr_t{((struct sockaddr_in6*)ifa->ifa_addr)->sin6_addr});
-                ip.subnet_mask =
-                    to_string(ip_addr_t{((struct sockaddr_in6*)ifa->ifa_netmask)->sin6_addr});
+                ip.subnet_mask = to_string(ip_addr_t{((struct sockaddr_in6*)ifa->ifa_netmask)->sin6_addr});
 
                 adapters[ifa->ifa_name].ipv6_addr.emplace_back(ip);
                 break;

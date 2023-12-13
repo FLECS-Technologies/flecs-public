@@ -21,9 +21,9 @@
 #include <string_view>
 #include <vector>
 
-#include "common/network/network_type.h"
 #include "core/flecs.h"
-#include "instance/instance.h"
+#include "daemon/common/instance/instance.h"
+#include "daemon/common/network/network_type.h"
 #include "util/fs/fs.h"
 
 namespace flecs {
@@ -144,8 +144,7 @@ public:
         -> result_t;
     auto copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
         -> result_t;
-    auto copy_file_to_instance(
-        std::shared_ptr<instance_t> instance_id, fs::path file, fs::path dest) //
+    auto copy_file_to_instance(std::shared_ptr<instance_t> instance_id, fs::path file, fs::path dest) //
         -> result_t;
     auto copy_file_from_instance(
         std::shared_ptr<instance_t> instance_id, fs::path file, fs::path dest) const //
@@ -186,8 +185,7 @@ private:
         -> result_t = 0;
     virtual auto do_stop_instance(std::shared_ptr<instance_t> instance) //
         -> result_t = 0;
-    virtual auto do_export_instance(
-        std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
+    virtual auto do_export_instance(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
         -> result_t = 0;
     virtual auto do_import_instance(std::shared_ptr<instance_t> instance, fs::path base_dir) //
         -> result_t = 0;
@@ -209,11 +207,9 @@ private:
         std::string_view network,
         std::string_view ip) //
         -> result_t = 0;
-    virtual auto do_disconnect_network(
-        std::shared_ptr<instance_t> instance, std::string_view network) //
+    virtual auto do_disconnect_network(std::shared_ptr<instance_t> instance, std::string_view network) //
         -> result_t = 0;
-    virtual auto do_create_volume(
-        std::shared_ptr<instance_t> instance, std::string_view volume_name) //
+    virtual auto do_create_volume(std::shared_ptr<instance_t> instance, std::string_view volume_name) //
         -> result_t = 0;
     virtual auto do_import_volume(
         std::shared_ptr<instance_t> instance,
@@ -225,8 +221,7 @@ private:
         std::string_view volume_name,
         fs::path dest_dir) const //
         -> result_t = 0;
-    virtual auto do_delete_volume(
-        std::shared_ptr<instance_t> instance, std::string_view volume_name) //
+    virtual auto do_delete_volume(std::shared_ptr<instance_t> instance, std::string_view volume_name) //
         -> result_t = 0;
     virtual auto do_copy_file_from_image(std::string_view image, fs::path file, fs::path dest) //
         -> result_t = 0;

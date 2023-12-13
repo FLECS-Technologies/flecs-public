@@ -13,12 +13,12 @@
 // limitations under the License.
 
 #include <crow.h>
+#include <gtest/gtest.h>
 
 #include <sstream>
 #include <thread>
 
-#include "gtest/gtest.h"
-#include "libflecs.h"
+#include "daemon/api/lib/libflecs.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 
@@ -368,8 +368,7 @@ TEST(api_lib, cmdline_instance_create)
     auto lib = flecs::libflecs_t{};
     (void)lib.connect("localhost", TEST_PORT);
 
-    const auto res =
-        lib.run_command("app-manager", {"create-instance", app, version, instanceName});
+    const auto res = lib.run_command("app-manager", {"create-instance", app, version, instanceName});
     const auto response = flecs::parse_json(lib.json_response());
 
     ASSERT_EQ(res, 0);

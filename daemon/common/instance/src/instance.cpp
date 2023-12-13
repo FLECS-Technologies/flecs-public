@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "instance.h"
-
-#include <app/app.h>
+#include "daemon/common/instance/instance.h"
 
 #include <cstdio>
 
+#include "daemon/common/app/app.h"
 #include "util/random/random.h"
 #include "util/string/format.h"
 
@@ -31,8 +30,7 @@ instance_t::instance_t(std::shared_ptr<const app_t> app, std::string instance_na
     : instance_t{instance_id_t{}, app, std::move(instance_name)}
 {}
 
-instance_t::instance_t(
-    instance_id_t id, std::shared_ptr<const app_t> app, std::string instance_name)
+instance_t::instance_t(instance_id_t id, std::shared_ptr<const app_t> app, std::string instance_name)
     : _id{std::move(id)}
     , _app{app}
     , _app_name{app ? app->key().name() : ""}

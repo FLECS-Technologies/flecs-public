@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gtest/gtest.h>
+
 #include <array>
 
-#include "gtest/gtest.h"
 #include "util/network/netif_type.h"
 
 TEST(netif_type, to_string)

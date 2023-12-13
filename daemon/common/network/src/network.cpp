@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "network.h"
+#include "daemon/common/network/network.h"
 
 #include <regex>
 

@@ -30,14 +30,6 @@ macro(flecs_add_module)
         ${mod_MODULE_NAME}.h ${mod_ADDITIONAL_HEADERS}
     )
 
-    target_include_directories(
-        daemon.modules.${mod_MODULE_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-    )
-
-    target_include_directories(
-        daemon.modules.${mod_MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-
     target_link_libraries(daemon.modules.${mod_MODULE_NAME} PUBLIC
         daemon.api
         daemon.modules.factory

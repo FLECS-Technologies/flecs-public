@@ -19,8 +19,4 @@ add_library(util.network STATIC
     ip_addr.h netif_type.h network.h
 )
 
-target_include_directories(util.network PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 add_subdirectory(test)

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "instance_status.h"
+#include "daemon/common/instance/instance_status.h"
 
 #include <algorithm>
 #include <array>

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "app_status.h"
+#include "daemon/common/app/app_status.h"
 
 #include <algorithm>
 #include <array>
@@ -56,9 +56,7 @@ auto app_status_from_string(std::string_view str) //
     const auto it = std::find_if(
         strings.cbegin(),
         strings.cend(),
-        [&str](const std::tuple<app_status_e, std::string_view>& elem) {
-            return std::get<1>(elem) == str;
-        });
+        [&str](const std::tuple<app_status_e, std::string_view>& elem) { return std::get<1>(elem) == str; });
 
     return it == strings.cend() ? app_status_e::Unknown : std::get<0>(*it);
 }

@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "flecsport.h"
+#include "daemon/modules/flecsport/flecsport.h"
 
 namespace flecs {
 namespace jobs {

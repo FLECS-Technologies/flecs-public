@@ -22,16 +22,6 @@ add_library(
     deployment.h deployment_docker.h
 )
 
-target_include_directories(
-    ${PROJECT_NAME} INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
-
-target_include_directories(
-    ${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 target_link_libraries(
     ${PROJECT_NAME} PRIVATE
     daemon.common.app

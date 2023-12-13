@@ -17,7 +17,7 @@
 #include <memory>
 #include <vector>
 
-#include "common/instance/instance_id.h"
+#include "daemon/common/instance/instance_id.h"
 #include "daemon/modules/jobs/types/job_id.h"
 #include "daemon/modules/module_base/module.h"
 #include "util/fs/fs.h"

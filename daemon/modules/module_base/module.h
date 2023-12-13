@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "api/api.h"
+#include "daemon/api/api.h"
 #include "core/flecs.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"

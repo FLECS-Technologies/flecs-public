@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "network.h"
+#include "util/network/network.h"
 
 #include <arpa/inet.h>
 
 #include <bitset>
 #include <regex>
 
-#include "ip_addr.h"
+#include "util/network/ip_addr.h"
 #include "util/string/string_utils.h"
 
 namespace flecs {

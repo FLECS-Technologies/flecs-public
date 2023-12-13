@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gtest/gtest.h>
+
 #include "daemon/modules/console/types.h"
-#include "gtest/gtest.h"
 #include "test_constants.h"
 
 TEST(console, activate_response)

@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
 #include "util/network/network.h"
 
 TEST(util_network, subnet_mask_to_cidr_v4)

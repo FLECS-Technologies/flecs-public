@@ -20,14 +20,6 @@ add_library(
     api.h
 )
 
-target_include_directories(
-    daemon.api INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
-
-target_include_directories(
-    daemon.api PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 target_compile_options(daemon.api PUBLIC
     -Wno-type-limits
 )

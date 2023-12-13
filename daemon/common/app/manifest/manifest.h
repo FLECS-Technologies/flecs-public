@@ -17,11 +17,11 @@
 #include <set>
 #include <string>
 
-#include "conffile/conffile.h"
-#include "env_var/env_var.h"
-#include "network/network.h"
-#include "port_range/port_range.h"
-#include "startup_option/startup_option.h"
+#include "daemon/common/app/manifest/conffile/conffile.h"
+#include "daemon/common/app/manifest/env_var/env_var.h"
+#include "daemon/common/app/manifest/port_range/port_range.h"
+#include "daemon/common/app/manifest/startup_option/startup_option.h"
+#include "daemon/common/network/network.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
 #include "util/yaml/yaml.h"

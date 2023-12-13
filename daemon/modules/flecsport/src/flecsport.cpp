@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "flecsport.h"
+#include "daemon/modules/flecsport/flecsport.h"
 
-#include "common/app/app_key.h"
-#include "common/instance/instance_id.h"
-#include "factory/factory.h"
-#include "impl/flecsport_impl.h"
+#include "daemon/common/app/app_key.h"
+#include "daemon/common/instance/instance_id.h"
+#include "daemon/modules/factory/factory.h"
+#include "daemon/modules/flecsport/impl/flecsport_impl.h"
 #include "util/datetime/datetime.h"
 
 namespace flecs {
@@ -43,9 +43,9 @@ auto flecsport_t::do_init() //
         return http_download(export_id);
     });
 
-    FLECS_V2_ROUTE("/exports/<string>")
-        .methods("DELETE"_method)(
-            [this](const std::string& export_id) { return http_remove(export_id); });
+    FLECS_V2_ROUTE("/exports/<string>").methods("DELETE"_method)([this](const std::string& export_id) {
+        return http_remove(export_id);
+    });
 
     FLECS_V2_ROUTE("/exports/create").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
@@ -128,28 +128,20 @@ auto flecsport_t::http_remove(const std::string& export_id) //
     return crow::response{crow::status::OK};
 }
 
-auto flecsport_t::http_export_to(
-    std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
+auto flecsport_t::http_export_to(std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
     -> crow::response
 {
     const auto now = unix_time(precision_e::milliseconds);
     auto dest_dir = fs::path{"/var/lib/flecs/exports"} / now;
-    auto job_id =
-        _impl->queue_export_to(std::move(apps), std::move(instances), std::move(dest_dir));
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    auto job_id = _impl->queue_export_to(std::move(apps), std::move(instances), std::move(dest_dir));
+    return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 auto flecsport_t::http_import_from(std::string archive) //
     -> crow::response
 {
     auto job_id = _impl->queue_import_from(std::move(archive));
-    return crow::response{
-        crow::status::ACCEPTED,
-        "json",
-        "{\"jobId\":" + std::to_string(job_id) + "}"};
+    return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
 } // namespace module

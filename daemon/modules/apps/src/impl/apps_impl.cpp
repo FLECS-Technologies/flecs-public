@@ -19,14 +19,14 @@
 #include <algorithm>
 #include <fstream>
 
-#include "api/api.h"
-#include "common/app/manifest/manifest.h"
-#include "common/instance/instance.h"
-#include "modules/console/console.h"
-#include "modules/factory/factory.h"
-#include "modules/instances/instances.h"
-#include "modules/jobs/jobs.h"
-#include "modules/manifests/manifests.h"
+#include "daemon/api/api.h"
+#include "daemon/common/app/manifest/manifest.h"
+#include "daemon/common/instance/instance.h"
+#include "daemon/modules/console/console.h"
+#include "daemon/modules/factory/factory.h"
+#include "daemon/modules/instances/instances.h"
+#include "daemon/modules/jobs/jobs.h"
+#include "daemon/modules/manifests/manifests.h"
 #include "util/cxx23/string.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"

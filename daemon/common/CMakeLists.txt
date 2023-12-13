@@ -21,11 +21,6 @@ add_subdirectory(network)
 
 add_library(daemon.common INTERFACE)
 
-target_include_directories(
-    daemon.common INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 target_link_libraries(
     daemon.common INTERFACE
     daemon.common.deployment

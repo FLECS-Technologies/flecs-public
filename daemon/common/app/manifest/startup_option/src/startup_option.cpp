@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "startup_option.h"
+#include "daemon/common/app/manifest/startup_option/startup_option.h"
 
 #include <map>
 
