@@ -36,6 +36,7 @@ public:
 
     template <typename T>
     void register_module(std::string module_name);
+    void unregister_module(const std::string& module_name);
 
     void init_modules();
     void deinit_modules();
@@ -53,6 +54,11 @@ void factory_t::register_module(std::string module_name)
     _module_table.try_emplace(module_name, new T{});
 }
 
+inline void factory_t::unregister_module(const std::string& module_name)
+{
+    _module_table.erase(module_name);
+}
+
 template <typename T>
 class register_module_t
 {
@@ -64,6 +70,17 @@ template <typename T>
 register_module_t<T>::register_module_t(std::string module_name)
 {
     factory_t::instance().register_module<T>(module_name);
+}
+
+class unregister_module_t
+{
+public:
+    unregister_module_t(const std::string& module_name);
+};
+
+inline unregister_module_t::unregister_module_t(const std::string& module_name)
+{
+    factory_t::instance().unregister_module(module_name);
 }
 
 } // namespace module
