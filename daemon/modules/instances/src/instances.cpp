@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "instances.h"
+#include "daemon/modules/instances/instances.h"
 
 #include "common/app/app.h"
 #include "common/instance/instance.h"
+#include "daemon/modules/instances/impl/instances_impl.h"
 #include "factory/factory.h"
-#include "impl/instances_impl.h"
 
 namespace flecs {
 namespace module {

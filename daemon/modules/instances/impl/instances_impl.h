@@ -18,7 +18,7 @@
 #include <mutex>
 #include <vector>
 
-#include "instances.h"
+#include "daemon/modules/instances/instances.h"
 
 namespace flecs {
 
