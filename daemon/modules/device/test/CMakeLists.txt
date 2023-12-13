@@ -23,9 +23,7 @@ if(BUILD_TESTING)
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_device)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        GTest::gtest
-        GTest::gtest_main
-        GTest::gmock
+        GTest::gmock_main
         modules.console.types
         daemon.modules.device.mocked_modules
         daemon.modules.factory
