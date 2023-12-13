@@ -23,7 +23,7 @@
 #include <thread>
 #include <vector>
 
-#include "jobs.h"
+#include "daemon/modules/jobs/jobs.h"
 
 namespace flecs {
 namespace module {

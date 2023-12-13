@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "jobs.h"
+#include "daemon/modules/jobs/jobs.h"
 
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/jobs/impl/jobs_impl.h"

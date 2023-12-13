@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "impl/jobs_impl.h"
+#include "daemon/modules/jobs/impl/jobs_impl.h"
 
 #include <algorithm>
 
-#include "jobs.h"
+#include "daemon/modules/jobs/jobs.h"
 #include "util/signal_handler/signal_handler.h"
 
 namespace flecs {
