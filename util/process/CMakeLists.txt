@@ -25,8 +25,4 @@ set (HEADER_ARCHIVE
 
 add_library(util.process STATIC ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-target_include_directories(util.process PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 add_subdirectory(test)

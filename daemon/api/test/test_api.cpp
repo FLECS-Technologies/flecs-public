@@ -13,11 +13,11 @@
 // limitations under the License.
 
 #include <cpr/cpr.h>
+#include <gtest/gtest.h>
 
 #include <thread>
 
 #include "daemon/api/api.h"
-#include "gtest/gtest.h"
 #include "util/json/json.h"
 
 class test_flecs_api_t

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ip_addr.h"
+#include "util/network/ip_addr.h"
 
 #include <arpa/inet.h>
 
@@ -148,10 +148,10 @@ auto ip_addr_t::operator+=(std::int64_t n) //
             [](const none_t&) {},
             [&n](ipv4_t& addr) { addr.s_addr = htonl(ntohl(addr.s_addr) + n); },
             [&n](ipv6_t& addr) {
-                std::uint64_t upper = static_cast<std::uint64_t>(ntohl(addr.s6_addr32[0])) << 32 |
-                                      ntohl(addr.s6_addr32[1]);
-                std::uint64_t lower = static_cast<std::uint64_t>(ntohl(addr.s6_addr32[2])) << 32 |
-                                      ntohl(addr.s6_addr32[3]);
+                std::uint64_t upper =
+                    static_cast<std::uint64_t>(ntohl(addr.s6_addr32[0])) << 32 | ntohl(addr.s6_addr32[1]);
+                std::uint64_t lower =
+                    static_cast<std::uint64_t>(ntohl(addr.s6_addr32[2])) << 32 | ntohl(addr.s6_addr32[3]);
                 auto new_lower = lower + n;
                 if ((n > 0) && (new_lower <= lower)) {
                     ++upper;
@@ -247,10 +247,7 @@ bool operator==(const ip_addr_t& lhs, const ip_addr_t& rhs)
             [](const ip_addr_t::none_t&) { return true; },
             [&rhs](const ip_addr_t::ipv4_t& addr) { return addr.s_addr == rhs.addr_v4().s_addr; },
             [&rhs](const ip_addr_t::ipv6_t& addr) {
-                return std::equal(
-                    addr.s6_addr,
-                    addr.s6_addr + sizeof(addr.__in6_u),
-                    rhs.addr_v6().s6_addr);
+                return std::equal(addr.s6_addr, addr.s6_addr + sizeof(addr.__in6_u), rhs.addr_v6().s6_addr);
             }},
         lhs._addr);
 }

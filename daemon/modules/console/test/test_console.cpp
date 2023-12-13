@@ -13,9 +13,9 @@
 // limitations under the License.
 
 #include <cpr/cpr.h>
+#include <gtest/gtest.h>
 
-#include "console/console.h"
-#include "gtest/gtest.h"
+#include "daemon/modules/console/console.h"
 #include "test_constants.h"
 
 class module_console_test_t : public flecs::module::console_t

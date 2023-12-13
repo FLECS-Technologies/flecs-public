@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "data_layer.h"
+#include "daemon/modules/data_layer/data_layer.h"
 
-#include "factory/factory.h"
-#include "impl/data_layer_impl.h"
+#include "daemon/modules/data_layer/impl/data_layer_impl.h"
+#include "daemon/modules/factory/factory.h"
 
 namespace flecs {
 namespace module {

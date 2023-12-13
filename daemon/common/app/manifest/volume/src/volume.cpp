@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "volume.h"
+#include "daemon/common/app/manifest/volume/volume.h"
 
 #include <regex>
 
@@ -76,8 +76,7 @@ bool volume_t::is_valid() const noexcept
 auto to_string(const volume_t& volume) //
     -> std::string
 {
-    return volume.is_valid() ? stringify_delim(':', volume.host(), volume.container())
-                             : std::string{};
+    return volume.is_valid() ? stringify_delim(':', volume.host(), volume.container()) : std::string{};
 }
 
 auto to_json(json_t& j, const volume_t& volume) //

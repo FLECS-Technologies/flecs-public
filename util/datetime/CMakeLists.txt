@@ -24,8 +24,4 @@ set (HEADER_ARCHIVE
 
 add_library(util.datetime OBJECT ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-target_include_directories(util.datetime PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 add_subdirectory(test)

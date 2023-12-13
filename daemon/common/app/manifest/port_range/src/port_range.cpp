@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "port_range.h"
+#include "daemon/common/app/manifest/port_range/port_range.h"
 
 #include <algorithm>
 
@@ -31,8 +31,7 @@ port_t::port_t(const std::string& port_str) noexcept
         if (pos != port_str.length()) {
             _port = static_cast<value_t>(0);
         } else if (
-            port > std::numeric_limits<value_t>::min() &&
-            port <= std::numeric_limits<value_t>::max()) {
+            port > std::numeric_limits<value_t>::min() && port <= std::numeric_limits<value_t>::max()) {
             _port = static_cast<value_t>(port);
         }
     } catch (const std::exception&) {

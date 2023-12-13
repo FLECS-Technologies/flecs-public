@@ -24,11 +24,6 @@ add_executable(daemon
 )
 set_target_properties(daemon PROPERTIES OUTPUT_NAME flecsd)
 
-# own includes
-target_include_directories(daemon PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 # FLECS link libraries
 target_link_libraries(daemon PRIVATE
     daemon.api

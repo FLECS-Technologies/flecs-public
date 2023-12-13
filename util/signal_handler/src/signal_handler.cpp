@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "signal_handler.h"
+#include "util/signal_handler/signal_handler.h"
 
 #include <atomic>
 #include <csignal>

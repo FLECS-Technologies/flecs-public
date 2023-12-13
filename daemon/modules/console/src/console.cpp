@@ -15,7 +15,7 @@
 #include "daemon/modules/console/console.h"
 
 #include "daemon/modules/console/impl/console_impl.h"
-#include "factory/factory.h"
+#include "daemon/modules/factory/factory.h"
 
 namespace flecs {
 namespace module {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "archive/impl/write_disk.h"
+#include "util/archive/impl/write_disk.h"
 
 #include <archive.h>
 
@@ -25,8 +25,7 @@ write_disk_t::write_disk_t(const fs::path& path)
         return;
     }
 
-    auto flags =
-        ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM;
+    auto flags = ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM;
 
     archive_write_disk_set_options(get(), flags);
     archive_write_disk_set_standard_lookup(get());

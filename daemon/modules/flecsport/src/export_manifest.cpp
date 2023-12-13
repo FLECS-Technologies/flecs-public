@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "export_manifest.h"
+#include "daemon/modules/flecsport/export_manifest.h"
 
 #include <unistd.h>
 
-#include "modules/factory/factory.h"
-#include "modules/version/version.h"
+#include "daemon/modules/factory/factory.h"
+#include "daemon/modules/version/version.h"
 
 namespace flecs {
 
@@ -32,10 +32,10 @@ export_manifest_t::export_manifest_t(bool init)
         gethostname(hostname, HOST_NAME_MAX);
         device.hostname = hostname;
 
-        version.core = std::dynamic_pointer_cast<module::version_t>(api::query_module("version"))
-                           ->core_version();
-        version.api = std::dynamic_pointer_cast<module::version_t>(api::query_module("version"))
-                          ->api_version();
+        version.core =
+            std::dynamic_pointer_cast<module::version_t>(api::query_module("version"))->core_version();
+        version.api =
+            std::dynamic_pointer_cast<module::version_t>(api::query_module("version"))->api_version();
     }
 }
 

@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "impl/flecsport_impl.h"
+#include "daemon/modules/flecsport/impl/flecsport_impl.h"
 
 #include <unistd.h>
 
-#include "common/app/app.h"
-#include "common/instance/instance.h"
-#include "export_manifest.h"
-#include "modules/apps/apps.h"
-#include "modules/factory/factory.h"
-#include "modules/instances/instances.h"
-#include "modules/jobs/jobs.h"
-#include "modules/version/version.h"
+#include "daemon/common/app/app.h"
+#include "daemon/common/instance/instance.h"
+#include "daemon/modules/apps/apps.h"
+#include "daemon/modules/factory/factory.h"
+#include "daemon/modules/flecsport/export_manifest.h"
+#include "daemon/modules/instances/instances.h"
+#include "daemon/modules/jobs/jobs.h"
+#include "daemon/modules/version/version.h"
 #include "util/archive/archive.h"
 #include "util/datetime/datetime.h"
 #include "util/sysinfo/sysinfo.h"
@@ -43,8 +43,7 @@ auto flecsport_t::do_init() //
     -> void
 {
     _apps_api = std::dynamic_pointer_cast<flecs::module::apps_t>(api::query_module("apps"));
-    _instances_api =
-        std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
+    _instances_api = std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
     _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
 }
 
@@ -165,8 +164,8 @@ auto flecsport_t::queue_import_from(fs::path archive) //
 {
     auto desc = "Importing " + archive.filename().string();
 
-    auto job = jobs::job_t{
-        std::bind(&flecsport_t::do_import_from, this, std::move(archive), std::placeholders::_1)};
+    auto job =
+        jobs::job_t{std::bind(&flecsport_t::do_import_from, this, std::move(archive), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }

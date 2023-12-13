@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "libflecs.h"
+#include "daemon/api/lib/libflecs.h"
 
 int main(int argc, char** argv)
 {

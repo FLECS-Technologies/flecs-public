@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "archive/impl/write_archive.h"
+#include "util/archive/impl/write_archive.h"
 
 #include <archive.h>
 
@@ -35,11 +35,7 @@ write_archive_t::write_archive_t(const fs::path& archive)
     } else if (ext_primary == ".tar") {
         archive_write_set_format_gnutar(get());
     } else {
-        std::fprintf(
-            stderr,
-            "Unknown extension %s%s\n",
-            ext_secondary.c_str(),
-            ext_primary.c_str());
+        std::fprintf(stderr, "Unknown extension %s%s\n", ext_secondary.c_str(), ext_primary.c_str());
         close();
         return;
     }

@@ -16,7 +16,7 @@
 
 #include <cpr/cpr.h>
 
-#include "libflecs.h"
+#include "daemon/api/lib/libflecs.h"
 
 namespace flecs {
 namespace impl {

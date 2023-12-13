@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "network_type.h"
+#include "daemon/common/network/network_type.h"
 
 #include <algorithm>
 #include <array>

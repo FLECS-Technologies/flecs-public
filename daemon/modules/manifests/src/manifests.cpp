@@ -14,8 +14,8 @@
 
 #include "daemon/modules/manifests/manifests.h"
 
-#include "common/app/app_key.h"
-#include "common/app/manifest/manifest.h"
+#include "daemon/common/app/app_key.h"
+#include "daemon/common/app/manifest/manifest.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/manifests/impl/manifests_impl.h"
 

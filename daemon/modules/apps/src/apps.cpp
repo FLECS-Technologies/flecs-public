@@ -14,7 +14,7 @@
 
 #include "daemon/modules/apps/apps.h"
 
-#include "common/app/manifest/manifest.h"
+#include "daemon/common/app/manifest/manifest.h"
 #include "daemon/modules/apps/impl/apps_impl.h"
 #include "daemon/modules/factory/factory.h"
 #include "util/datetime/datetime.h"

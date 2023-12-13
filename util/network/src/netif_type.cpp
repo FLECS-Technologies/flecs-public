@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "netif_type.h"
+#include "util/network/netif_type.h"
 
 #include <algorithm>
 #include <array>
@@ -59,10 +59,8 @@ auto from_string(std::string_view str) //
         {"virtual", type::Virtual},
     }};
 
-    const auto it = std::find_if(
-        types.cbegin(),
-        types.cend(),
-        [&str](const std::tuple<std::string_view, type>& elem) {
+    const auto it =
+        std::find_if(types.cbegin(), types.cend(), [&str](const std::tuple<std::string_view, type>& elem) {
             return std::get<0>(elem) == str;
         });
 

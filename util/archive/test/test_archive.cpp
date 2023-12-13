@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gtest/gtest.h>
+
 #include <array>
 #include <fstream>
 #include <string>
 #include <string_view>
 
-#include "gtest/gtest.h"
 #include "util/archive/archive.h"
 #include "util/fs/fs.h"
 

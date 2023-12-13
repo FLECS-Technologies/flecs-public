@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "factory.h"
+#include "daemon/modules/factory/factory.h"
 
 namespace flecs {
 namespace module {

@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "deployment_docker.h"
+#include "daemon/common/deployment/deployment_docker.h"
 
-#include "app/app.h"
-#include "app/manifest/manifest.h"
-#include "factory/factory.h"
-#include "system/system.h"
+#include "daemon/common/app/app.h"
+#include "daemon/common/app/manifest/manifest.h"
+#include "daemon/modules/factory/factory.h"
+#include "daemon/modules/system/system.h"
 #include "util/cxx23/string.h"
 #include "util/network/network.h"
 #include "util/process/process.h"
@@ -174,8 +174,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
     if (std::find(
             instance->startup_options().cbegin(),
             instance->startup_options().cend(),
-            (unsigned int)startup_option_t::INIT_NETWORK_AFTER_START) !=
-        instance->startup_options().cend()) {
+            (unsigned int)startup_option_t::INIT_NETWORK_AFTER_START) != instance->startup_options().cend()) {
         docker_process.arg("--mount");
         docker_process.arg("type=tmpfs,destination=/flecs-tmp");
 
@@ -203,8 +202,8 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
             cmd.erase(0, 11);
         }
 
-        const auto entrypoint_path = std::string{"/var/lib/flecs/instances/"} +
-                                     instance->id().hex() + std::string{"/scripts/"};
+        const auto entrypoint_path =
+            std::string{"/var/lib/flecs/instances/"} + instance->id().hex() + std::string{"/scripts/"};
 
         auto ec = std::error_code{};
         fs::create_directories(entrypoint_path, ec);
@@ -255,8 +254,8 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
             instance->startup_options().cend(),
             std::underlying_type_t<startup_option_t>(startup_option_t::INIT_NETWORK_AFTER_START)) !=
         instance->startup_options().cend()) {
-        const auto entrypoint_path = std::string{"/var/lib/flecs/instances/"} +
-                                     instance->id().hex() + std::string{"/scripts/entrypoint.sh"};
+        const auto entrypoint_path = std::string{"/var/lib/flecs/instances/"} + instance->id().hex() +
+                                     std::string{"/scripts/entrypoint.sh"};
 
         auto ec = std::error_code{};
 
@@ -269,8 +268,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
             return {-1, "Could not make entrypoint executable"};
         }
 
-        const auto [res, err_msg] =
-            copy_file_to_instance(instance, entrypoint_path, "/flecs-entrypoint.sh");
+        const auto [res, err_msg] = copy_file_to_instance(instance, entrypoint_path, "/flecs-entrypoint.sh");
         if (res != 0) {
             return {-1, "Could not copy entrypoint to container"};
         }
@@ -292,8 +290,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
         if (std::find(
                 instance->startup_options().cbegin(),
                 instance->startup_options().cend(),
-                std::underlying_type_t<startup_option_t>(
-                    startup_option_t::INIT_NETWORK_AFTER_START)) ==
+                std::underlying_type_t<startup_option_t>(startup_option_t::INIT_NETWORK_AFTER_START)) ==
             instance->startup_options().cend()) {
             connect_network(instance, net->name, network.ip_address);
         }
@@ -311,10 +308,7 @@ auto deployment_docker_t::delete_container(std::shared_ptr<instance_t> instance)
         if (manifest) {
             const auto conf_path = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/";
             for (const auto& conffile : manifest->conffiles()) {
-                copy_file_from_instance(
-                    instance,
-                    conffile.container(),
-                    conf_path + conffile.local());
+                copy_file_from_instance(instance, conffile.container(), conf_path + conffile.local());
             }
         }
     }
@@ -481,9 +475,8 @@ auto deployment_docker_t::do_create_network(
                 }
 
                 // create ipvlan network, if not exists
-                subnet = ipv4_to_network(
-                    netif->second.ipv4_addr[0].addr,
-                    netif->second.ipv4_addr[0].subnet_mask);
+                subnet =
+                    ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
                 gw = netif->second.gateway;
             }
             break;

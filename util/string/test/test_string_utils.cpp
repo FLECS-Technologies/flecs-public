@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gtest/gtest.h>
+
 #include <string>
 
-#include "gtest/gtest.h"
 #include "util/string/string_utils.h"
 
 TEST(string_utils, stringify_delim1)

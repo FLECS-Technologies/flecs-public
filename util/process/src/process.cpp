@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "process.h"
+#include "util/process/process.h"
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -25,7 +25,7 @@
 #include <iostream>
 #include <memory>
 
-#include "posix_spawn.h"
+#include "util/process/posix_spawn.h"
 
 namespace flecs {
 
@@ -128,20 +128,8 @@ int process_t::do_spawn(const char* exec, bool path)
     }
     argv[i] = nullptr;
 
-    return path ? posix_spawnp(
-                      &_pid,
-                      exec,
-                      file_actions.pointer(),
-                      attr.pointer(),
-                      argv.get(),
-                      environ)
-                : posix_spawn(
-                      &_pid,
-                      exec,
-                      file_actions.pointer(),
-                      attr.pointer(),
-                      argv.get(),
-                      environ);
+    return path ? posix_spawnp(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ)
+                : posix_spawn(&_pid, exec, file_actions.pointer(), attr.pointer(), argv.get(), environ);
 }
 
 void swap(process_t& lhs, process_t& rhs)

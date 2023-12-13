@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "app.h"
+#include "daemon/common/app/app.h"
 
 namespace flecs {
 

@@ -19,8 +19,8 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "common/app/app_key.h"
-#include "common/app/manifest/manifest.h"
+#include "daemon/common/app/app_key.h"
+#include "daemon/common/app/manifest/manifest.h"
 #include "util/string/literals.h"
 
 namespace flecs {

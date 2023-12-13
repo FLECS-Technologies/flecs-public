@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-#include "module_base/module.h"
+#include "daemon/modules/module_base/module.h"
 
 namespace flecs {
 

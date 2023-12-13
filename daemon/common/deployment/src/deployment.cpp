@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "deployment.h"
+#include "daemon/common/deployment/deployment.h"
 
 #include <algorithm>
 #include <fstream>
@@ -20,8 +20,8 @@
 #include <regex>
 #include <set>
 
-#include "common/app/app.h"
-#include "common/app/manifest/manifest.h"
+#include "daemon/common/app/app.h"
+#include "daemon/common/app/manifest/manifest.h"
 #include "util/network/ip_addr.h"
 #include "util/network/network.h"
 
@@ -85,9 +85,7 @@ auto deployment_t::query_instance(instance_id_t instance_id) const //
     const auto it = std::find_if(
         _instances.cbegin(),
         _instances.cend(),
-        [&instance_id](const std::shared_ptr<instance_t>& elem) {
-            return elem->id() == instance_id;
-        });
+        [&instance_id](const std::shared_ptr<instance_t>& elem) { return elem->id() == instance_id; });
     return it != _instances.cend() ? *it : nullptr;
 }
 
@@ -97,9 +95,7 @@ auto deployment_t::has_instance(instance_id_t instance_id) const noexcept //
     const auto it = std::find_if(
         _instances.cbegin(),
         _instances.cend(),
-        [&instance_id](const std::shared_ptr<instance_t>& elem) {
-            return elem->id() == instance_id;
-        });
+        [&instance_id](const std::shared_ptr<instance_t>& elem) { return elem->id() == instance_id; });
     return it != _instances.cend();
 }
 
@@ -201,9 +197,7 @@ auto deployment_t::delete_instance(std::shared_ptr<instance_t> instance) //
         std::remove_if(
             _instances.begin(),
             _instances.end(),
-            [&instance](const std::shared_ptr<instance_t>& elem) {
-                return elem->id() == instance->id();
-            }),
+            [&instance](const std::shared_ptr<instance_t>& elem) { return elem->id() == instance->id(); }),
         _instances.end());
     return {res, additional_info};
 }
@@ -426,8 +420,7 @@ auto deployment_t::connect_network(
     return do_connect_network(std::move(instance), std::move(network), std::move(ip));
 }
 
-auto deployment_t::disconnect_network(
-    std::shared_ptr<instance_t> instance, std::string_view network) //
+auto deployment_t::disconnect_network(std::shared_ptr<instance_t> instance, std::string_view network) //
     -> result_t
 {
     return do_disconnect_network(std::move(instance), std::move(network));
@@ -456,8 +449,7 @@ auto deployment_t::create_volumes(std::shared_ptr<instance_t> instance) //
     return {0, {}};
 }
 
-auto deployment_t::create_volume(
-    std::shared_ptr<instance_t> instance, std::string_view volume_name) //
+auto deployment_t::create_volume(std::shared_ptr<instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
     return do_create_volume(std::move(instance), std::move(volume_name));
@@ -549,15 +541,13 @@ auto deployment_t::export_volume(
         return {-1, "Could not create export directory"};
     }
 
-    auto [res, message] =
-        do_export_volume(std::move(instance), std::move(volume_name), std::move(dest_dir));
+    auto [res, message] = do_export_volume(std::move(instance), std::move(volume_name), std::move(dest_dir));
 
     LOG_TRACE("<-- %s %s\n", __FUNCTION__, message.c_str());
     return {res, message};
 }
 
-auto deployment_t::export_config_files(
-    std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
+auto deployment_t::export_config_files(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
     LOG_TRACE(
@@ -609,10 +599,8 @@ auto deployment_t::export_config_file(
 
     if (is_instance_running(instance)) {
         LOG_TRACE("--- %s Exporting config file from running instance\n", __FUNCTION__);
-        const auto [res, additional_info] = copy_file_from_instance(
-            instance,
-            config_file.container(),
-            dest_dir / config_file.local());
+        const auto [res, additional_info] =
+            copy_file_from_instance(instance, config_file.container(), dest_dir / config_file.local());
         if (res != 0) {
             return {res, additional_info};
         }
@@ -697,8 +685,7 @@ auto deployment_t::delete_volumes(std::shared_ptr<instance_t> instance) //
     return {0, {}};
 }
 
-auto deployment_t::delete_volume(
-    std::shared_ptr<instance_t> instance, std::string_view volume_name) //
+auto deployment_t::delete_volume(std::shared_ptr<instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
     return do_delete_volume(std::move(instance), std::move(volume_name));
@@ -748,8 +735,7 @@ auto deployment_t::default_network_gateway() const //
     return do_default_network_gateway();
 }
 
-auto deployment_t::generate_instance_ip(
-    std::string_view cidr_subnet, std::string_view gateway) const //
+auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::string_view gateway) const //
     -> std::string
 {
     // parse a.b.c.d

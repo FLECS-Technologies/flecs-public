@@ -19,8 +19,4 @@ add_library(util.signal_handler OBJECT
     signal_handler.h
 )
 
-target_include_directories(util.signal_handler PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 add_subdirectory(test)

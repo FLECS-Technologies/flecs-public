@@ -23,10 +23,6 @@ add_library(daemon.lib SHARED
 
 set_target_properties(daemon.lib PROPERTIES OUTPUT_NAME FLECS.daemon)
 
-target_include_directories(daemon.lib PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 target_link_libraries(daemon.lib PRIVATE
     daemon.modules.module_base
     cpr::cpr

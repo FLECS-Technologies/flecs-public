@@ -19,14 +19,6 @@ add_library(daemon.modules.module_base STATIC
     module.h
 )
 
-target_include_directories(
-    daemon.modules.module_base PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_include_directories(
-    daemon.modules.module_base INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/../
-)
-
 target_link_libraries(
     daemon.modules.module_base PUBLIC
     daemon.api

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "instance_config.h"
+#include "daemon/common/instance/instance_config.h"
 
 namespace flecs {
 

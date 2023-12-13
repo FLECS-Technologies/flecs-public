@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "env_var.h"
+#include "daemon/common/app/manifest/env_var/env_var.h"
 
 #include <regex>
 
@@ -138,9 +138,8 @@ auto operator!=(const mapped_env_var_t& lhs, const mapped_env_var_t& rhs) //
 auto to_string(const mapped_env_var_t& mapped_env_var) //
     -> std::string
 {
-    return mapped_env_var.is_valid()
-               ? stringify_delim('=', mapped_env_var.var(), mapped_env_var.value())
-               : std::string{};
+    return mapped_env_var.is_valid() ? stringify_delim('=', mapped_env_var.var(), mapped_env_var.value())
+                                     : std::string{};
 }
 
 } // namespace flecs

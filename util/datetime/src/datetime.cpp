@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "datetime.h"
+#include "util/datetime/datetime.h"
 
 #include <type_traits>
 
@@ -59,8 +59,7 @@ auto time_to_iso(time_t time, precision_e precision) //
     char strtime[32] = {};
     const auto pos = std::strftime(strtime, sizeof(strtime), fmt_string_base, &time_utc);
 
-    const auto fmt_string =
-        fmt_strings[static_cast<std::underlying_type_t<precision_e>>(precision)];
+    const auto fmt_string = fmt_strings[static_cast<std::underlying_type_t<precision_e>>(precision)];
     std::snprintf(&strtime[pos], sizeof(strtime) - pos, fmt_string, time % fmt_div);
 
     return strtime;

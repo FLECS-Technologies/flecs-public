@@ -15,7 +15,7 @@
 #include "daemon/modules/device/device.h"
 
 #include "daemon/modules/device/impl/device_impl.h"
-#include "factory/factory.h"
+#include "daemon/modules/factory/factory.h"
 
 namespace flecs {
 namespace module {

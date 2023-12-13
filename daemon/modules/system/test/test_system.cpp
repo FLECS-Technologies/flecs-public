@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "gtest/gtest.h"
-#include "system/system.h"
+#include <gtest/gtest.h>
+
+#include "daemon/modules/system/system.h"
 
 class module_system_test_t : public flecs::module::system_t
 {
