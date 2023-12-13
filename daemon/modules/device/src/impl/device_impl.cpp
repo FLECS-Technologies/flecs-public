@@ -110,7 +110,10 @@ auto device_t::do_activate_license() //
 auto device_t::do_validate_license() //
     -> result_t
 {
-    return {0, {}};
+    auto console_api =
+        std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
+
+    return console_api->validate_license(_parent->session_id());
 }
 
 } // namespace impl
