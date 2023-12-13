@@ -18,8 +18,8 @@
 #include <string>
 #include <vector>
 
-#include "module_base/module.h"
-#include "modules/jobs/job_id.h"
+#include "daemon/modules/jobs/types/job_id.h"
+#include "daemon/modules/module_base/module.h"
 #include "util/fs/fs.h"
 
 namespace flecs {

@@ -69,9 +69,9 @@ auto flecsport_t::do_exports() const //
 
 auto flecsport_t::queue_export_to(
     std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
-    -> job_id_t
+    -> jobs::id_t
 {
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &flecsport_t::do_export_to,
         this,
         std::move(apps),
@@ -87,14 +87,14 @@ auto flecsport_t::do_export_to_sync(
     fs::path dest_dir) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_export_to(std::move(apps), std::move(instances), std::move(dest_dir), _);
 }
 auto flecsport_t::do_export_to(
     std::vector<app_key_t> apps,
     std::vector<instance_id_t> instances,
     fs::path dest_dir,
-    job_progress_t& progress) //
+    jobs::progress_t& progress) //
     -> result_t
 {
     progress.num_steps(apps.size() + instances.size() + 3);
@@ -161,11 +161,11 @@ auto flecsport_t::do_export_to(
 }
 
 auto flecsport_t::queue_import_from(fs::path archive) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Importing " + archive.filename().string();
 
-    auto job = job_t{
+    auto job = jobs::job_t{
         std::bind(&flecsport_t::do_import_from, this, std::move(archive), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
@@ -173,10 +173,10 @@ auto flecsport_t::queue_import_from(fs::path archive) //
 auto flecsport_t::do_import_from_sync(fs::path archive) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_import_from(std::move(archive), _);
 }
-auto flecsport_t::do_import_from(fs::path archive, job_progress_t& progress) //
+auto flecsport_t::do_import_from(fs::path archive, jobs::progress_t& progress) //
     -> result_t
 {
     progress.num_steps(6);

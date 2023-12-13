@@ -44,32 +44,32 @@ private:
     auto do_deinit() //
         -> void;
 
-    auto do_list_jobs(job_id_t job_id) const //
+    auto do_list_jobs(jobs::id_t job_id) const //
         -> crow::response;
 
-    auto do_delete_job(job_id_t job_id) //
+    auto do_delete_job(jobs::id_t job_id) //
         -> crow::response;
 
-    auto do_wait_for_job(job_id_t job_id) const //
+    auto do_wait_for_job(jobs::id_t job_id) const //
         -> result_t;
 
-    auto do_append(job_t job, std::string desc) //
-        -> job_id_t;
+    auto do_append(jobs::job_t job, std::string desc) //
+        -> jobs::id_t;
 
     auto fetch_job() //
-        -> std::optional<job_t>;
+        -> std::optional<jobs::job_t>;
 
     auto worker_thread() //
         -> void;
 
-    job_id_t _job_id;
-    job_id_t _next_job_id;
+    jobs::id_t _job_id;
+    jobs::id_t _next_job_id;
 
-    std::queue<job_t> _q;
+    std::queue<jobs::job_t> _q;
     std::mutex _q_mutex;
     std::condition_variable _q_cv;
 
-    std::list<job_progress_t> _job_progress;
+    std::list<jobs::progress_t> _job_progress;
 
     std::thread _worker_thread;
 };

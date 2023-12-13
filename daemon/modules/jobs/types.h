@@ -14,10 +14,7 @@
 
 #pragma once
 
-#include <cstdint>
-
-namespace flecs {
-
-using job_id_t = std::uint32_t;
-
-} // namespace flecs
+#include "types/job.h"
+#include "types/job_id.h"
+#include "types/job_progress.h"
+#include "types/job_status.h"

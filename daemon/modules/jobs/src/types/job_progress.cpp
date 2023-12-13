@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "job_progress.h"
+#include "daemon/modules/jobs/types/job_progress.h"
+
+#include "daemon/modules/jobs/types/job_id.h"
 
 namespace flecs {
+namespace jobs {
 
-job_progress_t::job_progress_t(job_id_t job_id, std::string desc)
+progress_t::progress_t(id_t job_id, std::string desc)
     : _job_id{job_id}
     , _status{}
     , _desc{std::move(desc)}
@@ -26,68 +29,68 @@ job_progress_t::job_progress_t(job_id_t job_id, std::string desc)
     , _mutex{}
 {}
 
-auto job_progress_t::job_id() const noexcept //
-    -> job_id_t
+auto progress_t::job_id() const noexcept //
+    -> jobs::id_t
 {
     return _job_id;
 }
 
-auto job_progress_t::lock() const //
+auto progress_t::lock() const //
     -> std::unique_lock<std::mutex>
 {
     return std::unique_lock{_mutex};
 }
 
-auto job_progress_t::status() const //
+auto progress_t::status() const //
     -> job_status_e
 {
     return _status;
 }
-auto job_progress_t::desc() const noexcept //
+auto progress_t::desc() const noexcept //
     -> const std::string&
 {
     return _desc;
 }
-auto job_progress_t::num_steps() const noexcept //
+auto progress_t::num_steps() const noexcept //
     -> std::int16_t
 {
     return _num_steps;
 }
 
-auto job_progress_t::status(job_status_e status) noexcept //
+auto progress_t::status(job_status_e status) noexcept //
     -> void
 {
     auto _ = lock();
     _status = std::move(status);
 }
 
-auto job_progress_t::desc(std::string desc) noexcept //
+auto progress_t::desc(std::string desc) noexcept //
     -> void
 {
     auto _ = lock();
     _desc = std::move(desc);
 }
 
-auto job_progress_t::num_steps(std::int16_t num_steps) noexcept //
+auto progress_t::num_steps(std::int16_t num_steps) noexcept //
     -> void
 {
     auto _ = lock();
     _num_steps = std::move(num_steps);
 }
 
-auto job_progress_t::current_step() const noexcept //
+auto progress_t::current_step() const noexcept //
     -> const current_step_t&
 {
     return _current_step;
 }
 
-auto job_progress_t::next_step(std::string desc) //
+auto progress_t::next_step(std::string desc) //
     -> void
 {
     return next_step(std::move(desc), {}, {});
 }
 
-auto job_progress_t::next_step(std::string desc, std::string unit, std::uint32_t units_total) //
+auto progress_t::next_step(std::string desc, std::string unit, std::uint32_t units_total) //
     -> void
 {
     auto _ = lock();
@@ -99,25 +102,25 @@ auto job_progress_t::next_step(std::string desc, std::string unit, std::uint32_t
     _current_step._num++;
 }
 
-auto job_progress_t::result() const noexcept //
+auto progress_t::result() const noexcept //
     -> const result_t&
 {
     return _result;
 }
 
-auto job_progress_t::result(std::int32_t code) //
+auto progress_t::result(std::int32_t code) //
     -> void
 {
     return result(std::move(code), {});
 }
-auto job_progress_t::result(std::int32_t code, std::string message) //
+auto progress_t::result(std::int32_t code, std::string message) //
     -> void
 {
     auto _ = lock();
     _result = result_t{std::move(code), std::move(message)};
 }
 
-auto to_json(json_t& j, const job_progress_t& progress) //
+auto to_json(json_t& j, const progress_t& progress) //
     -> void
 {
     j = json_t{};
@@ -139,40 +142,41 @@ auto to_json(json_t& j, const job_progress_t& progress) //
     j["result"]["message"] = std::get<1>(progress._result);
 }
 
-auto operator<(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator<(const progress_t& lhs, const progress_t& rhs) //
     -> bool
 {
     return lhs.job_id() < rhs.job_id();
 }
 
-auto operator<=(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator<=(const progress_t& lhs, const progress_t& rhs) //
     -> bool
 {
     return !(lhs > rhs);
 }
 
-auto operator>(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator>(const progress_t& lhs, const progress_t& rhs) //
     -> bool
 {
     return rhs < lhs;
 }
 
-auto operator>=(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator>=(const progress_t& lhs, const progress_t& rhs) //
     -> bool
 {
     return !(lhs < rhs);
 }
 
-auto operator==(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator==(const progress_t& lhs, const progress_t& rhs) //
     -> bool
 {
     return lhs.job_id() == rhs.job_id();
 }
 
-auto operator!=(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator!=(const progress_t& lhs, const progress_t& rhs) //
     -> bool
 {
     return !(lhs == rhs);
 }
 
+} // namespace jobs
 } // namespace flecs

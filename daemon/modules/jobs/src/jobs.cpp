@@ -14,21 +14,10 @@
 
 #include "jobs.h"
 
-#include "factory/factory.h"
-#include "impl/jobs_impl.h"
+#include "daemon/modules/factory/factory.h"
+#include "daemon/modules/jobs/impl/jobs_impl.h"
 
 namespace flecs {
-
-job_t::job_t(job_t::callable_t callable)
-    : _callable{std::move(callable)}
-{}
-
-auto job_t::callable() const noexcept //
-    -> const callable_t&
-{
-    return _callable;
-}
-
 namespace module {
 
 namespace {
@@ -46,10 +35,10 @@ auto jobs_t::do_init() //
 {
     FLECS_V2_ROUTE("/jobs").methods("GET"_method)([this]() { return list_jobs({}); });
     FLECS_V2_ROUTE("/jobs/<uint>").methods("GET"_method)([this](std::uint32_t job_id) {
-        return list_jobs(job_id_t{job_id});
+        return list_jobs(jobs::id_t{job_id});
     });
     FLECS_V2_ROUTE("/jobs/<uint>").methods("DELETE"_method)([this](std::uint32_t job_id) {
-        return delete_job(job_id_t{job_id});
+        return delete_job(jobs::id_t{job_id});
     });
 
     _impl->do_init();
@@ -61,25 +50,25 @@ auto jobs_t::do_deinit() //
     _impl->do_deinit();
 }
 
-auto jobs_t::append(job_t job, std::string desc) //
-    -> job_id_t
+auto jobs_t::append(jobs::job_t job, std::string desc) //
+    -> jobs::id_t
 {
     return _impl->do_append(std::move(job), std::move(desc));
 }
 
-auto jobs_t::list_jobs(job_id_t job_id) const //
+auto jobs_t::list_jobs(jobs::id_t job_id) const //
     -> crow::response
 {
     return _impl->do_list_jobs(std::move(job_id));
 }
 
-auto jobs_t::delete_job(job_id_t job_id) //
+auto jobs_t::delete_job(jobs::id_t job_id) //
     -> crow::response
 {
     return _impl->do_delete_job(std::move(job_id));
 }
 
-auto jobs_t::wait_for_job(job_id_t job_id) const //
+auto jobs_t::wait_for_job(jobs::id_t job_id) const //
     -> result_t
 {
     return _impl->do_wait_for_job(std::move(job_id));

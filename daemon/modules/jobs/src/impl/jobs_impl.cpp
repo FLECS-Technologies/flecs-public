@@ -45,8 +45,8 @@ auto jobs_t::do_deinit() //
     _worker_thread.join();
 }
 
-auto jobs_t::do_append(job_t job, std::string desc) //
-    -> job_id_t
+auto jobs_t::do_append(jobs::job_t job, std::string desc) //
+    -> jobs::id_t
 {
     {
         auto lock = std::lock_guard{_q_mutex};
@@ -57,13 +57,13 @@ auto jobs_t::do_append(job_t job, std::string desc) //
     return _job_id;
 }
 
-auto jobs_t::do_delete_job(job_id_t job_id) //
+auto jobs_t::do_delete_job(jobs::id_t job_id) //
     -> crow::response
 {
     auto job = std::find_if(
         _job_progress.begin(),
         _job_progress.end(),
-        [&job_id](const job_progress_t& elem) { return elem.job_id() == job_id; });
+        [&job_id](const jobs::progress_t& elem) { return elem.job_id() == job_id; });
 
     if (job == _job_progress.end()) {
         return crow::response{
@@ -85,19 +85,19 @@ auto jobs_t::do_delete_job(job_id_t job_id) //
         "Not removing unfinished job " + std::to_string(job_id)};
 }
 
-auto jobs_t::do_list_jobs(job_id_t job_id) const //
+auto jobs_t::do_list_jobs(jobs::id_t job_id) const //
     -> crow::response
 {
     auto response = json_t::array();
 
     for (const auto& progress : _job_progress) {
-        if ((job_id != job_id_t{}) && (job_id != progress.job_id())) {
+        if ((job_id != jobs::id_t{}) && (job_id != progress.job_id())) {
             continue;
         }
         response.push_back(progress);
     }
 
-    if ((job_id != job_id_t{}) && response.empty()) {
+    if ((job_id != jobs::id_t{}) && response.empty()) {
         return crow::response{
             crow::status::NOT_FOUND,
             "txt",
@@ -107,17 +107,17 @@ auto jobs_t::do_list_jobs(job_id_t job_id) const //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto jobs_t::do_wait_for_job(job_id_t job_id) const //
+auto jobs_t::do_wait_for_job(jobs::id_t job_id) const //
     -> result_t
 {
-    if (job_id == job_id_t{}) {
+    if (job_id == jobs::id_t{}) {
         return {-1, "Empty job_id specified"};
     }
 
     const auto it = std::find_if(
         _job_progress.cbegin(),
         _job_progress.cend(),
-        [&job_id](const job_progress_t& elem) { return elem.job_id() == job_id; });
+        [&job_id](const jobs::progress_t& elem) { return elem.job_id() == job_id; });
 
     if (it == _job_progress.cend()) {
         return {-1, "No such job " + std::to_string(job_id)};
@@ -136,7 +136,7 @@ auto jobs_t::do_wait_for_job(job_id_t job_id) const //
 }
 
 auto jobs_t::fetch_job() //
-    -> std::optional<job_t>
+    -> std::optional<jobs::job_t>
 {
     auto lock = std::unique_lock{_q_mutex};
     if (!_q_cv.wait_for(lock, std::chrono::milliseconds(10), [this]() { return !_q.empty(); })) {
@@ -167,7 +167,7 @@ auto jobs_t::worker_thread() //
             auto& job_progress = *std::find_if(
                 _job_progress.begin(),
                 _job_progress.end(),
-                [this](job_progress_t& item) { return item.job_id() == _next_job_id; });
+                [this](jobs::progress_t& item) { return item.job_id() == _next_job_id; });
 
             job_progress.status(job_status_e::Running);
             auto [code, message] = std::invoke(job->callable(), job_progress);

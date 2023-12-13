@@ -12,10 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+project(modules.jobs.types)
+
+add_library(${PROJECT_NAME} STATIC
+    src/types/job_progress.cpp
+    src/types/job_status.cpp
+    src/types/job.cpp
+    types/job_id.h
+    types/job_progress.h
+    types/job_status.h
+    types/job.h
+    types.h
+)
+
 flecs_add_module(
     MODULE_NAME jobs
-    ADDITIONAL_HEADERS impl/jobs_impl.h job_id.h job_progress.h job_status.h
-    ADDITIONAL_SOURCES src/impl/jobs_impl.cpp src/job_progress.cpp src/job_status.cpp
+    ADDITIONAL_HEADERS
+        impl/jobs_impl.h
+    ADDITIONAL_SOURCES
+        src/impl/jobs_impl.cpp
+    LIBS_PUBLIC
+        modules.jobs.types
 )
 
 add_subdirectory(test)
