@@ -42,17 +42,17 @@ TEST(jobs, empty)
     uut.deinit();
 }
 
-struct test_job_t
+struct job_t
 {
     std::condition_variable cv = {};
     std::mutex mutex = {};
     bool executed = {};
 
-    flecs::result_t test_func(flecs::job_id_t, int, flecs::job_progress_t&);
+    flecs::result_t test_func(flecs::jobs::id_t, int, flecs::jobs::progress_t&);
 };
 
-flecs::result_t test_job_t::test_func(
-    flecs::job_id_t job_id, int exit_code, flecs::job_progress_t& progress)
+flecs::result_t job_t::test_func(
+    flecs::jobs::id_t job_id, int exit_code, flecs::jobs::progress_t& progress)
 {
     auto lock = std::lock_guard{mutex};
     executed = true;
@@ -67,21 +67,21 @@ flecs::result_t test_job_t::test_func(
 
 auto make_job()
 {
-    return test_job_t{};
+    return job_t{};
 }
 
 TEST(jobs, schedule)
 {
     flecs::signal_handler_init();
 
-    auto job = test_job_t{};
+    auto job = job_t{};
 
     auto uut = test_module_jobs_t{};
     uut.init();
 
     uut.append(
-        flecs::job_t{
-            std::bind(&test_job_t::test_func, &job, flecs::job_id_t{1}, 0, std::placeholders::_1)},
+        flecs::jobs::job_t{
+            std::bind(&job_t::test_func, &job, flecs::jobs::id_t{1}, 0, std::placeholders::_1)},
         "FLECS unit test job");
 
     auto lock = std::unique_lock{job.mutex};
@@ -96,27 +96,19 @@ TEST(jobs, status)
 {
     flecs::signal_handler_init();
 
-    auto job_0 = test_job_t{};
-    auto job_1 = test_job_t{};
+    auto job_0 = job_t{};
+    auto job_1 = job_t{};
 
     auto uut = test_module_jobs_t{};
     uut.init();
 
     uut.append(
-        flecs::job_t{std::bind(
-            &test_job_t::test_func,
-            &job_0,
-            flecs::job_id_t{1},
-            0,
-            std::placeholders::_1)},
+        flecs::jobs::job_t{
+            std::bind(&job_t::test_func, &job_0, flecs::jobs::id_t{1}, 0, std::placeholders::_1)},
         "FLECS unit test job");
     uut.append(
-        flecs::job_t{std::bind(
-            &test_job_t::test_func,
-            &job_1,
-            flecs::job_id_t{2},
-            -1,
-            std::placeholders::_1)},
+        flecs::jobs::job_t{
+            std::bind(&job_t::test_func, &job_1, flecs::jobs::id_t{2}, -1, std::placeholders::_1)},
         "FLECS unit test job");
 
     {
@@ -144,8 +136,10 @@ TEST(jobs, status)
     uut.deinit();
 
     ASSERT_TRUE(job_0.executed);
-    ASSERT_EQ(flecs::parse_json(uut.list_jobs(flecs::job_id_t{1}).body)[0]["status"], "successful");
+    ASSERT_EQ(
+        flecs::parse_json(uut.list_jobs(flecs::jobs::id_t{1}).body)[0]["status"],
+        "successful");
 
     ASSERT_TRUE(job_1.executed);
-    ASSERT_EQ(flecs::parse_json(uut.list_jobs(flecs::job_id_t{2}).body)[0]["status"], "failed");
+    ASSERT_EQ(flecs::parse_json(uut.list_jobs(flecs::jobs::id_t{2}).body)[0]["status"], "failed");
 }

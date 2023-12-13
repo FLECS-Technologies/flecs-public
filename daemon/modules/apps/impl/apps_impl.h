@@ -23,8 +23,11 @@
 #include "common/app/app.h"
 
 namespace flecs {
+namespace jobs {
 
-class job_progress_t;
+class progress_t;
+
+} // namespace jobs
 
 namespace module {
 
@@ -60,43 +63,43 @@ private:
         -> std::vector<app_key_t>;
 
     auto queue_install_from_marketplace(app_key_t app_key) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_install_from_marketplace_sync(app_key_t app_key) //
         -> result_t;
-    auto do_install_from_marketplace(app_key_t app_key, job_progress_t& progress) //
+    auto do_install_from_marketplace(app_key_t app_key, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_sideload(std::string manifest_string) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_sideload_sync(std::string manifest_string) //
         -> result_t;
-    auto do_sideload(std::string manifest_string, job_progress_t& progress) //
+    auto do_sideload(std::string manifest_string, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_uninstall(app_key_t app_key) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_uninstall_sync(app_key_t app_key) //
         -> result_t;
-    auto do_uninstall(app_key_t app_key, job_progress_t& progress) //
+    auto do_uninstall(app_key_t app_key, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_export_to(app_key_t app_key, fs::path dest_dir) const //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_export_to_sync(app_key_t app_key, fs::path dest_dir) const //
         -> result_t;
-    auto do_export_to(app_key_t app_key, fs::path dest_dir, job_progress_t& progress) const //
+    auto do_export_to(app_key_t app_key, fs::path dest_dir, jobs::progress_t& progress) const //
         -> result_t;
 
     auto queue_import_from(app_key_t app_key, fs::path src_dir) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_import_from_sync(app_key_t app_key, fs::path src_dir) //
         -> result_t;
-    auto do_import_from(app_key_t app_key, fs::path src_dir, job_progress_t& progress) //
+    auto do_import_from(app_key_t app_key, fs::path src_dir, jobs::progress_t& progress) //
         -> result_t;
 
     auto do_install_impl(
         std::shared_ptr<app_manifest_t> manifest,
-        job_progress_t& progress) //
+        jobs::progress_t& progress) //
         -> result_t;
 
     auto do_query(const app_key_t& app_key) const noexcept //

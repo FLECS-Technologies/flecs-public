@@ -24,11 +24,12 @@
 #include "util/json/json.h"
 
 namespace flecs {
+namespace jobs {
 
-class job_progress_t
+class progress_t
 {
 public:
-    job_progress_t()
+    progress_t()
         : _job_id{}
         , _status{}
         , _desc{}
@@ -40,9 +41,9 @@ public:
 
     struct current_step_t
     {
-        std::string _desc;          /** current step description*/
-        std::int16_t _num;          /** number of current step */
-        std::string _unit;          /** unit of current step's operation (e.g. "B" when downloading)*/
+        std::string _desc; /** current step description*/
+        std::int16_t _num; /** number of current step */
+        std::string _unit; /** unit of current step's operation (e.g. "B" when downloading)*/
         std::uint32_t _units_total; /** total units to process */
         std::uint32_t _units_done;  /** processed units so far*/
         std::uint32_t _rate;        /** processing rate in units per second*/
@@ -57,10 +58,10 @@ public:
         {}
     };
 
-    job_progress_t(job_id_t job_id, std::string desc);
+    progress_t(jobs::id_t job_id, std::string desc);
 
     auto job_id() const noexcept //
-        -> job_id_t;
+        -> jobs::id_t;
 
     auto status() const //
         -> job_status_e;
@@ -95,10 +96,10 @@ private:
     [[nodiscard]] auto lock() const //
         -> std::unique_lock<std::mutex>;
 
-    friend auto to_json(json_t& j, const job_progress_t& progress) //
+    friend auto to_json(json_t& j, const progress_t& progress) //
         -> void;
 
-    job_id_t _job_id; /** unique job id */
+    jobs::id_t _job_id; /** unique job id */
 
     job_status_e _status;    /** @todo job status - replace by enum */
     std::string _desc;       /** job description (e.g. "Install app xyz (123) ")*/
@@ -110,17 +111,18 @@ private:
     mutable std::mutex _mutex;
 };
 
-auto operator<(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator<(const progress_t& lhs, const progress_t& rhs) //
     -> bool;
-auto operator<=(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator<=(const progress_t& lhs, const progress_t& rhs) //
     -> bool;
-auto operator>(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator>(const progress_t& lhs, const progress_t& rhs) //
     -> bool;
-auto operator>=(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator>=(const progress_t& lhs, const progress_t& rhs) //
     -> bool;
-auto operator==(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator==(const progress_t& lhs, const progress_t& rhs) //
     -> bool;
-auto operator!=(const job_progress_t& lhs, const job_progress_t& rhs) //
+auto operator!=(const progress_t& lhs, const progress_t& rhs) //
     -> bool;
 
-} // namespace  FLECS
+} // namespace jobs
+} // namespace flecs

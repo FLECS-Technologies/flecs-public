@@ -21,27 +21,12 @@
 #include <mutex>
 #include <string>
 
-#include "job_id.h"
-#include "job_progress.h"
-#include "module_base/module.h"
+#include "daemon/modules/module_base/module.h"
+#include "types.h"
 
 namespace flecs {
-
-class job_t
-{
-public:
-    using callable_t = std::function<result_t(job_progress_t&)>;
-
-    explicit job_t(callable_t callable);
-
-    auto callable() const noexcept //
-        -> const callable_t&;
-
-private:
-    callable_t _callable;
-};
-
 namespace module {
+
 namespace impl {
 class jobs_t;
 } // namespace impl
@@ -60,16 +45,16 @@ public:
      *
      * @return job id assigned by api
      */
-    auto append(job_t job, std::string desc) //
-        -> job_id_t;
+    auto append(jobs::job_t job, std::string desc) //
+        -> jobs::id_t;
 
-    auto list_jobs(job_id_t job_id) const //
+    auto list_jobs(jobs::id_t job_id) const //
         -> crow::response;
 
-    auto delete_job(job_id_t job_id) //
+    auto delete_job(jobs::id_t job_id) //
         -> crow::response;
 
-    auto wait_for_job(job_id_t job_id) const //
+    auto wait_for_job(jobs::id_t job_id) const //
         -> result_t;
 
 protected:

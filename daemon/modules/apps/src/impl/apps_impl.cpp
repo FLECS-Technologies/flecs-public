@@ -154,11 +154,11 @@ auto apps_t::do_app_keys(const app_key_t& app_key) const //
 }
 
 auto apps_t::queue_install_from_marketplace(app_key_t app_key) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Installation of "s + to_string(app_key);
 
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &apps_t::do_install_from_marketplace,
         this,
         std::move(app_key),
@@ -169,10 +169,10 @@ auto apps_t::queue_install_from_marketplace(app_key_t app_key) //
 auto apps_t::do_install_from_marketplace_sync(app_key_t app_key) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_install_from_marketplace(std::move(app_key), _);
 }
-auto apps_t::do_install_from_marketplace(app_key_t app_key, job_progress_t& progress) //
+auto apps_t::do_install_from_marketplace(app_key_t app_key, jobs::progress_t& progress) //
     -> result_t
 {
     progress.num_steps(6);
@@ -188,9 +188,9 @@ auto apps_t::do_install_from_marketplace(app_key_t app_key, job_progress_t& prog
 }
 
 auto apps_t::queue_sideload(std::string manifest_string) //
-    -> job_id_t
+    -> jobs::id_t
 {
-    auto job = job_t{
+    auto job = jobs::job_t{
         std::bind(&apps_t::do_sideload, this, std::move(manifest_string), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), "Sideloading App");
@@ -198,10 +198,10 @@ auto apps_t::queue_sideload(std::string manifest_string) //
 auto apps_t::do_sideload_sync(std::string manifest_string) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_sideload(std::move(manifest_string), _);
 }
-auto apps_t::do_sideload(std::string manifest_string, job_progress_t& progress) //
+auto apps_t::do_sideload(std::string manifest_string, jobs::progress_t& progress) //
     -> result_t
 {
     const auto [manifest, _] = _manifests_api->add_from_string(manifest_string);
@@ -216,7 +216,7 @@ auto apps_t::do_sideload(std::string manifest_string, job_progress_t& progress) 
 
 auto apps_t::do_install_impl(
     std::shared_ptr<app_manifest_t> manifest,
-    job_progress_t& progress) //
+    jobs::progress_t& progress) //
     -> result_t
 {
     progress.next_step("Loading manifest");
@@ -346,22 +346,22 @@ auto apps_t::do_install_impl(
 }
 
 auto apps_t::queue_uninstall(app_key_t app_key) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Uninstallation of "s + to_string(app_key);
 
-    auto job =
-        job_t{std::bind(&apps_t::do_uninstall, this, std::move(app_key), std::placeholders::_1)};
+    auto job = jobs::job_t{
+        std::bind(&apps_t::do_uninstall, this, std::move(app_key), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
 auto apps_t::do_uninstall_sync(app_key_t app_key) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_uninstall(std::move(app_key), _);
 }
-auto apps_t::do_uninstall(app_key_t app_key, job_progress_t& progress) //
+auto apps_t::do_uninstall(app_key_t app_key, jobs::progress_t& progress) //
     -> result_t
 {
     progress.num_steps(4);
@@ -426,9 +426,9 @@ auto apps_t::do_uninstall(app_key_t app_key, job_progress_t& progress) //
 }
 
 auto apps_t::queue_export_to(app_key_t app_key, fs::path dest_dir) const //
-    -> job_id_t
+    -> jobs::id_t
 {
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &apps_t::do_export_to,
         this,
         std::move(app_key),
@@ -440,10 +440,10 @@ auto apps_t::queue_export_to(app_key_t app_key, fs::path dest_dir) const //
 auto apps_t::do_export_to_sync(app_key_t app_key, fs::path dest_dir) const //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_export_to(std::move(app_key), std::move(dest_dir), _);
 }
-auto apps_t::do_export_to(app_key_t app_key, fs::path dest_dir, job_progress_t& progress) const //
+auto apps_t::do_export_to(app_key_t app_key, fs::path dest_dir, jobs::progress_t& progress) const //
     -> result_t
 {
     progress.num_steps(4);
@@ -495,9 +495,9 @@ auto apps_t::do_export_to(app_key_t app_key, fs::path dest_dir, job_progress_t& 
 }
 
 auto apps_t::queue_import_from(app_key_t app_key, fs::path src_dir) //
-    -> job_id_t
+    -> jobs::id_t
 {
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &apps_t::do_import_from,
         this,
         std::move(app_key),
@@ -509,10 +509,10 @@ auto apps_t::queue_import_from(app_key_t app_key, fs::path src_dir) //
 auto apps_t::do_import_from_sync(app_key_t app_key, fs::path src_dir) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_import_from(std::move(app_key), std::move(src_dir), _);
 }
-auto apps_t::do_import_from(app_key_t app_key, fs::path src_dir, job_progress_t& /*progress*/) //
+auto apps_t::do_import_from(app_key_t app_key, fs::path src_dir, jobs::progress_t& /*progress*/) //
     -> result_t
 {
     /* add App manifest */

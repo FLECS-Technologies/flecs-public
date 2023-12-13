@@ -17,8 +17,11 @@
 #include "flecsport.h"
 
 namespace flecs {
+namespace jobs {
 
-class job_progress_t;
+class progress_t;
+
+} // namespace jobs
 
 namespace module {
 
@@ -43,7 +46,7 @@ private:
 
     auto queue_export_to(
         std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_export_to_sync(
         std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
         -> result_t;
@@ -51,14 +54,14 @@ private:
         std::vector<app_key_t> apps,
         std::vector<instance_id_t> instances,
         fs::path dest_dir,
-        job_progress_t& progress) //
+        jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_import_from(fs::path archive) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_import_from_sync(fs::path archive) //
         -> result_t;
-    auto do_import_from(fs::path archive, job_progress_t& progress) //
+    auto do_import_from(fs::path archive, jobs::progress_t& progress) //
         -> result_t;
 
     flecs::module::flecsport_t* _parent;

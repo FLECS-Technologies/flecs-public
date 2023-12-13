@@ -14,7 +14,7 @@
 
 #include <gtest/gtest.h>
 
-#include "daemon/modules/jobs/job_status.h"
+#include "daemon/modules/jobs/types/job_status.h"
 
 TEST(job_status, to_string)
 {

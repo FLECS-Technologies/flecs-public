@@ -21,11 +21,16 @@
 #include "daemon/modules/instances/instances.h"
 
 namespace flecs {
+namespace jobs {
+
+class progress_t;
+
+} // namespace jobs
 
 class deployment_t;
-class job_progress_t;
 
 namespace module {
+
 class apps_t;
 class jobs_t;
 
@@ -66,32 +71,32 @@ private:
         -> std::vector<instance_id_t>;
 
     auto queue_create(app_key_t app_key, std::string instance_name, bool running) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_create_sync(app_key_t app_key, std::string instance_name, bool running) //
         -> result_t;
     auto do_create(
-        app_key_t app_key, std::string instance_name, bool running, job_progress_t& progress) //
+        app_key_t app_key, std::string instance_name, bool running, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_start(instance_id_t instance_id, bool once) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_start_sync(instance_id_t instance_id, bool once) //
         -> result_t;
-    auto do_start(instance_id_t instance_id, bool once, job_progress_t& progress) //
+    auto do_start(instance_id_t instance_id, bool once, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_stop(instance_id_t instance_id, bool once) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_stop_sync(instance_id_t instance_id, bool once) //
         -> result_t;
-    auto do_stop(instance_id_t instance_id, bool once, job_progress_t& progress) //
+    auto do_stop(instance_id_t instance_id, bool once, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_remove(instance_id_t instance_id) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_remove_sync(instance_id_t instance_id) //
         -> result_t;
-    auto do_remove(instance_id_t instance_id, job_progress_t& progress) //
+    auto do_remove(instance_id_t instance_id, jobs::progress_t& progress) //
         -> result_t;
 
     auto do_get_config(instance_id_t instance_id) const //
@@ -107,24 +112,24 @@ private:
         -> crow::response;
 
     auto queue_update(instance_id_t instance_id, std::string to) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_update_sync(instance_id_t instance_id, std::string to) //
         -> result_t;
-    auto do_update(instance_id_t instance_id, std::string to, job_progress_t& progress) //
+    auto do_update(instance_id_t instance_id, std::string to, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_export_to(instance_id_t instance_id, fs::path base_path) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_export_to_sync(instance_id_t instance_id, fs::path base_path) //
         -> result_t;
-    auto do_export_to(instance_id_t instance_id, fs::path base_path, job_progress_t& progress) //
+    auto do_export_to(instance_id_t instance_id, fs::path base_path, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_import_from(instance_t instance, fs::path base_path) //
-        -> job_id_t;
+        -> jobs::id_t;
     auto do_import_from_sync(instance_t instance, fs::path base_path) //
         -> result_t;
-    auto do_import_from(instance_t instance, fs::path base_path, job_progress_t& progress) //
+    auto do_import_from(instance_t instance, fs::path base_path, jobs::progress_t& progress) //
         -> result_t;
 
     flecs::module::instances_t* _parent;

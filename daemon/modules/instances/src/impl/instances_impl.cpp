@@ -179,11 +179,11 @@ auto instances_t::do_is_running(std::shared_ptr<instance_t> instance) const //
 }
 
 auto instances_t::queue_create(app_key_t app_key, std::string instance_name, bool running) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Creating new instance of " + to_string(app_key);
 
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &instances_t::do_create,
         this,
         std::move(app_key),
@@ -197,12 +197,12 @@ auto instances_t::queue_create(app_key_t app_key, std::string instance_name, boo
 auto instances_t::do_create_sync(app_key_t app_key, std::string instance_name, bool running) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_create(std::move(app_key), std::move(instance_name), running, _);
 }
 
 auto instances_t::do_create(
-    app_key_t app_key, std::string instance_name, bool running, job_progress_t& progress) //
+    app_key_t app_key, std::string instance_name, bool running, jobs::progress_t& progress) //
     -> result_t
 {
     // Step 1: Ensure app is actually installed
@@ -252,11 +252,11 @@ auto instances_t::do_create(
 }
 
 auto instances_t::queue_start(instance_id_t instance_id, bool once) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Starting instance " + instance_id.hex();
 
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &instances_t::do_start,
         this,
         std::move(instance_id),
@@ -269,11 +269,11 @@ auto instances_t::queue_start(instance_id_t instance_id, bool once) //
 auto instances_t::do_start_sync(instance_id_t instance_id, bool once) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_start(std::move(instance_id), std::move(once), _);
 }
 
-auto instances_t::do_start(instance_id_t instance_id, bool once, job_progress_t& progress) //
+auto instances_t::do_start(instance_id_t instance_id, bool once, jobs::progress_t& progress) //
     -> result_t
 {
     auto instance = _deployment->query_instance(instance_id);
@@ -306,11 +306,11 @@ auto instances_t::do_start(instance_id_t instance_id, bool once, job_progress_t&
 }
 
 auto instances_t::queue_stop(instance_id_t instance_id, bool once) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Stopping instance " + instance_id.hex();
 
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &instances_t::do_stop,
         this,
         std::move(instance_id),
@@ -323,11 +323,11 @@ auto instances_t::queue_stop(instance_id_t instance_id, bool once) //
 auto instances_t::do_stop_sync(instance_id_t instance_id, bool once) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_stop(std::move(instance_id), std::move(once), _);
 }
 
-auto instances_t::do_stop(instance_id_t instance_id, bool once, job_progress_t& progress) //
+auto instances_t::do_stop(instance_id_t instance_id, bool once, jobs::progress_t& progress) //
     -> result_t
 {
     // get instance details from database
@@ -362,11 +362,11 @@ auto instances_t::do_stop(instance_id_t instance_id, bool once, job_progress_t& 
 }
 
 auto instances_t::queue_remove(instance_id_t instance_id) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Removing instance " + instance_id.hex();
 
-    auto job = job_t{
+    auto job = jobs::job_t{
         std::bind(&instances_t::do_remove, this, std::move(instance_id), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
@@ -375,11 +375,11 @@ auto instances_t::queue_remove(instance_id_t instance_id) //
 auto instances_t::do_remove_sync(instance_id_t instance_id) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_remove(std::move(instance_id), _);
 }
 
-auto instances_t::do_remove(instance_id_t instance_id, job_progress_t& progress) //
+auto instances_t::do_remove(instance_id_t instance_id, jobs::progress_t& progress) //
     -> result_t
 {
     progress.num_steps(3);
@@ -644,11 +644,11 @@ auto instances_t::do_logs(instance_id_t instance_id) const //
 }
 
 auto instances_t::queue_update(instance_id_t instance_id, std::string to) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Updating instance " + instance_id.hex() + " to " + to;
 
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &instances_t::do_update,
         this,
         std::move(instance_id),
@@ -661,12 +661,12 @@ auto instances_t::queue_update(instance_id_t instance_id, std::string to) //
 auto instances_t::do_update_sync(instance_id_t instance_id, std::string to) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_update(std::move(instance_id), std::move(to), _);
 }
 
 auto instances_t::do_update(
-    instance_id_t instance_id, std::string to, job_progress_t& /*progress*/) //
+    instance_id_t instance_id, std::string to, jobs::progress_t& /*progress*/) //
     -> result_t
 {
     // Step 1: Verify instance does actually exist, is fully created and valid
@@ -737,11 +737,11 @@ auto instances_t::do_update(
 }
 
 auto instances_t::queue_export_to(instance_id_t instance_id, fs::path base_path) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Exporting instance " + instance_id.hex() + " to " + base_path.string();
 
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &instances_t::do_export_to,
         this,
         std::move(instance_id),
@@ -753,11 +753,11 @@ auto instances_t::queue_export_to(instance_id_t instance_id, fs::path base_path)
 auto instances_t::do_export_to_sync(instance_id_t instance_id, fs::path base_path) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_export_to(std::move(instance_id), std::move(base_path), _);
 }
 auto instances_t::do_export_to(
-    instance_id_t instance_id, fs::path base_path, job_progress_t& /*progress*/) //
+    instance_id_t instance_id, fs::path base_path, jobs::progress_t& /*progress*/) //
     -> result_t
 {
     // Step 1: Verify instance does actually exist, is fully created and valid
@@ -773,11 +773,11 @@ auto instances_t::do_export_to(
 }
 
 auto instances_t::queue_import_from(instance_t instance, fs::path base_path) //
-    -> job_id_t
+    -> jobs::id_t
 {
     auto desc = "Importing instance " + instance.id().hex() + " from " + base_path.string();
 
-    auto job = job_t{std::bind(
+    auto job = jobs::job_t{std::bind(
         &instances_t::do_import_from,
         this,
         std::move(instance),
@@ -789,11 +789,11 @@ auto instances_t::queue_import_from(instance_t instance, fs::path base_path) //
 auto instances_t::do_import_from_sync(instance_t instance, fs::path base_path) //
     -> result_t
 {
-    auto _ = job_progress_t{};
+    auto _ = jobs::progress_t{};
     return do_import_from(std::move(instance), std::move(base_path), _);
 }
 auto instances_t::do_import_from(
-    instance_t instance, fs::path base_path, job_progress_t& /*progress*/) //
+    instance_t instance, fs::path base_path, jobs::progress_t& /*progress*/) //
     -> result_t
 {
     auto app =
