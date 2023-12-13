@@ -35,4 +35,24 @@ flecs_add_module(
         modules.jobs.types
 )
 
+add_library(daemon.modules.jobs.mocked_modules STATIC
+    src/jobs.cpp
+    src/impl/jobs_impl.cpp
+    jobs.h
+    impl/jobs_impl.h
+)
+
+target_link_libraries(
+    daemon.modules.jobs.mocked_modules PUBLIC
+    GTest::gmock
+    daemon.modules.factory
+    modules.jobs.types
+    daemon.modules.module_base
+)
+
+target_compile_definitions(
+    daemon.modules.jobs.mocked_modules PRIVATE
+    -DFLECS_MOCK_MODULES
+)
+
 add_subdirectory(test)
