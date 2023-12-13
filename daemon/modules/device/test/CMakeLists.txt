@@ -25,7 +25,10 @@ if(BUILD_TESTING)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.modules.device
+        GTest::gmock
+        modules.console.types
+        daemon.modules.device.mocked_modules
+        daemon.modules.factory
         util.signal_handler
     )
 

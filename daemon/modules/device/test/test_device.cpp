@@ -12,16 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <regex>
 
+#include "daemon/modules/console/__mocks__/console.h"
 #include "daemon/modules/device/device.h"
+#include "daemon/modules/factory/factory.h"
 
 class test_module_device_t : public flecs::module::device_t
 {
 public:
-    test_module_device_t() = default;
+    test_module_device_t()
+    {
+        flecs::module::register_module_t<flecs::module::console_t>("console");
+    }
 };
 
 const auto session_id_regex = std::regex{"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}"};
@@ -49,4 +55,17 @@ TEST(device, session_id)
         uut.deinit();
         uut.save(".");
     }
+}
+
+TEST(device, activate_license)
+{
+    auto uut = test_module_device_t{};
+    const auto session_id = uut.session_id();
+
+    auto mock_console =
+        std::dynamic_pointer_cast<flecs::module::console_t>(flecs::api::query_module("console"));
+
+    EXPECT_CALL(*mock_console.get(), activate_license(session_id));
+
+    uut.activate_license();
 }
