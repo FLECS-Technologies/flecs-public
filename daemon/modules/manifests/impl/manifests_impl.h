@@ -16,7 +16,7 @@
 
 #include <vector>
 
-#include "manifests.h"
+#include "daemon/modules/manifests/manifests.h"
 
 namespace flecs {
 

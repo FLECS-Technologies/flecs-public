@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "manifests.h"
+#include "daemon/modules/manifests/manifests.h"
 
 #include "common/app/app_key.h"
 #include "common/app/manifest/manifest.h"
-#include "factory/factory.h"
-#include "impl/manifests_impl.h"
+#include "daemon/modules/factory/factory.h"
+#include "daemon/modules/manifests/impl/manifests_impl.h"
 
 namespace flecs {
 namespace module {

@@ -22,4 +22,24 @@ flecs_add_module(
     cpr::cpr daemon.common.app daemon.common.app.manifest
 )
 
+add_library(daemon.modules.manifests.mocked_modules STATIC
+    src/manifests.cpp
+    src/impl/manifests_impl.cpp
+    manifests.h
+    impl/manifests_impl.h
+)
+
+target_link_libraries(
+    daemon.modules.manifests.mocked_modules PUBLIC
+    GTest::gmock
+    daemon.common
+    daemon.modules.factory
+    daemon.modules.module_base
+)
+
+target_compile_definitions(
+    daemon.modules.manifests.mocked_modules PRIVATE
+    -DFLECS_MOCK_MODULES
+)
+
 add_subdirectory(test)

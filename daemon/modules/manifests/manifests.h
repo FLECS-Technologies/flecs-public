@@ -110,28 +110,29 @@ public:
     auto query(const app_key_t& app_key) const noexcept //
         -> std::shared_ptr<const app_manifest_t>;
 
+    using add_result_t = std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     /** @brief Add a manifest to the local manifest store and cache
      */
     auto add(app_manifest_t manifest) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
     auto add_from_json(const json_t& manifest) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
     auto add_from_yaml(const yaml_t& manifest) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
 
     auto add_from_string(std::string_view manifest) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
     auto add_from_json_string(std::string_view manifest) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
     auto add_from_yaml_string(std::string_view manifest) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
 
     auto add_from_file(const fs::path& path) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
     auto add_from_json_file(const fs::path& path) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
     auto add_from_yaml_file(const fs::path& path) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
 
     auto add_from_marketplace(const app_key_t& app_key) //
         -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;

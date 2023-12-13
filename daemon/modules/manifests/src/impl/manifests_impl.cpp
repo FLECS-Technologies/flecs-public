@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "impl/manifests_impl.h"
+#include "daemon/modules/manifests/impl/manifests_impl.h"
 
 #include <cpr/cpr.h>
 
@@ -145,10 +145,7 @@ auto manifests_t::do_add(app_manifest_t manifest) //
     auto ec = std::error_code{};
     fs::create_directories(_parent->path(app_key).parent_path(), ec);
     if (ec) {
-        std::fprintf(
-            stderr,
-            "Could not create directory in local manifest store: %d\n",
-            ec.value());
+        std::fprintf(stderr, "Could not create directory in local manifest store: %d\n", ec.value());
         return {p, true};
     }
 
