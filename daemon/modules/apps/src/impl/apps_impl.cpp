@@ -21,7 +21,7 @@
 
 #include "daemon/api/api.h"
 #include "daemon/common/app/manifest/manifest.h"
-#include "daemon/common/instance/instance.h"
+#include "daemon/modules/instances/types/instance.h"
 #ifdef FLECS_MOCK_MODULES
 #include "daemon/modules/console/__mocks__/console.h"
 #include "daemon/modules/instances/__mocks__/instances.h"

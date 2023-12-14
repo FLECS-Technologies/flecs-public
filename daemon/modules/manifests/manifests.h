@@ -25,9 +25,7 @@
 
 namespace flecs {
 namespace apps {
-
 class key_t;
-
 } // namespace apps
 
 class app_manifest_t;

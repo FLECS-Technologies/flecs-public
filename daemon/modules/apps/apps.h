@@ -24,17 +24,14 @@
 
 namespace flecs {
 namespace apps {
-
 class app_t;
 class key_t;
-
 } // namespace apps
 
 class app_manifest_t;
 
 namespace module {
 namespace impl {
-
 class apps_t;
 } // namespace impl
 

@@ -17,20 +17,20 @@
 #include <memory>
 #include <vector>
 
-#include "daemon/common/instance/instance_id.h"
+#include "daemon/modules/instances/types/instance_id.h"
 #include "daemon/modules/jobs/types/job_id.h"
 #include "daemon/modules/module_base/module.h"
 #include "util/fs/fs.h"
 
 namespace flecs {
 namespace apps {
-
 class key_t;
-
 } // namespace apps
 
-class instance_config_t;
+namespace instances {
+class config_t;
 class instance_t;
+} // namespace instances
 
 namespace module {
 namespace impl {
@@ -51,34 +51,34 @@ public:
     auto http_list(const apps::key_t& app_key) const //
         -> crow::response;
 
-    auto http_details(instance_id_t instance_id) const //
+    auto http_details(instances::id_t instance_id) const //
         -> crow::response;
 
     auto http_create(apps::key_t app_key, std::string instance_name, bool running) //
         -> crow::response;
 
-    auto http_start(instance_id_t instance_id) //
+    auto http_start(instances::id_t instance_id) //
         -> crow::response;
 
-    auto http_stop(instance_id_t instance_id) //
+    auto http_stop(instances::id_t instance_id) //
         -> crow::response;
 
-    auto http_remove(instance_id_t instance_id) //
+    auto http_remove(instances::id_t instance_id) //
         -> crow::response;
 
-    auto http_get_config(instance_id_t instance_id) const //
+    auto http_get_config(instances::id_t instance_id) const //
         -> crow::response;
 
-    auto http_post_config(instance_id_t instance_id, const instance_config_t& config) //
+    auto http_post_config(instances::id_t instance_id, const instances::config_t& config) //
         -> crow::response;
 
-    auto http_logs(instance_id_t instance_id) const //
+    auto http_logs(instances::id_t instance_id) const //
         -> crow::response;
 
-    auto http_update(instance_id_t instance_id, std::string to) //
+    auto http_update(instances::id_t instance_id, std::string to) //
         -> crow::response;
 
-    auto http_export_to(instance_id_t instance_id, fs::path dest_dir) const //
+    auto http_export_to(instances::id_t instance_id, fs::path dest_dir) const //
         -> crow::response;
 
     /*! @brief List all available instance ids
@@ -88,13 +88,13 @@ public:
      * @return vector containing all available instance ids
      */
     auto instance_ids(const apps::key_t& app_key) const //
-        -> std::vector<instance_id_t>;
+        -> std::vector<instances::id_t>;
     auto instance_ids(std::string app_name, std::string version) const //
-        -> std::vector<instance_id_t>;
+        -> std::vector<instances::id_t>;
     auto instance_ids(std::string app_name) const //
-        -> std::vector<instance_id_t>;
+        -> std::vector<instances::id_t>;
     auto instance_ids() const //
-        -> std::vector<instance_id_t>;
+        -> std::vector<instances::id_t>;
 
     /*! @brief Query instance for a given instance id
      *
@@ -102,8 +102,8 @@ public:
      *
      * @return shared_ptr to instance, or nullptr
      */
-    auto query(instance_id_t instance_id) const //
-        -> std::shared_ptr<instance_t>;
+    auto query(instances::id_t instance_id) const //
+        -> std::shared_ptr<instances::instance_t>;
 
     /*! @brief Query if instance is running
      *
@@ -111,7 +111,7 @@ public:
      *
      * @return true if instance is running, false otherwise
      */
-    auto is_running(std::shared_ptr<instance_t> instance) const //
+    auto is_running(std::shared_ptr<instances::instance_t> instance) const //
         -> bool;
 
     auto create(apps::key_t app_key, std::string instance_name, bool running) //
@@ -123,23 +123,23 @@ public:
     auto create(std::string app_name, std::string version) //
         -> result_t;
 
-    auto start(instance_id_t instance_id) //
+    auto start(instances::id_t instance_id) //
         -> result_t;
-    auto start_once(instance_id_t instance_id) //
-        -> result_t;
-
-    auto stop(instance_id_t instance_id) //
-        -> result_t;
-    auto stop_once(instance_id_t instance_id) //
+    auto start_once(instances::id_t instance_id) //
         -> result_t;
 
-    auto remove(instance_id_t instance_id) //
+    auto stop(instances::id_t instance_id) //
+        -> result_t;
+    auto stop_once(instances::id_t instance_id) //
         -> result_t;
 
-    auto export_to(instance_id_t instance_id, fs::path base_path) const //
+    auto remove(instances::id_t instance_id) //
         -> result_t;
 
-    auto import_from(instance_t instance, fs::path base_path) //
+    auto export_to(instances::id_t instance_id, fs::path base_path) const //
+        -> result_t;
+
+    auto import_from(instances::instance_t instance, fs::path base_path) //
         -> result_t;
 
 protected:

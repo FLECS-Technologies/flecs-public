@@ -14,36 +14,31 @@
 
 #pragma once
 
-#include <cstdint>
 #include <string>
 #include <string_view>
 
-#include "util/json/json.h"
-
 namespace flecs {
+namespace instances {
 
-class instance_id_t
-{
-public:
-    instance_id_t();
-
-    instance_id_t(std::uint32_t id);
-
-    instance_id_t(std::string_view id);
-
-    auto get() const noexcept //
-        -> std::uint32_t;
-
-    auto hex() const //
-        -> std::string;
-
-    auto regenerate() //
-        -> void;
-
-private:
-    friend auto operator<=>(const instance_id_t&, const instance_id_t&) = default;
-
-    std::uint32_t _id;
+enum class status_e {
+    NotCreated,
+    Requested,
+    ResourcesReady,
+    Created,
+    Stopped,
+    Running,
+    Orphaned,
+    Unknown,
 };
 
+auto to_string_view(const status_e& instance_status) //
+    -> std::string_view;
+
+auto to_string(const status_e& instance_status) //
+    -> std::string;
+
+auto status_from_string(std::string_view str) //
+    -> status_e;
+
+} // namespace instances
 } // namespace flecs

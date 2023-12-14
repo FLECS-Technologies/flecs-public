@@ -14,7 +14,7 @@
 
 #include "daemon/modules/flecsport/flecsport.h"
 
-#include "daemon/common/instance/instance_id.h"
+#include "daemon/modules/instances/types/instance_id.h"
 #include "daemon/modules/apps/types/app_key.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/flecsport/impl/flecsport_impl.h"
@@ -54,10 +54,10 @@ auto flecsport_t::do_init() //
         if (args.contains("apps")) {
             args["apps"].get_to(apps);
         }
-        auto instances = std::vector<instance_id_t>{};
+        auto instances = std::vector<instances::id_t>{};
         if (args.contains("instances")) {
             for (const auto& instance_id : args["instances"]) {
-                instances.emplace_back(instance_id_t{instance_id.get<std::string_view>()});
+                instances.emplace_back(instances::id_t{instance_id.get<std::string_view>()});
             }
         }
         if (apps.empty() && instances.empty()) {
@@ -128,7 +128,7 @@ auto flecsport_t::http_remove(const std::string& export_id) //
     return crow::response{crow::status::OK};
 }
 
-auto flecsport_t::http_export_to(std::vector<apps::key_t> apps, std::vector<instance_id_t> instances) //
+auto flecsport_t::http_export_to(std::vector<apps::key_t> apps, std::vector<instances::id_t> instances) //
     -> crow::response
 {
     const auto now = unix_time(precision_e::milliseconds);

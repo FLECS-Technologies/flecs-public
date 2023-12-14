@@ -26,7 +26,6 @@
 
 namespace flecs {
 namespace module {
-
 namespace impl {
 class jobs_t;
 } // namespace impl

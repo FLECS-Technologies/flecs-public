@@ -29,18 +29,21 @@ class mock_deployment_t : public deployment_t
 {
 public:
     MOCK_METHOD(std::string_view, do_deployment_id, (), (const, noexcept, override));
-    MOCK_METHOD(result_t, do_create_instance, (std::shared_ptr<instance_t> instance), (override));
-    MOCK_METHOD(result_t, do_delete_instance, (std::shared_ptr<instance_t> instance), (override));
-    MOCK_METHOD(result_t, do_start_instance, (std::shared_ptr<instance_t> instance), (override));
-    MOCK_METHOD(result_t, do_ready_instance, (std::shared_ptr<instance_t> instance), (override));
-    MOCK_METHOD(result_t, do_stop_instance, (std::shared_ptr<instance_t> instance), (override));
+    MOCK_METHOD(result_t, do_create_instance, (std::shared_ptr<instances::instance_t> instance), (override));
+    MOCK_METHOD(result_t, do_delete_instance, (std::shared_ptr<instances::instance_t> instance), (override));
+    MOCK_METHOD(result_t, do_start_instance, (std::shared_ptr<instances::instance_t> instance), (override));
+    MOCK_METHOD(result_t, do_ready_instance, (std::shared_ptr<instances::instance_t> instance), (override));
+    MOCK_METHOD(result_t, do_stop_instance, (std::shared_ptr<instances::instance_t> instance), (override));
     MOCK_METHOD(
         result_t,
         do_export_instance,
-        (std::shared_ptr<instance_t> instance, fs::path dest_dir),
+        (std::shared_ptr<instances::instance_t> instance, fs::path dest_dir),
         (const, override));
     MOCK_METHOD(
-        result_t, do_import_instance, (std::shared_ptr<instance_t> instance, fs::path base_dir), (override));
+        result_t,
+        do_import_instance,
+        (std::shared_ptr<instances::instance_t> instance, fs::path base_dir),
+        (override));
     MOCK_METHOD(
         result_t,
         do_create_network,
@@ -50,38 +53,45 @@ public:
          (std::string_view gateway),
          (std::string_view parent_adapter)),
         (override));
-    MOCK_METHOD(bool, do_is_instance_running, (std::shared_ptr<instance_t> instance), (const, override));
+    MOCK_METHOD(
+        bool, do_is_instance_running, (std::shared_ptr<instances::instance_t> instance), (const, override));
     MOCK_METHOD(std::optional<network_t>, do_query_network, (std::string_view network), (override));
     MOCK_METHOD(result_t, do_delete_network, (std::string_view network), (override));
     MOCK_METHOD(
         result_t,
         do_connect_network,
-        ((std::shared_ptr<instance_t> instance), (std::string_view network), (std::string_view ip)),
+        ((std::shared_ptr<instances::instance_t> instance),
+         (std::string_view network),
+         (std::string_view ip)),
         (override));
     MOCK_METHOD(
         result_t,
         do_disconnect_network,
-        ((std::shared_ptr<instance_t> instance), (std::string_view network)),
+        ((std::shared_ptr<instances::instance_t> instance), (std::string_view network)),
         (override));
     MOCK_METHOD(
         result_t,
         do_create_volume,
-        ((std::shared_ptr<instance_t> instance), (std::string_view volume_name)),
+        ((std::shared_ptr<instances::instance_t> instance), (std::string_view volume_name)),
         (override));
     MOCK_METHOD(
         result_t,
         do_import_volume,
-        ((std::shared_ptr<instance_t> instance), (std::string_view volume_name), (flecs::fs::path dest_dir)),
+        ((std::shared_ptr<instances::instance_t> instance),
+         (std::string_view volume_name),
+         (flecs::fs::path dest_dir)),
         (override));
     MOCK_METHOD(
         result_t,
         do_export_volume,
-        ((std::shared_ptr<instance_t> instance), (std::string_view volume_name), (flecs::fs::path dest_dir)),
+        ((std::shared_ptr<instances::instance_t> instance),
+         (std::string_view volume_name),
+         (flecs::fs::path dest_dir)),
         (const, override));
     MOCK_METHOD(
         result_t,
         do_delete_volume,
-        ((std::shared_ptr<instance_t> instance), (std::string_view volume_name)),
+        ((std::shared_ptr<instances::instance_t> instance), (std::string_view volume_name)),
         (override));
     MOCK_METHOD(
         result_t,
@@ -91,12 +101,12 @@ public:
     MOCK_METHOD(
         result_t,
         do_copy_file_to_instance,
-        ((std::shared_ptr<instance_t> instance), (fs::path file), (fs::path dest)),
+        ((std::shared_ptr<instances::instance_t> instance), (fs::path file), (fs::path dest)),
         (override));
     MOCK_METHOD(
         result_t,
         do_copy_file_from_instance,
-        ((std::shared_ptr<instance_t> instance), (fs::path file), (fs::path dest)),
+        ((std::shared_ptr<instances::instance_t> instance), (fs::path file), (fs::path dest)),
         (const, override));
     MOCK_METHOD(std::string_view, do_default_network_name, (), (const, override));
     MOCK_METHOD(network_type_e, do_default_network_type, (), (const, override));
@@ -113,8 +123,8 @@ using namespace testing;
 #define G_CIDR_SUBNET "172.20.0.0/24"
 #define G_GATEWAY "172.20.0.1"
 #define G_IMAGE "flecs/test-app"
-#define G_INSTANCE_ID_1 flecs::instance_id_t(2882339107U)
-#define G_INSTANCE_ID_2 flecs::instance_id_t(19114957U)
+#define G_INSTANCE_ID_1 flecs::instances::id_t(2882339107U)
+#define G_INSTANCE_ID_2 flecs::instances::id_t(19114957U)
 #define G_IP "172.20.0.2"
 #define G_INSTANCE_NAME_1 "Test instance 1"
 #define G_INSTANCE_NAME_2 "Test instance 2"
@@ -158,13 +168,13 @@ TEST(deployment, interface)
     auto& test_deployment = static_cast<flecs::mock_deployment_t&>(*deployment.get());
     const auto& test_deployment_c = static_cast<const flecs::mock_deployment_t&>(test_deployment);
 
-    auto instance_1 = flecs::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
-    instance_1.status(flecs::instance_status_e::Created);
-    instance_1.desired(flecs::instance_status_e::Running);
+    auto instance_1 = flecs::instances::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
+    instance_1.status(flecs::instances::status_e::Created);
+    instance_1.desired(flecs::instances::status_e::Running);
 
-    auto instance_2 = flecs::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
-    instance_2.status(flecs::instance_status_e::Created);
-    instance_2.desired(flecs::instance_status_e::Running);
+    auto instance_2 = flecs::instances::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
+    instance_2.status(flecs::instances::status_e::Created);
+    instance_2.desired(flecs::instances::status_e::Running);
 
     // mock deployment id
     EXPECT_CALL(test_deployment, do_deployment_id()).Times(1).WillOnce(Return("test-deployment"sv));
@@ -326,8 +336,8 @@ TEST(deployment, load_save)
     auto save_deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
     auto& save_uut = static_cast<flecs::mock_deployment_t&>(*save_deployment.get());
 
-    auto instance_1 = flecs::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
-    auto instance_2 = flecs::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
+    auto instance_1 = flecs::instances::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
+    auto instance_2 = flecs::instances::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
 
     save_deployment->insert_instance(instance_1);
     save_deployment->insert_instance(instance_2);
@@ -354,9 +364,11 @@ TEST(deployment, generate_ip_success)
         EXPECT_EQ(ip, "172.20.0.2");
     }
 
-    auto instance = flecs::instance_t{app_1, G_INSTANCE_NAME_1};
-    instance.networks().emplace_back(
-        flecs::instance_t::network_t{.network_name = "flecs-network", .mac_address = {}, .ip_address = G_IP});
+    auto instance = flecs::instances::instance_t{app_1, G_INSTANCE_NAME_1};
+    instance.networks().emplace_back(flecs::instances::instance_t::network_t{
+        .network_name = "flecs-network",
+        .mac_address = {},
+        .ip_address = G_IP});
 
     deployment->insert_instance(instance);
 

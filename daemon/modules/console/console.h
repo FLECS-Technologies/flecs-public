@@ -24,7 +24,6 @@
 
 namespace flecs {
 namespace module {
-
 namespace impl {
 class console_t;
 } // namespace impl

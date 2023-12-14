@@ -26,7 +26,7 @@
 
 namespace flecs {
 
-auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance) //
+auto deployment_docker_t::create_container(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     const auto container_name = std::string{"flecs-"} + instance->id().hex();
@@ -299,7 +299,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instance_t> instance)
     return {0, {}};
 }
 
-auto deployment_docker_t::delete_container(std::shared_ptr<instance_t> instance) //
+auto deployment_docker_t::delete_container(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     auto app = instance->app();
@@ -334,20 +334,20 @@ auto deployment_docker_t::do_deployment_id() const noexcept //
     return "docker";
 }
 
-auto deployment_docker_t::do_create_instance(std::shared_ptr<instance_t> instance) //
+auto deployment_docker_t::do_create_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
-    instance->status(instance_status_e::Created);
+    instance->status(instances::status_e::Created);
     return {0, instance->id().hex()};
 }
 
-auto deployment_docker_t::do_delete_instance(std::shared_ptr<instance_t> /*instance*/) //
+auto deployment_docker_t::do_delete_instance(std::shared_ptr<instances::instance_t> /*instance*/) //
     -> result_t
 {
     return {0, ""};
 }
 
-auto deployment_docker_t::do_start_instance(std::shared_ptr<instance_t> instance) //
+auto deployment_docker_t::do_start_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     const auto [res, additional_info] = create_container(instance);
@@ -371,7 +371,7 @@ auto deployment_docker_t::do_start_instance(std::shared_ptr<instance_t> instance
     return {0, {}};
 }
 
-auto deployment_docker_t::do_ready_instance(std::shared_ptr<instance_t> instance) //
+auto deployment_docker_t::do_ready_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     const auto container_name = "flecs-" + instance->id().hex();
@@ -392,7 +392,7 @@ auto deployment_docker_t::do_ready_instance(std::shared_ptr<instance_t> instance
     return {0, {}};
 }
 
-auto deployment_docker_t::do_stop_instance(std::shared_ptr<instance_t> instance) //
+auto deployment_docker_t::do_stop_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     const auto container_name = "flecs-" + instance->id().hex();
@@ -409,20 +409,20 @@ auto deployment_docker_t::do_stop_instance(std::shared_ptr<instance_t> instance)
 }
 
 auto deployment_docker_t::do_export_instance(
-    std::shared_ptr<instance_t> /*instance*/, fs::path /*dest_dir*/) const //
+    std::shared_ptr<instances::instance_t> /*instance*/, fs::path /*dest_dir*/) const //
     -> result_t
 {
     return {0, {}};
 }
 
 auto deployment_docker_t::do_import_instance(
-    std::shared_ptr<instance_t> /*instance*/, fs::path /*base_dir*/) //
+    std::shared_ptr<instances::instance_t> /*instance*/, fs::path /*base_dir*/) //
     -> result_t
 {
     return {0, {}};
 }
 
-auto deployment_docker_t::do_is_instance_running(std::shared_ptr<instance_t> instance) const //
+auto deployment_docker_t::do_is_instance_running(std::shared_ptr<instances::instance_t> instance) const //
     -> bool
 {
     auto docker_process = process_t{};
@@ -597,7 +597,7 @@ auto deployment_docker_t::do_delete_network(std::string_view network) //
 }
 
 auto deployment_docker_t::do_connect_network(
-    std::shared_ptr<instance_t> instance,
+    std::shared_ptr<instances::instance_t> instance,
     std::string_view network,
     std::string_view ip) //
     -> result_t
@@ -621,7 +621,7 @@ auto deployment_docker_t::do_connect_network(
 }
 
 auto deployment_docker_t::do_disconnect_network(
-    std::shared_ptr<instance_t> instance, std::string_view network) //
+    std::shared_ptr<instances::instance_t> instance, std::string_view network) //
     -> result_t
 {
     auto docker_process = process_t{};
@@ -642,7 +642,7 @@ auto deployment_docker_t::do_disconnect_network(
 }
 
 auto deployment_docker_t::do_create_volume(
-    std::shared_ptr<instance_t> instance, std::string_view volume_name) //
+    std::shared_ptr<instances::instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
     const auto name = "flecs-" + instance->id().hex() + "-" + std::string{volume_name};
@@ -663,7 +663,7 @@ auto deployment_docker_t::do_create_volume(
 }
 
 auto deployment_docker_t::do_import_volume(
-    std::shared_ptr<instance_t> instance, std::string_view volume_name, fs::path src_dir) //
+    std::shared_ptr<instances::instance_t> instance, std::string_view volume_name, fs::path src_dir) //
     -> result_t
 {
     using std::operator""s;
@@ -732,7 +732,7 @@ auto deployment_docker_t::do_import_volume(
 }
 
 auto deployment_docker_t::do_export_volume(
-    std::shared_ptr<instance_t> instance,
+    std::shared_ptr<instances::instance_t> instance,
     std::string_view volume_name,
     fs::path dest_dir) const //
     -> result_t
@@ -793,7 +793,7 @@ auto deployment_docker_t::do_export_volume(
 }
 
 auto deployment_docker_t::do_delete_volume(
-    std::shared_ptr<instance_t> instance, std::string_view volume_name) //
+    std::shared_ptr<instances::instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
     auto docker_process = process_t{};
@@ -847,7 +847,7 @@ auto deployment_docker_t::do_copy_file_from_image(
 }
 
 auto deployment_docker_t::do_copy_file_to_instance(
-    std::shared_ptr<instance_t> instance,
+    std::shared_ptr<instances::instance_t> instance,
     fs::path file,
     fs::path dest) //
     -> result_t
@@ -872,7 +872,7 @@ auto deployment_docker_t::do_copy_file_to_instance(
 }
 
 auto deployment_docker_t::do_copy_file_from_instance(
-    std::shared_ptr<instance_t> instance,
+    std::shared_ptr<instances::instance_t> instance,
     fs::path file,
     fs::path dest) const //
     -> result_t

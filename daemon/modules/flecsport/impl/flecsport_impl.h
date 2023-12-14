@@ -18,9 +18,7 @@
 
 namespace flecs {
 namespace jobs {
-
 class progress_t;
-
 } // namespace jobs
 
 namespace module {
@@ -45,14 +43,14 @@ private:
         -> std::vector<std::string>;
 
     auto queue_export_to(
-        std::vector<apps::key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
+        std::vector<apps::key_t> apps, std::vector<instances::id_t> instances, fs::path dest_dir) //
         -> jobs::id_t;
     auto do_export_to_sync(
-        std::vector<apps::key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
+        std::vector<apps::key_t> apps, std::vector<instances::id_t> instances, fs::path dest_dir) //
         -> result_t;
     auto do_export_to(
         std::vector<apps::key_t> apps,
-        std::vector<instance_id_t> instances,
+        std::vector<instances::id_t> instances,
         fs::path dest_dir,
         jobs::progress_t& progress) //
         -> result_t;

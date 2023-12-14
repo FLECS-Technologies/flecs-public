@@ -36,9 +36,9 @@ flecs_add_module(
     LIBS_PUBLIC
         daemon.common
         modules.apps.types
+        modules.instances.types
     LIBS_PRIVATE
         cpr::cpr
-        daemon.common
         util.usb
         yaml-cpp::yaml-cpp
 )

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "daemon/common/instance/instance_id.h"
+#include "daemon/modules/instances/types/instance_id.h"
 
 #include <limits>
 
@@ -20,16 +20,17 @@
 #include "util/string/format.h"
 
 namespace flecs {
+namespace instances {
 
-instance_id_t::instance_id_t()
+id_t::id_t()
     : _id{rnd()}
 {}
 
-instance_id_t::instance_id_t(std::uint32_t id)
+id_t::id_t(std::uint32_t id)
     : _id{id}
 {}
 
-instance_id_t::instance_id_t(std::string_view id)
+id_t::id_t(std::string_view id)
     : _id{}
 {
     auto end = static_cast<char*>(nullptr);
@@ -42,22 +43,23 @@ instance_id_t::instance_id_t(std::string_view id)
     _id = static_cast<decltype(_id)>(tmp);
 }
 
-auto instance_id_t::get() const noexcept //
+auto id_t::get() const noexcept //
     -> std::uint32_t
 {
     return _id;
 }
 
-auto instance_id_t::hex() const //
+auto id_t::hex() const //
     -> std::string
 {
     return int_to_hex(get(), fmt::Lowercase, fmt::NoPrefix, fmt::LeadingZeroes);
 }
 
-auto instance_id_t::regenerate() //
+auto id_t::regenerate() //
     -> void
 {
     _id = rnd();
 }
 
+} // namespace instances
 } // namespace flecs
