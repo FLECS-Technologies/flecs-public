@@ -20,7 +20,6 @@
 
 namespace flecs {
 namespace module {
-
 namespace impl {
 class data_layer_t;
 } // namespace impl

@@ -15,10 +15,10 @@
 #include "daemon/modules/instances/impl/instances_impl.h"
 
 #include "daemon/api/api.h"
-#include "daemon/modules/apps/types/app.h"
 #include "daemon/common/app/manifest/manifest.h"
 #include "daemon/common/deployment/deployment_docker.h"
 #include "daemon/modules/apps/apps.h"
+#include "daemon/modules/apps/types/app.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/jobs/jobs.h"
 #include "daemon/modules/system/system.h"
@@ -31,7 +31,7 @@ namespace module {
 namespace impl {
 
 namespace {
-auto build_network_adapters_json(std::shared_ptr<instance_t> instance)
+auto build_network_adapters_json(std::shared_ptr<instances::instance_t> instance)
 {
     const auto system_api = dynamic_cast<const module::system_t*>(api::query_module("system").get());
     const auto adapters = system_api->get_network_adapters();
@@ -46,7 +46,7 @@ auto build_network_adapters_json(std::shared_ptr<instance_t> instance)
             auto it = std::find_if(
                 instance->networks().cbegin(),
                 instance->networks().cend(),
-                [&](const instance_t::network_t& n) { return n.network_name == network; });
+                [&](const instances::instance_t::network_t& n) { return n.network_name == network; });
             if (it != instance->networks().cend()) {
                 adapter_json["active"] = true;
                 adapter_json["ipAddress"] = it->ip_address;
@@ -80,7 +80,7 @@ auto build_network_adapters_json(std::shared_ptr<instance_t> instance)
     return adapters_json;
 }
 
-auto build_usb_devices_json(std::shared_ptr<instance_t> instance)
+auto build_usb_devices_json(std::shared_ptr<instances::instance_t> instance)
 {
     auto ret = json_t::array();
     const auto usb_devices = usb::get_devices();
@@ -143,7 +143,7 @@ auto instances_t::do_module_start() //
 {
     for (const auto& instance_id : _parent->instance_ids()) {
         if (auto instance = _parent->query(instance_id)) {
-            if (instance->desired() == instance_status_e::Running) {
+            if (instance->desired() == instances::status_e::Running) {
                 _parent->start_once(instance_id);
             }
         }
@@ -159,18 +159,18 @@ auto instances_t::do_module_stop() //
 }
 
 auto instances_t::do_instance_ids(const apps::key_t& app_key) const //
-    -> std::vector<instance_id_t>
+    -> std::vector<instances::id_t>
 {
     return _deployment->instance_ids(app_key);
 }
 
-auto instances_t::do_query(instance_id_t instance_id) const //
-    -> std::shared_ptr<instance_t>
+auto instances_t::do_query(instances::id_t instance_id) const //
+    -> std::shared_ptr<instances::instance_t>
 {
     return _deployment->query_instance(std::move(instance_id));
 }
 
-auto instances_t::do_is_running(std::shared_ptr<instance_t> instance) const //
+auto instances_t::do_is_running(std::shared_ptr<instances::instance_t> instance) const //
     -> bool
 {
     return _deployment->is_instance_running(std::move(instance));
@@ -243,13 +243,13 @@ auto instances_t::do_create(
     progress.desc(std::move(desc));
 
     if (running) {
-        _parent->start(instance_id_t{instance_id});
+        _parent->start(instances::id_t{instance_id});
     }
 
     return {0, instance_id};
 }
 
-auto instances_t::queue_start(instance_id_t instance_id, bool once) //
+auto instances_t::queue_start(instances::id_t instance_id, bool once) //
     -> jobs::id_t
 {
     auto desc = "Starting instance " + instance_id.hex();
@@ -264,14 +264,14 @@ auto instances_t::queue_start(instance_id_t instance_id, bool once) //
     return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto instances_t::do_start_sync(instance_id_t instance_id, bool once) //
+auto instances_t::do_start_sync(instances::id_t instance_id, bool once) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_start(std::move(instance_id), std::move(once), _);
 }
 
-auto instances_t::do_start(instance_id_t instance_id, bool once, jobs::progress_t& progress) //
+auto instances_t::do_start(instances::id_t instance_id, bool once, jobs::progress_t& progress) //
     -> result_t
 {
     auto instance = _deployment->query_instance(instance_id);
@@ -290,7 +290,7 @@ auto instances_t::do_start(instance_id_t instance_id, bool once, jobs::progress_
 
     // Step 3: Persist desired status into deployment
     if (!once) {
-        instance->desired(instance_status_e::Running);
+        instance->desired(instances::status_e::Running);
     }
 
     // Step 4: Forward to deployment
@@ -302,7 +302,7 @@ auto instances_t::do_start(instance_id_t instance_id, bool once, jobs::progress_
     return {res, additional_info};
 }
 
-auto instances_t::queue_stop(instance_id_t instance_id, bool once) //
+auto instances_t::queue_stop(instances::id_t instance_id, bool once) //
     -> jobs::id_t
 {
     auto desc = "Stopping instance " + instance_id.hex();
@@ -317,14 +317,14 @@ auto instances_t::queue_stop(instance_id_t instance_id, bool once) //
     return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto instances_t::do_stop_sync(instance_id_t instance_id, bool once) //
+auto instances_t::do_stop_sync(instances::id_t instance_id, bool once) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_stop(std::move(instance_id), std::move(once), _);
 }
 
-auto instances_t::do_stop(instance_id_t instance_id, bool once, jobs::progress_t& progress) //
+auto instances_t::do_stop(instances::id_t instance_id, bool once, jobs::progress_t& progress) //
     -> result_t
 {
     // get instance details from database
@@ -345,7 +345,7 @@ auto instances_t::do_stop(instance_id_t instance_id, bool once, jobs::progress_t
 
     // Step 4: Persist desired status into db
     if (!once) {
-        instance->desired(instance_status_e::Stopped);
+        instance->desired(instances::status_e::Stopped);
     }
 
     // Step 5: Forward to deployment
@@ -357,7 +357,7 @@ auto instances_t::do_stop(instance_id_t instance_id, bool once, jobs::progress_t
     return {res, additional_info};
 }
 
-auto instances_t::queue_remove(instance_id_t instance_id) //
+auto instances_t::queue_remove(instances::id_t instance_id) //
     -> jobs::id_t
 {
     auto desc = "Removing instance " + instance_id.hex();
@@ -368,14 +368,14 @@ auto instances_t::queue_remove(instance_id_t instance_id) //
     return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto instances_t::do_remove_sync(instance_id_t instance_id) //
+auto instances_t::do_remove_sync(instances::id_t instance_id) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_remove(std::move(instance_id), _);
 }
 
-auto instances_t::do_remove(instance_id_t instance_id, jobs::progress_t& progress) //
+auto instances_t::do_remove(instances::id_t instance_id, jobs::progress_t& progress) //
     -> result_t
 {
     progress.num_steps(3);
@@ -407,7 +407,7 @@ auto instances_t::do_remove(instance_id_t instance_id, jobs::progress_t& progres
     return {res, message};
 }
 
-auto instances_t::do_get_config(instance_id_t instance_id) const //
+auto instances_t::do_get_config(instances::id_t instance_id) const //
     -> crow::response
 {
     auto response = json_t();
@@ -424,7 +424,7 @@ auto instances_t::do_get_config(instance_id_t instance_id) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto instances_t::do_post_config(instance_id_t instance_id, const instance_config_t& config) //
+auto instances_t::do_post_config(instances::id_t instance_id, const instances::config_t& config) //
     -> crow::response
 {
     // Step 1: Verify instance does actually exist
@@ -488,11 +488,13 @@ auto instances_t::do_post_config(instance_id_t instance_id, const instance_confi
                     auto it = std::find_if(
                         instance->networks().begin(),
                         instance->networks().end(),
-                        [&](const instance_t::network_t& n) { return n.network_name == docker_network; });
+                        [&](const instances::instance_t::network_t& n) {
+                            return n.network_name == docker_network;
+                        });
                     if (it != instance->networks().end()) {
                         it->ip_address = network.ipAddress;
                     } else {
-                        instance->networks().emplace_back(instance_t::network_t{
+                        instance->networks().emplace_back(instances::instance_t::network_t{
                             .network_name = docker_network,
                             .mac_address = {},
                             .ip_address = network.ipAddress});
@@ -521,7 +523,9 @@ auto instances_t::do_post_config(instance_id_t instance_id, const instance_confi
                 std::remove_if(
                     instance->networks().begin(),
                     instance->networks().end(),
-                    [&](const instance_t::network_t& net) { return net.network_name == docker_network; }),
+                    [&](const instances::instance_t::network_t& net) {
+                        return net.network_name == docker_network;
+                    }),
                 instance->networks().end());
 
             for (auto& adapter_json : response["networkAdapters"]) {
@@ -544,7 +548,7 @@ auto instances_t::do_post_config(instance_id_t instance_id, const instance_confi
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto instances_t::do_details(instance_id_t instance_id) const //
+auto instances_t::do_details(instances::id_t instance_id) const //
     -> crow::response
 {
     // Step 1: Verify instance does actually exist
@@ -602,7 +606,7 @@ auto instances_t::do_details(instance_id_t instance_id) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto instances_t::do_logs(instance_id_t instance_id) const //
+auto instances_t::do_logs(instances::id_t instance_id) const //
     -> crow::response
 {
     // Step 1: Verify instance does actually exist
@@ -630,7 +634,7 @@ auto instances_t::do_logs(instance_id_t instance_id) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto instances_t::queue_update(instance_id_t instance_id, std::string to) //
+auto instances_t::queue_update(instances::id_t instance_id, std::string to) //
     -> jobs::id_t
 {
     auto desc = "Updating instance " + instance_id.hex() + " to " + to;
@@ -645,14 +649,14 @@ auto instances_t::queue_update(instance_id_t instance_id, std::string to) //
     return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto instances_t::do_update_sync(instance_id_t instance_id, std::string to) //
+auto instances_t::do_update_sync(instances::id_t instance_id, std::string to) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_update(std::move(instance_id), std::move(to), _);
 }
 
-auto instances_t::do_update(instance_id_t instance_id, std::string to, jobs::progress_t& /*progress*/) //
+auto instances_t::do_update(instances::id_t instance_id, std::string to, jobs::progress_t& /*progress*/) //
     -> result_t
 {
     // Step 1: Verify instance does actually exist, is fully created and valid
@@ -711,7 +715,7 @@ auto instances_t::do_update(instance_id_t instance_id, std::string to, jobs::pro
     _deployment->save();
 
     // Final step: Start instance
-    if (instance->desired() == instance_status_e::Running) {
+    if (instance->desired() == instances::status_e::Running) {
         std::tie(res, message) = _parent->start_once(instance->id());
         if (res != 0) {
             return {-1, "Could not start instance"};
@@ -721,7 +725,7 @@ auto instances_t::do_update(instance_id_t instance_id, std::string to, jobs::pro
     return {0, {}};
 }
 
-auto instances_t::queue_export_to(instance_id_t instance_id, fs::path base_path) //
+auto instances_t::queue_export_to(instances::id_t instance_id, fs::path base_path) //
     -> jobs::id_t
 {
     auto desc = "Exporting instance " + instance_id.hex() + " to " + base_path.string();
@@ -735,14 +739,14 @@ auto instances_t::queue_export_to(instance_id_t instance_id, fs::path base_path)
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto instances_t::do_export_to_sync(instance_id_t instance_id, fs::path base_path) //
+auto instances_t::do_export_to_sync(instances::id_t instance_id, fs::path base_path) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_export_to(std::move(instance_id), std::move(base_path), _);
 }
 auto instances_t::do_export_to(
-    instance_id_t instance_id, fs::path base_path, jobs::progress_t& /*progress*/) //
+    instances::id_t instance_id, fs::path base_path, jobs::progress_t& /*progress*/) //
     -> result_t
 {
     // Step 1: Verify instance does actually exist, is fully created and valid
@@ -756,7 +760,7 @@ auto instances_t::do_export_to(
     return {res, additional_info};
 }
 
-auto instances_t::queue_import_from(instance_t instance, fs::path base_path) //
+auto instances_t::queue_import_from(instances::instance_t instance, fs::path base_path) //
     -> jobs::id_t
 {
     auto desc = "Importing instance " + instance.id().hex() + " from " + base_path.string();
@@ -770,13 +774,14 @@ auto instances_t::queue_import_from(instance_t instance, fs::path base_path) //
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto instances_t::do_import_from_sync(instance_t instance, fs::path base_path) //
+auto instances_t::do_import_from_sync(instances::instance_t instance, fs::path base_path) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_import_from(std::move(instance), std::move(base_path), _);
 }
-auto instances_t::do_import_from(instance_t instance, fs::path base_path, jobs::progress_t& /*progress*/) //
+auto instances_t::do_import_from(
+    instances::instance_t instance, fs::path base_path, jobs::progress_t& /*progress*/) //
     -> result_t
 {
     auto app = _apps_api->query(apps::key_t{instance.app_name().data(), instance.app_version().data()});

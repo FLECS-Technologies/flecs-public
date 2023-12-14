@@ -16,9 +16,9 @@
 
 #include <unistd.h>
 
-#include "daemon/modules/apps/types/app.h"
-#include "daemon/common/instance/instance.h"
+#include "daemon/modules/instances/types/instance.h"
 #include "daemon/modules/apps/apps.h"
+#include "daemon/modules/apps/types/app.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/flecsport/export_manifest.h"
 #include "daemon/modules/instances/instances.h"
@@ -67,7 +67,7 @@ auto flecsport_t::do_exports() const //
 }
 
 auto flecsport_t::queue_export_to(
-    std::vector<apps::key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
+    std::vector<apps::key_t> apps, std::vector<instances::id_t> instances, fs::path dest_dir) //
     -> jobs::id_t
 {
     auto job = jobs::job_t{std::bind(
@@ -82,7 +82,7 @@ auto flecsport_t::queue_export_to(
 }
 auto flecsport_t::do_export_to_sync(
     std::vector<apps::key_t> apps,
-    std::vector<instance_id_t> instances,
+    std::vector<instances::id_t> instances,
     fs::path dest_dir) //
     -> result_t
 {
@@ -91,7 +91,7 @@ auto flecsport_t::do_export_to_sync(
 }
 auto flecsport_t::do_export_to(
     std::vector<apps::key_t> apps,
-    std::vector<instance_id_t> instances,
+    std::vector<instances::id_t> instances,
     fs::path dest_dir,
     jobs::progress_t& progress) //
     -> result_t
@@ -246,7 +246,7 @@ auto flecsport_t::do_import_from(fs::path archive, jobs::progress_t& progress) /
     progress.next_step("Starting Instances");
     for (const auto& instance_id : _instances_api->instance_ids()) {
         if (auto instance = _instances_api->query(instance_id)) {
-            if (instance->desired() == instance_status_e::Running) {
+            if (instance->desired() == instances::status_e::Running) {
                 _instances_api->start_once(instance_id);
             }
         }

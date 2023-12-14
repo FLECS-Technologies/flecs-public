@@ -15,9 +15,9 @@
 #include "daemon/modules/instances/instances.h"
 
 #include "daemon/modules/apps/types/app.h"
-#include "daemon/common/instance/instance.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/instances/impl/instances_impl.h"
+#include "daemon/modules/instances/types/instance.h"
 
 namespace flecs {
 namespace module {
@@ -49,7 +49,7 @@ auto instances_t::do_init() //
     });
 
     FLECS_V2_ROUTE("/instances/<string>").methods("GET"_method)([this](const std::string& instance_id) {
-        return http_details(instance_id_t{instance_id});
+        return http_details(instances::id_t{instance_id});
     });
 
     FLECS_V2_ROUTE("/instances/create").methods("POST"_method)([this](const crow::request& req) {
@@ -65,30 +65,30 @@ auto instances_t::do_init() //
             auto response = json_t{};
             const auto args = parse_json(req.body);
             REQUIRED_JSON_VALUE(args, to);
-            return http_update(instance_id_t{instance_id}, std::move(to));
+            return http_update(instances::id_t{instance_id}, std::move(to));
         });
 
     FLECS_V2_ROUTE("/instances/<string>").methods("DELETE"_method)([this](const std::string& instance_id) {
-        return http_remove(instance_id_t{instance_id});
+        return http_remove(instances::id_t{instance_id});
     });
 
     FLECS_V2_ROUTE("/instances/<string>/start")
         .methods("POST"_method)(
-            [this](const std::string& instance_id) { return http_start(instance_id_t{instance_id}); });
+            [this](const std::string& instance_id) { return http_start(instances::id_t{instance_id}); });
 
     FLECS_V2_ROUTE("/instances/<string>/stop").methods("POST"_method)([this](const std::string& instance_id) {
-        return http_stop(instance_id_t{instance_id});
+        return http_stop(instances::id_t{instance_id});
     });
 
     FLECS_V2_ROUTE("/instances/<string>/config")
         .methods("GET"_method)(
-            [this](const std::string& instance_id) { return http_get_config(instance_id_t{instance_id}); });
+            [this](const std::string& instance_id) { return http_get_config(instances::id_t{instance_id}); });
 
     FLECS_V2_ROUTE("/instances/<string>/config")
         .methods("POST"_method)([this](const crow::request& req, const std::string& instance_id) {
             auto response = json_t{};
             const auto args = parse_json(req.body);
-            auto config = instance_config_t{};
+            auto config = instances::config_t{};
             if (args.contains("networkAdapters")) {
                 args["networkAdapters"].get_to(config.networkAdapters);
             }
@@ -96,11 +96,11 @@ auto instances_t::do_init() //
                 args["devices"]["usb"].get_to(config.usb_devices);
             }
 
-            return http_post_config(instance_id_t{instance_id}, config);
+            return http_post_config(instances::id_t{instance_id}, config);
         });
 
     FLECS_V2_ROUTE("/instances/<string>/logs").methods("GET"_method)([this](const std::string& instance_id) {
-        return http_logs(instance_id_t{instance_id});
+        return http_logs(instances::id_t{instance_id});
     });
 
     return _impl->do_module_init();
@@ -132,11 +132,11 @@ auto instances_t::http_list(const apps::key_t& app_key) const //
         json["appKey"] = apps::key_t{instance->app_name().data(), instance->app_version().data()};
         auto app = instance->app();
         if (!app || app->status() == apps::status_e::Orphaned) {
-            json["status"] = to_string(instance_status_e::Orphaned);
+            json["status"] = to_string(instances::status_e::Orphaned);
         } else {
-            if (instance->status() == instance_status_e::Created) {
-                json["status"] =
-                    to_string(is_running(instance) ? instance_status_e::Running : instance_status_e::Stopped);
+            if (instance->status() == instances::status_e::Created) {
+                json["status"] = to_string(
+                    is_running(instance) ? instances::status_e::Running : instances::status_e::Stopped);
             } else {
                 json["status"] = to_string(instance->status());
             }
@@ -148,7 +148,7 @@ auto instances_t::http_list(const apps::key_t& app_key) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto instances_t::http_details(instance_id_t instance_id) const //
+auto instances_t::http_details(instances::id_t instance_id) const //
     -> crow::response
 {
     return _impl->do_details(std::move(instance_id));
@@ -161,53 +161,53 @@ auto instances_t::http_create(apps::key_t app_key, std::string instance_name, bo
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto instances_t::http_start(instance_id_t instance_id) //
+auto instances_t::http_start(instances::id_t instance_id) //
     -> crow::response
 {
     auto job_id = _impl->queue_start(std::move(instance_id), false);
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto instances_t::http_stop(instance_id_t instance_id) //
+auto instances_t::http_stop(instances::id_t instance_id) //
     -> crow::response
 {
     auto job_id = _impl->queue_stop(std::move(instance_id), false);
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto instances_t::http_remove(instance_id_t instance_id) //
+auto instances_t::http_remove(instances::id_t instance_id) //
     -> crow::response
 {
     auto job_id = _impl->queue_remove(std::move(instance_id));
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto instances_t::http_get_config(instance_id_t instance_id) const //
+auto instances_t::http_get_config(instances::id_t instance_id) const //
     -> crow::response
 {
     return _impl->do_get_config(std::move(instance_id));
 }
 
-auto instances_t::http_post_config(instance_id_t instance_id, const instance_config_t& config) //
+auto instances_t::http_post_config(instances::id_t instance_id, const instances::config_t& config) //
     -> crow::response
 {
     return _impl->do_post_config(std::move(instance_id), config);
 }
 
-auto instances_t::http_logs(instance_id_t instance_id) const //
+auto instances_t::http_logs(instances::id_t instance_id) const //
     -> crow::response
 {
     return _impl->do_logs(std::move(instance_id));
 }
 
-auto instances_t::http_update(instance_id_t instance_id, std::string to) //
+auto instances_t::http_update(instances::id_t instance_id, std::string to) //
     -> crow::response
 {
     auto job_id = _impl->queue_update(std::move(instance_id), std::move(to));
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto instances_t::http_export_to(instance_id_t instance_id, fs::path dest_dir) const //
+auto instances_t::http_export_to(instances::id_t instance_id, fs::path dest_dir) const //
     -> crow::response
 {
     auto job_id = _impl->queue_export_to(std::move(instance_id), std::move(dest_dir));
@@ -215,33 +215,33 @@ auto instances_t::http_export_to(instance_id_t instance_id, fs::path dest_dir) c
 }
 
 auto instances_t::instance_ids(const apps::key_t& app_key) const //
-    -> std::vector<instance_id_t>
+    -> std::vector<instances::id_t>
 {
     return _impl->do_instance_ids(app_key);
 }
 auto instances_t::instance_ids(std::string app_name, std::string version) const //
-    -> std::vector<instance_id_t>
+    -> std::vector<instances::id_t>
 {
     return instance_ids(apps::key_t{std::move(app_name), std::move(version)});
 }
 auto instances_t::instance_ids(std::string app_name) const //
-    -> std::vector<instance_id_t>
+    -> std::vector<instances::id_t>
 {
     return instance_ids(apps::key_t{std::move(app_name), {}});
 }
 auto instances_t::instance_ids() const //
-    -> std::vector<instance_id_t>
+    -> std::vector<instances::id_t>
 {
     return instance_ids(apps::key_t{});
 }
 
-auto instances_t::query(instance_id_t instance_id) const //
-    -> std::shared_ptr<instance_t>
+auto instances_t::query(instances::id_t instance_id) const //
+    -> std::shared_ptr<instances::instance_t>
 {
     return _impl->do_query(std::move(instance_id));
 }
 
-auto instances_t::is_running(std::shared_ptr<instance_t> instance) const //
+auto instances_t::is_running(std::shared_ptr<instances::instance_t> instance) const //
     -> bool
 {
     return _impl->do_is_running(std::move(instance));
@@ -268,41 +268,41 @@ auto instances_t::create(std::string app_name, std::string version) //
     return create(apps::key_t{std::move(app_name), std::move(version)}, {}, false);
 }
 
-auto instances_t::start(instance_id_t instance_id) //
+auto instances_t::start(instances::id_t instance_id) //
     -> result_t
 {
     return _impl->do_start_sync(std::move(instance_id), false);
 }
-auto instances_t::start_once(instance_id_t instance_id) //
+auto instances_t::start_once(instances::id_t instance_id) //
     -> result_t
 {
     return _impl->do_start_sync(std::move(instance_id), true);
 }
 
-auto instances_t::stop(instance_id_t instance_id) //
+auto instances_t::stop(instances::id_t instance_id) //
     -> result_t
 {
     return _impl->do_stop_sync(std::move(instance_id), false);
 }
-auto instances_t::stop_once(instance_id_t instance_id) //
+auto instances_t::stop_once(instances::id_t instance_id) //
     -> result_t
 {
     return _impl->do_stop_sync(std::move(instance_id), true);
 }
 
-auto instances_t::remove(instance_id_t instance_id) //
+auto instances_t::remove(instances::id_t instance_id) //
     -> result_t
 {
     return _impl->do_remove_sync(std::move(instance_id));
 }
 
-auto instances_t::export_to(instance_id_t instance_id, fs::path base_path) const //
+auto instances_t::export_to(instances::id_t instance_id, fs::path base_path) const //
     -> result_t
 {
     return _impl->do_export_to_sync(std::move(instance_id), std::move(base_path));
 }
 
-auto instances_t::import_from(instance_t instance, fs::path base_path) //
+auto instances_t::import_from(instances::instance_t instance, fs::path base_path) //
     -> result_t
 {
     return _impl->do_import_from_sync(std::move(instance), std::move(base_path));

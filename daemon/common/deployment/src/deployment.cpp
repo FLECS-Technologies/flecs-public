@@ -46,27 +46,27 @@ auto deployment_t::save(const fs::path& base_path) //
 }
 
 auto deployment_t::instance_ids() const //
-    -> std::vector<instance_id_t>
+    -> std::vector<instances::id_t>
 {
     return instance_ids(apps::key_t{});
 }
 
 auto deployment_t::instance_ids(std::string_view app) const //
-    -> std::vector<instance_id_t>
+    -> std::vector<instances::id_t>
 {
     return instance_ids(apps::key_t{app.data(), ""});
 }
 
 auto deployment_t::instance_ids(std::string_view app, std::string_view version) const //
-    -> std::vector<instance_id_t>
+    -> std::vector<instances::id_t>
 {
     return instance_ids(apps::key_t{app.data(), version.data()});
 }
 
 auto deployment_t::instance_ids(const apps::key_t& app_key) const //
-    -> std::vector<instance_id_t>
+    -> std::vector<instances::id_t>
 {
-    auto ids = std::vector<instance_id_t>{};
+    auto ids = std::vector<instances::id_t>{};
     for (const auto& instance : _instances) {
         const auto apps_match = app_key.name().empty() || (app_key.name() == instance->app_name());
         const auto versions_match = app_key.name().empty() || app_key.version().empty() ||
@@ -79,30 +79,34 @@ auto deployment_t::instance_ids(const apps::key_t& app_key) const //
     return ids;
 }
 
-auto deployment_t::query_instance(instance_id_t instance_id) const //
-    -> std::shared_ptr<instance_t>
+auto deployment_t::query_instance(instances::id_t instance_id) const //
+    -> std::shared_ptr<instances::instance_t>
 {
     const auto it = std::find_if(
         _instances.cbegin(),
         _instances.cend(),
-        [&instance_id](const std::shared_ptr<instance_t>& elem) { return elem->id() == instance_id; });
+        [&instance_id](const std::shared_ptr<instances::instance_t>& elem) {
+            return elem->id() == instance_id;
+        });
     return it != _instances.cend() ? *it : nullptr;
 }
 
-auto deployment_t::has_instance(instance_id_t instance_id) const noexcept //
+auto deployment_t::has_instance(instances::id_t instance_id) const noexcept //
     -> bool
 {
     const auto it = std::find_if(
         _instances.cbegin(),
         _instances.cend(),
-        [&instance_id](const std::shared_ptr<instance_t>& elem) { return elem->id() == instance_id; });
+        [&instance_id](const std::shared_ptr<instances::instance_t>& elem) {
+            return elem->id() == instance_id;
+        });
     return it != _instances.cend();
 }
 
-auto deployment_t::insert_instance(instance_t instance) //
-    -> std::shared_ptr<instance_t>
+auto deployment_t::insert_instance(instances::instance_t instance) //
+    -> std::shared_ptr<instances::instance_t>
 {
-    return _instances.emplace_back(std::make_shared<instance_t>(std::move(instance)));
+    return _instances.emplace_back(std::make_shared<instances::instance_t>(std::move(instance)));
 }
 
 auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::string instance_name) //
@@ -114,13 +118,13 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
     }
 
     // Step 1: Create unique id and insert instance
-    auto tmp = instance_t{app, instance_name};
+    auto tmp = instances::instance_t{app, instance_name};
     while (has_instance(tmp.id())) {
         tmp.regenerate_id();
     }
 
-    tmp.status(instance_status_e::Requested);
-    tmp.desired(instance_status_e::Created);
+    tmp.status(instances::status_e::Requested);
+    tmp.desired(instances::status_e::Created);
 
     auto instance = insert_instance(std::move(tmp));
     for (const auto& startup_option : manifest->startup_options()) {
@@ -154,7 +158,7 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
         }
         auto mac_address =
             manifest->networks().empty() ? std::string{} : manifest->networks()[0].mac_address();
-        instance->networks().emplace_back(instance_t::network_t{
+        instance->networks().emplace_back(instances::instance_t::network_t{
             .network_name = default_network_name().data(),
             .mac_address = std::move(mac_address),
             .ip_address = {},
@@ -183,13 +187,13 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
         if (res != 0) {
             return {res, instance->id().hex()};
         }
-        instance->status(instance_status_e::ResourcesReady);
+        instance->status(instances::status_e::ResourcesReady);
     }
 
     return do_create_instance(instance);
 }
 
-auto deployment_t::delete_instance(std::shared_ptr<instance_t> instance) //
+auto deployment_t::delete_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     const auto [res, additional_info] = do_delete_instance(instance);
@@ -197,12 +201,14 @@ auto deployment_t::delete_instance(std::shared_ptr<instance_t> instance) //
         std::remove_if(
             _instances.begin(),
             _instances.end(),
-            [&instance](const std::shared_ptr<instance_t>& elem) { return elem->id() == instance->id(); }),
+            [&instance](const std::shared_ptr<instances::instance_t>& elem) {
+                return elem->id() == instance->id();
+            }),
         _instances.end());
     return {res, additional_info};
 }
 
-auto deployment_t::start_instance(std::shared_ptr<instance_t> instance) //
+auto deployment_t::start_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     if (std::count(
@@ -234,13 +240,13 @@ auto deployment_t::start_instance(std::shared_ptr<instance_t> instance) //
     return ready_instance(std::move(instance));
 }
 
-auto deployment_t::ready_instance(std::shared_ptr<instance_t> instance) //
+auto deployment_t::ready_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     return do_ready_instance(std::move(instance));
 }
 
-auto deployment_t::stop_instance(std::shared_ptr<instance_t> instance) //
+auto deployment_t::stop_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     auto [res, additional_info] = do_stop_instance(instance);
@@ -262,7 +268,8 @@ auto deployment_t::stop_instance(std::shared_ptr<instance_t> instance) //
     return {res, additional_info};
 }
 
-auto deployment_t::export_instance(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
+auto deployment_t::export_instance(
+    std::shared_ptr<instances::instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
     LOG_TRACE("--> %s Request to export instance %s\n", __FUNCTION__, instance->id().hex().c_str());
@@ -303,7 +310,7 @@ auto deployment_t::export_instance(std::shared_ptr<instance_t> instance, fs::pat
     return {res, additional_info};
 }
 
-auto deployment_t::import_instance(std::shared_ptr<instance_t> instance, fs::path base_dir) //
+auto deployment_t::import_instance(std::shared_ptr<instances::instance_t> instance, fs::path base_dir) //
     -> result_t
 {
     auto app = instance->app();
@@ -331,19 +338,19 @@ auto deployment_t::import_instance(std::shared_ptr<instance_t> instance, fs::pat
     return do_import_instance(instance, base_dir);
 }
 
-auto deployment_t::is_instance_runnable(std::shared_ptr<instance_t> instance) const //
+auto deployment_t::is_instance_runnable(std::shared_ptr<instances::instance_t> instance) const //
     -> bool
 {
-    return instance && instance->status() == instance_status_e::Created;
+    return instance && instance->status() == instances::status_e::Created;
 }
 
-auto deployment_t::is_instance_running(std::shared_ptr<instance_t> instance) const //
+auto deployment_t::is_instance_running(std::shared_ptr<instances::instance_t> instance) const //
     -> bool
 {
     return instance && do_is_instance_running(std::move(instance));
 }
 
-auto deployment_t::create_config_files(std::shared_ptr<instance_t> instance) //
+auto deployment_t::create_config_files(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     auto app = instance->app();
@@ -412,7 +419,7 @@ auto deployment_t::delete_network(std::string_view network) //
 }
 
 auto deployment_t::connect_network(
-    std::shared_ptr<instance_t> instance,
+    std::shared_ptr<instances::instance_t> instance,
     std::string_view network,
     std::string_view ip) //
     -> result_t
@@ -420,13 +427,14 @@ auto deployment_t::connect_network(
     return do_connect_network(std::move(instance), std::move(network), std::move(ip));
 }
 
-auto deployment_t::disconnect_network(std::shared_ptr<instance_t> instance, std::string_view network) //
+auto deployment_t::disconnect_network(
+    std::shared_ptr<instances::instance_t> instance, std::string_view network) //
     -> result_t
 {
     return do_disconnect_network(std::move(instance), std::move(network));
 }
 
-auto deployment_t::create_volumes(std::shared_ptr<instance_t> instance) //
+auto deployment_t::create_volumes(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     auto app = instance->app();
@@ -449,13 +457,14 @@ auto deployment_t::create_volumes(std::shared_ptr<instance_t> instance) //
     return {0, {}};
 }
 
-auto deployment_t::create_volume(std::shared_ptr<instance_t> instance, std::string_view volume_name) //
+auto deployment_t::create_volume(
+    std::shared_ptr<instances::instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
     return do_create_volume(std::move(instance), std::move(volume_name));
 }
 
-auto deployment_t::import_volumes(std::shared_ptr<instance_t> instance, fs::path src_dir) //
+auto deployment_t::import_volumes(std::shared_ptr<instances::instance_t> instance, fs::path src_dir) //
     -> result_t
 {
     auto app = instance->app();
@@ -480,7 +489,7 @@ auto deployment_t::import_volumes(std::shared_ptr<instance_t> instance, fs::path
 }
 
 auto deployment_t::import_volume(
-    std::shared_ptr<instance_t> instance, std::string_view volume_name, fs::path src_dir) //
+    std::shared_ptr<instances::instance_t> instance, std::string_view volume_name, fs::path src_dir) //
     -> result_t
 {
     auto ec = std::error_code{};
@@ -491,7 +500,7 @@ auto deployment_t::import_volume(
     return do_import_volume(std::move(instance), volume_name, src_dir);
 }
 
-auto deployment_t::export_volumes(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
+auto deployment_t::export_volumes(std::shared_ptr<instances::instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
     LOG_TRACE(
@@ -522,7 +531,7 @@ auto deployment_t::export_volumes(std::shared_ptr<instance_t> instance, fs::path
 }
 
 auto deployment_t::export_volume(
-    std::shared_ptr<instance_t> instance,
+    std::shared_ptr<instances::instance_t> instance,
     std::string_view volume_name,
     fs::path dest_dir) const //
     -> result_t
@@ -547,7 +556,8 @@ auto deployment_t::export_volume(
     return {res, message};
 }
 
-auto deployment_t::export_config_files(std::shared_ptr<instance_t> instance, fs::path dest_dir) const //
+auto deployment_t::export_config_files(
+    std::shared_ptr<instances::instance_t> instance, fs::path dest_dir) const //
     -> result_t
 {
     LOG_TRACE(
@@ -578,7 +588,7 @@ auto deployment_t::export_config_files(std::shared_ptr<instance_t> instance, fs:
     return {0, {}};
 }
 auto deployment_t::export_config_file(
-    std::shared_ptr<instance_t> instance,
+    std::shared_ptr<instances::instance_t> instance,
     const conffile_t& config_file,
     fs::path dest_dir) const //
     -> result_t
@@ -620,7 +630,7 @@ auto deployment_t::export_config_file(
     return {0, {}};
 }
 
-auto deployment_t::import_config_files(std::shared_ptr<instance_t> instance, fs::path base_dir) //
+auto deployment_t::import_config_files(std::shared_ptr<instances::instance_t> instance, fs::path base_dir) //
     -> result_t
 {
     auto app = instance->app();
@@ -643,7 +653,7 @@ auto deployment_t::import_config_files(std::shared_ptr<instance_t> instance, fs:
 }
 
 auto deployment_t::import_config_file(
-    std::shared_ptr<instance_t> instance, const conffile_t& config_file, fs::path base_dir) //
+    std::shared_ptr<instances::instance_t> instance, const conffile_t& config_file, fs::path base_dir) //
     -> result_t
 {
     const auto conf_dir = fs::path{"/var/lib/flecs/instances/"} / instance->id().hex() / "conf";
@@ -662,7 +672,7 @@ auto deployment_t::import_config_file(
     return {0, {}};
 }
 
-auto deployment_t::delete_volumes(std::shared_ptr<instance_t> instance) //
+auto deployment_t::delete_volumes(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     auto app = instance->app();
@@ -685,7 +695,8 @@ auto deployment_t::delete_volumes(std::shared_ptr<instance_t> instance) //
     return {0, {}};
 }
 
-auto deployment_t::delete_volume(std::shared_ptr<instance_t> instance, std::string_view volume_name) //
+auto deployment_t::delete_volume(
+    std::shared_ptr<instances::instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
     return do_delete_volume(std::move(instance), std::move(volume_name));
@@ -698,14 +709,14 @@ auto deployment_t::copy_file_from_image(std::string_view image, fs::path file, f
 }
 
 auto deployment_t::copy_file_to_instance(
-    std::shared_ptr<instance_t> instance, fs::path file, fs::path dest) //
+    std::shared_ptr<instances::instance_t> instance, fs::path file, fs::path dest) //
     -> result_t
 {
     return do_copy_file_to_instance(std::move(instance), file, dest);
 }
 
 auto deployment_t::copy_file_from_instance(
-    std::shared_ptr<instance_t> instance, fs::path file, fs::path dest) const //
+    std::shared_ptr<instances::instance_t> instance, fs::path file, fs::path dest) const //
     -> result_t
 {
     return do_copy_file_from_instance(std::move(instance), file, dest);
@@ -810,7 +821,8 @@ auto deployment_t::do_load(const fs::path& base_path) //
     try {
         _instances.reserve(instances_json.size());
         for (const auto& instance : instances_json) {
-            _instances.push_back(std::make_shared<instance_t>(instance.get<instance_t>()));
+            _instances.push_back(
+                std::make_shared<instances::instance_t>(instance.get<instances::instance_t>()));
         }
     } catch (const std::exception& ex) {
         _instances.clear();

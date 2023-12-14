@@ -23,6 +23,7 @@ if(BUILD_TESTING)
 
     target_link_libraries(daemon.deployment.test PRIVATE
         daemon.common.deployment
+        modules.instances.types
         GTest::gmock
         GTest::gtest
         GTest::gtest_main

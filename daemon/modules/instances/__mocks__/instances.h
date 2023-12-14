@@ -20,20 +20,20 @@
 #include <string>
 #include <vector>
 
-#include "daemon/common/instance/instance_id.h"
 #include "daemon/modules/apps/types/app_key.h"
+#include "daemon/modules/instances/types/instance_id.h"
 #include "daemon/modules/module_base/module.h"
 #include "util/fs/fs.h"
 
 namespace flecs {
 namespace apps {
-
 class key_t;
-
 } // namespace apps
 
-class instance_config_t;
+namespace instances {
+class config_t;
 class instance_t;
+} // namespace instances
 
 namespace module {
 namespace impl {
@@ -49,41 +49,41 @@ public:
     ~instances_t() override = default;
 
     MOCK_METHOD((crow::response), http_list, (const apps::key_t&), (const));
-    MOCK_METHOD((crow::response), http_details, (instance_id_t), (const));
+    MOCK_METHOD((crow::response), http_details, (instances::id_t), (const));
     MOCK_METHOD((crow::response), http_create, (apps::key_t, std::string, bool), ());
-    MOCK_METHOD((crow::response), http_start, (instance_id_t), ());
-    MOCK_METHOD((crow::response), http_stop, (instance_id_t), ());
-    MOCK_METHOD((crow::response), http_remove, (instance_id_t), ());
-    MOCK_METHOD((crow::response), http_get_config, (instance_id_t), (const));
-    MOCK_METHOD((crow::response), http_post_config, (instance_id_t, const instance_config_t&), (const));
-    MOCK_METHOD((crow::response), http_logs, (instance_id_t), (const));
-    MOCK_METHOD((crow::response), http_update, (instance_id_t, std::string));
-    MOCK_METHOD((crow::response), http_export_to, (instance_id_t, fs::path), (const));
+    MOCK_METHOD((crow::response), http_start, (instances::id_t), ());
+    MOCK_METHOD((crow::response), http_stop, (instances::id_t), ());
+    MOCK_METHOD((crow::response), http_remove, (instances::id_t), ());
+    MOCK_METHOD((crow::response), http_get_config, (instances::id_t), (const));
+    MOCK_METHOD((crow::response), http_post_config, (instances::id_t, const instances::config_t&), (const));
+    MOCK_METHOD((crow::response), http_logs, (instances::id_t), (const));
+    MOCK_METHOD((crow::response), http_update, (instances::id_t, std::string));
+    MOCK_METHOD((crow::response), http_export_to, (instances::id_t, fs::path), (const));
 
-    MOCK_METHOD((std::vector<instance_id_t>), instance_ids, (const apps::key_t&), (const)); //
-    MOCK_METHOD((std::vector<instance_id_t>), instance_ids, (std::string, std::string), (const));
-    MOCK_METHOD((std::vector<instance_id_t>), instance_ids, (std::string), (const));
-    MOCK_METHOD((std::vector<instance_id_t>), instance_ids, (), (const));
+    MOCK_METHOD((std::vector<instances::id_t>), instance_ids, (const apps::key_t&), (const)); //
+    MOCK_METHOD((std::vector<instances::id_t>), instance_ids, (std::string, std::string), (const));
+    MOCK_METHOD((std::vector<instances::id_t>), instance_ids, (std::string), (const));
+    MOCK_METHOD((std::vector<instances::id_t>), instance_ids, (), (const));
 
-    MOCK_METHOD((std::shared_ptr<instance_t>), query, (instance_id_t), (const));
-    MOCK_METHOD((bool), is_running, (std::shared_ptr<instance_t>), (const));
+    MOCK_METHOD((std::shared_ptr<instances::instance_t>), query, (instances::id_t), (const));
+    MOCK_METHOD((bool), is_running, (std::shared_ptr<instances::instance_t>), (const));
 
     MOCK_METHOD((result_t), create, (apps::key_t, std::string, bool), ());
     MOCK_METHOD((result_t), create, (apps::key_t), ());
     MOCK_METHOD((result_t), create, (apps::key_t, std::string, std::string), ());
     MOCK_METHOD((result_t), create, (std::string, std::string), ());
 
-    MOCK_METHOD((result_t), start, (instance_id_t), ());
-    MOCK_METHOD((result_t), start_once, (instance_id_t), ());
+    MOCK_METHOD((result_t), start, (instances::id_t), ());
+    MOCK_METHOD((result_t), start_once, (instances::id_t), ());
 
-    MOCK_METHOD((result_t), stop, (instance_id_t), ());
-    MOCK_METHOD((result_t), stop_once, (instance_id_t), ());
+    MOCK_METHOD((result_t), stop, (instances::id_t), ());
+    MOCK_METHOD((result_t), stop_once, (instances::id_t), ());
 
-    MOCK_METHOD((result_t), remove, (instance_id_t), ());
+    MOCK_METHOD((result_t), remove, (instances::id_t), ());
 
-    MOCK_METHOD((result_t), export_to, (instance_id_t, fs::path), (const));
+    MOCK_METHOD((result_t), export_to, (instances::id_t, fs::path), (const));
 
-    MOCK_METHOD((result_t), import_from, (instance_id_t, fs::path), ());
+    MOCK_METHOD((result_t), import_from, (instances::id_t, fs::path), ());
 
 protected:
     friend class factory_t;

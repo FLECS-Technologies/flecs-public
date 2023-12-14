@@ -24,9 +24,7 @@
 
 namespace flecs {
 namespace jobs {
-
 class progress_t;
-
 } // namespace jobs
 
 namespace module {

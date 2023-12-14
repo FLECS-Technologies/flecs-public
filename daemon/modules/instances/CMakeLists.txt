@@ -12,13 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+project(modules.instances.types)
+
+add_library(${PROJECT_NAME} STATIC
+    src/types/instance_config.cpp
+    src/types/instance_id.cpp
+    src/types/instance_status.cpp
+    src/types/instance.cpp
+    types/instance_config.h
+    types/instance_id.h
+    types/instance_status.h
+    types/instance.h
+    types.h
+)
+
+target_link_libraries(modules.instances.types PUBLIC
+    util.usb
+)
+
 flecs_add_module(
-    MODULE_NAME instances
+    MODULE_NAME
+        instances
     ADDITIONAL_SOURCES
-    src/impl/instances_impl.cpp
+        src/impl/instances_impl.cpp
     ADDITIONAL_HEADERS
-    impl/instances_impl.h
-    LIBS_PUBLIC daemon.common
+        impl/instances_impl.h
+    LIBS_PUBLIC
+        daemon.common
+        modules.instances.types
 )
 
 add_library(daemon.modules.instances.mocked_modules STATIC
@@ -40,3 +61,5 @@ target_compile_definitions(
     daemon.modules.instances.mocked_modules PRIVATE
     -DFLECS_MOCK_MODULES
 )
+
+add_subdirectory(test)

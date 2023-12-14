@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "daemon/common/instance/instance.h"
+#include "daemon/modules/instances/types/instance.h"
 
 #include <cstdio>
 
@@ -21,29 +21,30 @@
 #include "util/string/format.h"
 
 namespace flecs {
+namespace instances {
 
 instance_t::instance_t()
-    : instance_t{instance_id_t{}, nullptr, std::string{}}
+    : instance_t{instances::id_t{}, nullptr, std::string{}}
 {}
 
 instance_t::instance_t(std::shared_ptr<const apps::app_t> app, std::string instance_name)
-    : instance_t{instance_id_t{}, app, std::move(instance_name)}
+    : instance_t{instances::id_t{}, app, std::move(instance_name)}
 {}
 
-instance_t::instance_t(instance_id_t id, std::shared_ptr<const apps::app_t> app, std::string instance_name)
+instance_t::instance_t(instances::id_t id, std::shared_ptr<const apps::app_t> app, std::string instance_name)
     : _id{std::move(id)}
     , _app{app}
     , _app_name{app ? app->key().name() : ""}
     , _app_version{app ? app->key().version() : ""}
     , _instance_name{std::move(instance_name)}
-    , _status{instance_status_e::Unknown}
-    , _desired{instance_status_e::Unknown}
+    , _status{instances::status_e::Unknown}
+    , _desired{instances::status_e::Unknown}
     , _networks{}
     , _startup_options{}
 {}
 
 auto instance_t::id() const noexcept //
-    -> const instance_id_t&
+    -> const instances::id_t&
 {
     return _id;
 }
@@ -81,13 +82,13 @@ auto instance_t::instance_name() const noexcept //
 }
 
 auto instance_t::status() const noexcept //
-    -> instance_status_e
+    -> instances::status_e
 {
     return _status;
 }
 
 auto instance_t::desired() const noexcept //
-    -> instance_status_e
+    -> instances::status_e
 {
     return _desired;
 }
@@ -146,13 +147,13 @@ auto instance_t::instance_name(std::string instance_name) //
     _instance_name = instance_name;
 }
 
-auto instance_t::status(instance_status_e status) //
+auto instance_t::status(instances::status_e status) //
     -> void
 {
     _status = status;
 }
 
-auto instance_t::desired(instance_status_e desired) //
+auto instance_t::desired(instances::status_e desired) //
     -> void
 {
     _desired = desired;
@@ -195,12 +196,12 @@ auto to_json(json_t& json, const instance_t& instance) //
 auto from_json_v1(const json_t& j, instance_t& instance) //
     -> void
 {
-    instance._id = instance_id_t{j.at("id").get<std::string_view>()};
+    instance._id = instances::id_t{j.at("id").get<std::string_view>()};
     instance._instance_name = j.at("instanceName").get<std::string>();
     instance._app_name = j.at("app").get<std::string>();
     instance._app_version = j.at("version").get<std::string>();
-    instance._status = instance_status_from_string(j.at("status").get<std::string_view>());
-    instance._desired = instance_status_from_string(j.at("desired").get<std::string_view>());
+    instance._status = instances::status_from_string(j.at("status").get<std::string_view>());
+    instance._desired = instances::status_from_string(j.at("desired").get<std::string_view>());
     instance._networks = j.at("networks").get<decltype(instance._networks)>();
     instance._startup_options = j.at("startupOptions").get<decltype(instance._startup_options)>();
     instance._usb_devices = j.at("usbDevices").get<decltype(instance._usb_devices)>();
@@ -209,12 +210,12 @@ auto from_json_v1(const json_t& j, instance_t& instance) //
 auto from_json_v2(const json_t& j, instance_t& instance) //
     -> void
 {
-    instance._id = instance_id_t{j.at("instanceId").get<std::string_view>()};
+    instance._id = instances::id_t{j.at("instanceId").get<std::string_view>()};
     instance._instance_name = j.at("instanceName").get<std::string>();
     instance._app_name = j.at("appKey").at("name").get<std::string>();
     instance._app_version = j.at("appKey").at("version").get<std::string>();
-    instance._status = instance_status_from_string(j.at("status").get<std::string_view>());
-    instance._desired = instance_status_from_string(j.at("desired").get<std::string_view>());
+    instance._status = instances::status_from_string(j.at("status").get<std::string_view>());
+    instance._desired = instances::status_from_string(j.at("desired").get<std::string_view>());
     instance._networks = j.at("networks").get<decltype(instance._networks)>();
     instance._startup_options = j.at("startupOptions").get<decltype(instance._startup_options)>();
     instance._usb_devices = j.at("usbDevices").get<decltype(instance._usb_devices)>();
@@ -242,4 +243,5 @@ auto operator==(const instance_t& lhs, const instance_t& rhs) //
     return (lhs.id() == rhs.id());
 }
 
+} // namespace instances
 } // namespace flecs

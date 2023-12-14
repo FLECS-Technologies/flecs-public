@@ -18,10 +18,9 @@
 
 namespace flecs {
 namespace module {
-
 namespace impl {
 class device_t;
-}
+} // namespace impl
 
 class device_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {

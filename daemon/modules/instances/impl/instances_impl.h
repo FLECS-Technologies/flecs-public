@@ -22,9 +22,7 @@
 
 namespace flecs {
 namespace jobs {
-
 class progress_t;
-
 } // namespace jobs
 
 class deployment_t;
@@ -59,16 +57,16 @@ private:
         -> void;
 
     auto do_instance_ids(const apps::key_t& app_key) const //
-        -> std::vector<instance_id_t>;
+        -> std::vector<instances::id_t>;
 
-    auto do_query(instance_id_t instance_id) const //
-        -> std::shared_ptr<instance_t>;
+    auto do_query(instances::id_t instance_id) const //
+        -> std::shared_ptr<instances::instance_t>;
 
-    auto do_is_running(std::shared_ptr<instance_t> instance) const //
+    auto do_is_running(std::shared_ptr<instances::instance_t> instance) const //
         -> bool;
 
     auto do_list(const apps::key_t& app_key) const //
-        -> std::vector<instance_id_t>;
+        -> std::vector<instances::id_t>;
 
     auto queue_create(apps::key_t app_key, std::string instance_name, bool running) //
         -> jobs::id_t;
@@ -78,58 +76,58 @@ private:
         apps::key_t app_key, std::string instance_name, bool running, jobs::progress_t& progress) //
         -> result_t;
 
-    auto queue_start(instance_id_t instance_id, bool once) //
+    auto queue_start(instances::id_t instance_id, bool once) //
         -> jobs::id_t;
-    auto do_start_sync(instance_id_t instance_id, bool once) //
+    auto do_start_sync(instances::id_t instance_id, bool once) //
         -> result_t;
-    auto do_start(instance_id_t instance_id, bool once, jobs::progress_t& progress) //
+    auto do_start(instances::id_t instance_id, bool once, jobs::progress_t& progress) //
         -> result_t;
 
-    auto queue_stop(instance_id_t instance_id, bool once) //
+    auto queue_stop(instances::id_t instance_id, bool once) //
         -> jobs::id_t;
-    auto do_stop_sync(instance_id_t instance_id, bool once) //
+    auto do_stop_sync(instances::id_t instance_id, bool once) //
         -> result_t;
-    auto do_stop(instance_id_t instance_id, bool once, jobs::progress_t& progress) //
+    auto do_stop(instances::id_t instance_id, bool once, jobs::progress_t& progress) //
         -> result_t;
 
-    auto queue_remove(instance_id_t instance_id) //
+    auto queue_remove(instances::id_t instance_id) //
         -> jobs::id_t;
-    auto do_remove_sync(instance_id_t instance_id) //
+    auto do_remove_sync(instances::id_t instance_id) //
         -> result_t;
-    auto do_remove(instance_id_t instance_id, jobs::progress_t& progress) //
+    auto do_remove(instances::id_t instance_id, jobs::progress_t& progress) //
         -> result_t;
 
-    auto do_get_config(instance_id_t instance_id) const //
+    auto do_get_config(instances::id_t instance_id) const //
         -> crow::response;
 
-    auto do_post_config(instance_id_t instance_id, const instance_config_t& config) //
+    auto do_post_config(instances::id_t instance_id, const instances::config_t& config) //
         -> crow::response;
 
-    auto do_details(instance_id_t instance_id) const //
+    auto do_details(instances::id_t instance_id) const //
         -> crow::response;
 
-    auto do_logs(instance_id_t instance_id) const //
+    auto do_logs(instances::id_t instance_id) const //
         -> crow::response;
 
-    auto queue_update(instance_id_t instance_id, std::string to) //
+    auto queue_update(instances::id_t instance_id, std::string to) //
         -> jobs::id_t;
-    auto do_update_sync(instance_id_t instance_id, std::string to) //
+    auto do_update_sync(instances::id_t instance_id, std::string to) //
         -> result_t;
-    auto do_update(instance_id_t instance_id, std::string to, jobs::progress_t& progress) //
+    auto do_update(instances::id_t instance_id, std::string to, jobs::progress_t& progress) //
         -> result_t;
 
-    auto queue_export_to(instance_id_t instance_id, fs::path base_path) //
+    auto queue_export_to(instances::id_t instance_id, fs::path base_path) //
         -> jobs::id_t;
-    auto do_export_to_sync(instance_id_t instance_id, fs::path base_path) //
+    auto do_export_to_sync(instances::id_t instance_id, fs::path base_path) //
         -> result_t;
-    auto do_export_to(instance_id_t instance_id, fs::path base_path, jobs::progress_t& progress) //
+    auto do_export_to(instances::id_t instance_id, fs::path base_path, jobs::progress_t& progress) //
         -> result_t;
 
-    auto queue_import_from(instance_t instance, fs::path base_path) //
+    auto queue_import_from(instances::instance_t instance, fs::path base_path) //
         -> jobs::id_t;
-    auto do_import_from_sync(instance_t instance, fs::path base_path) //
+    auto do_import_from_sync(instances::instance_t instance, fs::path base_path) //
         -> result_t;
-    auto do_import_from(instance_t instance, fs::path base_path, jobs::progress_t& progress) //
+    auto do_import_from(instances::instance_t instance, fs::path base_path, jobs::progress_t& progress) //
         -> result_t;
 
     flecs::module::instances_t* _parent;

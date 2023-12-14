@@ -23,7 +23,6 @@
 #include "util/string/string_utils.h"
 
 namespace flecs {
-
 namespace impl {
 class libflecs_t;
 }

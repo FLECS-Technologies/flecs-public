@@ -17,8 +17,8 @@
 #include <string>
 #include <vector>
 
-#include "daemon/common/instance/instance.h"
 #include "daemon/modules/apps/types/app_key.h"
+#include "daemon/modules/instances/types/instance.h"
 #include "util/json/json.h"
 #include "util/sysinfo/sysinfo.h"
 
@@ -34,7 +34,7 @@ struct export_manifest_t
     struct
     {
         std::vector<apps::key_t> apps;
-        std::vector<instance_t> instances;
+        std::vector<instances::instance_t> instances;
     } contents;
 
     // device info

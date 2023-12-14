@@ -26,10 +26,10 @@
 
 namespace flecs {
 namespace apps {
-
 class app_t;
-
 } // namespace apps
+
+namespace instances {
 
 class instance_t
 {
@@ -45,10 +45,10 @@ public:
 
     instance_t(std::shared_ptr<const apps::app_t> app, std::string instance_name);
 
-    instance_t(instance_id_t id, std::shared_ptr<const apps::app_t> app, std::string instance_name);
+    instance_t(instances::id_t id, std::shared_ptr<const apps::app_t> app, std::string instance_name);
 
     auto id() const noexcept //
-        -> const instance_id_t&;
+        -> const instances::id_t&;
     auto app() const noexcept //
         -> std::shared_ptr<const apps::app_t>;
     auto app_name() const noexcept //
@@ -60,9 +60,9 @@ public:
     auto instance_name() const noexcept //
         -> const std::string&;
     auto status() const noexcept //
-        -> instance_status_e;
+        -> instances::status_e;
     auto desired() const noexcept //
-        -> instance_status_e;
+        -> instances::status_e;
     auto networks() const noexcept //
         -> const std::vector<network_t>&;
     auto networks() noexcept //
@@ -82,9 +82,9 @@ public:
         -> void;
     auto instance_name(std::string instance_name) //
         -> void;
-    auto status(instance_status_e instance_status) //
+    auto status(instances::status_e instance_status) //
         -> void;
-    auto desired(instance_status_e instance_status) //
+    auto desired(instances::status_e instance_status) //
         -> void;
 
 private:
@@ -102,14 +102,14 @@ private:
     friend auto from_json(const json_t& json, instance_t& instance) //
         -> void;
 
-    instance_id_t _id;
+    instances::id_t _id;
     std::weak_ptr<const apps::app_t> _app;
     // std::weak_ptr<deployment_t> _deployment;
     std::string _app_name;
     std::string _app_version;
     std::string _instance_name;
-    instance_status_e _status;
-    instance_status_e _desired;
+    instances::status_e _status;
+    instances::status_e _desired;
     std::vector<network_t> _networks;
     std::vector<unsigned> _startup_options;
     std::set<usb::device_t> _usb_devices;
@@ -118,4 +118,5 @@ private:
 auto operator==(const instance_t& lhs, const instance_t& rhs) //
     -> bool;
 
+} // namespace instances
 } // namespace flecs

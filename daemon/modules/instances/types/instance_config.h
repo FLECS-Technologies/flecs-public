@@ -23,8 +23,9 @@
 #include "util/usb/usb.h"
 
 namespace flecs {
+namespace instances {
 
-struct instance_config_t
+struct config_t
 {
     struct network_adapter_t
     {
@@ -45,18 +46,19 @@ struct instance_config_t
     std::vector<unsigned> startup_options;
 };
 
-auto to_json(json_t& json, const instance_config_t::network_adapter_t& network_adapter) //
+auto to_json(json_t& json, const config_t::network_adapter_t& network_adapter) //
     -> void;
-auto to_json(json_t& json, const instance_config_t::usb_device_t& usb_device) //
+auto to_json(json_t& json, const config_t::usb_device_t& usb_device) //
     -> void;
-auto to_json(json_t& json, const instance_config_t& instance_config) //
-    -> void;
-
-auto from_json(const json_t& json, instance_config_t::network_adapter_t& network_adapter) //
-    -> void;
-auto from_json(const json_t& json, instance_config_t::usb_device_t& usb_device) //
-    -> void;
-auto from_json(const json_t& json, instance_config_t& instance_config) //
+auto to_json(json_t& json, const config_t& instance_config) //
     -> void;
 
+auto from_json(const json_t& json, config_t::network_adapter_t& network_adapter) //
+    -> void;
+auto from_json(const json_t& json, config_t::usb_device_t& usb_device) //
+    -> void;
+auto from_json(const json_t& json, config_t& instance_config) //
+    -> void;
+
+} // namespace instances
 } // namespace flecs
