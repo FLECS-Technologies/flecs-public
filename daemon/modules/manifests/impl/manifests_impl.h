@@ -19,8 +19,12 @@
 #include "daemon/modules/manifests/manifests.h"
 
 namespace flecs {
+namespace apps {
 
-class app_key_t;
+class key_t;
+
+} // namespace apps
+
 class app_manifest_t;
 
 namespace module {
@@ -41,12 +45,12 @@ public:
     auto do_migrate(const fs::path& base_path) //
         -> bool;
 
-    auto do_contains(const app_key_t& app_key) const noexcept //
+    auto do_contains(const apps::key_t& app_key) const noexcept //
         -> bool;
 
-    auto do_query_manifest(const app_key_t& app_key) noexcept //
+    auto do_query_manifest(const apps::key_t& app_key) noexcept //
         -> std::shared_ptr<app_manifest_t>;
-    auto do_query_manifest(const app_key_t& app_key) const noexcept //
+    auto do_query_manifest(const apps::key_t& app_key) const noexcept //
         -> std::optional<std::reference_wrapper<const app_manifest_t>>;
 
     auto do_add(app_manifest_t manifest) //
@@ -56,12 +60,12 @@ public:
 
     auto do_clear() //
         -> void;
-    auto do_erase(const app_key_t& app_key) //
+    auto do_erase(const apps::key_t& app_key) //
         -> void;
-    auto do_remove(const app_key_t& app_key) //
+    auto do_remove(const apps::key_t& app_key) //
         -> void;
 
-    auto do_path(const app_key_t& app_key) //
+    auto do_path(const apps::key_t& app_key) //
         -> fs::path;
 
 private:

@@ -20,14 +20,18 @@
 #include <string>
 #include <vector>
 
-#include "daemon/common/app/app_key.h"
 #include "daemon/common/instance/instance_id.h"
+#include "daemon/modules/apps/types/app_key.h"
 #include "daemon/modules/module_base/module.h"
 #include "util/fs/fs.h"
 
 namespace flecs {
+namespace apps {
 
-class app_key_t;
+class key_t;
+
+} // namespace apps
+
 class instance_config_t;
 class instance_t;
 
@@ -44,20 +48,19 @@ class instances_t : public base_t
 public:
     ~instances_t() override = default;
 
-    MOCK_METHOD((crow::response), http_list, (const app_key_t&), (const));
+    MOCK_METHOD((crow::response), http_list, (const apps::key_t&), (const));
     MOCK_METHOD((crow::response), http_details, (instance_id_t), (const));
-    MOCK_METHOD((crow::response), http_create, (app_key_t, std::string, bool), ());
+    MOCK_METHOD((crow::response), http_create, (apps::key_t, std::string, bool), ());
     MOCK_METHOD((crow::response), http_start, (instance_id_t), ());
     MOCK_METHOD((crow::response), http_stop, (instance_id_t), ());
     MOCK_METHOD((crow::response), http_remove, (instance_id_t), ());
     MOCK_METHOD((crow::response), http_get_config, (instance_id_t), (const));
-    MOCK_METHOD(
-        (crow::response), http_post_config, (instance_id_t, const instance_config_t&), (const));
+    MOCK_METHOD((crow::response), http_post_config, (instance_id_t, const instance_config_t&), (const));
     MOCK_METHOD((crow::response), http_logs, (instance_id_t), (const));
     MOCK_METHOD((crow::response), http_update, (instance_id_t, std::string));
     MOCK_METHOD((crow::response), http_export_to, (instance_id_t, fs::path), (const));
 
-    MOCK_METHOD((std::vector<instance_id_t>), instance_ids, (const app_key_t&), (const)); //
+    MOCK_METHOD((std::vector<instance_id_t>), instance_ids, (const apps::key_t&), (const)); //
     MOCK_METHOD((std::vector<instance_id_t>), instance_ids, (std::string, std::string), (const));
     MOCK_METHOD((std::vector<instance_id_t>), instance_ids, (std::string), (const));
     MOCK_METHOD((std::vector<instance_id_t>), instance_ids, (), (const));
@@ -65,9 +68,9 @@ public:
     MOCK_METHOD((std::shared_ptr<instance_t>), query, (instance_id_t), (const));
     MOCK_METHOD((bool), is_running, (std::shared_ptr<instance_t>), (const));
 
-    MOCK_METHOD((result_t), create, (app_key_t, std::string, bool), ());
-    MOCK_METHOD((result_t), create, (app_key_t), ());
-    MOCK_METHOD((result_t), create, (app_key_t, std::string, std::string), ());
+    MOCK_METHOD((result_t), create, (apps::key_t, std::string, bool), ());
+    MOCK_METHOD((result_t), create, (apps::key_t), ());
+    MOCK_METHOD((result_t), create, (apps::key_t, std::string, std::string), ());
     MOCK_METHOD((result_t), create, (std::string, std::string), ());
 
     MOCK_METHOD((result_t), start, (instance_id_t), ());

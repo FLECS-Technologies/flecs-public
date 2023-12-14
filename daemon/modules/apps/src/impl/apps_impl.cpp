@@ -22,11 +22,19 @@
 #include "daemon/api/api.h"
 #include "daemon/common/app/manifest/manifest.h"
 #include "daemon/common/instance/instance.h"
+#ifdef FLECS_MOCK_MODULES
+#include "daemon/modules/console/__mocks__/console.h"
+#include "daemon/modules/instances/__mocks__/instances.h"
+#include "daemon/modules/jobs/__mocks__/jobs.h"
+#include "daemon/modules/manifests/__mocks__/manifests.h"
+#else // FLECS_MOCK_MODULES
 #include "daemon/modules/console/console.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/instances/instances.h"
 #include "daemon/modules/jobs/jobs.h"
 #include "daemon/modules/manifests/manifests.h"
+#endif // FLECS_MOCK_MODULES
+#include "daemon/modules/factory/factory.h"
 #include "util/cxx23/string.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
@@ -73,7 +81,8 @@ auto apps_t::do_module_init() //
 
     for (auto id : _instances_api->instance_ids()) {
         auto instance = _instances_api->query(id);
-        instance->app(_parent->query(app_key_t{instance->app_name().data(), instance->app_version().data()}));
+        instance->app(
+            _parent->query(apps::key_t{instance->app_name().data(), instance->app_version().data()}));
     }
 }
 
@@ -91,7 +100,7 @@ auto apps_t::do_load(const fs::path& base_path) //
     try {
         _apps.reserve(apps_json.size());
         for (const auto& app : apps_json) {
-            _apps.push_back(std::make_shared<app_t>(app.get<app_t>()));
+            _apps.push_back(std::make_shared<apps::app_t>(app.get<apps::app_t>()));
         }
     } catch (const std::exception& ex) {
         _apps.clear();
@@ -133,10 +142,10 @@ auto apps_t::do_save(const fs::path& base_path) const //
     return {0, {}};
 }
 
-auto apps_t::do_app_keys(const app_key_t& app_key) const //
-    -> std::vector<app_key_t>
+auto apps_t::do_app_keys(const apps::key_t& app_key) const //
+    -> std::vector<apps::key_t>
 {
-    auto res = std::vector<app_key_t>{};
+    auto res = std::vector<apps::key_t>{};
 
     for (const auto& app : _apps) {
         const auto apps_match = app_key.name().empty() || (app_key.name() == app->key().name());
@@ -150,7 +159,7 @@ auto apps_t::do_app_keys(const app_key_t& app_key) const //
     return res;
 }
 
-auto apps_t::queue_install_from_marketplace(app_key_t app_key) //
+auto apps_t::queue_install_from_marketplace(apps::key_t app_key) //
     -> jobs::id_t
 {
     auto desc = "Installation of "s + to_string(app_key);
@@ -160,13 +169,13 @@ auto apps_t::queue_install_from_marketplace(app_key_t app_key) //
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto apps_t::do_install_from_marketplace_sync(app_key_t app_key) //
+auto apps_t::do_install_from_marketplace_sync(apps::key_t app_key) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_install_from_marketplace(std::move(app_key), _);
 }
-auto apps_t::do_install_from_marketplace(app_key_t app_key, jobs::progress_t& progress) //
+auto apps_t::do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
     -> result_t
 {
     progress.num_steps(6);
@@ -216,12 +225,12 @@ auto apps_t::do_install_impl(
     progress.next_step("Loading manifest");
 
     // Step 1: Create app from manifest
-    auto tmp = app_t{app_key_t{manifest->app(), manifest->version()}, manifest};
+    auto tmp = apps::app_t{apps::key_t{manifest->app(), manifest->version()}, manifest};
     if (!tmp.key().is_valid()) {
         return {-1, "Could not open app manifest"};
     }
-    tmp.desired(app_status_e::Installed);
-    tmp.status(app_status_e::ManifestDownloaded);
+    tmp.desired(apps::status_e::Installed);
+    tmp.status(apps::status_e::ManifestDownloaded);
 
     progress.desc("Installation of "s + manifest->title() + " (" + manifest->version() + ")");
     progress.next_step("Acquiring download token");
@@ -229,12 +238,12 @@ auto apps_t::do_install_impl(
     // Step 2: Determine current App status to decide where to continue
     auto app = _parent->query(tmp.key());
     if (!app) {
-        _apps.push_back(std::make_shared<app_t>(std::move(tmp)));
+        _apps.push_back(std::make_shared<apps::app_t>(std::move(tmp)));
         app = *_apps.rbegin();
     }
 
     switch (app->status()) {
-        case app_status_e::ManifestDownloaded: {
+        case apps::status_e::ManifestDownloaded: {
             progress.next_step("Acquiring download token");
 
 #if 0  /// @todo replace by new functionality
@@ -243,12 +252,12 @@ auto apps_t::do_install_impl(
             if (app->download_token().empty()) {
                 progress.result(0, "Could not acquire download token");
             } else {
-                app->status(app_status_e::TokenAcquired);
+                app->status(apps::status_e::TokenAcquired);
             }
 #endif // 0
             [[fallthrough]];
         }
-        case app_status_e::TokenAcquired: {
+        case apps::status_e::TokenAcquired: {
             // Step 4: Pull Docker image for this App
             auto docker_login_process = process_t{};
             auto docker_pull_process = process_t{};
@@ -294,10 +303,10 @@ auto apps_t::do_install_impl(
                 _parent->save();
                 return {-1, docker_pull_process.stderr()};
             }
-            app->status(app_status_e::ImageDownloaded);
+            app->status(apps::status_e::ImageDownloaded);
             [[fallthrough]];
         }
-        case app_status_e::ImageDownloaded: {
+        case apps::status_e::ImageDownloaded: {
             progress.next_step("Expiring download token");
 
             auto docker_size_process = process_t{};
@@ -318,13 +327,13 @@ auto apps_t::do_install_impl(
                 const auto success = expire_download_token(args[0], args[2]);
                 if (success) {
                     app->download_token("");
-                    app->status(app_status_e::Installed);
+                    app->status(apps::status_e::Installed);
                 } else {
                     progress.result(0, "Could not expire download token");
                 }
             } else {
                 app->download_token("");
-                app->status(app_status_e::Installed);
+                app->status(apps::status_e::Installed);
             }
 #endif // 0
             break;
@@ -338,7 +347,7 @@ auto apps_t::do_install_impl(
     return {0, {}};
 }
 
-auto apps_t::queue_uninstall(app_key_t app_key) //
+auto apps_t::queue_uninstall(apps::key_t app_key) //
     -> jobs::id_t
 {
     auto desc = "Uninstallation of "s + to_string(app_key);
@@ -347,13 +356,13 @@ auto apps_t::queue_uninstall(app_key_t app_key) //
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
-auto apps_t::do_uninstall_sync(app_key_t app_key) //
+auto apps_t::do_uninstall_sync(apps::key_t app_key) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_uninstall(std::move(app_key), _);
 }
-auto apps_t::do_uninstall(app_key_t app_key, jobs::progress_t& progress) //
+auto apps_t::do_uninstall(apps::key_t app_key, jobs::progress_t& progress) //
     -> result_t
 {
     progress.num_steps(4);
@@ -372,7 +381,7 @@ auto apps_t::do_uninstall(app_key_t app_key, jobs::progress_t& progress) //
         progress.desc("Uninstallation of "s + manifest->title() + " (" + manifest->version() + ")");
     }
 
-    app->desired(app_status_e::NotInstalled);
+    app->desired(apps::status_e::NotInstalled);
 
     progress.next_step("Removing App instances");
 
@@ -405,7 +414,7 @@ auto apps_t::do_uninstall(app_key_t app_key, jobs::progress_t& progress) //
         std::remove_if(
             _apps.begin(),
             _apps.end(),
-            [&app_key](const std::shared_ptr<app_t>& elem) { return elem->key() == app_key; }),
+            [&app_key](const std::shared_ptr<apps::app_t>& elem) { return elem->key() == app_key; }),
         _apps.end());
     _parent->save();
 
@@ -417,7 +426,7 @@ auto apps_t::do_uninstall(app_key_t app_key, jobs::progress_t& progress) //
     return {0, {}};
 }
 
-auto apps_t::queue_export_to(app_key_t app_key, fs::path dest_dir) const //
+auto apps_t::queue_export_to(apps::key_t app_key, fs::path dest_dir) const //
     -> jobs::id_t
 {
     auto job = jobs::job_t{std::bind(
@@ -429,13 +438,13 @@ auto apps_t::queue_export_to(app_key_t app_key, fs::path dest_dir) const //
 
     return _jobs_api->append(std::move(job), "Exporting App " + to_string(app_key));
 }
-auto apps_t::do_export_to_sync(app_key_t app_key, fs::path dest_dir) const //
+auto apps_t::do_export_to_sync(apps::key_t app_key, fs::path dest_dir) const //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_export_to(std::move(app_key), std::move(dest_dir), _);
 }
-auto apps_t::do_export_to(app_key_t app_key, fs::path dest_dir, jobs::progress_t& progress) const //
+auto apps_t::do_export_to(apps::key_t app_key, fs::path dest_dir, jobs::progress_t& progress) const //
     -> result_t
 {
     progress.num_steps(4);
@@ -483,7 +492,7 @@ auto apps_t::do_export_to(app_key_t app_key, fs::path dest_dir, jobs::progress_t
     return {0, {}};
 }
 
-auto apps_t::queue_import_from(app_key_t app_key, fs::path src_dir) //
+auto apps_t::queue_import_from(apps::key_t app_key, fs::path src_dir) //
     -> jobs::id_t
 {
     auto job = jobs::job_t{std::bind(
@@ -495,13 +504,13 @@ auto apps_t::queue_import_from(app_key_t app_key, fs::path src_dir) //
 
     return _jobs_api->append(std::move(job), "Exporting App " + to_string(app_key));
 }
-auto apps_t::do_import_from_sync(app_key_t app_key, fs::path src_dir) //
+auto apps_t::do_import_from_sync(apps::key_t app_key, fs::path src_dir) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_import_from(std::move(app_key), std::move(src_dir), _);
 }
-auto apps_t::do_import_from(app_key_t app_key, fs::path src_dir, jobs::progress_t& /*progress*/) //
+auto apps_t::do_import_from(apps::key_t app_key, fs::path src_dir, jobs::progress_t& /*progress*/) //
     -> result_t
 {
     /* add App manifest */
@@ -523,32 +532,33 @@ auto apps_t::do_import_from(app_key_t app_key, fs::path src_dir, jobs::progress_
     /* add to installed Apps */
     auto app = _parent->query(app_key);
     if (!app) {
-        auto tmp = app_t{app_key, manifest};
-        _apps.push_back(std::make_shared<app_t>(std::move(tmp)));
+        auto tmp = apps::app_t{app_key, manifest};
+        _apps.push_back(std::make_shared<apps::app_t>(std::move(tmp)));
         app = *_apps.rbegin();
     }
-    app->status(app_status_e::Installed);
-    app->desired(app_status_e::Installed);
+    app->status(apps::status_e::Installed);
+    app->desired(apps::status_e::Installed);
 
     return {0, {}};
 }
 
-auto apps_t::do_query(const app_key_t& app_key) const noexcept //
-    -> std::shared_ptr<app_t>
+auto apps_t::do_query(const apps::key_t& app_key) const noexcept //
+    -> std::shared_ptr<apps::app_t>
 {
-    auto it = std::find_if(_apps.cbegin(), _apps.cend(), [&app_key](const std::shared_ptr<app_t>& elem) {
-        return elem->key() == app_key;
-    });
+    auto it =
+        std::find_if(_apps.cbegin(), _apps.cend(), [&app_key](const std::shared_ptr<apps::app_t>& elem) {
+            return elem->key() == app_key;
+        });
 
     return it == _apps.cend() ? nullptr : *it;
 }
 
-auto apps_t::do_is_installed(const app_key_t& app_key) const noexcept //
+auto apps_t::do_is_installed(const apps::key_t& app_key) const noexcept //
     -> bool
 {
     auto app = _parent->query(app_key);
 
-    return app ? (app->status() == app_status_e::Installed) : false;
+    return app ? (app->status() == apps::status_e::Installed) : false;
 }
 
 } // namespace impl

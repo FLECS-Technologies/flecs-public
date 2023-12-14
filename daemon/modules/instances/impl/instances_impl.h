@@ -58,7 +58,7 @@ private:
     auto do_module_stop() //
         -> void;
 
-    auto do_instance_ids(const app_key_t& app_key) const //
+    auto do_instance_ids(const apps::key_t& app_key) const //
         -> std::vector<instance_id_t>;
 
     auto do_query(instance_id_t instance_id) const //
@@ -67,15 +67,15 @@ private:
     auto do_is_running(std::shared_ptr<instance_t> instance) const //
         -> bool;
 
-    auto do_list(const app_key_t& app_key) const //
+    auto do_list(const apps::key_t& app_key) const //
         -> std::vector<instance_id_t>;
 
-    auto queue_create(app_key_t app_key, std::string instance_name, bool running) //
+    auto queue_create(apps::key_t app_key, std::string instance_name, bool running) //
         -> jobs::id_t;
-    auto do_create_sync(app_key_t app_key, std::string instance_name, bool running) //
+    auto do_create_sync(apps::key_t app_key, std::string instance_name, bool running) //
         -> result_t;
     auto do_create(
-        app_key_t app_key, std::string instance_name, bool running, jobs::progress_t& progress) //
+        apps::key_t app_key, std::string instance_name, bool running, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_start(instance_id_t instance_id, bool once) //

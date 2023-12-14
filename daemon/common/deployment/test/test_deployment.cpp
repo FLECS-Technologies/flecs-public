@@ -18,9 +18,10 @@
 #include <sstream>
 #include <string_view>
 
-#include "daemon/common/app/app.h"
 #include "daemon/common/app/manifest/manifest.h"
 #include "daemon/common/deployment/deployment.h"
+#include "daemon/modules/apps/types/app.h"
+#include "daemon/modules/apps/types/app_key.h"
 #include "util/fs/fs.h"
 
 namespace flecs {
@@ -39,10 +40,7 @@ public:
         (std::shared_ptr<instance_t> instance, fs::path dest_dir),
         (const, override));
     MOCK_METHOD(
-        result_t,
-        do_import_instance,
-        (std::shared_ptr<instance_t> instance, fs::path base_dir),
-        (override));
+        result_t, do_import_instance, (std::shared_ptr<instance_t> instance, fs::path base_dir), (override));
     MOCK_METHOD(
         result_t,
         do_create_network,
@@ -52,8 +50,7 @@ public:
          (std::string_view gateway),
          (std::string_view parent_adapter)),
         (override));
-    MOCK_METHOD(
-        bool, do_is_instance_running, (std::shared_ptr<instance_t> instance), (const, override));
+    MOCK_METHOD(bool, do_is_instance_running, (std::shared_ptr<instance_t> instance), (const, override));
     MOCK_METHOD(std::optional<network_t>, do_query_network, (std::string_view network), (override));
     MOCK_METHOD(result_t, do_delete_network, (std::string_view network), (override));
     MOCK_METHOD(
@@ -74,16 +71,12 @@ public:
     MOCK_METHOD(
         result_t,
         do_import_volume,
-        ((std::shared_ptr<instance_t> instance),
-         (std::string_view volume_name),
-         (flecs::fs::path dest_dir)),
+        ((std::shared_ptr<instance_t> instance), (std::string_view volume_name), (flecs::fs::path dest_dir)),
         (override));
     MOCK_METHOD(
         result_t,
         do_export_volume,
-        ((std::shared_ptr<instance_t> instance),
-         (std::string_view volume_name),
-         (flecs::fs::path dest_dir)),
+        ((std::shared_ptr<instance_t> instance), (std::string_view volume_name), (flecs::fs::path dest_dir)),
         (const, override));
     MOCK_METHOD(
         result_t,
@@ -155,9 +148,9 @@ static const auto manifest_2 =
     std::make_shared<flecs::app_manifest_t>(flecs::app_manifest_t::from_yaml_string(G_MANIFEST_2));
 
 static const auto app_1 =
-    std::make_shared<flecs::app_t>(flecs::app_key_t{G_APP, G_VERSION_1}, manifest_1);
+    std::make_shared<flecs::apps::app_t>(flecs::apps::key_t{G_APP, G_VERSION_1}, manifest_1);
 static const auto app_2 =
-    std::make_shared<flecs::app_t>(flecs::app_key_t{G_APP, G_VERSION_2}, manifest_2);
+    std::make_shared<flecs::apps::app_t>(flecs::apps::key_t{G_APP, G_VERSION_2}, manifest_2);
 
 TEST(deployment, interface)
 {
@@ -267,9 +260,7 @@ TEST(deployment, interface)
         EXPECT_CALL(test_deployment, do_delete_network(G_NETWORK_NAME)).Times(1);
         deployment->delete_network(G_NETWORK_NAME);
 
-        EXPECT_CALL(test_deployment, do_default_network_name())
-            .Times(1)
-            .WillOnce(Return("test-network"));
+        EXPECT_CALL(test_deployment, do_default_network_name()).Times(1).WillOnce(Return("test-network"));
         ASSERT_EQ(deployment->default_network_name(), "test-network");
 
         EXPECT_CALL(test_deployment, do_default_network_type()).Times(1);
@@ -318,19 +309,13 @@ TEST(deployment, interface)
 
         EXPECT_CALL(
             test_deployment,
-            do_copy_file_to_instance(
-                p,
-                flecs::fs::path{G_FILE_LOCAL},
-                flecs::fs::path{G_FILE_CONTAINER}))
+            do_copy_file_to_instance(p, flecs::fs::path{G_FILE_LOCAL}, flecs::fs::path{G_FILE_CONTAINER}))
             .Times(1);
         deployment->copy_file_to_instance(p, G_FILE_LOCAL, G_FILE_CONTAINER);
 
         EXPECT_CALL(
             test_deployment,
-            do_copy_file_from_instance(
-                p,
-                flecs::fs::path{G_FILE_CONTAINER},
-                flecs::fs::path{G_FILE_LOCAL}))
+            do_copy_file_from_instance(p, flecs::fs::path{G_FILE_CONTAINER}, flecs::fs::path{G_FILE_LOCAL}))
             .Times(1);
         deployment->copy_file_from_instance(p, G_FILE_CONTAINER, G_FILE_LOCAL);
     }
@@ -370,10 +355,8 @@ TEST(deployment, generate_ip_success)
     }
 
     auto instance = flecs::instance_t{app_1, G_INSTANCE_NAME_1};
-    instance.networks().emplace_back(flecs::instance_t::network_t{
-        .network_name = "flecs-network",
-        .mac_address = {},
-        .ip_address = G_IP});
+    instance.networks().emplace_back(
+        flecs::instance_t::network_t{.network_name = "flecs-network", .mac_address = {}, .ip_address = G_IP});
 
     deployment->insert_instance(instance);
 

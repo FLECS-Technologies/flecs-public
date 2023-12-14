@@ -15,20 +15,22 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <tuple>
 
 #include "app_name.h"
 #include "util/json/json.h"
 
 namespace flecs {
+namespace apps {
 
-class app_key_t
+class key_t
 {
 public:
-    app_key_t() = default;
-    app_key_t(std::tuple<app_name_t, std::string> app_key);
-    app_key_t(std::string app_name, std::string app_version);
-    app_key_t(app_name_t app_name, std::string app_version);
+    key_t() = default;
+    key_t(std::tuple<name_t, std::string> app_key);
+    key_t(std::string app_name, std::string app_version);
+    key_t(name_t app_name, std::string app_version);
 
     auto is_valid() const noexcept //
         -> bool;
@@ -40,17 +42,18 @@ public:
         -> std::string_view;
 
 private:
-    friend auto operator<=>(const app_key_t&, const app_key_t&) = default;
+    friend auto operator<=>(const key_t&, const key_t&) = default;
 
-    friend auto to_json(json_t& j, const app_key_t& app_key) //
+    friend auto to_json(json_t& j, const key_t& app_key) //
         -> void;
-    friend auto from_json(const json_t& json, app_key_t& app_key) //
+    friend auto from_json(const json_t& json, key_t& app_key) //
         -> void;
 
-    std::tuple<app_name_t, std::string> _key;
+    std::tuple<name_t, std::string> _key;
 };
 
-auto to_string(const app_key_t& app_key) //
+auto to_string(const key_t& app_key) //
     -> std::string;
 
+} // namespace apps
 } // namespace flecs

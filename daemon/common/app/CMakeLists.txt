@@ -12,16 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME daemon.common.app)
-
-project(${PROJECT_NAME})
-
 add_subdirectory(manifest)
-
-add_library(
-    ${PROJECT_NAME} STATIC
-    app.h app_key.h app_name.h app_status.h
-    src/app.cpp src/app_key.cpp src/app_name.cpp src/app_status.cpp
-)
-
-add_subdirectory(test)

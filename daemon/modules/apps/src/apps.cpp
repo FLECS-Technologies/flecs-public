@@ -41,22 +41,22 @@ auto apps_t::do_init() //
     FLECS_V2_ROUTE("/apps/<string>").methods("GET"_method)([this](const crow::request& req, std::string app) {
         const auto version = req.url_params.get("version");
         if (version) {
-            return http_list(app_key_t{std::move(app), version});
+            return http_list(apps::key_t{std::move(app), version});
         } else {
-            return http_list(app_key_t{std::move(app), {}});
+            return http_list(apps::key_t{std::move(app), {}});
         }
     });
 
     FLECS_V2_ROUTE("/apps/<string>")
         .methods("DELETE"_method)([this](const crow::request& req, std::string app) {
             const auto version = req.url_params.get("version");
-            return http_uninstall(app_key_t{std::move(app), version ? version : ""});
+            return http_uninstall(apps::key_t{std::move(app), version ? version : ""});
         });
 
     FLECS_V2_ROUTE("/apps/install").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        REQUIRED_TYPED_JSON_VALUE(args, appKey, app_key_t);
+        REQUIRED_TYPED_JSON_VALUE(args, appKey, apps::key_t);
         return http_install(std::move(appKey));
     });
 
@@ -88,7 +88,7 @@ auto apps_t::do_save(const fs::path& base_path) const //
     return _impl->do_save(base_path / "apps");
 }
 
-auto apps_t::http_list(const app_key_t& app_key) const //
+auto apps_t::http_list(const apps::key_t& app_key) const //
     -> crow::response
 {
     auto response = json_t::array();
@@ -113,7 +113,7 @@ auto apps_t::http_list(const app_key_t& app_key) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
-auto apps_t::http_install(app_key_t app_key) //
+auto apps_t::http_install(apps::key_t app_key) //
     -> crow::response
 {
     auto job_id = _impl->queue_install_from_marketplace(std::move(app_key));
@@ -127,7 +127,7 @@ auto apps_t::http_sideload(std::string manifest_string) //
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto apps_t::http_uninstall(app_key_t app_key) //
+auto apps_t::http_uninstall(apps::key_t app_key) //
     -> crow::response
 {
     if (!is_installed(app_key)) {
@@ -140,7 +140,7 @@ auto apps_t::http_uninstall(app_key_t app_key) //
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto apps_t::http_export_to(app_key_t app_key) //
+auto apps_t::http_export_to(apps::key_t app_key) //
     -> crow::response
 {
     if (!is_installed(app_key)) {
@@ -153,29 +153,29 @@ auto apps_t::http_export_to(app_key_t app_key) //
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
 }
 
-auto apps_t::app_keys(const app_key_t& app_key) const //
-    -> std::vector<app_key_t>
+auto apps_t::app_keys(const apps::key_t& app_key) const //
+    -> std::vector<apps::key_t>
 {
     return _impl->do_app_keys(app_key);
 }
 
 auto apps_t::app_keys(std::string app_name, std::string version) const //
-    -> std::vector<app_key_t>
+    -> std::vector<apps::key_t>
 {
-    return app_keys(app_key_t{std::move(app_name), std::move(version)});
+    return app_keys(apps::key_t{std::move(app_name), std::move(version)});
 }
 auto apps_t::app_keys(std::string app_name) const //
-    -> std::vector<app_key_t>
+    -> std::vector<apps::key_t>
 {
-    return app_keys(app_key_t{std::move(app_name), {}});
+    return app_keys(apps::key_t{std::move(app_name), {}});
 }
 auto apps_t::app_keys() const //
-    -> std::vector<app_key_t>
+    -> std::vector<apps::key_t>
 {
-    return app_keys(app_key_t{});
+    return app_keys(apps::key_t{});
 }
 
-auto apps_t::install_from_marketplace(app_key_t app_key) //
+auto apps_t::install_from_marketplace(apps::key_t app_key) //
     -> result_t
 {
     return _impl->do_install_from_marketplace_sync(std::move(app_key));
@@ -187,31 +187,31 @@ auto apps_t::sideload(std::string manifest_string) //
     return _impl->do_sideload_sync(std::move(manifest_string));
 }
 
-auto apps_t::uninstall(app_key_t app_key) //
+auto apps_t::uninstall(apps::key_t app_key) //
     -> result_t
 {
     return _impl->do_uninstall_sync(std::move(app_key));
 }
 
-auto apps_t::export_to(app_key_t app_key, fs::path dest_dir) const //
+auto apps_t::export_to(apps::key_t app_key, fs::path dest_dir) const //
     -> result_t
 {
     return _impl->do_export_to_sync(std::move(app_key), std::move(dest_dir));
 }
 
-auto apps_t::import_from(app_key_t app_key, fs::path src_dir) //
+auto apps_t::import_from(apps::key_t app_key, fs::path src_dir) //
     -> result_t
 {
     return _impl->do_import_from_sync(std::move(app_key), std::move(src_dir));
 }
 
-auto apps_t::query(const app_key_t& app_key) const noexcept //
-    -> std::shared_ptr<app_t>
+auto apps_t::query(const apps::key_t& app_key) const noexcept //
+    -> std::shared_ptr<apps::app_t>
 {
     return _impl->do_query(app_key);
 }
 
-auto apps_t::is_installed(const app_key_t& app_key) const noexcept //
+auto apps_t::is_installed(const apps::key_t& app_key) const noexcept //
     -> bool
 {
     return _impl->do_is_installed(app_key);

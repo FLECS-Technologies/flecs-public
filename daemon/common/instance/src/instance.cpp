@@ -16,7 +16,7 @@
 
 #include <cstdio>
 
-#include "daemon/common/app/app.h"
+#include "daemon/modules/apps/types/app.h"
 #include "util/random/random.h"
 #include "util/string/format.h"
 
@@ -26,11 +26,11 @@ instance_t::instance_t()
     : instance_t{instance_id_t{}, nullptr, std::string{}}
 {}
 
-instance_t::instance_t(std::shared_ptr<const app_t> app, std::string instance_name)
+instance_t::instance_t(std::shared_ptr<const apps::app_t> app, std::string instance_name)
     : instance_t{instance_id_t{}, app, std::move(instance_name)}
 {}
 
-instance_t::instance_t(instance_id_t id, std::shared_ptr<const app_t> app, std::string instance_name)
+instance_t::instance_t(instance_id_t id, std::shared_ptr<const apps::app_t> app, std::string instance_name)
     : _id{std::move(id)}
     , _app{app}
     , _app_name{app ? app->key().name() : ""}
@@ -49,7 +49,7 @@ auto instance_t::id() const noexcept //
 }
 
 auto instance_t::app() const noexcept //
-    -> std::shared_ptr<const app_t>
+    -> std::shared_ptr<const apps::app_t>
 {
     return _app.lock();
 }
@@ -134,7 +134,7 @@ auto instance_t::regenerate_id() //
     return _id.regenerate();
 }
 
-auto instance_t::app(std::shared_ptr<const app_t> app) //
+auto instance_t::app(std::shared_ptr<const apps::app_t> app) //
     -> void
 {
     _app = app;
@@ -179,7 +179,7 @@ auto from_json(const json_t& json, instance_t::network_t& network) //
 auto to_json(json_t& json, const instance_t& instance) //
     -> void
 {
-    auto app_key = app_key_t{instance.app_name().data(), instance.app_version().data()};
+    auto app_key = apps::key_t{instance.app_name().data(), instance.app_version().data()};
     json = json_t(
         {{"_schemaVersion", "2.0.0"},
          {"instanceId", instance.id().hex()},

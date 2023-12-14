@@ -14,8 +14,8 @@
 
 #include "daemon/modules/flecsport/flecsport.h"
 
-#include "daemon/common/app/app_key.h"
 #include "daemon/common/instance/instance_id.h"
+#include "daemon/modules/apps/types/app_key.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/flecsport/impl/flecsport_impl.h"
 #include "util/datetime/datetime.h"
@@ -50,7 +50,7 @@ auto flecsport_t::do_init() //
     FLECS_V2_ROUTE("/exports/create").methods("POST"_method)([this](const crow::request& req) {
         auto response = json_t{};
         const auto args = parse_json(req.body);
-        auto apps = std::vector<app_key_t>{};
+        auto apps = std::vector<apps::key_t>{};
         if (args.contains("apps")) {
             args["apps"].get_to(apps);
         }
@@ -128,7 +128,7 @@ auto flecsport_t::http_remove(const std::string& export_id) //
     return crow::response{crow::status::OK};
 }
 
-auto flecsport_t::http_export_to(std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
+auto flecsport_t::http_export_to(std::vector<apps::key_t> apps, std::vector<instance_id_t> instances) //
     -> crow::response
 {
     const auto now = unix_time(precision_e::milliseconds);

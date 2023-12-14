@@ -15,7 +15,7 @@
 #include "daemon/modules/instances/impl/instances_impl.h"
 
 #include "daemon/api/api.h"
-#include "daemon/common/app/app.h"
+#include "daemon/modules/apps/types/app.h"
 #include "daemon/common/app/manifest/manifest.h"
 #include "daemon/common/deployment/deployment_docker.h"
 #include "daemon/modules/apps/apps.h"
@@ -33,13 +33,11 @@ namespace impl {
 namespace {
 auto build_network_adapters_json(std::shared_ptr<instance_t> instance)
 {
-    const auto system_api =
-        dynamic_cast<const module::system_t*>(api::query_module("system").get());
+    const auto system_api = dynamic_cast<const module::system_t*>(api::query_module("system").get());
     const auto adapters = system_api->get_network_adapters();
     auto adapters_json = json_t::array();
     for (decltype(auto) adapter : adapters) {
-        if ((adapter.second.type == netif_type_t::WIRED) ||
-            (adapter.second.type == netif_type_t::WIRELESS)) {
+        if ((adapter.second.type == netif_type_t::WIRED) || (adapter.second.type == netif_type_t::WIRELESS)) {
             auto adapter_json = json_t{};
             adapter_json["name"] = adapter.first;
             adapter_json["active"] = false;
@@ -160,7 +158,7 @@ auto instances_t::do_module_stop() //
     }
 }
 
-auto instances_t::do_instance_ids(const app_key_t& app_key) const //
+auto instances_t::do_instance_ids(const apps::key_t& app_key) const //
     -> std::vector<instance_id_t>
 {
     return _deployment->instance_ids(app_key);
@@ -178,7 +176,7 @@ auto instances_t::do_is_running(std::shared_ptr<instance_t> instance) const //
     return _deployment->is_instance_running(std::move(instance));
 }
 
-auto instances_t::queue_create(app_key_t app_key, std::string instance_name, bool running) //
+auto instances_t::queue_create(apps::key_t app_key, std::string instance_name, bool running) //
     -> jobs::id_t
 {
     auto desc = "Creating new instance of " + to_string(app_key);
@@ -194,7 +192,7 @@ auto instances_t::queue_create(app_key_t app_key, std::string instance_name, boo
     return _jobs_api->append(std::move(job), std::move(desc));
 }
 
-auto instances_t::do_create_sync(app_key_t app_key, std::string instance_name, bool running) //
+auto instances_t::do_create_sync(apps::key_t app_key, std::string instance_name, bool running) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
@@ -202,12 +200,12 @@ auto instances_t::do_create_sync(app_key_t app_key, std::string instance_name, b
 }
 
 auto instances_t::do_create(
-    app_key_t app_key, std::string instance_name, bool running, jobs::progress_t& progress) //
+    apps::key_t app_key, std::string instance_name, bool running, jobs::progress_t& progress) //
     -> result_t
 {
     // Step 1: Ensure app is actually installed
     auto app = _apps_api->query(app_key);
-    if (!app || (app->status() != app_status_e::Installed)) {
+    if (!app || (app->status() != apps::status_e::Installed)) {
         return {-1, "Could not create instance of " + to_string(app_key) + ": not installed"};
     }
 
@@ -283,8 +281,7 @@ auto instances_t::do_start(instance_id_t instance_id, bool once, jobs::progress_
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " +
-            instance->app()->key().version().data() + ")";
+    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
     progress.desc(std::move(desc));
     // Step 3: Return if instance is already running
     if (_deployment->is_instance_running(instance)) {
@@ -338,8 +335,7 @@ auto instances_t::do_stop(instance_id_t instance_id, bool once, jobs::progress_t
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " +
-            instance->app()->key().version().data() + ")";
+    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
     progress.desc(std::move(desc));
 
     // Step 3: Return if instance is not running
@@ -366,8 +362,8 @@ auto instances_t::queue_remove(instance_id_t instance_id) //
 {
     auto desc = "Removing instance " + instance_id.hex();
 
-    auto job = jobs::job_t{
-        std::bind(&instances_t::do_remove, this, std::move(instance_id), std::placeholders::_1)};
+    auto job =
+        jobs::job_t{std::bind(&instances_t::do_remove, this, std::move(instance_id), std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
@@ -391,8 +387,7 @@ auto instances_t::do_remove(instance_id_t instance_id, jobs::progress_t& progres
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " +
-            instance->app()->key().version().data() + ")";
+    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
     progress.desc(std::move(desc));
 
     // Step 2: Attempt to stop instance
@@ -441,8 +436,7 @@ auto instances_t::do_post_config(instance_id_t instance_id, const instance_confi
     auto response = json_t();
     response["networkAdapters"] = build_network_adapters_json(instance);
 
-    const auto system_api =
-        dynamic_cast<const module::system_t*>(api::query_module("system").get());
+    const auto system_api = dynamic_cast<const module::system_t*>(api::query_module("system").get());
     const auto adapters = system_api->get_network_adapters();
 
     for (const auto& network : config.networkAdapters) {
@@ -459,9 +453,8 @@ auto instances_t::do_post_config(instance_id_t instance_id, const instance_confi
             }
 
             // create macvlan network, if not exists
-            const auto cidr_subnet = ipv4_to_network(
-                netif->second.ipv4_addr[0].addr,
-                netif->second.ipv4_addr[0].subnet_mask);
+            const auto cidr_subnet =
+                ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
 
             // process instance configuration
             if (network.ipAddress.empty()) {
@@ -495,9 +488,7 @@ auto instances_t::do_post_config(instance_id_t instance_id, const instance_confi
                     auto it = std::find_if(
                         instance->networks().begin(),
                         instance->networks().end(),
-                        [&](const instance_t::network_t& n) {
-                            return n.network_name == docker_network;
-                        });
+                        [&](const instance_t::network_t& n) { return n.network_name == docker_network; });
                     if (it != instance->networks().end()) {
                         it->ip_address = network.ipAddress;
                     } else {
@@ -508,8 +499,7 @@ auto instances_t::do_post_config(instance_id_t instance_id, const instance_confi
                     }
                     _deployment->save();
                     for (auto& adapter_json : response["networkAdapters"]) {
-                        if (adapter_json.contains("name") &&
-                            (adapter_json["name"] == netif->first)) {
+                        if (adapter_json.contains("name") && (adapter_json["name"] == netif->first)) {
                             adapter_json["active"] = true;
                             adapter_json["ipAddress"] = network.ipAddress;
                         }
@@ -531,9 +521,7 @@ auto instances_t::do_post_config(instance_id_t instance_id, const instance_confi
                 std::remove_if(
                     instance->networks().begin(),
                     instance->networks().end(),
-                    [&](const instance_t::network_t& net) {
-                        return net.network_name == docker_network;
-                    }),
+                    [&](const instance_t::network_t& net) { return net.network_name == docker_network; }),
                 instance->networks().end());
 
             for (auto& adapter_json : response["networkAdapters"]) {
@@ -588,8 +576,7 @@ auto instances_t::do_details(instance_id_t instance_id) const //
     response["configFiles"] = json_t::array();
     for (const auto& config_file : manifest->conffiles()) {
         auto json = json_t{};
-        json["host"] =
-            "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/" + config_file.local();
+        json["host"] = "/var/lib/flecs/instances/" + instance->id().hex() + "/conf/" + config_file.local();
         json["container"] = config_file.container();
         response["configFiles"].push_back(json);
     }
@@ -665,8 +652,7 @@ auto instances_t::do_update_sync(instance_id_t instance_id, std::string to) //
     return do_update(std::move(instance_id), std::move(to), _);
 }
 
-auto instances_t::do_update(
-    instance_id_t instance_id, std::string to, jobs::progress_t& /*progress*/) //
+auto instances_t::do_update(instance_id_t instance_id, std::string to, jobs::progress_t& /*progress*/) //
     -> result_t
 {
     // Step 1: Verify instance does actually exist, is fully created and valid
@@ -679,7 +665,7 @@ auto instances_t::do_update(
         return {-1, "Instance not connected to an App"};
     }
 
-    auto to_app_key = app_key_t{app->key().name().data(), to};
+    auto to_app_key = apps::key_t{app->key().name().data(), to};
     auto to_app = _apps_api->query(to_app_key);
     // Step 3: Make sure to-app is installed
     if (!to_app) {
@@ -695,8 +681,7 @@ auto instances_t::do_update(
     // Step 5: Create backup of existing instance (volumes + config)
     using std::operator""s;
     const auto backup_path_base = fs::path{"/var/lib/flecs/backup/"} / instance->id().hex();
-    const auto backup_path =
-        backup_path_base / app->key().version().data() / unix_time(precision_e::seconds);
+    const auto backup_path = backup_path_base / app->key().version().data() / unix_time(precision_e::seconds);
     std::tie(res, message) = _parent->export_to(instance->id(), backup_path);
     if (res != 0) {
         return {-1, "Could not backup instance"};
@@ -766,8 +751,7 @@ auto instances_t::do_export_to(
         return {-1, "Instance does not exist"};
     }
 
-    const auto [res, additional_info] =
-        _deployment->export_instance(instance, std::move(base_path));
+    const auto [res, additional_info] = _deployment->export_instance(instance, std::move(base_path));
 
     return {res, additional_info};
 }
@@ -792,12 +776,10 @@ auto instances_t::do_import_from_sync(instance_t instance, fs::path base_path) /
     auto _ = jobs::progress_t{};
     return do_import_from(std::move(instance), std::move(base_path), _);
 }
-auto instances_t::do_import_from(
-    instance_t instance, fs::path base_path, jobs::progress_t& /*progress*/) //
+auto instances_t::do_import_from(instance_t instance, fs::path base_path, jobs::progress_t& /*progress*/) //
     -> result_t
 {
-    auto app =
-        _apps_api->query(app_key_t{instance.app_name().data(), instance.app_version().data()});
+    auto app = _apps_api->query(apps::key_t{instance.app_name().data(), instance.app_version().data()});
     if (!app) {
         return {-1, "App is not installed"};
     }

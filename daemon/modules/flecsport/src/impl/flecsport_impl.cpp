@@ -16,7 +16,7 @@
 
 #include <unistd.h>
 
-#include "daemon/common/app/app.h"
+#include "daemon/modules/apps/types/app.h"
 #include "daemon/common/instance/instance.h"
 #include "daemon/modules/apps/apps.h"
 #include "daemon/modules/factory/factory.h"
@@ -67,7 +67,7 @@ auto flecsport_t::do_exports() const //
 }
 
 auto flecsport_t::queue_export_to(
-    std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
+    std::vector<apps::key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
     -> jobs::id_t
 {
     auto job = jobs::job_t{std::bind(
@@ -81,7 +81,7 @@ auto flecsport_t::queue_export_to(
     return _jobs_api->append(std::move(job), "Creating export");
 }
 auto flecsport_t::do_export_to_sync(
-    std::vector<app_key_t> apps,
+    std::vector<apps::key_t> apps,
     std::vector<instance_id_t> instances,
     fs::path dest_dir) //
     -> result_t
@@ -90,7 +90,7 @@ auto flecsport_t::do_export_to_sync(
     return do_export_to(std::move(apps), std::move(instances), std::move(dest_dir), _);
 }
 auto flecsport_t::do_export_to(
-    std::vector<app_key_t> apps,
+    std::vector<apps::key_t> apps,
     std::vector<instance_id_t> instances,
     fs::path dest_dir,
     jobs::progress_t& progress) //

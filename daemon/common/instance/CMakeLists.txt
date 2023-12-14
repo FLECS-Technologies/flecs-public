@@ -23,7 +23,7 @@ add_library(
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
-    daemon.common.app
+    modules.apps.types
     util.usb
 )
 

@@ -14,8 +14,8 @@
 
 #include "daemon/modules/manifests/manifests.h"
 
-#include "daemon/common/app/app_key.h"
 #include "daemon/common/app/manifest/manifest.h"
+#include "daemon/modules/apps/types/app_key.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/manifests/impl/manifests_impl.h"
 
@@ -51,7 +51,7 @@ auto manifests_t::migrate(const fs::path& base_path) //
     return _impl->do_migrate(base_path);
 }
 
-auto manifests_t::contains(const app_key_t& app_key) const noexcept //
+auto manifests_t::contains(const apps::key_t& app_key) const noexcept //
     -> bool
 {
     if (base_path().empty() || !app_key.is_valid()) {
@@ -60,7 +60,7 @@ auto manifests_t::contains(const app_key_t& app_key) const noexcept //
     return _impl->do_contains(app_key);
 }
 
-auto manifests_t::query(const app_key_t& app_key) noexcept //
+auto manifests_t::query(const apps::key_t& app_key) noexcept //
     -> std::shared_ptr<app_manifest_t>
 {
     if (base_path().empty() || !app_key.is_valid()) {
@@ -68,7 +68,7 @@ auto manifests_t::query(const app_key_t& app_key) noexcept //
     }
     return _impl->do_query_manifest(app_key);
 }
-auto manifests_t::query(const app_key_t& app_key) const noexcept //
+auto manifests_t::query(const apps::key_t& app_key) const noexcept //
     -> std::shared_ptr<const app_manifest_t>
 {
     if (base_path().empty() || !app_key.is_valid()) {
@@ -136,7 +136,7 @@ auto manifests_t::add_from_yaml_string(std::string_view manifest) //
     return add_from_yaml(yaml_from_string(std::move(manifest)));
 }
 
-auto manifests_t::add_from_marketplace(const app_key_t& app_key) //
+auto manifests_t::add_from_marketplace(const apps::key_t& app_key) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
 #ifndef NDEBUG
@@ -164,7 +164,7 @@ auto manifests_t::clear() //
 {
     return _impl->do_clear();
 }
-auto manifests_t::erase(const app_key_t& app_key) //
+auto manifests_t::erase(const apps::key_t& app_key) //
     -> void
 {
     if (base_path().empty() || !app_key.is_valid()) {
@@ -172,13 +172,13 @@ auto manifests_t::erase(const app_key_t& app_key) //
     }
     return _impl->do_erase(app_key);
 }
-auto manifests_t::remove(const app_key_t& app_key) //
+auto manifests_t::remove(const apps::key_t& app_key) //
     -> void
 {
     return _impl->do_remove(app_key);
 }
 
-auto manifests_t::path(const app_key_t& app_key) //
+auto manifests_t::path(const apps::key_t& app_key) //
     -> fs::path
 {
     if (base_path().empty() || !app_key.is_valid()) {

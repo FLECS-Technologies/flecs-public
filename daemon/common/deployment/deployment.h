@@ -27,9 +27,13 @@
 #include "util/fs/fs.h"
 
 namespace flecs {
+namespace apps {
 
 class app_t;
-class app_key_t;
+class key_t;
+
+} // namespace apps
+
 class conffile_t;
 
 class deployment_t
@@ -56,7 +60,7 @@ public:
     auto save(const fs::path& base_path = "/var/lib/flecs/") //
         -> result_t;
 
-    auto instance_ids(const app_key_t& app_key) const //
+    auto instance_ids(const apps::key_t& app_key) const //
         -> std::vector<instance_id_t>;
     auto instance_ids(std::string_view app, std::string_view version) const //
         -> std::vector<instance_id_t>;
@@ -70,7 +74,7 @@ public:
         -> bool;
     auto insert_instance(instance_t instance) //
         -> std::shared_ptr<instance_t>;
-    auto create_instance(std::shared_ptr<const app_t> app, std::string instance_name) //
+    auto create_instance(std::shared_ptr<const apps::app_t> app, std::string instance_name) //
         -> result_t;
     auto delete_instance(std::shared_ptr<instance_t> instance) //
         -> result_t;
