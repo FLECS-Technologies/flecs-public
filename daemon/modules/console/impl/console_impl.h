@@ -45,6 +45,9 @@ private:
     auto do_validate_license(std::string_view session_id) //
         -> result_t;
 
+    auto do_download_manifest(std::string app, std::string version, std::string session_id) //
+        -> std::string;
+
     auto do_store_authentication(console::auth_response_data_t auth) //
         -> crow::response;
     auto do_delete_authentication() //

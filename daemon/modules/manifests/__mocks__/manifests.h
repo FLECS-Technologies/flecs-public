@@ -72,6 +72,7 @@ public:
     MOCK_METHOD((add_result_t), add_from_json_file, (const fs::path&), ());
     MOCK_METHOD((add_result_t), add_from_yaml_file, (const fs::path&), ());
 
+    MOCK_METHOD((add_result_t), add_from_console, (const apps::key_t&), ());
     MOCK_METHOD((add_result_t), add_from_marketplace, (const apps::key_t&), ());
     MOCK_METHOD((add_result_t), add_from_url, (std::string_view), ());
 

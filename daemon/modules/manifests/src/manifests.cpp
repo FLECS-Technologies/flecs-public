@@ -15,6 +15,13 @@
 #include "daemon/modules/manifests/manifests.h"
 
 #include "daemon/common/app/manifest/manifest.h"
+#ifdef FLECS_MOCK_MODULES
+#include "daemon/modules/console/__mocks__/console.h"
+#include "daemon/modules/device/__mocks__/device.h"
+#else // FLECS_MOCK_MODULES
+#include "daemon/modules/console/console.h"
+#include "daemon/modules/device/device.h"
+#endif // FLECS_MOCK_MODULES
 #include "daemon/modules/apps/types/app_key.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/manifests/impl/manifests_impl.h"
@@ -134,6 +141,18 @@ auto manifests_t::add_from_yaml_string(std::string_view manifest) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
     return add_from_yaml(yaml_from_string(std::move(manifest)));
+}
+
+auto manifests_t::add_from_console(const apps::key_t& app_key) //
+    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
+{
+    auto console_api = std::dynamic_pointer_cast<console_t>(api::query_module("console"));
+    auto device_api = std::dynamic_pointer_cast<device_t>(api::query_module("device"));
+
+    auto session_id = device_api->session_id();
+    auto str = console_api->download_manifest(app_key.name(), app_key.version(), session_id);
+
+    return add_from_string(str);
 }
 
 auto manifests_t::add_from_marketplace(const apps::key_t& app_key) //

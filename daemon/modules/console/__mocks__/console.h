@@ -44,6 +44,7 @@ public:
     MOCK_METHOD((const console::auth_response_data_t&), authentication, (), (const, noexcept));
     MOCK_METHOD((result_t), activate_license, (std::string session_id), ());
     MOCK_METHOD((result_t), validate_license, (std::string_view session_id), ());
+    MOCK_METHOD((std::string), download_manifest, (std::string, std::string, std::string), ());
 
 protected:
     console_t() = default;

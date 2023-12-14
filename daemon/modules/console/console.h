@@ -47,6 +47,9 @@ public:
     auto validate_license(std::string_view session_id) //
         -> result_t;
 
+    auto download_manifest(std::string app, std::string version, std::string session_id) //
+        -> std::string;
+
 protected:
     console_t();
 
