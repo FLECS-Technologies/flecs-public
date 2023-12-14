@@ -17,8 +17,8 @@
 #include <string>
 #include <vector>
 
-#include "daemon/common/app/app_key.h"
 #include "daemon/common/instance/instance.h"
+#include "daemon/modules/apps/types/app_key.h"
 #include "util/json/json.h"
 #include "util/sysinfo/sysinfo.h"
 
@@ -33,7 +33,7 @@ struct export_manifest_t
     // contents
     struct
     {
-        std::vector<app_key_t> apps;
+        std::vector<apps::key_t> apps;
         std::vector<instance_t> instances;
     } contents;
 

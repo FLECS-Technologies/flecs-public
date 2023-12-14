@@ -12,55 +12,60 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "daemon/common/app/app_key.h"
+#include "daemon/modules/apps/types/app_key.h"
 
 namespace flecs {
+namespace apps {
 
-app_key_t::app_key_t(std::tuple<app_name_t, std::string> app_key)
+key_t::key_t(std::tuple<name_t, std::string> app_key)
     : _key{std::move(app_key)}
 {}
 
-app_key_t::app_key_t(std::string app_name, std::string app_version)
-    : app_key_t{std::make_tuple(app_name_t{std::move(app_name)}, std::move(app_version))}
+key_t::key_t(std::string app_name, std::string app_version)
+    : key_t{std::make_tuple(name_t{std::move(app_name)}, std::move(app_version))}
 {}
 
-app_key_t::app_key_t(app_name_t app_name, std::string app_version)
-    : app_key_t{std::make_tuple(std::move(app_name), std::move(app_version))}
+key_t::key_t(name_t app_name, std::string app_version)
+    : key_t{std::make_tuple(std::move(app_name), std::move(app_version))}
 {}
 
-auto app_key_t::is_valid() const noexcept //
+auto key_t::is_valid() const noexcept //
     -> bool
 {
     return std::get<0>(_key).is_valid() && !std::get<1>(_key).empty();
 }
 
-auto app_key_t::name() const noexcept //
+auto key_t::name() const noexcept //
     -> std::string_view
 {
     return std::get<0>(_key).value();
 }
 
-auto app_key_t::version() const noexcept //
+auto key_t::version() const noexcept //
     -> std::string_view
 {
     return std::get<1>(_key);
 }
 
-void to_json(json_t& j, const app_key_t& app_key)
+void to_json(json_t& j, const key_t& app_key)
 {
-    j = json_t({{"name", app_key.name()}, {"version", app_key.version()}});
+    j = json_t({
+        {"name", app_key.name()},
+        {"version", app_key.version()},
+    });
 }
 
-void from_json(const json_t& json, app_key_t& app_key)
+void from_json(const json_t& json, key_t& app_key)
 {
-    app_key = app_key_t{json.at("name"), json.at("version")};
+    app_key = key_t{json.at("name"), json.at("version")};
 }
 
-auto to_string(const app_key_t& app_key) //
+auto to_string(const key_t& app_key) //
     -> std::string
 {
     using std::operator""s;
     return app_key.name().data() + " ("s + app_key.version().data() + ")"s;
 }
 
+} // namespace apps
 } // namespace flecs

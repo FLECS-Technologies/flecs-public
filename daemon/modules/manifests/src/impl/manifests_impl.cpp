@@ -19,8 +19,8 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "daemon/common/app/app_key.h"
 #include "daemon/common/app/manifest/manifest.h"
+#include "daemon/modules/apps/types/app_key.h"
 #include "util/string/literals.h"
 
 namespace flecs {
@@ -86,7 +86,7 @@ auto manifests_t::do_migrate(const fs::path& base_path) //
     return true;
 }
 
-auto manifests_t::do_contains(const app_key_t& app_key) const noexcept //
+auto manifests_t::do_contains(const apps::key_t& app_key) const noexcept //
     -> bool
 {
     return std::find_if(
@@ -97,7 +97,7 @@ auto manifests_t::do_contains(const app_key_t& app_key) const noexcept //
                }) != _manifests.cend();
 }
 
-auto manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
+auto manifests_t::do_query_manifest(const apps::key_t& app_key) noexcept //
     -> std::shared_ptr<app_manifest_t>
 {
     auto it = std::find_if(
@@ -133,7 +133,7 @@ auto manifests_t::do_query_manifest(const app_key_t& app_key) noexcept //
 auto manifests_t::do_add(app_manifest_t manifest) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
-    auto app_key = app_key_t{manifest.app(), manifest.version()};
+    auto app_key = apps::key_t{manifest.app(), manifest.version()};
 
     if (_parent->contains(app_key)) {
         auto p = _parent->query(app_key);
@@ -190,7 +190,7 @@ auto manifests_t::do_clear() //
 {
     _manifests.clear();
 }
-auto manifests_t::do_erase(const app_key_t& app_key) //
+auto manifests_t::do_erase(const apps::key_t& app_key) //
     -> void
 {
     auto ec_1 = std::error_code{};
@@ -210,7 +210,7 @@ auto manifests_t::do_erase(const app_key_t& app_key) //
 
     _parent->remove(app_key);
 }
-auto manifests_t::do_remove(const app_key_t& app_key) //
+auto manifests_t::do_remove(const apps::key_t& app_key) //
     -> void
 {
     auto it = std::find_if(
@@ -224,7 +224,7 @@ auto manifests_t::do_remove(const app_key_t& app_key) //
     }
 }
 
-auto manifests_t::do_path(const app_key_t& app_key) //
+auto manifests_t::do_path(const apps::key_t& app_key) //
     -> fs::path
 {
     return _base_path / app_key.name() / app_key.version() / "manifest.json";

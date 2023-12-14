@@ -26,15 +26,17 @@ namespace flecs {
 
 class app_manifest_t;
 
-class app_t : app_key_t
+namespace apps {
+
+class app_t : key_t
 {
 public:
     app_t();
-    explicit app_t(app_key_t app_key);
-    app_t(app_key_t app_key, std::shared_ptr<app_manifest_t> manifest);
+    explicit app_t(key_t app_key);
+    app_t(key_t app_key, std::shared_ptr<app_manifest_t> manifest);
 
     auto key() const noexcept //
-        -> const app_key_t&;
+        -> const key_t&;
     auto download_token() const noexcept //
         -> const std::string&;
     auto installed_size() const noexcept //
@@ -42,9 +44,9 @@ public:
     auto license_key() const noexcept //
         -> const std::string&;
     auto status() const noexcept //
-        -> app_status_e;
+        -> status_e;
     auto desired() const noexcept //
-        -> app_status_e;
+        -> status_e;
     auto manifest() const noexcept //
         -> std::shared_ptr<app_manifest_t>;
 
@@ -54,9 +56,9 @@ public:
         -> void;
     auto license_key(std::string license_key) //
         -> void;
-    auto status(app_status_e status) //
+    auto status(status_e status) //
         -> void;
-    auto desired(app_status_e desired) //
+    auto desired(status_e desired) //
         -> void;
     auto manifest(std::shared_ptr<app_manifest_t> manifest) //
         -> void;
@@ -70,9 +72,10 @@ private:
     std::string _license_key;
     std::string _download_token;
     std::int64_t _installed_size;
-    app_status_e _status;
-    app_status_e _desired;
+    status_e _status;
+    status_e _desired;
     std::weak_ptr<app_manifest_t> _manifest;
 };
 
+} // namespace apps
 } // namespace flecs

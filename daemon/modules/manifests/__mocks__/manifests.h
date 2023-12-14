@@ -27,8 +27,12 @@
 #include "util/yaml/yaml.h"
 
 namespace flecs {
+namespace apps {
 
-class app_key_t;
+class key_t;
+
+} // namespace apps
+
 class app_manifest_t;
 
 namespace module {
@@ -52,10 +56,10 @@ public:
     MOCK_METHOD((void), base_path, (), (const, noexcept));
 
     MOCK_METHOD((bool), migrate, (const fs::path&), ());
-    MOCK_METHOD((bool), contains, (const app_key_t&), (const, noexcept));
+    MOCK_METHOD((bool), contains, (const apps::key_t&), (const, noexcept));
 
-    MOCK_METHOD((std::shared_ptr<app_manifest_t>), query, (const app_key_t&), (noexcept));
-    MOCK_METHOD((std::shared_ptr<const app_manifest_t>), query, (const app_key_t&), (const, noexcept));
+    MOCK_METHOD((std::shared_ptr<app_manifest_t>), query, (const apps::key_t&), (noexcept));
+    MOCK_METHOD((std::shared_ptr<const app_manifest_t>), query, (const apps::key_t&), (const, noexcept));
 
     using add_result_t = std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     MOCK_METHOD((add_result_t), add, (app_manifest_t), ());
@@ -70,16 +74,16 @@ public:
     MOCK_METHOD((add_result_t), add_from_json_file, (const fs::path&), ());
     MOCK_METHOD((add_result_t), add_from_yaml_file, (const fs::path&), ());
 
-    MOCK_METHOD((add_result_t), add_from_marketplace, (const app_key_t&), ());
+    MOCK_METHOD((add_result_t), add_from_marketplace, (const apps::key_t&), ());
     MOCK_METHOD((add_result_t), add_from_url, (std::string_view), ());
 
     MOCK_METHOD((void), clear, (), ());
 
-    MOCK_METHOD((void), erase, (const app_key_t&), ());
+    MOCK_METHOD((void), erase, (const apps::key_t&), ());
 
-    MOCK_METHOD((void), remove, (const app_key_t&), ());
+    MOCK_METHOD((void), remove, (const apps::key_t&), ());
 
-    MOCK_METHOD((fs::path), path, (const app_key_t&), ());
+    MOCK_METHOD((fs::path), path, (const apps::key_t&), ());
 
 protected:
     manifests_t() = default;

@@ -18,6 +18,7 @@
 #include <string_view>
 
 namespace flecs {
+namespace apps {
 
 /** @brief String wrapper class that validates App names against the specification.
  *
@@ -35,24 +36,25 @@ namespace flecs {
  *  - maximum length: 127 characters
  *
  */
-class app_name_t
+class name_t
 {
 public:
     static constexpr auto MAX_APP_NAME_LEN = 127;
 
-    app_name_t() = default;
-    app_name_t(std::string app_name);
+    name_t() = default;
+    name_t(std::string app_name);
 
     auto is_valid() const noexcept //
         -> bool;
 
     auto value() const noexcept //
-        -> std::string_view;
+        -> const std::string&;
 
 private:
-    friend auto operator<=>(const app_name_t&, const app_name_t&) = default;
+    friend auto operator<=>(const name_t&, const name_t&) = default;
 
     std::string _app_name;
 };
 
+} // namespace apps
 } // namespace flecs

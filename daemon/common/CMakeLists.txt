@@ -24,7 +24,7 @@ add_library(daemon.common INTERFACE)
 target_link_libraries(
     daemon.common INTERFACE
     daemon.common.deployment
-    daemon.common.app
     daemon.common.instance
     daemon.common.network
+    modules.apps.types
 )

@@ -24,8 +24,12 @@
 #include "util/yaml/yaml.h"
 
 namespace flecs {
+namespace apps {
 
-class app_key_t;
+class key_t;
+
+} // namespace apps
+
 class app_manifest_t;
 
 namespace module {
@@ -88,7 +92,7 @@ public:
      *
      * @return true if app_key is present, false otherwise
      */
-    auto contains(const app_key_t& app_key) const noexcept //
+    auto contains(const apps::key_t& app_key) const noexcept //
         -> bool;
 
     /** @brief Obtain a reference to an app manifest in the local manifest cache, if exists
@@ -105,9 +109,9 @@ public:
      *
      * @return shared_ptr to manifest matching the specified app_key, if exists
      */
-    auto query(const app_key_t& app_key) noexcept //
+    auto query(const apps::key_t& app_key) noexcept //
         -> std::shared_ptr<app_manifest_t>;
-    auto query(const app_key_t& app_key) const noexcept //
+    auto query(const apps::key_t& app_key) const noexcept //
         -> std::shared_ptr<const app_manifest_t>;
 
     using add_result_t = std::tuple<std::shared_ptr<app_manifest_t>, bool>;
@@ -134,7 +138,7 @@ public:
     auto add_from_yaml_file(const fs::path& path) //
         -> add_result_t;
 
-    auto add_from_marketplace(const app_key_t& app_key) //
+    auto add_from_marketplace(const apps::key_t& app_key) //
         -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto add_from_url(std::string_view url) //
         -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
@@ -154,7 +158,7 @@ public:
      * from cache, refer to @sa remove() instead.
      *
      */
-    auto erase(const app_key_t& app_key) //
+    auto erase(const apps::key_t& app_key) //
         -> void;
     /** @brief Removes a manifest from the local manifest cache
      *
@@ -162,12 +166,12 @@ public:
      * change of the base_path or the last call to remove() for any app_key are invalidated. To
      * permanently delete a manifest from the local manifest store, refer to @sa erase() instead.
      */
-    auto remove(const app_key_t& app_key) //
+    auto remove(const apps::key_t& app_key) //
         -> void;
 
     /** @brief Returns the canonical path to a manifest for the specified app_key
      */
-    auto path(const app_key_t& app_key) //
+    auto path(const apps::key_t& app_key) //
         -> fs::path;
 
 protected:

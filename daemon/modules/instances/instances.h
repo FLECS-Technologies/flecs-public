@@ -23,8 +23,12 @@
 #include "util/fs/fs.h"
 
 namespace flecs {
+namespace apps {
 
-class app_key_t;
+class key_t;
+
+} // namespace apps
+
 class instance_config_t;
 class instance_t;
 
@@ -44,13 +48,13 @@ public:
      *
      * @return HTTP response
      */
-    auto http_list(const app_key_t& app_key) const //
+    auto http_list(const apps::key_t& app_key) const //
         -> crow::response;
 
     auto http_details(instance_id_t instance_id) const //
         -> crow::response;
 
-    auto http_create(app_key_t app_key, std::string instance_name, bool running) //
+    auto http_create(apps::key_t app_key, std::string instance_name, bool running) //
         -> crow::response;
 
     auto http_start(instance_id_t instance_id) //
@@ -83,7 +87,7 @@ public:
      *
      * @return vector containing all available instance ids
      */
-    auto instance_ids(const app_key_t& app_key) const //
+    auto instance_ids(const apps::key_t& app_key) const //
         -> std::vector<instance_id_t>;
     auto instance_ids(std::string app_name, std::string version) const //
         -> std::vector<instance_id_t>;
@@ -110,9 +114,9 @@ public:
     auto is_running(std::shared_ptr<instance_t> instance) const //
         -> bool;
 
-    auto create(app_key_t app_key, std::string instance_name, bool running) //
+    auto create(apps::key_t app_key, std::string instance_name, bool running) //
         -> result_t;
-    auto create(app_key_t app_key) //
+    auto create(apps::key_t app_key) //
         -> result_t;
     auto create(std::string app_name, std::string version, std::string instance_name) //
         -> result_t;

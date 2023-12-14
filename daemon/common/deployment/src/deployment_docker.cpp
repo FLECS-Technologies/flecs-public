@@ -14,8 +14,8 @@
 
 #include "daemon/common/deployment/deployment_docker.h"
 
-#include "daemon/common/app/app.h"
 #include "daemon/common/app/manifest/manifest.h"
+#include "daemon/modules/apps/types/app.h"
 #include "daemon/modules/factory/factory.h"
 #include "daemon/modules/system/system.h"
 #include "util/cxx23/string.h"

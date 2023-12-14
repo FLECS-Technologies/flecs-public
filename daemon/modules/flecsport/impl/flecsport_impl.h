@@ -45,13 +45,13 @@ private:
         -> std::vector<std::string>;
 
     auto queue_export_to(
-        std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
+        std::vector<apps::key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
         -> jobs::id_t;
     auto do_export_to_sync(
-        std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
+        std::vector<apps::key_t> apps, std::vector<instance_id_t> instances, fs::path dest_dir) //
         -> result_t;
     auto do_export_to(
-        std::vector<app_key_t> apps,
+        std::vector<apps::key_t> apps,
         std::vector<instance_id_t> instances,
         fs::path dest_dir,
         jobs::progress_t& progress) //

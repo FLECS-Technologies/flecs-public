@@ -18,8 +18,9 @@
 #include <string_view>
 
 namespace flecs {
+namespace apps {
 
-enum class app_status_e {
+enum class status_e {
     NotInstalled,
     ManifestDownloaded,
     TokenAcquired,
@@ -31,13 +32,14 @@ enum class app_status_e {
     Unknown,
 };
 
-auto to_string_view(app_status_e instance_status) //
+auto to_string_view(status_e instance_status) //
     -> std::string_view;
 
-auto to_string(app_status_e app_status) //
+auto to_string(status_e app_status) //
     -> std::string;
 
-auto app_status_from_string(std::string_view str) //
-    -> app_status_e;
+auto status_from_string(std::string_view str) //
+    -> status_e;
 
+} // namespace apps
 } // namespace flecs

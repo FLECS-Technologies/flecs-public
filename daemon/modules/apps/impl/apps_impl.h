@@ -19,8 +19,8 @@
 #include <mutex>
 #include <string>
 
-#include "daemon/common/app/app.h"
 #include "daemon/modules/apps/apps.h"
+#include "daemon/modules/apps/types/app.h"
 
 namespace flecs {
 namespace jobs {
@@ -59,14 +59,14 @@ private:
     auto do_save(const fs::path& base_path) const //
         -> result_t;
 
-    auto do_app_keys(const app_key_t& app_key) const //
-        -> std::vector<app_key_t>;
+    auto do_app_keys(const apps::key_t& app_key) const //
+        -> std::vector<apps::key_t>;
 
-    auto queue_install_from_marketplace(app_key_t app_key) //
+    auto queue_install_from_marketplace(apps::key_t app_key) //
         -> jobs::id_t;
-    auto do_install_from_marketplace_sync(app_key_t app_key) //
+    auto do_install_from_marketplace_sync(apps::key_t app_key) //
         -> result_t;
-    auto do_install_from_marketplace(app_key_t app_key, jobs::progress_t& progress) //
+    auto do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_sideload(std::string manifest_string) //
@@ -76,25 +76,25 @@ private:
     auto do_sideload(std::string manifest_string, jobs::progress_t& progress) //
         -> result_t;
 
-    auto queue_uninstall(app_key_t app_key) //
+    auto queue_uninstall(apps::key_t app_key) //
         -> jobs::id_t;
-    auto do_uninstall_sync(app_key_t app_key) //
+    auto do_uninstall_sync(apps::key_t app_key) //
         -> result_t;
-    auto do_uninstall(app_key_t app_key, jobs::progress_t& progress) //
+    auto do_uninstall(apps::key_t app_key, jobs::progress_t& progress) //
         -> result_t;
 
-    auto queue_export_to(app_key_t app_key, fs::path dest_dir) const //
+    auto queue_export_to(apps::key_t app_key, fs::path dest_dir) const //
         -> jobs::id_t;
-    auto do_export_to_sync(app_key_t app_key, fs::path dest_dir) const //
+    auto do_export_to_sync(apps::key_t app_key, fs::path dest_dir) const //
         -> result_t;
-    auto do_export_to(app_key_t app_key, fs::path dest_dir, jobs::progress_t& progress) const //
+    auto do_export_to(apps::key_t app_key, fs::path dest_dir, jobs::progress_t& progress) const //
         -> result_t;
 
-    auto queue_import_from(app_key_t app_key, fs::path src_dir) //
+    auto queue_import_from(apps::key_t app_key, fs::path src_dir) //
         -> jobs::id_t;
-    auto do_import_from_sync(app_key_t app_key, fs::path src_dir) //
+    auto do_import_from_sync(apps::key_t app_key, fs::path src_dir) //
         -> result_t;
-    auto do_import_from(app_key_t app_key, fs::path src_dir, jobs::progress_t& progress) //
+    auto do_import_from(apps::key_t app_key, fs::path src_dir, jobs::progress_t& progress) //
         -> result_t;
 
     auto do_install_impl(
@@ -102,8 +102,8 @@ private:
         jobs::progress_t& progress) //
         -> result_t;
 
-    auto do_query(const app_key_t& app_key) const noexcept //
-        -> std::shared_ptr<app_t>;
+    auto do_query(const apps::key_t& app_key) const noexcept //
+        -> std::shared_ptr<apps::app_t>;
 
     /*! @brief Helper function to determine whether a given app is installed in a given version
      *
@@ -112,12 +112,12 @@ private:
      *
      * @return true if the app is installed, false otherwise
      */
-    auto do_is_installed(const app_key_t& app_key) const noexcept //
+    auto do_is_installed(const apps::key_t& app_key) const noexcept //
         -> bool;
 
     flecs::module::apps_t* _parent;
 
-    std::vector<std::shared_ptr<app_t>> _apps;
+    std::vector<std::shared_ptr<apps::app_t>> _apps;
     std::mutex _apps_mutex;
 
     std::shared_ptr<flecs::module::instances_t> _instances_api;

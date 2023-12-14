@@ -19,7 +19,9 @@ flecs_add_module(
     ADDITIONAL_HEADERS
     impl/manifests_impl.h
     LIBS_PRIVATE
-    cpr::cpr daemon.common.app daemon.common.app.manifest
+        cpr::cpr
+        daemon.common.app.manifest
+        modules.apps.types
 )
 
 add_library(daemon.modules.manifests.mocked_modules STATIC

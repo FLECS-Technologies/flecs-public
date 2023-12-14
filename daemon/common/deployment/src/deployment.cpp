@@ -20,8 +20,8 @@
 #include <regex>
 #include <set>
 
-#include "daemon/common/app/app.h"
 #include "daemon/common/app/manifest/manifest.h"
+#include "daemon/modules/apps/types/app.h"
 #include "util/network/ip_addr.h"
 #include "util/network/network.h"
 
@@ -48,22 +48,22 @@ auto deployment_t::save(const fs::path& base_path) //
 auto deployment_t::instance_ids() const //
     -> std::vector<instance_id_t>
 {
-    return instance_ids(app_key_t{});
+    return instance_ids(apps::key_t{});
 }
 
 auto deployment_t::instance_ids(std::string_view app) const //
     -> std::vector<instance_id_t>
 {
-    return instance_ids(app_key_t{app.data(), ""});
+    return instance_ids(apps::key_t{app.data(), ""});
 }
 
 auto deployment_t::instance_ids(std::string_view app, std::string_view version) const //
     -> std::vector<instance_id_t>
 {
-    return instance_ids(app_key_t{app.data(), version.data()});
+    return instance_ids(apps::key_t{app.data(), version.data()});
 }
 
-auto deployment_t::instance_ids(const app_key_t& app_key) const //
+auto deployment_t::instance_ids(const apps::key_t& app_key) const //
     -> std::vector<instance_id_t>
 {
     auto ids = std::vector<instance_id_t>{};
@@ -105,7 +105,7 @@ auto deployment_t::insert_instance(instance_t instance) //
     return _instances.emplace_back(std::make_shared<instance_t>(std::move(instance)));
 }
 
-auto deployment_t::create_instance(std::shared_ptr<const app_t> app, std::string instance_name) //
+auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::string instance_name) //
     -> result_t
 {
     auto manifest = app->manifest();

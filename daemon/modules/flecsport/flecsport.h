@@ -21,8 +21,12 @@
 #include "util/fs/fs.h"
 
 namespace flecs {
+namespace apps {
 
-class app_key_t;
+class key_t;
+
+} // namespace apps
+
 class instance_id_t;
 
 namespace module {
@@ -44,14 +48,14 @@ public:
     auto http_remove(const std::string& export_id) //
         -> crow::response;
 
-    auto http_export_to(std::vector<app_key_t> apps, std::vector<instance_id_t> instances) //
+    auto http_export_to(std::vector<apps::key_t> apps, std::vector<instance_id_t> instances) //
         -> crow::response;
 
     auto http_import_from(std::string archive) //
         -> crow::response;
 
     auto export_to(
-        std::vector<app_key_t> apps, std::vector<instance_id_t> instances, fs::path base_dir) //
+        std::vector<apps::key_t> apps, std::vector<instance_id_t> instances, fs::path base_dir) //
         -> result_t;
 
 protected:

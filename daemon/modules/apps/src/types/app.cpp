@@ -12,31 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "daemon/common/app/app.h"
+#include "daemon/modules/apps/types/app.h"
 
 namespace flecs {
+namespace apps {
 
 app_t::app_t()
-    : app_key_t{}
+    : key_t{}
     , _license_key{}
     , _download_token{}
     , _installed_size{}
-    , _status{app_status_e::Unknown}
-    , _desired{app_status_e::Unknown}
+    , _status{status_e::Unknown}
+    , _desired{status_e::Unknown}
     , _manifest{}
 {}
 
-app_t::app_t(app_key_t app_key)
+app_t::app_t(key_t app_key)
     : app_t{std::move(app_key), {}}
 {}
 
-app_t::app_t(app_key_t app_key, std::shared_ptr<app_manifest_t> manifest)
-    : app_key_t{std::move(app_key)}
+app_t::app_t(key_t app_key, std::shared_ptr<app_manifest_t> manifest)
+    : key_t{std::move(app_key)}
     , _license_key{}
     , _download_token{}
     , _installed_size{}
-    , _status{app_status_e::Unknown}
-    , _desired{app_status_e::Unknown}
+    , _status{status_e::Unknown}
+    , _desired{status_e::Unknown}
     , _manifest{std::move(manifest)}
 {
     if (!is_valid()) {
@@ -45,9 +46,9 @@ app_t::app_t(app_key_t app_key, std::shared_ptr<app_manifest_t> manifest)
 }
 
 auto app_t::key() const noexcept //
-    -> const app_key_t&
+    -> const key_t&
 {
-    return static_cast<const app_key_t&>(*this);
+    return static_cast<const key_t&>(*this);
 }
 
 auto app_t::download_token() const noexcept //
@@ -69,13 +70,13 @@ auto app_t::license_key() const noexcept //
 }
 
 auto app_t::status() const noexcept //
-    -> app_status_e
+    -> status_e
 {
-    return _manifest.expired() ? app_status_e::Orphaned : _status;
+    return _manifest.expired() ? status_e::Orphaned : _status;
 }
 
 auto app_t::desired() const noexcept //
-    -> app_status_e
+    -> status_e
 {
     return _desired;
 }
@@ -104,13 +105,13 @@ auto app_t::license_key(std::string license_key) //
     _license_key = license_key;
 }
 
-auto app_t::status(app_status_e status) //
+auto app_t::status(status_e status) //
     -> void
 {
     _status = status;
 }
 
-auto app_t::desired(app_status_e desired) //
+auto app_t::desired(status_e desired) //
     -> void
 {
     _desired = desired;
@@ -125,32 +126,33 @@ auto app_t::manifest(std::shared_ptr<app_manifest_t> manifest) //
 auto to_json(json_t& json, const app_t& app) //
     -> void
 {
-    json = json_t(
-        {{"_schemaVersion", "2.1.0"},
-         {"appKey", static_cast<const app_key_t&>(app)},
-         {"status", to_string(app.status())},
-         {"desired", to_string(app.desired())},
-         {"licenseKey", to_string(app.desired())},
-         {"downloadToken", to_string(app.desired())},
-         {"installedSize", app.installed_size()}});
+    json = json_t({
+        {"_schemaVersion", "2.1.0"},
+        {"appKey", static_cast<const key_t&>(app)},
+        {"status", to_string(app.status())},
+        {"desired", to_string(app.desired())},
+        {"licenseKey", to_string(app.desired())},
+        {"downloadToken", to_string(app.desired())},
+        {"installedSize", app.installed_size()},
+    });
 }
 
 static auto from_json_v1(const json_t& j, app_t& app) //
     -> void
 {
-    app = app_t{app_key_t{
+    app = app_t{key_t{
         j.at(1).at("app").get<std::string>(), //
         j.at(1).at("version").get<std::string>()}};
-    app.status(app_status_from_string(j.at(1).at("status").get<std::string_view>()));
-    app.desired(app_status_from_string(j.at(1).at("desired").get<std::string_view>()));
+    app.status(status_from_string(j.at(1).at("status").get<std::string_view>()));
+    app.desired(status_from_string(j.at(1).at("desired").get<std::string_view>()));
 }
 
 static auto from_json_v2(const json_t& j, app_t& app) //
     -> void
 {
-    app = app_t{j.at("appKey").get<app_key_t>()};
-    app.status(app_status_from_string(j.at("status").get<std::string_view>()));
-    app.desired(app_status_from_string(j.at("desired").get<std::string_view>()));
+    app = app_t{j.at("appKey").get<key_t>()};
+    app.status(status_from_string(j.at("status").get<std::string_view>()));
+    app.desired(status_from_string(j.at("desired").get<std::string_view>()));
     app.installed_size(j.at("installedSize").get<std::int32_t>());
     if (j.at("_schemaVersion").get<std::string_view>() == "2.1.0") {
         app.license_key(j.at("licenseKey").get<std::string>());
@@ -174,4 +176,5 @@ auto from_json(const json_t& j, app_t& app) //
     }
 }
 
+} // namespace apps
 } // namespace flecs

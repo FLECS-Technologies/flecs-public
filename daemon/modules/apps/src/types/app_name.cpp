@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "daemon/common/app/app_name.h"
+#include "daemon/modules/apps/types/app_name.h"
 
 #include <regex>
 
 namespace flecs {
+namespace apps {
 
-app_name_t::app_name_t(std::string app_name)
+name_t::name_t(std::string app_name)
     : _app_name{}
 {
     const auto app_regex = std::regex{R"-(^(?:[a-z]+)[.])-"
@@ -30,16 +31,17 @@ app_name_t::app_name_t(std::string app_name)
     }
 }
 
-auto app_name_t::is_valid() const noexcept //
+auto name_t::is_valid() const noexcept //
     -> bool
 {
     return !_app_name.empty();
 }
 
-auto app_name_t::value() const noexcept //
-    -> std::string_view
+auto name_t::value() const noexcept //
+    -> const std::string&
 {
     return _app_name;
 }
 
+} // namespace apps
 } // namespace flecs

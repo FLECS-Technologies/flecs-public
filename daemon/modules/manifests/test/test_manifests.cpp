@@ -17,8 +17,8 @@
 #include <filesystem>
 #include <fstream>
 
-#include "daemon/common/app/app_key.h"
 #include "daemon/common/app/manifest/manifest.h"
+#include "daemon/modules/apps/types/app_key.h"
 #include "daemon/modules/manifests/manifests.h"
 
 namespace fs = std::filesystem;
@@ -35,7 +35,7 @@ constexpr auto valid_manifest_1 = //
     "author: FLECS Technologies GmbH\n"
     "title: FLECS Test App\n"
     "image: flecs/tech.flecs.test-app-1\n";
-const auto valid_key_1 = flecs::app_key_t{"tech.flecs.test-app-1", "1.2.3.4-f1"};
+const auto valid_key_1 = flecs::apps::key_t{"tech.flecs.test-app-1", "1.2.3.4-f1"};
 
 constexpr auto valid_manifest_2 = //
     "app: tech.flecs.test-app-2\n"
@@ -43,7 +43,7 @@ constexpr auto valid_manifest_2 = //
     "author: FLECS Technologies GmbH\n"
     "title: FLECS Test App\n"
     "image: flecs/tech.flecs.test-app-1\n";
-const auto valid_key_2 = flecs::app_key_t{"tech.flecs.test-app-2", "2.3.4.5-f2"};
+const auto valid_key_2 = flecs::apps::key_t{"tech.flecs.test-app-2", "2.3.4.5-f2"};
 
 constexpr auto invalid_manifest_1 = //
     "app: tech.flecs.invalid-app-1\n"
@@ -51,7 +51,7 @@ constexpr auto invalid_manifest_1 = //
     "author: FLECS Technologies GmbH\n"
     "title: FLECS Test App\n"
     "image: flecs/tech.flecs.invalid-app-1\n";
-const auto invalid_key_1 = flecs::app_key_t{"tech.flecs.invalid-app-1", "1.2.3.4-f1"};
+const auto invalid_key_1 = flecs::apps::key_t{"tech.flecs.invalid-app-1", "1.2.3.4-f1"};
 
 constexpr auto invalid_manifest_2 = //
     "app: tech.flecs.invalid-app-2\n"
@@ -59,7 +59,7 @@ constexpr auto invalid_manifest_2 = //
     "author: FLECS Technologies GmbH\n"
     "title: FLECS Test App\n"
     "image: flecs/tech.flecs.invalid-app-2\n";
-const auto invalid_key_2 = flecs::app_key_t{"tech.flecs.invalid-app-2", "1.2.3.4-f1"};
+const auto invalid_key_2 = flecs::apps::key_t{"tech.flecs.invalid-app-2", "1.2.3.4-f1"};
 
 constexpr auto invalid_manifest_3 = //
     R"(%@^!@#$$%^)";
@@ -152,7 +152,7 @@ TEST(manifests, load_success)
     ASSERT_EQ(uut.query(valid_key_1)->author(), "FLECS Technologies GmbH");
     ASSERT_EQ(uut_c.query(valid_key_2)->author(), "FLECS Technologies GmbH");
 
-    ASSERT_EQ(uut.path(flecs::app_key_t{}), "");
+    ASSERT_EQ(uut.path(flecs::apps::key_t{}), "");
     ASSERT_EQ(
         uut.path(valid_key_1),
         fs::canonical("./manifests/tech.flecs.test-app-1/1.2.3.4-f1/manifest.json"));
@@ -270,7 +270,7 @@ TEST(manifests, add_from_url)
     uut.init();
     uut.base_path("./manifests");
 
-    auto key = flecs::app_key_t{"tech.flecs.mqtt-bridge", "1.6.1-porpoise"};
+    auto key = flecs::apps::key_t{"tech.flecs.mqtt-bridge", "1.6.1-porpoise"};
     const auto [manifest_1, res_1] = uut.add_from_marketplace(key);
     ASSERT_TRUE(res_1);
     ASSERT_TRUE(uut.contains(key));

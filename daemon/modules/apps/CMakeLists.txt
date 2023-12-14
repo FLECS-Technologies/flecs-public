@@ -12,14 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+project(modules.apps.types)
+
+add_library(${PROJECT_NAME} STATIC
+    src/types/app_key.cpp
+    src/types/app_name.cpp
+    src/types/app_status.cpp
+    src/types/app.cpp
+    types/app_key.h
+    types/app_name.h
+    types/app_status.h
+    types/app.h
+    types.h
+)
+
 flecs_add_module(
-    MODULE_NAME apps
+    MODULE_NAME
+        apps
     ADDITIONAL_SOURCES
-    src/impl/apps_impl.cpp
+        src/impl/apps_impl.cpp
     ADDITIONAL_HEADERS
-    impl/apps_impl.h
-    LIBS_PUBLIC daemon.common
-    LIBS_PRIVATE cpr::cpr daemon.common yaml-cpp::yaml-cpp util.usb
+        impl/apps_impl.h
+    LIBS_PUBLIC
+        daemon.common
+        modules.apps.types
+    LIBS_PRIVATE
+        cpr::cpr
+        daemon.common
+        util.usb
+        yaml-cpp::yaml-cpp
 )
 
 add_library(daemon.modules.apps.mocked_modules STATIC
@@ -41,3 +62,5 @@ target_compile_definitions(
     daemon.modules.apps.mocked_modules PRIVATE
     -DFLECS_MOCK_MODULES
 )
+
+add_subdirectory(test)

@@ -24,11 +24,11 @@ add_library(
 
 target_link_libraries(
     ${PROJECT_NAME} PRIVATE
-    daemon.common.app
     daemon.common.instance
     daemon.common.app.manifest
     daemon.modules.factory
     daemon.modules.system
+    modules.apps.types
     util.network
     util.process
 )

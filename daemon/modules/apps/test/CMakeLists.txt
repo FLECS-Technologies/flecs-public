@@ -13,21 +13,18 @@
 # limitations under the License.
 
 if(BUILD_TESTING)
-    set(PROJECT_NAME daemon.common.app.test)
-    project(${PROJECT_NAME})
+    project(modules.apps.test)
 
     add_executable(${PROJECT_NAME}
-        test_app_key.cpp
-        test_app_name.cpp
-        test_app_status.cpp
+        test_types.cpp
     )
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_app)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_modules_apps)
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.common.app
+        modules.apps.types
     )
 
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

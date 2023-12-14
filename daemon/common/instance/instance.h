@@ -25,8 +25,11 @@
 #include "util/usb/usb.h"
 
 namespace flecs {
+namespace apps {
 
 class app_t;
+
+} // namespace apps
 
 class instance_t
 {
@@ -40,14 +43,14 @@ public:
 
     instance_t();
 
-    instance_t(std::shared_ptr<const app_t> app, std::string instance_name);
+    instance_t(std::shared_ptr<const apps::app_t> app, std::string instance_name);
 
-    instance_t(instance_id_t id, std::shared_ptr<const app_t> app, std::string instance_name);
+    instance_t(instance_id_t id, std::shared_ptr<const apps::app_t> app, std::string instance_name);
 
     auto id() const noexcept //
         -> const instance_id_t&;
     auto app() const noexcept //
-        -> std::shared_ptr<const app_t>;
+        -> std::shared_ptr<const apps::app_t>;
     auto app_name() const noexcept //
         -> std::string_view;
     auto app_version() const noexcept //
@@ -75,7 +78,7 @@ public:
 
     auto regenerate_id() //
         -> void;
-    auto app(std::shared_ptr<const app_t> app) //
+    auto app(std::shared_ptr<const apps::app_t> app) //
         -> void;
     auto instance_name(std::string instance_name) //
         -> void;
@@ -100,7 +103,7 @@ private:
         -> void;
 
     instance_id_t _id;
-    std::weak_ptr<const app_t> _app;
+    std::weak_ptr<const apps::app_t> _app;
     // std::weak_ptr<deployment_t> _deployment;
     std::string _app_name;
     std::string _app_version;
