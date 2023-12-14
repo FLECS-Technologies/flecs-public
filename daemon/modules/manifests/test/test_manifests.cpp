@@ -19,6 +19,9 @@
 
 #include "daemon/common/app/manifest/manifest.h"
 #include "daemon/modules/apps/types/app_key.h"
+#include "daemon/modules/console/__mocks__/console.h"
+#include "daemon/modules/device/__mocks__/device.h"
+#include "daemon/modules/factory/factory.h"
 #include "daemon/modules/manifests/manifests.h"
 
 namespace fs = std::filesystem;
@@ -26,7 +29,19 @@ namespace fs = std::filesystem;
 class test_module_manifests_t : public flecs::module::manifests_t
 {
 public:
-    test_module_manifests_t() = default;
+    test_module_manifests_t()
+    {
+        flecs::module::register_module_t<flecs::module::console_t>("console");
+        flecs::module::register_module_t<flecs::module::device_t>("device");
+    }
+
+    ~test_module_manifests_t()
+    {
+        flecs::module::unregister_module_t("console");
+        flecs::module::unregister_module_t("device");
+    }
+
+private:
 };
 
 constexpr auto valid_manifest_1 = //
@@ -64,23 +79,25 @@ const auto invalid_key_2 = flecs::apps::key_t{"tech.flecs.invalid-app-2", "1.2.3
 constexpr auto invalid_manifest_3 = //
     R"(%@^!@#$$%^)";
 
-const auto json_manifest_1 = //
-    R"({)"
-    R"("app":"tech.flecs.test-app-1",)"
-    R"("version":"1.2.3.4-f1",)"
-    R"("author":"FLECS Technologies GmbH",)"
-    R"("title":"FLECS Test App",)"
-    R"("image":"flecs/tech.flecs.test-app-1")"
-    R"(})";
+const auto json_manifest_1 = R"-(
+    {
+        "app":"tech.flecs.test-app-1",
+        "version":"1.2.3.4-f1",
+        "author":"FLECS Technologies GmbH",
+        "title":"FLECS Test App",
+        "image":"flecs/tech.flecs.test-app-1"
+    }
+)-";
 
-const auto json_manifest_2 = //
-    R"({)"
-    R"("app":"tech.flecs.test-app-2",)"
-    R"("version":"2.3.4.5-f2",)"
-    R"("author":"FLECS Technologies GmbH",)"
-    R"("title":"FLECS Test App",)"
-    R"("image":"flecs/tech.flecs.test-app-2")"
-    R"(})";
+const auto json_manifest_2 = R"-(
+    {
+        "app":"tech.flecs.test-app-2",
+        "version":"2.3.4.5-f2",
+        "author":"FLECS Technologies GmbH",
+        "title":"FLECS Test App",
+        "image":"flecs/tech.flecs.test-app-2"
+    }
+)-";
 
 auto create_manifests(const fs::path& base_path) //
     -> void
@@ -259,6 +276,40 @@ TEST(manifests, add_from_json_string)
 
     uut.deinit();
 
+    delete_manifests("./manifests");
+}
+
+TEST(manifests, add_from_console)
+{
+    auto uut = test_module_manifests_t();
+    uut.init();
+    uut.base_path("./manifests");
+
+    const auto session_id = std::string{"sessionId"};
+    auto device_api = std::dynamic_pointer_cast<flecs::module::device_t>(flecs::api::query_module("device"));
+    EXPECT_CALL(*device_api, session_id()) //
+        .WillRepeatedly(::testing::ReturnRef(session_id));
+
+    auto console_api =
+        std::dynamic_pointer_cast<flecs::module::console_t>(flecs::api::query_module("console"));
+
+    /* Download from console should fail */
+    EXPECT_CALL(*console_api, download_manifest(valid_key_1.name(), valid_key_1.version(), session_id)) //
+        .WillOnce(::testing::Return(std::string{}));
+
+    auto [manifest, res] = uut.add_from_console(valid_key_1);
+    ASSERT_FALSE(res);
+    ASSERT_FALSE(uut.contains(valid_key_1));
+
+    /* Download from console should succeed */
+    EXPECT_CALL(*console_api, download_manifest(valid_key_1.name(), valid_key_1.version(), session_id)) //
+        .WillOnce(::testing::Return(std::string{json_manifest_1}));
+
+    std::tie(manifest, res) = uut.add_from_console(valid_key_1);
+    ASSERT_TRUE(res);
+    ASSERT_TRUE(uut.contains(valid_key_1));
+
+    uut.deinit();
     delete_manifests("./manifests");
 }
 

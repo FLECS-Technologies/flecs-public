@@ -23,6 +23,7 @@ namespace module {
 namespace impl {
 class device_t
 {
+public:
     ~device_t() = default;
 };
 } // namespace impl
@@ -40,7 +41,7 @@ public:
     MOCK_METHOD((result_t), validate_license, (), ());
 
 protected:
-    device_t();
+    device_t() = default;
 
     MOCK_METHOD((void), do_init, (), (override));
     MOCK_METHOD((void), do_deinit, (), (override));

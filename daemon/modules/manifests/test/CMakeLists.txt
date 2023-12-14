@@ -26,9 +26,7 @@ if(BUILD_TESTING)
         GTest::gtest
         GTest::gtest_main
         daemon.common.app.manifest
-        daemon.modules.console.mocked_modules
-        daemon.modules.device.mocked_modules
-        daemon.modules.manifests
+        daemon.modules.manifests.mocked_modules
     )
 
     add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
