@@ -35,6 +35,7 @@ add_library(daemon.modules.manifests.mocked_modules STATIC
 
 target_link_libraries(
     daemon.modules.manifests.mocked_modules PUBLIC
+    cpr::cpr
     GTest::gmock
     daemon.common
     daemon.modules.factory
