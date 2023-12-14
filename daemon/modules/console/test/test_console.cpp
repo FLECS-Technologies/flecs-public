@@ -68,6 +68,8 @@ private:
 class mock_console_t
 {
 public:
+    static const char* manifest;
+
     mock_console_t()
         : _app{}
         , _{}
@@ -192,6 +194,62 @@ public:
 
                 return crow::response{500, std::string{}};
             });
+
+        CROW_ROUTE(_app, "/api/v2/manifests/<string>/<string>")
+            .methods("GET"_method)(
+                [](const crow::request& req, const std::string& app, const std::string& version) {
+                    const auto auth = req.get_header_value("authorization").substr(7);
+                    if (auth.empty()) {
+                        const auto response = flecs::json_t({
+                            {"status", 403},
+                            {"statusText", "Forbidden"},
+                            {"reason", "Invalid header: Authorization (expected Bearer)"},
+                        });
+                        return crow::response(403, response.dump());
+                    }
+
+                    if (app != "app" || version != "version") {
+                        throw;
+                    }
+                    const auto session_id = req.get_header_value("x-session-id");
+                    if (session_id == "200-valid") {
+                        const auto json_manifest = flecs::parse_json(manifest);
+                        const auto response = flecs::json_t({
+                            {"status", 200},
+                            {"statusText", "OK"},
+                            {"data", json_manifest},
+                        });
+                        return crow::response(200, response.dump());
+                    }
+
+                    if (session_id == "404-notfound") {
+                        const auto response = flecs::json_t({
+                            {"status", 404},
+                            {"statusText", "Not Found"},
+                        });
+                        return crow::response(404, response.dump());
+                    }
+
+                    if (session_id == "500") {
+                        const auto response = flecs::json_t({
+                            {"status", 500},
+                            {"statusText", "Internal Server Error"},
+                            {"reason", "Could not retrieve App Manifest"},
+                        });
+                        return crow::response(500, response.dump());
+                    }
+
+                    if (session_id == "500-unhandled") {
+                        /* unexpected behavior, unhandled error during activation */
+                        const auto response = flecs::json_t({
+                            {"status", 500},
+                            {"statusText", "Internal Server Error"},
+                        });
+                        return crow::response(500, response.dump());
+                    }
+
+                    return crow::response{500, std::string{}};
+                });
     }
 
     auto start() //
@@ -212,6 +270,16 @@ private:
     crow::SimpleApp _app;
     std::future<void> _;
 };
+
+const char* mock_console_t::manifest = R"-(
+    {
+        "app": "tech.flecs.test-app-1",
+        "version": "1.2.3.4-f1",
+        "author": "FLECS Technologies GmbH",
+        "title": "FLECS Test App",
+        "image": "flecs/tech.flecs.test-app-1"
+    }
+)-";
 
 static constexpr auto user = "testuser";
 static constexpr auto token = "abcdef-1234-5678-XYZ";
@@ -413,6 +481,34 @@ TEST(console, validate_license)
 
         ASSERT_EQ(res, -1);
         ASSERT_EQ(message, "Validation failed with status code 500");
+    }
+}
+
+TEST(console, download_manifest)
+{
+    cpr::Delete(
+        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
+        cpr::Header{{{"Content-Type"}, {"application/json"}}});
+    /** Valid App, but user is not logged in */
+    {
+        const auto session_id = "200-valid";
+        const auto expected = std::string{};
+        const auto actual = uut.download_manifest("app", "version", session_id);
+
+        ASSERT_EQ(actual, expected);
+    }
+
+    cpr::Put(
+        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
+        cpr::Header{{{"Content-Type"}, {"application/json"}}},
+        cpr::Body{auth_response_json["data"].dump()});
+    /** User logged in, sessionId is active */
+    {
+        const auto session_id = "200-valid";
+        const auto expected = std::string{mock_console_t::manifest};
+        const auto actual = uut.download_manifest("app", "version", session_id);
+
+        ASSERT_EQ(flecs::parse_json(actual), flecs::parse_json(actual));
     }
 }
 
