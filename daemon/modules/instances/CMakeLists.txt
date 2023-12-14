@@ -52,9 +52,9 @@ add_library(daemon.modules.instances.mocked_modules STATIC
 target_link_libraries(
     daemon.modules.instances.mocked_modules PUBLIC
     GTest::gmock
-    daemon.common
     daemon.modules.factory
     daemon.modules.module_base
+    modules.instances.types
 )
 
 target_compile_definitions(

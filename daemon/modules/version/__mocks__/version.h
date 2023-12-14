@@ -14,7 +14,30 @@
 
 #pragma once
 
-#include "types/instance.h"
-#include "types/instance_config.h"
-#include "types/instance_id.h"
-#include "types/instance_status.h"
+#include <gmock/gmock.h>
+
+#include <string>
+
+#include "daemon/modules/module_base/module.h"
+
+namespace flecs {
+namespace module {
+
+class version_t FLECS_FINAL_UNLESS_TESTED : public base_t
+{
+    friend class factory_t;
+
+public:
+    MOCK_METHOD((crow::response), http_version, (), (const));
+    MOCK_METHOD((std::string), core_version, (), (const));
+    MOCK_METHOD((std::string), api_version, (), (const));
+
+protected:
+    version_t() = default;
+
+    MOCK_METHOD((void), do_init, (), (override));
+    MOCK_METHOD((void), do_deinit, (), (override));
+};
+
+} // namespace module
+} // namespace flecs

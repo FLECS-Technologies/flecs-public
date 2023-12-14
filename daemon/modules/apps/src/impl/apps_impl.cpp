@@ -21,7 +21,6 @@
 
 #include "daemon/api/api.h"
 #include "daemon/common/app/manifest/manifest.h"
-#include "daemon/modules/instances/types/instance.h"
 #ifdef FLECS_MOCK_MODULES
 #include "daemon/modules/console/__mocks__/console.h"
 #include "daemon/modules/instances/__mocks__/instances.h"
@@ -29,12 +28,12 @@
 #include "daemon/modules/manifests/__mocks__/manifests.h"
 #else // FLECS_MOCK_MODULES
 #include "daemon/modules/console/console.h"
-#include "daemon/modules/factory/factory.h"
 #include "daemon/modules/instances/instances.h"
 #include "daemon/modules/jobs/jobs.h"
 #include "daemon/modules/manifests/manifests.h"
 #endif // FLECS_MOCK_MODULES
 #include "daemon/modules/factory/factory.h"
+#include "daemon/modules/instances/types/instance.h"
 #include "util/cxx23/string.h"
 #include "util/fs/fs.h"
 #include "util/json/json.h"
