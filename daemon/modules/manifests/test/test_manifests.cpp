@@ -279,6 +279,25 @@ TEST(manifests, add_from_json_string)
     delete_manifests("./manifests");
 }
 
+TEST(manifests, migrate)
+{
+    auto uut = test_module_manifests_t{};
+    uut.init();
+    uut.base_path("./oldpath");
+
+    uut.add_from_json_string(json_manifest_1);
+    uut.migrate("./newpath");
+    ASSERT_NE(uut.query(valid_key_1).get(), nullptr);
+
+    uut.base_path("./oldpath");
+    ASSERT_EQ(uut.query(valid_key_1).get(), nullptr);
+
+    uut.deinit();
+
+    delete_manifests("./oldpath");
+    delete_manifests("./newpath");
+}
+
 TEST(manifests, add_from_console)
 {
     auto uut = test_module_manifests_t();
