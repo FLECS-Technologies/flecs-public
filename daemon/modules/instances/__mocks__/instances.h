@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "daemon/modules/apps/types/app_key.h"
-#include "daemon/modules/instances/types/instance_id.h"
+#include "daemon/modules/instances/types.h"
 #include "daemon/modules/module_base/module.h"
 #include "util/fs/fs.h"
 
@@ -83,7 +83,7 @@ public:
 
     MOCK_METHOD((result_t), export_to, (instances::id_t, fs::path), (const));
 
-    MOCK_METHOD((result_t), import_from, (instances::id_t, fs::path), ());
+    MOCK_METHOD((result_t), import_from, (instances::instance_t, fs::path), ());
 
 protected:
     friend class factory_t;

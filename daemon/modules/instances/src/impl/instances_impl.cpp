@@ -17,11 +17,17 @@
 #include "daemon/api/api.h"
 #include "daemon/common/app/manifest/manifest.h"
 #include "daemon/common/deployment/deployment_docker.h"
+#ifdef FLECS_MOCK_MODULES
+#include "daemon/modules/apps/__mocks__/apps.h"
+#include "daemon/modules/jobs/__mocks__/jobs.h"
+#include "daemon/modules/system/__mocks__/system.h"
+#else // FLECS_MOCK_MODULES
 #include "daemon/modules/apps/apps.h"
-#include "daemon/modules/apps/types/app.h"
-#include "daemon/modules/factory/factory.h"
 #include "daemon/modules/jobs/jobs.h"
 #include "daemon/modules/system/system.h"
+#endif // FLECS_MOCK_MODULES
+#include "daemon/modules/apps/types/app.h"
+#include "daemon/modules/factory/factory.h"
 #include "util/datetime/datetime.h"
 #include "util/network/network.h"
 #include "util/process/process.h"

@@ -16,14 +16,21 @@
 
 #include <unistd.h>
 
-#include "daemon/modules/instances/types/instance.h"
+#ifdef FLECS_MOCK_MODULES
+#include "daemon/modules/apps/__mocks__/apps.h"
+#include "daemon/modules/instances/__mocks__/instances.h"
+#include "daemon/modules/jobs/__mocks__/jobs.h"
+#include "daemon/modules/version/__mocks__/version.h"
+#else // FLECS_MOCK_MODULES
 #include "daemon/modules/apps/apps.h"
-#include "daemon/modules/apps/types/app.h"
-#include "daemon/modules/factory/factory.h"
-#include "daemon/modules/flecsport/export_manifest.h"
 #include "daemon/modules/instances/instances.h"
 #include "daemon/modules/jobs/jobs.h"
 #include "daemon/modules/version/version.h"
+#endif // FLECS_MOCK_MODULES
+#include "daemon/modules/apps/types/app.h"
+#include "daemon/modules/factory/factory.h"
+#include "daemon/modules/flecsport/export_manifest.h"
+#include "daemon/modules/instances/types/instance.h"
 #include "util/archive/archive.h"
 #include "util/datetime/datetime.h"
 #include "util/sysinfo/sysinfo.h"
