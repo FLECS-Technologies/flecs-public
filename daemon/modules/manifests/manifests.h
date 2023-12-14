@@ -136,10 +136,12 @@ public:
     auto add_from_yaml_file(const fs::path& path) //
         -> add_result_t;
 
+    auto add_from_console(const apps::key_t& app_key) //
+        -> add_result_t;
     auto add_from_marketplace(const apps::key_t& app_key) //
         -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto add_from_url(std::string_view url) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
 
     /** @brief Clears the local manifest cache
      *

@@ -36,13 +36,13 @@ auto key_t::is_valid() const noexcept //
 }
 
 auto key_t::name() const noexcept //
-    -> std::string_view
+    -> const std::string&
 {
     return std::get<0>(_key).value();
 }
 
 auto key_t::version() const noexcept //
-    -> std::string_view
+    -> const std::string&
 {
     return std::get<1>(_key);
 }

@@ -116,6 +116,28 @@ auto console_t::do_validate_license(std::string_view session_id) //
     return {-1, response.reason()};
 }
 
+auto console_t::do_download_manifest(std::string app, std::string version, std::string session_id) //
+    -> std::string
+{
+    const auto url = std::string{_parent->base_url()} + "/api/v2/manifests/" + app + "/" + version;
+
+    const auto res = cpr::Get(
+        cpr::Url(std::move(url)),
+        cpr::Header{
+            {"Authorization", std::string{"Bearer "} + _auth.jwt().token()},
+            {"X-Session-Id", std::string(session_id)},
+        });
+
+    if (res.status_code == 200) {
+        try {
+            return parse_json(res.text).at("data").dump();
+        } catch (...) {
+        }
+    }
+
+    return std::string{};
+}
+
 auto console_t::do_store_authentication(console::auth_response_data_t auth) //
     -> crow::response
 {

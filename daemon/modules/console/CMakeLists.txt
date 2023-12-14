@@ -35,12 +35,35 @@ add_library(${PROJECT_NAME} STATIC
 )
 
 flecs_add_module(
-    MODULE_NAME console
+    MODULE_NAME
+        console
     ADDITIONAL_HEADERS
         impl/console_impl.h
     ADDITIONAL_SOURCES
         src/impl/console_impl.cpp
-    LIBS_PUBLIC cpr::cpr modules.console.types
+    LIBS_PUBLIC
+        cpr::cpr
+        modules.console.types
+)
+
+add_library(daemon.modules.console.mocked_modules STATIC
+    src/console.cpp
+    src/impl/console_impl.cpp
+    console.h
+    impl/console_impl.h
+)
+
+target_link_libraries(
+    daemon.modules.console.mocked_modules PUBLIC
+    GTest::gmock
+    daemon.common
+    daemon.modules.factory
+    daemon.modules.module_base
+)
+
+target_compile_definitions(
+    daemon.modules.console.mocked_modules PRIVATE
+    -DFLECS_MOCK_MODULES
 )
 
 add_subdirectory(test)

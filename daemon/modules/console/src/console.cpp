@@ -33,18 +33,16 @@ console_t::~console_t() = default;
 auto console_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/console/authentication")
-        .methods("PUT"_method)([this](const crow::request& req) {
-            auto response = json_t{};
-            const auto args = parse_json(req.body);
-            REQUIRED_TYPED_JSON(args, auth, console::auth_response_data_t);
+    FLECS_V2_ROUTE("/console/authentication").methods("PUT"_method)([this](const crow::request& req) {
+        auto response = json_t{};
+        const auto args = parse_json(req.body);
+        REQUIRED_TYPED_JSON(args, auth, console::auth_response_data_t);
 
-            return store_authentication(auth);
-        });
+        return store_authentication(auth);
+    });
 
     FLECS_V2_ROUTE("/console/authentication")
-        .methods("DELETE"_method)(
-            [this](const crow::request& /* req */) { return delete_authentication(); });
+        .methods("DELETE"_method)([this](const crow::request& /* req */) { return delete_authentication(); });
 
     return _impl->do_init();
 }
@@ -71,6 +69,12 @@ auto console_t::validate_license(std::string_view session_id) //
     -> result_t
 {
     return _impl->do_validate_license(session_id);
+}
+
+auto console_t::download_manifest(std::string app, std::string version, std::string session_id) //
+    -> std::string
+{
+    return _impl->do_download_manifest(app, version, session_id);
 }
 
 auto console_t::store_authentication(console::auth_response_data_t auth) //

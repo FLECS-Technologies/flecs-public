@@ -36,10 +36,10 @@ public:
         -> bool;
 
     auto name() const noexcept //
-        -> std::string_view;
+        -> const std::string&;
 
     auto version() const noexcept //
-        -> std::string_view;
+        -> const std::string&;
 
 private:
     friend auto operator<=>(const key_t&, const key_t&) = default;

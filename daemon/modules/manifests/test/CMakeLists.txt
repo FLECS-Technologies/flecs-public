@@ -26,6 +26,8 @@ if(BUILD_TESTING)
         GTest::gtest
         GTest::gtest_main
         daemon.common.app.manifest
+        daemon.modules.console.mocked_modules
+        daemon.modules.device.mocked_modules
         daemon.modules.manifests
     )
 
