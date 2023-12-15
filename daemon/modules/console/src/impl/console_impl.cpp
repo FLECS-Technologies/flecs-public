@@ -138,11 +138,31 @@ auto console_t::do_download_manifest(std::string app, std::string version, std::
     return std::string{};
 }
 
-auto console_t::do_acquire_download_token(
-    std::string /*app*/, std::string /*version*/, std::string /*session_id*/) //
-    -> std::string
+auto console_t::do_acquire_download_token(std::string app, std::string version, std::string session_id) //
+    -> json_t
 {
-    return {};
+    const auto url = std::string{_parent->base_url()} + "/api/v2/tokens";
+    const auto body = json_t({
+        {"app", app},
+        {"version", version},
+    });
+
+    const auto res = cpr::Post(
+        cpr::Url(std::move(url)),
+        cpr::Header{
+            {"Authorization", std::string{"Bearer "} + _auth.jwt().token()},
+            {"X-Session-Id", std::string(session_id)},
+        },
+        cpr::Body{body.dump()});
+
+    if (res.status_code == 200) {
+        try {
+            return parse_json(res.text).at("data").get<json_t>();
+        } catch (...) {
+        }
+    }
+
+    return json_t::parse("");
 }
 
 auto console_t::do_store_authentication(console::auth_response_data_t auth) //
