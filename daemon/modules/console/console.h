@@ -50,6 +50,9 @@ public:
     auto download_manifest(std::string app, std::string version, std::string session_id) //
         -> std::string;
 
+    auto acquire_download_token(std::string app, std::string version, std::string session_id) //
+        -> std::string;
+
 protected:
     console_t();
 
