@@ -51,7 +51,7 @@ public:
         -> std::string;
 
     auto acquire_download_token(std::string app, std::string version, std::string session_id) //
-        -> std::string;
+        -> json_t;
 
 protected:
     console_t();
