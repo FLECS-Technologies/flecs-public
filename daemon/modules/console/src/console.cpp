@@ -77,6 +77,12 @@ auto console_t::download_manifest(std::string app, std::string version, std::str
     return _impl->do_download_manifest(app, version, session_id);
 }
 
+auto console_t::acquire_download_token(std::string app, std::string version, std::string session_id) //
+    -> std::string
+{
+    return _impl->do_acquire_download_token(app, version, session_id);
+}
+
 auto console_t::store_authentication(console::auth_response_data_t auth) //
     -> crow::response
 {
