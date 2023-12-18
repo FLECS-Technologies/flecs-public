@@ -2,7 +2,7 @@
 
 const flecs::json_t auth_response_json = flecs::json_t::parse(R"-(
     {
-        "status": 200,
+        "statusCode": 200,
         "statusText": "OK",
         "data": {
             "user": {
@@ -24,7 +24,7 @@ const flecs::json_t auth_response_json = flecs::json_t::parse(R"-(
 
 const flecs::json_t activate_response_json = flecs::json_t::parse(R"-(
     {
-        "status": 200,
+        "statusCode": 200,
         "statusText": "OK",
         "data": {
             "sessionId": "{00000000-1111-2222-3333-444444444444}"
@@ -34,7 +34,7 @@ const flecs::json_t activate_response_json = flecs::json_t::parse(R"-(
 
 const flecs::json_t create_token_response_json = flecs::json_t::parse(R"-(
     {
-        "status": 200,
+        "statusCode": 200,
         "statusText": "OK",
         "data": {
             "token": {
@@ -47,7 +47,7 @@ const flecs::json_t create_token_response_json = flecs::json_t::parse(R"-(
 
 const flecs::json_t error_response_json = flecs::json_t::parse(R"-(
     {
-        "status": 500,
+        "statusCode": 500,
         "statusText": "Internal Server Error",
         "reason": "Something went wrong..."
     }
@@ -55,7 +55,7 @@ const flecs::json_t error_response_json = flecs::json_t::parse(R"-(
 
 const flecs::json_t validate_response_json = flecs::json_t::parse(R"-(
     {
-        "status": 200,
+        "statusCode": 200,
         "statusText": "OK",
         "data": {
             "isValid": true
