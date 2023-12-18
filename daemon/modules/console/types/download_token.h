@@ -21,7 +21,7 @@
 namespace flecs {
 namespace console {
 
-class access_token_t
+class download_token_t
 {
 public:
     auto username() const noexcept //
@@ -31,9 +31,9 @@ public:
         -> const std::string&;
 
 private:
-    friend auto from_json(const json_t& j, access_token_t& response) //
+    friend auto from_json(const json_t& j, download_token_t& response) //
         -> void;
-    friend auto to_json(json_t& j, const access_token_t& response) //
+    friend auto to_json(json_t& j, const download_token_t& response) //
         -> void;
 
     std::string _username;

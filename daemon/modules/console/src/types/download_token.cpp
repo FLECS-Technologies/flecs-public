@@ -12,36 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "daemon/modules/console/types/access_token.h"
+#include "daemon/modules/console/types/download_token.h"
 
 namespace flecs {
 namespace console {
 
-auto access_token_t::username() const noexcept //
+auto download_token_t::username() const noexcept //
     -> const std::string&
 {
     return _username;
 }
 
-auto access_token_t::password() const noexcept //
+auto download_token_t::password() const noexcept //
     -> const std::string&
 {
     return _password;
 }
 
-auto from_json(const json_t& j, access_token_t& access_token) //
+auto from_json(const json_t& j, download_token_t& download_token) //
     -> void
 {
-    j.at("username").get_to(access_token._username);
-    j.at("password").get_to(access_token._password);
+    j.at("username").get_to(download_token._username);
+    j.at("password").get_to(download_token._password);
 }
 
-auto to_json(json_t& j, const access_token_t& access_token) //
+auto to_json(json_t& j, const download_token_t& download_token) //
     -> void
 {
     j = json_t({
-        {"username", access_token.username()},
-        {"password", access_token.password()},
+        {"username", download_token.username()},
+        {"password", download_token.password()},
     });
 }
 
