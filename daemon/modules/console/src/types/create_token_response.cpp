@@ -18,7 +18,7 @@ namespace flecs {
 namespace console {
 
 auto create_token_response_data_t::token() const noexcept //
-    -> const access_token_t&
+    -> const download_token_t&
 {
     return _token;
 }

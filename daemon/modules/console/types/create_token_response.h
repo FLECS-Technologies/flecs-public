@@ -16,8 +16,8 @@
 
 #include <string>
 
-#include "access_token.h"
 #include "base_response.h"
+#include "download_token.h"
 #include "util/json/json.h"
 
 namespace flecs {
@@ -27,7 +27,7 @@ class create_token_response_data_t
 {
 public:
     auto token() const noexcept //
-        -> const access_token_t&;
+        -> const download_token_t&;
 
 private:
     friend auto from_json(const json_t& j, create_token_response_data_t& ff) //
@@ -35,7 +35,7 @@ private:
     friend auto to_json(json_t& j, const create_token_response_data_t& ff) //
         -> void;
 
-    access_token_t _token;
+    download_token_t _token;
 };
 
 class create_token_response_t : public base_response_t, public create_token_response_data_t
