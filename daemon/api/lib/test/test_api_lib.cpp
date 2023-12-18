@@ -165,9 +165,7 @@ TEST(api_lib, app_sideload_string_success)
 {
     auto lib = flecs::libflecs_t{};
     (void)lib.connect("localhost", TEST_PORT);
-    const auto app_manifest =
-        "\"app\":\"ch.inasoft.sql4automation\",\"title\":\"SQL4AUTOMATION\",\"version\":\"v4.0.0."
-        "6\"";
+    const auto app_manifest = "\"app\":\"ch.inasoft.sql4automation\",\"version\":\"v4.0.0.6\"";
 
     const auto res = lib.sideload_app_from_yaml(app_manifest);
 

@@ -231,7 +231,6 @@ auto apps_t::do_install_impl(
     tmp.desired(apps::status_e::Installed);
     tmp.status(apps::status_e::ManifestDownloaded);
 
-    progress.desc("Installation of "s + manifest->title() + " (" + manifest->version() + ")");
     progress.next_step("Acquiring download token");
 
     // Step 2: Determine current App status to decide where to continue
@@ -375,10 +374,6 @@ auto apps_t::do_uninstall(apps::key_t app_key, jobs::progress_t& progress) //
 
     // Step 2: Load App manifest
     auto manifest = app->manifest();
-
-    if (manifest) {
-        progress.desc("Uninstallation of "s + manifest->title() + " (" + manifest->version() + ")");
-    }
 
     app->desired(apps::status_e::NotInstalled);
 
