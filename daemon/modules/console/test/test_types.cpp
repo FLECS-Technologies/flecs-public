@@ -46,6 +46,16 @@ TEST(console, auth_response)
     ASSERT_EQ(flecs::json_t(uut), auth_response_json);
 }
 
+TEST(console, create_token_response)
+{
+    const auto uut = create_token_response_json.get<flecs::console::create_token_response_t>();
+
+    ASSERT_EQ(uut.token().username(), "username");
+    ASSERT_EQ(uut.token().password(), "password");
+
+    ASSERT_EQ(flecs::json_t(uut), create_token_response_json);
+}
+
 TEST(console, error_response)
 {
     const auto uut = error_response_json.get<flecs::console::error_response_t>();

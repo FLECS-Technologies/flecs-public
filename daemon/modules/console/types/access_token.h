@@ -14,10 +14,31 @@
 
 #pragma once
 
+#include <string>
+
 #include "util/json/json.h"
 
-extern const flecs::json_t auth_response_json;
-extern const flecs::json_t activate_response_json;
-extern const flecs::json_t create_token_response_json;
-extern const flecs::json_t error_response_json;
-extern const flecs::json_t validate_response_json;
+namespace flecs {
+namespace console {
+
+class access_token_t
+{
+public:
+    auto username() const noexcept //
+        -> const std::string&;
+
+    auto password() const noexcept //
+        -> const std::string&;
+
+private:
+    friend auto from_json(const json_t& j, access_token_t& response) //
+        -> void;
+    friend auto to_json(json_t& j, const access_token_t& response) //
+        -> void;
+
+    std::string _username;
+    std::string _password;
+};
+
+} // namespace console
+} // namespace flecs
