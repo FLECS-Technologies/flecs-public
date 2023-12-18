@@ -49,7 +49,7 @@ private:
         -> std::string;
 
     auto do_acquire_download_token(std::string app, std::string version, std::string session_id) //
-        -> json_t;
+        -> std::optional<console::download_token_t>;
 
     auto do_store_authentication(console::auth_response_data_t auth) //
         -> crow::response;
