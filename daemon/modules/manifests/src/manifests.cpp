@@ -155,23 +155,6 @@ auto manifests_t::add_from_console(const apps::key_t& app_key) //
     return add_from_string(str);
 }
 
-auto manifests_t::add_from_marketplace(const apps::key_t& app_key) //
-    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
-{
-#ifndef NDEBUG
-    auto url = std::string{"https://marketplace-staging.flecs.tech/manifests/apps/"};
-#else
-    auto url = std::string{"https://marketplace.flecs.tech/manifests/apps/"};
-#endif // NDEBUG
-
-    url.append(app_key.name());
-    url.append("/");
-    url.append(app_key.version());
-    url.append("/");
-    url.append("manifest.yml");
-
-    return add_from_url(url);
-}
 auto manifests_t::add_from_url(std::string_view url) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {

@@ -318,16 +318,10 @@ TEST(manifests, add_from_url)
     uut.init();
     uut.base_path("./manifests");
 
-    auto key = flecs::apps::key_t{"tech.flecs.mqtt-bridge", "1.6.1-porpoise"};
-    const auto [manifest_1, res_1] = uut.add_from_marketplace(key);
-    ASSERT_TRUE(res_1);
-    ASSERT_TRUE(uut.contains(key));
-    ASSERT_TRUE(uut.query(key));
-
     /* not a manifest, but exceeds size limit */
-    const auto [manifest_2, res_2] =
+    const auto [manifest, res] =
         uut.add_from_url("https://marketplace.flecs.tech/dl/deb/flecs_1.6.1-porpoise_amd64.deb");
-    ASSERT_FALSE(res_2);
+    ASSERT_FALSE(res);
 
     delete_manifests("./import");
     delete_manifests("./manifests");

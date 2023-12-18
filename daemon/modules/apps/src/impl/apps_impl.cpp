@@ -23,11 +23,13 @@
 #include "daemon/common/app/manifest/manifest.h"
 #ifdef FLECS_MOCK_MODULES
 #include "daemon/modules/console/__mocks__/console.h"
+#include "daemon/modules/device/__mocks__/device.h"
 #include "daemon/modules/instances/__mocks__/instances.h"
 #include "daemon/modules/jobs/__mocks__/jobs.h"
 #include "daemon/modules/manifests/__mocks__/manifests.h"
 #else // FLECS_MOCK_MODULES
 #include "daemon/modules/console/console.h"
+#include "daemon/modules/device/device.h"
 #include "daemon/modules/instances/instances.h"
 #include "daemon/modules/jobs/jobs.h"
 #include "daemon/modules/manifests/manifests.h"
@@ -177,11 +179,11 @@ auto apps_t::do_install_from_marketplace_sync(apps::key_t app_key) //
 auto apps_t::do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
     -> result_t
 {
-    progress.num_steps(6);
+    progress.num_steps(7);
     progress.next_step("Downloading manifest");
 
     // Download App manifest and forward to manifest installation, if download successful
-    const auto [manifest, _] = _manifests_api->add_from_marketplace(app_key);
+    const auto [manifest, _] = _manifests_api->add_from_console(app_key);
     if (manifest) {
         return do_install_impl(manifest, progress);
     }
@@ -240,46 +242,59 @@ auto apps_t::do_install_impl(
         app = *_apps.rbegin();
     }
 
+    auto console_api = std::dynamic_pointer_cast<module::console_t>(api::query_module("console"));
+    auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
+
+    auto token = std::optional<console::download_token_t>{};
     switch (app->status()) {
         case apps::status_e::ManifestDownloaded: {
             progress.next_step("Acquiring download token");
 
-#if 0  /// @todo replace by new functionality
-            app->download_token(acquire_download_token(license_key));
+            token = console_api->acquire_download_token(
+                app->key().name(),
+                app->key().version(),
+                device_api->session_id());
 
-            if (app->download_token().empty()) {
+            if (!token.has_value()) {
                 progress.result(0, "Could not acquire download token");
-            } else {
-                app->status(apps::status_e::TokenAcquired);
             }
-#endif // 0
+
             [[fallthrough]];
         }
         case apps::status_e::TokenAcquired: {
             // Step 4: Pull Docker image for this App
-            auto docker_login_process = process_t{};
             auto docker_pull_process = process_t{};
             auto docker_logout_process = process_t{};
-            const auto args = split(app->download_token(), ';');
 
-            if (args.size() == 3) {
-                progress.next_step("Authenticating");
+            progress.next_step("Authenticating");
+            if (!token->username().empty() && !token->password().empty()) {
+                const auto repo = app->manifest()->image_with_tag().substr(
+                    0,
+                    app->manifest()->image_with_tag().find_last_of('/'));
+
+                auto docker_process = process_t{};
 
                 auto login_attempts = 3;
                 while (login_attempts-- > 0) {
-                    docker_login_process = process_t{};
-                    docker_login_process
-                        .spawnp("docker", "login", "--username", "flecs", "--password", args[1]);
-                    docker_login_process.wait(true, true);
-                    if (docker_login_process.exit_code() == 0) {
+                    docker_process = process_t{};
+                    docker_process.spawnp(
+                        "docker",
+                        "login",
+                        "--username",
+                        token->username(),
+                        "--password",
+                        token->password(),
+                        std::move(repo));
+                    docker_process.wait(true, true);
+                    if (docker_process.exit_code() == 0) {
                         break;
                     }
                 }
-            }
 
-            if (docker_login_process.exit_code() != 0) {
-                _parent->save();
-                return {-1, docker_login_process.stderr()};
+                if (docker_process.exit_code() != 0) {
+                    _parent->save();
+                    return {-1, docker_process.stderr()};
+                }
             }
 
             progress.next_step("Downloading App");
@@ -318,22 +333,7 @@ auto apps_t::do_install_impl(
                 } catch (...) {
                 }
             }
-
-#if 0  /// @todo replace by new functionality
-            const auto args = split(app->download_token(), ';');
-            if (args.size() == 3) {
-                const auto success = expire_download_token(args[0], args[2]);
-                if (success) {
-                    app->download_token("");
-                    app->status(apps::status_e::Installed);
-                } else {
-                    progress.result(0, "Could not expire download token");
-                }
-            } else {
-                app->download_token("");
-                app->status(apps::status_e::Installed);
-            }
-#endif // 0
+            app->status(apps::status_e::Installed);
             break;
         }
         default: {

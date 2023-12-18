@@ -51,12 +51,6 @@ auto app_t::key() const noexcept //
     return static_cast<const key_t&>(*this);
 }
 
-auto app_t::download_token() const noexcept //
-    -> const std::string&
-{
-    return _download_token;
-}
-
 auto app_t::installed_size() const noexcept //
     -> std::int64_t
 {
@@ -85,12 +79,6 @@ auto app_t::manifest() const noexcept //
     -> std::shared_ptr<app_manifest_t>
 {
     return _manifest.lock();
-}
-
-auto app_t::download_token(std::string download_token) //
-    -> void
-{
-    _download_token = std::move(download_token);
 }
 
 auto app_t::installed_size(std::int64_t installed_size) //
@@ -156,7 +144,6 @@ static auto from_json_v2(const json_t& j, app_t& app) //
     app.installed_size(j.at("installedSize").get<std::int32_t>());
     if (j.at("_schemaVersion").get<std::string_view>() == "2.1.0") {
         app.license_key(j.at("licenseKey").get<std::string>());
-        app.download_token(j.at("downloadToken").get<std::string>());
     }
 }
 
