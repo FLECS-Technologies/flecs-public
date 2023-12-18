@@ -37,8 +37,6 @@ public:
 
     auto key() const noexcept //
         -> const key_t&;
-    auto download_token() const noexcept //
-        -> const std::string&;
     auto installed_size() const noexcept //
         -> std::int64_t;
     auto license_key() const noexcept //
@@ -50,8 +48,6 @@ public:
     auto manifest() const noexcept //
         -> std::shared_ptr<app_manifest_t>;
 
-    auto download_token(std::string download_token) //
-        -> void;
     auto installed_size(std::int64_t installed_size) //
         -> void;
     auto license_key(std::string license_key) //

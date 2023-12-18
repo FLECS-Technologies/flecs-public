@@ -93,6 +93,7 @@ auto device_t::do_session_id() //
 {
     if (_session_id.empty()) {
         _session_id = boost::lexical_cast<std::string>(boost::uuids::random_generator{}());
+        _parent->save();
     }
 
     return _session_id;
@@ -101,8 +102,7 @@ auto device_t::do_session_id() //
 auto device_t::do_activate_license() //
     -> result_t
 {
-    auto console_api =
-        std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
+    auto console_api = std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
 
     return console_api->activate_license(_parent->session_id());
 }
@@ -110,8 +110,7 @@ auto device_t::do_activate_license() //
 auto device_t::do_validate_license() //
     -> result_t
 {
-    auto console_api =
-        std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
+    auto console_api = std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
 
     return console_api->validate_license(_parent->session_id());
 }
