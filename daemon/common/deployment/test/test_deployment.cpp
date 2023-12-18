@@ -136,20 +136,16 @@ using namespace testing;
 #define G_FILE_LOCAL "/some/local/file"
 #define G_FILE_CONTAINER "/some/other/container/file"
 
-#define G_MANIFEST_1                                      \
-    "app: tech.flecs.test-app\n"                          \
-    "title: FLECS test app for unit tests\n"              \
-    "version: " G_VERSION_1                               \
-    "\n"                                                  \
-    "author: FLECS Technologies GmbH (info@flecs.tech)\n" \
+#define G_MANIFEST_1             \
+    "app: tech.flecs.test-app\n" \
+    "version: " G_VERSION_1      \
+    "\n"                         \
     "image: " G_IMAGE "\n"s
 
-#define G_MANIFEST_2                                      \
-    "app: tech.flecs.test-app\n"                          \
-    "title: FLECS test app for unit tests\n"              \
-    "version: " G_VERSION_2                               \
-    "\n"                                                  \
-    "author: FLECS Technologies GmbH (info@flecs.tech)\n" \
+#define G_MANIFEST_2             \
+    "app: tech.flecs.test-app\n" \
+    "version: " G_VERSION_2      \
+    "\n"                         \
     "image: " G_IMAGE "\n"s
 
 static const auto manifest_1 =

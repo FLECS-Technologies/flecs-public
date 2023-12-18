@@ -221,8 +221,6 @@ auto instances_t::do_create(
         return {-1, "Could not create instance of " + to_string(app_key) + ": manifest error"};
     }
 
-    progress.desc("Creating new instance of " + manifest->title());
-
     // Step 3: Ensure there is only one instance of single-instance apps
     if (!manifest->multi_instance()) {
         const auto instance_ids = _deployment->instance_ids(app->key());
@@ -287,7 +285,7 @@ auto instances_t::do_start(instances::id_t instance_id, bool once, jobs::progres
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    desc += " (" + to_string(instance->app()->key()) + ")";
     progress.desc(std::move(desc));
     // Step 3: Return if instance is already running
     if (_deployment->is_instance_running(instance)) {
@@ -341,7 +339,7 @@ auto instances_t::do_stop(instances::id_t instance_id, bool once, jobs::progress
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    desc += " (" + to_string(instance->app()->key()) + ")";
     progress.desc(std::move(desc));
 
     // Step 3: Return if instance is not running
@@ -393,7 +391,7 @@ auto instances_t::do_remove(instances::id_t instance_id, jobs::progress_t& progr
     }
 
     auto desc = progress.desc();
-    desc += " (" + instance->app()->manifest()->title() + " " + instance->app()->key().version().data() + ")";
+    desc += " (" + to_string(instance->app()->key()) + ")";
     progress.desc(std::move(desc));
 
     // Step 2: Attempt to stop instance

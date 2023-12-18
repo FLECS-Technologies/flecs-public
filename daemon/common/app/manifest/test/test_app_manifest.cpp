@@ -114,9 +114,7 @@ auto manifest_header() //
 {
     return std::string{                                       //
                        G_YAML_KEY_VALUE("app", G_APP)         //
-                       G_YAML_KEY_VALUE("title", G_TITLE)     //
                        G_YAML_KEY_VALUE("version", G_VERSION) //
-                       G_YAML_KEY_VALUE("author", G_AUTHOR)   //
                        G_YAML_KEY_VALUE("image", G_IMAGE)};
 }
 
@@ -124,9 +122,7 @@ auto extend_manifest(std::string& yaml) //
     -> void
 {
     yaml.append(G_ARGS);
-    yaml.append(G_YAML_KEY_VALUE("category", G_CATEGORY));
     yaml.append(G_CONFFILES);
-    yaml.append(G_YAML_KEY_VALUE("description", G_DESCRIPTION));
     yaml.append(G_DEVICES);
     yaml.append(G_ENVS);
     yaml.append(G_YAML_KEY_VALUE("hostname", "flecs-unit-test"));
@@ -146,9 +142,7 @@ TEST(daemon_app, minimal_app)
 
     ASSERT_TRUE(app.is_valid());
     ASSERT_EQ(app.app(), G_APP);
-    ASSERT_EQ(app.title(), G_TITLE);
     ASSERT_EQ(app.version(), G_VERSION);
-    ASSERT_EQ(app.author(), G_AUTHOR);
     ASSERT_EQ(app.image(), G_IMAGE);
     ASSERT_EQ(app.image_with_tag(), G_IMAGE ":" G_VERSION);
 }
@@ -170,8 +164,6 @@ TEST(daemon_app, complex_app)
     auto app = flecs::app_manifest_t::from_yaml_string(yaml);
 
     ASSERT_TRUE(app.is_valid());
-    ASSERT_EQ(app.description(), G_DESCRIPTION);
-    ASSERT_EQ(app.category(), G_CATEGORY);
     ASSERT_EQ(app.hostname(), "flecs-unit-test");
     ASSERT_EQ(app.multi_instance(), false);
     ASSERT_EQ(app.interactive(), true);
@@ -235,12 +227,7 @@ TEST(daemon_app, to_json)
     const auto json_expected =
         R"-({"app":"tech.flecs.test-app",)-"
         R"-("version":"1.2.3.4-f1",)-"
-        R"-("title":"FLECS test app",)-"
-        R"-("author":"FLECS Technologies GmbH (info@flecs.tech)",)-"
         R"-("image":"flecs/test-app",)-"
-        R"-("description":"FLECS test app for unit tests",)-"
-        R"-("avatar":"",)-"
-        R"-("category":"test",)-"
         R"-("multiInstance":false,)-"
         R"-("editor":"",)-"
         R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"

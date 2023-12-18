@@ -57,12 +57,8 @@ public:
 
     auto& app() const noexcept { return _app; }
     auto& args() const noexcept { return _args; }
-    auto& author() const noexcept { return _author; }
-    auto& avatar() const noexcept { return _avatar; }
     auto& capabilities() const noexcept { return _capabilities; }
-    auto& category() const noexcept { return _category; }
     auto& conffiles() const noexcept { return _conffiles; }
-    auto& description() const noexcept { return _description; }
     auto& devices() const noexcept { return _devices; }
     auto& editor() const noexcept { return _editor; }
     auto& env() const noexcept { return _env; }
@@ -74,7 +70,6 @@ public:
     auto& networks() const noexcept { return _networks; }
     auto& ports() const noexcept { return _ports; }
     auto& startup_options() const noexcept { return _startup_options; }
-    auto& title() const noexcept { return _title; }
     auto& version() const noexcept { return _version; }
     auto& volumes() const noexcept { return _volumes; }
 
@@ -91,12 +86,8 @@ private:
 
     std::string _app;
     args_t _args;
-    std::string _author;
-    std::string _avatar;
     capabilities_t _capabilities;
-    std::string _category;
     conffiles_t _conffiles;
-    std::string _description;
     devices_t _devices;
     std::string _editor;
     envs_t _env;
@@ -107,7 +98,6 @@ private:
     networks_t _networks;
     ports_t _ports;
     startup_options_t _startup_options;
-    std::string _title;
     std::string _version;
     volumes_t _volumes;
 };

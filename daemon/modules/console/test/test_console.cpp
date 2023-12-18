@@ -275,8 +275,6 @@ const char* mock_console_t::manifest = R"-(
     {
         "app": "tech.flecs.test-app-1",
         "version": "1.2.3.4-f1",
-        "author": "FLECS Technologies GmbH",
-        "title": "FLECS Test App",
         "image": "flecs/tech.flecs.test-app-1"
     }
 )-";

@@ -59,11 +59,7 @@ app_manifest_t::app_manifest_t()
     : _valid{}
     , _app{}
     , _args{}
-    , _author{}
-    , _avatar{}
-    , _category{}
     , _conffiles{}
-    , _description{}
     , _devices{}
     , _editor{}
     , _env{}
@@ -73,7 +69,6 @@ app_manifest_t::app_manifest_t()
     , _multi_instance{}
     , _networks{}
     , _ports{}
-    , _title{}
     , _version{}
     , _volumes{}
 {}
@@ -135,9 +130,6 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
     try {
         REQUIRED_TYPED_YAML_VALUE(yaml, app, _app);
         OPTIONAL_TYPED_YAML_VALUE(yaml, args, _args);
-        REQUIRED_TYPED_YAML_VALUE(yaml, author, _author);
-        OPTIONAL_TYPED_YAML_VALUE(yaml, avatar, _avatar);
-        OPTIONAL_TYPED_YAML_VALUE(yaml, category, _category);
 
         OPTIONAL_YAML_NODE(yaml, capabilities, capabilities);
         for (const auto& cap : capabilities) {
@@ -148,7 +140,6 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
             _conffiles.emplace_back(conffile_t{conf.as<std::string>()});
         }
 
-        OPTIONAL_TYPED_YAML_VALUE(yaml, description, _description);
         OPTIONAL_YAML_NODE(yaml, devices, devices);
         for (const auto& device : devices) {
             _devices.emplace(device.as<std::string>());
@@ -186,7 +177,6 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
             _startup_options.emplace_back(startup_option_from_string(startup_option.as<std::string>()));
         }
 
-        REQUIRED_TYPED_YAML_VALUE(yaml, title, _title);
         REQUIRED_TYPED_YAML_VALUE(yaml, version, _version);
 
         OPTIONAL_YAML_NODE(yaml, volumes, volumes);
@@ -241,13 +231,8 @@ auto to_json(json_t& json, const app_manifest_t& app_manifest) //
     json = json_t(
         {{"app", app_manifest._app},
          {"version", app_manifest._version},
-         {"title", app_manifest._title},
-         {"author", app_manifest._author},
          {"image", app_manifest._image},
 
-         {"description", app_manifest._description},
-         {"avatar", app_manifest._avatar},
-         {"category", app_manifest._category},
          {"multiInstance", app_manifest._multi_instance},
          {"editor", app_manifest._editor},
 
@@ -269,13 +254,8 @@ auto from_json(const json_t& json, app_manifest_t& app_manifest) //
 {
     REQUIRED_JSON_VALUE(json, app, app_manifest._app);
     REQUIRED_JSON_VALUE(json, version, app_manifest._version);
-    REQUIRED_JSON_VALUE(json, title, app_manifest._title);
-    REQUIRED_JSON_VALUE(json, author, app_manifest._author);
     REQUIRED_JSON_VALUE(json, image, app_manifest._image);
 
-    OPTIONAL_JSON_VALUE(json, description, app_manifest._description);
-    OPTIONAL_JSON_VALUE(json, avatar, app_manifest._avatar);
-    OPTIONAL_JSON_VALUE(json, category, app_manifest._category);
     OPTIONAL_JSON_VALUE(json, multiInstance, app_manifest._multi_instance);
     OPTIONAL_JSON_VALUE(json, editor, app_manifest._editor);
 
