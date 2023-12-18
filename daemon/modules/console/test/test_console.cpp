@@ -84,7 +84,7 @@ public:
                 const auto auth = req.get_header_value("authorization").substr(7);
                 if (auth.empty()) {
                     const auto response = flecs::json_t({
-                        {"status", 403},
+                        {"statusCode", 403},
                         {"statusText", "Forbidden"},
                         {"reason", "Invalid header: Authorization (expected Bearer)"},
                     });
@@ -95,7 +95,7 @@ public:
                 if (session_id == "200-valid") {
                     /* expected behavior for successful activation */
                     const auto response = flecs::json_t({
-                        {"status", 200},
+                        {"statusCode", 200},
                         {"statusText", "OK"},
                         {"data",
                          {
@@ -111,7 +111,7 @@ public:
                     return crow::response(204);
                 } else if (session_id == "403") {
                     const auto response = flecs::json_t({
-                        {"status", 403},
+                        {"statusCode", 403},
                         {"statusText", "Forbidden"},
                         {"reason", "No remaining activations"},
                     });
@@ -119,7 +119,7 @@ public:
                 } else if (session_id == "500") {
                     /* expected behavior for errors during activation */
                     const auto response = flecs::json_t({
-                        {"status", 500},
+                        {"statusCode", 500},
                         {"statusText", "Internal Server Error"},
                         {"reason", "Could not retrieve device licenses"},
                     });
@@ -127,7 +127,7 @@ public:
                 } else if (session_id == "500-unhandled") {
                     /* unexpected behavior, unhandled error during activation */
                     const auto response = flecs::json_t({
-                        {"status", 500},
+                        {"statusCode", 500},
                         {"statusText", "Internal Server Error"},
                     });
                     return crow::response(500, response.dump());
@@ -142,7 +142,7 @@ public:
                 const auto auth = req.get_header_value("authorization").substr(7);
                 if (auth.empty()) {
                     const auto response = flecs::json_t({
-                        {"status", 403},
+                        {"statusCode", 403},
                         {"statusText", "Forbidden"},
                         {"reason", "Invalid header: Authorization (expected Bearer)"},
                     });
@@ -153,7 +153,7 @@ public:
                 if (session_id == "200-active") {
                     /* expected behavior for successful validation of active device */
                     const auto response = flecs::json_t({
-                        {"status", 200},
+                        {"statusCode", 200},
                         {"statusText", "OK"},
                         {"data",
                          {
@@ -164,7 +164,7 @@ public:
                 } else if (session_id == "200-inactive") {
                     /* expected behavior for successful validation of inactive device */
                     const auto response = flecs::json_t({
-                        {"status", 200},
+                        {"statusCode", 200},
                         {"statusText", "OK"},
                         {"data",
                          {
@@ -178,7 +178,7 @@ public:
                 } else if (session_id == "500") {
                     /* expected behavior for errors during activation */
                     const auto response = flecs::json_t({
-                        {"status", 500},
+                        {"statusCode", 500},
                         {"statusText", "Internal Server Error"},
                         {"reason", "Could not retrieve device licenses"},
                     });
@@ -186,7 +186,7 @@ public:
                 } else if (session_id == "500-unhandled") {
                     /* unexpected behavior, unhandled error during activation */
                     const auto response = flecs::json_t({
-                        {"status", 500},
+                        {"statusCode", 500},
                         {"statusText", "Internal Server Error"},
                     });
                     return crow::response(500, response.dump());
@@ -201,7 +201,7 @@ public:
                     const auto auth = req.get_header_value("authorization").substr(7);
                     if (auth.empty()) {
                         const auto response = flecs::json_t({
-                            {"status", 403},
+                            {"statusCode", 403},
                             {"statusText", "Forbidden"},
                             {"reason", "Invalid header: Authorization (expected Bearer)"},
                         });
@@ -215,7 +215,7 @@ public:
                     if (session_id == "200-valid") {
                         const auto json_manifest = flecs::parse_json(manifest);
                         const auto response = flecs::json_t({
-                            {"status", 200},
+                            {"statusCode", 200},
                             {"statusText", "OK"},
                             {"data", json_manifest},
                         });
@@ -224,7 +224,7 @@ public:
 
                     if (session_id == "404-notfound") {
                         const auto response = flecs::json_t({
-                            {"status", 404},
+                            {"statusCode", 404},
                             {"statusText", "Not Found"},
                         });
                         return crow::response(404, response.dump());
@@ -232,7 +232,7 @@ public:
 
                     if (session_id == "500") {
                         const auto response = flecs::json_t({
-                            {"status", 500},
+                            {"statusCode", 500},
                             {"statusText", "Internal Server Error"},
                             {"reason", "Could not retrieve App Manifest"},
                         });
@@ -242,7 +242,7 @@ public:
                     if (session_id == "500-unhandled") {
                         /* unexpected behavior, unhandled error during activation */
                         const auto response = flecs::json_t({
-                            {"status", 500},
+                            {"statusCode", 500},
                             {"statusText", "Internal Server Error"},
                         });
                         return crow::response(500, response.dump());

@@ -37,7 +37,7 @@ auto base_response_t::status_text() const noexcept //
 auto from_json(const json_t& j, base_response_t& response) //
     -> void
 {
-    j.at("status").get_to(response._status_code);
+    j.at("statusCode").get_to(response._status_code);
     j.at("statusText").get_to(response._status_text);
 }
 
@@ -45,7 +45,7 @@ auto to_json(json_t& j, const base_response_t& response) //
     -> void
 {
     j = json_t({
-        {"status", response.status_code()},
+        {"statusCode", response.status_code()},
         {"statusText", response.status_text()},
     });
 }
