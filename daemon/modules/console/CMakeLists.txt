@@ -15,17 +15,21 @@
 project(modules.console.types)
 
 add_library(${PROJECT_NAME} STATIC
+    src/types/access_token.cpp
     src/types/activate_response.cpp
     src/types/auth_response.cpp
     src/types/base_response.cpp
+    src/types/create_token_response.cpp
     src/types/error_response.cpp
     src/types/feature_flags.cpp
     src/types/jwt.cpp
     src/types/user.cpp
     src/types/validate_response.cpp
+    types/access_token.h
     types/activate_response.h
     types/auth_response.h
     types/base_response.h
+    types/create_token_response.h
     types/error_response.h
     types/feature_flags.h
     types/jwt.h

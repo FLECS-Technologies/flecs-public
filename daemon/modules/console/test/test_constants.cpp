@@ -32,6 +32,19 @@ const flecs::json_t activate_response_json = flecs::json_t::parse(R"-(
     }
 )-");
 
+const flecs::json_t create_token_response_json = flecs::json_t::parse(R"-(
+    {
+        "status": 200,
+        "statusText": "OK",
+        "data": {
+            "token": {
+                "username": "username",
+                "password": "password"
+            }
+        }
+    }
+)-");
+
 const flecs::json_t error_response_json = flecs::json_t::parse(R"-(
     {
         "status": 500,
