@@ -20,7 +20,7 @@
 #include <string_view>
 
 #include "daemon/modules/module_base/module.h"
-#include "types/auth_response.h"
+#include "types.h"
 
 namespace flecs {
 namespace module {
@@ -51,7 +51,7 @@ public:
         -> std::string;
 
     auto acquire_download_token(std::string app, std::string version, std::string session_id) //
-        -> json_t;
+        -> std::optional<console::download_token_t>;
 
 protected:
     console_t();

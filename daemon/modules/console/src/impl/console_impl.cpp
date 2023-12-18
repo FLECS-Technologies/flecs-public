@@ -139,7 +139,7 @@ auto console_t::do_download_manifest(std::string app, std::string version, std::
 }
 
 auto console_t::do_acquire_download_token(std::string app, std::string version, std::string session_id) //
-    -> json_t
+    -> std::optional<console::download_token_t>
 {
     const auto url = std::string{_parent->base_url()} + "/api/v2/tokens";
     const auto body = json_t({
@@ -157,12 +157,18 @@ auto console_t::do_acquire_download_token(std::string app, std::string version, 
 
     if (res.status_code == 200) {
         try {
-            return parse_json(res.text).at("data").get<json_t>();
+            return parse_json(res.text) //
+                .get<console::create_token_response_t>()
+                .token();
         } catch (...) {
         }
     }
 
-    return json_t::parse("");
+    if (res.status_code == 204) {
+        return console::download_token_t{};
+    }
+
+    return {};
 }
 
 auto console_t::do_store_authentication(console::auth_response_data_t auth) //
