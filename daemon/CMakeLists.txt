@@ -57,6 +57,11 @@ install(
     TARGETS daemon.lib flunder.shared LIBRARY
     DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/lib
 )
+get_target_property(zenohc-lib zenohc::lib IMPORTED_LOCATION)
+install(
+    FILES ${zenohc-lib}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/lib
+)
 
 # install helper scripts for packaging
 install(
