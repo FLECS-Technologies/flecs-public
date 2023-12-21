@@ -179,9 +179,15 @@ auto apps_t::do_install_from_marketplace_sync(apps::key_t app_key) //
 auto apps_t::do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
     -> result_t
 {
-    progress.num_steps(7);
-    progress.next_step("Downloading manifest");
+    progress.num_steps(8);
+    progress.next_step("Verifying device activation");
+    auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
+    const auto [res, message] = device_api->activate_license();
+    if (res != 0) {
+        return {-1, "Device not activated and no activations remaining"};
+    }
 
+    progress.next_step("Downloading manifest");
     // Download App manifest and forward to manifest installation, if download successful
     const auto [manifest, _] = _manifests_api->add_from_console(app_key);
     if (manifest) {
