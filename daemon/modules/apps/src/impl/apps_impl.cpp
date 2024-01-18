@@ -273,11 +273,7 @@ auto apps_t::do_install_impl(
             auto docker_logout_process = process_t{};
 
             progress.next_step("Authenticating");
-            if (!token->username().empty() && !token->password().empty()) {
-                const auto repo = app->manifest()->image_with_tag().substr(
-                    0,
-                    app->manifest()->image_with_tag().find_last_of('/'));
-
+            if (token.has_value() && !token->username().empty() && !token->password().empty()) {
                 auto docker_process = process_t{};
 
                 auto login_attempts = 3;
@@ -290,7 +286,7 @@ auto apps_t::do_install_impl(
                         token->username(),
                         "--password",
                         token->password(),
-                        std::move(repo));
+                        app->manifest()->image_with_tag());
                     docker_process.wait(true, true);
                     if (docker_process.exit_code() == 0) {
                         break;
