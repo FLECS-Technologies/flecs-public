@@ -40,6 +40,9 @@ else()
     add_definitions(-DFLECS_FINAL_UNLESS_TESTED=final)
 endif()
 
+# workaround for gcc-12 bug
+add_compile_options(-Wno-error=restrict)
+
 # add install directory to rpath
 set(CMAKE_INSTALL_RPATH "/opt/flecs/lib")
 
@@ -57,9 +60,11 @@ add_custom_command(TARGET packages POST_BUILD
     COMMAND echo -n ${CORE_VERSION} >${CMAKE_INSTALL_PREFIX}/latest_flecs_${ARCH}
 )
 
-add_custom_target(
-    coverage
-    DEPENDS test
-    COMMAND mkdir -p coverage
-    COMMAND gcovr -r ${CMAKE_SOURCE_DIR} -e ${CMAKE_SOURCE_DIR}/external/ -e ${CMAKE_BINARY_DIR} --html-details coverage/coverage.html
-)
+if (NOT TARGET coverage)
+    add_custom_target(
+        coverage
+        DEPENDS test
+        COMMAND mkdir -p coverage
+        COMMAND gcovr -r ${CMAKE_SOURCE_DIR} -e ${CMAKE_SOURCE_DIR}/examples/ -e ${CMAKE_SOURCE_DIR}/external/ -e ${CMAKE_BINARY_DIR} --html-details coverage/coverage.html
+    )
+endif()
