@@ -232,7 +232,7 @@ TEST(daemon_app, to_json)
         R"-("editor":"",)-"
         R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
         R"-("capabilities":[],)-"
-        R"-("conffiles":["local.conf:/etc/container.conf:rw,no_init"],)-"
+        R"-("conffiles":["local.conf:/etc/container.conf:rw"],)-"
         R"-("devices":["/dev/device0"],)-"
         R"-("env":["MY_ENV_VAR=ENV_VAR_VALUE","my-env-with-dashes=value-with-dashes","my.env.with.spaces=Value with spaces","my.other.env=MY_OTHER_VALUE"],)-"
         R"-("hostname":"flecs-unit-test",)-"

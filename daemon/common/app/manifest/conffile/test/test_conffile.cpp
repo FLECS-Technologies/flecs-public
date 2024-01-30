@@ -24,7 +24,6 @@ TEST(conffile, empty)
     ASSERT_EQ(conffile.local(), "");
     ASSERT_EQ(conffile.container(), "");
     ASSERT_FALSE(conffile.ro());
-    ASSERT_FALSE(conffile.init());
 }
 
 TEST(conffile, valid)
@@ -35,7 +34,6 @@ TEST(conffile, valid)
     ASSERT_EQ(conffile.local(), "file.cfg");
     ASSERT_EQ(conffile.container(), "/etc/file.cfg");
     ASSERT_FALSE(conffile.ro());
-    ASSERT_FALSE(conffile.init());
 }
 
 TEST(conffile, invalid_mapping_1)
@@ -96,35 +94,32 @@ TEST(conffile, invalid_container_char)
 
 TEST(conffile, valid_properties_1)
 {
-    const auto conffile = flecs::conffile_t{std::string{"file.cfg:/etc/file.cfg:ro,init"}};
+    const auto conffile = flecs::conffile_t{std::string{"file.cfg:/etc/file.cfg:ro"}};
 
     ASSERT_TRUE(conffile.is_valid());
     ASSERT_EQ(conffile.local(), "file.cfg");
     ASSERT_EQ(conffile.container(), "/etc/file.cfg");
     ASSERT_TRUE(conffile.ro());
-    ASSERT_TRUE(conffile.init());
 }
 
 TEST(conffile, valid_properties_2)
 {
-    const auto conffile = flecs::conffile_t{std::string{"file.cfg:/etc/file.cfg:init,ro"}};
-
-    ASSERT_TRUE(conffile.is_valid());
-    ASSERT_EQ(conffile.local(), "file.cfg");
-    ASSERT_EQ(conffile.container(), "/etc/file.cfg");
-    ASSERT_TRUE(conffile.ro());
-    ASSERT_TRUE(conffile.init());
-}
-
-TEST(conffile, valid_properties_3)
-{
-    const auto conffile = flecs::conffile_t{std::string{"file.cfg:/etc/file.cfg:rw,no_init"}};
+    const auto conffile = flecs::conffile_t{std::string{"file.cfg:/etc/file.cfg"}};
 
     ASSERT_TRUE(conffile.is_valid());
     ASSERT_EQ(conffile.local(), "file.cfg");
     ASSERT_EQ(conffile.container(), "/etc/file.cfg");
     ASSERT_FALSE(conffile.ro());
-    ASSERT_FALSE(conffile.init());
+}
+
+TEST(conffile, valid_properties_3)
+{
+    const auto conffile = flecs::conffile_t{std::string{"file.cfg:/etc/file.cfg:rw"}};
+
+    ASSERT_TRUE(conffile.is_valid());
+    ASSERT_EQ(conffile.local(), "file.cfg");
+    ASSERT_EQ(conffile.container(), "/etc/file.cfg");
+    ASSERT_FALSE(conffile.ro());
 }
 
 TEST(conffile, invalid_properties_1)
@@ -135,7 +130,6 @@ TEST(conffile, invalid_properties_1)
     ASSERT_EQ(conffile.local(), "file.cfg");
     ASSERT_EQ(conffile.container(), "/etc/file.cfg");
     ASSERT_FALSE(conffile.ro());
-    ASSERT_FALSE(conffile.init());
 }
 
 TEST(conffile, invalid_properties_2)
@@ -147,7 +141,6 @@ TEST(conffile, invalid_properties_2)
     ASSERT_EQ(conffile.local(), "file.cfg");
     ASSERT_EQ(conffile.container(), "/etc/file.cfg");
     ASSERT_FALSE(conffile.ro());
-    ASSERT_FALSE(conffile.init());
 }
 
 TEST(conffile, invalid_properties_3)
@@ -158,15 +151,14 @@ TEST(conffile, invalid_properties_3)
     ASSERT_EQ(conffile.local(), "file.cfg");
     ASSERT_EQ(conffile.container(), "/etc/file.cfg");
     ASSERT_TRUE(conffile.ro());
-    ASSERT_FALSE(conffile.init());
 }
 
 TEST(conffile, to_json)
 {
-    const auto conffile = flecs::conffile_t{std::string{"file.cfg:/etc/file.cfg:init"}};
+    const auto conffile = flecs::conffile_t{std::string{"file.cfg:/etc/file.cfg"}};
 
     const auto json = flecs::json_t(conffile);
-    const auto json_expected = R"("file.cfg:/etc/file.cfg:rw,init")";
+    const auto json_expected = R"("file.cfg:/etc/file.cfg:rw")";
 
     ASSERT_TRUE(conffile.is_valid());
     ASSERT_EQ(json.dump(), json_expected);
@@ -174,22 +166,21 @@ TEST(conffile, to_json)
 
 TEST(conffile, from_json)
 {
-    const auto json_string = R"("file.cfg:/etc/file.cfg:rw,init")";
+    const auto json_string = R"("file.cfg:/etc/file.cfg:rw")";
     const auto json = flecs::parse_json(json_string);
 
     const auto conffile = json.get<flecs::conffile_t>();
 
     ASSERT_TRUE(conffile.is_valid());
     ASSERT_EQ(conffile.container(), "/etc/file.cfg");
-    ASSERT_EQ(conffile.init(), true);
     ASSERT_EQ(conffile.local(), "file.cfg");
     ASSERT_EQ(conffile.ro(), false);
 }
 
 TEST(conffile, sort)
 {
-    const auto uut_1 = flecs::conffile_t{"file.cfg:/etc/file.cfg:init,ro"};
-    const auto uut_2 = flecs::conffile_t{"another_file.cfg:/etc/file2.cfg:init,rw"};
+    const auto uut_1 = flecs::conffile_t{"file.cfg:/etc/file.cfg:ro"};
+    const auto uut_2 = flecs::conffile_t{"another_file.cfg:/etc/file2.cfg:rw"};
 
     ASSERT_LT(uut_2, uut_1);
     ASSERT_LE(uut_2, uut_1);
@@ -202,7 +193,7 @@ TEST(conffile, to_string)
 {
     const auto conffile = flecs::conffile_t{std::string{"file.cfg:/etc/file.cfg:invalid_prop,ro"}};
 
-    const auto expected = "file.cfg:/etc/file.cfg:ro,no_init";
+    const auto expected = "file.cfg:/etc/file.cfg:ro";
 
     ASSERT_EQ(to_string(conffile), expected);
 }

@@ -28,7 +28,6 @@ public:
         : _local{}
         , _container{}
         , _ro{}
-        , _init{}
     {}
 
     explicit conffile_t(std::string_view str);
@@ -48,11 +47,6 @@ public:
     auto ro(bool ro) //
         -> void;
 
-    auto init() const noexcept //
-        -> bool;
-    auto init(bool init) //
-        -> void;
-
     auto is_valid() const noexcept //
         -> bool;
 
@@ -65,7 +59,6 @@ private:
     std::string _local;
     std::string _container;
     bool _ro;
-    bool _init;
 };
 
 auto to_string(const conffile_t& conffile) //
