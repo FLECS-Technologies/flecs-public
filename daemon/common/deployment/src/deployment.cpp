@@ -373,18 +373,13 @@ auto deployment_t::create_config_files(std::shared_ptr<instances::instance_t> in
 
     for (const auto& conffile : manifest->conffiles()) {
         const auto local_path = conf_path + conffile.local();
-        if (conffile.init()) {
-            const auto [res, additional_info] =
-                copy_file_from_image(manifest->image_with_tag(), conffile.container(), local_path);
-            if (res != 0) {
-                return {-1, instance->id().hex()};
-            }
-        } else {
-            auto f = std::ofstream{local_path};
-            if (!f.good()) {
-                return {-1, instance->id().hex()};
-            }
+
+        const auto [res, additional_info] =
+            copy_file_from_image(manifest->image_with_tag(), conffile.container(), local_path);
+        if (res != 0) {
+            return {-1, instance->id().hex()};
         }
+
     }
 
     return {0, {}};

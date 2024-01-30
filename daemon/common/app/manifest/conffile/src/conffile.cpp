@@ -24,7 +24,6 @@ conffile_t::conffile_t(std::string_view str)
     : _local{}
     , _container{}
     , _ro{}
-    , _init{}
 {
     auto parts = split(str, ':');
     if (parts.size() < 2) {
@@ -43,10 +42,6 @@ conffile_t::conffile_t(std::string_view str)
         if (prop == "ro") {
             _ro = true;
         } else if (prop == "rw") {
-            // default
-        } else if (prop == "init") {
-            _init = true;
-        } else if (prop == "no_init") {
             // default
         } else {
             std::fprintf(stderr, "Ignoring invalid conffile property '%s'\n", prop.c_str());
@@ -85,17 +80,6 @@ auto conffile_t::ro(bool ro) //
     -> void
 {
     _ro = ro;
-}
-
-auto conffile_t::init() const noexcept //
-    -> bool
-{
-    return _init;
-}
-auto conffile_t::init(bool init) //
-    -> void
-{
-    _init = init;
 }
 
 bool conffile_t::is_valid() const noexcept
@@ -139,7 +123,7 @@ auto to_string(const conffile_t& conffile) //
         ':',
         conffile.local(),
         conffile.container(),
-        stringify_delim(',', conffile.ro() ? "ro" : "rw", conffile.init() ? "init" : "no_init"));
+        conffile.ro() ? "ro" : "rw");
 }
 
 auto operator<(const conffile_t& lhs, const conffile_t& rhs) //
