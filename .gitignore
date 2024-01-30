@@ -43,3 +43,11 @@ build/**
 **/usr/bin/**
 **/usr/lib/**
 **/var/**
+cmake-build-*/
+
+# Ignore everything from CLion but code style settings and run configurations
+# that are supposed to be shared within teams.
+.idea/*
+
+!.idea/codeStyles
+!.idea/runConfigurations
