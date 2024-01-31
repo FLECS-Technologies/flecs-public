@@ -828,3 +828,20 @@ paths:
                     example: "OK"
         "500":
           $ref: "#/components/responses/response_500"
+  /device/license/activation/status:
+    get:
+      tags: ["Device"]
+      summary: Check if device is activated
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isValid:
+                    type: boolean
+                    example: true
+        "500":
+          $ref: "#/components/responses/response_500"
