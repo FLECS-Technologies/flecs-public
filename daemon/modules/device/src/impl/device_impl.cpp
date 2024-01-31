@@ -115,6 +115,21 @@ auto device_t::do_validate_license() //
     return console_api->validate_license(_parent->session_id());
 }
 
+auto device_t::do_activate_license_for_client() //
+    -> crow::response
+{
+    auto [result, message] = do_activate_license();
+    auto response = json_t{};
+
+    if (result == 0) {
+        response["additionalInfo"] = "OK";
+        return crow::response{crow::status::OK, response.dump()};
+    }
+
+    response["additionalInfo"] = message;
+    return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
+}
+
 } // namespace impl
 } // namespace module
 } // namespace flecs

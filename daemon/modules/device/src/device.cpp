@@ -48,9 +48,17 @@ auto device_t::validate_license() //
     return _impl->do_validate_license();
 }
 
+auto device_t::activate_license_for_client() //
+    -> crow::response
+{
+    return _impl->do_activate_license_for_client();
+}
+
 auto device_t::do_init() //
     -> void
 {
+    FLECS_V2_ROUTE("/device/license/activation/status").methods("GET"_method)([this]() { return validate_license_for_client(); });
+
     _impl->do_init();
 }
 

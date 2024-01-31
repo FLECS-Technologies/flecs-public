@@ -51,6 +51,9 @@ private:
     auto do_validate_license() //
         -> result_t;
 
+    auto do_activate_license_for_client() //
+        -> crow::response;
+
     flecs::module::device_t* _parent;
     std::string _session_id;
 };
