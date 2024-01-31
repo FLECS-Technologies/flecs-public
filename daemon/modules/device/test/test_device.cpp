@@ -133,3 +133,44 @@ TEST(device, validate_license)
 
     uut.deinit();
 }
+
+TEST(device, validate_license_endpoint)
+{
+    auto uut = test_module_device_t{};
+    uut.init();
+    const auto session_id = uut.session_id();
+    auto req = crow::request{};
+    auto res = crow::response{};
+
+    req.url = "/v2/device/license/activation/status";
+
+    auto mock_console =
+        std::dynamic_pointer_cast<flecs::module::console_t>(flecs::api::query_module("console"));
+
+    flecs::flecs_api_t::instance().app().validate();
+    EXPECT_CALL(*mock_console.get(), validate_license(session_id));
+
+    flecs::flecs_api_t::instance().app().handle(req, res);
+    uut.deinit();
+}
+
+TEST(device, activate_license_endpoint)
+{
+    auto uut = test_module_device_t{};
+    uut.init();
+    const auto session_id = uut.session_id();
+    auto req = crow::request{};
+    auto res = crow::response{};
+    req.method = crow::HTTPMethod::POST;
+
+    req.url = "/v2/device/license/activation";
+
+    auto mock_console =
+        std::dynamic_pointer_cast<flecs::module::console_t>(flecs::api::query_module("console"));
+
+    EXPECT_CALL(*mock_console.get(), activate_license(session_id));
+
+    flecs::flecs_api_t::instance().app().handle(req, res);
+
+    uut.deinit();
+}
