@@ -811,3 +811,20 @@ paths:
                   core:
                     type: string
                     example: "v2.0.0-???"
+  /device/license/activation:
+    post:
+      tags: ["Device"]
+      summary: Execute device activation
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  additionalInfo:
+                    type: string
+                    example: "OK"
+        "500":
+          $ref: "#/components/responses/response_500"
