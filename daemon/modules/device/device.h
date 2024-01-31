@@ -38,6 +38,9 @@ public:
     auto validate_license() //
         -> result_t;
 
+    auto activate_license_for_client() //
+        -> crow::response;
+
 protected:
     device_t();
 
