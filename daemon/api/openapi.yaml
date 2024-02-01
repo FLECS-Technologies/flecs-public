@@ -270,6 +270,8 @@ tags:
       FLECS Service Mesh a.k.a flunder (<b>FL</b>ecs <b>UN</b>ified <b>D</b>ata <b>E</b>xchange and <b>R</b>etention)
   - name: "System"
     x-displayName: "System"
+  - name: "Device"
+    x-displayName: "Device"
 
 paths:
   # App related paths
