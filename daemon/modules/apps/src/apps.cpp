@@ -130,10 +130,8 @@ auto apps_t::http_sideload(std::string manifest_string) //
 auto apps_t::http_uninstall(apps::key_t app_key) //
     -> crow::response
 {
-    if (!is_installed(app_key)) {
-        auto response = json_t{};
-        response["additionalInfo"] = "Cannot uninstall " + to_string(app_key) + ", which is not installed";
-        return {crow::status::BAD_REQUEST, "json", response.dump()};
+    if (!query(app_key)) {
+        return crow::response(crow::status::NOT_FOUND);
     }
 
     auto job_id = _impl->queue_uninstall(std::move(app_key));
