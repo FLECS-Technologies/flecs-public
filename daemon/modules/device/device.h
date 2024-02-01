@@ -41,6 +41,9 @@ public:
     auto activate_license_for_client() //
         -> crow::response;
 
+    auto validate_license_for_client() //
+        -> crow::response;
+
 protected:
     device_t();
 

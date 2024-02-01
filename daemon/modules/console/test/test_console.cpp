@@ -441,7 +441,7 @@ TEST(console, validate_license)
         const auto session_id = "200-active";
         const auto [res, message] = uut.validate_license(session_id);
 
-        ASSERT_EQ(res, 0);
+        ASSERT_EQ(res, 1);
         ASSERT_EQ(message, "");
     }
 
@@ -450,8 +450,8 @@ TEST(console, validate_license)
         const auto session_id = "200-inactive";
         const auto [res, message] = uut.validate_license(session_id);
 
-        ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Device is not activated");
+        ASSERT_EQ(res, 0);
+        ASSERT_EQ(message, "");
     }
 
     /** User logged in, sessionId is inactive. Invalid response from server */

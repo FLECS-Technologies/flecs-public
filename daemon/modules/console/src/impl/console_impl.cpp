@@ -81,6 +81,9 @@ auto console_t::do_activate_license(std::string session_id) //
     return {-1, response.reason()};
 }
 
+/**
+ * \return 0 if license is invalid, 1 if license is valid and -1 including an error message if error occurred
+ */
 auto console_t::do_validate_license(std::string_view session_id) //
     -> result_t
 {
@@ -101,9 +104,9 @@ auto console_t::do_validate_license(std::string_view session_id) //
             return {-1, "Invalid JSON response for status code 200"};
         }
         if (response.is_valid()) {
-            return {0, {}};
+            return {1, {}};
         }
-        return {-1, "Device is not activated"};
+        return {0, {}};
     }
 
     auto response = console::error_response_t{};
