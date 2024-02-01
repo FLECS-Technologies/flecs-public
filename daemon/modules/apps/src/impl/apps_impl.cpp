@@ -182,9 +182,12 @@ auto apps_t::do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& 
     progress.num_steps(8);
     progress.next_step("Verifying device activation");
     auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
-    const auto [res, message] = device_api->activate_license();
-    if (res != 0) {
-        return {-1, "Device not activated and no activations remaining"};
+    const auto [res, message] = device_api->validate_license();
+    if (res == 0) {
+        return {-1, "Device not activated"};
+    }
+    if (res != 1) {
+        return {-1, "Device activation could not be verified: " + message};
     }
 
     progress.next_step("Downloading manifest");
