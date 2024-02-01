@@ -130,6 +130,25 @@ auto device_t::do_activate_license_for_client() //
     return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
 }
 
+auto device_t::do_validate_license_for_client() //
+    -> crow::response
+{
+    auto [result, message] = do_validate_license();
+    auto response = json_t{};
+
+    switch (result) {
+        case 1:
+            response["isValid"] = true;
+            return crow::response{crow::status::OK, response.dump()};
+        case 0:
+            response["isValid"] = false;
+            return crow::response{crow::status::OK, response.dump()};
+        default:
+            response["additionalInfo"] = message;
+            return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
+    }
+}
+
 } // namespace impl
 } // namespace module
 } // namespace flecs
