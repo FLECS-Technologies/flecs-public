@@ -39,6 +39,9 @@ jobs:
       - name: "CMake: Package"
         run: |
           cmake --build build/${{ matrix.arch }} --target packages
+      - name: "CMake: Version"
+        run: |
+          cmake --build build/${{ matrix.arch }} --target version | tail -n 1 > out/${{ matrix.arch }}.core_version
 
       - name: Archive Docker image archives
         uses: actions/upload-artifact@v3
@@ -55,6 +58,7 @@ jobs:
           path: |
             out/${{ matrix.arch }}/pkg/*.deb
             out/${{ matrix.arch }}/latest_flecs_*
+            out/${{ matrix.arch }}.core_version
           retention-days: 3
 
   deploy-dl:
@@ -77,17 +81,18 @@ jobs:
         with:
           azcliversion: 2.53.0
           inlineScript: |
+            CORE_VERSION=$(cat out/*.core_version | tail -n 1)
             for i in `find out/*/ -mindepth 1 -maxdepth 1 -name "latest_flecs_*"`; do \
               echo "Uploading ${i}"; \
               az storage blob upload --account-name flecs --container-name flecs-dl --name dev/flecs/$(basename ${i}) --file ${i} --overwrite
             done
             for i in `find out/*/pkg -name "*.deb"`; do \
               echo "Uploading ${i}"; \
-              az storage blob upload --account-name flecs --container-name flecs-dl --name dev/flecs/deb/$(basename ${i}) --file ${i} --overwrite
+              az storage blob upload --account-name flecs --container-name flecs-dl --name dev/flecs/${CORE_VERSION}/deb/$(basename ${i}) --file ${i} --overwrite
             done
             for i in `find out/*/pkg -name "*.tar"`; do \
               echo "Uploading ${i}"; \
-              az storage blob upload --account-name flecs --container-name flecs-dl --name dev/flecs/tar/$(basename ${i}) --file ${i} --overwrite
+              az storage blob upload --account-name flecs --container-name flecs-dl --name dev/flecs/${CORE_VERSION}/tar/$(basename ${i}) --file ${i} --overwrite
             done
 
   container-registry:
