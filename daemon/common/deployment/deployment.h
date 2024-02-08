@@ -25,6 +25,7 @@
 #include "daemon/common/network/network_type.h"
 #include "daemon/modules/instances/types/instance.h"
 #include "util/fs/fs.h"
+#include "util/network/ip_addr.h"
 
 namespace flecs {
 namespace apps {
@@ -160,6 +161,10 @@ public:
         -> std::string_view;
     auto default_network_gateway() const //
         -> std::string_view;
+    auto get_base_ip(std::string_view cidr_subnet) const //
+        -> std::optional<ip_addr_t>;
+    auto get_subnet_size(std::string_view cidr_subnet) const //
+        -> std::optional<int>;
 
     auto generate_instance_ip(std::string_view cidr_subnet, std::string_view gateway) const //
         -> std::string;
