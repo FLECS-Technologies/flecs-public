@@ -325,6 +325,19 @@ auto deployment_t::import_instance(std::shared_ptr<instances::instance_t> instan
 
     base_dir /= instance->id().hex();
 
+    for (auto& network : instance->networks()) {
+        auto net = query_network(network.network_name);
+        if (!net.has_value()) {
+            return {-1, "Could not find network " + network.network_name};
+        }
+        auto result_address = transfer_ip_to_network(net.value(), network.ip_address);
+        if (result_address.has_value()) {
+            network.ip_address = to_string(result_address.value());
+        } else {
+            return {-1, "Could not transfer ip " + network.ip_address + " to network " + net.value().name};
+        }
+    }
+
     auto [res, additional_info] = import_volumes(instance, base_dir / "volumes");
     if (res != 0) {
         return {res, additional_info};
@@ -739,6 +752,25 @@ auto deployment_t::default_network_gateway() const //
     -> std::string_view
 {
     return do_default_network_gateway();
+}
+
+auto deployment_t::transfer_ip_to_network(const network_t& network, std::string_view ip_address) const //
+    -> std::optional<ip_addr_t>
+{
+    auto base_ip = get_base_ip(network.cidr_subnet);
+    if (!base_ip.has_value()) {
+        return {};
+    }
+    auto net_size = get_subnet_size(network.cidr_subnet);
+    if (!net_size.has_value()) {
+        return {};
+    }
+    auto num = ip_addr_t{ip_address}.addr_v4();
+    // Remove network part from ip
+    num.s_addr &= ~0u << net_size.value();
+    // Combine with new network base
+    num.s_addr |= base_ip.value().addr_v4().s_addr;
+    return ip_addr_t{num};
 }
 
 auto deployment_t::get_base_ip(std::string_view cidr_subnet) const //
