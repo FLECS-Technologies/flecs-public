@@ -161,6 +161,8 @@ public:
         -> std::string_view;
     auto default_network_gateway() const //
         -> std::string_view;
+    auto transfer_ip_to_network(const network_t& network, std::string_view ip_address) const //
+        -> std::optional<ip_addr_t>;
     auto get_base_ip(std::string_view cidr_subnet) const //
         -> std::optional<ip_addr_t>;
     auto get_subnet_size(std::string_view cidr_subnet) const //
