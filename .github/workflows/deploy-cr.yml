@@ -1,0 +1,42 @@
+name: Deploy cr
+
+on:
+  workflow_call:
+    inputs:
+      docker_ref:
+        required: true
+        type: string
+
+jobs:
+  deploy-cr:
+    runs-on: ubuntu-22.04
+    container: flecspublic.azurecr.io/flecs-build
+
+    steps:
+    - name: Download Docker image archives
+      uses: actions/download-artifact@v3
+      with:
+        path: out/
+
+    - name: Login to Registry
+      uses: docker/login-action@v3
+      with:
+        registry: flecspublic.azurecr.io
+        username: ${{ secrets.REGISTRY_USER }}
+        password: ${{ secrets.REGISTRY_AUTH }}
+
+    - name: Push Docker images
+      run: |
+        for archive in `find out/*/docker -name "*.tar"`; do \
+          DOCKER_IMAGE=$(docker load --quiet --input ${archive} | cut -f2- -d ':'); \
+          DOCKER_IMAGES="${DOCKER_IMAGES} `echo ${DOCKER_IMAGE} | sed -E 's/(.*)-.+$/\1/p'`"; \
+          docker push ${DOCKER_IMAGE}; \
+        done; \
+        DOCKER_IMAGES=`echo ${DOCKER_IMAGES} | sed 's/ /\n/g' | sort -u`; \
+        for image in ${DOCKER_IMAGES}; do \
+          docker manifest create ${image} ${image}-amd64 ${image}-arm64 ${image}-armhf; \
+          docker manifest create ${image/:*/:${{ inputs.docker_ref }}} ${image}-amd64 ${image}-arm64 ${image}-armhf; \
+          docker manifest push ${image}; \
+          docker manifest push ${image/:*/:${{ inputs.docker_ref }}}; \
+        done
+      shell: bash

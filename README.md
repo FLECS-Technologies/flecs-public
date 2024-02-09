@@ -17,14 +17,14 @@ git submodule update --init
 ### The recommended way
 It is recommended to use our official Docker image for building. To do so, run
 ```bash
-docker run -it --rm --name flecs-build -v $(pwd):$(pwd) -w $(pwd) cr.flecs.tech/flecs-build:v3.0.0-hedgehog
+docker run -it --rm --name flecs-build -v $(pwd):$(pwd) -w $(pwd) flecspublic.azurecr.io/flecs-build:v3.0.0-hedgehog
 ```
 
 from the repository's root directory.
 
 If you intend to build Docker images as well (such as our System Apps), make sure to mount yout local Docker socket:
 ```bash
-docker run -it --rm --name flecs-build -v $(pwd):$(pwd) -v /run/docker.sock:/run/docker.sock -w $(pwd) cr.flecs.tech/flecs-build:v3.0.0-hedgehog
+docker run -it --rm --name flecs-build -v $(pwd):$(pwd) -v /run/docker.sock:/run/docker.sock -w $(pwd) flecspublic.azurecr.io/flecs-build:v3.0.0-hedgehog
 ```
 
 **Note:** It is recommended to use the Docker image tag that corresponds to the Git tag you are building.
@@ -47,7 +47,7 @@ For a list of up-to-date 3rd party dependencies, refer to [LICENSE-3RDPARTY](htt
 Our official Docker image to build FLECS contains prebuilt externals for all architectures. They are located in `/usr/local` and can be extracted using
 
 ```bash
-CONTAINER_ID=`docker create cr.flecs.tech/flecs-build:latest`
+CONTAINER_ID=`docker create flecspublic.azurecr.io/flecs-build:latest`
 docker cp ${CONTAINER_ID}:/usr/local <target dir>
 docker rm ${CONTAINER_ID}
 ```

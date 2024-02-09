@@ -1,0 +1,38 @@
+name: Test
+
+on:
+  workflow_call:
+    inputs:
+      flecs_build_ref:
+        required: true
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    container: flecspublic.azurecr.io/flecs-build:${{ inputs.flecs_build_ref }}
+
+    strategy:
+      matrix:
+        arch: ["amd64"]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: "CMake: Configure"
+      run: |
+        cmake -G Ninja -B build/${{ matrix.arch }} -DFLECS_BUILD_TESTS=Yes -DARCH=${{ matrix.arch }} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=out/${{ matrix.arch }}
+
+    - name: "CMake: Build"
+      run: |
+        cmake --build build/${{ matrix.arch }}
+
+    - name: "CMake: Test"
+      run: |
+        cmake --build build/${{ matrix.arch }} --target test
+
+    - name: "CMake: Coverage"
+      run: |
+        cmake --build build/${{ matrix.arch }} --target coverage
