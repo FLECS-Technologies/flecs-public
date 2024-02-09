@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if(BUILD_TESTING)
+if(FLECS_BUILD_TESTS)
     project(util.cxx20.test)
 
     add_executable(util.cxx20.test

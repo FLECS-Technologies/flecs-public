@@ -59,16 +59,3 @@ include(flecs-rules)
 add_custom_command(TARGET packages POST_BUILD
     COMMAND echo -n ${CORE_VERSION} >${CMAKE_INSTALL_PREFIX}/latest_flecs_${ARCH}
 )
-
-if (NOT TARGET coverage)
-    add_custom_target(
-        coverage
-        DEPENDS test
-        COMMAND mkdir -p coverage
-        COMMAND gcovr -r ${CMAKE_SOURCE_DIR} -e ${CMAKE_SOURCE_DIR}/examples/ -e ${CMAKE_SOURCE_DIR}/external/ -e ${CMAKE_BINARY_DIR} --html-details coverage/coverage.html
-    )
-endif()
-
-add_custom_target(version
-    COMMAND echo "${CORE_VERSION}"
-)

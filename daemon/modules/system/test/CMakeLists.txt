@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if (BUILD_TESTING)
+if (FLECS_BUILD_TESTS)
     project(daemon.modules.system.test)
 
     add_executable(daemon.modules.system.test

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if (BUILD_TESTING)
+if (FLECS_BUILD_TESTS)
     project(daemon.app.port_range.test)
 
     add_executable(daemon.app.port_range.test
