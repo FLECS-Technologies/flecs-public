@@ -663,12 +663,12 @@ auto deployment_docker_t::do_create_volume(
 }
 
 auto deployment_docker_t::do_import_volume(
-    std::shared_ptr<instances::instance_t> instance, std::string_view volume_name, fs::path src_dir) //
+    std::shared_ptr<instances::instance_t> instance, volume_t& volume, fs::path src_dir) //
     -> result_t
 {
     using std::operator""s;
 
-    const auto name = "flecs-"s + instance->id().hex() + "-"s + volume_name.data();
+    const auto name = "flecs-"s + instance->id().hex() + "-"s + volume.host();
     const auto archive = src_dir.string() + "/" + name + ".tar.gz";
 
     auto ec = std::error_code{};
@@ -679,8 +679,8 @@ auto deployment_docker_t::do_import_volume(
         return {-1, "Backup archive is no regular file"};
     }
 
-    delete_volume(instance, volume_name);
-    create_volume(instance, volume_name);
+    delete_volume(instance, volume.host());
+    create_volume(instance, volume.host());
 
     auto docker_create_process = process_t{};
     docker_create_process.arg("create");
@@ -733,11 +733,11 @@ auto deployment_docker_t::do_import_volume(
 
 auto deployment_docker_t::do_export_volume(
     std::shared_ptr<instances::instance_t> instance,
-    std::string_view volume_name,
+    const volume_t& volume,
     fs::path dest_dir) const //
     -> result_t
 {
-    const auto name = "flecs-" + instance->id().hex() + "-" + volume_name.data();
+    const auto name = "flecs-" + instance->id().hex() + "-" + volume.host();
     const auto archive = name + ".tar.gz";
 
     auto docker_create_process = process_t{};

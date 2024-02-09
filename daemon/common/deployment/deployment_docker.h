@@ -69,12 +69,12 @@ private:
         -> result_t override;
     auto do_import_volume(
         std::shared_ptr<instances::instance_t> instance,
-        std::string_view volume_name,
+        volume_t& volume,
         fs::path src_dir) //
         -> result_t override;
     auto do_export_volume(
         std::shared_ptr<instances::instance_t> instance,
-        std::string_view volume_name,
+        const volume_t& volume,
         fs::path dest_dir) const //
         -> result_t override;
     auto do_delete_volume(std::shared_ptr<instances::instance_t> instance, std::string_view volume_name) //

@@ -34,6 +34,7 @@ class key_t;
 } // namespace apps
 
 class conffile_t;
+class volume_t;
 
 class deployment_t
 {
@@ -119,14 +120,14 @@ public:
         -> result_t;
     auto import_volume(
         std::shared_ptr<instances::instance_t> instance,
-        std::string_view volume_name,
+        volume_t& volume,
         fs::path src_dir) //
         -> result_t;
     auto export_volumes(std::shared_ptr<instances::instance_t> instance, fs::path dest_dir) const //
         -> result_t;
     auto export_volume(
         std::shared_ptr<instances::instance_t> instance,
-        std::string_view volume_name,
+        const volume_t& volume,
         fs::path dest_dir) const //
         -> result_t;
     auto export_config_files(std::shared_ptr<instances::instance_t> instance, fs::path dest_dir) const //
@@ -226,12 +227,12 @@ private:
         -> result_t = 0;
     virtual auto do_import_volume(
         std::shared_ptr<instances::instance_t> instance,
-        std::string_view volume_name,
+        volume_t& volume,
         fs::path src_dir) //
         -> result_t = 0;
     virtual auto do_export_volume(
         std::shared_ptr<instances::instance_t> instance,
-        std::string_view volume_name,
+        const volume_t& volume,
         fs::path dest_dir) const //
         -> result_t = 0;
     virtual auto do_delete_volume(
