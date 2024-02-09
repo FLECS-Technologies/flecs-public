@@ -379,7 +379,6 @@ auto deployment_t::create_config_files(std::shared_ptr<instances::instance_t> in
         if (res != 0) {
             return {-1, instance->id().hex()};
         }
-
     }
 
     return {0, {}};
@@ -473,7 +472,7 @@ auto deployment_t::import_volumes(std::shared_ptr<instances::instance_t> instanc
 
     for (auto& volume : manifest->volumes()) {
         if (volume.type() == volume_t::VOLUME) {
-            const auto [res, additional_info] = import_volume(instance, volume.host(), src_dir);
+            const auto [res, additional_info] = import_volume(instance, volume, src_dir);
             if (res != 0) {
                 return {res, additional_info};
             }
@@ -484,15 +483,19 @@ auto deployment_t::import_volumes(std::shared_ptr<instances::instance_t> instanc
 }
 
 auto deployment_t::import_volume(
-    std::shared_ptr<instances::instance_t> instance, std::string_view volume_name, fs::path src_dir) //
+    std::shared_ptr<instances::instance_t> instance, volume_t& volume, fs::path src_dir) //
     -> result_t
 {
+    if (volume.type() != volume_t::VOLUME) {
+        return {-1, "Cannot import non-volume " + volume.host()};
+    }
+
     auto ec = std::error_code{};
     if (!fs::exists(src_dir, ec) || !fs::is_directory(src_dir, ec)) {
         return {-1, "Source directory does not exist"};
     }
 
-    return do_import_volume(std::move(instance), volume_name, src_dir);
+    return do_import_volume(std::move(instance), volume, src_dir);
 }
 
 auto deployment_t::export_volumes(std::shared_ptr<instances::instance_t> instance, fs::path dest_dir) const //
@@ -516,9 +519,11 @@ auto deployment_t::export_volumes(std::shared_ptr<instances::instance_t> instanc
     }
 
     for (auto& volume : manifest->volumes()) {
-        const auto [res, additional_info] = export_volume(instance, volume.host(), dest_dir);
-        if (res != 0) {
-            return {res, additional_info};
+        if (volume.type() == volume_t::VOLUME) {
+            const auto [res, additional_info] = export_volume(instance, volume, dest_dir);
+            if (res != 0) {
+                return {res, additional_info};
+            }
         }
     }
 
@@ -527,16 +532,21 @@ auto deployment_t::export_volumes(std::shared_ptr<instances::instance_t> instanc
 
 auto deployment_t::export_volume(
     std::shared_ptr<instances::instance_t> instance,
-    std::string_view volume_name,
+    const volume_t& volume,
     fs::path dest_dir) const //
     -> result_t
 {
     LOG_TRACE(
         "--> %s Request to export volume %s of instance %s to %s\n",
         __FUNCTION__,
-        volume_name.data(),
+        volume.host().c_str(),
         instance->id().hex().c_str(),
         dest_dir.c_str());
+
+    if (volume.type() != volume_t::VOLUME) {
+        LOG_TRACE("<-- %s Cannot export non-volume %s\n", __FUNCTION__, volume.host().c_str());
+        return {-1, "Cannot export non-volume " + volume.host()};
+    }
 
     auto ec = std::error_code{};
     fs::create_directories(dest_dir, ec);
@@ -545,7 +555,7 @@ auto deployment_t::export_volume(
         return {-1, "Could not create export directory"};
     }
 
-    auto [res, message] = do_export_volume(std::move(instance), std::move(volume_name), std::move(dest_dir));
+    auto [res, message] = do_export_volume(std::move(instance), volume, std::move(dest_dir));
 
     LOG_TRACE("<-- %s %s\n", __FUNCTION__, message.c_str());
     return {res, message};

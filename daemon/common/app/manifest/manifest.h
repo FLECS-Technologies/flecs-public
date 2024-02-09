@@ -71,6 +71,7 @@ public:
     auto& ports() const noexcept { return _ports; }
     auto& startup_options() const noexcept { return _startup_options; }
     auto& version() const noexcept { return _version; }
+    auto& volumes() noexcept { return _volumes; }
     auto& volumes() const noexcept { return _volumes; }
 
 private:
