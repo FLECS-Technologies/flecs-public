@@ -59,3 +59,7 @@ include(flecs-rules)
 add_custom_command(TARGET packages POST_BUILD
     COMMAND echo -n ${CORE_VERSION} >${CMAKE_INSTALL_PREFIX}/latest_flecs_${ARCH}
 )
+
+add_custom_target(version
+    COMMAND echo "${CORE_VERSION}"
+)
