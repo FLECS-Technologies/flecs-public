@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if(BUILD_TESTING)
+if(FLECS_BUILD_TESTS)
     project(util.signal_handler.test)
 
     add_executable(util.signal_handler.test
