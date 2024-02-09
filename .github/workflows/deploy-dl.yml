@@ -1,0 +1,38 @@
+name: Deploy dl
+
+on:
+  workflow_call:
+    inputs:
+      arch:
+        required: true
+        type: string
+      deploy_dir:
+        required: true
+        type: string
+
+jobs:
+  deploy-dl:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: packages_${{ inputs.arch }}
+        path: out/
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy packages and latest files
+      uses: azure/CLI@v1
+      with:
+        azcliversion: 2.53.0
+        inlineScript: |
+          export CORE_VERSION=$(find out/ -name ${{ inputs.arch }}.core_version -exec head -n1 {} \;)
+          find out/ -name latest_flecs_${{ inputs.arch }} -exec \
+            bash -c 'export FILE={}; export BASE_FILE=$(basename "${FILE}"); echo "Uploading ${FILE}"; az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${BASE_FILE} --file "${FILE}" --overwrite' \;
+          find out/ \( -name "*.deb" -o -name "*.tar" \) -exec \
+            bash -c 'export FILE={}; export BASE_FILE=$(basename "${FILE}"); echo "Uploading ${FILE}"; az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${CORE_VERSION}/${BASE_FILE##*.}/${BASE_FILE} --file "${FILE}" --overwrite' \;
