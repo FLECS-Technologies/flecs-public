@@ -31,7 +31,12 @@ struct device_t
     std::string device;
     std::string vendor;
 
-    friend auto operator<=>(const device_t&, const device_t&) = default;
+    friend auto operator<=>(const device_t&, const device_t&) //
+        -> std::strong_ordering;
+    friend auto operator==(const device_t&, const device_t&) //
+        -> bool;
+    friend auto operator!=(const device_t&, const device_t&) //
+        -> bool;
 };
 
 auto to_json(json_t& json, const device_t& device) //

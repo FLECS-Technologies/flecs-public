@@ -36,6 +36,24 @@ static auto __attribute__((destructor)) exit() //
     libusb_exit(nullptr);
 }
 
+auto operator<=>(const device_t& lhs, const device_t& rhs) //
+    -> std::strong_ordering
+{
+    return std::tie(lhs.vid, lhs.pid, lhs.port) <=> std::tie(rhs.vid, rhs.pid, rhs.port);
+}
+
+auto operator==(const device_t& lhs, const device_t& rhs) //
+    -> bool
+{
+    return lhs <=> rhs == std::strong_ordering::equal;
+}
+
+auto operator!=(const device_t& lhs, const device_t& rhs) //
+    -> bool
+{
+    return !(lhs == rhs);
+}
+
 auto to_json(json_t& json, const device_t& device) //
     -> void
 {
