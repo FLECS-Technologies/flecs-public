@@ -162,7 +162,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instances::instance_t
     }
 
     for (const auto& cap : manifest->capabilities()) {
-        if (cap == "NET_ADMIN" || cap == "SYS_NICE") {
+        if (cap == "NET_ADMIN" || cap == "SYS_NICE" || cap == "IPC_LOCK") {
             docker_process.arg("--cap-add");
             docker_process.arg(cap);
         } else if (cap == "DOCKER") {
