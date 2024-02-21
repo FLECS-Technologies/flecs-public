@@ -98,12 +98,11 @@ auto get_devices() //
                 port += "." + std::to_string(port_numbers[i]);
             }
         }
-        const auto vendor = hwdb.usb_vendor(desc.idVendor)
-                                .value_or(sysfs::usb_vendor(port).value_or(std::string{}));
+        auto vendor = hwdb.usb_vendor(desc.idVendor)
+                                .value_or(sysfs::usb_vendor(port).value_or("Unknown vendor " + std::to_string(desc.idVendor)));
 
-        const auto device = hwdb.usb_device(desc.idVendor, desc.idProduct)
-                                .value_or(sysfs::usb_device(port).value_or(std::string{}));
-
+        auto device = hwdb.usb_device(desc.idVendor, desc.idProduct)
+                                .value_or(sysfs::usb_device(port).value_or("Unknown device " + std::to_string(desc.idProduct)));
         devices.emplace(device_t{
             .vid = desc.idVendor,
             .pid = desc.idProduct,
