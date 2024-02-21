@@ -24,18 +24,6 @@
 namespace flecs {
 namespace usb {
 
-static auto __attribute__((constructor)) init() //
-    -> void
-{
-    libusb_init(nullptr);
-}
-
-static auto __attribute__((destructor)) exit() //
-    -> void
-{
-    libusb_exit(nullptr);
-}
-
 auto operator<=>(const device_t& lhs, const device_t& rhs) //
     -> std::strong_ordering
 {
@@ -84,8 +72,11 @@ auto get_devices() //
 
     auto hwdb = udev::hwdb_t{};
 
+    libusb_context* context = nullptr;
+    libusb_init(&context);
+
     auto usb_devices = static_cast<libusb_device**>(nullptr);
-    const auto device_count = libusb_get_device_list(nullptr, &usb_devices);
+    const auto device_count = libusb_get_device_list(context, &usb_devices);
 
     for (ssize_t i = 0; i < device_count; ++i) {
         auto desc = libusb_device_descriptor{};
@@ -122,6 +113,8 @@ auto get_devices() //
     }
 
     libusb_free_device_list(usb_devices, 1);
+    libusb_exit(context);
+    context = nullptr;
 
     return devices;
 }
