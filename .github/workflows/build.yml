@@ -34,7 +34,7 @@ jobs:
 
     - name: "CMake: Configure"
       run: |
-        cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=out/${{ inputs.arch }}
+        cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }} -DCMAKE_INSTALL_PREFIX=out/${{ inputs.arch }}
 
     - name: "CMake: Build"
       run: |
