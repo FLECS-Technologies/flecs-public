@@ -34,7 +34,7 @@ jobs:
           docker push ${DOCKER_IMAGE}; \
         done; \
         DOCKER_IMAGES=`echo ${DOCKER_IMAGES} | sed 's/ /\n/g' | sort -u`; \
-        [ -z "${DOCKER_IMAGES}"] && exit 1; \
+        [ -z "${DOCKER_IMAGES}" ] && exit 1; \
         for image in ${DOCKER_IMAGES}; do \
           docker manifest create ${image} ${image}-amd64 ${image}-arm64 ${image}-armhf; \
           docker manifest create ${image/:*/:${{ inputs.docker_ref }}} ${image}-amd64 ${image}-arm64 ${image}-armhf; \
