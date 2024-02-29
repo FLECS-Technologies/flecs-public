@@ -18,6 +18,7 @@ ExecStart=/usr/bin/docker start -a flecs-flecsd
 ExecStop=/usr/bin/docker stop --time 120 flecs-flecsd
 ExecStopPost=/bin/bash -x /opt/flecsd/bin/flecsd.sh remove
 Restart=on-failure
+RestartPreventExitStatus=SIGKILL
 
 [Install]
 WantedBy=multi-user.target
