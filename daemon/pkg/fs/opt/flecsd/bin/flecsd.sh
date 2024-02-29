@@ -78,8 +78,9 @@ create_network() {
 
 create_container() {
   if [ "${1}" = "--migrate" ]; then
+    # Migrate from native to containerized installation; skip if flecsd volume already contains userdata
     ENTRYPOINT="--entrypoint bash"
-    COMMAND=("-c" "rm -rf /var/lib/flecs/* && cp -prTv /host/var/lib/flecs/ /var/lib/flecs/")
+    COMMAND=("-c" "[ -d /var/lib/flecs ] && exit 0; cp -prTv /host/var/lib/flecs/ /var/lib/flecs/")
     NETWORK="--network none"
     VOLUME="--volume /var/lib/flecs:/host/var/lib/flecs"
     shift
