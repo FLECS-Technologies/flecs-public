@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.0
 info:
   title: FLECS Daemon API
   version: 2.0.0
@@ -11,6 +11,8 @@ components:
     # Common schemas
     additionalInfo:
       type: object
+      required:
+        - additionalInfo
       description: Additional info
       properties:
         additionalInfo:
@@ -18,6 +20,9 @@ components:
     # App related schemas
     app_key:
       type: object
+      required:
+        - name
+        - version
       properties:
         name:
           type: string
@@ -40,6 +45,15 @@ components:
           unknown,
         ]
     installed_app:
+      required:
+        - appKey
+        - status
+        - desired
+        - licenseKey
+        - downloadToken
+        - installedSize
+        - multiInstance
+        - editor
       properties:
         appKey:
           $ref: "#/components/schemas/app_key"
@@ -47,9 +61,17 @@ components:
           $ref: "#/components/schemas/app_status"
         desired:
           $ref: "#/components/schemas/app_status"
+        licenseKey:
+          $ref: "#/components/schemas/app_status"
+        downloadToken:
+          $ref: "#/components/schemas/app_status"
         installedSize:
           type: integer
           example: 10485760
+        multiInstance:
+          type: boolean
+        editor:
+          type: string
     license_key:
       type: string
       description: License key for App installation
@@ -77,6 +99,12 @@ components:
           unknown,
         ]
     app_instance:
+      required:
+        - instanceId
+        - instanceName
+        - appKey
+        - status
+        - desired
       description: Instance of an App
       properties:
         instanceId:
@@ -98,8 +126,11 @@ components:
       description: IP address of an instance
       format: ipv4
       example: 172.21.0.3
-    instance_detail_conffile:
+    instance_detail_config_files:
       type: object
+      required:
+        - container
+        - host
       properties:
         container:
           type: string
@@ -107,18 +138,19 @@ components:
         host:
           type: string
           example: "/var/lib/flecs/instances/01ab89ef/conf/configuration.cfg"
-    instance_detail_conffiles:
-      type: array
-      items:
-        $ref: "#/components/schemas/instance_detail_conffile"
     instance_detail_mounts:
       type: object
+      required:
+        - mounts
       description: Bind mounts of an instance
       properties:
         mounts:
           type: array
           items:
             type: object
+            required:
+              - container
+              - host
             properties:
               container:
                 type: string
@@ -126,36 +158,96 @@ components:
               host:
                 type: string
                 example: "/path/to/host/dir"
-    instance_detail_ports:
+    instance_detail_port:
       type: object
-      description: Allocated network ports of an instance
+      required:
+        - container
+        - host
       properties:
-        ports:
+        container:
+          type: string
+          example: "8080"
+        host:
+          type: string
+          example: "18080"
+    instance_detail_volume:
+      type: object
+      required:
+        - name
+        - path
+      properties:
+        name:
+          type: string
+          example: "var"
+        path:
+          type: string
+          example: "/var/app"
+    instance_config_usb_device:
+      type: object
+      required:
+        - device
+        - pid
+        - port
+        - vendor
+        - vid
+        - active
+        - connected
+      properties:
+        device:
+          type: string
+        pid:
+          type: integer
+        port:
+          type: string
+        vendor:
+          type: string
+        vid:
+          type: integer
+        active:
+          type: boolean
+        connected:
+          type: boolean
+    instance_config_network_adapter:
+      type: object
+      required:
+        - name
+        - active
+        - connected
+      properties:
+        name:
+          type: string
+        active:
+          type: boolean
+        connected:
+          type: boolean
+        ipAddress:
+          type: string
+          format: ipv4
+        subnetMask:
+          type: string
+          format: ipv4
+        gateway:
+          type: string
+          format: ipv4
+    instance_config:
+      type: object
+      required:
+        - networkAdapters
+        - devices
+      properties:
+        networkAdapters:
           type: array
           items:
-            type: object
-            properties:
-              container:
-                type: string
-                example: "8080"
-              host:
-                type: string
-                example: "18080"
-    instance_detail_volumes:
-      type: object
-      description: Automatic volumes of an instance
-      properties:
-        volumes:
-          type: array
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-                example: "var"
-              path:
-                type: string
-                example: "/var/app"
+            $ref: "#/components/schemas/instance_config_network_adapter"
+        devices:
+          type: object
+          required:
+            - usb
+          properties:
+            usb:
+              type: array
+              items:
+                $ref: "#/components/schemas/instance_config_usb_device"
     # Job related schemas
     job_id:
       type: integer
@@ -167,6 +259,13 @@ components:
       enum: [pending, queued, running, cancelled, successful, failed, unknown]
     job_step:
       type: object
+      required:
+        - description
+        - num
+        - unit
+        - unitsTotal
+        - unitsDone
+        - rate
       properties:
         description:
           type: string
@@ -188,8 +287,11 @@ components:
           example: 2048
     job_result:
       type: object
+      required:
+        - code
+        - message
       properties:
-        exit_code:
+        code:
           type: integer
           example: -1
         message:
@@ -197,6 +299,13 @@ components:
           example: Explanation what went wrong
     job:
       type: object
+      required:
+        - id
+        - status
+        - description
+        - numSteps
+        - currentStep
+        - result
       properties:
         id:
           $ref: "#/components/schemas/job_id"
@@ -214,11 +323,66 @@ components:
           $ref: "#/components/schemas/job_result"
     job_meta:
       type: object
+      required:
+        - jobId
       description: Job metadata for accepted requests
       properties:
         jobId:
           type: integer
           example: 17
+    # System related schemas
+    system_distro:
+      type: object
+      required:
+        - codename
+        - id
+        - name
+        - version
+      properties:
+        codename:
+          type: string
+          example: "bookworm"
+        id:
+          type: string
+          example: "debian"
+        name:
+          type: string
+          example: "Debian GNU/Linux 12 (bookworm)"
+        version:
+          type: string
+          example: "12"
+    system_kernel:
+      type: object
+      required:
+        - build
+        - machine
+        - version
+      properties:
+        build:
+          type: string
+        machine:
+          type: string
+          example: "x86_64"
+        version:
+          type: string
+          example: "6.7.6-arch1-1"
+    system_info:
+      type: object
+      required:
+        - arch
+        - distro
+        - kernel
+        - platform
+      properties:
+        arch:
+          type: string
+          example: "amd64"
+        distro:
+          $ref: "#/components/schemas/system_distro"
+        kernel:
+          $ref: "#/components/schemas/system_kernel"
+        platform:
+          type: string
   # Common responses
   responses:
     response_202:
@@ -232,11 +396,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              additionalInfo:
-                type: string
-                example: "Details what is wrong"
+            $ref: "#/components/schemas/additionalInfo"
     response_401:
       description: Unauthorized
     response_403:
@@ -248,11 +408,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              additionalInfo:
-                type: string
-                example: "Explanation what went wrong"
+            $ref: "#/components/schemas/additionalInfo"
 
 tags:
   - name: "Apps"
@@ -347,11 +503,11 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - appKey
               properties:
                 appKey:
                   $ref: "#/components/schemas/app_key"
-                licenseKey:
-                  $ref: "#/components/schemas/license_key"
       responses:
         "202":
           $ref: "#/components/responses/response_202"
@@ -369,10 +525,11 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - manifest
+                - licenseKey
               properties:
                 manifest:
-                  type: string
-                licenseKey:
                   type: string
       responses:
         "202":
@@ -423,6 +580,17 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - instanceId
+                  - appKey
+                  - status
+                  - desired
+                  - ipAddress
+                  - configFiles
+                  - hostname
+                  - ports
+                  - volumes
+                  - instanceName
                 properties:
                   instanceId:
                     $ref: "#/components/schemas/instance_id"
@@ -434,18 +602,26 @@ paths:
                     $ref: "#/components/schemas/instance_status"
                   desired:
                     $ref: "#/components/schemas/instance_status"
-                  conffiles:
-                    $ref: "#/components/schemas/instance_detail_conffiles"
+                  configFiles:
+                    $ref: "#/components/schemas/instance_detail_config_files"
                   hostname:
                     $ref: "#/components/schemas/instance_detail_hostname"
                   ipAddress:
                     $ref: "#/components/schemas/instance_detail_ip_address"
                   ports:
-                    $ref: "#/components/schemas/instance_detail_ports"
+                    description: Allocated network ports of an instance
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/instance_detail_port"
                   volumes:
-                    $ref: "#/components/schemas/instance_detail_volumes"
+                    description: Automatic volumes of an instance
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/instance_detail_volume"
         "404":
           description: No instance with this instance_id found
+        "500":
+          $ref: "#/components/responses/response_500"
     patch:
       tags: ["Instances"]
       summary: Update or downgrade Instance to another App version
@@ -461,6 +637,8 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - to
               properties:
                 to:
                   type: string
@@ -492,6 +670,8 @@ paths:
         content:
           application/json:
             schema:
+              required:
+                - appKey
               properties:
                 appKey:
                   $ref: "#/components/schemas/app_key"
@@ -502,7 +682,7 @@ paths:
           $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
-  /instance/{instance_id}/start:
+  /instances/{instance_id}/start:
     post:
       tags: ["Instances"]
       summary: Start an App instance
@@ -517,12 +697,12 @@ paths:
           $ref: "#/components/responses/response_202"
         "404":
           description: No instance with this instance_id found
-  /instance/{instance_id}/stop:
+  /instances/{instance_id}/stop:
     post:
       tags: ["Instances"]
       summary: Stop an App instance
       parameters:
-        - name: id
+        - name: instance_id
           in: path
           schema:
             type: string
@@ -533,12 +713,12 @@ paths:
           $ref: "#/components/responses/response_202"
         "404":
           description: No instance with this instance_id found
-  /instance/{instance_id}/config:
+  /instances/{instance_id}/config:
     get:
       tags: ["Instances"]
       summary: Get configuration of an Instance
       parameters:
-        - name: id
+        - name: instance_id
           in: path
           schema:
             type: string
@@ -549,52 +729,14 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  networkAdapters:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                        active:
-                          type: boolean
-                        connected:
-                          type: boolean
-                        ipAddress:
-                          type: string
-                          format: ipv4
-                        subnetMask:
-                          type: string
-                          format: ipv4
-                        gateway:
-                          type: string
-                          format: ipv4
-                  usbDevices:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        device:
-                          type: string
-                        pid:
-                          type: integer
-                        port:
-                          type: string
-                        vendor:
-                          type: string
-                        vid:
-                          type: integer
-                        active:
-                          type: boolean
-                        connected:
-                          type: boolean
+                $ref: "#/components/schemas/instance_config"
+        "404":
+          description: No instance with this instance_id found
     post:
       tags: ["Instances"]
       summary: Update configuration of an Instance
       parameters:
-        - name: id
+        - name: instance_id
           in: path
           schema:
             type: string
@@ -604,43 +746,22 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                networkAdapters:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                      active:
-                        type: boolean
-                      ipAddress:
-                        type: string
-                        format: ipv4
-                usbDevices:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      device:
-                        type: string
-                      pid:
-                        type: integer
-                      port:
-                        type: string
-                      vendor:
-                        type: string
-                      vid:
-                        type: integer
-                      active:
-                        type: boolean
-  /instance/{instance_id}/logs:
+              $ref: "#/components/schemas/instance_config"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/instance_config"
+        "404":
+          description: No instance with this instance_id found
+  /instances/{instance_id}/logs:
     get:
       tags: ["Instances"]
       summary: Retrieve logs of an Instance
       parameters:
-        - name: id
+        - name: instance_id
           in: path
           schema:
             type: string
@@ -652,11 +773,18 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - stdout
+                  - stderr
                 properties:
                   stdout:
                     type: string
                   stderr:
                     type: string
+        "404":
+          description: No instance with this instance_id found
+        "500":
+          $ref: "#/components/responses/response_500"
   # flunder related paths
   /flunder/browse:
     get:
@@ -676,13 +804,21 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - data
+                  - additionalInfo
                 properties:
                   data:
                     type: array
                     items:
                       type: object
+                      required:
+                        - key
+                        - value
+                        - encoding
+                        - timestamp
                       properties:
-                        topic:
+                        key:
                           type: string
                           example: "/flecs/app1/heater0/temperature"
                         value:
@@ -694,47 +830,11 @@ paths:
                         timestamp:
                           type: string
                           example:
-  /flunder/{topic}:
-    get:
-      tags: ["flunder"]
-      summary: Retrieve value of a stored flunder topic
-      parameters:
-        - name: topic
-          in: path
-          schema:
-            type: string
-            example: "/flecs/app1/heater0/temperature"
-          required: true
-    put:
-      tags: ["flunder"]
-      summary: Publish a topic to flunder
-      parameters:
-        - name: topic
-          in: path
-          schema:
-            type: string
-            example: "/flecs/app1/heater0/temperature"
-          required: true
-        - name: value
-          in: query
-          schema:
-            type: string
-            example: "23"
-        - name: type
-          in: query
-          schema:
-            type: string
-            example: "bool"
-    delete:
-      tags: ["flunder"]
-      summary: Delete a stored flunder topic
-      parameters:
-        - name: topic
-          in: path
-          schema:
-            type: string
-            example: "/flecs/app1/heater0/temperature"
-          required: true
+                  additionalInfo:
+                    type: string
+                    example: "Explanation what went wrong"
+        "500":
+          $ref: "#/components/responses/response_500"
   # Job related paths
   /jobs:
     get:
@@ -772,11 +872,24 @@ paths:
     delete:
       tags: ["Jobs"]
       summary: Cancel job or remove failed/successful/cancelled job from journal
+      parameters:
+        - name: job_id
+          in: path
+          schema:
+            type: integer
+            description: job_id to query
+          required: true
       responses:
         "200":
           description: Success
         "404":
           description: Not found
+        "400":
+          description: Job not finished
+          content:
+            text/plain:
+              schema:
+                type: string
   # System related paths
   /system/ping:
     get:
@@ -788,11 +901,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  additionalInfo:
-                    type: string
-                    example: "OK"
+                $ref: "#/components/schemas/additionalInfo"
   /system/version:
     get:
       tags: ["System"]
@@ -804,6 +913,9 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - api
+                  - core
                 properties:
                   api:
                     type: string
@@ -811,6 +923,18 @@ paths:
                   core:
                     type: string
                     example: "v2.0.0-???"
+  /system/info:
+    get:
+      tags: ["System"]
+      summary: Get architecture and operating system information
+      responses:
+        "200":
+          description: Sucess
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/system_info"
+  # Device related paths
   /device/license/activation:
     post:
       tags: ["Device"]
@@ -821,11 +945,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  additionalInfo:
-                    type: string
-                    example: "OK"
+                $ref: "#/components/schemas/additionalInfo"
         "500":
           $ref: "#/components/responses/response_500"
   /device/license/activation/status:
@@ -839,6 +959,8 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - isValid
                 properties:
                   isValid:
                     type: boolean
