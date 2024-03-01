@@ -20,9 +20,9 @@ project(FLECS)
 
 # set version
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-    set(CORE_VERSION 3.1.0-hedgehog)
+    set(CORE_VERSION 3.1.1-hedgehog)
 else()
-    set(CORE_VERSION 3.1.0-hedgehog-dev)
+    set(CORE_VERSION 3.1.1-hedgehog-dev)
 endif()
 set(API_VERSION 2.0.0)
 add_definitions(-DFLECS_VERSION="${CORE_VERSION}")
