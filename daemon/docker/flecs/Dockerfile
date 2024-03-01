@@ -12,4 +12,6 @@ RUN update-alternatives --set iptables /usr/sbin/iptables-legacy && \
 ADD fs/ /
 ADD flecs/fs/ /
 
+RUN ldconfig
+
 ENTRYPOINT [ "/entrypoint.sh" ]
