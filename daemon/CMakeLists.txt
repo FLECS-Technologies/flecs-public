@@ -114,7 +114,7 @@ get_property(openssl_crypto_lib TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATIO
 get_property(openssl_ssl_lib TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION)
 install(
     CODE "file (
-            INSTALL ${openssl_crypto_lib} ${openssl_ssl_lib}
+            INSTALL ${openssl_crypto_lib} ${openssl_ssl_lib} ${pkgcfg_lib_libusb_usb-1.0}
             DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/usr/local/lib/${MACHINE}
             FOLLOW_SYMLINK_CHAIN
         )"

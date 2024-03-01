@@ -27,4 +27,6 @@ COPY --from=docker-downloader /fs /
 ADD fs/ /
 ADD flecs-slim/fs/ /
 
+RUN ldconfig
+
 ENTRYPOINT [ "/entrypoint.sh" ]
