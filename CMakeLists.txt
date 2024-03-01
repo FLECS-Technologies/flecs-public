@@ -43,9 +43,6 @@ endif()
 # workaround for gcc-12 bug
 add_compile_options(-Wno-error=restrict)
 
-# add install directory to rpath
-set(CMAKE_INSTALL_RPATH "/opt/flecs/lib")
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(flecs-external)

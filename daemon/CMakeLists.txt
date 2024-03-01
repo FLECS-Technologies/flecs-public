@@ -46,6 +46,45 @@ target_link_libraries(daemon PRIVATE
     yaml-cpp::yaml-cpp
 )
 
+# Get all propreties that cmake supports
+if(NOT CMAKE_PROPERTY_LIST)
+    execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
+
+    # Convert command output into a CMake list
+    string(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+    string(REGEX REPLACE "\n" ";" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+    list(REMOVE_DUPLICATES CMAKE_PROPERTY_LIST)
+endif()
+
+function(print_properties)
+    message("CMAKE_PROPERTY_LIST = ${CMAKE_PROPERTY_LIST}")
+endfunction()
+
+function(print_target_properties target)
+    if(NOT TARGET ${target})
+      message(STATUS "There is no target named '${target}'")
+      return()
+    endif()
+
+    foreach(property ${CMAKE_PROPERTY_LIST})
+        string(REPLACE "<CONFIG>" "${CMAKE_BUILD_TYPE}" property ${property})
+
+        # Fix https://stackoverflow.com/questions/32197663/how-can-i-remove-the-the-location-property-may-not-be-read-from-target-error-i
+        #if(property STREQUAL "LOCATION" OR property MATCHES "^LOCATION_" OR property MATCHES "_LOCATION$")
+        #    continue()
+        #endif()
+
+        get_property(was_set TARGET ${target} PROPERTY ${property} SET)
+        if(was_set)
+            get_target_property(value ${target} ${property})
+            message("${target} ${property} = ${value}")
+        endif()
+    endforeach()
+endfunction()
+
+#print_target_properties(LibArchive::LibArchive)
+#message(FATAL_ERROR)
+
 # install executable flecsd for packaging
 install(
     TARGETS daemon RUNTIME
@@ -55,12 +94,46 @@ install(
 # install shared objects for packaging
 install(
     TARGETS daemon.lib flunder.shared LIBRARY
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/lib
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/usr/local/lib/${MACHINE}
 )
-get_target_property(zenohc-lib zenohc::lib IMPORTED_LOCATION)
+
+# Alias targets cannot be installed, so retrieve the aliased targets first
+get_property(curl_target TARGET CURL::libcurl PROPERTY ALIASED_TARGET)
+get_property(zenohc_target TARGET zenohc::lib PROPERTY ALIASED_TARGET)
 install(
-    FILES ${zenohc-lib}
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/opt/flecs/lib
+    IMPORTED_RUNTIME_ARTIFACTS
+        cpr::cpr
+        ${curl_target}
+        yaml-cpp::yaml-cpp
+        ${zenohc_target}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/usr/local/lib/${MACHINE}
+)
+
+# These libs are of type "UNKNOWN", and cannot be installed with IMPORTED_RUNTIME_ARTIFACTS
+get_property(openssl_crypto_lib TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION)
+get_property(openssl_ssl_lib TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION)
+install(
+    CODE "file (
+            INSTALL ${openssl_crypto_lib} ${openssl_ssl_lib}
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/usr/local/lib/${MACHINE}
+            FOLLOW_SYMLINK_CHAIN
+        )"
+)
+
+# Installing LibArchive this way won't work, however, as:
+#   lrwxrwxrwx libarchive.so -> libarchive.so.13.x.y
+#   lrwxrwxrwx libarchive.so.13 -> libarchive.so.13.x.y
+#   -rwxr-xr-x libarchive.so.13.x.y
+# As LibArchive's IMPORTED_LOCATION points to the .so file, libarchive.so and
+# libarchive.so.13.x.y would be installed, while libarchive.so.13 is the one we
+# need during runtime.
+get_property(archive_lib TARGET LibArchive::LibArchive PROPERTY IMPORTED_LOCATION)
+file(GLOB archive_libs "${archive_lib}*")
+install(
+    CODE "file (
+            INSTALL ${archive_libs}
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/usr/local/lib/${MACHINE}
+        )"
 )
 
 # install helper scripts for packaging
