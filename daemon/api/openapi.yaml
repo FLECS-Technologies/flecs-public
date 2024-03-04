@@ -5,7 +5,15 @@ info:
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
-
+servers:
+  - url: 'http://{address}/{version}'
+    variables:
+      address:
+        description: IP Adress of FLECS Daemon
+        default: localhost
+      version:
+        description: API Version
+        default: v2
 components:
   schemas:
     # Common schemas
