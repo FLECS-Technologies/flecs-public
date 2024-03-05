@@ -575,13 +575,12 @@ auto instances_t::do_details(instances::id_t instance_id) const //
         return {crow::status::INTERNAL_SERVER_ERROR, "json", response.dump()};
     }
 
-    // Build response
-    response["instanceId"] = instance->id().hex();
-    response["instanceName"] = instance->instance_name();
-    response["appKey"] = app->key();
-    response["status"] = to_string(instance->status());
-    response["desired"] = to_string(instance->desired());
+    // Implicitly use to_json function for instance_t for as much as possible
+    response = *instance;
+
     response["ipAddress"] = instance->networks().empty() ? "" : instance->networks()[0].ip_address;
+
+    // Fill missing content with information from manifest
     response["configFiles"] = json_t::array();
     for (const auto& config_file : manifest->conffiles()) {
         auto json = json_t{};
