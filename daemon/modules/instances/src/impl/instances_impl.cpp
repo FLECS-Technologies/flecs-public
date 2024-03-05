@@ -577,6 +577,7 @@ auto instances_t::do_details(instances::id_t instance_id) const //
 
     // Build response
     response["instanceId"] = instance->id().hex();
+    response["instanceName"] = instance->instance_name();
     response["appKey"] = app->key();
     response["status"] = to_string(instance->status());
     response["desired"] = to_string(instance->desired());
