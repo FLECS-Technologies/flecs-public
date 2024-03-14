@@ -19,7 +19,7 @@ flecs_add_module(
     ADDITIONAL_HEADERS
     export_manifest.h impl/flecsport_impl.h
     LIBS_PUBLIC daemon.common
-    LIBS_PRIVATE util.archive
+    LIBS_PRIVATE util.archive util.datetime
 )
 
 add_library(daemon.modules.flecsport.mocked_modules STATIC

@@ -40,10 +40,8 @@ static auto chrono_to_time_t(std::chrono::time_point<system_clock_t> tp, precisi
     -> time_t
 {
     const auto fmt_div = fmt_divs[static_cast<std::underlying_type_t<precision_e>>(precision)];
-    const auto time =
-        static_cast<std::time_t>(
-            std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count()) /
-        (fmt_divs[0] / fmt_div);
+    const auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count() /
+                      (fmt_divs[0] / fmt_div);
     return time;
 }
 
