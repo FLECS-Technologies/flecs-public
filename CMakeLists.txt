@@ -16,18 +16,25 @@ cmake_minimum_required(VERSION 3.21)
 
 include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
 
-project(FLECS)
+project(
+    FLECS
+    VERSION 3.2.0
+    HOMEPAGE_URL https://flecs.tech
+    LANGUAGES CXX
+)
+set(CODENAME hedgehog)
 
 # set version
-if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-    set(CORE_VERSION 3.2.0-hedgehog)
-else()
-    set(CORE_VERSION 3.2.0-hedgehog-dev)
+set(FLECS_VERSION_FULL "${PROJECT_VERSION}-${CODENAME}")
+if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+    set(FLECS_VERSION_FULL "${FLECS_VERSION_FULL}-dev")
 endif()
+
 set(API_VERSION 2.0.0)
-add_definitions(-DFLECS_VERSION="${CORE_VERSION}")
+add_definitions(-DFLECS_VERSION="${FLECS_VERSION_FULL}")
 add_definitions(-DFLECS_API_VERSION="${API_VERSION}")
 
+set(FLECS_BUILD_TESTS OFF CACHE BOOL "Enable to build FLECS unit tests")
 if(FLECS_BUILD_TESTS)
     include(CTest)
     add_compile_options(-fprofile-arcs -ftest-coverage)
@@ -47,15 +54,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(flecs-external)
 add_subdirectory(flunder)
-add_subdirectory(util)
-add_subdirectory(daemon)
+add_subdirectory(flecs)
 
 include(flecs-rules)
 
 add_custom_command(TARGET packages POST_BUILD
-    COMMAND echo -n ${CORE_VERSION} >${CMAKE_INSTALL_PREFIX}/latest_flecs_${ARCH}
+    COMMAND echo -n ${FLECS_VERSION_FULL} >${CMAKE_INSTALL_PREFIX}/latest_flecs_${ARCH}
 )
 
 add_custom_target(version
-    COMMAND echo "${CORE_VERSION}"
+    COMMAND echo "${FLECS_VERSION_FULL}"
 )
