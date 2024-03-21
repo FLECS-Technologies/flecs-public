@@ -30,8 +30,14 @@ device_t::device_t()
 
 device_t::~device_t() = default;
 
+auto device_t::save_session_id(console::session_id_t session_id) //
+    -> result_t
+{
+    return _impl->do_save_session_id(session_id);
+}
+
 auto device_t::session_id() //
-    -> const std::string&
+    -> const console::session_id_t&
 {
     return _impl->do_session_id();
 }

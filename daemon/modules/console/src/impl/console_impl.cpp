@@ -17,6 +17,8 @@
 #include <cpr/cpr.h>
 
 #include "daemon/modules/console/types.h"
+#include "daemon/modules/device/device.h"
+#include "daemon/modules/factory/factory.h"
 #include "util/json/json.h"
 
 namespace flecs {
@@ -68,7 +70,7 @@ auto console_t::do_activate_license(std::string session_id) //
     }
 
     if (res.status_code == 204) {
-        return {0, session_id};
+        return {0, {}};
     }
 
     auto response = console::error_response_t{};
@@ -130,7 +132,11 @@ auto console_t::do_download_manifest(std::string app, std::string version, std::
             {"Authorization", std::string{"Bearer "} + _auth.jwt().token()},
             {"X-Session-Id", std::string(session_id)},
         });
-
+    if (auto session_id = res.header.find("X-Session-Id"); session_id != res.header.end()) {
+        auto id = parse_json(session_id->second).get<console::session_id_t>();
+        auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
+        device_api->save_session_id(id);
+    }
     if (res.status_code == 200) {
         try {
             return parse_json(res.text).at("data").dump();
@@ -157,7 +163,11 @@ auto console_t::do_acquire_download_token(std::string app, std::string version, 
             {"X-Session-Id", std::string(session_id)},
         },
         cpr::Body{body.dump()});
-
+    if (auto session_id = res.header.find("X-Session-Id"); session_id != res.header.end()) {
+        auto id = parse_json(session_id->second).get<console::session_id_t>();
+        auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
+        device_api->save_session_id(id);
+    }
     if (res.status_code == 200) {
         try {
             return parse_json(res.text) //
