@@ -19,12 +19,13 @@
 #include <string_view>
 
 #include "flecs/common/app/manifest/manifest.h"
-#include "flecs/common/deployment/deployment.h"
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/apps/types/app_key.h"
+#include "flecs/modules/deployments/types.h"
 #include "flecs/util/fs/fs.h"
 
 namespace flecs {
+namespace deployments {
 class mock_deployment_t : public deployment_t
 {
 public:
@@ -111,6 +112,7 @@ public:
     MOCK_METHOD(std::string_view, do_default_network_cidr_subnet, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_gateway, (), (const, override));
 };
+} // namespace deployments
 } // namespace flecs
 
 using std::operator""s;
@@ -158,9 +160,11 @@ static const auto app_2 =
 
 TEST(deployment, interface)
 {
-    auto deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
-    auto& test_deployment = static_cast<flecs::mock_deployment_t&>(*deployment.get());
-    const auto& test_deployment_c = static_cast<const flecs::mock_deployment_t&>(test_deployment);
+    auto deployment =
+        std::unique_ptr<flecs::deployments::deployment_t>{new flecs::deployments::mock_deployment_t{}};
+    auto& test_deployment = static_cast<flecs::deployments::mock_deployment_t&>(*deployment.get());
+    const auto& test_deployment_c =
+        static_cast<const flecs::deployments::mock_deployment_t&>(test_deployment);
 
     auto instance_1 = flecs::instances::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
     instance_1.status(flecs::instances::status_e::Created);
@@ -327,8 +331,9 @@ TEST(deployment, interface)
 
 TEST(deployment, load_save)
 {
-    auto save_deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
-    auto& save_uut = static_cast<flecs::mock_deployment_t&>(*save_deployment.get());
+    auto save_deployment =
+        std::unique_ptr<flecs::deployments::deployment_t>{new flecs::deployments::mock_deployment_t{}};
+    auto& save_uut = static_cast<flecs::deployments::mock_deployment_t&>(*save_deployment.get());
 
     auto instance_1 = flecs::instances::instance_t{G_INSTANCE_ID_1, app_1, G_INSTANCE_NAME_1};
     auto instance_2 = flecs::instances::instance_t{G_INSTANCE_ID_2, app_2, G_INSTANCE_NAME_2};
@@ -338,8 +343,9 @@ TEST(deployment, load_save)
     EXPECT_CALL(save_uut, do_deployment_id()).Times(1).WillOnce(testing::Return("test"));
     save_deployment->save(".");
 
-    auto load_deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
-    auto& load_uut = static_cast<flecs::mock_deployment_t&>(*load_deployment.get());
+    auto load_deployment =
+        std::unique_ptr<flecs::deployments::deployment_t>{new flecs::deployments::mock_deployment_t{}};
+    auto& load_uut = static_cast<flecs::deployments::mock_deployment_t&>(*load_deployment.get());
 
     EXPECT_CALL(load_uut, do_deployment_id()).Times(1).WillOnce(testing::Return("test"));
     load_deployment->load(".");
@@ -351,7 +357,8 @@ TEST(deployment, load_save)
 
 TEST(deployment, generate_ip_success)
 {
-    auto deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
+    auto deployment =
+        std::unique_ptr<flecs::deployments::deployment_t>{new flecs::deployments::mock_deployment_t{}};
 
     {
         const auto ip = deployment->generate_instance_ip(G_CIDR_SUBNET, G_GATEWAY);
@@ -374,7 +381,8 @@ TEST(deployment, generate_ip_success)
 
 TEST(deployment, generate_ip_fail)
 {
-    auto deployment = std::unique_ptr<flecs::deployment_t>{new flecs::mock_deployment_t{}};
+    auto deployment =
+        std::unique_ptr<flecs::deployments::deployment_t>{new flecs::deployments::mock_deployment_t{}};
 
     // invalid cidr subnet
     {

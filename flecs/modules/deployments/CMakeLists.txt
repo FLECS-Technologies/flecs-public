@@ -12,29 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME daemon.common.deployment)
+project(modules.deployments.types)
 
-project(${PROJECT_NAME})
-
-add_library(
-    ${PROJECT_NAME} STATIC
-    src/deployment.cpp src/deployment_docker.cpp
-    deployment.h deployment_docker.h
+add_library(${PROJECT_NAME} STATIC
+    src/types/deployment.cpp
+    src/types/deployment_docker.cpp
+    types/deployment.h
+    types/deployment_docker.h
+    types.h
 )
 
-target_link_libraries(
-    ${PROJECT_NAME} PRIVATE
-    daemon.common.app.manifest
-    daemon.modules.factory
-    daemon.modules.system
-    modules.apps.types
-    modules.instances.types
-    util.network
-    util.process
-)
-
-target_link_libraries(
-    ${PROJECT_NAME} INTERFACE
+flecs_add_module(
+    MODULE_NAME
+        deployments
+    ADDITIONAL_SOURCES
+        src/impl/deployments_impl.cpp
+    ADDITIONAL_HEADERS
+        impl/deployments_impl.h
+    LIBS_PUBLIC
+        daemon.common.app.manifest
+        modules.deployments.types
+        modules.instances.types
+        util.network
 )
 
 add_subdirectory(test)

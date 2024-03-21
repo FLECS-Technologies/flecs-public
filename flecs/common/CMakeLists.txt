@@ -15,14 +15,13 @@
 project(daemon.common)
 
 add_subdirectory(app)
-add_subdirectory(deployment)
 add_subdirectory(network)
 
 add_library(daemon.common INTERFACE)
 
 target_link_libraries(
     daemon.common INTERFACE
-    daemon.common.deployment
+    daemon.common.app.manifest
     daemon.common.network
     modules.apps.types
 )

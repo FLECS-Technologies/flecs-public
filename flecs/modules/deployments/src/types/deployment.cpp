@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "flecs/common/deployment/deployment.h"
+#include "flecs/modules/deployments/types/deployment.h"
 
 #include <algorithm>
 #include <fstream>
@@ -26,6 +26,7 @@
 #include "flecs/util/network/network.h"
 
 namespace flecs {
+namespace deployments {
 
 auto deployment_t::deployment_id() const noexcept //
     -> std::string_view
@@ -913,4 +914,5 @@ auto deployment_t::do_save(const fs::path& base_path) //
     return {0, {}};
 }
 
+} // namespace deployments
 } // namespace flecs

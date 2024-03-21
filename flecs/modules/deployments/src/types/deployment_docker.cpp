@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "flecs/common/deployment/deployment_docker.h"
+#include "flecs/modules/deployments/types/deployment_docker.h"
 
 #include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app.h"
@@ -25,8 +25,9 @@
 #include "flecs/util/sysfs/sysfs.h"
 
 namespace flecs {
+namespace deployments {
 
-auto deployment_docker_t::create_container(std::shared_ptr<instances::instance_t> instance) //
+auto docker_t::create_container(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     const auto container_name = std::string{"flecs-"} + instance->id().hex();
@@ -299,7 +300,7 @@ auto deployment_docker_t::create_container(std::shared_ptr<instances::instance_t
     return {0, {}};
 }
 
-auto deployment_docker_t::delete_container(std::shared_ptr<instances::instance_t> instance) //
+auto docker_t::delete_container(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     auto app = instance->app();
@@ -328,26 +329,26 @@ auto deployment_docker_t::delete_container(std::shared_ptr<instances::instance_t
     return {0, {}};
 }
 
-auto deployment_docker_t::do_deployment_id() const noexcept //
+auto docker_t::do_deployment_id() const noexcept //
     -> std::string_view
 {
     return "docker";
 }
 
-auto deployment_docker_t::do_create_instance(std::shared_ptr<instances::instance_t> instance) //
+auto docker_t::do_create_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     instance->status(instances::status_e::Created);
     return {0, instance->id().hex()};
 }
 
-auto deployment_docker_t::do_delete_instance(std::shared_ptr<instances::instance_t> /*instance*/) //
+auto docker_t::do_delete_instance(std::shared_ptr<instances::instance_t> /*instance*/) //
     -> result_t
 {
     return {0, ""};
 }
 
-auto deployment_docker_t::do_start_instance(std::shared_ptr<instances::instance_t> instance) //
+auto docker_t::do_start_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     const auto [res, additional_info] = create_container(instance);
@@ -371,7 +372,7 @@ auto deployment_docker_t::do_start_instance(std::shared_ptr<instances::instance_
     return {0, {}};
 }
 
-auto deployment_docker_t::do_ready_instance(std::shared_ptr<instances::instance_t> instance) //
+auto docker_t::do_ready_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     const auto container_name = "flecs-" + instance->id().hex();
@@ -392,7 +393,7 @@ auto deployment_docker_t::do_ready_instance(std::shared_ptr<instances::instance_
     return {0, {}};
 }
 
-auto deployment_docker_t::do_stop_instance(std::shared_ptr<instances::instance_t> instance) //
+auto docker_t::do_stop_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
     const auto container_name = "flecs-" + instance->id().hex();
@@ -408,21 +409,21 @@ auto deployment_docker_t::do_stop_instance(std::shared_ptr<instances::instance_t
     return delete_container(instance);
 }
 
-auto deployment_docker_t::do_export_instance(
+auto docker_t::do_export_instance(
     std::shared_ptr<instances::instance_t> /*instance*/, fs::path /*dest_dir*/) const //
     -> result_t
 {
     return {0, {}};
 }
 
-auto deployment_docker_t::do_import_instance(
+auto docker_t::do_import_instance(
     std::shared_ptr<instances::instance_t> /*instance*/, fs::path /*base_dir*/) //
     -> result_t
 {
     return {0, {}};
 }
 
-auto deployment_docker_t::do_is_instance_running(std::shared_ptr<instances::instance_t> instance) const //
+auto docker_t::do_is_instance_running(std::shared_ptr<instances::instance_t> instance) const //
     -> bool
 {
     auto docker_process = process_t{};
@@ -440,7 +441,7 @@ auto deployment_docker_t::do_is_instance_running(std::shared_ptr<instances::inst
     return false;
 }
 
-auto deployment_docker_t::do_create_network(
+auto docker_t::do_create_network(
     network_type_e network_type,
     std::string_view network,
     std::string_view cidr_subnet,
@@ -514,7 +515,7 @@ auto deployment_docker_t::do_create_network(
     return {0, ""};
 }
 
-auto deployment_docker_t::do_query_network(std::string_view network) //
+auto docker_t::do_query_network(std::string_view network) //
     -> std::optional<network_t>
 {
     auto res = network_t{};
@@ -578,7 +579,7 @@ auto deployment_docker_t::do_query_network(std::string_view network) //
     return res;
 }
 
-auto deployment_docker_t::do_delete_network(std::string_view network) //
+auto docker_t::do_delete_network(std::string_view network) //
     -> result_t
 {
     auto docker_process = process_t{};
@@ -596,7 +597,7 @@ auto deployment_docker_t::do_delete_network(std::string_view network) //
     return {0, {}};
 }
 
-auto deployment_docker_t::do_connect_network(
+auto docker_t::do_connect_network(
     std::shared_ptr<instances::instance_t> instance,
     std::string_view network,
     std::string_view ip) //
@@ -620,7 +621,7 @@ auto deployment_docker_t::do_connect_network(
     return {0, ""};
 }
 
-auto deployment_docker_t::do_disconnect_network(
+auto docker_t::do_disconnect_network(
     std::shared_ptr<instances::instance_t> instance, std::string_view network) //
     -> result_t
 {
@@ -641,7 +642,7 @@ auto deployment_docker_t::do_disconnect_network(
     return {0, ""};
 }
 
-auto deployment_docker_t::do_create_volume(
+auto docker_t::do_create_volume(
     std::shared_ptr<instances::instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
@@ -662,7 +663,7 @@ auto deployment_docker_t::do_create_volume(
     return {0, ""};
 }
 
-auto deployment_docker_t::do_import_volume(
+auto docker_t::do_import_volume(
     std::shared_ptr<instances::instance_t> instance, volume_t& volume, fs::path src_dir) //
     -> result_t
 {
@@ -731,7 +732,7 @@ auto deployment_docker_t::do_import_volume(
     return {0, {}};
 }
 
-auto deployment_docker_t::do_export_volume(
+auto docker_t::do_export_volume(
     std::shared_ptr<instances::instance_t> instance,
     const volume_t& volume,
     fs::path dest_dir) const //
@@ -792,7 +793,7 @@ auto deployment_docker_t::do_export_volume(
     return {0, {}};
 }
 
-auto deployment_docker_t::do_delete_volume(
+auto docker_t::do_delete_volume(
     std::shared_ptr<instances::instance_t> instance, std::string_view volume_name) //
     -> result_t
 {
@@ -809,7 +810,7 @@ auto deployment_docker_t::do_delete_volume(
     return {0, ""};
 }
 
-auto deployment_docker_t::do_copy_file_from_image(
+auto docker_t::do_copy_file_from_image(
     std::string_view image,
     fs::path file,
     fs::path dest) //
@@ -846,7 +847,7 @@ auto deployment_docker_t::do_copy_file_from_image(
     return {0, {}};
 }
 
-auto deployment_docker_t::do_copy_file_to_instance(
+auto docker_t::do_copy_file_to_instance(
     std::shared_ptr<instances::instance_t> instance,
     fs::path file,
     fs::path dest) //
@@ -871,7 +872,7 @@ auto deployment_docker_t::do_copy_file_to_instance(
     return {0, {}};
 }
 
-auto deployment_docker_t::do_copy_file_from_instance(
+auto docker_t::do_copy_file_from_instance(
     std::shared_ptr<instances::instance_t> instance,
     fs::path file,
     fs::path dest) const //
@@ -896,28 +897,29 @@ auto deployment_docker_t::do_copy_file_from_instance(
     return {0, {}};
 }
 
-auto deployment_docker_t::do_default_network_name() const //
+auto docker_t::do_default_network_name() const //
     -> std::string_view
 {
     return "flecs";
 }
 
-auto deployment_docker_t::do_default_network_type() const //
+auto docker_t::do_default_network_type() const //
     -> network_type_e
 {
     return network_type_e::Bridge;
 }
 
-auto deployment_docker_t::do_default_network_cidr_subnet() const //
+auto docker_t::do_default_network_cidr_subnet() const //
     -> std::string_view
 {
     return "172.21.0.0/16";
 }
 
-auto deployment_docker_t::do_default_network_gateway() const //
+auto docker_t::do_default_network_gateway() const //
     -> std::string_view
 {
     return "172.21.0.1";
 }
 
+} // namespace deployments
 } // namespace flecs

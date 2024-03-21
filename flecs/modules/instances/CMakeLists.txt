@@ -30,6 +30,10 @@ target_link_libraries(modules.instances.types PUBLIC
     util.usb
 )
 
+target_link_libraries(modules.instances.types INTERFACE
+    modules.apps.types
+)
+
 flecs_add_module(
     MODULE_NAME
         instances

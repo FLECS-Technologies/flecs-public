@@ -25,7 +25,9 @@ namespace jobs {
 class progress_t;
 } // namespace jobs
 
+namespace deployments {
 class deployment_t;
+}
 
 namespace module {
 
@@ -132,7 +134,7 @@ private:
 
     flecs::module::instances_t* _parent;
 
-    std::unique_ptr<deployment_t> _deployment;
+    std::unique_ptr<deployments::deployment_t> _deployment;
     std::shared_ptr<flecs::module::apps_t> _apps_api;
     std::shared_ptr<flecs::module::jobs_t> _jobs_api;
 };

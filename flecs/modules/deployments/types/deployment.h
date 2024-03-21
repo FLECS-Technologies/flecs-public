@@ -36,6 +36,8 @@ class key_t;
 class conffile_t;
 class volume_t;
 
+namespace deployments {
+
 class deployment_t
 {
 public:
@@ -256,4 +258,5 @@ private:
         -> std::string_view = 0;
 };
 
+} // namespace deployments
 } // namespace flecs

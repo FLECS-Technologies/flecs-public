@@ -16,7 +16,7 @@
 
 #include "flecs/api/api.h"
 #include "flecs/common/app/manifest/manifest.h"
-#include "flecs/common/deployment/deployment_docker.h"
+#include "flecs/modules/deployments/types/deployment_docker.h"
 #ifdef FLECS_MOCK_MODULES
 #include "flecs/modules/apps/__mocks__/apps.h"
 #include "flecs/modules/jobs/__mocks__/jobs.h"
@@ -115,7 +115,7 @@ auto build_usb_devices_json(std::shared_ptr<instances::instance_t> instance)
 
 instances_t::instances_t(flecs::module::instances_t* parent)
     : _parent{parent}
-    , _deployment{new deployment_docker_t{}}
+    , _deployment{new deployments::docker_t{}}
     , _apps_api{}
     , _jobs_api{}
 {}

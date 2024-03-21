@@ -19,13 +19,14 @@
 #include "deployment.h"
 
 namespace flecs {
+namespace deployments {
 
-class deployment_docker_t : public deployment_t
+class docker_t : public deployment_t
 {
 public:
-    deployment_docker_t() = default;
+    docker_t() = default;
 
-    ~deployment_docker_t() override = default;
+    ~docker_t() override = default;
 
 private:
     auto do_deployment_id() const noexcept //
@@ -102,4 +103,5 @@ private:
         -> result_t;
 };
 
+} // namespace deployments
 } // namespace flecs
