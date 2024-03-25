@@ -45,6 +45,7 @@ auto version_t::http_version() const //
 
     auto response = json_t{};
     response["core"] = core_version();
+    response["api"] = api_version();
 
     return crow::response{crow::status::OK, "json", response.dump()};
 }
