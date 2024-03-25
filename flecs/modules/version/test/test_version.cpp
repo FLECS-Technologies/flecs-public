@@ -51,7 +51,7 @@ TEST(module_version, print_version)
     auto req = crow::request{};
     auto res = crow::response{};
 
-    const auto json_expected = flecs::json_t({{"core", FLECS_VERSION + "-"s + FLECS_GIT_SHA}});
+    const auto json_expected = flecs::json_t({{"core", FLECS_VERSION + "-"s + FLECS_GIT_SHA}, {"api", FLECS_API_VERSION}});
 
     req.url = "/v2/system/version";
     flecs::flecs_api_t::instance().app().handle(req, res);
