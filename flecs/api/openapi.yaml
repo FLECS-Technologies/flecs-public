@@ -256,6 +256,22 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/instance_config_usb_device"
+    instance_environment:
+      type: array
+      items:
+        $ref: "#/components/schemas/instance_environment_variable"
+    instance_environment_variable:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          pattern: "^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$"
+        value:
+          type: string
+          minLength: 1
     # Job related schemas
     job_id:
       type: integer
@@ -793,6 +809,63 @@ paths:
           description: No instance with this instance_id found
         "500":
           $ref: "#/components/responses/response_500"
+  /instances/{instance_id}/environment:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve environment of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/instance_environment"
+        "404":
+          description: No instance with this instance_id found
+    put:
+      tags: [ "Instances" ]
+      summary: Modify or create environment of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/instance_environment"
+      responses:
+        "200":
+          description: Environment for instance with this instance id is set
+        "201":
+          description: Environment for instance with this instance id was created
+        "400":
+          description: Environment is invalid
+        "404":
+          description: No instance with this instance_id found
+    delete:
+      tags: [ "Instances" ]
+      summary: Delete environment of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Environment of instance with this instance_id was deleted
+        "404":
+          description: No instance with this instance_id found
   # flunder related paths
   /flunder/browse:
     get:
