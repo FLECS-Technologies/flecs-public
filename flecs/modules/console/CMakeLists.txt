@@ -21,6 +21,7 @@ add_library(modules.console.types STATIC
     src/types/error_response.cpp
     src/types/feature_flags.cpp
     src/types/jwt.cpp
+    src/types/session_id.cpp
     src/types/user.cpp
     src/types/validate_response.cpp
     types/activate_response.h

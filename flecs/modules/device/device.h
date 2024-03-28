@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "flecs/modules/console/types/session_id.h"
 #include "flecs/modules/module_base/module.h"
 
 namespace flecs {
@@ -29,8 +30,11 @@ class device_t FLECS_FINAL_UNLESS_TESTED : public base_t
 public:
     ~device_t();
 
+    auto save_session_id(console::session_id_t session_id) //
+        -> result_t;
+
     auto session_id() //
-        -> const std::string&;
+        -> const console::session_id_t&;
 
     auto activate_license() //
         -> result_t;

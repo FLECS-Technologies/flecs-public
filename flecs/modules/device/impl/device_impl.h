@@ -39,11 +39,14 @@ private:
     auto do_load(const fs::path& base_path) //
         -> result_t;
 
+    auto do_save_session_id(console::session_id_t session_id) //
+        -> result_t;
+
     auto do_save(const fs::path& base_path) const //
         -> result_t;
 
     auto do_session_id() //
-        -> const std::string&;
+        -> const console::session_id_t&;
 
     auto do_activate_license() //
         -> result_t;
@@ -58,7 +61,7 @@ private:
         -> crow::response;
 
     flecs::module::device_t* _parent;
-    std::string _session_id;
+    console::session_id_t _session_id;
 };
 
 } // namespace impl
