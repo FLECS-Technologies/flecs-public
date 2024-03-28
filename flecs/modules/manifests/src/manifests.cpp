@@ -150,7 +150,7 @@ auto manifests_t::add_from_console(const apps::key_t& app_key) //
     auto device_api = std::dynamic_pointer_cast<device_t>(api::query_module("device"));
 
     auto session_id = device_api->session_id();
-    auto str = console_api->download_manifest(app_key.name(), app_key.version(), session_id);
+    auto str = console_api->download_manifest(app_key.name(), app_key.version(), session_id.id());
 
     return add_from_string(str);
 }
