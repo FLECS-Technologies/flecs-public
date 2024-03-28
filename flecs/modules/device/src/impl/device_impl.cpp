@@ -17,7 +17,9 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <ctime>
 #include <fstream>
+#include <string>
 
 #ifdef FLECS_MOCK_MODULES
 #include "flecs/modules/console/__mocks__/console.h"
@@ -50,20 +52,45 @@ auto device_t::do_load(const fs::path& base_path) //
     const auto sid_path = base_path / "device" / ".session_id";
     auto sid_file = std::ifstream{sid_path};
     if (!sid_file.good()) {
-        _session_id.clear();
+        _session_id = {};
         return {-1, "Could not open .session_id"};
     }
 
-    sid_file >> _session_id;
-    trim(_session_id);
+    std::string id;
+    std::time_t timestamp;
+    std::string timestamp_line;
 
+    if (!std::getline(sid_file, id) || !std::getline(sid_file, timestamp_line)) {
+        _session_id = {};
+        return {-1, "Could not read session_id and timestamp"};
+    }
+
+    trim(id);
     try {
-        boost::lexical_cast<boost::uuids::uuid>(_session_id);
-    } catch (...) {
-        _session_id.clear();
+        boost::lexical_cast<boost::uuids::uuid>(id);
+    } catch (boost::exception const& e) {
+        _session_id = {};
         return {-1, "Could not parse session_id"};
     }
 
+    try {
+        timestamp = std::stoll(timestamp_line);
+    } catch (std::exception const& e) {
+        return {-1, "Could not parse timestamp"};
+    }
+
+    _session_id = console::session_id_t{id, timestamp};
+
+    return {0, {}};
+}
+
+auto device_t::do_save_session_id(console::session_id_t session_id) -> result_t
+{
+    // New session id is only saved if it is different and newer
+    if (session_id.id() != _session_id.id() && session_id.timestamp() >= _session_id.timestamp()) {
+        _session_id = session_id;
+        return _parent->save();
+    }
     return {0, {}};
 }
 
@@ -83,16 +110,18 @@ auto device_t::do_save(const fs::path& base_path) const //
         return {-1, "Could not open .session_id for writing"};
     }
 
-    sid_file << _session_id;
+    sid_file << _session_id.id() << std::endl << _session_id.timestamp();
 
     return {0, {}};
 }
 
 auto device_t::do_session_id() //
-    -> const std::string&
+    -> const console::session_id_t&
 {
-    if (_session_id.empty()) {
-        _session_id = boost::lexical_cast<std::string>(boost::uuids::random_generator{}());
+    if (_session_id.id().empty()) {
+        _session_id = console::session_id_t{
+            boost::lexical_cast<std::string>(boost::uuids::random_generator{}()),
+            std::time(nullptr)};
         _parent->save();
     }
 
@@ -104,7 +133,7 @@ auto device_t::do_activate_license() //
 {
     auto console_api = std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
 
-    return console_api->activate_license(_parent->session_id());
+    return console_api->activate_license(_parent->session_id().id());
 }
 
 auto device_t::do_validate_license() //
@@ -112,7 +141,7 @@ auto device_t::do_validate_license() //
 {
     auto console_api = std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
 
-    return console_api->validate_license(_parent->session_id());
+    return console_api->validate_license(_parent->session_id().id());
 }
 
 auto device_t::do_activate_license_for_client() //
@@ -148,7 +177,6 @@ auto device_t::do_validate_license_for_client() //
             return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
     }
 }
-
 } // namespace impl
 } // namespace module
 } // namespace flecs

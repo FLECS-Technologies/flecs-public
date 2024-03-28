@@ -23,3 +23,4 @@
 #include "types/jwt.h"
 #include "types/user.h"
 #include "types/validate_response.h"
+#include "types/session_id.h"

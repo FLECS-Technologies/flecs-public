@@ -14,12 +14,13 @@
 
 #pragma once
 
+#include <cpr/cprtypes.h>
+
 #include "flecs/modules/console/console.h"
 
 namespace flecs {
 namespace module {
 namespace impl {
-
 class console_t
 {
     friend class flecs::module::console_t;
@@ -45,16 +46,25 @@ private:
     auto do_validate_license(std::string_view session_id) //
         -> result_t;
 
-    auto do_download_manifest(std::string app, std::string version, std::string session_id) //
+    auto do_download_manifest(
+        std::string app,
+        std::string version,
+        std::string session_id) //
         -> std::string;
 
-    auto do_acquire_download_token(std::string app, std::string version, std::string session_id) //
+    auto do_acquire_download_token(
+        std::string app,
+        std::string version,
+        std::string session_id) //
         -> std::optional<console::download_token_t>;
 
     auto do_store_authentication(console::auth_response_data_t auth) //
         -> crow::response;
     auto do_delete_authentication() //
         -> crow::response;
+
+    static auto save_session_id_from_header(const cpr::Header& header) //
+        -> void;
 
     flecs::module::console_t* _parent;
 

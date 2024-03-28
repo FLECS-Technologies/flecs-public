@@ -17,6 +17,8 @@
 #include <cpr/cpr.h>
 
 #include "flecs/modules/console/types.h"
+#include "flecs/modules/device/device.h"
+#include "flecs/modules/factory/factory.h"
 #include "flecs/util/json/json.h"
 
 namespace flecs {
@@ -68,7 +70,7 @@ auto console_t::do_activate_license(std::string session_id) //
     }
 
     if (res.status_code == 204) {
-        return {0, session_id};
+        return {0, {}};
     }
 
     auto response = console::error_response_t{};
@@ -103,6 +105,7 @@ auto console_t::do_validate_license(std::string_view session_id) //
         } catch (...) {
             return {-1, "Invalid JSON response for status code 200"};
         }
+        save_session_id_from_header(res.header);
         if (response.is_valid()) {
             return {1, {}};
         }
@@ -119,7 +122,10 @@ auto console_t::do_validate_license(std::string_view session_id) //
     return {-1, response.reason()};
 }
 
-auto console_t::do_download_manifest(std::string app, std::string version, std::string session_id) //
+auto console_t::do_download_manifest(
+    std::string app,
+    std::string version,
+    std::string session_id) //
     -> std::string
 {
     const auto url = std::string{_parent->base_url()} + "/api/v2/manifests/" + app + "/" + version;
@@ -130,7 +136,7 @@ auto console_t::do_download_manifest(std::string app, std::string version, std::
             {"Authorization", std::string{"Bearer "} + _auth.jwt().token()},
             {"X-Session-Id", std::string(session_id)},
         });
-
+    save_session_id_from_header(res.header);
     if (res.status_code == 200) {
         try {
             return parse_json(res.text).at("data").dump();
@@ -141,7 +147,10 @@ auto console_t::do_download_manifest(std::string app, std::string version, std::
     return std::string{};
 }
 
-auto console_t::do_acquire_download_token(std::string app, std::string version, std::string session_id) //
+auto console_t::do_acquire_download_token(
+    std::string app,
+    std::string version,
+    std::string session_id) //
     -> std::optional<console::download_token_t>
 {
     const auto url = std::string{_parent->base_url()} + "/api/v2/tokens";
@@ -158,6 +167,7 @@ auto console_t::do_acquire_download_token(std::string app, std::string version, 
         },
         cpr::Body{body.dump()});
 
+    save_session_id_from_header(res.header);
     if (res.status_code == 200) {
         try {
             return parse_json(res.text) //
@@ -188,6 +198,19 @@ auto console_t::do_delete_authentication() //
     _auth = console::auth_response_data_t{};
 
     return crow::response{crow::NO_CONTENT};
+}
+
+auto console_t::save_session_id_from_header(const cpr::Header& header) //
+    -> void
+{
+    if (auto session_id = header.find("X-Session-Id"); session_id != header.end()) {
+        try {
+            auto id = parse_json(session_id->second).get<console::session_id_t>();
+            auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
+            device_api->save_session_id(id);
+        } catch (const std::exception& e) {
+        }
+    }
 }
 
 } // namespace impl
