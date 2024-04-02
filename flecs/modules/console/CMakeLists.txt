@@ -47,6 +47,7 @@ flecs_add_module(
     LIBS_PUBLIC
         cpr::cpr
         modules.console.types
+        modules.device
 )
 
 if(FLECS_BUILD_TESTS)
