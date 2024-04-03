@@ -96,8 +96,8 @@ std::string process_t::output(int fd) const noexcept
     lseek(fd, 0, SEEK_SET);
 
     std::string str(len, '\0');
-    read(fd, str.data(), len);
-    return str;
+    const auto res = read(fd, str.data(), len);
+    return (res != -1) ? str : std::string{};
 }
 
 int process_t::do_spawn(const char* exec, bool path)
