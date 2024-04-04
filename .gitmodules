@@ -1,9 +1,9 @@
 [submodule "flecs-build"]
 	path = flecs-build
-	url = https://github.com/flecs-technologies/flecs-build
+	url = ../flecs-build.git
 [submodule "flecs-external"]
 	path = flecs-external
-	url = https://github.com/FLECS-Technologies/flecs-external.git
+	url = ../flecs-external.git
 [submodule "flunder"]
 	path = flunder
-	url = https://github.com/FLECS-Technologies/flunder.git
+	url = ../flunder.git

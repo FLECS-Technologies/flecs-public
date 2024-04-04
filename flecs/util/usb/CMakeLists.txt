@@ -23,7 +23,7 @@ add_library(${PROJECT_NAME} STATIC
 target_link_libraries(${PROJECT_NAME} PRIVATE
     util.udev
     util.sysfs
-    PkgConfig::libusb
+    Libusb::Libusb
 )
 
 add_subdirectory(test)
