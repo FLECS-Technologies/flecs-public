@@ -36,11 +36,14 @@ private:
     std::string _filename;
 };
 
+#define G_YAML_INDENT "  "
 #define G_YAML_ITEM(I) "- " I "\n"
 #define G_YAML_KEY(KEY) KEY ":\n"
 #define G_YAML_KEY_VALUE(KEY, VALUE) KEY ": " VALUE "\n"
 #define G_YAML_MAPPING(FROM, TO) "- " FROM ":" TO "\n"
-#define G_YAML_INDENT "  "
+#define G_YAML_MAPPING_EQ(FROM, TO) "- " FROM "=" TO "\n"
+#define G_YAML_MAPPING_QUOTED_EQ(FROM, TO) "- \"" FROM "=" TO "\"\n"
+#define G_YAML_MAPPING_SINGLE_QUOTED_EQ(FROM, TO) "- '" FROM "=" TO "'\n"
 
 #define G_APP "tech.flecs.test-app"
 #define G_ARG_1 "--launch-arg1"
@@ -108,6 +111,17 @@ private:
     G_YAML_INDENT G_YAML_MAPPING(G_VOLUME_LOCAL_1, G_VOLUME_CONTAINER_1) \
     G_YAML_INDENT G_YAML_MAPPING(G_VOLUME_LOCAL_2, G_VOLUME_CONTAINER_2) \
     G_YAML_INDENT G_YAML_MAPPING(G_VOLUME_LOCAL_3, G_VOLUME_CONTAINER_3)
+#define G_LABEL_NAME_1 "empty"
+#define G_LABEL_NAME_2 "with-whitespace"
+#define G_LABEL_NAME_3 "some.json"
+#define G_LABEL_VALUE_1 ""
+#define G_LABEL_VALUE_2 "some\\tvalue with\\nwhitespace"
+#define G_LABEL_VALUE_3 "{\\\"varname\\\": 123}"
+#define G_LABELS                                                                  \
+    G_YAML_KEY("labels")                                                          \
+    G_YAML_INDENT G_YAML_MAPPING_EQ(G_LABEL_NAME_1, G_LABEL_VALUE_1)              \
+    G_YAML_INDENT G_YAML_MAPPING_QUOTED_EQ(G_LABEL_NAME_2, G_LABEL_VALUE_2)    \
+    G_YAML_INDENT G_YAML_MAPPING_QUOTED_EQ(G_LABEL_NAME_3, G_LABEL_VALUE_3)
 
 auto manifest_header() //
     -> std::string
@@ -132,6 +146,7 @@ auto extend_manifest(std::string& yaml) //
     yaml.append(G_PORTS);
     yaml.append(G_STARTUP_OPTIONS);
     yaml.append(G_VOLUMES);
+    yaml.append(G_LABELS);
 }
 
 TEST(daemon_app, minimal_app)
@@ -242,7 +257,8 @@ TEST(daemon_app, to_json)
         R"-("networks":[{"mac_address":"","name":"flecs","parent":"","type":"bridge"}],)-"
         R"-("ports":["1234:1234","8000-8005:10000-10005"],)-"
         R"-("startupOptions":[1],)-"
-        R"-("volumes":["var:/var/","etc:/etc/","/home/app1/dir:/home/"]})-";
+        R"-("volumes":["var:/var/","etc:/etc/","/home/app1/dir:/home/"],)-"
+        R"-("labels":["empty=","some.json={\"varname\": 123}","with-whitespace=some\tvalue with\nwhitespace"]})-";
 
     ASSERT_EQ(json.dump(), json_expected);
 }
