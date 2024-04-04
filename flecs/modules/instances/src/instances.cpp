@@ -14,6 +14,7 @@
 
 #include "flecs/modules/instances/instances.h"
 
+#include "flecs/common/app/manifest/env_var/env_var.h"
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/instances/impl/instances_impl.h"
@@ -101,6 +102,33 @@ auto instances_t::do_init() //
 
     FLECS_V2_ROUTE("/instances/<string>/logs").methods("GET"_method)([this](const std::string& instance_id) {
         return http_logs(instances::id_t{instance_id});
+    });
+
+    FLECS_V2_ROUTE("/instances/<string>/config/environment").methods("GET"_method)([this](const std::string& instance_id) {
+        return http_get_env(instances::id_t{instance_id});
+    });
+
+    FLECS_V2_ROUTE("/instances/<string>/config/environment").methods("PUT"_method)([this](const crow::request& req, const std::string& instance_id) {
+        auto response = json_t{};
+        const auto args = parse_json(req.body);
+        auto environment = std::vector<mapped_env_var_t>{};
+        if (!args.contains("environment")) {
+            response["additionalInfo"] = "Missing field environment in request";
+            return crow::response{crow::status::BAD_REQUEST, response.dump()};
+        }
+        for (auto& json_env : args["environment"]) {
+            mapped_env_var_t env_var = json_env;
+            if (!env_var.is_valid()) {
+                response["additionalInfo"] = "Invalid environment key value pair: " + json_env.dump();
+                return crow::response{crow::status::BAD_REQUEST, response.dump()};
+            }
+            environment.push_back(std::move(env_var));
+        }
+        return http_put_env(instances::id_t{instance_id}, environment);
+    });
+
+    FLECS_V2_ROUTE("/instances/<string>/config/environment").methods("DELETE"_method)([this](const std::string& instance_id) {
+        return http_delete_env(instances::id_t{instance_id});
     });
 
     return _impl->do_module_init();
@@ -212,6 +240,24 @@ auto instances_t::http_export_to(instances::id_t instance_id, fs::path dest_dir)
 {
     auto job_id = _impl->queue_export_to(std::move(instance_id), std::move(dest_dir));
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
+}
+
+auto instances_t::http_get_env(instances::id_t instance_id) const //
+    -> crow::response
+{
+    return _impl->do_get_env(instance_id);
+}
+
+auto instances_t::http_put_env(instances::id_t instance_id, std::vector<mapped_env_var_t> env_vars) //
+    -> crow::response
+{
+    return _impl->do_put_env(instance_id, std::move(env_vars));
+}
+
+auto instances_t::http_delete_env(instances::id_t instance_id) //
+    -> crow::response
+{
+    return _impl->do_delete_env(instance_id);
 }
 
 auto instances_t::instance_ids(const apps::key_t& app_key) const //

@@ -18,6 +18,7 @@
 #include <set>
 #include <string>
 
+#include "flecs/common/app/manifest/env_var/env_var.h"
 #include "flecs/util/json/json.h"
 #include "flecs/util/usb/usb.h"
 #include "instance_config.h"
@@ -34,6 +35,7 @@ namespace instances {
 class instance_t
 {
 public:
+    using envs_t = std::set<mapped_env_var_t>;
     struct network_t
     {
         std::string network_name;
@@ -75,7 +77,12 @@ public:
         -> const std::set<usb::device_t>&;
     auto usb_devices() noexcept //
         -> std::set<usb::device_t>&;
-
+    auto environment() const noexcept //
+        -> envs_t;
+    auto clear_environment() //
+        -> void;
+    auto set_environment(envs_t env) //
+        -> void;
     auto regenerate_id() //
         -> void;
     auto app(std::shared_ptr<const apps::app_t> app) //
@@ -113,6 +120,7 @@ private:
     std::vector<network_t> _networks;
     std::vector<unsigned> _startup_options;
     std::set<usb::device_t> _usb_devices;
+    envs_t _env;
 };
 
 auto operator==(const instance_t& lhs, const instance_t& rhs) //

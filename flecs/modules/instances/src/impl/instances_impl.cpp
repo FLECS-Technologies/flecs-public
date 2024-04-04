@@ -638,6 +638,51 @@ auto instances_t::do_logs(instances::id_t instance_id) const //
     return {crow::status::OK, "json", response.dump()};
 }
 
+auto instances_t::do_get_env(instances::id_t instance_id) const //
+    -> crow::response
+{
+    auto instance = _deployment->query_instance(instance_id);
+    if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    json_t response = instance->environment();
+    return crow::response{crow::status::OK, "json", response.dump()};
+}
+
+auto instances_t::do_put_env(instances::id_t instance_id, std::vector<mapped_env_var_t> env_vars) //
+    -> crow::response
+{
+    auto instance = _deployment->query_instance(instance_id);
+    if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto env = std::set<mapped_env_var_t>{};
+    for (auto& env_var : env_vars) {
+        auto result = env.insert(std::move(env_var));
+
+        if (!result.second) {
+            auto additionalInfo = json_t{};
+            additionalInfo["additionalInfo"] = "Duplicate variable in environment: " + result.first->var();
+            return crow::response{crow::status::BAD_REQUEST, "json", additionalInfo.dump()};
+        }
+    }
+    instance->set_environment(std::move(env));
+    _deployment->save();
+    return crow::response{crow::status::OK};
+}
+
+auto instances_t::do_delete_env(instances::id_t instance_id) //
+    -> crow::response
+{
+    auto instance = _deployment->query_instance(instance_id);
+    if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    instance->clear_environment();
+    _deployment->save();
+    return crow::response{crow::status::OK};
+}
+
 auto instances_t::queue_update(instances::id_t instance_id, std::string to) //
     -> jobs::id_t
 {

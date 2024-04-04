@@ -72,7 +72,7 @@ auto docker_t::create_container(std::shared_ptr<instances::instance_t> instance)
         return {-1, "Could not access app manifest"};
     }
 
-    for (const auto& env : manifest->env()) {
+    for (const auto& env : instance->environment()) {
         docker_process.arg("--env");
         docker_process.arg(stringify(env));
     }
