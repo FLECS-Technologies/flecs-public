@@ -46,24 +46,26 @@ flecs_add_module(
         modules.instances.types
 )
 
-add_library(daemon.modules.instances.mocked_modules STATIC
-    src/instances.cpp
-    src/impl/instances_impl.cpp
-    instances.h
-    impl/instances_impl.h
-)
+if(FLECS_BUILD_TESTS)
+    add_library(daemon.modules.instances.mocked_modules STATIC
+        src/instances.cpp
+        src/impl/instances_impl.cpp
+        instances.h
+        impl/instances_impl.h
+    )
 
-target_link_libraries(
-    daemon.modules.instances.mocked_modules PUBLIC
-    GTest::gmock
-    daemon.modules.factory
-    daemon.modules.module_base
-    modules.instances.types
-)
+    target_link_libraries(
+        daemon.modules.instances.mocked_modules PUBLIC
+        GTest::gmock
+        daemon.modules.factory
+        daemon.modules.module_base
+        modules.instances.types
+    )
 
-target_compile_definitions(
-    daemon.modules.instances.mocked_modules PRIVATE
-    -DFLECS_MOCK_MODULES
-)
+    target_compile_definitions(
+        daemon.modules.instances.mocked_modules PRIVATE
+        -DFLECS_MOCK_MODULES
+    )
+endif()
 
 add_subdirectory(test)

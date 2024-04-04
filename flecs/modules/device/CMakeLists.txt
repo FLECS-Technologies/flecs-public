@@ -19,23 +19,25 @@ flecs_add_module(
     LIBS_PUBLIC daemon.modules.console
 )
 
-add_library(daemon.modules.device.mocked_modules STATIC
-    src/device.cpp
-    src/impl/device_impl.cpp
-    device.h
-    impl/device_impl.h
-)
+if(FLECS_BUILD_TESTS)
+    add_library(daemon.modules.device.mocked_modules STATIC
+        src/device.cpp
+        src/impl/device_impl.cpp
+        device.h
+        impl/device_impl.h
+    )
 
-target_link_libraries(
-    daemon.modules.device.mocked_modules PUBLIC
-    GTest::gmock
-    daemon.modules.factory
-    daemon.modules.module_base
-)
+    target_link_libraries(
+        daemon.modules.device.mocked_modules PUBLIC
+        GTest::gmock
+        daemon.modules.factory
+        daemon.modules.module_base
+    )
 
-target_compile_definitions(
-    daemon.modules.device.mocked_modules PRIVATE
-    -DFLECS_MOCK_MODULES
-)
+    target_compile_definitions(
+        daemon.modules.device.mocked_modules PRIVATE
+        -DFLECS_MOCK_MODULES
+    )
+endif()
 
 add_subdirectory(test)

@@ -43,24 +43,26 @@ flecs_add_module(
         yaml-cpp::yaml-cpp
 )
 
-add_library(daemon.modules.apps.mocked_modules STATIC
-    src/apps.cpp
-    src/impl/apps_impl.cpp
-    apps.h
-    impl/apps_impl.h
-)
+if(FLECS_BUILD_TESTS)
+    add_library(daemon.modules.apps.mocked_modules STATIC
+        src/apps.cpp
+        src/impl/apps_impl.cpp
+        apps.h
+        impl/apps_impl.h
+    )
 
-target_link_libraries(
-    daemon.modules.apps.mocked_modules PUBLIC
-    GTest::gmock
-    daemon.common
-    daemon.modules.factory
-    daemon.modules.module_base
-)
+    target_link_libraries(
+        daemon.modules.apps.mocked_modules PUBLIC
+        GTest::gmock
+        daemon.common
+        daemon.modules.factory
+        daemon.modules.module_base
+    )
 
-target_compile_definitions(
-    daemon.modules.apps.mocked_modules PRIVATE
-    -DFLECS_MOCK_MODULES
-)
+    target_compile_definitions(
+        daemon.modules.apps.mocked_modules PRIVATE
+        -DFLECS_MOCK_MODULES
+    )
+endif()
 
 add_subdirectory(test)
