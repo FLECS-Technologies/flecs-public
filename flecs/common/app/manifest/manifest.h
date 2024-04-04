@@ -41,6 +41,7 @@ public:
     using startup_options_t = std::vector<startup_option_t>;
     using ports_t = std::vector<mapped_port_range_t>;
     using volumes_t = std::vector<volume_t>;
+    using labels_t = std::set<mapped_label_var_t>;
 
     app_manifest_t();
 
@@ -73,6 +74,8 @@ public:
     auto& version() const noexcept { return _version; }
     auto& volumes() noexcept { return _volumes; }
     auto& volumes() const noexcept { return _volumes; }
+    auto& labels() noexcept { return _labels; }
+    auto& labels() const noexcept { return _labels; }
 
 private:
     friend auto to_json(json_t& json, const app_manifest_t& app_manifest) //
@@ -101,6 +104,7 @@ private:
     startup_options_t _startup_options;
     std::string _version;
     volumes_t _volumes;
+    labels_t _labels;
 };
 
 } // namespace flecs

@@ -108,6 +108,11 @@ auto docker_t::create_container(std::shared_ptr<instances::instance_t> instance)
         docker_process.arg(device);
     }
 
+    for (const auto& label : manifest->labels()) {
+        docker_process.arg("--label");
+        docker_process.arg(to_string(label));
+    }
+
     if (!instance->networks().empty()) {
         auto& network = instance->networks()[0];
 

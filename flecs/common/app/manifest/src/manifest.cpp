@@ -71,6 +71,7 @@ app_manifest_t::app_manifest_t()
     , _ports{}
     , _version{}
     , _volumes{}
+    , _labels{}
 {}
 
 app_manifest_t app_manifest_t::from_json(const json_t& json)
@@ -157,6 +158,16 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
             }
         }
 
+        OPTIONAL_YAML_NODE(yaml, labels, labels);
+        for (const auto& label : labels) {
+            auto parse_result = mapped_label_var_t::try_parse(label.as<std::string>());
+            if (parse_result.has_value()) {
+                _labels.emplace(parse_result.value());
+            } else {
+                error_found = true;
+            }
+        }
+
         OPTIONAL_TYPED_YAML_VALUE(yaml, hostname, _hostname);
         REQUIRED_TYPED_YAML_VALUE(yaml, image, _image);
         OPTIONAL_TYPED_YAML_VALUE(yaml, interactive, _interactive);
@@ -237,25 +248,27 @@ void app_manifest_t::validate()
 auto to_json(json_t& json, const app_manifest_t& app_manifest) //
     -> void
 {
-    json = json_t(
-        {{"app", app_manifest._app},
-         {"version", app_manifest._version},
-         {"image", app_manifest._image},
+    json = json_t({
+        {"app", app_manifest._app},
+        {"version", app_manifest._version},
+        {"image", app_manifest._image},
 
-         {"multiInstance", app_manifest._multi_instance},
-         {"editor", app_manifest._editor},
+        {"multiInstance", app_manifest._multi_instance},
+        {"editor", app_manifest._editor},
 
-         {"args", app_manifest._args},
-         {"capabilities", app_manifest._capabilities},
-         {"conffiles", app_manifest._conffiles},
-         {"devices", app_manifest._devices},
-         {"env", app_manifest._env},
-         {"hostname", app_manifest._hostname},
-         {"interactive", app_manifest._interactive},
-         {"networks", app_manifest._networks},
-         {"ports", app_manifest._ports},
-         {"startupOptions", app_manifest._startup_options},
-         {"volumes", app_manifest._volumes}});
+        {"args", app_manifest._args},
+        {"capabilities", app_manifest._capabilities},
+        {"conffiles", app_manifest._conffiles},
+        {"devices", app_manifest._devices},
+        {"env", app_manifest._env},
+        {"hostname", app_manifest._hostname},
+        {"interactive", app_manifest._interactive},
+        {"networks", app_manifest._networks},
+        {"ports", app_manifest._ports},
+        {"startupOptions", app_manifest._startup_options},
+        {"volumes", app_manifest._volumes},
+        {"labels", app_manifest._labels},
+    });
 }
 
 auto from_json(const json_t& json, app_manifest_t& app_manifest) //
@@ -279,6 +292,7 @@ auto from_json(const json_t& json, app_manifest_t& app_manifest) //
     OPTIONAL_JSON_VALUE(json, ports, app_manifest._ports);
     OPTIONAL_JSON_VALUE(json, startupOptions, app_manifest._startup_options);
     OPTIONAL_JSON_VALUE(json, volumes, app_manifest._volumes);
+    OPTIONAL_JSON_VALUE(json, labels, app_manifest._labels);
 
     app_manifest.validate();
 }
