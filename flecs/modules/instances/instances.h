@@ -17,6 +17,7 @@
 #include <memory>
 #include <vector>
 
+#include "flecs/common/app/manifest/env_var/env_var.h"
 #include "flecs/modules/instances/types/instance_id.h"
 #include "flecs/modules/jobs/types/job_id.h"
 #include "flecs/modules/module_base/module.h"
@@ -79,6 +80,15 @@ public:
         -> crow::response;
 
     auto http_export_to(instances::id_t instance_id, fs::path dest_dir) const //
+        -> crow::response;
+
+    auto http_get_env(instances::id_t instance_id) const //
+        -> crow::response;
+
+    auto http_put_env(instances::id_t instance_id, std::vector<mapped_env_var_t> env_vars) //
+        -> crow::response;
+
+    auto http_delete_env(instances::id_t instance_id) //
         -> crow::response;
 
     /*! @brief List all available instance ids

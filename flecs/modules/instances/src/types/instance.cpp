@@ -19,6 +19,7 @@
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/util/random/random.h"
 #include "flecs/util/string/format.h"
+#include "flecs/common/app/manifest/manifest.h"
 
 namespace flecs {
 namespace instances {
@@ -41,6 +42,7 @@ instance_t::instance_t(instances::id_t id, std::shared_ptr<const apps::app_t> ap
     , _desired{instances::status_e::Unknown}
     , _networks{}
     , _startup_options{}
+    , _env{}
 {}
 
 auto instance_t::id() const noexcept //
@@ -129,6 +131,24 @@ auto instance_t::usb_devices() noexcept //
     return _usb_devices;
 }
 
+auto instance_t::environment() const noexcept //
+    -> envs_t
+{
+    return _env;
+}
+
+auto instance_t::clear_environment() //
+    -> void
+{
+    _env.emplace();
+}
+
+auto instance_t::set_environment(envs_t env) //
+    -> void
+{
+    _env = env;
+}
+
 auto instance_t::regenerate_id() //
     -> void
 {
@@ -181,8 +201,8 @@ auto to_json(json_t& json, const instance_t& instance) //
     -> void
 {
     auto app_key = apps::key_t{instance.app_name().data(), instance.app_version().data()};
-    json = json_t(
-        {{"_schemaVersion", "2.0.0"},
+    json = json_t({
+        {"_schemaVersion", "2.0.0"},
          {"instanceId", instance.id().hex()},
          {"instanceName", instance.instance_name()},
          {"appKey", app_key},
@@ -190,7 +210,9 @@ auto to_json(json_t& json, const instance_t& instance) //
          {"desired", to_string(instance.desired())},
          {"networks", instance.networks()},
          {"startupOptions", instance.startup_options()},
-         {"usbDevices", instance.usb_devices()}});
+         {"usbDevices", instance.usb_devices()},
+         {"environment", instance.environment()},
+    });
 }
 
 auto from_json_v1(const json_t& j, instance_t& instance) //
@@ -205,6 +227,9 @@ auto from_json_v1(const json_t& j, instance_t& instance) //
     instance._networks = j.at("networks").get<decltype(instance._networks)>();
     instance._startup_options = j.at("startupOptions").get<decltype(instance._startup_options)>();
     instance._usb_devices = j.at("usbDevices").get<decltype(instance._usb_devices)>();
+    if (j.contains("environment")) {
+        instance._env = j.at("environment").get<instance_t::envs_t>();
+    }
 }
 
 auto from_json_v2(const json_t& j, instance_t& instance) //
@@ -219,6 +244,9 @@ auto from_json_v2(const json_t& j, instance_t& instance) //
     instance._networks = j.at("networks").get<decltype(instance._networks)>();
     instance._startup_options = j.at("startupOptions").get<decltype(instance._startup_options)>();
     instance._usb_devices = j.at("usbDevices").get<decltype(instance._usb_devices)>();
+    if (j.contains("environment")) {
+        instance._env = j.at("environment").get<instance_t::envs_t>();
+    }
 }
 
 auto from_json(const json_t& j, instance_t& instance) //

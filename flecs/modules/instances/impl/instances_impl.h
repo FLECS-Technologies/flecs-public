@@ -111,6 +111,15 @@ private:
     auto do_logs(instances::id_t instance_id) const //
         -> crow::response;
 
+    auto do_get_env(instances::id_t instance_id) const //
+        -> crow::response;
+
+    auto do_put_env(instances::id_t instance_id, std::vector<mapped_env_var_t> env_vars) //
+        -> crow::response;
+
+    auto do_delete_env(instances::id_t instance_id) //
+        -> crow::response;
+
     auto queue_update(instances::id_t instance_id, std::string to) //
         -> jobs::id_t;
     auto do_update_sync(instances::id_t instance_id, std::string to) //
