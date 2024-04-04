@@ -22,21 +22,23 @@ flecs_add_module(
     LIBS_PRIVATE util.archive util.datetime
 )
 
-add_library(daemon.modules.flecsport.mocked_modules STATIC
-    src/flecsport.cpp
-    src/impl/flecsport_impl.cpp
-    flecsport.h
-    impl/flecsport_impl.h
-)
+if(FLECS_BUILD_TESTS)
+    add_library(daemon.modules.flecsport.mocked_modules STATIC
+        src/flecsport.cpp
+        src/impl/flecsport_impl.cpp
+        flecsport.h
+        impl/flecsport_impl.h
+    )
 
-target_link_libraries(
-    daemon.modules.flecsport.mocked_modules PUBLIC
-    GTest::gmock
-    daemon.modules.factory
-    daemon.modules.module_base
-)
+    target_link_libraries(
+        daemon.modules.flecsport.mocked_modules PUBLIC
+        GTest::gmock
+        daemon.modules.factory
+        daemon.modules.module_base
+    )
 
-target_compile_definitions(
-    daemon.modules.flecsport.mocked_modules PRIVATE
-    -DFLECS_MOCK_MODULES
-)
+    target_compile_definitions(
+        daemon.modules.flecsport.mocked_modules PRIVATE
+        -DFLECS_MOCK_MODULES
+    )
+endif()

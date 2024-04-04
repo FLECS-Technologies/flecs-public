@@ -33,18 +33,20 @@ add_library(daemon.modules.manifests.mocked_modules STATIC
     impl/manifests_impl.h
 )
 
-target_link_libraries(
-    daemon.modules.manifests.mocked_modules PUBLIC
-    cpr::cpr
-    GTest::gmock
-    daemon.common
-    daemon.modules.factory
-    daemon.modules.module_base
-)
+if(FLECS_BUILD_TESTS)
+    target_link_libraries(
+        daemon.modules.manifests.mocked_modules PUBLIC
+        cpr::cpr
+        GTest::gmock
+        daemon.common
+        daemon.modules.factory
+        daemon.modules.module_base
+    )
 
-target_compile_definitions(
-    daemon.modules.manifests.mocked_modules PRIVATE
-    -DFLECS_MOCK_MODULES
-)
+    target_compile_definitions(
+        daemon.modules.manifests.mocked_modules PRIVATE
+        -DFLECS_MOCK_MODULES
+    )
+endif()
 
 add_subdirectory(test)
