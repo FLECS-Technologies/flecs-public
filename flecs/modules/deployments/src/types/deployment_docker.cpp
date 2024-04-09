@@ -27,6 +27,13 @@
 namespace flecs {
 namespace deployments {
 
+static const std::set<std::string> valid_capabilities = {
+    "NET_ADMIN",
+    "SYS_NICE",
+    "IPC_LOCK",
+    "NET_RAW",
+};
+
 auto docker_t::create_container(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
@@ -163,7 +170,7 @@ auto docker_t::create_container(std::shared_ptr<instances::instance_t> instance)
     }
 
     for (const auto& cap : manifest->capabilities()) {
-        if (cap == "NET_ADMIN" || cap == "SYS_NICE" || cap == "IPC_LOCK") {
+        if (valid_capabilities.contains(cap)) {
             docker_process.arg("--cap-add");
             docker_process.arg(cap);
         } else if (cap == "DOCKER") {
