@@ -446,22 +446,17 @@ auto apps_t::do_export_to_sync(apps::key_t app_key, fs::path dest_dir) const //
 auto apps_t::do_export_to(apps::key_t app_key, fs::path dest_dir, jobs::progress_t& progress) const //
     -> result_t
 {
-    progress.num_steps(4);
+    progress.num_steps(3);
 
-    // Step 1: Ensure App is actually installed
+    // Step 1: Load App manifest
     progress.next_step("Loading Manifest");
-    if (!_parent->is_installed(app_key)) {
-        return {-1, "App is not installed"};
-    }
-
-    // Step 2: Load App manifest
     auto app = _parent->query(app_key);
     auto manifest = app->manifest();
     if (!manifest) {
         return {-1, "App not connected to a Manifest"};
     }
 
-    // Step 3: Create export directory
+    // Step 2: Create export directory
     progress.next_step("Creating export directory");
     auto ec = std::error_code{};
     fs::create_directories(dest_dir);
@@ -469,7 +464,7 @@ auto apps_t::do_export_to(apps::key_t app_key, fs::path dest_dir, jobs::progress
         return {-1, "Could not create export directory "s + dest_dir.c_str()};
     }
 
-    // Step 4: Export image
+    // Step 3: Export image
     progress.next_step("Exporting App");
     auto docker_process = process_t{};
     const auto filename = dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".tar");
@@ -479,7 +474,7 @@ auto apps_t::do_export_to(apps::key_t app_key, fs::path dest_dir, jobs::progress
         return {-1, docker_process.stderr()};
     }
 
-    // Step 5: Copy manifest
+    // Step 4: Copy manifest
     progress.next_step("Exporting Manifest");
     const auto manifest_src = _manifests_api->path(app_key);
     const auto manifest_dst = dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".json");
