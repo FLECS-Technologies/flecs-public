@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME daemon.common.app.manifest.port_range)
-
-project(${PROJECT_NAME})
-
 add_library(
-    ${PROJECT_NAME} OBJECT
+    common.app.manifest.port_range OBJECT
     src/port_range.cpp
     port_range.h
 )

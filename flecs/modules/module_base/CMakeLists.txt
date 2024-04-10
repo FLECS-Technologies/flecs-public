@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(daemon.modules.module_base)
-
-add_library(daemon.modules.module_base STATIC
+add_library(modules.module_base STATIC
     src/module.cpp
     module.h
 )
 
 target_link_libraries(
-    daemon.modules.module_base PUBLIC
-    daemon.api
+    modules.module_base PUBLIC
+    api
 )

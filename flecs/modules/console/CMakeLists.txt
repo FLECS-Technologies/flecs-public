@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(modules.console.types)
-
-add_library(${PROJECT_NAME} STATIC
+add_library(modules.console.types STATIC
     src/types/activate_response.cpp
     src/types/auth_response.cpp
     src/types/base_response.cpp
@@ -51,7 +49,7 @@ flecs_add_module(
 )
 
 if(FLECS_BUILD_TESTS)
-    add_library(daemon.modules.console.mocked_modules STATIC
+    add_library(modules.console.mocked_modules STATIC
         src/console.cpp
         src/impl/console_impl.cpp
         console.h
@@ -59,15 +57,15 @@ if(FLECS_BUILD_TESTS)
     )
 
     target_link_libraries(
-        daemon.modules.console.mocked_modules PUBLIC
+        modules.console.mocked_modules PUBLIC
         GTest::gmock
-        daemon.common
-        daemon.modules.factory
-        daemon.modules.module_base
+        common
+        modules.factory
+        modules.module_base
     )
 
     target_compile_definitions(
-        daemon.modules.console.mocked_modules PRIVATE
+        modules.console.mocked_modules PRIVATE
         -DFLECS_MOCK_MODULES
     )
 endif()

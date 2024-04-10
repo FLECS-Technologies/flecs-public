@@ -26,7 +26,7 @@ if (NOT FLECS_GIT_SHA)
     message(FATAL_ERROR ${FLECS_GIT_SHA_ERROR})
 endif()
 
-target_compile_definitions(daemon.modules.version PUBLIC
+target_compile_definitions(modules.version PUBLIC
     -DFLECS_GIT_SHA="${FLECS_GIT_SHA}"
 )
 

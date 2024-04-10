@@ -13,22 +13,20 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
-    project(daemon.modules.version.test)
-
-    add_executable(daemon.modules.version.test
+    add_executable(modules.version.test
         test_version.cpp
     )
 
-    set_target_properties(daemon.modules.version.test PROPERTIES OUTPUT_NAME test_daemon_modules_version)
+    set_target_properties(modules.version.test PROPERTIES OUTPUT_NAME test_daemon_modules_version)
 
-    target_link_libraries(daemon.modules.version.test PRIVATE
+    target_link_libraries(modules.version.test PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.lib
-        daemon.modules.factory
-        daemon.modules.module_base
-        daemon.modules.version
+        lib
+        modules.factory
+        modules.module_base
+        modules.version
     )
 
-    add_test(NAME daemon.modules.version.test COMMAND daemon.modules.version.test)
+    add_test(NAME modules.version.test COMMAND modules.version.test)
 endif()

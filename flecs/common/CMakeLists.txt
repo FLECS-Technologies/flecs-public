@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(daemon.common)
-
 add_subdirectory(app)
 add_subdirectory(network)
 
-add_library(daemon.common INTERFACE)
+add_library(common INTERFACE)
 
 target_link_libraries(
-    daemon.common INTERFACE
-    daemon.common.app.manifest
-    daemon.common.network
+    common INTERFACE
+    common.app.manifest
+    common.network
     modules.apps.types
 )

@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME util.sysinfo)
-project(${PROJECT_NAME})
-
-add_library(${PROJECT_NAME} STATIC
+add_library(util.sysinfo STATIC
     src/sysinfo.cpp
     sysinfo.h
 )

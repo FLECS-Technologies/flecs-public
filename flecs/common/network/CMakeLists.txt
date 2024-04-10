@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME daemon.common.network)
-
-project(${PROJECT_NAME})
-
 add_library(
-    ${PROJECT_NAME} STATIC
+    common.network STATIC
     src/network_type.cpp src/network.cpp
     network_type.h network.h
 )

@@ -13,21 +13,20 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
-    set(PROJECT_NAME daemon.common.network.test)
-    project(${PROJECT_NAME})
+    set(TEST_NAME common.network.test)
 
-    add_executable(${PROJECT_NAME}
+    add_executable(${TEST_NAME}
         test_network_type.cpp
         test_network.cpp
     )
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_network)
+    set_target_properties(${TEST_NAME} PROPERTIES OUTPUT_NAME test_network)
 
-    target_link_libraries(${PROJECT_NAME} PRIVATE
+    target_link_libraries(${TEST_NAME} PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.common.network
+        common.network
     )
 
-    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 endif()

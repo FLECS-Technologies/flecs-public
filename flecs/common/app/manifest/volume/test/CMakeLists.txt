@@ -13,21 +13,19 @@
 # limitations under the License.
 
 if (FLECS_BUILD_TESTS)
-    set(PROJECT_NAME daemon.common.app.manifest.volume.test)
+    set(TEST_NAME common.app.manifest.volume.test)
 
-    project(${PROJECT_NAME})
-
-    add_executable(${PROJECT_NAME}
+    add_executable(${TEST_NAME}
         test_volume.cpp
     )
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_daemon_app_volume)
+    set_target_properties(${TEST_NAME} PROPERTIES OUTPUT_NAME test_daemon_app_volume)
 
-    target_link_libraries(${PROJECT_NAME} PRIVATE
+    target_link_libraries(${TEST_NAME} PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.common.app.manifest.volume
+        common.app.manifest.volume
     )
 
-    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 endif()

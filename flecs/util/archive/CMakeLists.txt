@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(util.archive)
-
-add_library(${PROJECT_NAME} STATIC
+add_library(util.archive STATIC
     archive.h
     impl/archive_entry.h
     impl/base_archive.h
@@ -33,7 +31,7 @@ add_library(${PROJECT_NAME} STATIC
     src/impl/write_disk.cpp
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(util.archive PRIVATE
     LibArchive::LibArchive
 )
 

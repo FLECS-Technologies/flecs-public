@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME daemon.common.app.manifest.startup_option)
-
-project(${PROJECT_NAME})
-
 add_library(
-    ${PROJECT_NAME} OBJECT
+    common.app.manifest.startup_option OBJECT
     src/startup_option.cpp
     startup_option.h
 )

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(util.signal_handler)
-
 add_library(util.signal_handler OBJECT
     src/signal_handler.cpp
     signal_handler.h

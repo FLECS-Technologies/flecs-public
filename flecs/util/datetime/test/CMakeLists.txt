@@ -13,8 +13,6 @@
 # limitations under the License.
 
 if (FLECS_BUILD_TESTS)
-    project(util.datetime.test)
-
     add_executable(util.datetime.test
         test_datetime.cpp
     )

@@ -13,21 +13,19 @@
 # limitations under the License.
 
 if (FLECS_BUILD_TESTS)
-    project(daemon.modules.system.test)
-
-    add_executable(daemon.modules.system.test
+    add_executable(modules.system.test
         test_system.cpp
     )
 
-    set_target_properties(daemon.modules.system.test PROPERTIES OUTPUT_NAME test_daemon_modules_system)
+    set_target_properties(modules.system.test PROPERTIES OUTPUT_NAME test_daemon_modules_system)
 
-    target_link_libraries(daemon.modules.system.test PRIVATE
+    target_link_libraries(modules.system.test PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.modules.factory
-        daemon.modules.module_base
-        daemon.modules.system
+        modules.factory
+        modules.module_base
+        modules.system
     )
 
-    add_test(NAME daemon.modules.system.test COMMAND daemon.modules.system.test)
+    add_test(NAME modules.system.test COMMAND modules.system.test)
 endif()

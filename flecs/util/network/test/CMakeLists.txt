@@ -13,8 +13,6 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
-    project(util.network.test)
-
     add_executable(test.util.network
         test_ip_addr.cpp
         test_netif_type.cpp

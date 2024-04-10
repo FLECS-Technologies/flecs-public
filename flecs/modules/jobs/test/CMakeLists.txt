@@ -13,22 +13,21 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
-    set(PROJECT_NAME daemon.modules.jobs.test)
-    project(${PROJECT_NAME})
+    set(TEST_NAME modules.jobs.test)
 
-    add_executable(${PROJECT_NAME}
+    add_executable(${TEST_NAME}
         test_jobs.cpp
         test_job_status.cpp
     )
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_jobs)
+    set_target_properties(${TEST_NAME} PROPERTIES OUTPUT_NAME test_jobs)
 
-    target_link_libraries(${PROJECT_NAME} PRIVATE
+    target_link_libraries(${TEST_NAME} PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.modules.jobs
+        modules.jobs
         util.signal_handler
     )
 
-    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 endif()

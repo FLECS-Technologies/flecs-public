@@ -13,21 +13,20 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
-    set(PROJECT_NAME util.udev.test)
-    project(${PROJECT_NAME})
+    set(TEST_NAME util.udev.test)
 
-    add_executable(${PROJECT_NAME}
+    add_executable(${TEST_NAME}
         test_hwdb.cpp
         test_udev.cpp
     )
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_udev)
+    set_target_properties(${TEST_NAME} PROPERTIES OUTPUT_NAME test_udev)
 
-    target_link_libraries(${PROJECT_NAME} PRIVATE
+    target_link_libraries(${TEST_NAME} PRIVATE
         GTest::gtest
         GTest::gtest_main
         util.udev
     )
 
-    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 endif()
