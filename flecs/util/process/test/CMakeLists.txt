@@ -13,8 +13,6 @@
 # limitations under the License.
 
 if (FLECS_BUILD_TESTS)
-    project(util.process.test)
-
     add_executable(test.util.process
         test_process.cpp
     )

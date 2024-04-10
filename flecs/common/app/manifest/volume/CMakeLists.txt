@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME daemon.common.app.manifest.volume)
-
-project(${PROJECT_NAME})
-
 add_library(
-    ${PROJECT_NAME} OBJECT
+    common.app.manifest.volume OBJECT
     src/volume.cpp
     volume.h
 )

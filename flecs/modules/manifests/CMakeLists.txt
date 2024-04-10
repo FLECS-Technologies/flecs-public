@@ -20,13 +20,13 @@ flecs_add_module(
     impl/manifests_impl.h
     LIBS_PRIVATE
         cpr::cpr
-        daemon.modules.console
-        daemon.modules.device
-        daemon.common.app.manifest
+        modules.console
+        modules.device
+        common.app.manifest
         modules.apps.types
 )
 
-add_library(daemon.modules.manifests.mocked_modules STATIC
+add_library(modules.manifests.mocked_modules STATIC
     src/manifests.cpp
     src/impl/manifests_impl.cpp
     manifests.h
@@ -35,16 +35,16 @@ add_library(daemon.modules.manifests.mocked_modules STATIC
 
 if(FLECS_BUILD_TESTS)
     target_link_libraries(
-        daemon.modules.manifests.mocked_modules PUBLIC
+        modules.manifests.mocked_modules PUBLIC
         cpr::cpr
         GTest::gmock
-        daemon.common
-        daemon.modules.factory
-        daemon.modules.module_base
+        common
+        modules.factory
+        modules.module_base
     )
 
     target_compile_definitions(
-        daemon.modules.manifests.mocked_modules PRIVATE
+        modules.manifests.mocked_modules PRIVATE
         -DFLECS_MOCK_MODULES
     )
 endif()

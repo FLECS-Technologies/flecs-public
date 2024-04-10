@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(util.network)
-
 add_library(util.network STATIC
     src/ip_addr.cpp src/netif_type.cpp src/network.cpp
     ip_addr.h netif_type.h network.h

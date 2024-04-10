@@ -12,15 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME util.usb)
-project(${PROJECT_NAME})
-
-add_library(${PROJECT_NAME} STATIC
+add_library(util.usb STATIC
     src/usb.cpp
     usb.h
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(util.usb PRIVATE
     util.udev
     util.sysfs
     Libusb::Libusb

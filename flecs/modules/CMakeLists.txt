@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(daemon.modules)
-
 macro(flecs_add_module)
     set(options "")
     set(oneValueArgs MODULE_NAME)
@@ -22,22 +20,20 @@ macro(flecs_add_module)
         mod "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN}
     )
 
-    project(daemon.modules.${mod_MODULE_NAME})
-
     add_library(
-        daemon.modules.${mod_MODULE_NAME} OBJECT
+        modules.${mod_MODULE_NAME} OBJECT
         src/${mod_MODULE_NAME}.cpp ${mod_ADDITIONAL_SOURCES}
         ${mod_MODULE_NAME}.h ${mod_ADDITIONAL_HEADERS}
     )
 
-    target_link_libraries(daemon.modules.${mod_MODULE_NAME} PUBLIC
-        daemon.api
-        daemon.modules.factory
-        daemon.modules.module_base
+    target_link_libraries(modules.${mod_MODULE_NAME} PUBLIC
+        api
+        modules.factory
+        modules.module_base
         ${mod_LIBS_PUBLIC}
     )
 
-    target_link_libraries(daemon.modules.${mod_MODULE_NAME} PRIVATE
+    target_link_libraries(modules.${mod_MODULE_NAME} PRIVATE
         ${mod_LIBS_PRIVATE}
     )
 endmacro()

@@ -13,19 +13,17 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
-    project(daemon.app.startup_option.test)
-
-    add_executable(daemon.app.startup_option.test
+    add_executable(app.startup_option.test
         test_startup_option.cpp
     )
 
-    set_target_properties(daemon.app.startup_option.test PROPERTIES OUTPUT_NAME test_daemon_app_startup_option)
+    set_target_properties(app.startup_option.test PROPERTIES OUTPUT_NAME test_daemon_app_startup_option)
 
-    target_link_libraries(daemon.app.startup_option.test PRIVATE
+    target_link_libraries(app.startup_option.test PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.common.app.manifest.startup_option
+        common.app.manifest.startup_option
     )
 
-    add_test(NAME daemon.app.startup_option.test COMMAND daemon.app.startup_option.test)
+    add_test(NAME app.startup_option.test COMMAND app.startup_option.test)
 endif()

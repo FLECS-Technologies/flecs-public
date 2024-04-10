@@ -13,23 +13,23 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
-    project(modules.deployments.test)
+    set(TEST_NAME modules.deployments.test)
 
-    add_executable(${PROJECT_NAME}
+    add_executable(${TEST_NAME}
         test_deployments.cpp
         test_types.cpp
     )
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME test_modules_deployments)
+    set_target_properties(${TEST_NAME} PROPERTIES OUTPUT_NAME test_modules_deployments)
 
-    target_link_libraries(${PROJECT_NAME} PRIVATE
+    target_link_libraries(${TEST_NAME} PRIVATE
         GTest::gmock
         GTest::gtest
         GTest::gtest_main
-        daemon.modules.factory
-        daemon.modules.module_base
-        daemon.modules.deployments
+        modules.factory
+        modules.module_base
+        modules.deployments
     )
 
-    add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 endif()

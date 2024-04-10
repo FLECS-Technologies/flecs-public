@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(daemon.lib)
-
-add_library(daemon.lib SHARED
+add_library(lib SHARED
     src/libflecs.cpp
     src/impl/libflecs_impl.cpp
     libflecs.h
     impl/libflecs_impl.h
 )
 
-set_target_properties(daemon.lib PROPERTIES OUTPUT_NAME FLECS.daemon)
+set_target_properties(lib PROPERTIES OUTPUT_NAME FLECS.daemon)
 
-target_link_libraries(daemon.lib PRIVATE
-    daemon.modules.module_base
+target_link_libraries(lib PRIVATE
+    modules.module_base
     cpr::cpr
 )
 

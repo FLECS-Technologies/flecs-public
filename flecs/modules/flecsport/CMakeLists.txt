@@ -18,12 +18,12 @@ flecs_add_module(
     src/export_manifest.cpp src/impl/flecsport_impl.cpp
     ADDITIONAL_HEADERS
     export_manifest.h impl/flecsport_impl.h
-    LIBS_PUBLIC daemon.common
+    LIBS_PUBLIC common
     LIBS_PRIVATE util.archive util.datetime
 )
 
 if(FLECS_BUILD_TESTS)
-    add_library(daemon.modules.flecsport.mocked_modules STATIC
+    add_library(modules.flecsport.mocked_modules STATIC
         src/flecsport.cpp
         src/impl/flecsport_impl.cpp
         flecsport.h
@@ -31,14 +31,14 @@ if(FLECS_BUILD_TESTS)
     )
 
     target_link_libraries(
-        daemon.modules.flecsport.mocked_modules PUBLIC
+        modules.flecsport.mocked_modules PUBLIC
         GTest::gmock
-        daemon.modules.factory
-        daemon.modules.module_base
+        modules.factory
+        modules.module_base
     )
 
     target_compile_definitions(
-        daemon.modules.flecsport.mocked_modules PRIVATE
+        modules.flecsport.mocked_modules PRIVATE
         -DFLECS_MOCK_MODULES
     )
 endif()

@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(modules.deployments.types)
-
-add_library(${PROJECT_NAME} STATIC
+add_library(modules.deployments.types STATIC
     src/types/deployment.cpp
     src/types/deployment_docker.cpp
     types/deployment.h
@@ -30,7 +28,7 @@ flecs_add_module(
     ADDITIONAL_HEADERS
         impl/deployments_impl.h
     LIBS_PUBLIC
-        daemon.common.app.manifest
+        common.app.manifest
         modules.deployments.types
         modules.instances.types
         util.network

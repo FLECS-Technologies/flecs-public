@@ -13,8 +13,6 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
-    project(util.signal_handler.test)
-
     add_executable(util.signal_handler.test
         test_signal_handler.cpp
     )

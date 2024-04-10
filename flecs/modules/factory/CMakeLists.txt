@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(daemon.modules.factory)
-
 add_library(
-    daemon.modules.factory STATIC
+    modules.factory STATIC
     src/factory.cpp
     factory.h
 )
 
-target_link_libraries(daemon.modules.factory PUBLIC
-    daemon.modules.module_base
+target_link_libraries(modules.factory PUBLIC
+    modules.module_base
 )

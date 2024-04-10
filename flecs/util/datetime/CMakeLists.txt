@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(util.datetime)
-
 set(SRC_ARCHIVE
     src/datetime.cpp
 )
@@ -24,7 +22,7 @@ set (HEADER_ARCHIVE
 
 add_library(util.datetime OBJECT ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-target_compile_definitions(${PROJECT_NAME} PUBLIC
+target_compile_definitions(util.datetime PUBLIC
     -D_FILE_OFFSET_BITS=64
     -D_TIME_BITS=64
 )

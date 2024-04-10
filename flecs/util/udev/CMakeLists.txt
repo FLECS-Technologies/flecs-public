@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME util.udev)
-project(${PROJECT_NAME})
-
-add_library(${PROJECT_NAME} STATIC
+add_library(util.udev STATIC
     src/hwdb.cpp
     src/udev.cpp
     hwdb.h
     udev.h
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(util.udev PRIVATE
     udev
 )
 

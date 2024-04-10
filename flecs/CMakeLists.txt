@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(flecsd)
-
 add_subdirectory(util)
 add_subdirectory(api)
 add_subdirectory(common)
@@ -27,21 +25,21 @@ set_target_properties(daemon PROPERTIES OUTPUT_NAME flecsd)
 
 # FLECS link libraries
 target_link_libraries(daemon PRIVATE
-    daemon.api
-    daemon.common
-    daemon.modules.apps
-    daemon.modules.console
-    daemon.modules.data_layer
-    daemon.modules.deployments
-    daemon.modules.device
-    daemon.modules.factory
-    daemon.modules.flecsport
-    daemon.modules.instances
-    daemon.modules.jobs
-    daemon.modules.manifests
-    daemon.modules.module_base
-    daemon.modules.system
-    daemon.modules.version
+    api
+    common
+    modules.apps
+    modules.console
+    modules.data_layer
+    modules.deployments
+    modules.device
+    modules.factory
+    modules.flecsport
+    modules.instances
+    modules.jobs
+    modules.manifests
+    modules.module_base
+    modules.system
+    modules.version
     util.datetime
     util.process
     util.signal_handler
@@ -95,7 +93,7 @@ install(
 
 # install shared objects for packaging
 install(
-    TARGETS daemon.lib flunder.shared LIBRARY
+    TARGETS lib flunder.shared LIBRARY
     DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/docker/fs/usr/local/lib/${MACHINE}
 )
 

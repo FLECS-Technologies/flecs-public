@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(daemon.api)
-
 add_library(
-    daemon.api OBJECT
+    api OBJECT
     src/api.cpp
     api.h
 )
 
-target_compile_options(daemon.api PUBLIC
+target_compile_options(api PUBLIC
     -Wno-type-limits
 )
 

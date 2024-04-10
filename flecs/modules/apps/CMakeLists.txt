@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(modules.apps.types)
-
-add_library(${PROJECT_NAME} STATIC
+add_library(modules.apps.types STATIC
     src/types/app_key.cpp
     src/types/app_name.cpp
     src/types/app_status.cpp
@@ -34,7 +32,7 @@ flecs_add_module(
     ADDITIONAL_HEADERS
         impl/apps_impl.h
     LIBS_PUBLIC
-        daemon.common
+        common
         modules.apps.types
         modules.instances.types
     LIBS_PRIVATE
@@ -44,7 +42,7 @@ flecs_add_module(
 )
 
 if(FLECS_BUILD_TESTS)
-    add_library(daemon.modules.apps.mocked_modules STATIC
+    add_library(modules.apps.mocked_modules STATIC
         src/apps.cpp
         src/impl/apps_impl.cpp
         apps.h
@@ -52,15 +50,15 @@ if(FLECS_BUILD_TESTS)
     )
 
     target_link_libraries(
-        daemon.modules.apps.mocked_modules PUBLIC
+        modules.apps.mocked_modules PUBLIC
         GTest::gmock
-        daemon.common
-        daemon.modules.factory
-        daemon.modules.module_base
+        common
+        modules.factory
+        modules.module_base
     )
 
     target_compile_definitions(
-        daemon.modules.apps.mocked_modules PRIVATE
+        modules.apps.mocked_modules PRIVATE
         -DFLECS_MOCK_MODULES
     )
 endif()

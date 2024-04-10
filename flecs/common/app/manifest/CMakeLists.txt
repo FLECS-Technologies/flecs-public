@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(PROJECT_NAME daemon.common.app.manifest)
-
-project(${PROJECT_NAME})
-
 add_subdirectory(conffile)
 add_subdirectory(env_var)
 add_subdirectory(port_range)
@@ -23,23 +19,23 @@ add_subdirectory(startup_option)
 add_subdirectory(volume)
 
 add_library(
-    ${PROJECT_NAME} STATIC
+    common.app.manifest STATIC
     src/manifest.cpp
     manifest.h
 )
 
 target_link_libraries(
-    ${PROJECT_NAME} PUBLIC
-    daemon.common.network
-    daemon.common.app.manifest.conffile
-    daemon.common.app.manifest.env_var
-    daemon.common.app.manifest.port_range
-    daemon.common.app.manifest.startup_option
-    daemon.common.app.manifest.volume
+    common.app.manifest PUBLIC
+    common.network
+    common.app.manifest.conffile
+    common.app.manifest.env_var
+    common.app.manifest.port_range
+    common.app.manifest.startup_option
+    common.app.manifest.volume
 )
 
 target_link_libraries(
-    ${PROJECT_NAME} PUBLIC
+    common.app.manifest PUBLIC
     yaml-cpp::yaml-cpp
 )
 

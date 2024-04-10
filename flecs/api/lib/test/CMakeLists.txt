@@ -13,19 +13,17 @@
 # limitations under the License.
 
 if (FLECS_BUILD_TESTS)
-    project(daemon.api.lib.test)
-
-    add_executable(daemon.api.lib.test
+    add_executable(api.lib.test
         test_api_lib.cpp
     )
 
-    set_target_properties(daemon.api.lib.test PROPERTIES OUTPUT_NAME test_api_lib)
+    set_target_properties(api.lib.test PROPERTIES OUTPUT_NAME test_api_lib)
 
-    target_link_libraries(daemon.api.lib.test PRIVATE
+    target_link_libraries(api.lib.test PRIVATE
         GTest::gtest
         GTest::gtest_main
-        daemon.lib
+        lib
     )
 
-    add_test(NAME daemon.api.lib.test COMMAND daemon.api.lib.test)
+    add_test(NAME api.lib.test COMMAND api.lib.test)
 endif()
