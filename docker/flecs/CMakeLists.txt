@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# Copyright 2021-2023 FLECS Technologies GmbH
+# Copyright 2021-2024 FLECS Technologies GmbH
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,14 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PATH=/sbin:/usr/sbin:/bin:/usr/bin:/opt/flecs/bin
+install(PROGRAMS fs/entrypoint.sh
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/opt/flecs/bin
+    COMPONENT docker
+    EXCLUDE_FROM_ALL
+)
+install(FILES Dockerfile
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+    COMPONENT docker
+    EXCLUDE_FROM_ALL
+)
 
-containerd >/tmp/containerd.log 2>&1 &
-dockerd >/tmp/dockerd.log 2>&1 &
+stage_docker_fs()
 
-# wait for Docker daemon to be ready
-while ! docker version >/dev/null 2>&1; do
-    sleep 1
-done
-
-exec flecsd $*
+set(DOCKER_REGISTRY "flecspublic.azurecr.io")
+set(DOCKER_IMAGE "flecs")
+set(DOCKER_TAG "${FLECS_VERSION_FULL}")
+include(flecs-docker)

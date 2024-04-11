@@ -17,7 +17,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         pattern: docker_*
-        path: out/
+        path: deploy/
 
     - name: Login to Registry
       uses: docker/login-action@v3
@@ -28,7 +28,7 @@ jobs:
 
     - name: Push Docker images
       run: |
-        for archive in `find out/ -name "*.tar"`; do \
+        for archive in `find deploy/ -name "*.tar"`; do \
           DOCKER_IMAGE=$(docker load --quiet --input ${archive} | cut -f2- -d ':'); \
           DOCKER_IMAGES="${DOCKER_IMAGES} `echo ${DOCKER_IMAGE} | sed -E 's/(.*)-.+$/\1/p'`"; \
           docker push ${DOCKER_IMAGE}; \
