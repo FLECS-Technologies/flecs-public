@@ -1,12 +1,12 @@
 #!/bin/bash
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
 case $1 in
   abort-upgrade)
     ;;
   configure|abort-remove)
-    /opt/flecsd/bin/flecsd.sh migrate || exit 1
+    flecsd.sh migrate || exit 1
     systemctl preset ##PACKAGE##
     systemctl is-enabled ##PACKAGE## >/dev/null && systemctl start ##PACKAGE##
     ;;

@@ -19,7 +19,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: packages_${{ inputs.arch }}
-        path: out/
+        path: deploy/
 
     - name: Azure Login
       uses: azure/login@v1
@@ -31,8 +31,8 @@ jobs:
       with:
         azcliversion: 2.53.0
         inlineScript: |
-          export CORE_VERSION=$(find out/ -name ${{ inputs.arch }}.core_version -exec head -n1 {} \;)
-          find out/ -name latest_flecs_${{ inputs.arch }} -exec \
+          export CORE_VERSION=$(find deploy/ -name latest_flecs_* -exec head -n1 {} \;)
+          find deploy/ -name latest_flecs_${{ inputs.arch }} -exec \
             bash -c 'export FILE={}; export BASE_FILE=$(basename "${FILE}"); echo "Uploading ${FILE}"; az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${BASE_FILE} --file "${FILE}" --overwrite' \;
-          find out/ \( -name "*.deb" -o -name "*.tar" \) -exec \
+          find deploy/ \( -name "*.deb" -o -name "*.tar" \) -exec \
             bash -c 'export FILE={}; export BASE_FILE=$(basename "${FILE}"); echo "Uploading ${FILE}"; az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${CORE_VERSION}/${BASE_FILE##*.}/${BASE_FILE} --file "${FILE}" --overwrite' \;

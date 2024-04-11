@@ -15,7 +15,7 @@ PATH=${PATH}:/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/bin
 SCRIPTNAME=$(readlink -f ${0})
 
 SERVICE=flecsd
-BINARY=/opt/flecsd/bin/flecsd.sh
+BINARY=/usr/local/bin/flecsd.sh
 
 [ ! -x "${DAEMON}" ] && exit 5
 

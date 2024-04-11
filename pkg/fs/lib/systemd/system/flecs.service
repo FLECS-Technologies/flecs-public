@@ -11,12 +11,12 @@ Wants=containerd.service
 Type=exec
 TimeoutStartSec=infinity
 TimeoutStopSec=infinity
-ExecStartPre=/bin/bash -x /opt/flecsd/bin/flecsd.sh pull
-ExecStartPre=/bin/bash -x /opt/flecsd/bin/flecsd.sh remove
-ExecStartPre=/bin/bash -x /opt/flecsd/bin/flecsd.sh create
+ExecStartPre=/bin/bash -x /usr/local/bin/flecsd.sh pull
+ExecStartPre=/bin/bash -x /usr/local/bin/flecsd.sh remove
+ExecStartPre=/bin/bash -x /usr/local/bin/flecsd.sh create
 ExecStart=/usr/bin/docker start -a flecs-flecsd
 ExecStop=/usr/bin/docker stop --time 120 flecs-flecsd
-ExecStopPost=/bin/bash -x /opt/flecsd/bin/flecsd.sh remove
+ExecStopPost=/bin/bash -x /usr/local/bin/flecsd.sh remove
 Restart=on-failure
 RestartPreventExitStatus=SIGKILL
 

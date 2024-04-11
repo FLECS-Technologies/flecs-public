@@ -53,12 +53,11 @@ add_subdirectory(flecs-external)
 add_subdirectory(flunder)
 add_subdirectory(flecs)
 
-include(flecs-rules)
-
-add_custom_command(TARGET packages POST_BUILD
-    COMMAND echo -n ${FLECS_VERSION_FULL} >${CMAKE_INSTALL_PREFIX}/latest_flecs_${ARCH}
-)
-
 add_custom_target(version
     COMMAND echo "${FLECS_VERSION_FULL}"
 )
+
+add_subdirectory(docker)
+add_subdirectory(pkg)
+
+include(flecs-rules)

@@ -34,34 +34,31 @@ jobs:
 
     - name: "CMake: Configure"
       run: |
-        cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }} -DCMAKE_INSTALL_PREFIX=out/${{ inputs.arch }}
+        cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }}
 
     - name: "CMake: Build"
       run: |
         cmake --build build/${{ inputs.arch }}
 
-    - name: "CMake: Install"
-      run: |
-        cmake --build build/${{ inputs.arch }} --target install
-
     - name: "CMake: Docker"
       run: |
+        cmake --install build/${{ inputs.arch }} --component docker
         cmake --build build/${{ inputs.arch }} --target docker
 
     - name: "CMake: Package"
       run: |
-        cmake --build build/${{ inputs.arch }} --target packages
+        cmake --build build/${{ inputs.arch }} --target package
 
-    - name: "CMake: Version"
+    - name: "CMake: Latest"
       run: |
-        cmake --build build/${{ inputs.arch }} --target version | tail -n 1 > out/${{ inputs.arch }}.core_version
+        cmake --build build/${{ inputs.arch }} --target version -- --quiet >build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
 
     - name: Archive Docker image archives
       uses: actions/upload-artifact@v4
       with:
         name: docker_${{ inputs.arch }}
         path: |
-          out/${{ inputs.arch }}/docker/*.tar
+          build/${{ inputs.arch }}/docker/**/*.tar
         retention-days: 1
 
     - name: Archive packages
@@ -69,8 +66,7 @@ jobs:
       with:
         name: packages_${{ inputs.arch }}
         path: |
-          out/${{ inputs.arch }}/pkg/*.deb
-          out/${{ inputs.arch }}/pkg/*.tar
-          out/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
-          out/${{ inputs.arch }}.core_version
+          build/${{ inputs.arch }}/pkg/flecs_*_${{ inputs.arch }}.deb
+          build/${{ inputs.arch }}/pkg/flecs_*_${{ inputs.arch }}.tar
+          build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
         retention-days: 1
