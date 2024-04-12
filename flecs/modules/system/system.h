@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "flecs/modules/module_base/module.h"
+#include "flecs-core-rs/target/cxxbridge/flecs-core-rs/src/lib.rs.h"
 
 namespace flecs {
 
@@ -53,7 +54,7 @@ class system_t FLECS_FINAL_UNLESS_TESTED : public base_t
     friend class factory_t;
 
 public:
-    auto get_network_adapters() const -> std::map<std::string, netif_t>;
+    auto get_network_adapters() const -> std::map<std::string, NetInfo>;
 
 protected:
     system_t();

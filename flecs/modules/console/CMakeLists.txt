@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+include(../../../corrosion_cxx.cmake)
+add_library_rust(PATH ../../../flecs-core-rs NAMESPACE my)
+
 add_library(modules.console.types STATIC
     src/types/activate_response.cpp
     src/types/auth_response.cpp
@@ -39,21 +42,16 @@ add_library(modules.console.types STATIC
 flecs_add_module(
     MODULE_NAME
         console
-    ADDITIONAL_HEADERS
-        impl/console_impl.h
-    ADDITIONAL_SOURCES
-        src/impl/console_impl.cpp
     LIBS_PUBLIC
         cpr::cpr
         modules.console.types
+        my::flecs-core-rs
 )
 
 if(FLECS_BUILD_TESTS)
     add_library(modules.console.mocked_modules STATIC
         src/console.cpp
-        src/impl/console_impl.cpp
-        console.h
-        impl/console_impl.h
+            console.h
     )
 
     target_link_libraries(

@@ -15,7 +15,8 @@
 #include "flecs/api/api.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/util/signal_handler/signal_handler.h"
-
+#include "flecs-core-rs/src/lib.rs.h"
+#include "rust/cxx.h"
 int main(int argc, char* argv[])
 {
     const auto bindaddr = argc > 1 ? argv[1] : "127.0.0.1";

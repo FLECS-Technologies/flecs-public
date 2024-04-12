@@ -23,6 +23,9 @@
 #include "flecs/modules/module_base/module.h"
 #include "types.h"
 
+#include "flecs-core-rs/target/cxxbridge/flecs-core-rs/src/lib.rs.h"
+#include "flecs-core-rs/target/cxxbridge/rust/cxx.h"
+
 namespace flecs {
 namespace module {
 namespace impl {
@@ -40,7 +43,7 @@ public:
         -> std::string_view;
 
     auto authentication() const noexcept //
-        -> const console::auth_response_data_t&;
+        -> Authentication;
 
     auto activate_license(std::string session_id) //
         -> result_t;
@@ -52,7 +55,7 @@ public:
         -> std::string;
 
     auto acquire_download_token(std::string app, std::string version, std::string session_id) //
-        -> std::optional<console::download_token_t>;
+        -> std::optional<DownloadToken>;
 
 protected:
     console_t();
@@ -67,7 +70,7 @@ protected:
     auto delete_authentication() //
         -> crow::response;
 
-    std::unique_ptr<impl::console_t> _impl;
+    rust::Box<Console> _rust_impl;
 };
 
 constexpr auto console_t::base_url() //

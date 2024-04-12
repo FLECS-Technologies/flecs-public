@@ -34,6 +34,8 @@ set(API_VERSION 2.0.0)
 add_definitions(-DFLECS_VERSION="${FLECS_VERSION_FULL}")
 add_definitions(-DFLECS_API_VERSION="${API_VERSION}")
 
+find_package(Corrosion REQUIRED)
+
 # workaround for gcc-12 bug
 add_compile_options(-Wno-error=restrict)
 

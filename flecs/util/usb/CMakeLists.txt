@@ -18,9 +18,9 @@ add_library(util.usb STATIC
 )
 
 target_link_libraries(util.usb PRIVATE
-    util.udev
     util.sysfs
     Libusb::Libusb
+    udev
 )
 
 add_subdirectory(test)

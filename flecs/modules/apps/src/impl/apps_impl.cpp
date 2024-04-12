@@ -41,6 +41,7 @@
 #include "flecs/util/json/json.h"
 #include "flecs/util/process/process.h"
 #include "flecs/util/string/string_utils.h"
+#include "flecs-core-rs/target/cxxbridge/flecs-core-rs/src/lib.rs.h"
 
 using std::operator""s;
 
@@ -254,7 +255,7 @@ auto apps_t::do_install_impl(
     auto console_api = std::dynamic_pointer_cast<module::console_t>(api::query_module("console"));
     auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
 
-    auto token = std::optional<console::download_token_t>{};
+    auto token = std::optional<DownloadToken>{};
     switch (app->status()) {
         case apps::status_e::ManifestDownloaded: {
             progress.next_step("Acquiring download token");
@@ -276,7 +277,7 @@ auto apps_t::do_install_impl(
             auto docker_logout_process = process_t{};
 
             progress.next_step("Authenticating");
-            if (token.has_value() && !token->username().empty() && !token->password().empty()) {
+            if (token.has_value() && !token->username.empty() && !token->password.empty()) {
                 auto docker_process = process_t{};
 
                 auto login_attempts = 3;
@@ -286,9 +287,9 @@ auto apps_t::do_install_impl(
                         "docker",
                         "login",
                         "--username",
-                        token->username(),
+                        token->username.c_str(),
                         "--password",
-                        token->password(),
+                        token->password.c_str(),
                         app->manifest()->image_with_tag());
                     docker_process.wait(true, true);
                     if (docker_process.exit_code() == 0) {

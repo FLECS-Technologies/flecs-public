@@ -1,0 +1,27 @@
+[package]
+name = "flecs-core-rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cxx = "1.0"
+anyhow = "1.0"
+flecs-console-api-client-rs = { path = "../../console-api-client" }
+tokio = { version = "1.37.0", features = ["full"] }
+serde_json = "1.0.115"
+libc = "0.2.153"
+get_if_addrs = "0.5.3"
+procfs = "0.16.0"
+autocxx = "0.26.0"
+rusb = "0.9.3"
+udev = { version = "0.8.0", features = ["hwdb"] }
+
+[build-dependencies]
+cxx-build = "1.0"
+autocxx-build = "0.26.0"
+miette = { version = "5", features = ["fancy"]}

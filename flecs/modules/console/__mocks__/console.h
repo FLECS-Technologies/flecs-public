@@ -19,6 +19,8 @@
 #include "flecs/modules/console/types.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/module_base/module.h"
+#include "flecs-core-rs/target/cxxbridge/flecs-core-rs/src/lib.rs.h"
+#include "flecs-core-rs/target/cxxbridge/rust/cxx.h"
 
 namespace flecs {
 namespace module {
@@ -46,12 +48,13 @@ public:
     MOCK_METHOD((result_t), validate_license, (std::string_view session_id), ());
     MOCK_METHOD((std::string), download_manifest, (std::string, std::string, std::string), ());
     MOCK_METHOD(
-        (std::optional<flecs::console::download_token_t>),
+        (std::optional<DownloadToken>),
         acquire_download_token,
         (std::string, std::string, std::string));
 
 protected:
-    console_t() = default;
+    console_t() : _rust_impl{new_console(std::string{base_url()})}
+    {}
 
     MOCK_METHOD((void), do_init, (), (override));
     MOCK_METHOD((void), do_deinit, (), (override));
@@ -59,7 +62,7 @@ protected:
     MOCK_METHOD((crow::response), store_authentication, (console::auth_response_data_t auth), ());
     MOCK_METHOD((crow::response), delete_authentication, (), ());
 
-    std::unique_ptr<impl::console_t> _impl;
+    rust::Box<Console> _rust_impl;
 };
 
 constexpr auto console_t::base_url() //
