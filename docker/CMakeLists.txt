@@ -32,6 +32,8 @@ function(install_external lib dest cmp)
                     DESTINATION ${dest}
                     FOLLOW_SYMLINK_CHAIN
                 )"
+            COMPONENT ${cmp}
+            EXCLUDE_FROM_ALL
         )
     else()
         get_property(library_artifacts TARGET ${lib} PROPERTY IMPORTED_RUNTIME_ARTIFACTS)
@@ -48,15 +50,14 @@ function(stage_docker_fs)
     install(
         TARGETS daemon RUNTIME
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/opt/flecs/bin
+        COMPONENT docker
+        EXCLUDE_FROM_ALL
     )
     install(
         TARGETS lib flunder.shared LIBRARY
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib
-    )
-    get_property(curl_target TARGET CURL::libcurl PROPERTY ALIASED_TARGET)
-    install(
-        IMPORTED_RUNTIME_ARTIFACTS ${curl_target}
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}/fs/usr/local/lib
+        COMPONENT docker
+        EXCLUDE_FROM_ALL
     )
     install_external(cpr::cpr ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
     install_external(CURL::libcurl ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)

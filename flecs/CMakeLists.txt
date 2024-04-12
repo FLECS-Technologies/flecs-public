@@ -50,6 +50,7 @@ include(GNUInstallDirs)
 
 install(TARGETS daemon
     RUNTIME
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
     COMPONENT native
 )
 install(FILES ${FLECS_SOURCE_DIR}/pkg/fs/lib/systemd/system/flecs.service
