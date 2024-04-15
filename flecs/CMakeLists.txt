@@ -54,11 +54,13 @@ install(TARGETS daemon
     COMPONENT native
 )
 install(FILES ${FLECS_SOURCE_DIR}/pkg/fs/lib/systemd/system/flecs.service
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system/
-    COMPONENT native
+    DESTINATION /lib/systemd/system/
+    COMPONENT native-systemd
+    EXCLUDE_FROM_ALL
 )
 install(
     TARGETS lib flunder.shared LIBRARY
     DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    COMPONENT native
+    COMPONENT native-sysv
+    EXCLUDE_FROM_ALL
 )
