@@ -231,7 +231,7 @@ auto flecsport_t::do_import_from(fs::path archive, jobs::progress_t& progress) /
     for (const auto& app : manifest.contents.apps) {
         auto [res, message] = _apps_api->import_from(app, dir->path() / "apps");
         if (res != 0) {
-            return {res, message};
+            std::cerr << "Warning: Import failed for app " << to_string(app) << ": " << message << std::endl;
         }
     }
     _apps_api->save();
