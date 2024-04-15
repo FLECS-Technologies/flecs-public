@@ -263,13 +263,6 @@ components:
     instance_environment_variable:
       type: string
       pattern: "^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*=.+$"
-    instance_reset:
-      type: object
-      required:
-        - reset
-      properties:
-        reset:
-          type: boolean
     # Job related schemas
     job_id:
       type: integer
@@ -847,11 +840,7 @@ paths:
         "201":
           description: Environment for instance with this instance id was created
         "400":
-          description: Environment is invalid
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/responses/response_400"
+          $ref: "#/components/responses/response_400"
         "404":
           description: No instance with this instance_id found
     delete:
@@ -863,12 +852,6 @@ paths:
           schema:
             type: string
           required: true
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/instance_reset"
       responses:
         "200":
           description: Environment of instance with this instance_id was deleted
