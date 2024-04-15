@@ -162,17 +162,19 @@ TEST(daemon_app, complex_app)
     extend_manifest(yaml);
 
     auto app = flecs::app_manifest_t::from_yaml_string(yaml);
-
+    auto var1 = flecs::var_t::parse_env_var_name(G_ENV_VAR1_KEY);
+    auto var4 = flecs::var_t::parse_env_var_name(G_ENV_VAR4_KEY);
+    ASSERT_TRUE(var1.has_value());
     ASSERT_TRUE(app.is_valid());
     ASSERT_EQ(app.hostname(), "flecs-unit-test");
     ASSERT_EQ(app.multi_instance(), false);
     ASSERT_EQ(app.interactive(), true);
     ASSERT_EQ(
         (*app.env().cbegin()),
-        (flecs::mapped_env_var_t{flecs::env_var_t{G_ENV_VAR1_KEY}, G_ENV_VAR1_VALUE}));
+        (flecs::mapped_env_var_t{var1.value(), G_ENV_VAR1_VALUE}));
     ASSERT_EQ(
         (*(++app.env().cbegin())),
-        (flecs::mapped_env_var_t{flecs::env_var_t{G_ENV_VAR4_KEY}, G_ENV_VAR4_VALUE}));
+        (flecs::mapped_env_var_t{var4.value(), G_ENV_VAR4_VALUE}));
     ASSERT_EQ(
         (std::find_if(
              app.volumes().cbegin(),

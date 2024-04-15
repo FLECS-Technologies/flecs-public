@@ -17,7 +17,7 @@
 #include <memory>
 #include <vector>
 
-#include "flecs/common/app/manifest/env_var/env_var.h"
+#include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/modules/instances/types/instance_id.h"
 #include "flecs/modules/jobs/types/job_id.h"
 #include "flecs/modules/module_base/module.h"
