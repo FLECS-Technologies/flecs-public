@@ -84,6 +84,59 @@ components:
       type: string
       description: License key for App installation
       example: "538E-A5E8-84A3-D798"
+    # Console related schemas
+    user:
+      type: object
+      required:
+        - id
+        - userEmail
+        - userLogin
+        - displayName
+      properties:
+        id:
+          type: integer
+          minimum: 0
+        userEmail:
+          type: String
+          format: email
+        userLogin:
+          type: String
+        displayName:
+          type: String
+    jwt:
+      type: object
+      required:
+        - token
+        - tokenExpires
+      properties:
+        token:
+          type: string
+        tokenExpires:
+          type: integer
+          minimum: 0
+    featureFlags:
+      type: object
+      required:
+        - isVendor
+        - isWhiteLabeled
+      properties:
+        isVendor:
+          type: boolean
+        isWhiteLabeled:
+          type: boolean
+    auth_response_data:
+      type: object
+      required:
+        - user
+        - jwt
+        - featureFlags
+      properties:
+        user:
+          $ref: "#/components/schemas/user"
+        jwt:
+          $ref: "#/components/schemas/jwt"
+        featureFlags:
+          $ref: "#/components/schemas/featureFlags"
     # Instance related schemas
     instance_id:
       type: string
@@ -443,6 +496,8 @@ tags:
     x-displayName: "System"
   - name: "Device"
     x-displayName: "Device"
+  - name: "Console"
+    x-displayName: "Console"
 
 paths:
   # App related paths
@@ -551,6 +606,28 @@ paths:
           $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
+  # Console related paths
+  /console/authentication:
+    put:
+      tags: ["Console"]
+      summary: Set the authentication information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/auth_response_data"
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/response_400"
+    delete:
+      tags: ["Console"]
+      summary: Remove the authentication information
+      responses:
+        "204":
+          description: No content
   # Instance related paths
   /instances:
     get:
