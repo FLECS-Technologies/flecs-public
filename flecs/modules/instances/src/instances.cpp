@@ -14,7 +14,7 @@
 
 #include "flecs/modules/instances/instances.h"
 
-#include "flecs/common/app/manifest/env_var/env_var.h"
+#include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/instances/impl/instances_impl.h"

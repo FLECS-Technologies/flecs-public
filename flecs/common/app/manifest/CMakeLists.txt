@@ -13,7 +13,7 @@
 # limitations under the License.
 
 add_subdirectory(conffile)
-add_subdirectory(env_var)
+add_subdirectory(variable)
 add_subdirectory(port_range)
 add_subdirectory(startup_option)
 add_subdirectory(volume)

@@ -14,8 +14,8 @@
 
 add_library(
     common.app.manifest.env_var OBJECT
-    src/env_var.cpp
-    env_var.h
+        src/variable.cpp
+        variable.h
 )
 
 add_subdirectory(test)

@@ -18,7 +18,7 @@
 #include <string>
 
 #include "flecs/common/app/manifest/conffile/conffile.h"
-#include "flecs/common/app/manifest/env_var/env_var.h"
+#include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/common/app/manifest/port_range/port_range.h"
 #include "flecs/common/app/manifest/startup_option/startup_option.h"
 #include "flecs/common/network/network.h"

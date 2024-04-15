@@ -128,6 +128,7 @@ app_manifest_t app_manifest_t::from_yaml_file(const fs::path& path)
 void app_manifest_t::parse_yaml(const yaml_t& yaml)
 {
     try {
+        auto error_found = false;
         REQUIRED_TYPED_YAML_VALUE(yaml, app, _app);
         OPTIONAL_TYPED_YAML_VALUE(yaml, args, _args);
 
@@ -148,7 +149,12 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
 
         OPTIONAL_YAML_NODE(yaml, env, envs);
         for (const auto& env : envs) {
-            _env.emplace(mapped_env_var_t{env.as<std::string>()});
+            auto parse_result = mapped_env_var_t::try_parse(env.as<std::string>());
+            if (parse_result.has_value()) {
+                _env.emplace(parse_result.value());
+            } else {
+                error_found = true;
+            }
         }
 
         OPTIONAL_TYPED_YAML_VALUE(yaml, hostname, _hostname);
@@ -183,8 +189,11 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
         for (const auto& volume : volumes) {
             _volumes.emplace_back(volume_t{volume.as<std::string>()});
         }
-
-        validate();
+        if (error_found) {
+            _valid = false;
+        } else {
+            validate();
+        }
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "Could not open manifest: Invalid YAML (%s)\n", ex.what());
         *this = app_manifest_t{};

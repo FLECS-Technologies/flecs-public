@@ -18,7 +18,7 @@
 #include <set>
 #include <string>
 
-#include "flecs/common/app/manifest/env_var/env_var.h"
+#include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/util/json/json.h"
 #include "flecs/util/usb/usb.h"
 #include "instance_config.h"
