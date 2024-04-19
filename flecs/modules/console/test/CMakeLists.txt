@@ -28,6 +28,11 @@ if(FLECS_BUILD_TESTS)
         modules.factory
         modules.module_base
         modules.console
+        my::flecs-core-rs
+        Libusb::Libusb
+        udev
+        OpenSSL::Crypto
+        OpenSSL::SSL
     )
 
     add_test(NAME modules.console.test COMMAND modules.console.test)

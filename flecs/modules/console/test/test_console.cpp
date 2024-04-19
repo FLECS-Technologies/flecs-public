@@ -356,7 +356,7 @@ TEST(console, activate_license)
         const auto [res, message] = uut.activate_license(session_id);
 
         ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Invalid header: Authorization (expected Bearer)");
+        ASSERT_EQ(message, "No authentication available");
     }
 
     cpr::Put(
@@ -378,7 +378,7 @@ TEST(console, activate_license)
         const auto [res, message] = uut.activate_license(session_id);
 
         ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Invalid JSON response for status code 200");
+        ASSERT_EQ(message, "error in serde: EOF while parsing a value at line 1 column 0");
     }
 
     /** Already active sessionId */
@@ -414,7 +414,7 @@ TEST(console, activate_license)
         const auto [res, message] = uut.activate_license(session_id);
 
         ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Activation failed with status code 500");
+        ASSERT_EQ(message, "error in response: status code 500 Internal Server Error");
     }
 }
 
@@ -429,7 +429,7 @@ TEST(console, validate_license)
         const auto [res, message] = uut.validate_license(session_id);
 
         ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Invalid header: Authorization (expected Bearer)");
+        ASSERT_EQ(message, "No authentication available");
     }
 
     cpr::Put(
@@ -460,7 +460,7 @@ TEST(console, validate_license)
         const auto [res, message] = uut.validate_license(session_id);
 
         ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Invalid JSON response for status code 200");
+        ASSERT_EQ(message, "error in serde: EOF while parsing a value at line 1 column 0");
     }
 
     /** Server-side exception occurred during validation */
@@ -469,7 +469,7 @@ TEST(console, validate_license)
         const auto [res, message] = uut.validate_license(session_id);
 
         ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Could not retrieve device licenses");
+        ASSERT_EQ(message, "error in response: status code 500 Internal Server Error");
     }
 
     /** Unhandled server-side exception occurred during activation */
@@ -478,7 +478,7 @@ TEST(console, validate_license)
         const auto [res, message] = uut.validate_license(session_id);
 
         ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Validation failed with status code 500");
+        ASSERT_EQ(message, "error in response: status code 500 Internal Server Error");
     }
 }
 

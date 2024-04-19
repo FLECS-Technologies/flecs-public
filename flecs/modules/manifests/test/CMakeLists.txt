@@ -27,6 +27,10 @@ if(FLECS_BUILD_TESTS)
         common.app.manifest
         modules.manifests.mocked_modules
         my::flecs-core-rs
+        Libusb::Libusb
+        udev
+        OpenSSL::Crypto
+        OpenSSL::SSL
     )
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})

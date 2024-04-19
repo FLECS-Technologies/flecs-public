@@ -25,6 +25,7 @@ if(FLECS_BUILD_TESTS)
         GTest::gtest
         GTest::gtest_main
         util.usb
+        my::flecs-core-rs
     )
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
