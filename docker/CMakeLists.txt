@@ -49,7 +49,7 @@ endfunction()
 function(stage_docker_fs)
     install(
         TARGETS daemon RUNTIME
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/opt/flecs/bin
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/bin
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
