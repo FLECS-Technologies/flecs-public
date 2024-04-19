@@ -15,7 +15,6 @@ flecs-console-api-client-rs = { path = "../../console-api-client" }
 tokio = { version = "1.37.0", features = ["full"] }
 serde_json = "1.0.115"
 libc = "0.2.153"
-get_if_addrs = "0.5.3"
 procfs = "0.16.0"
 autocxx = "0.26.0"
 rusb = "0.9.3"

@@ -110,12 +110,14 @@ mod ffi2 {
     }
 }
 
+// The following macro and function demonstrate usage of autocxx and serve no other purpose
 include_cpp! {
     #include "../../flecs/util/usb/usb.h"
     safety!(unsafe)
     generate!("flecs::usb::device_t")
 }
 
+#[allow(dead_code)]
 fn tetest(m: ffi::flecs::usb::device_t) {
     let _x = m;
 }

@@ -13,7 +13,7 @@ impl<T: rusb::UsbContext> TryFrom<Device<T>> for ffi2::Device {
     type Error = anyhow::Error;
 
     fn try_from(device: Device<T>) -> anyhow::Result<Self, Self::Error> {
-        let device_desc = device.device_descriptor().unwrap();
+        let device_desc = device.device_descriptor()?;
         let pid = device_desc.product_id();
         let vid = device_desc.vendor_id();
         let bus = device.bus_number();
@@ -49,11 +49,10 @@ fn get_device_name(vid: u16, pid: u16) -> anyhow::Result<Option<String>> {
 
 fn query_hwdb_one<S: AsRef<OsStr>>(modalias: S, name: S) -> anyhow::Result<Option<String>> {
     let hwdb = udev::Hwdb::new()?;
-    Ok(if let Some(s) = hwdb.query_one(modalias, name) {
-        s.to_os_string().into_string().ok()
-    } else {
-        None
-    })
+    let result = hwdb
+        .query_one(modalias, name)
+        .and_then(|s| s.to_os_string().into_string().ok());
+    Ok(result)
 }
 
 #[cfg(test)]
