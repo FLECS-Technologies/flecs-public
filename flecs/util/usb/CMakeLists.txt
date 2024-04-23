@@ -19,9 +19,9 @@ add_library(util.usb STATIC
 
 target_link_libraries(util.usb PRIVATE
     util.sysfs
+    my::flecs-core-rs
     Libusb::Libusb
     udev
-    my::flecs-core-rs
 )
 
 add_subdirectory(test)

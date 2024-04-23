@@ -15,13 +15,6 @@
 include(../corrosion_cxx.cmake)
 add_library_rust(PATH ../flecs-core-rs NAMESPACE my)
 
-target_link_libraries(flecs-core-rs-total INTERFACE
-    Libusb::Libusb
-    udev
-    OpenSSL::Crypto
-    OpenSSL::SSL
-)
-
 set(CXXBRIDGE_INCLUDE_PATH "${CMAKE_BINARY_DIR}/cargo/build/${Rust_CARGO_TARGET}")
 message(STATUS "CXXBRIDGE_INCLUDE_PATH=${CXXBRIDGE_INCLUDE_PATH}")
 include_directories(

@@ -86,6 +86,12 @@ function(add_library_rust)
 
     # Create total target with alias with given namespace
     add_library(${_LIB_PATH_STEM}-total INTERFACE)
+    target_link_libraries(${_LIB_PATH_STEM} INTERFACE
+        Libusb::Libusb
+        udev
+        OpenSSL::Crypto
+        OpenSSL::SSL
+    )
     target_link_libraries(${_LIB_PATH_STEM}-total
         INTERFACE
         ${_LIB_PATH_STEM}_cxxbridge
