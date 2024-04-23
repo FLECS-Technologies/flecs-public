@@ -458,6 +458,7 @@ dependencies = [
 [[package]]
 name = "flecs-console-api-client-rs"
 version = "0.1.0"
+source = "git+https://github.com/FLECS-Technologies/flecs-console-api-client-rs?rev=6544b9dd1ed5e94ff6c7fad4358e0a4cdacf39c5#6544b9dd1ed5e94ff6c7fad4358e0a4cdacf39c5"
 dependencies = [
  "reqwest",
  "serde",
