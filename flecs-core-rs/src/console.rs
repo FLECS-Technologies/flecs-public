@@ -1,4 +1,4 @@
-use crate::ffi2;
+use crate::ffi;
 use flecs_console_api_client_rs::apis::configuration::Configuration;
 use flecs_console_api_client_rs::apis::default_api::{
     get_api_v2_manifests_app_version, post_api_v2_tokens, GetApiV2ManifestsAppVersionSuccess,
@@ -25,7 +25,7 @@ pub fn new_console(base_url: String) -> Box<Console> {
 }
 
 pub struct Console {
-    authentication: Option<ffi2::Authentication>,
+    authentication: Option<ffi::Authentication>,
     configuration: Configuration,
     runtime: Runtime,
 }
@@ -145,7 +145,7 @@ impl Console {
         app: String,
         version: String,
         session_id: String,
-    ) -> anyhow::Result<ffi2::DownloadToken> {
+    ) -> anyhow::Result<ffi::DownloadToken> {
         let auth = &self
             .authentication
             .as_ref()
@@ -168,7 +168,7 @@ impl Console {
                 .ok_or(GenericError::new("No token present".to_string()))?,
             _ => Err(GenericError::new("No response data".to_string()))?,
         };
-        Ok(ffi2::DownloadToken {
+        Ok(ffi::DownloadToken {
             username: token
                 .username
                 .ok_or(GenericError::new("No username in token".to_string()))?,
@@ -177,13 +177,13 @@ impl Console {
                 .ok_or(GenericError::new("No password in token".to_string()))?,
         })
     }
-    pub fn authentication(&self) -> ffi2::Authentication {
+    pub fn authentication(&self) -> ffi::Authentication {
         match &self.authentication {
             Some(auth) => auth.clone(),
-            _ => ffi2::Authentication::default(),
+            _ => ffi::Authentication::default(),
         }
     }
-    pub fn store_authentication(&mut self, authentication: ffi2::Authentication) -> u16 {
+    pub fn store_authentication(&mut self, authentication: ffi::Authentication) -> u16 {
         self.authentication = Some(authentication);
         204
     }
@@ -196,7 +196,7 @@ impl Console {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ffi2::Authentication;
+    use crate::ffi::Authentication;
     use flecs_console_api_client_rs::models::{
         PostApiV2DeviceLicenseActivate200Response, PostApiV2DeviceLicenseActivate200ResponseData,
     };

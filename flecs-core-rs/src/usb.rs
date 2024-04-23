@@ -1,15 +1,15 @@
-use crate::ffi2;
+use crate::ffi;
 use rusb::Device;
 use std::ffi::OsStr;
 
-pub fn read_usb_devices() -> anyhow::Result<Vec<ffi2::Device>> {
+pub fn read_usb_devices() -> anyhow::Result<Vec<ffi::Device>> {
     let devices = rusb::devices()?
         .iter()
         .flat_map(|device| device.try_into())
         .collect();
     Ok(devices)
 }
-impl<T: rusb::UsbContext> TryFrom<Device<T>> for ffi2::Device {
+impl<T: rusb::UsbContext> TryFrom<Device<T>> for ffi::Device {
     type Error = anyhow::Error;
 
     fn try_from(device: Device<T>) -> anyhow::Result<Self, Self::Error> {
@@ -27,7 +27,7 @@ impl<T: rusb::UsbContext> TryFrom<Device<T>> for ffi2::Device {
             }
             port
         };
-        Ok(ffi2::Device {
+        Ok(ffi::Device {
             pid,
             vid,
             vendor: get_vendor(vid)?.unwrap_or_else(|| format!("Unknown vendor {vid}")),

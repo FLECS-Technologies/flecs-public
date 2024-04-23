@@ -2,15 +2,13 @@ mod console;
 mod network;
 mod usb;
 
-use autocxx::include_cpp;
-
 pub use crate::console::new_console;
 pub use crate::console::Console;
 pub use crate::network::read_network_adapters;
 pub use crate::usb::read_usb_devices;
 
 #[cxx::bridge]
-mod ffi2 {
+mod ffi {
 
     #[derive(Debug)]
     struct Device {
@@ -110,14 +108,3 @@ mod ffi2 {
     }
 }
 
-// The following macro and function demonstrate usage of autocxx and serve no other purpose
-include_cpp! {
-    #include "../../flecs/util/usb/usb.h"
-    safety!(unsafe)
-    generate!("flecs::usb::device_t")
-}
-
-#[allow(dead_code)]
-fn tetest(m: ffi::flecs::usb::device_t) {
-    let _x = m;
-}

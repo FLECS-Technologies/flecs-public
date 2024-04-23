@@ -1,4 +1,4 @@
-use crate::ffi2;
+use crate::ffi;
 use libc::{
     freeifaddrs, getifaddrs, ifaddrs, sockaddr_in, sockaddr_in6, sockaddr_ll, AF_INET, AF_INET6,
     AF_PACKET,
@@ -12,10 +12,10 @@ use std::io;
 use std::mem::MaybeUninit;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-pub fn read_network_adapters() -> anyhow::Result<Vec<ffi2::NetAdapter>> {
-    Ok(ffi2::NetInfo::try_read_from_system()?
+pub fn read_network_adapters() -> anyhow::Result<Vec<ffi::NetAdapter>> {
+    Ok(ffi::NetInfo::try_read_from_system()?
         .into_iter()
-        .map(|(name, info)| ffi2::NetAdapter { name, info })
+        .map(|(name, info)| ffi::NetAdapter { name, info })
         .collect())
 }
 
@@ -27,8 +27,8 @@ pub struct NetworkAddress {
 #[derive(Debug)]
 enum Address {
     Mac(String),
-    Ipv4(ffi2::IpAddr),
-    Ipv6(ffi2::IpAddr),
+    Ipv4(ffi::IpAddr),
+    Ipv6(ffi::IpAddr),
 }
 
 enum SaFamily {
@@ -53,13 +53,13 @@ impl From<u16> for SaFamily {
     }
 }
 
-impl Default for ffi2::NetType {
+impl Default for ffi::NetType {
     fn default() -> Self {
         Self::Unknown
     }
 }
 
-impl ffi2::NetInfo {
+impl ffi::NetInfo {
     fn try_read_from_system() -> anyhow::Result<HashMap<String, Self>> {
         let mut adapters: HashMap<String, Self> = HashMap::new();
         let addresses: anyhow::Result<Vec<_>, _> = IfAddrs::new()?
@@ -103,7 +103,7 @@ impl ffi2::NetInfo {
     }
 }
 
-impl From<&str> for ffi2::NetType {
+impl From<&str> for ffi::NetType {
     fn from(value: &str) -> Self {
         match value {
             v if v.starts_with("en") || v.starts_with("eth") => Self::Wired,
@@ -167,7 +167,7 @@ impl TryFrom<ifaddrs> for NetworkAddress {
                 let subnet_mask: Ipv4Addr = s.sin_addr.s_addr.into();
                 let subnet_mask = subnet_mask.to_string();
                 Ok(NetworkAddress {
-                    address: Address::Ipv4(ffi2::IpAddr { addr, subnet_mask }),
+                    address: Address::Ipv4(ffi::IpAddr { addr, subnet_mask }),
                     name,
                 })
             }
@@ -179,7 +179,7 @@ impl TryFrom<ifaddrs> for NetworkAddress {
                 let subnet_mask: Ipv6Addr = s.sin6_addr.s6_addr.into();
                 let subnet_mask = subnet_mask.to_string();
                 Ok(NetworkAddress {
-                    address: Address::Ipv6(ffi2::IpAddr { addr, subnet_mask }),
+                    address: Address::Ipv6(ffi::IpAddr { addr, subnet_mask }),
                     name,
                 })
             }
@@ -255,7 +255,7 @@ mod tests {
 
     #[test]
     fn test_adapters() {
-        let infos = ffi2::NetInfo::try_read_from_system().expect("Failed to read network adapters");
+        let infos = ffi::NetInfo::try_read_from_system().expect("Failed to read network adapters");
         for (name, info) in infos {
             println!("Parsed adapter {}: {:?}", name, info);
         }
