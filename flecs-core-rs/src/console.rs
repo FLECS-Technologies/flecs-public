@@ -192,3 +192,121 @@ impl Console {
         204
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ffi2::Authentication;
+    use flecs_console_api_client_rs::models::{
+        PostApiV2DeviceLicenseActivate200Response, PostApiV2DeviceLicenseActivate200ResponseData,
+    };
+
+    const ACTIVATE_PATH: &str = "/api/v2/device/license/activate";
+
+    #[test]
+    fn test_no_authentication() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", ACTIVATE_PATH)
+            .with_status(200)
+            .with_body("invalid body")
+            .expect(0)
+            .create();
+        let console = new_console(server.url());
+        let session_id = "some_id".to_string();
+
+        let result = console.activate_license(session_id.clone());
+        assert!(result.is_err());
+        assert_eq!(
+            format!("{}", result.err().unwrap()),
+            "No authentication available".to_string()
+        );
+
+        let result = console.validate_license(session_id.clone());
+        assert!(result.is_err());
+        assert_eq!(
+            format!("{}", result.err().unwrap()),
+            "No authentication available".to_string()
+        );
+
+        let result =
+            console.download_manifest("my.app".to_string(), "0.1".to_string(), session_id.clone());
+        assert!(result.is_err());
+        assert_eq!(
+            format!("{}", result.err().unwrap()),
+            "No authentication available".to_string()
+        );
+
+        let result = console.acquire_download_token(
+            "my.app".to_string(),
+            "0.1".to_string(),
+            session_id.clone(),
+        );
+        assert!(result.is_err());
+        assert_eq!(
+            format!("{}", result.err().unwrap()),
+            "No authentication available".to_string()
+        );
+        mock.assert()
+    }
+
+    #[test]
+    fn test_activate_license_invalid_data() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", ACTIVATE_PATH)
+            .with_status(200)
+            .with_body("invalid body")
+            .expect(1)
+            .create();
+        let mut console = new_console(server.url());
+        console.authentication = Some(Authentication::default());
+
+        let session_id = "some_id".to_string();
+        let result = console.activate_license(session_id.clone());
+        assert!(result.is_err());
+        mock.assert()
+    }
+
+    #[test]
+    fn test_activate_license_valid_data() {
+        let session_id = "some_id".to_string();
+        let mut server = mockito::Server::new();
+        let resp = PostApiV2DeviceLicenseActivate200Response {
+            data: Some(Box::new(PostApiV2DeviceLicenseActivate200ResponseData {
+                session_id: Some(session_id.clone()),
+            })),
+            status_code: Some(200),
+            status_text: Some("Ok".to_string()),
+        };
+        let mock = server
+            .mock("POST", ACTIVATE_PATH)
+            .with_status(200)
+            .with_body(serde_json::to_string(&resp).unwrap())
+            .expect(1)
+            .create();
+        let mut console = new_console(server.url());
+        console.authentication = Some(Authentication::default());
+
+        let result = console.activate_license(session_id.clone());
+        assert_eq!(result.unwrap(), session_id);
+        mock.assert()
+    }
+
+    #[test]
+    fn test_activate_license_valid_already_activated() {
+        let session_id = "some_id".to_string();
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", ACTIVATE_PATH)
+            .with_status(204)
+            .expect(1)
+            .create();
+        let mut console = new_console(server.url());
+        console.authentication = Some(Authentication::default());
+
+        let result = console.activate_license(session_id.clone());
+        assert_eq!(result.unwrap(), session_id);
+        mock.assert()
+    }
+}

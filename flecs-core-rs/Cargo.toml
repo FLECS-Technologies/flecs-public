@@ -21,6 +21,9 @@ rusb = "0.9.3"
 udev = { version = "0.8.0", features = ["hwdb"] }
 http = "1.1"
 
+[dev-dependencies]
+mockito = "1.4.0"
+
 [build-dependencies]
 cxx-build = "1.0"
 autocxx-build = "0.26.0"
