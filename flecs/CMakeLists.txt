@@ -15,6 +15,13 @@
 include(../corrosion_cxx.cmake)
 add_library_rust(PATH ../flecs-core-rs NAMESPACE my)
 
+target_link_libraries(flecs-core-rs-total INTERFACE
+    Libusb::Libusb
+    udev
+    OpenSSL::Crypto
+    OpenSSL::SSL
+)
+
 add_subdirectory(util)
 add_subdirectory(api)
 add_subdirectory(common)

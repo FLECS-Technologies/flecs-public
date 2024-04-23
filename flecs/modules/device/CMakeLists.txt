@@ -33,10 +33,6 @@ if(FLECS_BUILD_TESTS)
         modules.factory
         modules.module_base
         my::flecs-core-rs
-        Libusb::Libusb
-        udev
-        OpenSSL::Crypto
-        OpenSSL::SSL
     )
 
     target_compile_definitions(

@@ -22,10 +22,6 @@ target_link_libraries(util.usb PRIVATE
     Libusb::Libusb
     udev
     my::flecs-core-rs
-    Libusb::Libusb
-    udev
-    OpenSSL::Crypto
-    OpenSSL::SSL
 )
 
 add_subdirectory(test)
