@@ -19,6 +19,7 @@ procfs = "0.16.0"
 autocxx = "0.26.0"
 rusb = "0.9.3"
 udev = { version = "0.8.0", features = ["hwdb"] }
+http = "1.1"
 
 [build-dependencies]
 cxx-build = "1.0"

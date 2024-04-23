@@ -1,11 +1,14 @@
 use crate::ffi2;
 use flecs_console_api_client_rs::apis::configuration::Configuration;
 use flecs_console_api_client_rs::apis::default_api::{
-    get_api_v2_manifests_app_version, post_api_v2_tokens,
+    get_api_v2_manifests_app_version, post_api_v2_tokens, GetApiV2ManifestsAppVersionSuccess,
+    PostApiV2TokensSuccess,
 };
 use flecs_console_api_client_rs::apis::device_api::{
     post_api_v2_device_license_activate, post_api_v2_device_license_validate,
+    PostApiV2DeviceLicenseActivateSuccess, PostApiV2DeviceLicenseValidateSuccess,
 };
+use flecs_console_api_client_rs::apis::ResponseContent;
 use flecs_console_api_client_rs::models::PostApiV2TokensRequest;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
@@ -62,11 +65,30 @@ impl Console {
             &format!("Bearer {}", &auth.jwt.token),
             &session_id,
         ))?;
-        Ok(resp
-            .data
-            .ok_or(GenericError::new("No response data".to_string()))?
-            .session_id
-            .ok_or(GenericError::new("No session id in response".to_string()))?)
+        let session_id = match resp {
+            ResponseContent {
+                entity: Some(PostApiV2DeviceLicenseActivateSuccess::Status200(val)),
+                ..
+            } => val
+                .data
+                .ok_or(GenericError::new("No response data".to_string()))?
+                .session_id
+                .ok_or(GenericError::new("No session id in response".to_string()))?,
+            ResponseContent {
+                entity: Some(PostApiV2DeviceLicenseActivateSuccess::Status204()),
+                ..
+            } => session_id,
+            ResponseContent {
+                status: http::StatusCode::NO_CONTENT,
+                ..
+            } => session_id,
+            ResponseContent {
+                entity: Some(PostApiV2DeviceLicenseActivateSuccess::UnknownValue(val)),
+                ..
+            } => Err(GenericError::new(format!("Unexpected body: {:#}", val)))?,
+            _ => Err(GenericError::new("No response data".to_string()))?,
+        };
+        Ok(session_id)
     }
 
     pub fn validate_license(self: &Console, session_id: String) -> anyhow::Result<bool> {
@@ -82,13 +104,16 @@ impl Console {
             &self.configuration,
             &format!("Bearer {}", &auth.jwt.token),
             &session_id,
-        ));
-
-        Ok(resp?
-            .data
-            .ok_or(GenericError::new("No response data".to_string()))?
-            .is_valid
-            .ok_or(GenericError::new("No 'isValid' in response".to_string()))?)
+        ))?;
+        let is_valid = match resp.entity {
+            Some(PostApiV2DeviceLicenseValidateSuccess::Status200(val)) => val
+                .data
+                .ok_or(GenericError::new("No response data".to_string()))?
+                .is_valid
+                .ok_or(GenericError::new("No session id in response".to_string()))?,
+            _ => Err(GenericError::new("No response data".to_string()))?,
+        };
+        Ok(is_valid)
     }
     pub fn download_manifest(
         self: &Console,
@@ -107,7 +132,13 @@ impl Console {
             &app,
             &version,
         ))?;
-        Ok(serde_json::to_string(&resp.data)?)
+        let manifest = match resp.entity {
+            Some(GetApiV2ManifestsAppVersionSuccess::Status200(val)) => val
+                .data
+                .ok_or(GenericError::new("No response data".to_string()))?,
+            _ => Err(GenericError::new("No response data".to_string()))?,
+        };
+        Ok(serde_json::to_string(&manifest)?)
     }
     pub fn acquire_download_token(
         self: &Console,
@@ -128,12 +159,15 @@ impl Console {
             &format!("Bearer {}", &auth.jwt.token),
             &session_id,
             Some(request),
-        ));
-        let token = resp?
-            .data
-            .ok_or(GenericError::new("No data present".to_string()))?
-            .token
-            .ok_or(GenericError::new("No token present".to_string()))?;
+        ))?;
+        let token = match resp.entity {
+            Some(PostApiV2TokensSuccess::Status200(val)) => val
+                .data
+                .ok_or(GenericError::new("No data present".to_string()))?
+                .token
+                .ok_or(GenericError::new("No token present".to_string()))?,
+            _ => Err(GenericError::new("No response data".to_string()))?,
+        };
         Ok(ffi2::DownloadToken {
             username: token
                 .username
