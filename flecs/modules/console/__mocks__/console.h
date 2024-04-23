@@ -19,8 +19,8 @@
 #include "flecs/modules/console/types.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/module_base/module.h"
-#include "flecs-core-rs/target/cxxbridge/flecs-core-rs/src/lib.rs.h"
-#include "flecs-core-rs/target/cxxbridge/rust/cxx.h"
+#include "flecs-core-rs/src/lib.rs.h"
+#include "rust/cxx.h"
 
 namespace flecs {
 namespace module {

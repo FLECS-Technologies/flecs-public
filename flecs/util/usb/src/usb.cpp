@@ -16,7 +16,7 @@
 
 #include <tuple>
 
-#include "flecs-core-rs/target/cxxbridge/flecs-core-rs/src/lib.rs.h"
+#include "cxxbridge/flecs-core-rs/src/lib.rs.h"
 
 namespace flecs {
 namespace usb {

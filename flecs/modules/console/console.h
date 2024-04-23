@@ -23,8 +23,8 @@
 #include "flecs/modules/module_base/module.h"
 #include "types.h"
 
-#include "flecs-core-rs/target/cxxbridge/flecs-core-rs/src/lib.rs.h"
-#include "flecs-core-rs/target/cxxbridge/rust/cxx.h"
+#include "cxxbridge/flecs-core-rs/src/lib.rs.h"
+#include "cxxbridge/rust/cxx.h"
 
 namespace flecs {
 namespace module {

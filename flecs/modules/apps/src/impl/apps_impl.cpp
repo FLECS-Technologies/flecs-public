@@ -41,7 +41,7 @@
 #include "flecs/util/json/json.h"
 #include "flecs/util/process/process.h"
 #include "flecs/util/string/string_utils.h"
-#include "flecs-core-rs/target/cxxbridge/flecs-core-rs/src/lib.rs.h"
+#include "cxxbridge/flecs-core-rs/src/lib.rs.h"
 
 using std::operator""s;
 

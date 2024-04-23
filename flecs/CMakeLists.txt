@@ -22,6 +22,12 @@ target_link_libraries(flecs-core-rs-total INTERFACE
     OpenSSL::SSL
 )
 
+set(CXXBRIDGE_INCLUDE_PATH "${CMAKE_BINARY_DIR}/cargo/build/${Rust_CARGO_TARGET}")
+message(STATUS "CXXBRIDGE_INCLUDE_PATH=${CXXBRIDGE_INCLUDE_PATH}")
+include_directories(
+    ${CXXBRIDGE_INCLUDE_PATH}
+)
+
 add_subdirectory(util)
 add_subdirectory(api)
 add_subdirectory(common)
