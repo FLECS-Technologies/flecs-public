@@ -31,13 +31,25 @@ jobs:
       uses: docker/setup-buildx-action@v3
       with:
         platforms: linux/amd64,linux/arm64,linux/arm/v7
-
+    - name: Set up pkg-config for arm64
+      if: ${{ inputs.arch == 'arm64' }}
+      run: | # Cross compiling rust crates with C/C++ dependencies requires pkg-config to be set up (e.g. openssl-sys and libudev-sys)
+        echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/local/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+        echo "PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu" >> $GITHUB_ENV
+        echo "PKG_CONFIG_SYSROOT_DIR=/" >> $GITHUB_ENV
+    - name: Set up pkg-config for armhf
+      if: ${{ inputs.arch == 'armhf' }}
+      run: | # Cross compiling rust crates with C/C++ dependencies requires pkg-config to be set up (e.g. openssl-sys and libudev-sys)
+        echo "PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/share/pkgconfig:/usr/local/lib/arm-linux-gnueabihf/pkgconfig" >> $GITHUB_ENV
+        echo "PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf" >> $GITHUB_ENV
+        echo "PKG_CONFIG_SYSROOT_DIR=/" >> $GITHUB_ENV
     - name: "CMake: Configure"
       run: |
         cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }}
 
     - name: "CMake: Build"
-      run: |
+      run: | # flecs-core-rs_cxxbridge generates header files needed by subsequent targets TODO: Improve
+        cmake --build build/${{ inputs.arch }} --target flecs-core-rs_cxxbridge 
         cmake --build build/${{ inputs.arch }}
 
     - name: "CMake: Docker"
