@@ -20,8 +20,6 @@ add_library(util.usb OBJECT
 target_link_libraries(util.usb INTERFACE
     util.sysfs
     my::flecs-core-rs
-    Libusb::Libusb
-    udev
 )
 
 add_subdirectory(test)
