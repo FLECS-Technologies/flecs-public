@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_library(util.usb STATIC
+add_library(util.usb OBJECT
     src/usb.cpp
     usb.h
 )
