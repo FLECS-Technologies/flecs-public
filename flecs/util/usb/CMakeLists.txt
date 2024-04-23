@@ -17,7 +17,7 @@ add_library(util.usb STATIC
     usb.h
 )
 
-target_link_libraries(util.usb PRIVATE
+target_link_libraries(util.usb INTERFACE
     util.sysfs
     my::flecs-core-rs
     Libusb::Libusb
