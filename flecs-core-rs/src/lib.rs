@@ -19,24 +19,24 @@ mod ffi {
         vendor: String,
     }
 
-    #[derive(Clone, Default)]
+    #[derive(Clone, Debug, Default, Eq, PartialEq)]
     struct User {
         id: u64,
         email: String,
         login: String,
         display_name: String,
     }
-    #[derive(Clone, Default)]
+    #[derive(Clone, Debug, Default, Eq, PartialEq)]
     struct Jwt {
         token: String,
         token_expires: u64,
     }
-    #[derive(Clone, Default)]
+    #[derive(Clone, Debug, Default, Eq, PartialEq)]
     struct FeatureFlags {
         is_vendor: bool,
         is_white_labeled: bool,
     }
-    #[derive(Clone, Default)]
+    #[derive(Clone, Debug, Default, Eq, PartialEq)]
     struct Authentication {
         user: User,
         jwt: Jwt,
@@ -107,4 +107,3 @@ mod ffi {
         fn read_usb_devices() -> Result<Vec<Device>>;
     }
 }
-
