@@ -133,7 +133,10 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
     }
 
-    // Step 2: Create volumes
+    // Step 2: Add environment variables
+    instance->set_environment(manifest->env());
+
+    // Step 3: Create volumes
     {
         auto [res, additional_info] = create_volumes(instance);
         if (res != 0) {
@@ -141,7 +144,7 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
         }
     }
 
-    // Step 3: Create networks
+    // Step 4: Create networks
     // query and create default network, if required
     const auto network_name = default_network_name();
     if (!network_name.empty()) {
@@ -182,7 +185,7 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
     }
 #endif // 0
 
-    // Step 4: Create conffiles
+    // Step 5: Create conffiles
     {
         auto [res, additional_info] = create_config_files(instance);
         if (res != 0) {
