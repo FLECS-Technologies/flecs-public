@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_library(util.usb STATIC
+add_library(util.usb OBJECT
     src/usb.cpp
     usb.h
 )
 
-target_link_libraries(util.usb PRIVATE
-    util.udev
+target_link_libraries(util.usb INTERFACE
     util.sysfs
-    Libusb::Libusb
+    my::flecs-core-rs
 )
 
 add_subdirectory(test)

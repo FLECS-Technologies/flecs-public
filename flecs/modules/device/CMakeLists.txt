@@ -32,6 +32,7 @@ if(FLECS_BUILD_TESTS)
         GTest::gmock
         modules.factory
         modules.module_base
+        my::flecs-core-rs
     )
 
     target_compile_definitions(
