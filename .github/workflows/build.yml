@@ -34,7 +34,7 @@ jobs:
     - name: Set default rustup toolchain
       run: rustup default $FLECS_DEFAULT_RUST_TOOLCHAIN
     - name: Add rustup target for amd64
-      if: ${{ inputs.arch == 'amd4' }}
+      if: ${{ inputs.arch == 'amd64' }}
       run: rustup target add --toolchain ${FLECS_DEFAULT_RUST_TOOLCHAIN} x86_64-unknown-linux-gnu
     - name: Add rustup target for arm64
       if: ${{ inputs.arch == 'arm64' }}
@@ -56,7 +56,6 @@ jobs:
         echo "PKG_CONFIG_SYSROOT_DIR=/" >> $GITHUB_ENV
     - name: "CMake: Configure"
       run: |
-        rustc --version
         cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }}
 
     - name: "CMake: Build"
