@@ -33,6 +33,15 @@ jobs:
         platforms: linux/amd64,linux/arm64,linux/arm/v7
     - name: Set default rustup toolchain
       run: rustup default $FLECS_DEFAULT_RUST_TOOLCHAIN
+    - name: Add rustup target for amd64
+      if: ${{ inputs.arch == 'amd4' }}
+      run: rustup target add --toolchain ${FLECS_DEFAULT_RUST_TOOLCHAIN} x86_64-unknown-linux-gnu
+    - name: Add rustup target for arm64
+      if: ${{ inputs.arch == 'arm64' }}
+      run: rustup target add --toolchain ${FLECS_DEFAULT_RUST_TOOLCHAIN} aarch64-unknown-linux-gnu
+    - name: Add rustup target for armhf
+      if: ${{ inputs.arch == 'armhf' }}
+      run: rustup target add --toolchain ${FLECS_DEFAULT_RUST_TOOLCHAIN} armv7-unknown-linux-gnueabihf
     - name: Set up pkg-config for arm64
       if: ${{ inputs.arch == 'arm64' }}
       run: | # Cross compiling rust crates with C/C++ dependencies requires pkg-config to be set up (e.g. openssl-sys and libudev-sys)
