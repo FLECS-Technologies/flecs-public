@@ -22,6 +22,8 @@ jobs:
     container: flecspublic.azurecr.io/flecs-build:${{ inputs.flecs_build_ref }}
 
     steps:
+    - name: Print rustc
+      run: rustc --version
     - name: Checkout
       uses: actions/checkout@v4
       with:
@@ -45,6 +47,7 @@ jobs:
         echo "PKG_CONFIG_SYSROOT_DIR=/" >> $GITHUB_ENV
     - name: "CMake: Configure"
       run: |
+        rustc --version
         cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }}
 
     - name: "CMake: Build"
