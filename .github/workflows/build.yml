@@ -22,8 +22,11 @@ jobs:
     container: flecspublic.azurecr.io/flecs-build:${{ inputs.flecs_build_ref }}
 
     steps:
-    - name: Print rustc
-      run: rustc --version
+    - name: Debug rustc
+      run: |
+        whoami
+        rustup default stable
+        rustc --version
     - name: Checkout
       uses: actions/checkout@v4
       with:
