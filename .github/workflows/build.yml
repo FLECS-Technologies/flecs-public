@@ -31,6 +31,8 @@ jobs:
       uses: docker/setup-buildx-action@v3
       with:
         platforms: linux/amd64,linux/arm64,linux/arm/v7
+    - name: Set default rustup toolchain
+      run: rustup default $FLECS_DEFAULT_RUST_TOOLCHAIN
     - name: Set up pkg-config for arm64
       if: ${{ inputs.arch == 'arm64' }}
       run: | # Cross compiling rust crates with C/C++ dependencies requires pkg-config to be set up (e.g. openssl-sys and libudev-sys)
