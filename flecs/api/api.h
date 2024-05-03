@@ -16,7 +16,7 @@
 
 #include <crow.h>
 
-#define FLECS_V2_ROUTE(url) CROW_BP_ROUTE(flecs::flecs_api_t::instance().v2_api(), url)
+#define FLECS_V2_ROUTE(url) std::cerr << "Registering route /v2" << url << "\n";CROW_BP_ROUTE(flecs::flecs_api_t::instance().v2_api(), url)
 
 namespace flecs {
 

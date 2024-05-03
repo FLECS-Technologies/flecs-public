@@ -21,7 +21,7 @@ macro(flecs_add_module)
     )
 
     add_library(
-        modules.${mod_MODULE_NAME} OBJECT
+        modules.${mod_MODULE_NAME} STATIC
         src/${mod_MODULE_NAME}.cpp ${mod_ADDITIONAL_SOURCES}
         ${mod_MODULE_NAME}.h ${mod_ADDITIONAL_HEADERS}
     )
