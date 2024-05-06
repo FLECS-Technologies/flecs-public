@@ -20,9 +20,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<console_t> _reg("console");
-}
 
 console_t::console_t()
     : _impl{std::make_unique<impl::console_t>(this)}

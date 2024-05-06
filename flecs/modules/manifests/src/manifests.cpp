@@ -29,9 +29,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<manifests_t> _reg("manifests");
-}
 
 manifests_t::manifests_t()
     : _impl{new impl::manifests_t{this}}

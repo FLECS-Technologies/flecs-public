@@ -20,9 +20,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<deployments_t> _reg("deployments");
-}
 
 deployments_t::deployments_t()
     : _impl{new impl::deployments_t{}}

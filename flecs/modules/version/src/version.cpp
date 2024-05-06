@@ -21,9 +21,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<version_t> _reg("version");
-}
 
 version_t::version_t()
 {}

@@ -20,9 +20,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<device_t> _reg("device");
-}
 
 device_t::device_t()
     : _impl{new impl::device_t{this}}

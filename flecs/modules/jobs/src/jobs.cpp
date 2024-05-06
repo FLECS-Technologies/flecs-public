@@ -20,9 +20,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<jobs_t> _reg("jobs");
-}
 
 jobs_t::jobs_t()
     : _impl{new impl::jobs_t{}}

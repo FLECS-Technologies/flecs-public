@@ -70,7 +70,7 @@ auto console_t::do_activate_license(std::string session_id) //
     }
 
     if (res.status_code == 204) {
-        return {0, {}};
+        return {0, {session_id}};
     }
 
     auto response = console::error_response_t{};

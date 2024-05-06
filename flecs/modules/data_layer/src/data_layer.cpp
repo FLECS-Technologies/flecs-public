@@ -20,9 +20,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<data_layer_t> _reg("data-layer");
-}
 
 data_layer_t::data_layer_t()
     : _impl{new impl::data_layer_t{}}

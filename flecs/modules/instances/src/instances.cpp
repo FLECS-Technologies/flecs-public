@@ -23,9 +23,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<instances_t> _reg("instances");
-}
 
 instances_t::instances_t()
     : _impl{new impl::instances_t{this}}

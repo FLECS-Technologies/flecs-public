@@ -33,7 +33,7 @@ const auto session_id_regex = std::regex{"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f
 
 TEST(device, session_id)
 {
-    auto session_id = std::string{};
+    auto session_id = flecs::console::session_id_t{};
     {
         std::filesystem::remove_all("./device");
 
@@ -46,7 +46,7 @@ TEST(device, session_id)
 
         /* This will generate an initial, random session_id */
         session_id = uut.session_id();
-        ASSERT_TRUE(std::regex_match(session_id, session_id_regex));
+        ASSERT_TRUE(std::regex_match(session_id.id(), session_id_regex));
 
         /* Should successfully create .session_id */
         std::tie(res, message) = uut.save(".");
@@ -108,7 +108,7 @@ TEST(device, activate_license)
     auto mock_console =
         std::dynamic_pointer_cast<flecs::module::console_t>(flecs::api::query_module("console"));
 
-    EXPECT_CALL(*mock_console.get(), activate_license(session_id));
+    EXPECT_CALL(*mock_console.get(), activate_license(session_id.id()));
 
     uut.activate_license();
 
@@ -124,7 +124,7 @@ TEST(device, validate_license)
     auto mock_console =
         std::dynamic_pointer_cast<flecs::module::console_t>(flecs::api::query_module("console"));
 
-    EXPECT_CALL(*mock_console.get(), validate_license(session_id));
+    EXPECT_CALL(*mock_console.get(), validate_license(session_id.id()));
 
     uut.validate_license();
 

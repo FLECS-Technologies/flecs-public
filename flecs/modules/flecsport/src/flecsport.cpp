@@ -23,9 +23,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<flecsport_t> _reg("flecsport");
-}
 
 flecsport_t::flecsport_t()
     : _impl{new impl::flecsport_t{this}}
