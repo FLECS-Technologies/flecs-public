@@ -47,40 +47,65 @@ auto console_t::do_authentication() const noexcept //
     return _auth;
 }
 
-auto console_t::do_activate_license(std::string session_id) //
-    -> result_t
+auto console_t::do_activate_license(
+    const std::optional<std::string>& license, const std::optional<console::session_id_t>& session_id) //
+    -> flecs::module::console_t::license_activation_result_t
 {
     const auto url = std::string{_parent->base_url()} + "/api/v2/device/license/activate";
-
-    const auto res = cpr::Post(
-        cpr::Url(std::move(url)),
-        cpr::Header{
-            {"Authorization", std::string{"Bearer " + _auth.jwt().token()}},
-            {"X-Session-Id", session_id},
-        });
+    auto res = cpr::Response{};
+    // Activation via existing license or serial number
+    if (license.has_value()) {
+        auto json = json_t{};
+        json["licenseKey"] = license.value();
+        auto header = session_id.has_value() ? cpr::Header{
+                                                   {"X-Session-Id", session_id.value().id()},
+                                               } : cpr::Header{};
+        res = cpr::Post(cpr::Url(url), cpr::Body(json.dump()), header);
+    } else {
+        // Activation via license of user
+        res = cpr::Post(
+            cpr::Url(url),
+            cpr::Header{
+                {"Authorization", std::string{"Bearer " + _auth.jwt().token()}},
+            });
+    }
 
     if (res.status_code == 200) {
         auto response = console::activate_response_t{};
         try {
             parse_json(res.text).get_to(response);
         } catch (...) {
-            return {-1, "Invalid JSON response for status code 200"};
+            return {"Invalid JSON response for status code 200", {}};
         }
-        return {0, response.session_id()};
+        return {{}, {response}};
     }
 
     if (res.status_code == 204) {
-        return {0, {session_id}};
+        if (!license.has_value()) {
+            return {"No license present but console responded with 'already active'", {}};
+        }
+        auto returned_session_id = console::session_id_t::read_from_header(res.header);
+        if (!returned_session_id.has_value()) {
+            return {"Console responded with 'already active', but sent no (valid) session id", {}};
+        }
+        auto response = console::activate_response_data_t(returned_session_id.value(), license.value());
+        return {{}, {response}};
     }
 
     auto response = console::error_response_t{};
     try {
         parse_json(res.text).get_to(response);
     } catch (...) {
-        return {-1, "Activation failed with status code " + std::to_string(res.status_code)};
+        return {"Activation failed with status code " + std::to_string(res.status_code), {}};
     }
 
-    return {-1, response.reason()};
+    return {response.reason(), {}};
+}
+
+auto console_t::do_activate_license_key() //
+    -> flecs::module::console_t::license_activation_result_t
+{
+    return do_activate_license({}, {});
 }
 
 /**
@@ -203,13 +228,9 @@ auto console_t::do_delete_authentication() //
 auto console_t::save_session_id_from_header(const cpr::Header& header) //
     -> void
 {
-    if (auto session_id = header.find("X-Session-Id"); session_id != header.end()) {
-        try {
-            auto id = parse_json(session_id->second).get<console::session_id_t>();
-            auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
-            device_api->save_session_id(id);
-        } catch (const std::exception& e) {
-        }
+    if (auto session_id = console::session_id_t::read_from_header(header); session_id.has_value()) {
+        auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
+        device_api->save_session_id(session_id.value());
     }
 }
 

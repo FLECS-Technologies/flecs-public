@@ -36,7 +36,7 @@ class device_t FLECS_FINAL_UNLESS_TESTED : public base_t
 public:
     ~device_t() = default;
 
-    MOCK_METHOD((const flecs::console::session_id_t&), session_id, (), ());
+    MOCK_METHOD((const std::optional<flecs::console::session_id_t>&), session_id, (), ());
 
     MOCK_METHOD((result_t), activate_license, (), ());
     MOCK_METHOD((result_t), validate_license, (), ());

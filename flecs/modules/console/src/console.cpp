@@ -56,10 +56,16 @@ auto console_t::authentication() const noexcept //
     return _impl->do_authentication();
 }
 
-auto console_t::activate_license(std::string session_id) //
-    -> result_t
+auto console_t::activate_license(std::string license, const std::optional<console::session_id_t>& session_id) //
+    -> license_activation_result_t
 {
-    return _impl->do_activate_license(session_id);
+    return _impl->do_activate_license(license, session_id);
+}
+
+auto console_t::activate_license_key() //
+    -> license_activation_result_t
+{
+    return _impl->do_activate_license_key();
 }
 
 auto console_t::validate_license(std::string_view session_id) //

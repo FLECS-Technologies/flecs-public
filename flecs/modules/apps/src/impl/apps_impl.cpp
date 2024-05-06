@@ -248,11 +248,12 @@ auto apps_t::do_install_impl(
     switch (app->status()) {
         case apps::status_e::ManifestDownloaded: {
             progress.next_step("Acquiring download token");
+            auto session_id = device_api->session_id().has_value() ? device_api->session_id().value().id() : std::string{};
 
             token = console_api->acquire_download_token(
                 app->key().name(),
                 app->key().version(),
-                device_api->session_id().id());
+                session_id);
 
             if (!token.has_value()) {
                 progress.result(0, "Could not acquire download token");

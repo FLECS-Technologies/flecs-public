@@ -17,6 +17,7 @@
 #include <string>
 
 #include "base_response.h"
+#include "session_id.h"
 
 namespace flecs {
 namespace console {
@@ -24,7 +25,11 @@ namespace console {
 class activate_response_data_t
 {
 public:
+    activate_response_data_t(console::session_id_t session_id, std::string license_key);
+    activate_response_data_t() = default;
     auto session_id() const noexcept //
+        -> const console::session_id_t&;
+    auto license_key() const noexcept //
         -> const std::string&;
 
 private:
@@ -33,7 +38,8 @@ private:
     friend auto to_json(json_t& j, const activate_response_data_t& response) //
         -> void;
 
-    std::string _session_id;
+    console::session_id_t _session_id;
+    std::string _license_key;
 };
 
 class activate_response_t final : public base_response_t, public activate_response_data_t

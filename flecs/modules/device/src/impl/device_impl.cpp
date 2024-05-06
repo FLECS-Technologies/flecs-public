@@ -36,6 +36,8 @@ namespace impl {
 device_t::device_t(flecs::module::device_t* parent)
     : _parent{parent}
     , _session_id{}
+    , _license{}
+    , _license_kind{get_license_kind_from_env()}
 {}
 
 auto device_t::do_init() //
@@ -47,6 +49,200 @@ auto device_t::do_deinit() //
 {}
 
 auto device_t::do_load(const fs::path& base_path) //
+    -> result_t
+{
+    auto result = result_t{0, {}};
+
+    auto [sid_res, sid_msg] = load_session_id(base_path);
+    if (sid_res != 0) {
+        std::get<0>(result) = -1;
+        std::get<1>(result) += sid_msg + "\n";
+    }
+
+    auto [lic_res, lic_msg] = load_license(base_path);
+    if (lic_res != 0) {
+        std::get<0>(result) = -1;
+        std::get<1>(result) += lic_msg;
+    }
+
+    return result;
+}
+
+auto device_t::do_save_session_id(console::session_id_t session_id) -> result_t
+{
+    // New session id is only saved if none is present or if it is different and newer
+    if (!_session_id.has_value() || (session_id.id() != _session_id.value().id() &&
+                                     session_id.timestamp() >= _session_id.value().timestamp())) {
+        _session_id = session_id;
+        return _parent->save();
+    }
+    return {0, {}};
+}
+
+auto device_t::do_save(const fs::path& base_path) const //
+    -> result_t
+{
+    auto result = result_t{0, {}};
+
+    auto [sid_res, sid_msg] = save_session_id(base_path);
+    if (sid_res != 0) {
+        std::get<0>(result) = -1;
+        std::get<1>(result) += sid_msg + "\n";
+    }
+
+    auto [lic_res, lic_msg] = save_license(base_path);
+    if (lic_res != 0) {
+        std::get<0>(result) = -1;
+        std::get<1>(result) += lic_msg + "\n";
+    }
+
+    return result;
+}
+
+auto device_t::do_session_id() //
+    -> const std::optional<console::session_id_t>&
+{
+    return _session_id;
+}
+
+auto device_t::do_activate_license() //
+    -> result_t
+{
+    auto console_api = std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
+    auto session_id = _parent->session_id();
+    auto result = flecs::module::console_t::license_activation_result_t{};
+    if (!_license.has_value()) {
+        switch (_license_kind) {
+            default:
+            case Default:
+            case Key:
+                result = console_api->activate_license_key();
+                break;
+            case Serial:
+                return {-1, "Licensing via serial number is configured, but no serial number was found"};
+        }
+    } else {
+        result = console_api->activate_license(_license.value(), session_id);
+    }
+    if (result.error_message.has_value()) {
+        return {-1, result.error_message.value()};
+    } else if (result.result.has_value()) {
+        _license = result.result.value().license_key();
+        _session_id = result.result.value().session_id();
+        _parent->save();
+        return {0, {}};
+    }
+    return {-1, "Unknown error while activating license"};
+}
+
+auto device_t::do_validate_license() //
+    -> result_t
+{
+    auto console_api = std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
+    auto session_id = _parent->session_id();
+    if (!session_id.has_value()) {
+        return {0,  {}};
+    }
+    return console_api->validate_license(session_id.value().id());
+}
+
+auto device_t::do_activate_license_for_client() //
+    -> crow::response
+{
+    auto [result, message] = do_activate_license();
+    auto response = json_t{};
+
+    if (result == 0) {
+        response["additionalInfo"] = "OK";
+        return crow::response{crow::status::OK, response.dump()};
+    }
+
+    response["additionalInfo"] = message;
+    return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
+}
+
+auto device_t::do_validate_license_for_client() //
+    -> crow::response
+{
+    auto [result, message] = do_validate_license();
+    auto response = json_t{};
+
+    switch (result) {
+        case 1:
+            response["isValid"] = true;
+            return crow::response{crow::status::OK, response.dump()};
+        case 0:
+            response["isValid"] = false;
+            return crow::response{crow::status::OK, response.dump()};
+        default:
+            response["additionalInfo"] = message;
+            return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
+    }
+}
+
+auto device_t::load_license(const fs::path& base_path) //
+    -> result_t
+{
+    auto [res, msg] = load_license_file(base_path);
+    if (res != 0) {
+        switch (_license_kind) {
+            case Serial:
+                // TODO: Implement reading serial number from system
+            case Default:
+            default:
+            case Key:
+                break;
+        }
+    }
+    return {0, {}};
+}
+
+auto device_t::load_license_file(const fs::path& base_path) //
+    -> result_t
+{
+    const auto sid_path = base_path / "device" / ".license";
+    auto sid_file = std::ifstream{sid_path};
+    if (!sid_file.good()) {
+        _license = {};
+        return {-1, "Could not open .license"};
+    }
+
+    std::string license;
+
+    if (!std::getline(sid_file, license)) {
+        _license = {};
+        return {-1, "Could not read license"};
+    }
+
+    _license = license;
+    return {0, {}};
+}
+
+auto device_t::save_license(const fs::path& base_path) const //
+    -> result_t
+{
+    if (!_license.has_value()) {
+        return {0, {}};
+    }
+    const auto dir = base_path / "device";
+    auto ec = std::error_code{};
+    fs::create_directories(dir, ec);
+    if (ec) {
+        return {-1, "Could not create directory"};
+    }
+
+    const auto license_path = dir / ".license";
+    auto license_file = std::ofstream{license_path, std::ios::out | std::ios::trunc};
+    if (!license_file.good()) {
+        return {-1, "Could not open .license for writing"};
+    }
+
+    license_file << _license.value();
+
+    return {0, {}};
+}
+
+auto device_t::load_session_id(const fs::path& base_path) //
     -> result_t
 {
     const auto sid_path = base_path / "device" / ".session_id";
@@ -84,19 +280,12 @@ auto device_t::do_load(const fs::path& base_path) //
     return {0, {}};
 }
 
-auto device_t::do_save_session_id(console::session_id_t session_id) -> result_t
-{
-    // New session id is only saved if it is different and newer
-    if (session_id.id() != _session_id.id() && session_id.timestamp() >= _session_id.timestamp()) {
-        _session_id = session_id;
-        return _parent->save();
-    }
-    return {0, {}};
-}
-
-auto device_t::do_save(const fs::path& base_path) const //
+auto device_t::save_session_id(const fs::path& base_path) const //
     -> result_t
 {
+    if (!_session_id.has_value()) {
+        return {0, {}};
+    }
     const auto dir = base_path / "device";
     auto ec = std::error_code{};
     fs::create_directories(dir, ec);
@@ -110,73 +299,30 @@ auto device_t::do_save(const fs::path& base_path) const //
         return {-1, "Could not open .session_id for writing"};
     }
 
-    sid_file << _session_id.id() << std::endl << _session_id.timestamp();
+    sid_file << _session_id.value().id() << std::endl << _session_id.value().timestamp();
 
     return {0, {}};
 }
 
-auto device_t::do_session_id() //
-    -> const console::session_id_t&
+auto device_t::get_license_kind_from_env() //
+    -> LicenseKind
 {
-    if (_session_id.id().empty()) {
-        _session_id = console::session_id_t{
-            boost::lexical_cast<std::string>(boost::uuids::random_generator{}()),
-            std::time(nullptr)};
-        _parent->save();
+    static const std::unordered_map<std::string, LicenseKind> kind_map = {
+        {"LicenseKey", LicenseKind::Key},
+        {"Serial", LicenseKind::Serial},
+    };
+    const char* path = std::getenv("FLECS_LICENSE_KIND");
+
+    if (path != nullptr) {
+        auto kind_str = std::string(path);
+        auto kind = kind_map.find(kind_str);
+        if (kind != kind_map.end()) {
+            return kind->second;
+        }
     }
-
-    return _session_id;
+    return LicenseKind::Default;
 }
 
-auto device_t::do_activate_license() //
-    -> result_t
-{
-    auto console_api = std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
-
-    return console_api->activate_license(_parent->session_id().id());
-}
-
-auto device_t::do_validate_license() //
-    -> result_t
-{
-    auto console_api = std::dynamic_pointer_cast<flecs::module::console_t>(api::query_module("console"));
-
-    return console_api->validate_license(_parent->session_id().id());
-}
-
-auto device_t::do_activate_license_for_client() //
-    -> crow::response
-{
-    auto [result, message] = do_activate_license();
-    auto response = json_t{};
-
-    if (result == 0) {
-        response["additionalInfo"] = "OK";
-        return crow::response{crow::status::OK, response.dump()};
-    }
-
-    response["additionalInfo"] = message;
-    return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
-}
-
-auto device_t::do_validate_license_for_client() //
-    -> crow::response
-{
-    auto [result, message] = do_validate_license();
-    auto response = json_t{};
-
-    switch (result) {
-        case 1:
-            response["isValid"] = true;
-            return crow::response{crow::status::OK, response.dump()};
-        case 0:
-            response["isValid"] = false;
-            return crow::response{crow::status::OK, response.dump()};
-        default:
-            response["additionalInfo"] = message;
-            return crow::response{crow::status::INTERNAL_SERVER_ERROR, response.dump()};
-    }
-}
 } // namespace impl
 } // namespace module
 } // namespace flecs
