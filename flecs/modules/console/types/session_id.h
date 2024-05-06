@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <cpr/cprtypes.h>
 #include <ctime>
 
 #include "flecs/util/json/json.h"
@@ -31,6 +32,9 @@ public:
     auto timestamp() const noexcept //
         -> std::time_t;
     auto operator<=>(const session_id_t&) const = default;
+
+    static auto read_from_header(const cpr::Header& header) //
+        -> std::optional<session_id_t>;
 
 private:
     friend auto from_json(const json_t& j, session_id_t& jwt) //

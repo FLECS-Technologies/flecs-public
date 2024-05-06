@@ -23,7 +23,7 @@ TEST(console, activate_response)
 
     ASSERT_EQ(uut.status_code(), 200);
     ASSERT_EQ(uut.status_text(), "OK");
-    ASSERT_EQ(uut.session_id(), "{00000000-1111-2222-3333-444444444444}");
+    ASSERT_EQ(uut.session_id().id(), "{00000000-1111-2222-3333-444444444444}");
 
     ASSERT_EQ(flecs::json_t(uut), activate_response_json);
 }

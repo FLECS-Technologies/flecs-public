@@ -40,8 +40,11 @@ private:
     auto do_authentication() const noexcept //
         -> const console::auth_response_data_t&;
 
-    auto do_activate_license(std::string session_id) //
-        -> result_t;
+    auto do_activate_license(const std::optional<std::string>& license, const std::optional<console::session_id_t>& session_id) //
+        -> flecs::module::console_t::license_activation_result_t;
+
+    auto do_activate_license_key() //
+        -> flecs::module::console_t::license_activation_result_t;
 
     auto do_validate_license(std::string_view session_id) //
         -> result_t;

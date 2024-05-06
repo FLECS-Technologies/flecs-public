@@ -28,6 +28,12 @@ class device_t
     friend class flecs::module::device_t;
 
 private:
+    enum LicenseKind {
+        Default,
+        Key,
+        Serial,
+    };
+
     device_t(flecs::module::device_t* parent);
 
     auto do_init() //
@@ -46,7 +52,7 @@ private:
         -> result_t;
 
     auto do_session_id() //
-        -> const console::session_id_t&;
+        -> const std::optional<console::session_id_t>&;
 
     auto do_activate_license() //
         -> result_t;
@@ -60,8 +66,28 @@ private:
     auto do_validate_license_for_client() //
         -> crow::response;
 
+    auto load_license_file(const fs::path& base_path) //
+        -> result_t;
+
+    auto load_license(const fs::path& base_path) //
+        -> result_t;
+
+    auto save_license(const fs::path& base_path) const //
+        -> result_t;
+
+    auto load_session_id(const fs::path& base_path) //
+        -> result_t;
+
+    auto save_session_id(const fs::path& base_path) const //
+        -> result_t;
+
+    static auto get_license_kind_from_env() //
+        -> LicenseKind;
+
     flecs::module::device_t* _parent;
-    console::session_id_t _session_id;
+    std::optional<console::session_id_t> _session_id;
+    std::optional<std::string> _license;
+    LicenseKind _license_kind;
 };
 
 } // namespace impl

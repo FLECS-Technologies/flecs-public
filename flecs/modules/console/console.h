@@ -34,6 +34,10 @@ class console_t FLECS_FINAL_UNLESS_TESTED : public base_t
     friend class factory_t;
 
 public:
+    struct license_activation_result_t {
+        std::optional<std::string> error_message;
+        std::optional<console::activate_response_data_t> result;
+    };
     ~console_t() override;
 
     static constexpr auto base_url() //
@@ -42,8 +46,11 @@ public:
     auto authentication() const noexcept //
         -> const console::auth_response_data_t&;
 
-    auto activate_license(std::string session_id) //
-        -> result_t;
+    auto activate_license(std::string license, const std::optional<console::session_id_t>& session_id) //
+        -> license_activation_result_t;
+
+    auto activate_license_key() //
+        -> license_activation_result_t;
 
     auto validate_license(std::string_view session_id) //
         -> result_t;

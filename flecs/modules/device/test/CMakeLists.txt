@@ -26,6 +26,7 @@ if(FLECS_BUILD_TESTS)
         modules.console.types
         modules.device.mocked_modules
         modules.factory
+        modules.console
         util.signal_handler
     )
 

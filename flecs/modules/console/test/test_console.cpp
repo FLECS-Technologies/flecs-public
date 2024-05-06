@@ -352,11 +352,12 @@ TEST(console, activate_license)
         cpr::Header{{{"Content-Type"}, {"application/json"}}});
     /** Valid sessionId, but user is not logged in */
     {
-        const auto session_id = "200-valid";
-        const auto [res, message] = uut.activate_license(session_id);
+        const auto session_id = flecs::console::session_id_t{"200-valid", 0};
+        const auto [error, result] = uut.activate_license("License", session_id);
 
-        ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Invalid header: Authorization (expected Bearer)");
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "Invalid header: Authorization (expected Bearer)");
     }
 
     cpr::Put(
@@ -365,56 +366,62 @@ TEST(console, activate_license)
         cpr::Body{auth_response_json["data"].dump()});
     /** Valid sessionId, and user is successfully logged in */
     {
-        const auto session_id = "200-valid";
-        const auto [res, message] = uut.activate_license(session_id);
+        const auto session_id = flecs::console::session_id_t{"200-valid", 0};
+        const auto [error, result] = uut.activate_license("License", session_id);
 
-        ASSERT_EQ(res, 0);
-        ASSERT_EQ(message, session_id);
+        ASSERT_FALSE(error.has_value());
+        ASSERT_TRUE(result.has_value());
+        ASSERT_EQ(result.value().session_id().id(), session_id.id());
     }
 
     /** Valid sessionId, user is successfully logged in, but response is invalid */
     {
-        const auto session_id = "200-invalid";
-        const auto [res, message] = uut.activate_license(session_id);
+        const auto session_id = flecs::console::session_id_t{"200-invalid", 0};
+        const auto [error, result] = uut.activate_license("License", session_id);
 
-        ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Invalid JSON response for status code 200");
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "Invalid JSON response for status code 200");
     }
 
     /** Already active sessionId */
     {
-        const auto session_id = "204";
-        const auto [res, message] = uut.activate_license(session_id);
+        const auto session_id = flecs::console::session_id_t{"204", 0};
+        const auto [error, result] = uut.activate_license("License", session_id);
 
-        ASSERT_EQ(res, 0);
-        ASSERT_EQ(message, session_id);
+        ASSERT_FALSE(error.has_value());
+        ASSERT_TRUE(result.has_value());
+        ASSERT_EQ(result.value().session_id().id(), session_id.id());
     }
 
     /** No (unused) licenses available */
     {
-        const auto session_id = "403";
-        const auto [res, message] = uut.activate_license(session_id);
+        const auto session_id = flecs::console::session_id_t{"403", 0};
+        const auto [error, result] = uut.activate_license("License", session_id);
 
-        ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "No remaining activations");
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "No remaining activations");
     }
 
     /** Server-side exception occurred during activation */
     {
-        const auto session_id = "500";
-        const auto [res, message] = uut.activate_license(session_id);
+        const auto session_id = flecs::console::session_id_t{"500", 0};
+        const auto [error, result] = uut.activate_license("License", session_id);
 
-        ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Could not retrieve device licenses");
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "Could not retrieve device licenses");
     }
 
     /** Unhandled server-side exception occurred during activation */
     {
-        const auto session_id = "500-unhandled";
-        const auto [res, message] = uut.activate_license(session_id);
+        const auto session_id = flecs::console::session_id_t{"500-unhandled", 0};
+        const auto [error, result] = uut.activate_license("License", session_id);
 
-        ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Activation failed with status code 500");
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "Activation failed with status code 500");
     }
 }
 

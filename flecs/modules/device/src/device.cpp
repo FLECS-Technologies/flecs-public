@@ -34,7 +34,7 @@ auto device_t::save_session_id(console::session_id_t session_id) //
 }
 
 auto device_t::session_id() //
-    -> const console::session_id_t&
+    -> const std::optional<console::session_id_t>&
 {
     return _impl->do_session_id();
 }

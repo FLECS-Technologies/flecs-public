@@ -34,7 +34,7 @@ public:
         -> result_t;
 
     auto session_id() //
-        -> const console::session_id_t&;
+        -> const std::optional<console::session_id_t>&;
 
     auto activate_license() //
         -> result_t;

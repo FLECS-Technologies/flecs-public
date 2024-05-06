@@ -37,6 +37,18 @@ auto session_id_t::timestamp() const noexcept //
     return _timestamp;
 }
 
+auto session_id_t::read_from_header(const cpr::Header& header) //
+    -> std::optional<session_id_t>
+{
+    if (auto session_id = header.find("X-Session-Id"); session_id != header.end()) {
+        try {
+            return parse_json(session_id->second).get<console::session_id_t>();
+        } catch (const std::exception& e) {
+        }
+    }
+    return {};
+}
+
 auto from_json(
     const json_t& j,
     session_id_t& session_id) //

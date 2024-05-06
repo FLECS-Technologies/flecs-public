@@ -17,22 +17,38 @@
 namespace flecs {
 namespace console {
 
+activate_response_data_t::activate_response_data_t(console::session_id_t session_id, std::string license_key)
+    : _session_id{std::move(session_id)}
+    , _license_key{std::move(license_key)}
+{}
+
+
 auto activate_response_data_t::session_id() const noexcept //
-    -> const std::string&
+    -> const console::session_id_t&
 {
     return _session_id;
+}
+
+auto activate_response_data_t::license_key() const noexcept //
+    -> const std::string&
+{
+    return _license_key;
 }
 
 auto from_json(const json_t& j, activate_response_data_t& response) //
     -> void
 {
     j.at("sessionId").get_to(response._session_id);
+    j.at("licenseKey").get_to(response._license_key);
 }
 
 auto to_json(json_t& j, const activate_response_data_t& response) //
     -> void
 {
-    j = json_t({{"sessionId", response.session_id()}});
+    j = json_t({
+        {"sessionId", response.session_id()},
+        {"licenseKey", response.license_key()}
+    });
 }
 
 auto from_json(const json_t& j, activate_response_t& response) //

@@ -45,7 +45,7 @@ TEST(device, session_id)
         ASSERT_EQ(res, -1);
 
         /* This will generate an initial, random session_id */
-        session_id = uut.session_id();
+        session_id = uut.session_id().value();
         ASSERT_TRUE(std::regex_match(session_id.id(), session_id_regex));
 
         /* Should successfully create .session_id */
@@ -108,7 +108,7 @@ TEST(device, activate_license)
     auto mock_console =
         std::dynamic_pointer_cast<flecs::module::console_t>(flecs::api::query_module("console"));
 
-    EXPECT_CALL(*mock_console.get(), activate_license(session_id.id()));
+    EXPECT_CALL(*mock_console.get(), activate_license("License", session_id));
 
     uut.activate_license();
 
@@ -124,7 +124,7 @@ TEST(device, validate_license)
     auto mock_console =
         std::dynamic_pointer_cast<flecs::module::console_t>(flecs::api::query_module("console"));
 
-    EXPECT_CALL(*mock_console.get(), validate_license(session_id.id()));
+    EXPECT_CALL(*mock_console.get(), validate_license(session_id.value().id()));
 
     uut.validate_license();
 
