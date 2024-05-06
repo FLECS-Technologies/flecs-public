@@ -30,6 +30,7 @@ public:
 
     auto timestamp() const noexcept //
         -> std::time_t;
+    auto operator<=>(const session_id_t&) const = default;
 
 private:
     friend auto from_json(const json_t& j, session_id_t& jwt) //

@@ -33,9 +33,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<system_t> _reg("system");
-}
 
 system_t::system_t()
 {}

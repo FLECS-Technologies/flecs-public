@@ -22,9 +22,6 @@
 namespace flecs {
 namespace module {
 
-namespace {
-register_module_t<apps_t> _reg("apps");
-}
 
 apps_t::apps_t()
     : _impl{new impl::apps_t{this}}
