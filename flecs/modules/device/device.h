@@ -30,7 +30,7 @@ class device_t FLECS_FINAL_UNLESS_TESTED : public base_t
 public:
     ~device_t();
 
-    auto save_session_id(console::session_id_t session_id) //
+    auto save_session_id(console::session_id_t session_id, const fs::path& base_path = "/var/lib/flecs/") //
         -> result_t;
 
     auto session_id() //

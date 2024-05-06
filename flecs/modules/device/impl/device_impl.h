@@ -45,7 +45,7 @@ private:
     auto do_load(const fs::path& base_path) //
         -> result_t;
 
-    auto do_save_session_id(console::session_id_t session_id) //
+    auto do_save_session_id(console::session_id_t session_id, const fs::path& base_path) //
         -> result_t;
 
     auto do_save(const fs::path& base_path) const //
