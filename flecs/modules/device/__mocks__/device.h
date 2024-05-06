@@ -40,7 +40,7 @@ public:
 
     MOCK_METHOD((result_t), activate_license, (), ());
     MOCK_METHOD((result_t), validate_license, (), ());
-    MOCK_METHOD((result_t), save_session_id, (console::session_id_t session_id), ());
+    MOCK_METHOD((result_t), save_session_id, (console::session_id_t session_id, const fs::path& base_path), ());
 
 protected:
     device_t() = default;

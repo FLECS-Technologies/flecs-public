@@ -27,7 +27,11 @@ const flecs::json_t activate_response_json = flecs::json_t::parse(R"-(
         "statusCode": 200,
         "statusText": "OK",
         "data": {
-            "sessionId": "{00000000-1111-2222-3333-444444444444}"
+            "sessionId": {
+                "id": "{00000000-1111-2222-3333-444444444444}",
+                "timestamp": 1235
+            },
+            "licenseKey": "some-license-key"
         }
     }
 )-");

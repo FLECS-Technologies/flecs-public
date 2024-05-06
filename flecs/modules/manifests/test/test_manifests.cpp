@@ -283,7 +283,7 @@ TEST(manifests, add_from_console)
     uut.base_path("./manifests");
 
     const auto session_id = std::string{"sessionId"};
-    const auto session = flecs::console::session_id_t{session_id, std::time_t{}};
+    const auto session = std::optional(flecs::console::session_id_t{session_id, std::time_t{}});
     auto device_api = std::dynamic_pointer_cast<flecs::module::device_t>(flecs::api::query_module("device"));
     EXPECT_CALL(*device_api, session_id()) //
         .WillRepeatedly(::testing::ReturnRef(session));

@@ -68,13 +68,13 @@ auto device_t::do_load(const fs::path& base_path) //
     return result;
 }
 
-auto device_t::do_save_session_id(console::session_id_t session_id) -> result_t
+auto device_t::do_save_session_id(console::session_id_t session_id, const fs::path& base_path) -> result_t
 {
     // New session id is only saved if none is present or if it is different and newer
     if (!_session_id.has_value() || (session_id.id() != _session_id.value().id() &&
                                      session_id.timestamp() >= _session_id.value().timestamp())) {
         _session_id = session_id;
-        return _parent->save();
+        return save_session_id(base_path);
     }
     return {0, {}};
 }

@@ -80,7 +80,83 @@ public:
     {
         CROW_ROUTE(_app, "/api/v2/device/license/activate")
             .methods("POST"_method)([](const crow::request& req) {
-                auto response = flecs::json_t{};
+
+                auto req_body = flecs::parse_json(req.body);
+                // Activation via serial number
+                if (req_body.contains("licenseKey")) {
+                    auto license = req_body["licenseKey"].get<std::string>();
+                    if (license == "UnknownLicense") {
+                        const auto response = flecs::json_t({
+                            {"statusCode", 403},
+                            {"statusText", "Forbidden"},
+                            {"reason", "License not found"},
+                        });
+                        return crow::response(403, response.dump());
+                    } else if (license == "InvalidLicense") {
+                        const auto response = flecs::json_t({
+                            {"statusCode", 403},
+                            {"statusText", "Forbidden"},
+                            {"reason", "License found but invalid"},
+                        });
+                        return crow::response(403, response.dump());
+                    } else if (license == "LicenseWithNoActivations") {
+                        const auto response = flecs::json_t({
+                            {"statusCode", 403},
+                            {"statusText", "Forbidden"},
+                            {"reason", "License found but maximum activations reached"},
+                        });
+                        return crow::response(403, response.dump());
+                    } else if (license == "LicenseBreaksDatabase") {
+                        const auto response = flecs::json_t({
+                            {"statusCode", 500},
+                            {"statusText", "Internal server error"},
+                            {"reason", "Activation failed"},
+                        });
+                        return crow::response(500, response.dump());
+                    } else if (license == "LicenseBreaksConsole1") {
+                        const auto response = flecs::json_t({
+                            {"some", 15},
+                            {"random", "json"},
+                            {"values", "response"},
+                        });
+                        return crow::response(500, response.dump());
+                    } else if (license == "LicenseBreaksConsole2") {
+                        const auto response = flecs::json_t({
+                            {"invalid", true},
+                            {"data", "for"},
+                            {"code", 200},
+                        });
+                        return crow::response(200, response.dump());
+                    }
+                    const auto session_id = req.get_header_value("x-session-id");
+                    if (session_id == "ValidSessionId") {
+                        auto response = crow::response(204);
+                        auto response_session_id = flecs::json_t({
+                            {"id", session_id},
+                            {"timestamp", 98465},
+                        });
+                        response.set_header("X-Session-id", response_session_id.dump());
+                        return response;
+                    }
+                    const auto response = flecs::json_t({
+                        {"data",
+                            {
+                                {"sessionId",
+                                    {
+                                        {"id", "NewValidSessionId"},
+                                        {"timestamp", 729345},
+                                    }
+                                },
+                                {"licenseKey", license},
+                            }
+                        },
+                        {"statusCode", 200},
+                        {"statusText", "Device successfully activated"},
+                    });
+                    return crow::response(200, response.dump());
+                }
+
+                // Activation via user credentials
                 const auto auth = req.get_header_value("authorization").substr(7);
                 if (auth.empty()) {
                     const auto response = flecs::json_t({
@@ -90,33 +166,30 @@ public:
                     });
                     return crow::response(403, response.dump());
                 }
-
-                const auto session_id = req.get_header_value("x-session-id");
-                if (session_id == "200-valid") {
+                auto test_data = auth;
+                if (test_data == "200-valid") {
                     /* expected behavior for successful activation */
                     const auto response = flecs::json_t({
                         {"statusCode", 200},
                         {"statusText", "OK"},
                         {"data",
                          {
-                             {"sessionId", session_id},
+                             {"sessionId", {{"id", test_data + "-session"}, {"timestamp", 0}}},
+                             {"licenseKey", test_data + "-license"},
                          }},
                     });
                     return crow::response(200, response.dump());
-                } else if (session_id == "200-invalid") {
+                } else if (test_data == "200-invalid") {
                     /* unexpected response for successful activation */
                     return crow::response(200);
-                } else if (session_id == "204") {
-                    /* expected behavior for already active device */
-                    return crow::response(204);
-                } else if (session_id == "403") {
+                } else if (test_data == "403") {
                     const auto response = flecs::json_t({
                         {"statusCode", 403},
                         {"statusText", "Forbidden"},
                         {"reason", "No remaining activations"},
                     });
-                    return crow::response(500, response.dump());
-                } else if (session_id == "500") {
+                    return crow::response(403, response.dump());
+                } else if (test_data == "500") {
                     /* expected behavior for errors during activation */
                     const auto response = flecs::json_t({
                         {"statusCode", 500},
@@ -124,7 +197,7 @@ public:
                         {"reason", "Could not retrieve device licenses"},
                     });
                     return crow::response(500, response.dump());
-                } else if (session_id == "500-unhandled") {
+                } else if (test_data == "500-unhandled") {
                     /* unexpected behavior, unhandled error during activation */
                     const auto response = flecs::json_t({
                         {"statusCode", 500},
@@ -286,6 +359,17 @@ static auto api = test_api_t{};
 static auto console = mock_console_t{};
 static auto uut = module_console_test_t{};
 
+auto put_auth_with_test_data(std::string test_data) //
+    -> void
+{
+    auto auth = auth_response_json["data"];
+    auth["jwt"]["token"] = test_data;
+    cpr::Put(
+        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
+        cpr::Header{{{"Content-Type"}, {"application/json"}}},
+        cpr::Body{auth.dump()});
+}
+
 TEST(console, init)
 {
     console.init();
@@ -345,7 +429,7 @@ TEST(console, store_delete_authentication)
     ASSERT_EQ(uut.authentication().feature_flags().is_white_labeled(), false);
 }
 
-TEST(console, activate_license)
+TEST(console, activate_license_key)
 {
     cpr::Delete(
         cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
@@ -353,51 +437,38 @@ TEST(console, activate_license)
     /** Valid sessionId, but user is not logged in */
     {
         const auto session_id = flecs::console::session_id_t{"200-valid", 0};
-        const auto [error, result] = uut.activate_license("License", session_id);
+        const auto [error, result] = uut.activate_license_key();
 
         ASSERT_TRUE(error.has_value());
         ASSERT_FALSE(result.has_value());
         ASSERT_EQ(error.value(), "Invalid header: Authorization (expected Bearer)");
     }
 
-    cpr::Put(
-        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
-        cpr::Header{{{"Content-Type"}, {"application/json"}}},
-        cpr::Body{auth_response_json["data"].dump()});
     /** Valid sessionId, and user is successfully logged in */
     {
-        const auto session_id = flecs::console::session_id_t{"200-valid", 0};
-        const auto [error, result] = uut.activate_license("License", session_id);
-
+        auto test_data =std::string("200-valid");
+        put_auth_with_test_data(test_data);
+        const auto [error, result] = uut.activate_license_key();
         ASSERT_FALSE(error.has_value());
         ASSERT_TRUE(result.has_value());
-        ASSERT_EQ(result.value().session_id().id(), session_id.id());
+        ASSERT_EQ(result.value().session_id().id(), test_data + "-session");
+        ASSERT_EQ(result.value().license_key(), test_data + "-license");
     }
 
     /** Valid sessionId, user is successfully logged in, but response is invalid */
     {
-        const auto session_id = flecs::console::session_id_t{"200-invalid", 0};
-        const auto [error, result] = uut.activate_license("License", session_id);
+        put_auth_with_test_data("200-invalid");
+        const auto [error, result] = uut.activate_license_key();
 
         ASSERT_TRUE(error.has_value());
         ASSERT_FALSE(result.has_value());
         ASSERT_EQ(error.value(), "Invalid JSON response for status code 200");
     }
 
-    /** Already active sessionId */
-    {
-        const auto session_id = flecs::console::session_id_t{"204", 0};
-        const auto [error, result] = uut.activate_license("License", session_id);
-
-        ASSERT_FALSE(error.has_value());
-        ASSERT_TRUE(result.has_value());
-        ASSERT_EQ(result.value().session_id().id(), session_id.id());
-    }
-
     /** No (unused) licenses available */
     {
-        const auto session_id = flecs::console::session_id_t{"403", 0};
-        const auto [error, result] = uut.activate_license("License", session_id);
+        put_auth_with_test_data("403");
+        const auto [error, result] = uut.activate_license_key();
 
         ASSERT_TRUE(error.has_value());
         ASSERT_FALSE(result.has_value());
@@ -406,8 +477,8 @@ TEST(console, activate_license)
 
     /** Server-side exception occurred during activation */
     {
-        const auto session_id = flecs::console::session_id_t{"500", 0};
-        const auto [error, result] = uut.activate_license("License", session_id);
+        put_auth_with_test_data("500");
+        const auto [error, result] = uut.activate_license_key();
 
         ASSERT_TRUE(error.has_value());
         ASSERT_FALSE(result.has_value());
@@ -416,12 +487,87 @@ TEST(console, activate_license)
 
     /** Unhandled server-side exception occurred during activation */
     {
-        const auto session_id = flecs::console::session_id_t{"500-unhandled", 0};
-        const auto [error, result] = uut.activate_license("License", session_id);
+        put_auth_with_test_data("500-unhandled");
+        const auto [error, result] = uut.activate_license_key();
 
         ASSERT_TRUE(error.has_value());
         ASSERT_FALSE(result.has_value());
         ASSERT_EQ(error.value(), "Activation failed with status code 500");
+    }
+}
+
+TEST(console, activate_license)
+{
+    auto valid_session_id = flecs::console::session_id_t{"ValidSessionId", 34572};
+
+    {
+        auto [error, result] = uut.activate_license("UnknownLicense", {});
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "License not found");
+    }
+
+    {
+        auto [error, result] = uut.activate_license("InvalidLicense", {});
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "License found but invalid");
+    }
+
+    {
+        auto [error, result] = uut.activate_license("LicenseWithNoActivations", {});
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "License found but maximum activations reached");
+    }
+
+    {
+        auto [error, result] = uut.activate_license("LicenseBreaksDatabase", {});
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "Activation failed");
+    }
+
+    {
+        auto [error, result] = uut.activate_license("LicenseBreaksConsole1", {});
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "Activation failed with status code 500");
+    }
+
+    {
+        auto [error, result] = uut.activate_license("LicenseBreaksConsole2", {});
+        ASSERT_TRUE(error.has_value());
+        ASSERT_FALSE(result.has_value());
+        ASSERT_EQ(error.value(), "Invalid JSON response for status code 200");
+    }
+
+    {
+        auto [error, result] = uut.activate_license("AlreadyActiveLicense", {valid_session_id});
+        if (error.has_value()) std::cerr << error.value() << "\n";
+        ASSERT_FALSE(error.has_value());
+        ASSERT_TRUE(result.has_value());
+        ASSERT_EQ(result.value().session_id().id(), valid_session_id.id());
+        ASSERT_EQ(result.value().session_id().timestamp(), 98465);
+    }
+
+    {
+        auto [error, result] = uut.activate_license("ValidLicense", {});
+        if (error.has_value()) std::cerr << error.value() << "\n";
+        ASSERT_FALSE(error.has_value());
+        ASSERT_TRUE(result.has_value());
+        ASSERT_EQ(result.value().session_id().id(), "NewValidSessionId");
+        ASSERT_EQ(result.value().session_id().timestamp(), 729345);
+    }
+
+    {
+        auto arbitrary_session_id = flecs::console::session_id_t{"ArbitraryValidSessionId", 35078};
+        auto [error, result] = uut.activate_license("ValidLicense", {arbitrary_session_id});
+        if (error.has_value()) std::cerr << error.value() << "\n";
+        ASSERT_FALSE(error.has_value());
+        ASSERT_TRUE(result.has_value());
+        ASSERT_EQ(result.value().session_id().id(), "NewValidSessionId");
+        ASSERT_EQ(result.value().session_id().timestamp(), 729345);
     }
 }
 
