@@ -30,9 +30,9 @@ jobs_t::~jobs_t() = default;
 auto jobs_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/jobs").methods("GET"_method)([this]() { return list_jobs({}); });
+    FLECS_V2_ROUTE("/jobs").methods("GET"_method)([this]() { return list_jobs(); });
     FLECS_V2_ROUTE("/jobs/<uint>").methods("GET"_method)([this](std::uint32_t job_id) {
-        return list_jobs(jobs::id_t{job_id});
+        return get_job(jobs::id_t{job_id});
     });
     FLECS_V2_ROUTE("/jobs/<uint>").methods("DELETE"_method)([this](std::uint32_t job_id) {
         return delete_job(jobs::id_t{job_id});
@@ -53,10 +53,17 @@ auto jobs_t::append(jobs::job_t job, std::string desc) //
     return _impl->do_append(std::move(job), std::move(desc));
 }
 
-auto jobs_t::list_jobs(jobs::id_t job_id) const //
+auto jobs_t::list_jobs() const //
     -> crow::response
 {
-    return _impl->do_list_jobs(std::move(job_id));
+    return _impl->do_list_jobs();
+}
+
+
+auto jobs_t::get_job(jobs::id_t job_id) const //
+    -> crow::response
+{
+    return _impl->do_get_job(std::move(job_id));
 }
 
 auto jobs_t::delete_job(jobs::id_t job_id) //
