@@ -133,8 +133,13 @@ TEST(jobs, status)
     uut.deinit();
 
     ASSERT_TRUE(job_0.executed);
-    ASSERT_EQ(flecs::parse_json(uut.list_jobs(flecs::jobs::id_t{1}).body)[0]["status"], "successful");
+    ASSERT_EQ(flecs::parse_json(uut.get_job(flecs::jobs::id_t{1}).body)["status"], "successful");
 
     ASSERT_TRUE(job_1.executed);
-    ASSERT_EQ(flecs::parse_json(uut.list_jobs(flecs::jobs::id_t{2}).body)[0]["status"], "failed");
+    ASSERT_EQ(flecs::parse_json(uut.get_job(flecs::jobs::id_t{2}).body)["status"], "failed");
+
+    auto result = flecs::parse_json(uut.list_jobs().body);
+    ASSERT_EQ(result.size(), 2);
+    ASSERT_EQ(result[0]["status"], "successful");
+    ASSERT_EQ(result[1]["status"], "failed");
 }

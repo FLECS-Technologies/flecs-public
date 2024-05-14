@@ -79,22 +79,29 @@ auto jobs_t::do_delete_job(jobs::id_t job_id) //
     return {crow::status::BAD_REQUEST, "txt", "Not removing unfinished job " + std::to_string(job_id)};
 }
 
-auto jobs_t::do_list_jobs(jobs::id_t job_id) const //
+auto jobs_t::do_list_jobs() const //
     -> crow::response
 {
     auto response = json_t::array();
 
     for (const auto& progress : _job_progress) {
-        if ((job_id != jobs::id_t{}) && (job_id != progress.job_id())) {
-            continue;
-        }
         response.push_back(progress);
     }
 
-    if ((job_id != jobs::id_t{}) && response.empty()) {
+    return crow::response{crow::status::OK, "json", response.dump()};
+}
+
+auto jobs_t::do_get_job(jobs::id_t job_id) const //
+    -> crow::response
+{
+    auto result = std::find_if(_job_progress.begin(), _job_progress.end(), [&](const jobs::progress_t& job) {
+        return job.job_id() == job_id;
+    });
+
+    if (result == _job_progress.end()) {
         return crow::response{crow::status::NOT_FOUND, "txt", "No such job " + std::to_string(job_id)};
     }
-
+    json_t response = *result;
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 

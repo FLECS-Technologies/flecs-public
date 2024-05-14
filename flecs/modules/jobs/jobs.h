@@ -47,7 +47,10 @@ public:
     auto append(jobs::job_t job, std::string desc) //
         -> jobs::id_t;
 
-    auto list_jobs(jobs::id_t job_id) const //
+    auto list_jobs() const //
+        -> crow::response;
+
+    auto get_job(jobs::id_t job_id) const //
         -> crow::response;
 
     auto delete_job(jobs::id_t job_id) //

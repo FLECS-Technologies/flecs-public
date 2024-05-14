@@ -44,7 +44,10 @@ private:
     auto do_deinit() //
         -> void;
 
-    auto do_list_jobs(jobs::id_t job_id) const //
+    auto do_list_jobs() const //
+        -> crow::response;
+
+    auto do_get_job(jobs::id_t job_id) const //
         -> crow::response;
 
     auto do_delete_job(jobs::id_t job_id) //
