@@ -51,6 +51,12 @@ auto device_t::validate_license() //
     return _impl->do_validate_license();
 }
 
+auto device_t::create_license_info() //
+    -> crow::response
+{
+    return _impl->do_create_license_info();
+}
+
 auto device_t::activate_license_for_client() //
     -> crow::response
 {
@@ -68,6 +74,9 @@ auto device_t::do_init() //
 {
     FLECS_V2_ROUTE("/device/license/activation/status").methods("GET"_method)([this]() {
         return validate_license_for_client();
+    });
+    FLECS_V2_ROUTE("/device/license/info").methods("GET"_method)([this]() {
+        return create_license_info();
     });
 
     FLECS_V2_ROUTE("/device/license/activation").methods("POST"_method)([this]() {

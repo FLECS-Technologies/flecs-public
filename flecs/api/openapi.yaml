@@ -25,6 +25,16 @@ components:
       properties:
         additionalInfo:
           type: string
+    id:
+      type: string
+      pattern: "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+    sessionId:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/id'
+        timestamp:
+          type: integer
     # App related schemas
     app_key:
       type: object
@@ -1116,3 +1126,24 @@ paths:
                     example: true
         "500":
           $ref: "#/components/responses/response_500"
+  /device/license/info:
+    get:
+      tags: ["Device"]
+      summary: Get information about license
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - type
+                properties:
+                  type:
+                    type: string
+                    example: Serialnumber
+                  value:
+                    type: string
+                  sessionId:
+                    $ref: "#/components/schemas/sessionId"

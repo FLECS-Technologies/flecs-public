@@ -51,6 +51,9 @@ private:
     auto do_save(const fs::path& base_path) const //
         -> result_t;
 
+    static auto generate_license_kind_string(LicenseKind kind) //
+        -> std::string;
+
     auto do_session_id() //
         -> const std::optional<console::session_id_t>&;
 
@@ -59,6 +62,9 @@ private:
 
     auto do_validate_license() //
         -> result_t;
+
+    auto do_create_license_info() //
+        -> crow::response;
 
     auto do_activate_license_for_client() //
         -> crow::response;
