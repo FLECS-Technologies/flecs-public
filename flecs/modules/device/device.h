@@ -42,6 +42,9 @@ public:
     auto validate_license() //
         -> result_t;
 
+    auto create_license_info() //
+        -> crow::response;
+
     auto activate_license_for_client() //
         -> crow::response;
 

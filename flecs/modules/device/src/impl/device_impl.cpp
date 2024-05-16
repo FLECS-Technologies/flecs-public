@@ -99,6 +99,20 @@ auto device_t::do_save(const fs::path& base_path) const //
     return result;
 }
 
+auto device_t::generate_license_kind_string(LicenseKind kind) //
+    -> std::string
+{
+    switch (kind) {
+        default:
+        case Default:
+            return "Via user license (Default)";
+        case Key:
+            return "Via user license";
+        case Serial:
+            return "Via device serial number";
+    }
+}
+
 auto device_t::do_session_id() //
     -> const std::optional<console::session_id_t>&
 {
@@ -144,6 +158,20 @@ auto device_t::do_validate_license() //
         return {0,  {}};
     }
     return console_api->validate_license(session_id.value().id());
+}
+
+auto device_t::do_create_license_info() //
+    -> crow::response
+{
+    auto response = json_t{};
+    if (_license.has_value()) {
+        response["license"] = _license.value();
+    }
+    response["type"] = generate_license_kind_string(_license_kind);
+    if (_session_id.has_value()) {
+        response["sessionId"] = _session_id.value();
+    }
+    return crow::response{crow::status::OK, response.dump()};
 }
 
 auto device_t::do_activate_license_for_client() //
