@@ -281,12 +281,12 @@ auto device_t::load_session_id(const fs::path& base_path) //
     }
 
     std::string id;
-    std::time_t timestamp;
+    std::time_t timestamp = 0;
     std::string timestamp_line;
 
-    if (!std::getline(sid_file, id) || !std::getline(sid_file, timestamp_line)) {
+    if (!std::getline(sid_file, id)) {
         _session_id = {};
-        return {-1, "Could not read session_id and timestamp"};
+        return {-1, "Could not read session_id"};
     }
 
     trim(id);
@@ -296,11 +296,12 @@ auto device_t::load_session_id(const fs::path& base_path) //
         _session_id = {};
         return {-1, "Could not parse session_id"};
     }
-
-    try {
-        timestamp = std::stoll(timestamp_line);
-    } catch (std::exception const& e) {
-        return {-1, "Could not parse timestamp"};
+    if (std::getline(sid_file, timestamp_line)) {
+        try {
+            timestamp = std::stoll(timestamp_line);
+        } catch (std::exception const& e) {
+            return {-1, "Could not parse timestamp"};
+        }
     }
 
     _session_id = console::session_id_t{id, timestamp};
