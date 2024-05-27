@@ -118,12 +118,25 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
         return {-1, "Could not access app manifest"};
     }
 
-    // Step 1: Create unique id and insert instance
+    // Step 1: Create instance and generate unique id
     auto tmp = instances::instance_t{app, instance_name};
     while (has_instance(tmp.id())) {
         tmp.regenerate_id();
     }
 
+    // Step 2: Create port mapping that does not conflict with existing port mappings
+    // Conflicting host ports will be replaced to let docker choose random free host ports
+    auto ports = std::vector<mapped_port_range_t>{};
+    constexpr auto port_range_for_random_host = port_range_t{port_t{0}, port_t{0}};
+    for (auto & port : manifest->ports()) {
+        if (do_host_ports_collide(port.host_port_range())) {
+            ports.emplace_back(port_range_for_random_host, port.container_port_range());
+        } else {
+            ports.emplace_back(port);
+        }
+    }
+
+    // Step 3: Insert instance
     tmp.status(instances::status_e::Requested);
     tmp.desired(instances::status_e::Created);
 
@@ -133,11 +146,11 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
     }
 
-    // Step 2: Add environment variables and port mappings
+    // Step 4: Add environment variables and port mappings
     instance->set_environment(manifest->env());
-    instance->set_ports(manifest->ports());
+    instance->set_ports(std::move(ports));
 
-    // Step 3: Create volumes
+    // Step 5: Create volumes
     {
         auto [res, additional_info] = create_volumes(instance);
         if (res != 0) {
@@ -145,7 +158,7 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
         }
     }
 
-    // Step 4: Create networks
+    // Step 6: Create networks
     // query and create default network, if required
     const auto network_name = default_network_name();
     if (!network_name.empty()) {
@@ -186,7 +199,7 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
     }
 #endif // 0
 
-    // Step 5: Create conffiles
+    // Step 7: Create conffiles
     {
         auto [res, additional_info] = create_config_files(instance);
         if (res != 0) {
@@ -366,6 +379,19 @@ auto deployment_t::is_instance_running(std::shared_ptr<instances::instance_t> in
     -> bool
 {
     return instance && do_is_instance_running(std::move(instance));
+}
+
+auto deployment_t::do_host_ports_collide(const port_range_t& port_range) const //
+    -> bool
+{
+    for (auto instance : _instances) {
+        for (auto& existing_port_range : instance->ports()) {
+            if (port_range.does_collide_with(existing_port_range.host_port_range())) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 auto deployment_t::create_config_files(std::shared_ptr<instances::instance_t> instance) //

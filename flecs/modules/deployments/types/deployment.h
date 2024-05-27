@@ -94,6 +94,8 @@ public:
         -> bool;
     auto is_instance_running(std::shared_ptr<instances::instance_t> instance) const //
         -> bool;
+    auto do_host_ports_collide(const port_range_t& port_range) const //
+        -> bool;
     auto create_config_files(std::shared_ptr<instances::instance_t> instance) //
         -> result_t;
     auto create_network(
