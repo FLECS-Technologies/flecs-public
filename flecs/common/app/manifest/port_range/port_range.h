@@ -76,6 +76,10 @@ public:
 
     constexpr port_t start_port() const noexcept { return _start_port; }
     constexpr port_t end_port() const noexcept { return _end_port; }
+    constexpr bool does_collide_with(const port_range_t& other) const
+    {
+        return _start_port <= other.end_port() && other._start_port <= _end_port;
+    }
 
 private:
     friend auto operator<=>(const port_range_t&, const port_range_t&) = default;
