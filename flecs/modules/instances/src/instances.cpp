@@ -14,6 +14,7 @@
 
 #include "flecs/modules/instances/instances.h"
 
+#include "flecs/common/app/manifest/port_range/port_range.h"
 #include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/factory/factory.h"
@@ -126,6 +127,24 @@ auto instances_t::do_init() //
 
     FLECS_V2_ROUTE("/instances/<string>/config/environment").methods("DELETE"_method)([this](const std::string& instance_id) {
         return http_delete_env(instances::id_t{instance_id});
+    });
+
+    FLECS_V2_ROUTE("/instances/<string>/config/ports").methods("GET"_method)([this](const std::string& instance_id) {
+        return http_get_ports(instances::id_t{instance_id});
+    });
+    FLECS_V2_ROUTE("/instances/<string>/config/ports").methods("PUT"_method)([this](const crow::request& req, const std::string& instance_id) {
+        auto ports = std::vector<mapped_port_range_t>{};
+        try {
+            ports = parse_json(req.body);
+        } catch (const std::exception& e) {
+            auto response = json_t{};
+            response["additionalInfo"] = "Invalid port mapping";
+            return crow::response{crow::status::BAD_REQUEST, response.dump()};
+        }
+        return http_put_ports(instances::id_t{instance_id}, ports);
+    });
+    FLECS_V2_ROUTE("/instances/<string>/config/ports").methods("DELETE"_method)([this](const std::string& instance_id) {
+        return http_delete_ports(instances::id_t{instance_id});
     });
 
     return _impl->do_module_init();
@@ -255,6 +274,24 @@ auto instances_t::http_delete_env(instances::id_t instance_id) //
     -> crow::response
 {
     return _impl->do_delete_env(instance_id);
+}
+
+auto instances_t::http_get_ports(instances::id_t instance_id) const //
+    -> crow::response
+{
+    return _impl->do_get_ports(instance_id);
+}
+
+auto instances_t::http_put_ports(instances::id_t instance_id, std::vector<mapped_port_range_t> ports) //
+    -> crow::response
+{
+    return _impl->do_put_ports(instance_id, std::move(ports));
+}
+
+auto instances_t::http_delete_ports(instances::id_t instance_id) //
+    -> crow::response
+{
+    return _impl->do_delete_ports(instance_id);
 }
 
 auto instances_t::instance_ids(const apps::key_t& app_key) const //

@@ -120,6 +120,15 @@ private:
     auto do_delete_env(instances::id_t instance_id) //
         -> crow::response;
 
+    auto do_get_ports(instances::id_t instance_id) const //
+        -> crow::response;
+
+    auto do_put_ports(instances::id_t instance_id, std::vector<mapped_port_range_t> ports) //
+        -> crow::response;
+
+    auto do_delete_ports(instances::id_t instance_id) //
+        -> crow::response;
+
     auto queue_update(instances::id_t instance_id, std::string to) //
         -> jobs::id_t;
     auto do_update_sync(instances::id_t instance_id, std::string to) //

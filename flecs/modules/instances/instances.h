@@ -17,6 +17,7 @@
 #include <memory>
 #include <vector>
 
+#include "flecs/common/app/manifest/port_range/port_range.h"
 #include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/modules/instances/types/instance_id.h"
 #include "flecs/modules/jobs/types/job_id.h"
@@ -89,6 +90,15 @@ public:
         -> crow::response;
 
     auto http_delete_env(instances::id_t instance_id) //
+        -> crow::response;
+
+    auto http_get_ports(instances::id_t instance_id) const //
+        -> crow::response;
+
+    auto http_put_ports(instances::id_t instance_id, std::vector<mapped_port_range_t> ports) //
+        -> crow::response;
+
+    auto http_delete_ports(instances::id_t instance_id) //
         -> crow::response;
 
     /*! @brief List all available instance ids

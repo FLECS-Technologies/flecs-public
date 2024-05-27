@@ -683,6 +683,41 @@ auto instances_t::do_delete_env(instances::id_t instance_id) //
     return crow::response{crow::status::OK};
 }
 
+auto instances_t::do_get_ports(instances::id_t instance_id) const //
+    -> crow::response
+{
+    auto instance = _deployment->query_instance(instance_id);
+    if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    json_t response = instance->ports();
+    return crow::response{crow::status::OK, "json", response.dump()};
+}
+
+auto instances_t::do_put_ports(instances::id_t instance_id, std::vector<mapped_port_range_t> ports) //
+    -> crow::response
+{
+    auto instance = _deployment->query_instance(instance_id);
+    if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    instance->set_ports(std::move(ports));
+    _deployment->save();
+    return crow::response{crow::status::OK};
+}
+
+auto instances_t::do_delete_ports(instances::id_t instance_id) //
+    -> crow::response
+{
+    auto instance = _deployment->query_instance(instance_id);
+    if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    instance->clear_ports();
+    _deployment->save();
+    return crow::response{crow::status::OK};
+}
+
 auto instances_t::queue_update(instances::id_t instance_id, std::string to) //
     -> jobs::id_t
 {

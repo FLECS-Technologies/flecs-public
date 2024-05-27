@@ -19,6 +19,7 @@
 #include <string>
 
 #include "flecs/common/app/manifest/variable/variable.h"
+#include "flecs/common/app/manifest/port_range/port_range.h"
 #include "flecs/util/json/json.h"
 #include "flecs/util/usb/usb.h"
 #include "instance_config.h"
@@ -36,6 +37,7 @@ class instance_t
 {
 public:
     using envs_t = std::set<mapped_env_var_t>;
+    using ports_t = std::vector<mapped_port_range_t>;
     struct network_t
     {
         std::string network_name;
@@ -83,6 +85,12 @@ public:
         -> void;
     auto set_environment(envs_t env) //
         -> void;
+    auto ports() const noexcept //
+        -> ports_t;
+    auto clear_ports() //
+        -> void;
+    auto set_ports(ports_t ports) //
+        -> void;
     auto regenerate_id() //
         -> void;
     auto app(std::shared_ptr<const apps::app_t> app) //
@@ -121,6 +129,7 @@ private:
     std::vector<unsigned> _startup_options;
     std::set<usb::device_t> _usb_devices;
     envs_t _env;
+    ports_t _ports;
 };
 
 auto operator==(const instance_t& lhs, const instance_t& rhs) //

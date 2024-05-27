@@ -326,6 +326,19 @@ components:
     instance_environment_variable:
       type: string
       pattern: "^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*=.+$"
+    instance_ports:
+      type: array
+      items:
+        $ref: "#/components/schemas/instance_port_mapping"
+      example: [
+        "8001:8001",
+        "5000",
+        "5001-5008:6001-6008",
+        "6001-6008"
+      ]
+    instance_port_mapping:
+      type: string
+      pattern: "(?=\\d|:)^(?:([6][5][5][3][0-5]|[6][5][5][0-2][0-9]|[6][5][0-4][0-9]{2}|[6][0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})(?:$|[:-](?=\\d))|:)?(?:(?<=-)([6][5][5][3][0-5]|[6][5][5][0-2][0-9]|[6][5][0-4][0-9]{2}|[6][0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})(?:$|:(?=\\d)))?(?:(?<=:)([6][5][5][3][0-5]|[6][5][5][0-2][0-9]|[6][5][0-4][0-9]{2}|[6][0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})(?:$|-(?=\\d)))?(?:(?<=-)([6][5][5][3][0-5]|[6][5][5][0-2][0-9]|[6][5][0-4][0-9]{2}|[6][0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}))?$"
     # Job related schemas
     job_id:
       type: integer
@@ -942,6 +955,63 @@ paths:
       responses:
         "200":
           description: Environment of instance with this instance_id was deleted
+        "404":
+          description: No instance with this instance_id found
+  /instances/{instance_id}/config/ports:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve exposed ports of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/instance_ports"
+        "404":
+          description: No instance with this instance_id found
+    put:
+      tags: [ "Instances" ]
+      summary: Modify or create exposed ports of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/instance_ports"
+      responses:
+        "200":
+          description: Exposed ports for instance with this instance id is set
+        "201":
+          description: Exposed ports for instance with this instance id was created
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: No instance with this instance_id found
+    delete:
+      tags: [ "Instances" ]
+      summary: Delete exposed ports of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Exposed ports of instance with this instance_id was deleted
         "404":
           description: No instance with this instance_id found
   # flunder related paths
