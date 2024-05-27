@@ -84,7 +84,7 @@ auto docker_t::create_container(std::shared_ptr<instances::instance_t> instance)
             docker_process.arg(container_name + "-" + volume.host() + ":" + volume.container());
         }
     }
-    for (const auto& port_range : manifest->ports()) {
+    for (const auto& port_range : instance->ports()) {
         docker_process.arg("--publish");
         docker_process.arg(stringify(port_range));
     }

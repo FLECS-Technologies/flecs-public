@@ -133,8 +133,9 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
             static_cast<std::underlying_type_t<startup_option_t>>(startup_option));
     }
 
-    // Step 2: Add environment variables
+    // Step 2: Add environment variables and port mappings
     instance->set_environment(manifest->env());
+    instance->set_ports(manifest->ports());
 
     // Step 3: Create volumes
     {

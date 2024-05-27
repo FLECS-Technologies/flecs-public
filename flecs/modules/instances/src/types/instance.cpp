@@ -149,6 +149,24 @@ auto instance_t::set_environment(envs_t env) //
     _env = env;
 }
 
+auto instance_t::ports() const noexcept //
+    -> ports_t
+{
+    return _ports;
+}
+
+auto instance_t::clear_ports() //
+    -> void
+{
+    _ports.clear();
+}
+
+auto instance_t::set_ports(ports_t ports) //
+    -> void
+{
+    _ports = ports;
+}
+
 auto instance_t::regenerate_id() //
     -> void
 {
@@ -212,6 +230,7 @@ auto to_json(json_t& json, const instance_t& instance) //
          {"startupOptions", instance.startup_options()},
          {"usbDevices", instance.usb_devices()},
          {"environment", instance.environment()},
+         {"ports", instance.ports()},
     });
 }
 
@@ -230,6 +249,9 @@ auto from_json_v1(const json_t& j, instance_t& instance) //
     if (j.contains("environment")) {
         instance._env = j.at("environment").get<instance_t::envs_t>();
     }
+    if (j.contains("ports")) {
+        instance._ports = j.at("ports").get<instance_t::ports_t>();
+    }
 }
 
 auto from_json_v2(const json_t& j, instance_t& instance) //
@@ -246,6 +268,9 @@ auto from_json_v2(const json_t& j, instance_t& instance) //
     instance._usb_devices = j.at("usbDevices").get<decltype(instance._usb_devices)>();
     if (j.contains("environment")) {
         instance._env = j.at("environment").get<instance_t::envs_t>();
+    }
+    if (j.contains("ports")) {
+        instance._ports = j.at("ports").get<instance_t::ports_t>();
     }
 }
 
