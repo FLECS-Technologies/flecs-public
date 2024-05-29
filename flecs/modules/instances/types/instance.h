@@ -81,7 +81,7 @@ public:
     auto usb_devices() noexcept //
         -> std::set<usb::device_t>&;
     auto environment() const noexcept //
-        -> envs_t;
+        -> std::optional<envs_t>;
     auto clear_environment() //
         -> void;
     auto set_environment(envs_t env) //
@@ -131,7 +131,7 @@ private:
     std::vector<network_t> _networks;
     std::vector<unsigned> _startup_options;
     std::set<usb::device_t> _usb_devices;
-    envs_t _env;
+    std::optional<envs_t> _env;
     std::optional<ports_t> _ports;
 };
 
