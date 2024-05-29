@@ -20,6 +20,7 @@
 
 #include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/common/app/manifest/port_range/port_range.h"
+#include "flecs/core/flecs.h"
 #include "flecs/util/json/json.h"
 #include "flecs/util/usb/usb.h"
 #include "instance_config.h"
@@ -86,11 +87,13 @@ public:
     auto set_environment(envs_t env) //
         -> void;
     auto ports() const noexcept //
-        -> ports_t;
+        -> std::optional<ports_t>;
     auto clear_ports() //
         -> void;
     auto set_ports(ports_t ports) //
         -> void;
+    auto copy_missing_config_from_app_manifest() //
+        -> result_t;
     auto regenerate_id() //
         -> void;
     auto app(std::shared_ptr<const apps::app_t> app) //
@@ -129,7 +132,7 @@ private:
     std::vector<unsigned> _startup_options;
     std::set<usb::device_t> _usb_devices;
     envs_t _env;
-    ports_t _ports;
+    std::optional<ports_t> _ports;
 };
 
 auto operator==(const instance_t& lhs, const instance_t& rhs) //
