@@ -150,7 +150,7 @@ auto instance_t::set_environment(envs_t env) //
 }
 
 auto instance_t::ports() const noexcept //
-    -> ports_t
+    -> std::optional<ports_t>
 {
     return _ports;
 }
@@ -158,13 +158,32 @@ auto instance_t::ports() const noexcept //
 auto instance_t::clear_ports() //
     -> void
 {
-    _ports.clear();
+    if (_ports.has_value()) {
+        _ports.value().clear();
+    }
 }
 
 auto instance_t::set_ports(ports_t ports) //
     -> void
 {
     _ports = ports;
+}
+
+auto instance_t::copy_missing_config_from_app_manifest() //
+    -> result_t
+{
+    auto connected_app = app();
+    if (!connected_app) {
+        return {-1, "Can not copy config from app manifest to instance: Instance not connected to app."};
+    }
+    auto manifest = connected_app->manifest();
+    if (!manifest) {
+        return {-1, "Can not copy config from app manifest to instance: App not connected to manifest."};
+    }
+    if (!_ports.has_value()) {
+        _ports = app()->manifest()->ports();
+    }
+    return {0, {}};
 }
 
 auto instance_t::regenerate_id() //
@@ -230,8 +249,10 @@ auto to_json(json_t& json, const instance_t& instance) //
          {"startupOptions", instance.startup_options()},
          {"usbDevices", instance.usb_devices()},
          {"environment", instance.environment()},
-         {"ports", instance.ports()},
     });
+    if (instance.ports().has_value()) {
+        json["ports"] = instance.ports().value();
+    }
 }
 
 auto from_json_v1(const json_t& j, instance_t& instance) //

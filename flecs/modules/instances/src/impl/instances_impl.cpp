@@ -149,6 +149,7 @@ auto instances_t::do_module_start() //
 {
     for (const auto& instance_id : _parent->instance_ids()) {
         if (auto instance = _parent->query(instance_id)) {
+            instance->copy_missing_config_from_app_manifest();
             if (instance->desired() == instances::status_e::Running) {
                 _parent->start_once(instance_id);
             }
@@ -690,7 +691,7 @@ auto instances_t::do_get_ports(instances::id_t instance_id) const //
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
-    json_t response = instance->ports();
+    json_t response = instance->ports().has_value() ? instance->ports().value() : std::vector<mapped_port_range_t>{};
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 

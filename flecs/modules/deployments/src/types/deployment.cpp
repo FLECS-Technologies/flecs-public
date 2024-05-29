@@ -385,9 +385,12 @@ auto deployment_t::do_host_ports_collide(const port_range_t& port_range) const /
     -> bool
 {
     for (auto instance : _instances) {
-        for (auto& existing_port_range : instance->ports()) {
-            if (port_range.does_collide_with(existing_port_range.host_port_range())) {
-                return true;
+        auto ports = instance->ports();
+        if (ports.has_value()){
+            for (auto& existing_port_range : ports.value()) {
+                if (port_range.does_collide_with(existing_port_range.host_port_range())) {
+                    return true;
+                }
             }
         }
     }
