@@ -646,7 +646,7 @@ auto instances_t::do_get_env(instances::id_t instance_id) const //
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
-    json_t response = instance->environment();
+    json_t response = instance->environment().has_value() ? instance->environment().value() : std::set<mapped_env_var_t>{};
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 

@@ -132,7 +132,7 @@ auto instance_t::usb_devices() noexcept //
 }
 
 auto instance_t::environment() const noexcept //
-    -> envs_t
+    -> std::optional<envs_t>
 {
     return _env;
 }
@@ -182,6 +182,9 @@ auto instance_t::copy_missing_config_from_app_manifest() //
     }
     if (!_ports.has_value()) {
         _ports = app()->manifest()->ports();
+    }
+    if (!_env.has_value()) {
+        _env = app()->manifest()->env();
     }
     return {0, {}};
 }
@@ -248,8 +251,10 @@ auto to_json(json_t& json, const instance_t& instance) //
          {"networks", instance.networks()},
          {"startupOptions", instance.startup_options()},
          {"usbDevices", instance.usb_devices()},
-         {"environment", instance.environment()},
     });
+    if (instance.environment().has_value()) {
+        json["environment"] = instance.environment().value();
+    }
     if (instance.ports().has_value()) {
         json["ports"] = instance.ports().value();
     }
