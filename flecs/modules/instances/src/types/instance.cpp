@@ -140,7 +140,9 @@ auto instance_t::environment() const noexcept //
 auto instance_t::clear_environment() //
     -> void
 {
-    _env.clear();
+    if (_env.has_value()) {
+        _env.value().clear();
+    }
 }
 
 auto instance_t::set_environment(envs_t env) //
