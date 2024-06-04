@@ -59,6 +59,15 @@ function(stage_docker_fs)
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
+    install(
+        FILES ${CMAKE_SOURCE_DIR}/flecs/scripts/flecs-update-hosts.sh
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/bin
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        PERMISSIONS GROUP_READ GROUP_EXECUTE
+        PERMISSIONS WORLD_READ WORLD_EXECUTE
+        COMPONENT docker
+        EXCLUDE_FROM_ALL
+    )
     install_external(cpr::cpr ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
     install_external(CURL::libcurl ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
     install_external(Libusb::Libusb ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
