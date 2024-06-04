@@ -25,6 +25,6 @@ RUN apt-get update && \
 COPY --from=docker-downloader /fs /
 ADD fs/ /
 
-RUN ldconfig
+RUN echo "/usr/local/lib" >/etc/ld.so.conf.d/00-flecs.conf && ldconfig
 
 ENTRYPOINT [ "/entrypoint.sh" ]
