@@ -138,7 +138,7 @@ auto instances_t::do_module_init() //
     auto hosts_thread = std::thread([] {
         pthread_setname_np(pthread_self(), "flecs-update-hosts");
         auto hosts_process = process_t{};
-        hosts_process.spawnp("sh", "-c", "/opt/flecs/bin/flecs-update-hosts.sh");
+        hosts_process.spawnp("sh", "-c", "/usr/local/bin/flecs-update-hosts.sh");
         hosts_process.wait(false, false);
     });
     hosts_thread.detach();
