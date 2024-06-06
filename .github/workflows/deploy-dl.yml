@@ -32,7 +32,23 @@ jobs:
         azcliversion: 2.53.0
         inlineScript: |
           export CORE_VERSION=$(find deploy/ -name latest_flecs_* -exec head -n1 {} \;)
-          find deploy/ -name latest_flecs_${{ inputs.arch }} -exec \
-            bash -c 'export FILE={}; export BASE_FILE=$(basename "${FILE}"); echo "Uploading ${FILE}"; az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${BASE_FILE} --file "${FILE}" --overwrite' \;
-          find deploy/ \( -name "*.deb" -o -name "*.tar" \) -exec \
-            bash -c 'export FILE={}; export BASE_FILE=$(basename "${FILE}"); echo "Uploading ${FILE}"; az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${CORE_VERSION}/${BASE_FILE##*.}/${BASE_FILE} --file "${FILE}" --overwrite' \;
+
+          for latest in `find deploy/ -name latest_flecs_${{ inputs.arch }}`; do \
+            BASE_FILE=$(basename "${latest}"); \
+            LATEST_FILES="${LATEST_FILES} ${BASE_FILE}"
+            bash -c 'export FILE={}; export BASE_FILE=$(basename "${FILE}"); echo "Uploading ${FILE}"; az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${BASE_FILE} --file "${FILE}" --overwrite'; \
+          done
+          if [ -z "${LATEST_FILES}" ]; then \
+            echo "No latest files found. Quitting..." 1>&2; \
+            exit 1; \
+          fi
+          for package in `find deploy/ \( -name "*.deb" -o -name "*.tar" \)`; do \
+            BASE_FILE=$(basename "${package}"); \
+            PACKAGES="${PACKAGES} ${BASE_FILE}"; \
+            echo "Uploading ${BASE_FILE}"; \
+            az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${CORE_VERSION}/${BASE_FILE##*.}/${BASE_FILE} --file "${package}" --overwrite'; \
+          done
+          if [ -z "${PACKAGES}" ]; then \
+            echo "No packages found. Quitting..." 1>&2; \
+            exit 1; \
+          fi

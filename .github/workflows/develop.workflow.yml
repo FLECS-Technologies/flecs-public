@@ -15,7 +15,7 @@ jobs:
     with:
       arch: ${{ matrix.arch }}
       build_type: Debug
-      cmake_args:
+      cmake_args: ""
       flecs_build_ref: latest
 
   deploy-dl:
