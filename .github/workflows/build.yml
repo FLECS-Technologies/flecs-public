@@ -66,7 +66,7 @@ jobs:
       with:
         name: packages_${{ inputs.arch }}
         path: |
-          build/${{ inputs.arch }}/pkg/flecs_*_${{ inputs.arch }}.deb
-          build/${{ inputs.arch }}/pkg/flecs_*_${{ inputs.arch }}.tar
+          build/${{ inputs.arch }}/flecs_*_${{ inputs.arch }}.deb
+          build/${{ inputs.arch }}/flecs_*_${{ inputs.arch }}.tar.gz
           build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
         retention-days: 1
