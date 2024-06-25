@@ -38,16 +38,20 @@ private:
     auto do_deinit() //
         -> void;
 
-    auto build_config_path(const std::string& app_name, const instances::id_t& instance_id, const fs::path base_path = "/var/lib/flecs/") //
+    auto build_instance_config_path(const std::string& app_name, const instances::id_t& instance_id, const fs::path base_path = "/var/lib/flecs/") //
+        -> fs::path;
+
+    static auto get_main_config_path() //
         -> fs::path;
 
     auto reload_floxy_config() //
         -> result_t;
 
     static auto create_instance_config(
-        const std::string& app_name, const std::string& instance_name, uint16_t dest_port) //
+        const instances::id_t& instance_id, const std::string& instance_address, uint16_t dest_port) //
         -> std::string;
-    auto do_load_instance_reverse_proxy_config(const std::string& app_name, const instances::id_t& instance_id, uint16_t dest_port) //
+
+    auto do_load_instance_reverse_proxy_config(const std::string& ip_address, const std::string& app_name, const instances::id_t& instance_id, uint16_t dest_port) //
         -> result_t;
 
     auto do_delete_instance_reverse_proxy_config(const std::string& app_name, const instances::id_t& instance_id) //

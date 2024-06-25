@@ -16,6 +16,7 @@ flecs_add_module(
     MODULE_NAME floxy
     ADDITIONAL_HEADERS impl/floxy_impl.h
     ADDITIONAL_SOURCES src/impl/floxy_impl.cpp
+    LIBS_PRIVATE util.process
 )
 
 if(FLECS_BUILD_TESTS)

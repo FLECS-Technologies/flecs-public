@@ -39,10 +39,10 @@ auto floxy_t::do_deinit() //
     _impl->do_deinit();
 }
 
-auto floxy_t::load_instance_reverse_proxy_config(const std::string& app_name, const instances::id_t& instance_id, uint16_t dest_port) //
+auto floxy_t::load_instance_reverse_proxy_config(const std::string& ip_address, const std::string& app_name, const instances::id_t& instance_id, uint16_t dest_port) //
     -> result_t
 {
-    return _impl->do_load_instance_reverse_proxy_config(app_name, instance_id, dest_port);
+    return _impl->do_load_instance_reverse_proxy_config(ip_address, app_name, instance_id, dest_port);
 }
 
 auto floxy_t::delete_instance_reverse_proxy_config(const std::string& app_name, const instances::id_t& instance_id) //

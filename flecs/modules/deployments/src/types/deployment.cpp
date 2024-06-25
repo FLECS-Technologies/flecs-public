@@ -23,7 +23,11 @@
 
 #include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app.h"
+#ifdef FLECS_MOCK_MODULES
+#include "flecs/modules/floxy/__mocks__/floxy.h"
+#else // FLECS_MOCK_MODULES
 #include "flecs/modules/floxy/floxy.h"
+#endif // FLECS_MOCK_MODULES
 #include "flecs/modules/factory/factory.h"
 #include "flecs/util/network/ip_addr.h"
 #include "flecs/util/network/network.h"
@@ -212,20 +216,6 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
         instance->status(instances::status_e::ResourcesReady);
     }
 
-    // Step 6: Create config for reverse proxy
-    std::optional<uint16_t> port;
-    try {
-        port = std::stoi(manifest->editor().substr(1));
-    } catch (std::exception const& e) {
-    }
-    if (port.has_value()) {
-        const auto floxy_api = dynamic_cast<module::floxy_t*>(api::query_module("floxy").get());
-        auto [ec, message] = floxy_api->load_instance_reverse_proxy_config(app->key().name(), instance->id(), port.value());
-        if (ec != 0) {
-            std::cerr << "Loading reverse proxy config for " + instance_name + " failed: " << message << std::endl;
-        }
-    }
-
     return do_create_instance(instance);
 }
 
@@ -272,6 +262,29 @@ auto deployment_t::start_instance(std::shared_ptr<instances::instance_t> instanc
                 startup_option_t::INIT_NETWORK_AFTER_START))) {
         for (const auto& network : instance->networks()) {
             connect_network(instance, network.network_name, network.ip_address);
+        }
+    }
+
+
+    // Create config for reverse proxy
+    std::optional<uint16_t> port;
+    std::optional<std::string> instance_ip;
+    auto app = instance->app();
+    try {
+        port = std::stoi(app->manifest()->editor().substr(1));
+    } catch (std::exception const& e) {
+    }
+    for (const auto& network : instance->networks()) {
+        if (network.network_name == "flecs") {
+            instance_ip = network.ip_address;
+            break;
+        }
+    }
+    if (port.has_value() && instance_ip.has_value()) {
+        const auto floxy_api = dynamic_cast<module::floxy_t*>(api::query_module("floxy").get());
+        auto [ec, message] = floxy_api->load_instance_reverse_proxy_config(instance_ip.value(), app->key().name(), instance->id(), port.value());
+        if (ec != 0) {
+            std::cerr << "Loading reverse proxy config for " + instance->instance_name() + " failed: " << message << std::endl;
         }
     }
 

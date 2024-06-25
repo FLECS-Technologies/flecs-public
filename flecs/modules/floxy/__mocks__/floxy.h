@@ -1,4 +1,4 @@
-// Copyright 2021-2024 FLECS Technologies GmbH
+// Copyright 2021-2023 FLECS Technologies GmbH
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,14 +14,19 @@
 
 #pragma once
 
-#include "flecs/modules/console/types/session_id.h"
-#include "flecs/modules/instances/types/instance_id.h"
+#include <gmock/gmock.h>
+
 #include "flecs/modules/module_base/module.h"
+#include "flecs/modules/instances/types/instance_id.h"
 
 namespace flecs {
 namespace module {
 namespace impl {
-class floxy_t;
+class floxy_t
+{
+public:
+    ~floxy_t() = default;
+};
 } // namespace impl
 
 class floxy_t FLECS_FINAL_UNLESS_TESTED : public base_t
@@ -29,22 +34,17 @@ class floxy_t FLECS_FINAL_UNLESS_TESTED : public base_t
     friend class factory_t;
 
 public:
-    ~floxy_t();
+    ~floxy_t() = default;
 
-    auto load_instance_reverse_proxy_config(const std::string& ip_address, const std::string& app_name, const instances::id_t& instance_id, uint16_t dest_port) //
-        -> result_t;
 
-    auto delete_instance_reverse_proxy_config(const std::string& app_name, const instances::id_t& instance_id) //
-        -> result_t;
+    MOCK_METHOD((result_t), load_instance_reverse_proxy_config, (const std::string& app_name, const instances::id_t& instance_id, uint16_t dest_port), ());
+    MOCK_METHOD((result_t), delete_instance_reverse_proxy_config, (const std::string& app_name, const instances::id_t& instance_id), ());
 
 protected:
-    floxy_t();
+    floxy_t() = default;
 
-    auto do_init() //
-        -> void override;
-
-    auto do_deinit() //
-        -> void override;
+    MOCK_METHOD((void), do_init, (), (override));
+    MOCK_METHOD((void), do_deinit, (), (override));
 
     std::unique_ptr<impl::floxy_t> _impl;
 };

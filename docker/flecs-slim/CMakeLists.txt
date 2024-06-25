@@ -17,6 +17,11 @@ install(PROGRAMS fs/entrypoint.sh
     COMPONENT docker
     EXCLUDE_FROM_ALL
 )
+install(PROGRAMS fs/etc/nginx/floxy.conf
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/etc/nginx
+    COMPONENT docker
+    EXCLUDE_FROM_ALL
+)
 install(FILES Dockerfile
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
     COMPONENT docker
