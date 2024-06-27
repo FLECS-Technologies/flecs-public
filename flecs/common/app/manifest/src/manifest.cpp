@@ -15,6 +15,7 @@
 #include "flecs/common/app/manifest/manifest.h"
 
 #include <fstream>
+#include <iostream>
 
 namespace flecs {
 
@@ -83,12 +84,14 @@ app_manifest_t app_manifest_t::from_json(const json_t& json)
     } catch (...) {
     }
 
+    res.upgrade_manifest_version();
     return res;
 }
 app_manifest_t app_manifest_t::from_yaml(const yaml_t& yaml)
 {
     auto res = app_manifest_t{};
     res.parse_yaml(yaml);
+    res.upgrade_manifest_version();
     return res;
 }
 
@@ -131,6 +134,7 @@ void app_manifest_t::parse_yaml(const yaml_t& yaml)
     try {
         auto error_found = false;
         REQUIRED_TYPED_YAML_VALUE(yaml, app, _app);
+        OPTIONAL_TYPED_YAML_VALUE(yaml, _schemaVersion, _manifest_version);
         OPTIONAL_TYPED_YAML_VALUE(yaml, args, _args);
 
         OPTIONAL_YAML_NODE(yaml, capabilities, capabilities);
@@ -245,11 +249,47 @@ void app_manifest_t::validate()
     _valid = true;
 }
 
+void app_manifest_t::upgrade_manifest_version()
+{
+    static const char* LATEST_VERSION = "2.1.0";
+    auto current_version = _manifest_version.empty() ? "2.0.0" : _manifest_version;
+    if (current_version == LATEST_VERSION) {
+        return;
+    }
+
+    // Current version is 2.1
+    if (current_version.starts_with("2.0.")) {
+        // Meaning of "editor" changed from 2.0 to 2.1, "editor" now specifies port at container not at host
+        // therefore mapping from host to container via "ports" is not necessary
+        if (!_editor.empty()) {
+            auto port = uint16_t{};
+            try {
+                port = std::stoi(_editor.substr(1));
+            } catch (std::exception const& e) {
+                return;
+            }
+            // Check if the published ports of the instance contain the editor port
+            for (auto port_mapping = _ports.begin(); port_mapping != _ports.end(); port_mapping++) {
+                if (port_mapping->host_port_range().start_port() == port) {
+                    port = port_mapping->container_port_range().start_port();
+                    _ports.erase(port_mapping);
+                    break;
+                }
+            }
+            _editor = ":" + std::to_string(port);
+        }
+        _manifest_version = LATEST_VERSION;
+    }
+    std::cerr << "Upgraded manifest " << _app << " from " << current_version << " to " << _manifest_version << std::endl;
+}
+
+
 auto to_json(json_t& json, const app_manifest_t& app_manifest) //
     -> void
 {
     json = json_t({
         {"app", app_manifest._app},
+        {"_schemaVersion", app_manifest._manifest_version},
         {"version", app_manifest._version},
         {"image", app_manifest._image},
 
@@ -278,6 +318,7 @@ auto from_json(const json_t& json, app_manifest_t& app_manifest) //
     REQUIRED_JSON_VALUE(json, version, app_manifest._version);
     REQUIRED_JSON_VALUE(json, image, app_manifest._image);
 
+    OPTIONAL_JSON_VALUE(json, _schemaVersion, app_manifest._manifest_version);
     OPTIONAL_JSON_VALUE(json, multiInstance, app_manifest._multi_instance);
     OPTIONAL_JSON_VALUE(json, editor, app_manifest._editor);
 

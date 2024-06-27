@@ -243,6 +243,7 @@ TEST(daemon_app, to_json)
     const auto json = flecs::json_t(app_manifest);
     const auto json_expected =
         R"-({"app":"tech.flecs.test-app",)-"
+        R"-("_schemaVersion":"2.1.0",)-"
         R"-("version":"1.2.3.4-f1",)-"
         R"-("image":"flecs/test-app",)-"
         R"-("multiInstance":false,)-"
