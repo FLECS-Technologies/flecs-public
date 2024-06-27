@@ -21,10 +21,11 @@
 
 const auto raw_json_manifest =
     R"-({"app":"tech.flecs.test-app",)-"
+    R"-("_schemaVersion":"3.0.0",)-"
     R"-("version":"1.2.3.4-f1",)-"
     R"-("image":"flecs/test-app",)-"
     R"-("multiInstance":false,)-"
-    R"-("editor":"",)-"
+    R"-("editors":[{"name":"Editor","port":1234,"supportsReverseProxy":true}],)-"
     R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
     R"-("capabilities":[],)-"
     R"-("conffiles":["local.conf:/etc/container.conf:rw"],)-"

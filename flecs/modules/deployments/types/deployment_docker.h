@@ -24,9 +24,9 @@ namespace deployments {
 class docker_t : public deployment_t
 {
 public:
-    docker_t() = default;
+    docker_t();
 
-    ~docker_t() override = default;
+    ~docker_t() override;
 
 private:
     auto do_deployment_id() const noexcept //

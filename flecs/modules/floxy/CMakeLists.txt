@@ -13,33 +13,32 @@
 # limitations under the License.
 
 flecs_add_module(
-    MODULE_NAME device
-    ADDITIONAL_HEADERS impl/device_impl.h
-    ADDITIONAL_SOURCES src/impl/device_impl.cpp
-    LIBS_PUBLIC
-        modules.console
-        modules.floxy
+    MODULE_NAME floxy
+    ADDITIONAL_HEADERS impl/floxy_impl.h
+    ADDITIONAL_SOURCES src/impl/floxy_impl.cpp
+    LIBS_PRIVATE util.process modules.instances modules.apps util.process common
+    LIBS_PUBLIC modules.instances.types modules.console.types
 )
 
 if(FLECS_BUILD_TESTS)
-    add_library(modules.device.mocked_modules STATIC
-        src/device.cpp
-        src/impl/device_impl.cpp
-        device.h
-        impl/device_impl.h
+    add_library(modules.floxy.mocked_modules STATIC
+        src/floxy.cpp
+        src/impl/floxy_impl.cpp
+        floxy.h
+        impl/floxy_impl.h
     )
 
     target_link_libraries(
-        modules.device.mocked_modules PUBLIC
+        modules.floxy.mocked_modules PUBLIC
         GTest::gmock
         modules.factory
         modules.module_base
     )
 
     target_compile_definitions(
-        modules.device.mocked_modules PRIVATE
+        modules.floxy.mocked_modules PRIVATE
         -DFLECS_MOCK_MODULES
     )
 endif()
 
-add_subdirectory(test)
+#add_subdirectory(test)

@@ -31,6 +31,7 @@ flecs_add_module(
         src/impl/jobs_impl.cpp
     LIBS_PUBLIC
         modules.jobs.types
+        util.signal_handler
 )
 
 if(FLECS_BUILD_TESTS)

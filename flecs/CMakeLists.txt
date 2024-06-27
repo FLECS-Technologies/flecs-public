@@ -53,9 +53,20 @@ install(TARGETS daemon
     DESTINATION ${CMAKE_INSTALL_BINDIR}
     COMPONENT native
 )
+# Create log directory for nginx (floxy), as nginx itself can not
+install(DIRECTORY
+    DESTINATION /var/log/floxy/
+    COMPONENT native
+    EXCLUDE_FROM_ALL
+)
 install(FILES ${FLECS_SOURCE_DIR}/pkg/fs/lib/systemd/system/flecs.service
     DESTINATION /lib/systemd/system/
     COMPONENT native-systemd
+    EXCLUDE_FROM_ALL
+)
+install(FILES ${FLECS_SOURCE_DIR}/pkg/fs/etc/nginx/floxy.conf
+    DESTINATION /etc/nginx/floxy.conf
+    COMPONENT native
     EXCLUDE_FROM_ALL
 )
 install(

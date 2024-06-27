@@ -129,6 +129,9 @@ private:
     auto do_delete_ports(instances::id_t instance_id) //
         -> crow::response;
 
+    auto do_get_editor(const crow::request& req, instances::id_t instance_id, uint16_t port) //
+        -> crow::response;
+
     auto queue_update(instances::id_t instance_id, std::string to) //
         -> jobs::id_t;
     auto do_update_sync(instances::id_t instance_id, std::string to) //

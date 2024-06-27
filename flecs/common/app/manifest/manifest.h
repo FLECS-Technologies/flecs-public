@@ -18,6 +18,7 @@
 #include <string>
 
 #include "flecs/common/app/manifest/conffile/conffile.h"
+#include "flecs/common/app/manifest/editor/editor.h"
 #include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/common/app/manifest/port_range/port_range.h"
 #include "flecs/common/app/manifest/startup_option/startup_option.h"
@@ -35,6 +36,7 @@ public:
     using capabilities_t = std::vector<std::string>;
     using conffiles_t = std::vector<conffile_t>;
     using devices_t = std::set<std::string>;
+    using editors_t = std::map<uint16_t, editor_t>;
     using envs_t = std::set<mapped_env_var_t>;
     using networks_t = std::vector<network_t>;
     using startup_options_t = std::vector<startup_option_t>;
@@ -57,7 +59,7 @@ public:
     auto& capabilities() const noexcept { return _capabilities; }
     auto& conffiles() const noexcept { return _conffiles; }
     auto& devices() const noexcept { return _devices; }
-    auto& editor() const noexcept { return _editor; }
+    auto& editors() const noexcept { return _editors; }
     auto& env() const noexcept { return _env; }
     auto& hostname() const noexcept { return _hostname; }
     auto& image() const noexcept { return _image; }
@@ -78,17 +80,27 @@ private:
         -> void;
     friend auto from_json(const json_t& json, app_manifest_t& app_manifest) //
         -> void;
+    friend auto from_json_common(const json_t& json, app_manifest_t& app_manifest) //
+        -> void;
+    friend auto from_json_2(const json_t& json, app_manifest_t& app_manifest) //
+        -> void;
+    friend auto from_json_3(const json_t& json, app_manifest_t& app_manifest) //
+        -> void;
+
+    auto editor_to_editors(const std::string& editor) //
+        -> void;
 
     void validate();
 
     bool _valid;
 
     std::string _app;
+    std::string _manifest_version;
     args_t _args;
     capabilities_t _capabilities;
     conffiles_t _conffiles;
     devices_t _devices;
-    std::string _editor;
+    editors_t _editors;
     envs_t _env;
     std::string _hostname;
     std::string _image;

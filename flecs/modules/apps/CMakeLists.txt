@@ -35,10 +35,12 @@ flecs_add_module(
         common
         modules.apps.types
         modules.instances.types
+        modules.manifests
     LIBS_PRIVATE
         cpr::cpr
         util.usb
         yaml-cpp::yaml-cpp
+        modules.flecsport
 )
 
 if(FLECS_BUILD_TESTS)
