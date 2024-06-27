@@ -117,13 +117,16 @@ auto apps_t::http_list(const apps::key_t& app_key) const //
             response.push_back(*app);
             /** @todo this should be done some other way */
             auto& val = *response.rbegin();
+            auto editors = json_t::array_t{};
             if (auto manifest = app->manifest()) {
                 val["multiInstance"] = manifest->multi_instance();
-                val["editor"] = manifest->editor();
+                for (const auto& [_, editor] : app->manifest()->editors()) {
+                    editors.emplace_back(editor);
+                }
             } else {
                 val["multiInstance"] = false;
-                val["editor"] = std::string{};
             }
+            val["editors"] = editors;
         }
     }
 

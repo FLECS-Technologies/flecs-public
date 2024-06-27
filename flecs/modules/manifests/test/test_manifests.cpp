@@ -237,7 +237,7 @@ TEST(manifests, migrate)
     uut.init();
     uut.base_path("./oldpath");
 
-    uut.add_from_json_string(json_manifest_1);
+    uut.add_from_string(json_manifest_1);
     uut.migrate("./newpath");
     ASSERT_NE(uut.query(valid_key_1).get(), nullptr);
 

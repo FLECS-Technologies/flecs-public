@@ -15,6 +15,7 @@
 #include "flecs/common/app/manifest/manifest.h"
 
 #include <fstream>
+#include <iostream>
 
 namespace flecs {
 
@@ -34,7 +35,7 @@ app_manifest_t::app_manifest_t()
     , _args{}
     , _conffiles{}
     , _devices{}
-    , _editor{}
+    , _editors{}
     , _env{}
     , _hostname{}
     , _image{}
@@ -112,13 +113,18 @@ void app_manifest_t::validate()
 auto to_json(json_t& json, const app_manifest_t& app_manifest) //
     -> void
 {
+    auto editors = json_t::array_t {};
+    for (const auto& [_, editor] : app_manifest.editors()) {
+        editors.emplace_back(editor);
+    }
     json = json_t({
         {"app", app_manifest._app},
+        {"_schemaVersion", app_manifest._manifest_version},
         {"version", app_manifest._version},
         {"image", app_manifest._image},
 
         {"multiInstance", app_manifest._multi_instance},
-        {"editor", app_manifest._editor},
+        {"editors", editors},
 
         {"args", app_manifest._args},
         {"capabilities", app_manifest._capabilities},
@@ -138,12 +144,27 @@ auto to_json(json_t& json, const app_manifest_t& app_manifest) //
 auto from_json(const json_t& json, app_manifest_t& app_manifest) //
     -> void
 {
+    static const char* LATEST_VERSION = "3.0.0";
+    auto current_version = std::string{};
+    OPTIONAL_JSON_VALUE(json, _schemaVersion, current_version);
+    current_version = current_version.empty() ? "2.0.0" : current_version;
+
+    if (current_version.starts_with("2.")) {
+        from_json_2(json, app_manifest);
+        app_manifest._manifest_version = LATEST_VERSION;
+    } else if (current_version.starts_with("3.")) {
+        from_json_3(json, app_manifest);
+        app_manifest._manifest_version = LATEST_VERSION;
+    }
+}
+
+auto from_json_common(const json_t& json, app_manifest_t& app_manifest) //
+    -> void
+{
     REQUIRED_JSON_VALUE(json, app, app_manifest._app);
     REQUIRED_JSON_VALUE(json, version, app_manifest._version);
     REQUIRED_JSON_VALUE(json, image, app_manifest._image);
-
     OPTIONAL_JSON_VALUE(json, multiInstance, app_manifest._multi_instance);
-    OPTIONAL_JSON_VALUE(json, editor, app_manifest._editor);
 
     OPTIONAL_JSON_VALUE(json, args, app_manifest._args);
     OPTIONAL_JSON_VALUE(json, capabilities, app_manifest._capabilities);
@@ -157,8 +178,54 @@ auto from_json(const json_t& json, app_manifest_t& app_manifest) //
     OPTIONAL_JSON_VALUE(json, startupOptions, app_manifest._startup_options);
     OPTIONAL_JSON_VALUE(json, volumes, app_manifest._volumes);
     OPTIONAL_JSON_VALUE(json, labels, app_manifest._labels);
+}
 
+auto from_json_2(const json_t& json, app_manifest_t& app_manifest) //
+    -> void
+{
+    auto editor = std::string{};
+    OPTIONAL_JSON_VALUE(json, editor, editor);
+    from_json_common(json, app_manifest);
+    app_manifest.editor_to_editors(editor);
     app_manifest.validate();
+}
+
+auto from_json_3(const json_t& json, app_manifest_t& app_manifest) //
+    -> void
+{
+    auto editors = std::vector<editor_t>{};
+    app_manifest._editors.clear();
+    OPTIONAL_JSON_VALUE(json, editors, editors);
+    for (editor_t editor : editors) {
+        app_manifest._editors.insert({editor.port(), std::move(editor)});
+    }
+    from_json_common(json, app_manifest);
+    app_manifest.validate();
+}
+
+auto app_manifest_t::editor_to_editors(const std::string& editor) //
+    -> void
+{
+    _editors = {};
+    // Meaning of "editor" changed, "editor" now specifies port at container not at host
+    // therefore mapping from host to container via "ports" is not necessary
+    if (!editor.empty()) {
+        auto port = uint16_t{};
+        try {
+            port = std::stoi(editor.substr(1));
+        } catch (std::exception const& e) {
+            return;
+        }
+        // Check if the published ports of the instance contain the editor port
+        for (auto port_mapping = _ports.begin(); port_mapping != _ports.end(); port_mapping++) {
+            if (port_mapping->host_port_range().start_port() == port) {
+                port = port_mapping->container_port_range().start_port();
+                _ports.erase(port_mapping);
+                break;
+            }
+        }
+        _editors = {{port, editor_t{"", port, false}}};
+    }
 }
 
 } // namespace flecs

@@ -607,6 +607,12 @@ auto instances_t::do_details(instances::id_t instance_id) const //
             response["volumes"].push_back(json_volume);
         }
     }
+    auto editors = json_t::array_t{};
+    for (const auto& [_, editor] : manifest->editors()) {
+        auto url = "/v2/instances/" + instance_id.hex() + "/editor/" + std::to_string(editor.port());
+        editors.push_back({{"name", editor.name()}, {"url", url}});
+    }
+    response["editors"] = editors;
 
     return {crow::status::OK, "json", response.dump()};
 }

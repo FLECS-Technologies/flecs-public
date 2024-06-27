@@ -101,6 +101,9 @@ public:
     auto http_delete_ports(instances::id_t instance_id) //
         -> crow::response;
 
+    auto http_get_editor(const crow::request& req, instances::id_t instance_id, uint16_t port) //
+        -> crow::response;
+
     /*! @brief List all available instance ids
      *
      * @param app_key (optional) limit list to all or specific version of specific App

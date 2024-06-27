@@ -13,6 +13,7 @@
 # limitations under the License.
 
 add_subdirectory(conffile)
+add_subdirectory(editor)
 add_subdirectory(variable)
 add_subdirectory(port_range)
 add_subdirectory(startup_option)
@@ -28,6 +29,7 @@ target_link_libraries(
     common.app.manifest PUBLIC
     common.network
     common.app.manifest.conffile
+    common.app.manifest.editor
     common.app.manifest.env_var
     common.app.manifest.port_range
     common.app.manifest.startup_option

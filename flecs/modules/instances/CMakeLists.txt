@@ -26,6 +26,7 @@ add_library(modules.instances.types STATIC
 
 target_link_libraries(modules.instances.types PUBLIC
     util.usb
+    common
 )
 
 target_link_libraries(modules.instances.types INTERFACE
@@ -42,6 +43,15 @@ flecs_add_module(
     LIBS_PUBLIC
         common
         modules.instances.types
+        modules.system
+        modules.jobs.types
+    LIBS_PRIVATE
+        modules.deployments.types
+        modules.apps
+        modules.jobs
+        util.datetime
+        util.process
+        util.network
 )
 
 if(FLECS_BUILD_TESTS)
