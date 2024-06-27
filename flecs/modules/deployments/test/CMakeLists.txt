@@ -29,6 +29,7 @@ if(FLECS_BUILD_TESTS)
         modules.factory
         modules.module_base
         modules.deployments
+        modules.floxy
     )
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
