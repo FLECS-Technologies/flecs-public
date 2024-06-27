@@ -2,7 +2,7 @@ FROM debian:bookworm-slim
 
 RUN apt-get update && \
     apt-get --yes --no-install-recommends install \
-    ca-certificates docker.io git iptables procps && \
+    ca-certificates docker.io git iptables procps nginx && \
     apt-get --yes clean && \
     rm -rf /var/lib/apt/lists/*
 

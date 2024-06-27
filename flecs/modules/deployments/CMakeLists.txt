@@ -20,6 +20,8 @@ add_library(modules.deployments.types STATIC
     types.h
 )
 
+target_link_libraries(modules.deployments.types PRIVATE modules.floxy)
+
 flecs_add_module(
     MODULE_NAME
         deployments
