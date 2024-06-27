@@ -16,14 +16,18 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <regex>
 #include <set>
 
 #include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app.h"
+#include "flecs/modules/floxy/floxy.h"
+#include "flecs/modules/factory/factory.h"
 #include "flecs/util/network/ip_addr.h"
 #include "flecs/util/network/network.h"
+#include "flecs/util/process/process.h"
 
 namespace flecs {
 namespace deployments {
@@ -208,6 +212,20 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
         instance->status(instances::status_e::ResourcesReady);
     }
 
+    // Step 6: Create config for reverse proxy
+    std::optional<uint16_t> port;
+    try {
+        port = std::stoi(manifest->editor().substr(1));
+    } catch (std::exception const& e) {
+    }
+    if (port.has_value()) {
+        const auto floxy_api = dynamic_cast<module::floxy_t*>(api::query_module("floxy").get());
+        auto [ec, message] = floxy_api->load_instance_reverse_proxy_config(app->key().name(), instance->id(), port.value());
+        if (ec != 0) {
+            std::cerr << "Loading reverse proxy config for " + instance_name + " failed: " << message << std::endl;
+        }
+    }
+
     return do_create_instance(instance);
 }
 
@@ -215,6 +233,8 @@ auto deployment_t::delete_instance(std::shared_ptr<instances::instance_t> instan
     -> result_t
 {
     const auto [res, additional_info] = do_delete_instance(instance);
+    const auto floxy_api = dynamic_cast<module::floxy_t*>(api::query_module("floxy").get());
+    floxy_api->delete_instance_reverse_proxy_config(instance->app()->key().name(), instance->id());
     _instances.erase(
         std::remove_if(
             _instances.begin(),
