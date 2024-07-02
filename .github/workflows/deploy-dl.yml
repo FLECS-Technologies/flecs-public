@@ -10,9 +10,14 @@ on:
         required: true
         type: string
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   deploy-dl:
     runs-on: ubuntu-22.04
+    environment: deploy-dl
 
     steps:
     - name: Download build artifacts
@@ -22,21 +27,22 @@ jobs:
         path: deploy/
 
     - name: Azure Login
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - name: Deploy packages and latest files
-      uses: azure/CLI@v1
+      uses: azure/cli@v2
       with:
-        azcliversion: 2.53.0
         inlineScript: |
           export CORE_VERSION=$(find deploy/ -name latest_flecs_* -exec head -n1 {} \;)
 
           for latest in `find deploy/ -name latest_flecs_${{ inputs.arch }}`; do \
             BASE_FILE=$(basename "${latest}"); \
             LATEST_FILES="${LATEST_FILES} ${BASE_FILE}"; \
-            az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${BASE_FILE} --file "${latest}" --overwrite; \
+            az storage blob upload --auth-mode login --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${BASE_FILE} --file "${latest}" --overwrite; \
           done
           if [ -z "${LATEST_FILES}" ]; then \
             echo "No latest files found. Quitting..." 1>&2; \
@@ -46,7 +52,7 @@ jobs:
             BASE_FILE=$(basename "${package}"); \
             PACKAGES="${PACKAGES} ${BASE_FILE}"; \
             echo "Uploading ${BASE_FILE}"; \
-            az storage blob upload --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${CORE_VERSION}/${BASE_FILE##*.}/${BASE_FILE} --file "${package}" --overwrite; \
+            az storage blob upload --auth-mode login --account-name flecs --container-name flecs-dl --name ${{ inputs.deploy_dir }}/flecs/${CORE_VERSION}/${BASE_FILE##*.}/${BASE_FILE} --file "${package}" --overwrite; \
           done
           if [ -z "${PACKAGES}" ]; then \
             echo "No packages found. Quitting..." 1>&2; \
