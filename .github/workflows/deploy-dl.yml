@@ -13,6 +13,7 @@ on:
 jobs:
   deploy-dl:
     runs-on: ubuntu-22.04
+    environment: release
 
     steps:
     - name: Download build artifacts
@@ -22,9 +23,11 @@ jobs:
         path: deploy/
 
     - name: Azure Login
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - name: Deploy packages and latest files
       uses: azure/CLI@v1
