@@ -9,3 +9,6 @@ authors = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+flecstract = { path = "../flecstract", version = "0.1.0" }
+flecs-console-client = { path = "../flecs-console-client", version = "3.0.3" }
+flecsd-axum-server = { path = "../flecsd-axum-server", version = "2.0.0" }
