@@ -1,3 +1,12 @@
+mod cellar;
+mod flecs_rest;
+pub mod fsm;
+pub mod lore;
+mod relic;
+mod sorcerer;
+mod spell;
+mod vault;
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
