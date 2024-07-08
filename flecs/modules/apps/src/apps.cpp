@@ -17,6 +17,7 @@
 #include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/impl/apps_impl.h"
 #include "flecs/modules/factory/factory.h"
+#include "flecs/modules/flecsport/dos_manifest.h"
 #include "flecs/util/datetime/datetime.h"
 
 namespace flecs {
@@ -62,6 +63,25 @@ auto apps_t::do_init() //
         const auto args = parse_json(req.body);
         REQUIRED_JSON_VALUE(args, manifest);
         return http_sideload(std::move(manifest));
+    });
+    FLECS_V2_ROUTE("/device/onboarding").methods("POST"_method)([this](const crow::request& req) {
+        auto manifest = dos_manifest_t{};
+        try {
+            manifest = parse_json(req.body);
+        } catch (const std::exception& ex) {
+            auto response = json_t{{"additionalInfo", "Malformed request: " + std::string(ex.what())}};
+            return crow::response{crow::status::BAD_REQUEST, response.dump()};
+        }
+        auto app_keys = std::vector<apps::key_t>{};
+        for (auto app_key : manifest.apps) {
+            if (!app_key.version.has_value()) {
+                std::cerr << "Skip installing newest version of app " << app_key.name << ", not implemented"
+                          << std::endl;
+                continue;
+            }
+            app_keys.emplace_back(app_key.name, app_key.version.value());
+        }
+        return http_install_many(std::move(app_keys));
     });
 
     _impl->do_module_init();
@@ -115,6 +135,13 @@ auto apps_t::http_install(apps::key_t app_key) //
 {
     auto job_id = _impl->queue_install_from_marketplace(std::move(app_key));
     return crow::response{crow::status::ACCEPTED, "json", "{\"jobId\":" + std::to_string(job_id) + "}"};
+}
+
+auto apps_t::http_install_many(std::vector<apps::key_t> app_keys) //
+    -> crow::response
+{
+    auto job_id = _impl->queue_install_many_from_marketplace(std::move(app_keys));
+    return crow::response{crow::status::ACCEPTED, "json", json_t {{"jobId", job_id}}.dump()};
 }
 
 auto apps_t::http_sideload(std::string manifest_string) //
@@ -174,6 +201,12 @@ auto apps_t::install_from_marketplace(apps::key_t app_key) //
     -> result_t
 {
     return _impl->do_install_from_marketplace_sync(std::move(app_key));
+}
+
+auto apps_t::install_many_from_marketplace(std::vector<apps::key_t> app_keys) //
+    -> result_t
+{
+    return _impl->do_install_many_from_marketplace_sync(std::move(app_keys));
 }
 
 auto apps_t::sideload(std::string manifest_string) //

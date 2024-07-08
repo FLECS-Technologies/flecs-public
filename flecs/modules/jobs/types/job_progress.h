@@ -79,6 +79,9 @@ public:
     auto current_step() const noexcept //
         -> const current_step_t&;
 
+    auto skip_to_step(int16_t num) //
+        -> void;
+
     auto next_step(std::string desc) //
         -> void;
     auto next_step(std::string desc, std::string unit, std::uint32_t units_total) //

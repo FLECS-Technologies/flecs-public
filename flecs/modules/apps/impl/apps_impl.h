@@ -62,9 +62,17 @@ private:
 
     auto queue_install_from_marketplace(apps::key_t app_key) //
         -> jobs::id_t;
+    auto queue_install_many_from_marketplace(std::vector<apps::key_t> app_keys) //
+        -> jobs::id_t;
     auto do_install_from_marketplace_sync(apps::key_t app_key) //
         -> result_t;
+    auto do_install_many_from_marketplace_sync(std::vector<apps::key_t> app_keys) //
+        -> result_t;
     auto do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
+        -> result_t;
+    auto do_install_many_from_marketplace(std::vector<apps::key_t> app_keys, jobs::progress_t& progress) //
+        -> result_t;
+    auto install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
         -> result_t;
 
     auto queue_sideload(std::string manifest_string) //

@@ -67,6 +67,9 @@ public:
     auto http_install(apps::key_t app_key) //
         -> crow::response;
 
+    auto http_install_many(std::vector<apps::key_t> app_keys) //
+        -> crow::response;
+
     auto http_sideload(std::string manifest_string) //
         -> crow::response;
 
@@ -95,6 +98,9 @@ public:
      * @return HTTP response
      */
     auto install_from_marketplace(apps::key_t app_key) //
+        -> result_t;
+
+    auto install_many_from_marketplace(std::vector<apps::key_t> app_keys) //
         -> result_t;
 
     /*! @brief Sideloads an App from its manifest

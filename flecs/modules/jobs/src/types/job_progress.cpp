@@ -84,6 +84,18 @@ auto progress_t::current_step() const noexcept //
     return _current_step;
 }
 
+auto progress_t::skip_to_step(int16_t num) //
+    -> void
+{
+    auto _ = lock();
+    _current_step._desc = {};
+    _current_step._rate = {};
+    _current_step._unit = {};
+    _current_step._units_done = {};
+    _current_step._units_total = {};
+    _current_step._num = num;
+}
+
 auto progress_t::next_step(std::string desc) //
     -> void
 {

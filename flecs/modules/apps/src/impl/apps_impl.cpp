@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <sstream>
 
 #include "flecs/api/api.h"
 #include "flecs/common/app/manifest/manifest.h"
@@ -170,16 +171,78 @@ auto apps_t::queue_install_from_marketplace(apps::key_t app_key) //
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
+
+auto apps_t::queue_install_many_from_marketplace(std::vector<apps::key_t> app_keys) //
+    -> jobs::id_t
+{
+    auto desc = "Installation of "s + to_string(app_keys.size()) + " apps";
+
+    auto job = jobs::job_t{
+        std::bind(&apps_t::do_install_many_from_marketplace, this, std::move(app_keys), std::placeholders::_1)};
+
+    return _jobs_api->append(std::move(job), std::move(desc));
+}
+
 auto apps_t::do_install_from_marketplace_sync(apps::key_t app_key) //
     -> result_t
 {
     auto _ = jobs::progress_t{};
     return do_install_from_marketplace(std::move(app_key), _);
 }
+
+auto apps_t::do_install_many_from_marketplace_sync(std::vector<apps::key_t> app_keys) //
+    -> result_t
+{
+    auto _ = jobs::progress_t{};
+    return do_install_many_from_marketplace(std::move(app_keys), _);
+}
+
 auto apps_t::do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
     -> result_t
 {
     progress.num_steps(7);
+    return install_from_marketplace(std::move(app_key), progress);
+}
+
+auto apps_t::do_install_many_from_marketplace(std::vector<apps::key_t> app_keys, jobs::progress_t& progress) //
+    -> result_t
+{
+    static constexpr std::int16_t TOTAL_STEPS_PER_APP = 9;
+    progress.num_steps(TOTAL_STEPS_PER_APP * app_keys.size());
+    auto instances_api = std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
+
+    auto failed_apps = std::vector<std::pair<apps::key_t, std::string>>{};
+    for (size_t i = 0; i < app_keys.size(); i++) {
+        auto [app_result, message] = install_from_marketplace(app_keys[i], progress);
+        if (app_result == 0) {
+            progress.next_step("Creating instance of " + app_keys[i].name() + " (" + app_keys[i].version() + ")" );
+            std::tie(app_result, message) = instances_api->create(app_keys[i].name(), app_keys[i].version());
+        }
+        if (app_result == 0) {
+            progress.next_step("Starting instance " + message + "of " + app_keys[i].name() + " (" + app_keys[i].version() + ")" );
+            std::tie(app_result, message) = instances_api->start(instances::id_t{message});
+        }
+        if (app_result != 0) {
+            progress.skip_to_step(TOTAL_STEPS_PER_APP * (i + 1));
+            failed_apps.emplace_back(app_keys[i], message);
+        }
+    }
+    if (!failed_apps.empty()) {
+        auto message = std::stringstream{};
+        message << "Failed to install the following " << failed_apps.size() << " app installations out of "
+                << app_keys.size() << ": ";
+        std::for_each(failed_apps.begin(), failed_apps.end() - 1, [&message](auto& app_key) {
+            message << to_string(std::get<0>(app_key)) << " [" << std::get<1>(app_key) << "], ";
+        });
+        message << to_string(std::get<0>(failed_apps.back())) << " [" << std::get<1>(failed_apps.back()) << "]";
+        return {-1, message.str()};
+    }
+    return {0, {}};
+}
+
+auto apps_t::install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
+    -> result_t
+{
     progress.next_step("Downloading manifest");
     // Download App manifest and forward to manifest installation, if download successful
     const auto [manifest, _] = _manifests_api->add_from_console(app_key);
