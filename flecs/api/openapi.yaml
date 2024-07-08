@@ -94,6 +94,33 @@ components:
       type: string
       description: License key for App installation
       example: "538E-A5E8-84A3-D798"
+    dos_manifest:
+      required:
+        - _schemaVersion
+        - time
+        - apps
+      properties:
+        _schemaVersion:
+          type: string
+          minLength: 1
+        time:
+          type: string
+          minLength: 1
+        apps:
+          type: array
+          uniqueItems: true
+          minLength: 1
+          items:
+            type: object
+            required:
+              - name
+            properties:
+              name:
+                type: string
+                minLength: 1
+              version:
+                type: string
+                minLength: 1
     # Console related schemas
     user:
       type: object
@@ -1225,3 +1252,17 @@ paths:
                     type: string
                   sessionId:
                     $ref: "#/components/schemas/sessionId"
+  /device/onboarding:
+    post:
+      tags: ["Device"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/dos_manifest"
+      responses:
+        "202":
+          $ref: "#/components/responses/response_202"
+        "400":
+          $ref: "#/components/responses/response_400"
