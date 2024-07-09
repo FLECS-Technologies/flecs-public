@@ -19,8 +19,6 @@ namespace apps {
 
 app_t::app_t()
     : key_t{}
-    , _license_key{}
-    , _download_token{}
     , _installed_size{}
     , _status{status_e::Unknown}
     , _desired{status_e::Unknown}
@@ -33,8 +31,6 @@ app_t::app_t(key_t app_key)
 
 app_t::app_t(key_t app_key, std::shared_ptr<app_manifest_t> manifest)
     : key_t{std::move(app_key)}
-    , _license_key{}
-    , _download_token{}
     , _installed_size{}
     , _status{status_e::Unknown}
     , _desired{status_e::Unknown}
@@ -55,12 +51,6 @@ auto app_t::installed_size() const noexcept //
     -> std::int64_t
 {
     return _installed_size;
-}
-
-auto app_t::license_key() const noexcept //
-    -> const std::string&
-{
-    return _license_key;
 }
 
 auto app_t::status() const noexcept //
@@ -85,12 +75,6 @@ auto app_t::installed_size(std::int64_t installed_size) //
     -> void
 {
     _installed_size = installed_size;
-}
-
-auto app_t::license_key(std::string license_key) //
-    -> void
-{
-    _license_key = license_key;
 }
 
 auto app_t::status(status_e status) //
@@ -119,8 +103,6 @@ auto to_json(json_t& json, const app_t& app) //
         {"appKey", static_cast<const key_t&>(app)},
         {"status", to_string(app.status())},
         {"desired", to_string(app.desired())},
-        {"licenseKey", to_string(app.desired())},
-        {"downloadToken", to_string(app.desired())},
         {"installedSize", app.installed_size()},
     });
 }
@@ -142,9 +124,6 @@ static auto from_json_v2(const json_t& j, app_t& app) //
     app.status(status_from_string(j.at("status").get<std::string_view>()));
     app.desired(status_from_string(j.at("desired").get<std::string_view>()));
     app.installed_size(j.at("installedSize").get<std::int32_t>());
-    if (j.at("_schemaVersion").get<std::string_view>() == "2.1.0") {
-        app.license_key(j.at("licenseKey").get<std::string>());
-    }
 }
 
 auto from_json(const json_t& j, app_t& app) //

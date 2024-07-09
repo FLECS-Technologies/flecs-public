@@ -79,10 +79,6 @@ components:
           $ref: "#/components/schemas/app_status"
         desired:
           $ref: "#/components/schemas/app_status"
-        licenseKey:
-          $ref: "#/components/schemas/app_status"
-        downloadToken:
-          $ref: "#/components/schemas/app_status"
         installedSize:
           type: integer
           example: 10485760

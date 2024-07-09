@@ -39,8 +39,6 @@ public:
         -> const key_t&;
     auto installed_size() const noexcept //
         -> std::int64_t;
-    auto license_key() const noexcept //
-        -> const std::string&;
     auto status() const noexcept //
         -> status_e;
     auto desired() const noexcept //
@@ -49,8 +47,6 @@ public:
         -> std::shared_ptr<app_manifest_t>;
 
     auto installed_size(std::int64_t installed_size) //
-        -> void;
-    auto license_key(std::string license_key) //
         -> void;
     auto status(status_e status) //
         -> void;
@@ -65,8 +61,6 @@ private:
     friend auto from_json(const json_t& json, app_t& app) //
         -> void;
 
-    std::string _license_key;
-    std::string _download_token;
     std::int64_t _installed_size;
     status_e _status;
     status_e _desired;
