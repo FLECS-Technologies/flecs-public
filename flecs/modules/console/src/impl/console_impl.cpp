@@ -119,7 +119,6 @@ auto console_t::do_validate_license(std::string_view session_id) //
     const auto res = cpr::Post(
         cpr::Url(std::move(url)),
         cpr::Header{
-            {"Authorization", std::string{"Bearer " + _auth.jwt().token()}},
             {"X-Session-Id", std::string{session_id}},
         });
 
@@ -158,7 +157,6 @@ auto console_t::do_download_manifest(
     const auto res = cpr::Get(
         cpr::Url(std::move(url)),
         cpr::Header{
-            {"Authorization", std::string{"Bearer "} + _auth.jwt().token()},
             {"X-Session-Id", std::string(session_id)},
         });
     save_session_id_from_header(res.header);
@@ -187,7 +185,6 @@ auto console_t::do_acquire_download_token(
     const auto res = cpr::Post(
         cpr::Url(std::move(url)),
         cpr::Header{
-            {"Authorization", std::string{"Bearer "} + _auth.jwt().token()},
             {"X-Session-Id", std::string(session_id)},
         },
         cpr::Body{body.dump()});

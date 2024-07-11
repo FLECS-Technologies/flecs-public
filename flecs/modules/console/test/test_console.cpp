@@ -212,15 +212,6 @@ public:
         CROW_ROUTE(_app, "/api/v2/device/license/validate")
             .methods("POST"_method)([](const crow::request& req) {
                 auto response = flecs::json_t{};
-                const auto auth = req.get_header_value("authorization").substr(7);
-                if (auth.empty()) {
-                    const auto response = flecs::json_t({
-                        {"statusCode", 403},
-                        {"statusText", "Forbidden"},
-                        {"reason", "Invalid header: Authorization (expected Bearer)"},
-                    });
-                    return crow::response(403, response.dump());
-                }
 
                 const auto session_id = req.get_header_value("x-session-id");
                 if (session_id == "200-active") {
@@ -271,15 +262,6 @@ public:
         CROW_ROUTE(_app, "/api/v2/manifests/<string>/<string>")
             .methods("GET"_method)(
                 [](const crow::request& req, const std::string& app, const std::string& version) {
-                    const auto auth = req.get_header_value("authorization").substr(7);
-                    if (auth.empty()) {
-                        const auto response = flecs::json_t({
-                            {"statusCode", 403},
-                            {"statusText", "Forbidden"},
-                            {"reason", "Invalid header: Authorization (expected Bearer)"},
-                        });
-                        return crow::response(403, response.dump());
-                    }
 
                     if (app != "app" || version != "version") {
                         throw;
@@ -573,23 +555,7 @@ TEST(console, activate_license)
 
 TEST(console, validate_license)
 {
-    cpr::Delete(
-        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
-        cpr::Header{{{"Content-Type"}, {"application/json"}}});
-    /** Valid sessionId, but user is not logged in */
-    {
-        const auto session_id = "200-active";
-        const auto [res, message] = uut.validate_license(session_id);
-
-        ASSERT_EQ(res, -1);
-        ASSERT_EQ(message, "Invalid header: Authorization (expected Bearer)");
-    }
-
-    cpr::Put(
-        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
-        cpr::Header{{{"Content-Type"}, {"application/json"}}},
-        cpr::Body{auth_response_json["data"].dump()});
-    /** User logged in, sessionId is active */
+    /** SessionId is active */
     {
         const auto session_id = "200-active";
         const auto [res, message] = uut.validate_license(session_id);
@@ -598,7 +564,7 @@ TEST(console, validate_license)
         ASSERT_EQ(message, "");
     }
 
-    /** User logged in, sessionId is inactive */
+    /** SessionId is inactive */
     {
         const auto session_id = "200-inactive";
         const auto [res, message] = uut.validate_license(session_id);
@@ -607,7 +573,7 @@ TEST(console, validate_license)
         ASSERT_EQ(message, "");
     }
 
-    /** User logged in, sessionId is inactive. Invalid response from server */
+    /** SessionId is inactive. Invalid response from server */
     {
         const auto session_id = "200-invalid";
         const auto [res, message] = uut.validate_license(session_id);
@@ -637,22 +603,6 @@ TEST(console, validate_license)
 
 TEST(console, download_manifest)
 {
-    cpr::Delete(
-        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
-        cpr::Header{{{"Content-Type"}, {"application/json"}}});
-    /** Valid App, but user is not logged in */
-    {
-        const auto session_id = "200-valid";
-        const auto expected = std::string{};
-        const auto actual = uut.download_manifest("app", "version", session_id);
-
-        ASSERT_EQ(actual, expected);
-    }
-
-    cpr::Put(
-        cpr::Url{"http://127.0.0.1:18951/v2/console/authentication"},
-        cpr::Header{{{"Content-Type"}, {"application/json"}}},
-        cpr::Body{auth_response_json["data"].dump()});
     /** User logged in, sessionId is active */
     {
         const auto session_id = "200-valid";
