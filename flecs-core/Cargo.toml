@@ -10,5 +10,12 @@ authors = { workspace = true }
 
 [dependencies]
 flecstract = { path = "../flecstract", version = "0.1.0" }
-flecs-console-client = { path = "../flecs-console-client", version = "3.0.3" }
+flecs_console_client = { path = "../flecs-console-api/flecs_console_client", version = "1.0.0" }
 flecsd-axum-server = { path = "../flecsd-axum-server", version = "2.0.0" }
+serde_json = "1.0.120"
+reqwest = "0.12.5"
+http = "1"
+
+[dev-dependencies]
+mockito = "1.4"
+tokio = { version = "1.38", features = ["full"] }
