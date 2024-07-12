@@ -43,7 +43,7 @@ flecs_add_module(
     LIBS_PUBLIC
         cpr::cpr
         modules.console.types
-        my::flecs-core-rs
+        my::flecs_core_rs
 )
 
 if(FLECS_BUILD_TESTS)

@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "flecs/modules/module_base/module.h"
-#include "flecs-core-rs/src/lib.rs.h"
+#include "flecs_core_rs/src/lib.rs.h"
 
 namespace flecs {
 

@@ -27,7 +27,7 @@ if(FLECS_BUILD_TESTS)
         modules.device.mocked_modules
         modules.factory
         util.signal_handler
-        my::flecs-core-rs
+        my::flecs_core_rs
     )
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})

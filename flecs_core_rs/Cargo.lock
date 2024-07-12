@@ -276,7 +276,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "flecs-core-rs"
+name = "flecs_core_rs"
 version = "0.1.0"
 dependencies = [
  "anyhow",

@@ -25,7 +25,7 @@ if (FLECS_BUILD_TESTS)
         modules.factory
         modules.module_base
         modules.system
-        my::flecs-core-rs
+        my::flecs_core_rs
     )
 
     add_test(NAME modules.system.test COMMAND modules.system.test)

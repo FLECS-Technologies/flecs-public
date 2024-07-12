@@ -15,7 +15,7 @@
 #include "flecs/api/api.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/util/signal_handler/signal_handler.h"
-#include "flecs-core-rs/src/lib.rs.h"
+#include "flecs_core_rs/src/lib.rs.h"
 #include "rust/cxx.h"
 int main(int argc, char* argv[])
 {

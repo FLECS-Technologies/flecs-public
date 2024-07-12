@@ -19,7 +19,7 @@
 #include "flecs/modules/console/types.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/module_base/module.h"
-#include "cxxbridge/flecs-core-rs/src/lib.rs.h"
+#include "cxxbridge/flecs_core_rs/src/lib.rs.h"
 #include "cxxbridge/rust/cxx.h"
 
 namespace flecs {

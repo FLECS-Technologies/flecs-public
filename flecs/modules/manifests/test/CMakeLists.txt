@@ -26,7 +26,7 @@ if(FLECS_BUILD_TESTS)
         GTest::gtest_main
         common.app.manifest
         modules.manifests.mocked_modules
-        my::flecs-core-rs
+        my::flecs_core_rs
     )
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})

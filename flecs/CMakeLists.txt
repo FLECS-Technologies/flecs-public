@@ -13,7 +13,7 @@
 # limitations under the License.
 
 include(../corrosion_cxx.cmake)
-add_library_rust(PATH ../flecs-core-rs NAMESPACE my)
+add_library_rust(PATH ../flecs_core_rs NAMESPACE my)
 
 set(CXXBRIDGE_INCLUDE_PATH "${CMAKE_BINARY_DIR}/cargo/build/${Rust_CARGO_TARGET}")
 message(STATUS "CXXBRIDGE_INCLUDE_PATH=${CXXBRIDGE_INCLUDE_PATH}")
