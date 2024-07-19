@@ -130,12 +130,12 @@ components:
           type: integer
           minimum: 0
         userEmail:
-          type: string
+          type: String
           format: email
         userLogin:
-          type: string
+          type: String
         displayName:
-          type: string
+          type: String
     jwt:
       type: object
       required:
@@ -192,10 +192,6 @@ components:
           orphaned,
           unknown,
         ]
-    instance_editor:
-      type: string
-      description: "Link to the editor of an instance"
-      example: "/api/v2/instances/abcd1234/editor/"
     app_instance:
       required:
         - instanceId
@@ -215,8 +211,6 @@ components:
           $ref: "#/components/schemas/instance_status"
         desired:
           $ref: "#/components/schemas/instance_status"
-        editor:
-          $ref: "#/components/schemas/instance_editor"
     instance_detail_hostname:
       type: string
       description: Hostname of an instance
@@ -762,8 +756,6 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/instance_detail_volume"
-                  editor:
-                    $ref: "#/components/schemas/instance_editor"
         "404":
           description: No instance with this instance_id found
         "500":

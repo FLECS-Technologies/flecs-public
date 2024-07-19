@@ -16,7 +16,6 @@
 
 #include "flecs/common/app/manifest/port_range/port_range.h"
 #include "flecs/common/app/manifest/variable/variable.h"
-#include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/instances/impl/instances_impl.h"
@@ -187,9 +186,6 @@ auto instances_t::http_list(const apps::key_t& app_key) const //
             }
         }
         json["desired"] = to_string(instance->desired());
-        if (instance->has_app() && !instance->app()->manifest()->editor().empty()) {
-            json["editor"] = "/v2/instances/" + instance_id.hex() + "/editor";
-        }
         response.push_back(std::move(json));
     }
 
