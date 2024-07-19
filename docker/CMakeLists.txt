@@ -68,11 +68,6 @@ function(stage_docker_fs)
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
-    install(FILES ${CMAKE_SOURCE_DIR}/pkg/fs/etc/nginx/floxy.conf
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/etc/nginx
-        COMPONENT docker
-        EXCLUDE_FROM_ALL
-    )
     install_external(cpr::cpr ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
     install_external(CURL::libcurl ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
     install_external(Libusb::Libusb ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)

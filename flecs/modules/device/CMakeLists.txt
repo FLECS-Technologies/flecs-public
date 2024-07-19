@@ -16,9 +16,7 @@ flecs_add_module(
     MODULE_NAME device
     ADDITIONAL_HEADERS impl/device_impl.h
     ADDITIONAL_SOURCES src/impl/device_impl.cpp
-    LIBS_PUBLIC
-        modules.console
-        modules.floxy
+    LIBS_PUBLIC modules.console
 )
 
 if(FLECS_BUILD_TESTS)
