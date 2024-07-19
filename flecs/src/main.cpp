@@ -22,7 +22,6 @@
 #include "flecs/modules/device/device.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/flecsport/flecsport.h"
-#include "flecs/modules/floxy/floxy.h"
 #include "flecs/modules/instances/instances.h"
 #include "flecs/modules/jobs/jobs.h"
 #include "flecs/modules/manifests/manifests.h"
@@ -36,7 +35,6 @@ flecs::module::register_module_t<flecs::module::data_layer_t> _reg_data_layer("d
 flecs::module::register_module_t<flecs::module::deployments_t> _reg_deployments("deployments");
 flecs::module::register_module_t<flecs::module::device_t> _reg_device("device");
 flecs::module::register_module_t<flecs::module::flecsport_t> _reg_flecsport("flecsport");
-flecs::module::register_module_t<flecs::module::floxy_t> _reg_floxy("floxy");
 flecs::module::register_module_t<flecs::module::instances_t> _reg_instances("instances");
 flecs::module::register_module_t<flecs::module::jobs_t> _reg_jobs("jobs");
 flecs::module::register_module_t<flecs::module::manifests_t> _reg_manifests("manifests");

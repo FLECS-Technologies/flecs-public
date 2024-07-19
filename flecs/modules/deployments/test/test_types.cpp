@@ -24,9 +24,6 @@
 #include "flecs/modules/deployments/types.h"
 #include "flecs/util/fs/fs.h"
 
-#include "flecs/modules/floxy/__mocks__/floxy.h"
-#include "flecs/modules/factory/factory.h"
-
 namespace flecs {
 namespace deployments {
 class mock_deployment_t : public deployment_t
@@ -114,12 +111,6 @@ public:
     MOCK_METHOD(network_type_e, do_default_network_type, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_cidr_subnet, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_gateway, (), (const, override));
-    mock_deployment_t() {
-        flecs::module::register_module_t<flecs::module::floxy_t>("floxy");
-    }
-    ~mock_deployment_t() {
-        flecs::module::unregister_module_t("floxy");
-    }
 };
 } // namespace deployments
 } // namespace flecs
