@@ -608,10 +608,6 @@ auto instances_t::do_details(instances::id_t instance_id) const //
         }
     }
 
-    if (!manifest->editor().empty()) {
-        response["editor"] = "/v2/instances/" + instance_id.hex() + "/editor";
-    }
-
     return {crow::status::OK, "json", response.dump()};
 }
 
