@@ -85,12 +85,10 @@ private:
 
     void parse_yaml(const yaml_t& yaml);
     void validate();
-    void upgrade_manifest_version();
 
     bool _valid;
 
     std::string _app;
-    std::string _manifest_version;
     args_t _args;
     capabilities_t _capabilities;
     conffiles_t _conffiles;
