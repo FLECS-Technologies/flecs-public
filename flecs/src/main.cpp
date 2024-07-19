@@ -12,21 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <filesystem>
-
 #include "flecs/api/api.h"
 #include "flecs/modules/apps/apps.h"
 #include "flecs/modules/console/console.h"
 #include "flecs/modules/data_layer/data_layer.h"
 #include "flecs/modules/deployments/deployments.h"
 #include "flecs/modules/device/device.h"
-#include "flecs/modules/factory/factory.h"
 #include "flecs/modules/flecsport/flecsport.h"
 #include "flecs/modules/instances/instances.h"
 #include "flecs/modules/jobs/jobs.h"
 #include "flecs/modules/manifests/manifests.h"
 #include "flecs/modules/system/system.h"
 #include "flecs/modules/version/version.h"
+#include "flecs/modules/factory/factory.h"
 #include "flecs/util/signal_handler/signal_handler.h"
 
 flecs::module::register_module_t<flecs::module::apps_t> _reg_apps("apps");
@@ -41,22 +39,12 @@ flecs::module::register_module_t<flecs::module::manifests_t> _reg_manifests("man
 flecs::module::register_module_t<flecs::module::system_t> _reg_system("system");
 flecs::module::register_module_t<flecs::module::version_t> _reg_version("version");
 
-int main(int /*argc*/, char** /*argv*/)
+int main(int argc, char* argv[])
 {
-    const auto local_socket_path = std::filesystem::path{"/run/flecs/flecsd.sock"};
-    std::filesystem::remove(local_socket_path);
-    std::filesystem::create_directories(local_socket_path.parent_path());
+    const auto bindaddr = argc > 1 ? argv[1] : "127.0.0.1";
 
     flecs::api::init_modules();
-    auto res =
-        flecs::flecs_api_t::instance().app().multithreaded().local_socket_path(local_socket_path).run_async();
-    flecs::flecs_api_t::instance().app().wait_for_server_start();
-
-    std::filesystem::permissions(
-        local_socket_path,
-        std::filesystem::perms::group_write | std::filesystem::perms::others_write);
-
-    res.get();
+    flecs::flecs_api_t::instance().app().multithreaded().port(8951).bindaddr(bindaddr).run();
 
     flecs::g_stop = true;
 
