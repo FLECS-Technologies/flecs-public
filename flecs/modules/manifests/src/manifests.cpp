@@ -94,50 +94,27 @@ auto manifests_t::add_from_json(const json_t& manifest) //
 {
     return add(app_manifest_t::from_json(manifest));
 }
-auto manifests_t::add_from_yaml(const yaml_t& manifest) //
-    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
-{
-    return add(app_manifest_t::from_yaml(manifest));
-}
 
 auto manifests_t::add_from_file(const fs::path& path) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
-    auto [manifest, res] = add_from_json_file(path);
-    if (res) {
-        return {manifest, res};
-    }
-    return add_from_yaml_file(path);
+    return add_from_json_file(path);
 }
 auto manifests_t::add_from_json_file(const fs::path& path) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
     return add(app_manifest_t::from_json_file(path));
 }
-auto manifests_t::add_from_yaml_file(const fs::path& path) //
-    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
-{
-    return add(app_manifest_t::from_yaml_file(path));
-}
 
 auto manifests_t::add_from_string(std::string_view manifest) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
-    auto [manifest_ptr, added] = add_from_json_string(manifest);
-    if (manifest_ptr.use_count()) {
-        return {manifest_ptr, added};
-    }
-    return add_from_yaml_string(std::move(manifest));
+    return add_from_json_string(manifest);
 }
 auto manifests_t::add_from_json_string(std::string_view manifest) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
     return add_from_json(parse_json(std::move(manifest)));
-}
-auto manifests_t::add_from_yaml_string(std::string_view manifest) //
-    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
-{
-    return add_from_yaml(yaml_from_string(std::move(manifest)));
 }
 
 auto manifests_t::add_from_console(const apps::key_t& app_key) //

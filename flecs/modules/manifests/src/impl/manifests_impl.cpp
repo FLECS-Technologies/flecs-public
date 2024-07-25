@@ -119,14 +119,6 @@ auto manifests_t::do_query_manifest(const apps::key_t& app_key) noexcept //
         }
     }
 
-    const auto yml_path = _base_path / app_key.name() / app_key.version() / "manifest.yml";
-    if (fs::is_regular_file(yml_path)) {
-        auto [manifest, res] = _parent->add_from_file(yml_path);
-        if (res) {
-            return manifest;
-        }
-    }
-
     return {};
 }
 
@@ -193,19 +185,15 @@ auto manifests_t::do_clear() //
 auto manifests_t::do_erase(const apps::key_t& app_key) //
     -> void
 {
-    auto ec_1 = std::error_code{};
-    fs::remove(_parent->path(app_key), ec_1);
-    auto ec_2 = std::error_code{};
-    fs::remove(_parent->path(app_key).replace_extension("yml"), ec_2);
-
-    if (ec_1 && ec_2) {
+    auto ec = std::error_code{};
+    fs::remove(_parent->path(app_key), ec);
+    if (ec) {
         std::fprintf(
             stderr,
-            "Could not delete manifest for %s (%s): %d/%d\n",
+            "Could not delete manifest for %s (%s): %d\n",
             app_key.name().data(),
             app_key.version().data(),
-            ec_1.value(),
-            ec_2.value());
+            ec.value());
     }
 
     _parent->remove(app_key);

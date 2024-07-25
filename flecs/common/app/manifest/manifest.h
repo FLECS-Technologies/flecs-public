@@ -24,7 +24,6 @@
 #include "flecs/common/network/network.h"
 #include "flecs/util/fs/fs.h"
 #include "flecs/util/json/json.h"
-#include "flecs/util/yaml/yaml.h"
 #include "volume/volume.h"
 
 namespace flecs {
@@ -46,13 +45,10 @@ public:
     app_manifest_t();
 
     static app_manifest_t from_json(const json_t& json);
-    static app_manifest_t from_yaml(const yaml_t& yaml);
 
     static app_manifest_t from_json_string(std::string_view string);
-    static app_manifest_t from_yaml_string(std::string_view string);
 
     static app_manifest_t from_json_file(const fs::path& path);
-    static app_manifest_t from_yaml_file(const fs::path& path);
 
     auto& is_valid() const noexcept { return _valid; }
 
@@ -83,7 +79,6 @@ private:
     friend auto from_json(const json_t& json, app_manifest_t& app_manifest) //
         -> void;
 
-    void parse_yaml(const yaml_t& yaml);
     void validate();
 
     bool _valid;

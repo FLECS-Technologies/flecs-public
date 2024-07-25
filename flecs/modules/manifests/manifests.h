@@ -45,10 +45,7 @@ public:
     /** @brief Define base_path for local manifest store
      *
      * The base path defines where local manifests will be searched. Given any app_key, a local
-     * manifest is expected in these paths:
-     *      1) ${base_path}/${app_key.name}/${app_key.version}/manifest.json
-     *      2) ${base_path}/${app_key.name}/${app_key.version}/manifest.yml
-     * If both .json and .yml exist, json will be preferred.
+     * manifest is expected in the paths: ${base_path}/${app_key.name}/${app_key.version}/manifest.json
      *
      * Upon changing the base path, the manifest cache will be cleared, invalidating all references
      * retrieved since the base_path has last been changed, the last call to remove() for any
@@ -119,21 +116,15 @@ public:
         -> add_result_t;
     auto add_from_json(const json_t& manifest) //
         -> add_result_t;
-    auto add_from_yaml(const yaml_t& manifest) //
-        -> add_result_t;
 
     auto add_from_string(std::string_view manifest) //
         -> add_result_t;
     auto add_from_json_string(std::string_view manifest) //
         -> add_result_t;
-    auto add_from_yaml_string(std::string_view manifest) //
-        -> add_result_t;
 
     auto add_from_file(const fs::path& path) //
         -> add_result_t;
     auto add_from_json_file(const fs::path& path) //
-        -> add_result_t;
-    auto add_from_yaml_file(const fs::path& path) //
         -> add_result_t;
 
     auto add_from_console(const apps::key_t& app_key) //

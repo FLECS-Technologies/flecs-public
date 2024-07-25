@@ -95,29 +95,24 @@ auto create_manifests(const fs::path& base_path) //
     fs::create_directories(base_path / "tech.flecs.invalid-app-1/2.3.4.5-f2");
     fs::create_directories(base_path / "tech.flecs.invalid-app-2");
     fs::create_directories(base_path / "_");
-
-    {
-        auto file = std::ofstream{base_path / "tech.flecs.test-app-1/1.2.3.4-f1/manifest.yml"};
-        file << valid_manifest_1;
-    }
     {
         auto file = std::ofstream{base_path / "tech.flecs.test-app-1/1.2.3.4-f1/manifest.json"};
         file << json_manifest_1;
     }
     {
-        auto file = std::ofstream{base_path / "tech.flecs.test-app-2/2.3.4.5-f2/manifest.yml"};
-        file << valid_manifest_2;
+        auto file = std::ofstream{base_path / "tech.flecs.test-app-2/2.3.4.5-f2/manifest.json"};
+        file << json_manifest_2;
     }
     {
-        auto file = std::ofstream{base_path / "tech.flecs.invalid-app-1/2.3.4.5-f2/manifest.yml"};
+        auto file = std::ofstream{base_path / "tech.flecs.invalid-app-1/2.3.4.5-f2/manifest.json"};
         file << invalid_manifest_1;
     }
     {
-        auto file = std::ofstream{base_path / "tech.flecs.invalid-app-2/manifest.yml"};
+        auto file = std::ofstream{base_path / "tech.flecs.invalid-app-2/manifest.json"};
         file << invalid_manifest_2;
     }
     {
-        auto file = std::ofstream{base_path / "_/!.yml"};
+        auto file = std::ofstream{base_path / "_/!.json"};
         file << invalid_manifest_3;
     }
 }
@@ -174,7 +169,7 @@ TEST(manifests, load_fail)
     ASSERT_EQ(uut.base_path(), "");
 
     const auto [manifest_1, res_1] =
-        uut.add_from_file("./import/tech.flecs.test-app-1/1.2.3.4-f1/manifest.yml");
+        uut.add_from_file("./import/tech.flecs.test-app-1/1.2.3.4-f1/manifest.json");
     ASSERT_FALSE(res_1);
     ASSERT_FALSE(uut.contains(valid_key_1));
     ASSERT_FALSE(uut.query(valid_key_1));
@@ -196,7 +191,7 @@ TEST(manifests, add_from_file)
     ASSERT_FALSE(fs::exists("./manifests/tech.flecs.test-app-1/1.2.3.4-f1/manifest.json"));
 
     const auto [manifest_1, res_1] =
-        uut.add_from_file("./import/tech.flecs.test-app-1/1.2.3.4-f1/manifest.yml");
+        uut.add_from_file("./import/tech.flecs.test-app-1/1.2.3.4-f1/manifest.json");
     ASSERT_TRUE(res_1);
     ASSERT_TRUE(uut.contains(valid_key_1));
     ASSERT_TRUE(uut.query(valid_key_1));
@@ -204,7 +199,7 @@ TEST(manifests, add_from_file)
     ASSERT_TRUE(fs::exists("./manifests/tech.flecs.test-app-1/1.2.3.4-f1/manifest.json"));
 
     const auto [manifest_2, res_2] =
-        uut.add_from_file("./import/tech.flecs.test-app-1/1.2.3.4-f1/manifest.yml");
+        uut.add_from_file("./import/tech.flecs.test-app-1/1.2.3.4-f1/manifest.json");
     ASSERT_FALSE(res_2);
     ASSERT_TRUE(uut.contains(valid_key_1));
     ASSERT_TRUE(uut.query(valid_key_1));
@@ -212,27 +207,6 @@ TEST(manifests, add_from_file)
     uut.deinit();
 
     delete_manifests("./import");
-    delete_manifests("./manifests");
-}
-
-TEST(manifests, add_from_yaml_string)
-{
-    auto uut = test_module_manifests_t{};
-    uut.init();
-    uut.base_path("./manifests");
-
-    const auto [manifest_1, res_1] = uut.add_from_string(valid_manifest_1);
-    ASSERT_TRUE(res_1);
-    ASSERT_TRUE(uut.contains(valid_key_1));
-    ASSERT_TRUE(uut.query(valid_key_1));
-
-    const auto [manifest_2, res_2] = uut.add_from_string(valid_manifest_1);
-    ASSERT_FALSE(res_2);
-    ASSERT_TRUE(uut.contains(valid_key_1));
-    ASSERT_TRUE(uut.query(valid_key_1));
-
-    uut.deinit();
-
     delete_manifests("./manifests");
 }
 

@@ -136,22 +136,20 @@ using namespace testing;
 #define G_FILE_LOCAL "/some/local/file"
 #define G_FILE_CONTAINER "/some/other/container/file"
 
-#define G_MANIFEST_1             \
-    "app: tech.flecs.test-app\n" \
-    "version: " G_VERSION_1      \
-    "\n"                         \
-    "image: " G_IMAGE "\n"s
+static const auto json_manifest_1 =
+    R"-({"app":"tech.flecs.test-app",)-"
+    R"-("version":"1.2.3.4-f1",)-"
+    R"-("image":"flecs/test-app",)-";
 
-#define G_MANIFEST_2             \
-    "app: tech.flecs.test-app\n" \
-    "version: " G_VERSION_2      \
-    "\n"                         \
-    "image: " G_IMAGE "\n"s
+static const auto json_manifest_2 =
+    R"-({"app":"tech.flecs.test-app",)-"
+    R"-("version":"2.3.4.5-f1",)-"
+    R"-("image":"flecs/test-app",)-";
 
 static const auto manifest_1 =
-    std::make_shared<flecs::app_manifest_t>(flecs::app_manifest_t::from_yaml_string(G_MANIFEST_1));
+    std::make_shared<flecs::app_manifest_t>(flecs::app_manifest_t::from_json_string(json_manifest_1));
 static const auto manifest_2 =
-    std::make_shared<flecs::app_manifest_t>(flecs::app_manifest_t::from_yaml_string(G_MANIFEST_2));
+    std::make_shared<flecs::app_manifest_t>(flecs::app_manifest_t::from_json_string(json_manifest_2));
 
 static const auto app_1 =
     std::make_shared<flecs::apps::app_t>(flecs::apps::key_t{G_APP, G_VERSION_1}, manifest_1);

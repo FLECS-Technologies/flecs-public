@@ -24,7 +24,6 @@
 #include "flecs/modules/module_base/module.h"
 #include "flecs/util/fs/fs.h"
 #include "flecs/util/json/json.h"
-#include "flecs/util/yaml/yaml.h"
 
 namespace flecs {
 namespace apps {
@@ -62,15 +61,12 @@ public:
     using add_result_t = std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     MOCK_METHOD((add_result_t), add, (app_manifest_t), ());
     MOCK_METHOD((add_result_t), add_from_json, (const json_t&), ());
-    MOCK_METHOD((add_result_t), add_from_yaml, (const yaml_t&), ());
 
     MOCK_METHOD((add_result_t), add_from_string, (std::string_view), ());
     MOCK_METHOD((add_result_t), add_from_json_string, (std::string_view), ());
-    MOCK_METHOD((add_result_t), add_from_yaml_string, (std::string_view), ());
 
     MOCK_METHOD((add_result_t), add_from_file, (const fs::path&), ());
     MOCK_METHOD((add_result_t), add_from_json_file, (const fs::path&), ());
-    MOCK_METHOD((add_result_t), add_from_yaml_file, (const fs::path&), ());
 
     MOCK_METHOD((add_result_t), add_from_console, (const apps::key_t&), ());
     MOCK_METHOD((add_result_t), add_from_url, (std::string_view), ());
