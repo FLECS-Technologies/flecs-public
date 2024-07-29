@@ -39,6 +39,45 @@ const auto raw_json_manifest =
     R"-("volumes":["var:/var/","etc:/etc/","/home/app1/dir:/home/"],)-"
     R"-("labels":["empty=","some.json={\"varname\": 123}","with-whitespace=some\tvalue with\nwhitespace"]})-";
 
+const auto raw_json_manifest_v2 =
+    R"-({"app":"tech.flecs.test-app",)-"
+    R"-("_schemaVersion":"2.0.0",)-"
+    R"-("version":"1.2.3.4-f1",)-"
+    R"-("image":"flecs/test-app",)-"
+    R"-("multiInstance":false,)-"
+    R"-("editor":":1234",)-"
+    R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
+    R"-("capabilities":[],)-"
+    R"-("conffiles":["local.conf:/etc/container.conf:rw"],)-"
+    R"-("devices":["/dev/device0"],)-"
+    R"-("env":["MY_ENV_VAR=ENV_VAR_VALUE","my-env-with-dashes=value-with-dashes","my.env.with.spaces=Value with spaces","my.other.env=MY_OTHER_VALUE"],)-"
+    R"-("hostname":"flecs-unit-test",)-"
+    R"-("interactive":true,)-"
+    R"-("networks":[{"mac_address":"","name":"flecs","parent":"","type":"bridge"}],)-"
+    R"-("ports":["1234:1234","8000-8005:10000-10005"],)-"
+    R"-("startupOptions":[1],)-"
+    R"-("volumes":["var:/var/","etc:/etc/","/home/app1/dir:/home/"],)-"
+    R"-("labels":["empty=","some.json={\"varname\": 123}","with-whitespace=some\tvalue with\nwhitespace"]})-";
+
+const auto raw_json_manifest_v_unspecified =
+    R"-({"app":"tech.flecs.test-app",)-"
+    R"-("version":"1.2.3.4-f1",)-"
+    R"-("image":"flecs/test-app",)-"
+    R"-("multiInstance":false,)-"
+    R"-("editor":":1234",)-"
+    R"-("args":["--launch-arg1","--launch-arg2","launch-arg3"],)-"
+    R"-("capabilities":[],)-"
+    R"-("conffiles":["local.conf:/etc/container.conf:rw"],)-"
+    R"-("devices":["/dev/device0"],)-"
+    R"-("env":["MY_ENV_VAR=ENV_VAR_VALUE","my-env-with-dashes=value-with-dashes","my.env.with.spaces=Value with spaces","my.other.env=MY_OTHER_VALUE"],)-"
+    R"-("hostname":"flecs-unit-test",)-"
+    R"-("interactive":true,)-"
+    R"-("networks":[{"mac_address":"","name":"flecs","parent":"","type":"bridge"}],)-"
+    R"-("ports":["1234:1234","8000-8005:10000-10005"],)-"
+    R"-("startupOptions":[1],)-"
+    R"-("volumes":["var:/var/","etc:/etc/","/home/app1/dir:/home/"],)-"
+    R"-("labels":["empty=","some.json={\"varname\": 123}","with-whitespace=some\tvalue with\nwhitespace"]})-";
+
 
 TEST(daemon_app, json)
 {
@@ -46,4 +85,32 @@ TEST(daemon_app, json)
 
     const auto json = flecs::json_t(app_manifest);
     ASSERT_EQ(json.dump(), raw_json_manifest);
+}
+
+TEST(daemon_app, json_v2)
+{
+    const auto app_manifest = flecs::app_manifest_t::from_json_string(raw_json_manifest_v2);
+
+    const auto json = flecs::json_t(app_manifest);
+
+    ASSERT_EQ(json["_schemaVersion"], "3.0.0");
+    ASSERT_EQ(app_manifest.editors().size(), 1);
+    ASSERT_TRUE(app_manifest.editors().contains(1234));
+    ASSERT_EQ(app_manifest.editors().at(1234).port(), 1234);
+    ASSERT_EQ(app_manifest.editors().at(1234).supports_reverse_proxy(), false);
+    ASSERT_TRUE(app_manifest.editors().at(1234).name().empty());
+}
+
+TEST(daemon_app, json_v_unspecified)
+{
+    const auto app_manifest = flecs::app_manifest_t::from_json_string(raw_json_manifest_v_unspecified);
+
+    const auto json = flecs::json_t(app_manifest);
+
+    ASSERT_EQ(json["_schemaVersion"], "3.0.0");
+    ASSERT_EQ(app_manifest.editors().size(), 1);
+    ASSERT_TRUE(app_manifest.editors().contains(1234));
+    ASSERT_EQ(app_manifest.editors().at(1234).port(), 1234);
+    ASSERT_EQ(app_manifest.editors().at(1234).supports_reverse_proxy(), false);
+    ASSERT_TRUE(app_manifest.editors().at(1234).name().empty());
 }
