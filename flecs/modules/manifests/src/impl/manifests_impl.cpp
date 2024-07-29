@@ -122,34 +122,6 @@ auto manifests_t::do_query_manifest(const apps::key_t& app_key) noexcept //
     return {};
 }
 
-auto manifests_t::do_add(app_manifest_t manifest) //
-    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
-{
-    auto app_key = apps::key_t{manifest.app(), manifest.version()};
-
-    if (_parent->contains(app_key)) {
-        auto p = _parent->query(app_key);
-        *p = std::move(manifest);
-        return {p, false};
-    }
-
-    auto p = _manifests.emplace_back(std::make_shared<app_manifest_t>(std::move(manifest)));
-    auto ec = std::error_code{};
-    fs::create_directories(_parent->path(app_key).parent_path(), ec);
-    if (ec) {
-        std::fprintf(stderr, "Could not create directory in local manifest store: %d\n", ec.value());
-        return {p, true};
-    }
-
-    auto file = std::ofstream{_parent->path(app_key)};
-    file << json_t(*p).dump(4);
-    if (!file) {
-        std::fprintf(stderr, "Could not copy manifest to local manifest store\n");
-    }
-
-    return {p, true};
-}
-
 auto manifests_t::do_add_from_url(std::string_view url) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
@@ -175,6 +147,73 @@ auto manifests_t::do_add_from_url(std::string_view url) //
     }
 
     return _parent->add_from_string(manifest);
+}
+
+auto manifests_t::do_add_from_string(std::string_view manifest_str) //
+    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
+{
+    auto manifest = app_manifest_t::from_json_string(manifest_str);
+    auto app_key = apps::key_t{manifest.app(), manifest.version()};
+
+    if (_parent->contains(app_key)) {
+        auto p = _parent->query(app_key);
+        *p = std::move(manifest);
+        return {p, false};
+    }
+
+    auto p = _manifests.emplace_back(std::make_shared<app_manifest_t>(std::move(manifest)));
+    auto ec = std::error_code{};
+    fs::create_directories(_parent->path(app_key).parent_path(), ec);
+    if (ec) {
+        std::fprintf(stderr, "Could not create directory in local manifest store: %d\n", ec.value());
+        return {p, false};
+    }
+    auto file = std::ofstream{_parent->path(app_key)};
+    file << manifest_str;
+    if (!file) {
+        std::fprintf(stderr, "Could not copy manifest to local manifest store\n");
+        return {p, false};
+    }
+    return {p, true};
+}
+
+auto manifests_t::do_add_from_file(const fs::path& path) //
+    -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
+{
+    auto manifest = app_manifest_t::from_json_file(path);
+    auto app_key = apps::key_t{manifest.app(), manifest.version()};
+
+    if (_parent->contains(app_key)) {
+        auto p = _parent->query(app_key);
+        *p = std::move(manifest);
+        return {p, false};
+    }
+
+    auto p = _manifests.emplace_back(std::make_shared<app_manifest_t>(std::move(manifest)));
+    auto dest_path = _parent->path(app_key);
+    bool copy = true;
+    if (fs::exists(dest_path)) {
+        try {
+            copy = fs::canonical(path) != fs::canonical(dest_path);
+        } catch (const fs::filesystem_error& e) {
+            std::fprintf(stderr, "Could not canonize source or destination of manifest file path: %s\n", e.what());
+            return {p, false};
+        }
+    }
+    if (copy) {
+        auto ec = std::error_code{};
+        fs::create_directories(dest_path.parent_path(), ec);
+        if (ec) {
+            std::fprintf(stderr, "Could not create directory in local manifest store: %d\n", ec.value());
+            return {p, false};
+        }
+        fs::copy_file(path, dest_path, ec);
+        if (ec) {
+            std::fprintf(stderr, "Could not copy manifest file to local manifest store: %d\n", ec.value());
+            return {p, false};
+        }
+    }
+    return {p, true};
 }
 
 auto manifests_t::do_clear() //

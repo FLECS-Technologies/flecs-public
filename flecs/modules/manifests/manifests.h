@@ -110,21 +110,11 @@ public:
         -> std::shared_ptr<const app_manifest_t>;
 
     using add_result_t = std::tuple<std::shared_ptr<app_manifest_t>, bool>;
-    /** @brief Add a manifest to the local manifest store and cache
-     */
-    auto add(app_manifest_t manifest) //
-        -> add_result_t;
-    auto add_from_json(const json_t& manifest) //
-        -> add_result_t;
 
     auto add_from_string(std::string_view manifest) //
         -> add_result_t;
-    auto add_from_json_string(std::string_view manifest) //
-        -> add_result_t;
 
     auto add_from_file(const fs::path& path) //
-        -> add_result_t;
-    auto add_from_json_file(const fs::path& path) //
         -> add_result_t;
 
     auto add_from_console(const apps::key_t& app_key) //

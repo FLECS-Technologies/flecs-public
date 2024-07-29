@@ -563,7 +563,7 @@ auto apps_t::do_import_from(apps::key_t app_key, fs::path src_dir, jobs::progres
 {
     /* add App manifest */
     auto path = src_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".json");
-    const auto [manifest, _] = _manifests_api->add_from_json_file(path);
+    const auto [manifest, _] = _manifests_api->add_from_file(path);
     if (!manifest) {
         return {-1, "Could not add App manifest"};
     }
