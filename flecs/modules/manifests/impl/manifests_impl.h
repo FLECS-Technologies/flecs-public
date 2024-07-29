@@ -33,6 +33,8 @@ class manifests_t
     friend class flecs::module::manifests_t;
 
 public:
+    using add_result_t = flecs::module::manifests_t::add_result_t;
+
     ~manifests_t();
 
     auto do_base_path(const fs::path& base_path) //
@@ -48,13 +50,15 @@ public:
 
     auto do_query_manifest(const apps::key_t& app_key) noexcept //
         -> std::shared_ptr<app_manifest_t>;
-    auto do_query_manifest(const apps::key_t& app_key) const noexcept //
-        -> std::optional<std::reference_wrapper<const app_manifest_t>>;
 
-    auto do_add(app_manifest_t manifest) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
     auto do_add_from_url(std::string_view url) //
-        -> std::tuple<std::shared_ptr<app_manifest_t>, bool>;
+        -> add_result_t;
+
+    auto do_add_from_string(std::string_view manifest_str) //
+        -> add_result_t;
+
+    auto do_add_from_file(const fs::path& path) //
+        -> add_result_t;
 
     auto do_clear() //
         -> void;
