@@ -1,0 +1,29 @@
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+  pull_request:
+    branches:
+      - 'main'
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+jobs:
+  security_audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: FLECS-Technologies/actions-rs
+          ref: main
+          sparse-checkout: |
+            deny.toml
+          path: './deny'
+      - uses: EmbarkStudios/cargo-deny-action@v1
+        with:
+          command: check --config ./deny/deny.toml bans licenses sources
