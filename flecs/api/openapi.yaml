@@ -28,6 +28,10 @@ components:
     id:
       type: string
       pattern: "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+    port:
+      type: integer
+      minimum: 1
+      maximum: 65535
     sessionId:
       type: object
       properties:
@@ -71,9 +75,7 @@ components:
         name:
           type: string
         port:
-          type: number
-          minimum: 1
-          maximum: 65535
+          $ref: "#/components/schemas/port"
         supportsReverseProxy:
           type: boolean
           default: true
@@ -1076,6 +1078,39 @@ paths:
           description: Exposed ports of instance with this instance_id was deleted
         "404":
           description: No instance with this instance_id found
+  /instances/{instance_id}/editor/{port}:
+    get:
+      tags: [ "Instances" ]
+      summary: Access an editor of an app
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: port
+          in: path
+          schema:
+            $ref: "#/components/schemas/port"
+          required: true
+      responses:
+        "302":
+          description: Found
+          headers:
+            Location:
+              schema:
+                type: string
+              required: true
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: Instance id or port not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/additionalInfo"
+        "500":
+          $ref: "#/components/responses/response_500"
   # flunder related paths
   /flunder/browse:
     get:
