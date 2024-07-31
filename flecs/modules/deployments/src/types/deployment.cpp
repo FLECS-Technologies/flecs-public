@@ -224,7 +224,7 @@ auto deployment_t::delete_instance(std::shared_ptr<instances::instance_t> instan
 {
     const auto [res, additional_info] = do_delete_instance(instance);
     const auto floxy_api = dynamic_cast<module::floxy_t*>(api::query_module("floxy").get());
-    floxy_api->delete_instance_reverse_proxy_config(instance->app()->key().name(), instance->id());
+    floxy_api->delete_reverse_proxy_configs(instance);
     _instances.erase(
         std::remove_if(
             _instances.begin(),
@@ -309,7 +309,9 @@ auto deployment_t::stop_instance(std::shared_ptr<instances::instance_t> instance
     -> result_t
 {
     auto [res, additional_info] = do_stop_instance(instance);
-
+    const auto floxy_api = dynamic_cast<module::floxy_t*>(api::query_module("floxy").get());
+    floxy_api->delete_server_proxy_configs(instance);
+    instance->clear_editor_port_mapping();
     if (std::count(
             instance->startup_options().cbegin(),
             instance->startup_options().cend(),

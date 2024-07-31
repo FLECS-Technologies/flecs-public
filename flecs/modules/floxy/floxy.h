@@ -15,6 +15,7 @@
 #pragma once
 
 #include "flecs/modules/console/types/session_id.h"
+#include "flecs/modules/instances/types/instance.h"
 #include "flecs/modules/instances/types/instance_id.h"
 #include "flecs/modules/module_base/module.h"
 
@@ -31,10 +32,12 @@ class floxy_t FLECS_FINAL_UNLESS_TESTED : public base_t
 public:
     ~floxy_t();
 
-    auto load_instance_reverse_proxy_config(const std::string& ip_address, const std::string& app_name, const instances::id_t& instance_id, std::vector<uint16_t>& dest_ports) //
+    auto load_instance_reverse_proxy_config(const std::string& ip_address, const std::string& app_name, const instances::id_t& instance_id, std::vector<std::uint16_t>& dest_ports) //
         -> result_t;
 
-    auto delete_instance_reverse_proxy_config(const std::string& app_name, const instances::id_t& instance_id) //
+    auto delete_reverse_proxy_configs(std::shared_ptr<instances::instance_t> instance) //
+        -> result_t;
+    auto delete_server_proxy_configs(std::shared_ptr<instances::instance_t> instance) //
         -> result_t;
 
 protected:
@@ -46,7 +49,7 @@ protected:
     auto do_deinit() //
         -> void override;
 
-    auto redirect_editor_request(instances::id_t instance_id, uint16_t port) //
+    auto redirect_editor_request(instances::id_t instance_id, std::uint16_t port) //
         -> crow::response;
 
     std::unique_ptr<impl::floxy_t> _impl;

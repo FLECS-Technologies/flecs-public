@@ -318,6 +318,24 @@ auto from_json(const json_t& j, instance_t& instance) //
     }
 }
 
+auto instance_t::editor_port_mapping() const //
+    -> const std::unordered_map<std::uint16_t, std::uint16_t>&
+{
+    return _mapped_editor_ports;
+}
+
+auto instance_t::set_editor_port_mapping(std::uint16_t host_port, std::uint16_t editor_port) //
+    -> void
+{
+    _mapped_editor_ports[editor_port] = host_port;
+}
+
+auto instance_t::clear_editor_port_mapping() //
+    -> void
+{
+    _mapped_editor_ports.clear();
+}
+
 auto operator==(const instance_t& lhs, const instance_t& rhs) //
     -> bool
 {

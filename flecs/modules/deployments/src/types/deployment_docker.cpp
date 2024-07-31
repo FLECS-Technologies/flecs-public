@@ -95,13 +95,6 @@ auto docker_t::create_container(std::shared_ptr<instances::instance_t> instance)
             docker_process.arg(stringify(port_range));
         }
     }
-    for (const auto& [_, editor] : manifest->editors()) {
-        if (!editor.supports_reverse_proxy()) {
-            auto port = std::to_string(editor.port());
-            docker_process.arg("--publish");
-            docker_process.arg(port + ':' + port);
-        }
-    }
     if (manifest->interactive()) {
         docker_process.arg("--interactive");
     }

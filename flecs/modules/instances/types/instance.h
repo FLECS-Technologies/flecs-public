@@ -104,6 +104,12 @@ public:
         -> void;
     auto desired(instances::status_e instance_status) //
         -> void;
+    auto editor_port_mapping() const //
+        -> const std::unordered_map<std::uint16_t, std::uint16_t>&;
+    auto set_editor_port_mapping(std::uint16_t host_port, std::uint16_t editor_port) //
+        -> void;
+    auto clear_editor_port_mapping() //
+        -> void;
 
 private:
     friend auto to_json(json_t& json, const network_t& network) //
@@ -133,6 +139,7 @@ private:
     std::set<usb::device_t> _usb_devices;
     std::optional<envs_t> _env;
     std::optional<ports_t> _ports;
+    std::unordered_map<uint16_t, uint16_t> _mapped_editor_ports;
 };
 
 auto operator==(const instance_t& lhs, const instance_t& rhs) //
