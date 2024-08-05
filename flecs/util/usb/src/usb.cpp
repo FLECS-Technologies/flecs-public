@@ -14,12 +14,9 @@
 
 #include "flecs/util/usb/usb.h"
 
-#include <libusb-1.0/libusb.h>
-
 #include <tuple>
 
-#include "flecs/util/sysfs/sysfs.h"
-#include "flecs/util/udev/hwdb.h"
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
 
 namespace flecs {
 namespace usb {
@@ -66,57 +63,16 @@ auto from_json(const json_t& json, device_t& device) //
 auto get_devices() //
     -> std::set<device_t>
 {
-    constexpr auto NUM_USB_PORTS = 7;
-
     auto devices = std::set<device_t>{};
 
-    auto hwdb = udev::hwdb_t{};
-
-    libusb_context* context = nullptr;
-    libusb_init(&context);
-
-    auto usb_devices = static_cast<libusb_device**>(nullptr);
-    const auto device_count = libusb_get_device_list(context, &usb_devices);
-
-    for (ssize_t i = 0; i < device_count; ++i) {
-        auto desc = libusb_device_descriptor{};
-        if (libusb_get_device_descriptor(usb_devices[i], &desc) != 0) {
-            continue;
-        }
-
-        auto port = std::string{};
-
-        std::uint8_t port_numbers[NUM_USB_PORTS] = {};
-        const auto bus = libusb_get_bus_number(usb_devices[i]);
-        const auto num_ports = libusb_get_port_numbers(usb_devices[i], port_numbers, NUM_USB_PORTS);
-
-        if (num_ports == 0) {
-            port = std::string{"usb"} + std::to_string(bus);
-        } else {
-            port = std::to_string(bus) + "-" + std::to_string(port_numbers[0]);
-            for (auto i = 1; i < num_ports; ++i) {
-                port += "." + std::to_string(port_numbers[i]);
-            }
-        }
-        auto vendor = hwdb.usb_vendor(desc.idVendor)
-                          .value_or(sysfs::usb_vendor(port).value_or(
-                              "Unknown vendor " + std::to_string(desc.idVendor)));
-
-        auto device = hwdb.usb_device(desc.idVendor, desc.idProduct)
-                          .value_or(sysfs::usb_device(port).value_or(
-                              "Unknown device " + std::to_string(desc.idProduct)));
-        devices.emplace(device_t{
-            .vid = desc.idVendor,
-            .pid = desc.idProduct,
-            .port = std::move(port),
-            .device = std::move(device),
-            .vendor = std::move(vendor)});
+    for (auto device : read_usb_devices()) {
+        devices.insert(device_t{
+            device.vid,
+            device.pid,
+            device.port.c_str(),
+            device.device.c_str(),
+            device.vendor.c_str()});
     }
-
-    libusb_free_device_list(usb_devices, 1);
-    libusb_exit(context);
-    context = nullptr;
-
     return devices;
 }
 

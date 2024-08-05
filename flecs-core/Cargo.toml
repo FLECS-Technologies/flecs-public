@@ -16,6 +16,9 @@ flecs_app_manifest = { path = "../flecs_app_manifest", version = "0.1.0" }
 serde_json = "1.0.120"
 reqwest = "0.12.5"
 http = "1"
+rusb = "0.9.3"
+udev = { version = "0.8.0", features = ["hwdb"] }
+thiserror = "1.0.62"
 
 [dev-dependencies]
 mockito = "1.4"
