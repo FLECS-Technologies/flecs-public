@@ -19,6 +19,8 @@ http = "1"
 rusb = "0.9.3"
 udev = { version = "0.8.0", features = ["hwdb"] }
 thiserror = "1.0.62"
+libc = "0.2.153"
+procfs = "0.16.0"
 
 [dev-dependencies]
 mockito = "1.4"

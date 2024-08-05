@@ -153,7 +153,7 @@ auto docker_t::create_container(std::shared_ptr<instances::instance_t> instance)
                 if (netif == adapters.cend()) {
                     return {-1, "Could not find network adapter for cloned MAC address"};
                 }
-                network.mac_address = netif->second.mac;
+                network.mac_address = std::string{netif->second.mac};
             } else {
                 network.mac_address = network.mac_address;
             }
@@ -490,14 +490,15 @@ auto docker_t::do_create_network(
                 if (netif == adapters.cend()) {
                     return {-1, "network adapter does not exist"};
                 }
-                if (netif->second.ipv4_addr.empty()) {
+                if (netif->second.ipv4addresses.empty()) {
                     return {-1, "network adapter is not ready"};
                 }
 
                 // create ipvlan network, if not exists
-                subnet =
-                    ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
-                gw = netif->second.gateway;
+                subnet = ipv4_to_network(
+                    std::string{netif->second.ipv4addresses[0].addr},
+                    std::string{netif->second.ipv4addresses[0].subnet_mask});
+                gw = std::string{netif->second.gateway};
             }
             break;
         }
