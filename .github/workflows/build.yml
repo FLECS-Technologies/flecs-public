@@ -22,51 +22,63 @@ jobs:
     container: flecspublic.azurecr.io/flecs-build:${{ inputs.flecs_build_ref }}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      with:
-        platforms: linux/amd64,linux/arm64,linux/arm/v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+      - name: Set up pkg-config for arm64
+        if: ${{ inputs.arch == 'arm64' }}
+        run: | # Cross compiling rust crates with C/C++ dependencies requires pkg-config to be set up (e.g. openssl-sys and libudev-sys)
+          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/local/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+          echo "PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu" >> $GITHUB_ENV
+          echo "PKG_CONFIG_SYSROOT_DIR=/" >> $GITHUB_ENV
+      - name: Set up pkg-config for armhf
+        if: ${{ inputs.arch == 'armhf' }}
+        run: | # Cross compiling rust crates with C/C++ dependencies requires pkg-config to be set up (e.g. openssl-sys and libudev-sys)
+          echo "PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/share/pkgconfig:/usr/local/lib/arm-linux-gnueabihf/pkgconfig" >> $GITHUB_ENV
+          echo "PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf" >> $GITHUB_ENV
+          echo "PKG_CONFIG_SYSROOT_DIR=/" >> $GITHUB_ENV
+      - name: "CMake: Configure"
+        run: |
+          cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }}
 
-    - name: "CMake: Configure"
-      run: |
-        cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }}
+      - name: "CMake: Build"
+        run: | # flecs_core_cxx_bridge_cxxbridge generates header files needed by subsequent targets TODO: Improve
+          cmake --build build/${{ inputs.arch }} --target flecs_core_cxx_bridge_cxxbridge 
+          cmake --build build/${{ inputs.arch }}
 
-    - name: "CMake: Build"
-      run: |
-        cmake --build build/${{ inputs.arch }}
+      - name: "CMake: Docker"
+        run: |
+          cmake --install build/${{ inputs.arch }} --component docker
+          cmake --build build/${{ inputs.arch }} --target docker
 
-    - name: "CMake: Docker"
-      run: |
-        cmake --install build/${{ inputs.arch }} --component docker
-        cmake --build build/${{ inputs.arch }} --target docker
+      - name: "CMake: Package"
+        run: |
+          cmake --build build/${{ inputs.arch }} --target package
 
-    - name: "CMake: Package"
-      run: |
-        cmake --build build/${{ inputs.arch }} --target package
+      - name: "CMake: Latest"
+        run: |
+          cmake --build build/${{ inputs.arch }} --target version -- --quiet >build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
 
-    - name: "CMake: Latest"
-      run: |
-        cmake --build build/${{ inputs.arch }} --target version -- --quiet >build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
+      - name: Archive Docker image archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker_${{ inputs.arch }}
+          path: |
+            build/${{ inputs.arch }}/docker/**/*.tar
+          retention-days: 1
 
-    - name: Archive Docker image archives
-      uses: actions/upload-artifact@v4
-      with:
-        name: docker_${{ inputs.arch }}
-        path: |
-          build/${{ inputs.arch }}/docker/**/*.tar
-        retention-days: 1
-
-    - name: Archive packages
-      uses: actions/upload-artifact@v4
-      with:
-        name: packages_${{ inputs.arch }}
-        path: |
-          build/${{ inputs.arch }}/flecs_*_${{ inputs.arch }}.deb
-          build/${{ inputs.arch }}/flecs_*_${{ inputs.arch }}.tgz
-          build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
-        retention-days: 1
+      - name: Archive packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages_${{ inputs.arch }}
+          path: |
+            build/${{ inputs.arch }}/flecs_*_${{ inputs.arch }}.deb
+            build/${{ inputs.arch }}/flecs_*_${{ inputs.arch }}.tgz
+            build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
+          retention-days: 1
