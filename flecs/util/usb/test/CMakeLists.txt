@@ -25,6 +25,7 @@ if(FLECS_BUILD_TESTS)
         GTest::gtest
         GTest::gtest_main
         util.usb
+        magic::flecs_core_cxx_bridge
     )
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
