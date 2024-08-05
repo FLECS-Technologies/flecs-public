@@ -18,33 +18,10 @@
 #include <string>
 #include <vector>
 
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
 #include "flecs/modules/module_base/module.h"
 
 namespace flecs {
-
-enum netif_type_t {
-    UNKNOWN,
-    WIRED,
-    WIRELESS,
-    LOCAL,
-    BRIDGE,
-    VIRTUAL,
-};
-
-struct ipaddr_t
-{
-    std::string addr;
-    std::string subnet_mask;
-};
-
-struct netif_t
-{
-    std::string mac;
-    netif_type_t type;
-    std::vector<ipaddr_t> ipv4_addr;
-    std::vector<ipaddr_t> ipv6_addr;
-    std::string gateway;
-};
 
 namespace module {
 
@@ -53,7 +30,7 @@ class system_t FLECS_FINAL_UNLESS_TESTED : public base_t
     friend class factory_t;
 
 public:
-    auto get_network_adapters() const -> std::map<std::string, netif_t>;
+    auto get_network_adapters() const -> std::map<std::string, NetInfo>;
 
 protected:
     system_t();

@@ -43,11 +43,11 @@ auto build_network_adapters_json(std::shared_ptr<instances::instance_t> instance
     const auto adapters = system_api->get_network_adapters();
     auto adapters_json = json_t::array();
     for (decltype(auto) adapter : adapters) {
-        if ((adapter.second.type == netif_type_t::WIRED) || (adapter.second.type == netif_type_t::WIRELESS)) {
+        if ((adapter.second.net_type == NetType::Wired) || (adapter.second.net_type == NetType::Wireless)) {
             auto adapter_json = json_t{};
             adapter_json["name"] = adapter.first;
             adapter_json["active"] = false;
-            adapter_json["connected"] = !adapter.second.ipv4_addr.empty();
+            adapter_json["connected"] = !adapter.second.ipv4addresses.empty();
             auto network = std::string{"flecs-macvlan-"} + adapter.first;
             auto it = std::find_if(
                 instance->networks().cbegin(),
@@ -56,11 +56,11 @@ auto build_network_adapters_json(std::shared_ptr<instances::instance_t> instance
             if (it != instance->networks().cend()) {
                 adapter_json["active"] = true;
                 adapter_json["ipAddress"] = it->ip_address;
-                if (adapter.second.ipv4_addr.empty()) {
+                if (adapter.second.ipv4addresses.empty()) {
                     adapter_json["subnetMask"] = "0.0.0.0";
                     adapter_json["gateway"] = "0.0.0.0";
                 } else {
-                    adapter_json["subnetMask"] = adapter.second.ipv4_addr.begin()->subnet_mask;
+                    adapter_json["subnetMask"] = adapter.second.ipv4addresses.begin()->subnet_mask;
                     adapter_json["gateway"] = adapter.second.gateway;
                 }
             }
@@ -452,14 +452,15 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
             if (netif == adapters.cend()) {
                 continue;
             }
-            if (netif->second.ipv4_addr.empty()) {
+            if (netif->second.ipv4addresses.empty()) {
                 response["additionalInfo"] = "Network adapter " + netif->first + " not ready";
                 continue;
             }
 
             // create macvlan network, if not exists
-            const auto cidr_subnet =
-                ipv4_to_network(netif->second.ipv4_addr[0].addr, netif->second.ipv4_addr[0].subnet_mask);
+            const auto cidr_subnet = ipv4_to_network(
+                std::string{netif->second.ipv4addresses[0].addr},
+                std::string{netif->second.ipv4addresses[0].subnet_mask});
 
             // process instance configuration
             if (network.ipAddress.empty()) {
@@ -467,9 +468,10 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
                 for (auto& adapter_json : response["networkAdapters"]) {
                     if (adapter_json["name"] == netif->first) {
                         adapter_json["active"] = true;
-                        adapter_json["ipAddress"] =
-                            _deployment->generate_instance_ip(cidr_subnet, netif->second.gateway);
-                        adapter_json["subnetMask"] = netif->second.ipv4_addr[0].subnet_mask;
+                        adapter_json["ipAddress"] = _deployment->generate_instance_ip(
+                            cidr_subnet,
+                            std::string{netif->second.gateway});
+                        adapter_json["subnetMask"] = netif->second.ipv4addresses[0].subnet_mask;
                         adapter_json["gateway"] = netif->second.gateway;
                         break;
                     }
@@ -481,7 +483,7 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
                     network_type_e::MACVLAN,
                     docker_network,
                     cidr_subnet,
-                    netif->second.gateway,
+                    std::string{netif->second.gateway},
                     netif->first);
 
                 _deployment->disconnect_network(instance, docker_network);
@@ -652,7 +654,8 @@ auto instances_t::do_get_env(instances::id_t instance_id) const //
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
-    json_t response = instance->environment().has_value() ? instance->environment().value() : std::set<mapped_env_var_t>{};
+    json_t response =
+        instance->environment().has_value() ? instance->environment().value() : std::set<mapped_env_var_t>{};
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
@@ -697,7 +700,8 @@ auto instances_t::do_get_ports(instances::id_t instance_id) const //
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
-    json_t response = instance->ports().has_value() ? instance->ports().value() : std::vector<mapped_port_range_t>{};
+    json_t response =
+        instance->ports().has_value() ? instance->ports().value() : std::vector<mapped_port_range_t>{};
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
