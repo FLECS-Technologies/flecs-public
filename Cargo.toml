@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["flecs-core", "flecsdaemon", "flecsd-axum-server", "flecstract", "flecs-console-api/flecs_console_client"]
+members = ["flecs-core", "flecsdaemon", "flecsd-axum-server", "flecstract", "flecs-console-api/flecs_console_client", "flecs_app_manifest"]
 
 [workspace.package]
-rust-version = "1.71.0"
+rust-version = "1.76.0"
 edition = "2021"
 license = "Apache-2.0"
 authors = ["FLECS Technologies GmbH"]
