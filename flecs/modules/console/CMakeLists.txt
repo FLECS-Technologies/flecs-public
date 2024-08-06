@@ -48,6 +48,7 @@ flecs_add_module(
         cpr::cpr
         modules.console.types
         modules.device
+        magic::flecs_core_cxx_bridge
 )
 
 if(FLECS_BUILD_TESTS)

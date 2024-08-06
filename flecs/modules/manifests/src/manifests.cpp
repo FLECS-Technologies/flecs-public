@@ -25,6 +25,8 @@
 #include "flecs/modules/apps/types/app_key.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/manifests/impl/manifests_impl.h"
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
+#include "cxxbridge/rust/cxx.h"
 
 namespace flecs {
 namespace module {
@@ -102,7 +104,11 @@ auto manifests_t::add_from_console(const apps::key_t& app_key) //
     auto session_id = device_api->session_id();
     auto str = std::string{};
     if (session_id.has_value()) {
-        str = console_api->download_manifest(app_key.name(), app_key.version(), session_id.value().id());
+        try {
+            str = std::string(download_manifest(session_id.value().id(), app_key.name(), app_key.version()));
+        } catch (const rust::Error &e) {
+            std::cerr << e.what() << "\n";
+        }
     }
 
     return add_from_string(str);

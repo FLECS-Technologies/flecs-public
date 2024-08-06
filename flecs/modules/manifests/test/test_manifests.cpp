@@ -250,41 +250,6 @@ TEST(manifests, migrate)
     delete_manifests("./newpath");
 }
 
-TEST(manifests, add_from_console)
-{
-    auto uut = test_module_manifests_t();
-    uut.init();
-    uut.base_path("./manifests");
-
-    const auto session_id = std::string{"sessionId"};
-    const auto session = std::optional(flecs::console::session_id_t{session_id, std::time_t{}});
-    auto device_api = std::dynamic_pointer_cast<flecs::module::device_t>(flecs::api::query_module("device"));
-    EXPECT_CALL(*device_api, session_id()) //
-        .WillRepeatedly(::testing::ReturnRef(session));
-
-    auto console_api =
-        std::dynamic_pointer_cast<flecs::module::console_t>(flecs::api::query_module("console"));
-
-    /* Download from console should fail */
-    EXPECT_CALL(*console_api, download_manifest(valid_key_1.name(), valid_key_1.version(), session_id)) //
-        .WillOnce(::testing::Return(std::string{}));
-
-    auto [manifest, res] = uut.add_from_console(valid_key_1);
-    ASSERT_FALSE(res);
-    ASSERT_FALSE(uut.contains(valid_key_1));
-
-    /* Download from console should succeed */
-    EXPECT_CALL(*console_api, download_manifest(valid_key_1.name(), valid_key_1.version(), session_id)) //
-        .WillOnce(::testing::Return(std::string{json_manifest_1}));
-
-    std::tie(manifest, res) = uut.add_from_console(valid_key_1);
-    ASSERT_TRUE(res);
-    ASSERT_TRUE(uut.contains(valid_key_1));
-
-    uut.deinit();
-    delete_manifests("./manifests");
-}
-
 TEST(manifests, add_from_url)
 {
     create_manifests("./import");

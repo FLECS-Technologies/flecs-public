@@ -34,6 +34,27 @@ set(API_VERSION 2.0.0)
 add_definitions(-DFLECS_VERSION="${FLECS_VERSION_FULL}")
 add_definitions(-DFLECS_API_VERSION="${API_VERSION}")
 
+include(FetchContent)
+
+FetchContent_Declare(
+        Corrosion
+        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+        GIT_TAG 64289b1d79d6d19cd2e241db515381a086bb8407
+)
+
+if ("${ARCH}" STREQUAL "amd64")
+    set(Rust_CARGO_TARGET "x86_64-unknown-linux-gnu")
+elseif("${ARCH}" STREQUAL "armhf")
+    set(Rust_CARGO_TARGET "armv7-unknown-linux-gnueabihf")
+elseif("${ARCH}" STREQUAL "arm64")
+    set(Rust_CARGO_TARGET "aarch64-unknown-linux-gnu")
+endif()
+
+message(STATUS "Rust_CARGO_TARGET: ${Rust_CARGO_TARGET}")
+
+# Set any global configuration variables such as `Rust_TOOLCHAIN` before this line!
+FetchContent_MakeAvailable(Corrosion)
+
 # workaround for gcc-12 bug
 add_compile_options(-Wno-error=restrict)
 

@@ -74,12 +74,6 @@ auto console_t::validate_license(std::string_view session_id) //
     return _impl->do_validate_license(session_id);
 }
 
-auto console_t::download_manifest(std::string app, std::string version, std::string session_id) //
-    -> std::string
-{
-    return _impl->do_download_manifest(app, version, session_id);
-}
-
 auto console_t::acquire_download_token(std::string app, std::string version, std::string session_id) //
     -> std::optional<console::download_token_t>
 {

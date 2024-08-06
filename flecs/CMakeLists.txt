@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+include(../corrosion_cxx.cmake)
+add_library_rust(PATH ../flecs_core_cxx_bridge NAMESPACE magic)
+
+set(CXXBRIDGE_INCLUDE_PATH "${CMAKE_BINARY_DIR}/cargo/build/${Rust_CARGO_TARGET}")
+message(STATUS "CXXBRIDGE_INCLUDE_PATH=${CXXBRIDGE_INCLUDE_PATH}")
+include_directories(
+    ${CXXBRIDGE_INCLUDE_PATH}
+)
+
 add_subdirectory(util)
 add_subdirectory(api)
 add_subdirectory(common)
