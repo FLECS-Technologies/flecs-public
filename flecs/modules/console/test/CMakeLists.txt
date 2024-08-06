@@ -28,6 +28,7 @@ if(FLECS_BUILD_TESTS)
         modules.factory
         modules.module_base
         modules.console
+        magic::flecs_core_cxx_bridge
     )
 
     add_test(NAME modules.console.test COMMAND modules.console.test)

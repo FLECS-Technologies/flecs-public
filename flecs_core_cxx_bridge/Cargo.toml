@@ -1,0 +1,31 @@
+[package]
+name = "flecs_core_cxx_bridge"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
+authors = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cxx = "1.0"
+anyhow = "1.0"
+tokio = { version = "1.37.0", features = ["full"] }
+serde_json = "1.0.115"
+libc = "0.2.153"
+procfs = "0.16.0"
+rusb = "0.9.3"
+udev = { version = "0.8.0", features = ["hwdb"] }
+http = "1.1"
+flecs-core = { path = "../flecs-core", version = "0.1.0" }
+flecs_console_client = { path = "../flecs-console-api/flecs_console_client", version = "1.0.0" }
+
+[dev-dependencies]
+mockito = "1.4.0"
+
+[build-dependencies]
+cxx-build = "1.0"

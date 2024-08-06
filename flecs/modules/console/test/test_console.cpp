@@ -601,18 +601,6 @@ TEST(console, validate_license)
     }
 }
 
-TEST(console, download_manifest)
-{
-    /** User logged in, sessionId is active */
-    {
-        const auto session_id = "200-valid";
-        const auto expected = std::string{mock_console_t::manifest};
-        const auto actual = uut.download_manifest("app", "version", session_id);
-
-        ASSERT_EQ(flecs::parse_json(actual), flecs::parse_json(actual));
-    }
-}
-
 TEST(console, deinit)
 {
     api.stop();

@@ -29,6 +29,8 @@
 #include "flecs/modules/system/system.h"
 #include "flecs/modules/version/version.h"
 #include "flecs/util/signal_handler/signal_handler.h"
+#include "flecs_core_cxx_bridge/src/lib.rs.h"
+#include "rust/cxx.h"
 
 flecs::module::register_module_t<flecs::module::apps_t> _reg_apps("apps");
 flecs::module::register_module_t<flecs::module::console_t> _reg_console("console");
