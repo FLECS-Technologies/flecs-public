@@ -1,3 +1,4 @@
+use flecs_app_manifest::AppManifestVersion;
 use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::default_api::{
     get_api_v2_manifests_app_version, GetApiV2ManifestsAppVersionError,
@@ -6,7 +7,6 @@ use flecs_console_client::apis::default_api::{
 use flecs_console_client::models::ErrorDescription;
 use http::StatusCode;
 use std::fmt::{Display, Formatter};
-
 #[derive(Debug)]
 pub enum HttpError {
     ErrorDescription(ErrorDescription),
@@ -67,6 +67,22 @@ impl std::error::Error for Error {
     }
 }
 
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Self::Reqwest(value)
+    }
+}
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
+        Self::Serde(value)
+    }
+}
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value)
+    }
+}
+
 impl From<flecs_console_client::apis::Error<GetApiV2ManifestsAppVersionError>> for Error {
     fn from(value: flecs_console_client::apis::Error<GetApiV2ManifestsAppVersionError>) -> Self {
         match value {
@@ -105,7 +121,7 @@ pub async fn download_manifest(
     x_session_id: &str,
     app: &str,
     version: &str,
-) -> Result<serde_json::Value, Error> {
+) -> Result<AppManifestVersion, Error> {
     let response =
         get_api_v2_manifests_app_version(console_configuration, x_session_id, app, version).await?;
     if response.status != StatusCode::OK {
@@ -118,7 +134,10 @@ pub async fn download_manifest(
         .entity
         .ok_or_else(|| Error::InvalidContent(response.content))?
     {
-        GetApiV2ManifestsAppVersionSuccess::Status200(val) => val.data.ok_or_else(|| Error::NoData),
+        GetApiV2ManifestsAppVersionSuccess::Status200(val) => {
+            let val = val.data.ok_or_else(|| Error::NoData)?;
+            serde_json::from_value::<AppManifestVersion>(val).map_err(Error::Serde)
+        }
         GetApiV2ManifestsAppVersionSuccess::UnknownValue(v) => Err(Error::UnexpectedData(v)),
     }
 }
@@ -127,6 +146,10 @@ pub async fn download_manifest(
 mod tests {
     use super::*;
     use crate::spell::Error::NoData;
+    use flecs_app_manifest::generated::manifest_3_0_0::{
+        FlecsAppManifest, FlecsAppManifestApp, FlecsAppManifestImage,
+    };
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn download_valid_manifest_test() {
@@ -140,18 +163,30 @@ mod tests {
     "statusText": "OK",
     "data": {
         "app": "tech.flecs.flunder",
-        "_schemaVersion": "2.0.0",
+        "_schemaVersion": "3.0.0",
         "version": "3.0.0",
         "image": "flecs.azurecr.io/tech.flecs.flunder"
     }
 }"#;
         const APP_NAME: &str = "tech.flecs.flunder";
         const APP_VERSION: &str = "3.0.0";
-        let expected_result = serde_json::json!({
-            "app": APP_NAME,
-            "_schemaVersion": "2.0.0",
-            "version": APP_VERSION,
-            "image": "flecs.azurecr.io/tech.flecs.flunder",
+        let expected_result = AppManifestVersion::V3_0_0(FlecsAppManifest {
+            app: FlecsAppManifestApp::from_str(APP_NAME).unwrap(),
+            args: vec![],
+            capabilities: None,
+            conffiles: vec![],
+            devices: vec![],
+            editors: vec![],
+            env: vec![],
+            image: FlecsAppManifestImage::from_str("flecs.azurecr.io/tech.flecs.flunder").unwrap(),
+            interactive: None,
+            labels: vec![],
+            minimum_flecs_version: None,
+            multi_instance: None,
+            ports: vec![],
+            revision: None,
+            version: APP_VERSION.to_string(),
+            volumes: vec![],
         });
         let path: String = format!("/api/v2/manifests/{}/{}", APP_NAME, APP_VERSION);
         let mock = server
@@ -174,9 +209,9 @@ mod tests {
             ..Configuration::default()
         };
         const BODY: &str = r#"{
-    "statusCode": 200,
-    "statusText": "OK"
-}"#;
+        "statusCode": 200,
+        "statusText": "OK"
+    }"#;
         const APP_NAME: &str = "my.no-data.app";
         const APP_VERSION: &str = "3.0.0";
         let path: String = format!("/api/v2/manifests/{}/{}", APP_NAME, APP_VERSION);
@@ -204,9 +239,9 @@ mod tests {
             ..Configuration::default()
         };
         const BODY: &str = r#"{
-    "statusCode": 202,
-    "statusText": "OK"
-}"#;
+        "statusCode": 202,
+        "statusText": "OK"
+    }"#;
         const APP_NAME: &str = "my.no-data.app";
         const APP_VERSION: &str = "3.0.0";
         let path: String = format!("/api/v2/manifests/{}/{}", APP_NAME, APP_VERSION);
