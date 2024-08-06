@@ -13,9 +13,19 @@ flecstract = { path = "../flecstract", version = "0.1.0" }
 flecs_console_client = { path = "../flecs-console-api/flecs_console_client", version = "1.0.0" }
 flecsd-axum-server = { path = "../flecsd-axum-server", version = "2.0.0" }
 flecs_app_manifest = { path = "../flecs_app_manifest", version = "0.1.0" }
+http = "1"
+axum = "0.7"
+axum-extra = "0.9"
+tokio = {  version = "1.38", features = ["full"] }
+http-body-util = "0.1"
+hyper = { version = "1.4.0", features = ["full"] }
+hyper-util = {  version = "0.1.6", features = ["tokio", "server-auto", "http1"] }
+tower = {  version = "0.4.13", features = ["full"] }
+tower-http = {  version = "0.5.2", features = ["trace"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing = "0.1.40"
 serde_json = "1.0.120"
 reqwest = "0.12.5"
-http = "1"
 rusb = "0.9.3"
 udev = { version = "0.8.0", features = ["hwdb"] }
 thiserror = "1.0.62"
