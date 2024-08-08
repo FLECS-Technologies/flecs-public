@@ -14,3 +14,5 @@ pub mod console_client_config {
         })
     }
 }
+
+pub const BASE_PATH: &str = "/var/lib/flecs/";
