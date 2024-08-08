@@ -21,7 +21,9 @@ udev = { version = "0.8.0", features = ["hwdb"] }
 thiserror = "1.0.62"
 libc = "0.2.153"
 procfs = "0.16.0"
+serde = { version = "1.0.203", features = ["derive"] }
 
 [dev-dependencies]
 mockito = "1.4"
 tokio = { version = "1.38", features = ["full"] }
+ntest = "0.9.3"
