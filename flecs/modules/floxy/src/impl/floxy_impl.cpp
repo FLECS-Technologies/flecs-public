@@ -163,7 +163,8 @@ auto floxy_t::create_instance_config(
     auto first = R"(
 location )";
     auto second = R"( {
-   return 301 $scheme://$http_host$request_uri/;
+   server_name_in_redirect on;
+   return 301 $request_uri/;
 
    location ~ ^)";
     auto third = R"(/(.*) {
