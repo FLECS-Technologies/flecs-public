@@ -1,7 +1,8 @@
 use rusb::Device;
 use std::collections::HashSet;
-use std::ffi::OsStr;
+use std::fs;
 use thiserror::Error;
+use usb_ids::FromId;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -50,29 +51,24 @@ impl<T: rusb::UsbContext> TryFrom<Device<T>> for UsbDevice {
         Ok(UsbDevice {
             pid,
             vid,
-            vendor: get_vendor(vid)?.unwrap_or_else(|| format!("Unknown vendor {vid}")),
-            device: get_device_name(vid, pid)?.unwrap_or_else(|| format!("Unknown device {pid}")),
+            vendor: get_vendor(vid, &port).unwrap_or_else(|| format!("Unknown vendor {vid}")),
+            device: get_device_name(vid, pid, &port)
+                .unwrap_or_else(|| format!("Unknown device {pid}")),
             port,
         })
     }
 }
 
-fn get_vendor(vid: u16) -> Result<Option<String>> {
-    let modalias = format!("usb:v{:04.4X}*", vid);
-    query_hwdb_one(modalias.as_str(), "ID_VENDOR_FROM_DATABASE")
+fn get_vendor(vid: u16, port: &str) -> Option<String> {
+    usb_ids::Vendor::from_id(vid)
+        .map(|v| v.name().to_string())
+        .or_else(|| fs::read_to_string(format!("/sys/bus/usb/devices/{port}/manufacturer")).ok())
 }
 
-fn get_device_name(vid: u16, pid: u16) -> Result<Option<String>> {
-    let modalias = format!("usb:v{:04.4X}p{:04.4X}*", vid, pid);
-    query_hwdb_one(modalias.as_str(), "ID_MODEL_FROM_DATABASE")
-}
-
-fn query_hwdb_one<S: AsRef<OsStr>>(modalias: S, name: S) -> Result<Option<String>> {
-    let hwdb = udev::Hwdb::new()?;
-    let result = hwdb
-        .query_one(modalias, name)
-        .and_then(|s| s.to_os_string().into_string().ok());
-    Ok(result)
+fn get_device_name(vid: u16, pid: u16, port: &str) -> Option<String> {
+    usb_ids::Device::from_vid_pid(vid, pid)
+        .map(|device| device.name().to_string())
+        .or_else(|| fs::read_to_string(format!("/sys/bus/usb/devices/{port}/product")).ok())
 }
 
 #[cfg(test)]
@@ -80,7 +76,7 @@ mod tests {
     use super::*;
     #[test]
     #[ignore]
-    fn test_udev() {
+    fn print_devices() {
         for device in read_usb_devices().unwrap() {
             println!("{device:?}");
         }
