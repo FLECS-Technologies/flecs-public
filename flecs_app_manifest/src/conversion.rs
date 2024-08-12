@@ -28,9 +28,7 @@ impl TryFrom<&manifest_2_0_0::FlecsAppManifest> for manifest_3_0_0::FlecsAppMani
         let devices = devices?;
         let editors = match &value.editor {
             None => Vec::new(),
-            Some(e) => {
-                vec![manifest_3_0_0::FlecsAppManifestEditorsItem::try_from(e)?]
-            }
+            Some(e) => TryInto::<Vec<manifest_3_0_0::FlecsAppManifestEditorsItem>>::try_into(e)?,
         };
         let env: Result<Vec<_>, _> = value
             .env
@@ -113,19 +111,22 @@ impl TryFrom<&manifest_2_0_0::FlecsAppManifestDevicesItem>
 }
 
 impl TryFrom<&manifest_2_0_0::FlecsAppManifestEditor>
-    for manifest_3_0_0::FlecsAppManifestEditorsItem
+    for Vec<manifest_3_0_0::FlecsAppManifestEditorsItem>
 {
     type Error = ConversionError;
 
     fn try_from(value: &manifest_2_0_0::FlecsAppManifestEditor) -> Result<Self, Self::Error> {
+        if value.as_str().is_empty() {
+            return Ok(Vec::new());
+        }
         let port: std::num::NonZeroU16 = value.as_str()[1..]
             .parse()
             .map_err(|e: ParseIntError| ConversionError::from(e.to_string()))?;
-        Ok(manifest_3_0_0::FlecsAppManifestEditorsItem {
+        Ok(vec![manifest_3_0_0::FlecsAppManifestEditorsItem {
             name: String::new(),
             port,
             supports_reverse_proxy: false,
-        })
+        }])
     }
 }
 impl TryFrom<&manifest_2_0_0::FlecsAppManifestEnvItem> for manifest_3_0_0::FlecsAppManifestEnvItem {
@@ -234,12 +235,12 @@ mod tests {
     #[test]
     fn editors() {
         assert_eq!(
-            manifest_3_0_0::FlecsAppManifestEditorsItem {
+            vec![manifest_3_0_0::FlecsAppManifestEditorsItem {
                 name: "".to_string(),
                 port: std::num::NonZeroU16::try_from(1234).unwrap(),
                 supports_reverse_proxy: false,
-            },
-            manifest_3_0_0::FlecsAppManifestEditorsItem::try_from(
+            }],
+            TryInto::<Vec<manifest_3_0_0::FlecsAppManifestEditorsItem>>::try_into(
                 &manifest_2_0_0::FlecsAppManifestEditor::from_str(":1234").unwrap()
             )
             .unwrap()
