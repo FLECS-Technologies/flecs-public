@@ -1,24 +1,57 @@
 pub mod pouch;
 
-use pouch::{AppPouch, ManifestPouch, Pouch, SecretPouch};
-use std::fmt::{Display, Formatter};
+use pouch::{AppPouch, ManifestPouch, SecretPouch, VaultPouch};
+use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-pub struct Error(String);
+pub enum Error {
+    Single(String),
+    Multiple(Vec<String>),
+}
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        match self {
+            Error::Single(s) => write!(f, "{s}"),
+            Error::Multiple(m) => write!(f, "{}", m.join("\n")),
+        }
     }
 }
+
+impl Debug for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self}")
+    }
+}
+
 pub type Result<T> = std::result::Result<T, Error>;
 impl<T> From<T> for Error
 where
     T: std::error::Error,
 {
     fn from(value: T) -> Self {
-        Self(value.to_string())
+        Self::Single(value.to_string())
+    }
+}
+
+impl Error {
+    pub fn append(self, other: Self) -> Self {
+        match (self, other) {
+            (Self::Single(s1), Self::Single(s2)) => Self::Multiple(vec![s1, s2]),
+            (Self::Single(s), Self::Multiple(mut m)) | (Self::Multiple(mut m), Self::Single(s)) => {
+                m.push(s);
+                Self::Multiple(m)
+            }
+            (Self::Multiple(mut m1), Self::Multiple(mut m2)) => {
+                m1.append(&mut m2);
+                Self::Multiple(m1)
+            }
+        }
+    }
+
+    pub fn from_strings(strings: Vec<String>) -> Self {
+        Self::Multiple(strings)
     }
 }
 
