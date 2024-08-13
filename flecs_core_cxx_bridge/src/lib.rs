@@ -4,6 +4,11 @@ mod usb;
 
 pub use crate::manifest::download_manifest;
 pub use network::read_network_adapters;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, OnceLock};
+use tokio::runtime::Runtime;
+use tokio::task::JoinHandle;
+use tracing::info;
 pub use usb::read_usb_devices;
 
 #[cxx::bridge]
@@ -50,5 +55,47 @@ mod ffi {
         fn download_manifest(x_session_id: &str, app: &str, version: &str) -> Result<String>;
         fn read_usb_devices() -> Result<Vec<UsbDevice>>;
         fn read_network_adapters() -> Result<Vec<NetAdapter>>;
+        fn start_server();
+        fn stop_server();
+    }
+}
+
+struct Server {
+    runtime: Runtime,
+    handle: Option<JoinHandle<()>>,
+}
+
+fn get_server() -> Arc<Mutex<Server>> {
+    static SERVER: OnceLock<Arc<Mutex<Server>>> = OnceLock::new();
+    SERVER
+        .get_or_init(|| {
+            Arc::new(Mutex::new(Server {
+                runtime: Runtime::new().unwrap(),
+                handle: None,
+            }))
+        })
+        .clone()
+}
+
+pub fn start_server() {
+    let server = get_server();
+    let mut server = server.lock().unwrap();
+    assert!(server.handle.is_none());
+    flecs_core::fsm::init_tracing();
+    info!("Spawning rust server");
+    server.handle = Some(server.runtime.spawn(async {
+        info!("Starting rust server");
+        flecs_core::fsm::server(PathBuf::from("/run/flecs/flecsd-rs.sock"))
+            .await
+            .unwrap();
+    }));
+}
+
+pub fn stop_server() {
+    let server = get_server();
+    let mut server = server.lock().unwrap();
+    if server.handle.is_some() {
+        info!("Dropping rust server");
+        _ = server.handle.take();
     }
 }

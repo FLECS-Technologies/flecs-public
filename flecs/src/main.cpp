@@ -60,7 +60,11 @@ int main(int /*argc*/, char** /*argv*/)
         local_socket_path,
         std::filesystem::perms::group_write | std::filesystem::perms::others_write);
 
+    start_server();
+
     res.get();
+
+    stop_server();
 
     flecs::g_stop = true;
 
