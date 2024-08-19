@@ -1322,7 +1322,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "https://raw.githubusercontent.com/FLECS-Technologies/flecs-public/main/schemas/dos.schema.json"
+              $ref: "https://raw.githubusercontent.com/FLECS-Technologies/flecs-public/main/schema/dos.schema.json"
       responses:
         "202":
           $ref: "#/components/responses/response_202"
