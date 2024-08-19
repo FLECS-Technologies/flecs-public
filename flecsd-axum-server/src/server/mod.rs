@@ -80,6 +80,10 @@ where
                 .put(instances_instance_id_config_ports_put::<I, A>),
         )
         .route(
+            "/v2/instances/:instance_id/editor/:port",
+            get(instances_instance_id_editor_port_get::<I, A>),
+        )
+        .route(
             "/v2/instances/:instance_id/logs",
             get(instances_instance_id_logs_get::<I, A>),
         )
@@ -1014,13 +1018,13 @@ where
 #[allow(dead_code)]
 struct DeviceOnboardingPostBodyValidator<'a> {
     #[validate(nested)]
-    body: &'a models::DosManifest,
+    body: &'a models::Dosschema,
 }
 
 #[tracing::instrument(skip_all)]
 fn device_onboarding_post_validation(
-    body: models::DosManifest,
-) -> std::result::Result<(models::DosManifest,), ValidationErrors> {
+    body: models::Dosschema,
+) -> std::result::Result<(models::Dosschema,), ValidationErrors> {
     let b = DeviceOnboardingPostBodyValidator { body: &body };
     b.validate()?;
 
@@ -1033,7 +1037,7 @@ async fn device_onboarding_post<I, A>(
     host: Host,
     cookies: CookieJar,
     State(api_impl): State<I>,
-    Json(body): Json<models::DosManifest>,
+    Json(body): Json<models::Dosschema>,
 ) -> Result<Response, StatusCode>
 where
     I: AsRef<A> + Send + Sync,
@@ -2177,6 +2181,143 @@ where
                                                 => {
                                                   let mut response = response.status(404);
                                                   response.body(Body::empty())
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_editor_port_get_validation(
+    path_params: models::InstancesInstanceIdEditorPortGetPathParams,
+) -> std::result::Result<(models::InstancesInstanceIdEditorPortGetPathParams,), ValidationErrors> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdEditorPortGet - GET /v2/instances/{instance_id}/editor/{port}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_editor_port_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdEditorPortGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_editor_port_get_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_editor_port_get(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdEditorPortGetResponse::Status302_Found
+                                                    {
+                                                        location
+                                                    }
+                                                => {
+                                                    let location = match header::IntoHeaderValue(location).try_into() {
+                                                        Ok(val) => val,
+                                                        Err(e) => {
+                                                            return Response::builder()
+                                                                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                                                                    .body(Body::from(format!("An internal server error occurred handling location header - {}", e))).map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR });
+                                                        }
+                                                    };
+
+
+                                                    {
+                                                      let mut response_headers = response.headers_mut().unwrap();
+                                                      response_headers.insert(
+                                                          HeaderName::from_static(""),
+                                                          location
+                                                      );
+                                                    }
+                                                  let mut response = response.status(302);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdEditorPortGetResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdEditorPortGetResponse::Status404_InstanceIdOrPortNotFound
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdEditorPortGetResponse::Status500_InternalServerError
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(500);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
                                                 },
                                             },
                                             Err(_) => {

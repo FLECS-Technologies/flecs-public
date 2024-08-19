@@ -126,6 +126,20 @@ pub enum InstancesInstanceIdDeleteResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdEditorPortGetResponse {
+    /// Found
+    Status302_Found { location: String },
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Instance id or port not found
+    Status404_InstanceIdOrPortNotFound(models::AdditionalInfo),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdGetResponse {
     /// Success
     Status200_Success(models::InstancesInstanceIdGet200Response),
@@ -304,6 +318,17 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdDeletePathParams,
     ) -> Result<InstancesInstanceIdDeleteResponse, String>;
+
+    /// Access an editor of an app.
+    ///
+    /// InstancesInstanceIdEditorPortGet - GET /v2/instances/{instance_id}/editor/{port}
+    async fn instances_instance_id_editor_port_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdEditorPortGetPathParams,
+    ) -> Result<InstancesInstanceIdEditorPortGetResponse, String>;
 
     /// Obtain details of an App instance.
     ///
