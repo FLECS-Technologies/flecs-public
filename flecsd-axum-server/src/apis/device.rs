@@ -85,6 +85,6 @@ pub trait Device {
         method: Method,
         host: Host,
         cookies: CookieJar,
-        body: models::DosManifest,
+        body: models::Dosschema,
     ) -> Result<DeviceOnboardingPostResponse, String>;
 }

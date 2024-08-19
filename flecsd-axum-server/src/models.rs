@@ -117,6 +117,21 @@ lazy_static::lazy_static! {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdEditorPortGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDEDITORPORTGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(range(min = 1, max = 65535))]
+    pub port: i32,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDEDITORPORTGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdGetPathParams {
     #[validate(
                           regex(path = *RE_INSTANCESINSTANCEIDGETPATHPARAMS_INSTANCE_ID),
@@ -317,6 +332,182 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AdditionalIn
     }
 }
 
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct AppEditor {
+    #[serde(rename = "name")]
+    pub name: String,
+
+    #[serde(rename = "port")]
+    #[validate(range(min = 1, max = 65535))]
+    pub port: u16,
+
+    #[serde(rename = "supportsReverseProxy")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supports_reverse_proxy: Option<bool>,
+}
+
+impl AppEditor {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String, port: u16) -> AppEditor {
+        AppEditor {
+            name,
+            port,
+            supports_reverse_proxy: Some(true),
+        }
+    }
+}
+
+/// Converts the AppEditor value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for AppEditor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            Some("port".to_string()),
+            Some(self.port.to_string()),
+            self.supports_reverse_proxy
+                .as_ref()
+                .map(|supports_reverse_proxy| {
+                    [
+                        "supportsReverseProxy".to_string(),
+                        supports_reverse_proxy.to_string(),
+                    ]
+                    .join(",")
+                }),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AppEditor value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AppEditor {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub port: Vec<u16>,
+            pub supports_reverse_proxy: Vec<bool>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing AppEditor".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "port" => intermediate_rep.port.push(
+                        <u16 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "supportsReverseProxy" => intermediate_rep.supports_reverse_proxy.push(
+                        <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing AppEditor".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(AppEditor {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in AppEditor".to_string())?,
+            port: intermediate_rep
+                .port
+                .into_iter()
+                .next()
+                .ok_or_else(|| "port missing in AppEditor".to_string())?,
+            supports_reverse_proxy: intermediate_rep.supports_reverse_proxy.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<AppEditor> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<AppEditor>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<AppEditor>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for AppEditor - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AppEditor> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <AppEditor as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into AppEditor - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
 /// Instance of an App
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -341,10 +532,9 @@ pub struct AppInstance {
     #[serde(rename = "desired")]
     pub desired: models::InstanceStatus,
 
-    /// Link to the editor of an instance
-    #[serde(rename = "editor")]
+    #[serde(rename = "editors")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub editor: Option<String>,
+    pub editors: Option<models::InstanceEditors>,
 }
 
 lazy_static::lazy_static! {
@@ -366,7 +556,7 @@ impl AppInstance {
             app_key,
             status,
             desired,
-            editor: None,
+            editors: None,
         }
     }
 }
@@ -386,9 +576,8 @@ impl std::fmt::Display for AppInstance {
             // Skipping status in query parameter serialization
 
             // Skipping desired in query parameter serialization
-            self.editor
-                .as_ref()
-                .map(|editor| ["editor".to_string(), editor.to_string()].join(",")),
+
+            // Skipping editors in query parameter serialization
         ];
 
         write!(
@@ -415,7 +604,7 @@ impl std::str::FromStr for AppInstance {
             pub app_key: Vec<models::AppKey>,
             pub status: Vec<models::InstanceStatus>,
             pub desired: Vec<models::InstanceStatus>,
-            pub editor: Vec<String>,
+            pub editors: Vec<models::InstanceEditors>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -461,8 +650,9 @@ impl std::str::FromStr for AppInstance {
                             .map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "editor" => intermediate_rep.editor.push(
-                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    "editors" => intermediate_rep.editors.push(
+                        <models::InstanceEditors as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
                     ),
                     _ => {
                         return std::result::Result::Err(
@@ -503,7 +693,7 @@ impl std::str::FromStr for AppInstance {
                 .into_iter()
                 .next()
                 .ok_or_else(|| "desired missing in AppInstance".to_string())?,
-            editor: intermediate_rep.editor.into_iter().next(),
+            editors: intermediate_rep.editors.into_iter().next(),
         })
     }
 }
@@ -1524,9 +1714,11 @@ impl std::convert::TryFrom<HeaderValue>
     }
 }
 
+/// Device Onboarding Service Manifest
+
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct DosManifest {
+pub struct Dosschema {
     #[serde(rename = "_schemaVersion")]
     #[validate(length(min = 1))]
     pub _schema_version: String,
@@ -1536,18 +1728,18 @@ pub struct DosManifest {
     pub time: String,
 
     #[serde(rename = "apps")]
-    #[validate()]
-    pub apps: Vec<models::DosManifestAppsInner>,
+    #[validate(length(min = 1))]
+    pub apps: Vec<models::DosschemaAppsInner>,
 }
 
-impl DosManifest {
+impl Dosschema {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
     pub fn new(
         _schema_version: String,
         time: String,
-        apps: Vec<models::DosManifestAppsInner>,
-    ) -> DosManifest {
-        DosManifest {
+        apps: Vec<models::DosschemaAppsInner>,
+    ) -> Dosschema {
+        Dosschema {
             _schema_version,
             time,
             apps,
@@ -1555,10 +1747,10 @@ impl DosManifest {
     }
 }
 
-/// Converts the DosManifest value to the Query Parameters representation (style=form, explode=false)
+/// Converts the Dosschema value to the Query Parameters representation (style=form, explode=false)
 /// specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde serializer
-impl std::fmt::Display for DosManifest {
+impl std::fmt::Display for Dosschema {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
             Some("_schemaVersion".to_string()),
@@ -1576,10 +1768,10 @@ impl std::fmt::Display for DosManifest {
     }
 }
 
-/// Converts Query Parameters representation (style=form, explode=false) to a DosManifest value
+/// Converts Query Parameters representation (style=form, explode=false) to a Dosschema value
 /// as specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde deserializer
-impl std::str::FromStr for DosManifest {
+impl std::str::FromStr for Dosschema {
     type Err = String;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -1589,7 +1781,7 @@ impl std::str::FromStr for DosManifest {
         struct IntermediateRep {
             pub _schema_version: Vec<String>,
             pub time: Vec<String>,
-            pub apps: Vec<Vec<models::DosManifestAppsInner>>,
+            pub apps: Vec<Vec<models::DosschemaAppsInner>>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -1603,7 +1795,7 @@ impl std::str::FromStr for DosManifest {
                 Some(x) => x,
                 None => {
                     return std::result::Result::Err(
-                        "Missing value while parsing DosManifest".to_string(),
+                        "Missing value while parsing Dosschema".to_string(),
                     )
                 }
             };
@@ -1621,13 +1813,13 @@ impl std::str::FromStr for DosManifest {
                     ),
                     "apps" => {
                         return std::result::Result::Err(
-                            "Parsing a container in this style is not supported in DosManifest"
+                            "Parsing a container in this style is not supported in Dosschema"
                                 .to_string(),
                         )
                     }
                     _ => {
                         return std::result::Result::Err(
-                            "Unexpected key while parsing DosManifest".to_string(),
+                            "Unexpected key while parsing Dosschema".to_string(),
                         )
                     }
                 }
@@ -1638,40 +1830,40 @@ impl std::str::FromStr for DosManifest {
         }
 
         // Use the intermediate representation to return the struct
-        std::result::Result::Ok(DosManifest {
+        std::result::Result::Ok(Dosschema {
             _schema_version: intermediate_rep
                 ._schema_version
                 .into_iter()
                 .next()
-                .ok_or_else(|| "_schemaVersion missing in DosManifest".to_string())?,
+                .ok_or_else(|| "_schemaVersion missing in Dosschema".to_string())?,
             time: intermediate_rep
                 .time
                 .into_iter()
                 .next()
-                .ok_or_else(|| "time missing in DosManifest".to_string())?,
+                .ok_or_else(|| "time missing in Dosschema".to_string())?,
             apps: intermediate_rep
                 .apps
                 .into_iter()
                 .next()
-                .ok_or_else(|| "apps missing in DosManifest".to_string())?,
+                .ok_or_else(|| "apps missing in Dosschema".to_string())?,
         })
     }
 }
 
-// Methods for converting between header::IntoHeaderValue<DosManifest> and HeaderValue
+// Methods for converting between header::IntoHeaderValue<Dosschema> and HeaderValue
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<header::IntoHeaderValue<DosManifest>> for HeaderValue {
+impl std::convert::TryFrom<header::IntoHeaderValue<Dosschema>> for HeaderValue {
     type Error = String;
 
     fn try_from(
-        hdr_value: header::IntoHeaderValue<DosManifest>,
+        hdr_value: header::IntoHeaderValue<Dosschema>,
     ) -> std::result::Result<Self, Self::Error> {
         let hdr_value = hdr_value.to_string();
         match HeaderValue::from_str(&hdr_value) {
             std::result::Result::Ok(value) => std::result::Result::Ok(value),
             std::result::Result::Err(e) => std::result::Result::Err(format!(
-                "Invalid header value for DosManifest - value: {} is invalid {}",
+                "Invalid header value for Dosschema - value: {} is invalid {}",
                 hdr_value, e
             )),
         }
@@ -1679,18 +1871,18 @@ impl std::convert::TryFrom<header::IntoHeaderValue<DosManifest>> for HeaderValue
 }
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<DosManifest> {
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Dosschema> {
     type Error = String;
 
     fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
         match hdr_value.to_str() {
             std::result::Result::Ok(value) => {
-                match <DosManifest as std::str::FromStr>::from_str(value) {
+                match <Dosschema as std::str::FromStr>::from_str(value) {
                     std::result::Result::Ok(value) => {
                         std::result::Result::Ok(header::IntoHeaderValue(value))
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
-                        "Unable to convert header value '{}' into DosManifest - {}",
+                        "Unable to convert header value '{}' into Dosschema - {}",
                         value, err
                     )),
                 }
@@ -1705,7 +1897,7 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<DosManifest>
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct DosManifestAppsInner {
+pub struct DosschemaAppsInner {
     #[serde(rename = "name")]
     #[validate(length(min = 1))]
     pub name: String,
@@ -1716,20 +1908,20 @@ pub struct DosManifestAppsInner {
     pub version: Option<String>,
 }
 
-impl DosManifestAppsInner {
+impl DosschemaAppsInner {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(name: String) -> DosManifestAppsInner {
-        DosManifestAppsInner {
+    pub fn new(name: String) -> DosschemaAppsInner {
+        DosschemaAppsInner {
             name,
             version: None,
         }
     }
 }
 
-/// Converts the DosManifestAppsInner value to the Query Parameters representation (style=form, explode=false)
+/// Converts the DosschemaAppsInner value to the Query Parameters representation (style=form, explode=false)
 /// specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde serializer
-impl std::fmt::Display for DosManifestAppsInner {
+impl std::fmt::Display for DosschemaAppsInner {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
             Some("name".to_string()),
@@ -1747,10 +1939,10 @@ impl std::fmt::Display for DosManifestAppsInner {
     }
 }
 
-/// Converts Query Parameters representation (style=form, explode=false) to a DosManifestAppsInner value
+/// Converts Query Parameters representation (style=form, explode=false) to a DosschemaAppsInner value
 /// as specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde deserializer
-impl std::str::FromStr for DosManifestAppsInner {
+impl std::str::FromStr for DosschemaAppsInner {
     type Err = String;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -1773,7 +1965,7 @@ impl std::str::FromStr for DosManifestAppsInner {
                 Some(x) => x,
                 None => {
                     return std::result::Result::Err(
-                        "Missing value while parsing DosManifestAppsInner".to_string(),
+                        "Missing value while parsing DosschemaAppsInner".to_string(),
                     )
                 }
             };
@@ -1791,7 +1983,7 @@ impl std::str::FromStr for DosManifestAppsInner {
                     ),
                     _ => {
                         return std::result::Result::Err(
-                            "Unexpected key while parsing DosManifestAppsInner".to_string(),
+                            "Unexpected key while parsing DosschemaAppsInner".to_string(),
                         )
                     }
                 }
@@ -1802,31 +1994,31 @@ impl std::str::FromStr for DosManifestAppsInner {
         }
 
         // Use the intermediate representation to return the struct
-        std::result::Result::Ok(DosManifestAppsInner {
+        std::result::Result::Ok(DosschemaAppsInner {
             name: intermediate_rep
                 .name
                 .into_iter()
                 .next()
-                .ok_or_else(|| "name missing in DosManifestAppsInner".to_string())?,
+                .ok_or_else(|| "name missing in DosschemaAppsInner".to_string())?,
             version: intermediate_rep.version.into_iter().next(),
         })
     }
 }
 
-// Methods for converting between header::IntoHeaderValue<DosManifestAppsInner> and HeaderValue
+// Methods for converting between header::IntoHeaderValue<DosschemaAppsInner> and HeaderValue
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<header::IntoHeaderValue<DosManifestAppsInner>> for HeaderValue {
+impl std::convert::TryFrom<header::IntoHeaderValue<DosschemaAppsInner>> for HeaderValue {
     type Error = String;
 
     fn try_from(
-        hdr_value: header::IntoHeaderValue<DosManifestAppsInner>,
+        hdr_value: header::IntoHeaderValue<DosschemaAppsInner>,
     ) -> std::result::Result<Self, Self::Error> {
         let hdr_value = hdr_value.to_string();
         match HeaderValue::from_str(&hdr_value) {
             std::result::Result::Ok(value) => std::result::Result::Ok(value),
             std::result::Result::Err(e) => std::result::Result::Err(format!(
-                "Invalid header value for DosManifestAppsInner - value: {} is invalid {}",
+                "Invalid header value for DosschemaAppsInner - value: {} is invalid {}",
                 hdr_value, e
             )),
         }
@@ -1834,18 +2026,18 @@ impl std::convert::TryFrom<header::IntoHeaderValue<DosManifestAppsInner>> for He
 }
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<DosManifestAppsInner> {
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<DosschemaAppsInner> {
     type Error = String;
 
     fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
         match hdr_value.to_str() {
             std::result::Result::Ok(value) => {
-                match <DosManifestAppsInner as std::str::FromStr>::from_str(value) {
+                match <DosschemaAppsInner as std::str::FromStr>::from_str(value) {
                     std::result::Result::Ok(value) => {
                         std::result::Result::Ok(header::IntoHeaderValue(value))
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
-                        "Unable to convert header value '{}' into DosManifestAppsInner - {}",
+                        "Unable to convert header value '{}' into DosschemaAppsInner - {}",
                         value, err
                     )),
                 }
@@ -2424,8 +2616,8 @@ pub struct InstalledApp {
     #[serde(rename = "multiInstance")]
     pub multi_instance: bool,
 
-    #[serde(rename = "editor")]
-    pub editor: String,
+    #[serde(rename = "editors")]
+    pub editors: Vec<models::AppEditor>,
 }
 
 impl InstalledApp {
@@ -2436,7 +2628,7 @@ impl InstalledApp {
         desired: models::AppStatus,
         installed_size: i32,
         multi_instance: bool,
-        editor: String,
+        editors: Vec<models::AppEditor>,
     ) -> InstalledApp {
         InstalledApp {
             app_key,
@@ -2444,7 +2636,7 @@ impl InstalledApp {
             desired,
             installed_size,
             multi_instance,
-            editor,
+            editors,
         }
     }
 }
@@ -2464,8 +2656,7 @@ impl std::fmt::Display for InstalledApp {
             Some(self.installed_size.to_string()),
             Some("multiInstance".to_string()),
             Some(self.multi_instance.to_string()),
-            Some("editor".to_string()),
-            Some(self.editor.to_string()),
+            // Skipping editors in query parameter serialization
         ];
 
         write!(
@@ -2492,7 +2683,7 @@ impl std::str::FromStr for InstalledApp {
             pub desired: Vec<models::AppStatus>,
             pub installed_size: Vec<i32>,
             pub multi_instance: Vec<bool>,
-            pub editor: Vec<String>,
+            pub editors: Vec<Vec<models::AppEditor>>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -2537,10 +2728,12 @@ impl std::str::FromStr for InstalledApp {
                     "multiInstance" => intermediate_rep.multi_instance.push(
                         <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
-                    #[allow(clippy::redundant_clone)]
-                    "editor" => intermediate_rep.editor.push(
-                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
-                    ),
+                    "editors" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in InstalledApp"
+                                .to_string(),
+                        )
+                    }
                     _ => {
                         return std::result::Result::Err(
                             "Unexpected key while parsing InstalledApp".to_string(),
@@ -2580,11 +2773,11 @@ impl std::str::FromStr for InstalledApp {
                 .into_iter()
                 .next()
                 .ok_or_else(|| "multiInstance missing in InstalledApp".to_string())?,
-            editor: intermediate_rep
-                .editor
+            editors: intermediate_rep
+                .editors
                 .into_iter()
                 .next()
-                .ok_or_else(|| "editor missing in InstalledApp".to_string())?,
+                .ok_or_else(|| "editors missing in InstalledApp".to_string())?,
         })
     }
 }
@@ -4217,52 +4410,301 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceDeta
     }
 }
 
-/// Link to the editor of an instance
-#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstanceEditor(String);
+pub struct InstanceEditor {
+    /// Descriptive name of the editor
+    #[serde(rename = "name")]
+    pub name: String,
 
-impl validator::Validate for InstanceEditor {
+    /// Link to the editor of an instance
+    #[serde(rename = "url")]
+    pub url: String,
+}
+
+impl InstanceEditor {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String, url: String) -> InstanceEditor {
+        InstanceEditor { name, url }
+    }
+}
+
+/// Converts the InstanceEditor value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstanceEditor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            Some("url".to_string()),
+            Some(self.url.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstanceEditor value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstanceEditor {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub url: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing InstanceEditor".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "url" => intermediate_rep.url.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing InstanceEditor".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstanceEditor {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in InstanceEditor".to_string())?,
+            url: intermediate_rep
+                .url
+                .into_iter()
+                .next()
+                .ok_or_else(|| "url missing in InstanceEditor".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstanceEditor> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<InstanceEditor>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstanceEditor>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for InstanceEditor - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceEditor> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <InstanceEditor as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into InstanceEditor - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstanceEditors(Vec<InstanceEditor>);
+
+impl validator::Validate for InstanceEditors {
     fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
         std::result::Result::Ok(())
     }
 }
 
-impl std::convert::From<String> for InstanceEditor {
-    fn from(x: String) -> Self {
-        InstanceEditor(x)
+impl std::convert::From<Vec<InstanceEditor>> for InstanceEditors {
+    fn from(x: Vec<InstanceEditor>) -> Self {
+        InstanceEditors(x)
     }
 }
 
-impl std::fmt::Display for InstanceEditor {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.0)
-    }
-}
-
-impl std::str::FromStr for InstanceEditor {
-    type Err = std::string::ParseError;
-    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
-        std::result::Result::Ok(InstanceEditor(x.to_string()))
-    }
-}
-
-impl std::convert::From<InstanceEditor> for String {
-    fn from(x: InstanceEditor) -> Self {
+impl std::convert::From<InstanceEditors> for Vec<InstanceEditor> {
+    fn from(x: InstanceEditors) -> Self {
         x.0
     }
 }
 
-impl std::ops::Deref for InstanceEditor {
-    type Target = String;
-    fn deref(&self) -> &String {
+impl std::iter::FromIterator<InstanceEditor> for InstanceEditors {
+    fn from_iter<U: IntoIterator<Item = InstanceEditor>>(u: U) -> Self {
+        InstanceEditors(Vec::<InstanceEditor>::from_iter(u))
+    }
+}
+
+impl std::iter::IntoIterator for InstanceEditors {
+    type Item = InstanceEditor;
+    type IntoIter = std::vec::IntoIter<InstanceEditor>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a> std::iter::IntoIterator for &'a InstanceEditors {
+    type Item = &'a InstanceEditor;
+    type IntoIter = std::slice::Iter<'a, InstanceEditor>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl<'a> std::iter::IntoIterator for &'a mut InstanceEditors {
+    type Item = &'a mut InstanceEditor;
+    type IntoIter = std::slice::IterMut<'a, InstanceEditor>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter_mut()
+    }
+}
+
+impl std::ops::Deref for InstanceEditors {
+    type Target = Vec<InstanceEditor>;
+    fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl std::ops::DerefMut for InstanceEditor {
-    fn deref_mut(&mut self) -> &mut String {
+impl std::ops::DerefMut for InstanceEditors {
+    fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+/// Converts the InstanceEditors value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstanceEditors {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstanceEditors value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstanceEditors {
+    type Err = <InstanceEditor as std::str::FromStr>::Err;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let mut items = vec![];
+        for item in s.split(',') {
+            items.push(item.parse()?);
+        }
+        std::result::Result::Ok(InstanceEditors(items))
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstanceEditors> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<InstanceEditors>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstanceEditors>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for InstanceEditors - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceEditors> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <InstanceEditors as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into InstanceEditors - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
     }
 }
 
@@ -5003,10 +5445,9 @@ pub struct InstancesInstanceIdGet200Response {
     #[serde(rename = "volumes")]
     pub volumes: Vec<models::InstanceDetailVolume>,
 
-    /// Link to the editor of an instance
-    #[serde(rename = "editor")]
+    #[serde(rename = "editors")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub editor: Option<String>,
+    pub editors: Option<models::InstanceEditors>,
 }
 
 lazy_static::lazy_static! {
@@ -5038,7 +5479,7 @@ impl InstancesInstanceIdGet200Response {
             ip_address,
             ports,
             volumes,
-            editor: None,
+            editors: None,
         }
     }
 }
@@ -5067,9 +5508,8 @@ impl std::fmt::Display for InstancesInstanceIdGet200Response {
             // Skipping ports in query parameter serialization
 
             // Skipping volumes in query parameter serialization
-            self.editor
-                .as_ref()
-                .map(|editor| ["editor".to_string(), editor.to_string()].join(",")),
+
+            // Skipping editors in query parameter serialization
         ];
 
         write!(
@@ -5101,7 +5541,7 @@ impl std::str::FromStr for InstancesInstanceIdGet200Response {
             pub ip_address: Vec<String>,
             pub ports: Vec<Vec<models::InstanceDetailPort>>,
             pub volumes: Vec<Vec<models::InstanceDetailVolume>>,
-            pub editor: Vec<String>,
+            pub editors: Vec<models::InstanceEditors>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -5142,7 +5582,7 @@ impl std::str::FromStr for InstancesInstanceIdGet200Response {
                     "ports" => return std::result::Result::Err("Parsing a container in this style is not supported in InstancesInstanceIdGet200Response".to_string()),
                     "volumes" => return std::result::Result::Err("Parsing a container in this style is not supported in InstancesInstanceIdGet200Response".to_string()),
                     #[allow(clippy::redundant_clone)]
-                    "editor" => intermediate_rep.editor.push(<String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
+                    "editors" => intermediate_rep.editors.push(<models::InstanceEditors as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
                     _ => return std::result::Result::Err("Unexpected key while parsing InstancesInstanceIdGet200Response".to_string())
                 }
             }
@@ -5209,7 +5649,7 @@ impl std::str::FromStr for InstancesInstanceIdGet200Response {
             volumes: intermediate_rep.volumes.into_iter().next().ok_or_else(|| {
                 "volumes missing in InstancesInstanceIdGet200Response".to_string()
             })?,
-            editor: intermediate_rep.editor.into_iter().next(),
+            editors: intermediate_rep.editors.into_iter().next(),
         })
     }
 }
@@ -6565,6 +7005,41 @@ impl std::ops::Deref for LicenseKey {
 
 impl std::ops::DerefMut for LicenseKey {
     fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Port(i32);
+
+impl validator::Validate for Port {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<i32> for Port {
+    fn from(x: i32) -> Self {
+        Port(x)
+    }
+}
+
+impl std::convert::From<Port> for i32 {
+    fn from(x: Port) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for Port {
+    type Target = i32;
+    fn deref(&self) -> &i32 {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for Port {
+    fn deref_mut(&mut self) -> &mut i32 {
         &mut self.0
     }
 }
