@@ -21,39 +21,11 @@
 namespace flecs {
 
 network_t::network_t()
-    : network_t{""}
-{}
-
-network_t::network_t(std::string_view str)
-    : _name{str}
+    : _name{}
     , _parent{}
     , _mac_address{}
     , _type{network_type_e::None}
-{
-    if (cxx23::contains(str, "-internal-")) {
-        _type = network_type_e::Internal;
-    } else if (cxx23::contains(str, "-ipvlan-")) {
-        _type = network_type_e::IPVLAN;
-
-        const auto adapter_regex = std::regex{"ipvlan-(.+)$"};
-        auto m = std::cmatch{};
-        std::regex_search(str.data(), m, adapter_regex);
-        if ((m.size() > 1) && (m[1].matched)) {
-            _parent = m[1];
-        }
-    } else if (cxx23::contains(str, "-macvlan-")) {
-        _type = network_type_e::MACVLAN;
-
-        const auto adapter_regex = std::regex{"macvlan-(.+)$"};
-        auto m = std::cmatch{};
-        std::regex_search(str.data(), m, adapter_regex);
-        if ((m.size() > 1) && (m[1].matched)) {
-            _parent = m[1];
-        }
-    } else if (!str.empty()) {
-        _type = network_type_e::Bridge;
-    }
-}
+{}
 
 auto network_t::name() const noexcept //
     -> const std::string&

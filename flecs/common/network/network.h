@@ -26,8 +26,6 @@ class network_t
 public:
     network_t();
 
-    explicit network_t(std::string_view str);
-
     auto name() const noexcept //
         -> const std::string&;
     auto parent() const noexcept //

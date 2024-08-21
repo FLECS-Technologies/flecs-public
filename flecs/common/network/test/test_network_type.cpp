@@ -31,22 +31,24 @@
 
 TEST(network_type, to_string)
 {
-    const auto values = std::array<flecs::network_type_e, 7>{
+    const auto values = std::array<flecs::network_type_e, 8>{
         flecs::network_type_e::None,
         flecs::network_type_e::Internal,
         flecs::network_type_e::Bridge,
         flecs::network_type_e::MACVLAN,
-        flecs::network_type_e::IPVLAN,
+        flecs::network_type_e::IPVLAN_L2,
+        flecs::network_type_e::IPVLAN_L3,
         flecs::network_type_e::Unknown,
         static_cast<flecs::network_type_e>(-1),
     };
 
-    const auto strings = std::array<std::string_view, 9>{
+    const auto strings = std::array<std::string_view, 8>{
         "none",
         "internal",
         "bridge",
         "macvlan",
-        "ipvlan",
+        "ipvlan_l2",
+        "ipvlan_l3",
         "unknown",
         "unknown",
     };

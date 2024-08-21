@@ -27,55 +27,11 @@ TEST(network, default)
     ASSERT_EQ(network.type(), flecs::network_type_e::None);
 }
 
-TEST(network, bridge)
-{
-    const auto network = flecs::network_t{"flecs-bridge-custom"};
-
-    ASSERT_TRUE(network.is_valid());
-    ASSERT_TRUE(network.mac_address().empty());
-    ASSERT_EQ(network.name(), "flecs-bridge-custom");
-    ASSERT_TRUE(network.parent().empty());
-    ASSERT_EQ(network.type(), flecs::network_type_e::Bridge);
-}
-
-TEST(network, ipvlan)
-{
-    const auto network = flecs::network_t{"flecs-ipvlan-lo"};
-
-    ASSERT_TRUE(network.is_valid());
-    // ASSERT_EQ(network.mac_address(), "00:00:00:00:00:00");
-    ASSERT_EQ(network.name(), "flecs-ipvlan-lo");
-    ASSERT_EQ(network.parent(), "lo");
-    ASSERT_EQ(network.type(), flecs::network_type_e::IPVLAN);
-}
-
-TEST(network, macvlan)
-{
-    const auto network = flecs::network_t{"flecs-macvlan-lo"};
-
-    ASSERT_TRUE(network.is_valid());
-    // ASSERT_EQ(network.mac_address(), "00:00:00:00:00:00");
-    ASSERT_EQ(network.name(), "flecs-macvlan-lo");
-    ASSERT_EQ(network.parent(), "lo");
-    ASSERT_EQ(network.type(), flecs::network_type_e::MACVLAN);
-}
-
-TEST(network, internal)
-{
-    const auto network = flecs::network_t{"flecs-internal-custom"};
-
-    ASSERT_TRUE(network.is_valid());
-    // ASSERT_EQ(network.mac_address(), "00:00:00:00:00:00");
-    ASSERT_EQ(network.name(), "flecs-internal-custom");
-    ASSERT_TRUE(network.parent().empty());
-    ASSERT_EQ(network.type(), flecs::network_type_e::Internal);
-}
-
 TEST(network, custom)
 {
     auto network = flecs::network_t{};
 
-    network.type(flecs::network_type_from_string("ipvlan"));
+    network.type(flecs::network_type_from_string("ipvlan_l2"));
     network.mac_address("00:00:00:00:00:00");
     network.name("flecs-custom-ipvlan");
     network.parent("lo");
@@ -83,5 +39,5 @@ TEST(network, custom)
     ASSERT_TRUE(network.is_valid());
     ASSERT_EQ(network.mac_address(), "00:00:00:00:00:00");
     ASSERT_EQ(network.parent(), "lo");
-    ASSERT_EQ(network.type(), flecs::network_type_e::IPVLAN);
+    ASSERT_EQ(network.type(), flecs::network_type_e::IPVLAN_L2);
 }

@@ -25,16 +25,9 @@ enum class network_type_e {
     Internal,
     Bridge,
     MACVLAN,
-    IPVLAN,
+    IPVLAN_L2,
+    IPVLAN_L3,
     Unknown,
-};
-
-static const auto strings = std::map<network_type_e, std::string>{
-    {network_type_e::None, "none"},
-    {network_type_e::Internal, "internal"},
-    {network_type_e::Bridge, "bridge"},
-    {network_type_e::MACVLAN, "macvlan"},
-    {network_type_e::IPVLAN, "ipvlan"},
 };
 
 auto to_string_view(const network_type_e& network_type) //

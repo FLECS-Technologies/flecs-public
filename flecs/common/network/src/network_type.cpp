@@ -20,12 +20,13 @@
 
 namespace flecs {
 
-static const auto mapping = std::array<std::tuple<network_type_e, std::string_view>, 5>{{
+static const auto mapping = std::array<std::tuple<network_type_e, std::string_view>, 6>{{
     {network_type_e::None, "none"},
     {network_type_e::Internal, "internal"},
     {network_type_e::Bridge, "bridge"},
     {network_type_e::MACVLAN, "macvlan"},
-    {network_type_e::IPVLAN, "ipvlan"},
+    {network_type_e::IPVLAN_L2, "ipvlan_l2"},
+    {network_type_e::IPVLAN_L3, "ipvlan_l3"},
 }};
 
 auto to_string_view(const network_type_e& network_type) //
