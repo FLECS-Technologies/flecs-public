@@ -478,7 +478,7 @@ auto docker_t::do_create_network(
         case network_type_e::Bridge: {
             break;
         }
-        case network_type_e::IPVLAN: {
+        case network_type_e::IPVLAN_L2: {
             if (parent_adapter.empty()) {
                 return {-1, "cannot create ipvlan network without parent"};
             }
