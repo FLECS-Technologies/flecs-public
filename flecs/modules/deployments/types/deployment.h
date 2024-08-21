@@ -105,7 +105,9 @@ public:
         std::string_view gateway,
         std::string_view parent_adapter) //
         -> result_t;
-    auto query_network(std::string_view network) //
+    auto networks() const //
+        -> std::vector<network_t>;
+    auto query_network(std::string_view network) const //
         -> std::optional<network_t>;
     auto delete_network(std::string_view network) //
         -> result_t;
@@ -207,6 +209,8 @@ private:
         -> result_t = 0;
     virtual auto do_is_instance_running(std::shared_ptr<instances::instance_t> instance) const //
         -> bool = 0;
+    virtual auto do_networks() const //
+        -> std::vector<network_t> = 0;
     virtual auto do_create_network(
         network_type_e network_type,
         std::string_view network,
@@ -214,7 +218,7 @@ private:
         std::string_view gateway,
         std::string_view parent_adapter) //
         -> result_t = 0;
-    virtual auto do_query_network(std::string_view network) //
+    virtual auto do_query_network(std::string_view network) const //
         -> std::optional<network_t> = 0;
     virtual auto do_delete_network(std::string_view network) //
         -> result_t = 0;

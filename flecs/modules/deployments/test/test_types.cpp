@@ -59,7 +59,8 @@ public:
         (override));
     MOCK_METHOD(
         bool, do_is_instance_running, (std::shared_ptr<instances::instance_t> instance), (const, override));
-    MOCK_METHOD(std::optional<network_t>, do_query_network, (std::string_view network), (override));
+    MOCK_METHOD(std::vector<network_t>, do_networks, (), (const, override));
+    MOCK_METHOD(std::optional<network_t>, do_query_network, (std::string_view network), (const, override));
     MOCK_METHOD(result_t, do_delete_network, (std::string_view network), (override));
     MOCK_METHOD(
         result_t,
@@ -268,6 +269,9 @@ TEST(deployment, interface)
             G_CIDR_SUBNET,
             G_GATEWAY,
             G_PARENT);
+
+        EXPECT_CALL(test_deployment, do_networks()).Times(1);
+        deployment->networks();
 
         EXPECT_CALL(test_deployment, do_query_network(G_NETWORK_NAME)).Times(1);
         deployment->query_network(G_NETWORK_NAME);
