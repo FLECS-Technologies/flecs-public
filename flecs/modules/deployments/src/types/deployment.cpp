@@ -474,6 +474,12 @@ auto deployment_t::create_config_files(std::shared_ptr<instances::instance_t> in
     return {0, {}};
 }
 
+auto deployment_t::networks() const //
+    -> std::vector<network_t>
+{
+    return do_networks();
+}
+
 auto deployment_t::create_network(
     network_type_e network_type,
     std::string_view network,
@@ -490,7 +496,7 @@ auto deployment_t::create_network(
         std::move(parent_adapter));
 }
 
-auto deployment_t::query_network(std::string_view network) //
+auto deployment_t::query_network(std::string_view network) const //
     -> std::optional<network_t>
 {
     return do_query_network(std::move(network));

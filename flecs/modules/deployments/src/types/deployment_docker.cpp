@@ -460,6 +460,34 @@ auto docker_t::do_is_instance_running(std::shared_ptr<instances::instance_t> ins
     return false;
 }
 
+auto docker_t::do_networks() const //
+    -> std::vector<network_t>
+{
+    auto docker_process = process_t{};
+    docker_process.spawnp(
+        "docker",       //
+        "network",      //
+        "ls",           //
+        "--filter",     //
+        "name=flecs.*", //
+        "--format",
+        "{{.Name}}");
+    docker_process.wait(false, true);
+
+    auto res = std::vector<network_t>{};
+    if (docker_process.exit_code() == 0) {
+        const auto networks = split(docker_process.stdout(), '\n');
+        for (auto net : networks) {
+            auto tmp = query_network(trim(net));
+            if (tmp.has_value()) {
+                res.push_back(std::move(*tmp));
+            }
+        }
+    }
+
+    return res;
+}
+
 auto docker_t::do_create_network(
     network_type_e network_type,
     std::string_view network,
@@ -535,7 +563,7 @@ auto docker_t::do_create_network(
     return {0, ""};
 }
 
-auto docker_t::do_query_network(std::string_view network) //
+auto docker_t::do_query_network(std::string_view network) const //
     -> std::optional<network_t>
 {
     auto res = network_t{};

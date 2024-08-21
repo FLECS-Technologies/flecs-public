@@ -48,6 +48,8 @@ private:
         -> result_t override;
     auto do_is_instance_running(std::shared_ptr<instances::instance_t> instance) const //
         -> bool override;
+    auto do_networks() const -> //
+        std::vector<network_t> override;
     auto do_create_network(
         network_type_e network_type,
         std::string_view network,
@@ -55,7 +57,7 @@ private:
         std::string_view gateway,
         std::string_view parent_adapter) //
         -> result_t override;
-    auto do_query_network(std::string_view network) //
+    auto do_query_network(std::string_view network) const //
         -> std::optional<network_t> override;
     auto do_delete_network(std::string_view network) //
         -> result_t override;
