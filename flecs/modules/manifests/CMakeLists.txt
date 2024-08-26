@@ -20,8 +20,6 @@ flecs_add_module(
     impl/manifests_impl.h
     LIBS_PRIVATE
         cpr::cpr
-        modules.console
-        modules.device
         common.app.manifest
         modules.apps.types
 )

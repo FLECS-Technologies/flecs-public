@@ -22,15 +22,14 @@
 
 #include "flecs/api/api.h"
 #include "flecs/common/app/manifest/manifest.h"
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
+#include "cxxbridge/rust/cxx.h"
+
 #ifdef FLECS_MOCK_MODULES
-#include "flecs/modules/console/__mocks__/console.h"
-#include "flecs/modules/device/__mocks__/device.h"
 #include "flecs/modules/instances/__mocks__/instances.h"
 #include "flecs/modules/jobs/__mocks__/jobs.h"
 #include "flecs/modules/manifests/__mocks__/manifests.h"
 #else // FLECS_MOCK_MODULES
-#include "flecs/modules/console/console.h"
-#include "flecs/modules/device/device.h"
 #include "flecs/modules/instances/instances.h"
 #include "flecs/modules/jobs/jobs.h"
 #include "flecs/modules/manifests/manifests.h"
@@ -304,22 +303,14 @@ auto apps_t::do_install_impl(
         app = *_apps.rbegin();
     }
 
-    auto console_api = std::dynamic_pointer_cast<module::console_t>(api::query_module("console"));
-    auto device_api = std::dynamic_pointer_cast<module::device_t>(api::query_module("device"));
-
-    auto token = std::optional<console::download_token_t>{};
+    auto token = std::optional<Token>{};
     switch (app->status()) {
         case apps::status_e::ManifestDownloaded: {
             progress.next_step("Acquiring download token");
-            auto session_id = device_api->session_id().has_value() ? device_api->session_id().value().id() : std::string{};
-
-            token = console_api->acquire_download_token(
-                app->key().name(),
-                app->key().version(),
-                session_id);
-
-            if (!token.has_value()) {
-                progress.result(0, "Could not acquire download token");
+            try {
+                token = acquire_download_token(app->key().name(), app->key().version());
+            } catch (const rust::Error &e) {
+                progress.result(0, std::string{"Could not acquire download token: "} + e.what());
             }
 
             [[fallthrough]];
@@ -330,7 +321,7 @@ auto apps_t::do_install_impl(
             auto docker_logout_process = process_t{};
 
             progress.next_step("Authenticating");
-            if (token.has_value() && !token->username().empty() && !token->password().empty()) {
+            if (token.has_value() && !token->username.empty() && !token->password.empty()) {
                 auto docker_process = process_t{};
 
                 auto login_attempts = 3;
@@ -340,9 +331,9 @@ auto apps_t::do_install_impl(
                         "docker",
                         "login",
                         "--username",
-                        token->username(),
+                        token->username.c_str(),
                         "--password",
-                        token->password(),
+                        token->password.c_str(),
                         app->manifest()->image_with_tag());
                     docker_process.wait(true, true);
                     if (docker_process.exit_code() == 0) {

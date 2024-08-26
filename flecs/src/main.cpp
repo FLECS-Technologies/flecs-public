@@ -16,10 +16,8 @@
 
 #include "flecs/api/api.h"
 #include "flecs/modules/apps/apps.h"
-#include "flecs/modules/console/console.h"
 #include "flecs/modules/data_layer/data_layer.h"
 #include "flecs/modules/deployments/deployments.h"
-#include "flecs/modules/device/device.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/flecsport/flecsport.h"
 #include "flecs/modules/floxy/floxy.h"
@@ -33,10 +31,8 @@
 #include "rust/cxx.h"
 
 flecs::module::register_module_t<flecs::module::apps_t> _reg_apps("apps");
-flecs::module::register_module_t<flecs::module::console_t> _reg_console("console");
 flecs::module::register_module_t<flecs::module::data_layer_t> _reg_data_layer("data-layer");
 flecs::module::register_module_t<flecs::module::deployments_t> _reg_deployments("deployments");
-flecs::module::register_module_t<flecs::module::device_t> _reg_device("device");
 flecs::module::register_module_t<flecs::module::flecsport_t> _reg_flecsport("flecsport");
 flecs::module::register_module_t<flecs::module::floxy_t> _reg_floxy("floxy");
 flecs::module::register_module_t<flecs::module::instances_t> _reg_instances("instances");

@@ -17,7 +17,7 @@ flecs_add_module(
     ADDITIONAL_HEADERS impl/floxy_impl.h
     ADDITIONAL_SOURCES src/impl/floxy_impl.cpp
     LIBS_PRIVATE util.process modules.instances modules.apps util.process common
-    LIBS_PUBLIC modules.instances.types modules.console.types
+    LIBS_PUBLIC modules.instances.types
 )
 
 if(FLECS_BUILD_TESTS)

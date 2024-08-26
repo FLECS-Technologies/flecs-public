@@ -19,8 +19,6 @@
 
 #include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app_key.h"
-#include "flecs/modules/console/__mocks__/console.h"
-#include "flecs/modules/device/__mocks__/device.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/manifests/manifests.h"
 
@@ -29,17 +27,6 @@ namespace fs = std::filesystem;
 class test_module_manifests_t : public flecs::module::manifests_t
 {
 public:
-    test_module_manifests_t()
-    {
-        flecs::module::register_module_t<flecs::module::console_t>("console");
-        flecs::module::register_module_t<flecs::module::device_t>("device");
-    }
-
-    ~test_module_manifests_t()
-    {
-        flecs::module::unregister_module_t("console");
-        flecs::module::unregister_module_t("device");
-    }
 
 private:
 };
