@@ -66,6 +66,6 @@ fn combine_results(left: Result<()>, right: Result<()>) -> Result<()> {
 
 #[derive(Debug, Clone, Hash, PartialEq, Ord, PartialOrd, Eq, Serialize, Deserialize)]
 pub struct AppKey {
-    name: String,
-    version: String,
+    pub name: String,
+    pub version: String,
 }

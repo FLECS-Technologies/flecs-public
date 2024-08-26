@@ -3,6 +3,5 @@ mod flecs_rest;
 pub mod fsm;
 pub mod lore;
 pub mod relic;
-mod sorcerer;
-pub mod spell;
+pub mod sorcerer;
 pub mod vault;

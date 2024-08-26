@@ -1,5 +1,5 @@
+pub mod console_client;
 mod server_impl;
-
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use axum::{
     extract::connect_info::{self},
@@ -62,7 +62,7 @@ pub fn init_tracing() {
 }
 
 fn create_service() -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
-    let server = server_impl::ServerImpl {};
+    let server = server_impl::ServerImpl::default();
     let app = flecsd_axum_server::server::new(Arc::new(server)).layer(
         tower_http::trace::TraceLayer::new_for_http()
             .make_span_with(|request: &Request<_>| {

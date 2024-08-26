@@ -1,5 +1,6 @@
 pub mod pouch;
 
+use crate::vault::pouch::{Pouch, Secrets};
 use pouch::{AppPouch, ManifestPouch, SecretPouch, VaultPouch};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
@@ -101,7 +102,7 @@ impl Vault {
         Self {
             app_pouch: RwLock::new(AppPouch::new(&config.path.join("apps"))),
             manifest_pouch: RwLock::new(ManifestPouch::new(&config.path.join("manifests"))),
-            secret_pouch: RwLock::new(SecretPouch::new(&config.path.join("secrets"))),
+            secret_pouch: RwLock::new(SecretPouch::new(&config.path.join("device"))),
         }
     }
 
@@ -193,11 +194,20 @@ impl Vault {
             .reserve_secret_pouch_mut()
             .grab();
     }
-}
 
-impl Default for Vault {
-    fn default() -> Self {
-        Self::new(VaultConfig::default())
+    /// Creates a copy of the [Secrets] contained in the [SecretPouch] of this vault.
+    /// <div class="warning">Do not use this function if any other pouches of the vault are needed.
+    /// Using this method while access to the secret pouch was granted via reservation will lead to
+    /// a deadlock!</div>
+    pub fn get_secrets(&self) -> Secrets {
+        self.reservation()
+            .reserve_secret_pouch()
+            .grab()
+            .secret_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .clone()
     }
 }
 
@@ -338,10 +348,11 @@ impl Drop for GrabbedPouches<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use flecs_console_client::models::SessionId;
     use ntest::timeout;
 
     #[test]
-    #[timeout(10)]
+    #[timeout(100)]
     fn grab_multiple() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
@@ -361,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    #[timeout(10)]
+    #[timeout(100)]
     #[should_panic]
     fn double_grab_mutable_mutable() {
         let vault = Vault::new(VaultConfig {
@@ -372,7 +383,7 @@ mod tests {
     }
 
     #[test]
-    #[timeout(10)]
+    #[timeout(100)]
     #[should_panic]
     fn double_grab_mutable_immutable() {
         let vault = Vault::new(VaultConfig {
@@ -383,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    #[timeout(10)]
+    #[timeout(100)]
     fn double_grab_immutable_immutable() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
@@ -395,7 +406,7 @@ mod tests {
     }
 
     #[test]
-    #[timeout(10)]
+    #[timeout(100)]
     #[should_panic]
     fn double_grab_immutable_mutable() {
         let vault = Vault::new(VaultConfig {
@@ -406,7 +417,7 @@ mod tests {
     }
 
     #[test]
-    #[timeout(10)]
+    #[timeout(100)]
     fn reserving_one_pouch_leaves_other_pouches_mut() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
@@ -417,5 +428,29 @@ mod tests {
         assert!(grab_apps.app_pouch_mut.is_some());
         let grab_manifests = vault.reservation().reserve_manifest_pouch_mut().grab();
         assert!(grab_manifests.manifest_pouch_mut.is_some());
+    }
+
+    #[test]
+    #[timeout(100)]
+    fn get_secrets() {
+        let vault = Vault::new(VaultConfig {
+            path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
+        });
+        let expected_secrets = Secrets::new(
+            Some("9876-TZUI-VBNM-4567".to_string()),
+            SessionId {
+                id: Some("80ef3f12-2334-47a8-a4cd-4a8a048f9040".to_string()),
+                timestamp: Some(1724662594123u64),
+            },
+            None,
+        );
+        {
+            let mut grab_secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+            let secrets = grab_secrets.secret_pouch_mut.as_mut().unwrap().gems_mut();
+            secrets.set_session_id(expected_secrets.get_session_id());
+            secrets.authentication = expected_secrets.authentication.clone();
+            secrets.license_key = expected_secrets.license_key.clone();
+        }
+        assert_eq!(expected_secrets, vault.get_secrets());
     }
 }

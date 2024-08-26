@@ -33,6 +33,8 @@ tower = { version = "0.4.13", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
+reqwest-middleware = { version = "^0.3", features = ["json", "multipart"] }
+async-trait = "0.1.80"
 
 [dev-dependencies]
 mockito = "1.4"
