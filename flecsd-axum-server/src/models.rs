@@ -5985,7 +5985,7 @@ impl std::convert::TryFrom<HeaderValue>
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct Job {
     #[serde(rename = "id")]
-    #[validate(range(min = 1, max = 2147483647))]
+    #[validate(range(min = 1, max = 4294967295u32))]
     pub id: u32,
 
     #[serde(rename = "status")]
@@ -7055,8 +7055,9 @@ pub struct SessionId {
     pub id: Option<String>,
 
     #[serde(rename = "timestamp")]
+    #[validate(range(min = 0, max = 9223372036854775807u64))]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timestamp: Option<i32>,
+    pub timestamp: Option<u64>,
 }
 
 lazy_static::lazy_static! {
@@ -7107,7 +7108,7 @@ impl std::str::FromStr for SessionId {
         #[allow(dead_code)]
         struct IntermediateRep {
             pub id: Vec<String>,
-            pub timestamp: Vec<i32>,
+            pub timestamp: Vec<u64>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -7135,7 +7136,7 @@ impl std::str::FromStr for SessionId {
                     ),
                     #[allow(clippy::redundant_clone)]
                     "timestamp" => intermediate_rep.timestamp.push(
-                        <i32 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                        <u64 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     _ => {
                         return std::result::Result::Err(
