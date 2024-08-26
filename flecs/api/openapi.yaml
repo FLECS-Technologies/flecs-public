@@ -39,6 +39,8 @@ components:
           $ref: '#/components/schemas/id'
         timestamp:
           type: integer
+          minimum: 0
+          maximum: 9223372036854775807
     # App related schemas
     app_key:
       type: object
