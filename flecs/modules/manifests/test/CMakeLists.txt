@@ -26,7 +26,6 @@ if(FLECS_BUILD_TESTS)
         GTest::gtest_main
         common.app.manifest
         modules.manifests.mocked_modules
-        modules.console.types
         magic::flecs_core_cxx_bridge
     )
 

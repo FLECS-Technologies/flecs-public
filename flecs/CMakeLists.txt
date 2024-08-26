@@ -37,10 +37,8 @@ target_link_libraries(daemon PRIVATE
     api
     common
     modules.apps
-    modules.console
     modules.data_layer
     modules.deployments
-    modules.device
     modules.factory
     modules.flecsport
     modules.instances

@@ -14,7 +14,6 @@
 
 #pragma once
 
-#include "flecs/modules/console/types/session_id.h"
 #include "flecs/modules/instances/types/instance.h"
 #include "flecs/modules/instances/types/instance_id.h"
 #include "flecs/modules/module_base/module.h"

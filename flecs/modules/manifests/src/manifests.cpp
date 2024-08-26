@@ -15,13 +15,6 @@
 #include "flecs/modules/manifests/manifests.h"
 
 #include "flecs/common/app/manifest/manifest.h"
-#ifdef FLECS_MOCK_MODULES
-#include "flecs/modules/console/__mocks__/console.h"
-#include "flecs/modules/device/__mocks__/device.h"
-#else // FLECS_MOCK_MODULES
-#include "flecs/modules/console/console.h"
-#include "flecs/modules/device/device.h"
-#endif // FLECS_MOCK_MODULES
 #include "flecs/modules/apps/types/app_key.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/manifests/impl/manifests_impl.h"
@@ -98,17 +91,11 @@ auto manifests_t::add_from_string(std::string_view manifest) //
 auto manifests_t::add_from_console(const apps::key_t& app_key) //
     -> std::tuple<std::shared_ptr<app_manifest_t>, bool>
 {
-    auto console_api = std::dynamic_pointer_cast<console_t>(api::query_module("console"));
-    auto device_api = std::dynamic_pointer_cast<device_t>(api::query_module("device"));
-
-    auto session_id = device_api->session_id();
     auto str = std::string{};
-    if (session_id.has_value()) {
-        try {
-            str = std::string(download_manifest(session_id.value().id(), app_key.name(), app_key.version()));
-        } catch (const rust::Error &e) {
-            std::cerr << e.what() << "\n";
-        }
+    try {
+        str = std::string(download_manifest(app_key.name(), app_key.version()));
+    } catch (const rust::Error &e) {
+        std::cerr << e.what() << "\n";
     }
 
     return add_from_string(str);
