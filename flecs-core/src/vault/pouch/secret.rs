@@ -1,13 +1,44 @@
 use super::Result;
 use super::{combine_results, Pouch, VaultPouch};
 use flecs_console_client::models::SessionId;
+use flecsd_axum_server::models::AuthResponseData;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Secrets {
     pub license_key: Option<String>,
-    pub session_id: SessionId,
+    session_id: SessionId,
+    pub authentication: Option<AuthResponseData>,
+}
+
+impl Secrets {
+    pub fn get_session_id(&self) -> SessionId {
+        self.session_id.clone()
+    }
+    pub fn set_session_id(&mut self, session_id: SessionId) {
+        match (
+            &self.session_id.id,
+            session_id.timestamp,
+            &self.session_id.timestamp,
+        ) {
+            (.., None) | (None, ..) => self.session_id = session_id,
+            (Some(_), Some(new), Some(current)) if new >= *current => self.session_id = session_id,
+            _ => {}
+        }
+    }
+
+    pub fn new(
+        license_key: Option<String>,
+        session_id: SessionId,
+        authentication: Option<AuthResponseData>,
+    ) -> Self {
+        Self {
+            license_key,
+            session_id,
+            authentication,
+        }
+    }
 }
 
 const SESSION_FILE_NAME: &str = ".session_id";
@@ -108,6 +139,7 @@ mod tests {
         assert_eq!(secrets.secrets.session_id.timestamp, Some(timestamp));
         assert_eq!(secrets.secrets.session_id.id, Some(id.to_string()));
         assert_eq!(secrets.secrets.license_key, Some(license.to_string()));
+        assert!(secrets.secrets.authentication.is_none());
     }
 
     #[test]
@@ -131,6 +163,7 @@ mod tests {
                     id: Some(id.to_string()),
                     timestamp: Some(timestamp),
                 },
+                authentication: None,
             },
         };
         secrets.close().unwrap();
@@ -157,6 +190,7 @@ mod tests {
         assert!(secrets.secrets.session_id.timestamp.is_none());
         assert_eq!(secrets.secrets.session_id.id, Some(id.to_string()));
         assert_eq!(secrets.secrets.license_key, Some(license.to_string()));
+        assert!(secrets.secrets.authentication.is_none());
     }
 
     #[test]
@@ -179,6 +213,7 @@ mod tests {
                     id: Some(id.to_string()),
                     timestamp: None,
                 },
+                authentication: None,
             },
         };
         secrets.close().unwrap();
@@ -190,6 +225,7 @@ mod tests {
             fs::read_to_string(test_path.join(SESSION_FILE_NAME)).unwrap(),
             format!("{id}")
         );
+        assert_eq!(secrets.secrets.authentication, None);
     }
 
     #[test]
@@ -207,6 +243,7 @@ mod tests {
         assert!(secrets.secrets.session_id.id.is_none());
         assert!(secrets.secrets.session_id.timestamp.is_none());
         assert!(secrets.secrets.license_key.is_none());
+        assert!(secrets.secrets.authentication.is_none());
     }
 
     #[test]
@@ -227,6 +264,7 @@ mod tests {
                     id: None,
                     timestamp: None,
                 },
+                authentication: None,
             },
         };
         secrets.close().unwrap();
@@ -236,5 +274,100 @@ mod tests {
         assert!(fs::read_to_string(test_path.join(SESSION_FILE_NAME))
             .unwrap()
             .is_empty());
+    }
+
+    #[test]
+    fn set_session_id_newer() {
+        let current = SessionId {
+            id: Some("51ff9015-1d6e-4b3a-a3e0-a51ee7d5b4f3".to_string()),
+            timestamp: Some(1724671774876u64),
+        };
+        let next = SessionId {
+            id: Some("d22cdf2b-abc4-4cc1-bc01-7cbd70b5b10f".to_string()),
+            timestamp: Some(1724671774900u64),
+        };
+        let mut secrets = Secrets {
+            session_id: current.clone(),
+            license_key: None,
+            authentication: None,
+        };
+        secrets.set_session_id(next.clone());
+        assert_eq!(secrets.session_id, next);
+    }
+
+    #[test]
+    fn set_session_id_older() {
+        let current = SessionId {
+            id: Some("51ff9015-1d6e-4b3a-a3e0-a51ee7d5b4f3".to_string()),
+            timestamp: Some(1724671774876u64),
+        };
+        let next = SessionId {
+            id: Some("d22cdf2b-abc4-4cc1-bc01-7cbd70b5b10f".to_string()),
+            timestamp: Some(1724671774000u64),
+        };
+        let mut secrets = Secrets {
+            session_id: current.clone(),
+            license_key: None,
+            authentication: None,
+        };
+        secrets.set_session_id(next.clone());
+        assert_eq!(secrets.session_id, current);
+    }
+
+    #[test]
+    fn set_session_id_same_age() {
+        let current = SessionId {
+            id: Some("51ff9015-1d6e-4b3a-a3e0-a51ee7d5b4f3".to_string()),
+            timestamp: Some(1724671774876u64),
+        };
+        let next = SessionId {
+            id: Some("d22cdf2b-abc4-4cc1-bc01-7cbd70b5b10f".to_string()),
+            timestamp: Some(1724671774876u64),
+        };
+        let mut secrets = Secrets {
+            session_id: current.clone(),
+            license_key: None,
+            authentication: None,
+        };
+        secrets.set_session_id(next.clone());
+        assert_eq!(secrets.session_id, next);
+    }
+
+    #[test]
+    fn set_session_id_empty() {
+        let current = SessionId {
+            id: None,
+            timestamp: Some(1724671774900u64),
+        };
+        let next = SessionId {
+            id: Some("d22cdf2b-abc4-4cc1-bc01-7cbd70b5b10f".to_string()),
+            timestamp: Some(1724671774876u64),
+        };
+        let mut secrets = Secrets {
+            session_id: current.clone(),
+            license_key: None,
+            authentication: None,
+        };
+        secrets.set_session_id(next.clone());
+        assert_eq!(secrets.session_id, next);
+    }
+
+    #[test]
+    fn set_session_id_no_time() {
+        let current = SessionId {
+            id: Some("51ff9015-1d6e-4b3a-a3e0-a51ee7d5b4f3".to_string()),
+            timestamp: None,
+        };
+        let next = SessionId {
+            id: Some("d22cdf2b-abc4-4cc1-bc01-7cbd70b5b10f".to_string()),
+            timestamp: Some(1724671774876u64),
+        };
+        let mut secrets = Secrets {
+            session_id: current.clone(),
+            license_key: None,
+            authentication: None,
+        };
+        secrets.set_session_id(next.clone());
+        assert_eq!(secrets.session_id, next);
     }
 }

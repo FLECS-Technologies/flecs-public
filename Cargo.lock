@@ -456,6 +456,7 @@ dependencies = [
 name = "flecs-core"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "axum-extra",
  "flecs_app_manifest",
@@ -472,6 +473,7 @@ dependencies = [
  "ntest",
  "procfs",
  "reqwest",
+ "reqwest-middleware",
  "rusb",
  "serde",
  "serde_json",
@@ -503,6 +505,7 @@ name = "flecs_console_client"
 version = "1.0.0"
 dependencies = [
  "reqwest",
+ "reqwest-middleware",
  "serde",
  "serde_json",
  "serde_repr",
@@ -1767,6 +1770,21 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
+]
+
+[[package]]
+name = "reqwest-middleware"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "562ceb5a604d3f7c885a792d42c199fd8af239d0a51b2fa6a78aafa092452b04"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "http 1.1.0",
+ "reqwest",
+ "serde",
+ "thiserror",
+ "tower-service",
 ]
 
 [[package]]

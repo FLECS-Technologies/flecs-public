@@ -1,6 +1,8 @@
+use crate::vault::Vault;
 use axum::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
+use flecs_console_client::models::SessionId;
 use flecsd_axum_server::apis::apps::{
     Apps, AppsAppDeleteResponse, AppsAppGetResponse, AppsGetResponse, AppsInstallPostResponse,
     AppsSideloadPostResponse,
@@ -34,8 +36,9 @@ use flecsd_axum_server::apis::system::{
 use flecsd_axum_server::models::{
     AdditionalInfo, AppEditor, AppKey, AppStatus, AppsAppDeletePathParams,
     AppsAppDeleteQueryParams, AppsAppGetPathParams, AppsAppGetQueryParams, AppsInstallPostRequest,
-    AppsSideloadPostRequest, AuthResponseData, Dosschema, FlunderBrowseGetQueryParams,
-    InstalledApp, InstanceConfig, InstanceEnvironment, InstancePorts, InstancesCreatePostRequest,
+    AppsSideloadPostRequest, AuthResponseData, DeviceLicenseActivationStatusGet200Response,
+    DeviceLicenseInfoGet200Response, Dosschema, FlunderBrowseGetQueryParams, InstalledApp,
+    InstanceConfig, InstanceEnvironment, InstancePorts, InstancesCreatePostRequest,
     InstancesGetQueryParams, InstancesInstanceIdConfigEnvironmentDeletePathParams,
     InstancesInstanceIdConfigEnvironmentGetPathParams,
     InstancesInstanceIdConfigEnvironmentPutPathParams, InstancesInstanceIdConfigGetPathParams,
@@ -48,8 +51,19 @@ use flecsd_axum_server::models::{
     JobsJobIdDeletePathParams, JobsJobIdGetPathParams,
 };
 use http::Method;
+use std::sync::Arc;
 
-pub struct ServerImpl {}
+pub struct ServerImpl {
+    vault: Arc<Vault>,
+}
+
+impl Default for ServerImpl {
+    fn default() -> Self {
+        Self {
+            vault: crate::lore::vault::default(),
+        }
+    }
+}
 
 #[async_trait]
 impl Apps for ServerImpl {
@@ -133,7 +147,8 @@ impl Console for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ConsoleAuthenticationDeleteResponse, String> {
-        todo!()
+        crate::sorcerer::authmancer::delete_authentication(&self.vault);
+        Ok(ConsoleAuthenticationDeleteResponse::Status204_NoContent)
     }
 
     async fn console_authentication_put(
@@ -141,9 +156,10 @@ impl Console for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _body: AuthResponseData,
+        body: AuthResponseData,
     ) -> Result<ConsoleAuthenticationPutResponse, String> {
-        todo!()
+        crate::sorcerer::authmancer::store_authentication(body, &self.vault);
+        Ok(ConsoleAuthenticationPutResponse::Status204_NoContent)
     }
 }
 
@@ -155,7 +171,23 @@ impl Device for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<DeviceLicenseActivationPostResponse, String> {
-        todo!()
+        match crate::sorcerer::licenso::activate_license(
+            &self.vault,
+            crate::lore::console_client_config::default(),
+        )
+        .await
+        {
+            Ok(()) => Ok(DeviceLicenseActivationPostResponse::Status200_Success(
+                AdditionalInfo {
+                    additional_info: "OK".to_string(),
+                },
+            )),
+            Err(additional_info) => Ok(
+                DeviceLicenseActivationPostResponse::Status500_InternalServerError(
+                    AdditionalInfo { additional_info },
+                ),
+            ),
+        }
     }
 
     async fn device_license_activation_status_get(
@@ -164,7 +196,16 @@ impl Device for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<DeviceLicenseActivationStatusGetResponse, String> {
-        todo!()
+        match crate::sorcerer::licenso::validate_license(&self.vault).await {
+            Ok(is_valid) => Ok(DeviceLicenseActivationStatusGetResponse::Status200_Success(
+                DeviceLicenseActivationStatusGet200Response { is_valid },
+            )),
+            Err(additional_info) => Ok(
+                DeviceLicenseActivationStatusGetResponse::Status500_InternalServerError({
+                    AdditionalInfo { additional_info }
+                }),
+            ),
+        }
     }
 
     async fn device_license_info_get(
@@ -173,7 +214,17 @@ impl Device for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<DeviceLicenseInfoGetResponse, String> {
-        todo!()
+        let secrets = self.vault.get_secrets();
+        Ok(DeviceLicenseInfoGetResponse::Status200_Success(
+            DeviceLicenseInfoGet200Response {
+                // TODO: Use correct type, as soon as serial numbers are implemented
+                r#type: "Via user license".to_string(),
+                session_id: Some(console_session_id_to_core_session_id(
+                    secrets.get_session_id(),
+                )),
+                value: secrets.license_key,
+            },
+        ))
     }
 
     async fn device_onboarding_post(
@@ -438,5 +489,14 @@ impl System for ServerImpl {
         _cookies: CookieJar,
     ) -> Result<SystemVersionGetResponse, String> {
         todo!()
+    }
+}
+
+fn console_session_id_to_core_session_id(
+    session_id: SessionId,
+) -> flecsd_axum_server::models::SessionId {
+    flecsd_axum_server::models::SessionId {
+        id: session_id.id,
+        timestamp: session_id.timestamp,
     }
 }
