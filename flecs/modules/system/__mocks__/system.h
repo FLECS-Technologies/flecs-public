@@ -40,7 +40,6 @@ protected:
     MOCK_METHOD((void), do_init, (), (override));
     MOCK_METHOD((void), do_deinit, (), (override));
 
-    MOCK_METHOD((crow::response), ping, (), (const));
     MOCK_METHOD((crow::response), info, (), (const));
 };
 
