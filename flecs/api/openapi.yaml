@@ -115,54 +115,54 @@ components:
     user:
       type: object
       required:
-        - id
-        - userEmail
-        - userLogin
-        - displayName
+        - ID
+        - user_email
+        - user_login
+        - display_name
       properties:
-        id:
+        ID:
           type: integer
           minimum: 0
-        userEmail:
+        user_email:
           type: string
           format: email
-        userLogin:
+        user_login:
           type: string
-        displayName:
+        display_name:
           type: string
     jwt:
       type: object
       required:
         - token
-        - tokenExpires
+        - token_expires
       properties:
         token:
           type: string
-        tokenExpires:
+        token_expires:
           type: integer
           minimum: 0
     featureFlags:
       type: object
       required:
         - isVendor
-        - isWhiteLabeled
+        - isWhitelabeled
       properties:
         isVendor:
           type: boolean
-        isWhiteLabeled:
+        isWhitelabeled:
           type: boolean
     auth_response_data:
       type: object
       required:
         - user
         - jwt
-        - featureFlags
+        - feature_flags
       properties:
         user:
           $ref: "#/components/schemas/user"
         jwt:
           $ref: "#/components/schemas/jwt"
-        featureFlags:
+        feature_flags:
           $ref: "#/components/schemas/featureFlags"
     # Instance related schemas
     instance_id:
@@ -1285,7 +1285,7 @@ paths:
                   type:
                     type: string
                     example: Serialnumber
-                  value:
+                  license:
                     type: string
                   sessionId:
                     $ref: "#/components/schemas/sessionId"

@@ -1244,7 +1244,7 @@ pub struct AuthResponseData {
     #[serde(rename = "jwt")]
     pub jwt: models::Jwt,
 
-    #[serde(rename = "featureFlags")]
+    #[serde(rename = "feature_flags")]
     pub feature_flags: models::FeatureFlags,
 }
 
@@ -1273,7 +1273,7 @@ impl std::fmt::Display for AuthResponseData {
 
             // Skipping jwt in query parameter serialization
 
-            // Skipping featureFlags in query parameter serialization
+            // Skipping feature_flags in query parameter serialization
 
         ];
 
@@ -1331,7 +1331,7 @@ impl std::str::FromStr for AuthResponseData {
                             .map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "featureFlags" => intermediate_rep.feature_flags.push(
+                    "feature_flags" => intermediate_rep.feature_flags.push(
                         <models::FeatureFlags as std::str::FromStr>::from_str(val)
                             .map_err(|x| x.to_string())?,
                     ),
@@ -1363,7 +1363,7 @@ impl std::str::FromStr for AuthResponseData {
                 .feature_flags
                 .into_iter()
                 .next()
-                .ok_or_else(|| "featureFlags missing in AuthResponseData".to_string())?,
+                .ok_or_else(|| "feature_flags missing in AuthResponseData".to_string())?,
         })
     }
 }
@@ -1554,9 +1554,9 @@ pub struct DeviceLicenseInfoGet200Response {
     #[serde(rename = "type")]
     pub r#type: String,
 
-    #[serde(rename = "value")]
+    #[serde(rename = "license")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub value: Option<String>,
+    pub license: Option<String>,
 
     #[serde(rename = "sessionId")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1568,7 +1568,7 @@ impl DeviceLicenseInfoGet200Response {
     pub fn new(r#type: String) -> DeviceLicenseInfoGet200Response {
         DeviceLicenseInfoGet200Response {
             r#type,
-            value: None,
+            license: None,
             session_id: None,
         }
     }
@@ -1582,9 +1582,9 @@ impl std::fmt::Display for DeviceLicenseInfoGet200Response {
         let params: Vec<Option<String>> = vec![
             Some("type".to_string()),
             Some(self.r#type.to_string()),
-            self.value
+            self.license
                 .as_ref()
-                .map(|value| ["value".to_string(), value.to_string()].join(",")),
+                .map(|license| ["license".to_string(), license.to_string()].join(",")),
             // Skipping sessionId in query parameter serialization
         ];
 
@@ -1608,7 +1608,7 @@ impl std::str::FromStr for DeviceLicenseInfoGet200Response {
         #[allow(dead_code)]
         struct IntermediateRep {
             pub r#type: Vec<String>,
-            pub value: Vec<String>,
+            pub license: Vec<String>,
             pub session_id: Vec<models::SessionId>,
         }
 
@@ -1636,7 +1636,7 @@ impl std::str::FromStr for DeviceLicenseInfoGet200Response {
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "value" => intermediate_rep.value.push(
+                    "license" => intermediate_rep.license.push(
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
@@ -1664,7 +1664,7 @@ impl std::str::FromStr for DeviceLicenseInfoGet200Response {
                 .into_iter()
                 .next()
                 .ok_or_else(|| "type missing in DeviceLicenseInfoGet200Response".to_string())?,
-            value: intermediate_rep.value.into_iter().next(),
+            license: intermediate_rep.license.into_iter().next(),
             session_id: intermediate_rep.session_id.into_iter().next(),
         })
     }
@@ -2056,16 +2056,16 @@ pub struct FeatureFlags {
     #[serde(rename = "isVendor")]
     pub is_vendor: bool,
 
-    #[serde(rename = "isWhiteLabeled")]
-    pub is_white_labeled: bool,
+    #[serde(rename = "isWhitelabeled")]
+    pub is_whitelabeled: bool,
 }
 
 impl FeatureFlags {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(is_vendor: bool, is_white_labeled: bool) -> FeatureFlags {
+    pub fn new(is_vendor: bool, is_whitelabeled: bool) -> FeatureFlags {
         FeatureFlags {
             is_vendor,
-            is_white_labeled,
+            is_whitelabeled,
         }
     }
 }
@@ -2078,8 +2078,8 @@ impl std::fmt::Display for FeatureFlags {
         let params: Vec<Option<String>> = vec![
             Some("isVendor".to_string()),
             Some(self.is_vendor.to_string()),
-            Some("isWhiteLabeled".to_string()),
-            Some(self.is_white_labeled.to_string()),
+            Some("isWhitelabeled".to_string()),
+            Some(self.is_whitelabeled.to_string()),
         ];
 
         write!(
@@ -2102,7 +2102,7 @@ impl std::str::FromStr for FeatureFlags {
         #[allow(dead_code)]
         struct IntermediateRep {
             pub is_vendor: Vec<bool>,
-            pub is_white_labeled: Vec<bool>,
+            pub is_whitelabeled: Vec<bool>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -2129,7 +2129,7 @@ impl std::str::FromStr for FeatureFlags {
                         <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "isWhiteLabeled" => intermediate_rep.is_white_labeled.push(
+                    "isWhitelabeled" => intermediate_rep.is_whitelabeled.push(
                         <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     _ => {
@@ -2151,11 +2151,11 @@ impl std::str::FromStr for FeatureFlags {
                 .into_iter()
                 .next()
                 .ok_or_else(|| "isVendor missing in FeatureFlags".to_string())?,
-            is_white_labeled: intermediate_rep
-                .is_white_labeled
+            is_whitelabeled: intermediate_rep
+                .is_whitelabeled
                 .into_iter()
                 .next()
-                .ok_or_else(|| "isWhiteLabeled missing in FeatureFlags".to_string())?,
+                .ok_or_else(|| "isWhitelabeled missing in FeatureFlags".to_string())?,
         })
     }
 }
@@ -6816,7 +6816,7 @@ pub struct Jwt {
     #[serde(rename = "token")]
     pub token: String,
 
-    #[serde(rename = "tokenExpires")]
+    #[serde(rename = "token_expires")]
     #[validate(range(min = 0))]
     pub token_expires: u32,
 }
@@ -6839,7 +6839,7 @@ impl std::fmt::Display for Jwt {
         let params: Vec<Option<String>> = vec![
             Some("token".to_string()),
             Some(self.token.to_string()),
-            Some("tokenExpires".to_string()),
+            Some("token_expires".to_string()),
             Some(self.token_expires.to_string()),
         ];
 
@@ -6888,7 +6888,7 @@ impl std::str::FromStr for Jwt {
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "tokenExpires" => intermediate_rep.token_expires.push(
+                    "token_expires" => intermediate_rep.token_expires.push(
                         <u32 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     _ => {
@@ -6914,7 +6914,7 @@ impl std::str::FromStr for Jwt {
                 .token_expires
                 .into_iter()
                 .next()
-                .ok_or_else(|| "tokenExpires missing in Jwt".to_string())?,
+                .ok_or_else(|| "token_expires missing in Jwt".to_string())?,
         })
     }
 }
@@ -7909,17 +7909,17 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<SystemVersio
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct User {
-    #[serde(rename = "id")]
+    #[serde(rename = "ID")]
     #[validate(range(min = 0))]
     pub id: u32,
 
-    #[serde(rename = "userEmail")]
+    #[serde(rename = "user_email")]
     pub user_email: String,
 
-    #[serde(rename = "userLogin")]
+    #[serde(rename = "user_login")]
     pub user_login: String,
 
-    #[serde(rename = "displayName")]
+    #[serde(rename = "display_name")]
     pub display_name: String,
 }
 
@@ -7941,13 +7941,13 @@ impl User {
 impl std::fmt::Display for User {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
-            Some("id".to_string()),
+            Some("ID".to_string()),
             Some(self.id.to_string()),
-            Some("userEmail".to_string()),
+            Some("user_email".to_string()),
             Some(self.user_email.to_string()),
-            Some("userLogin".to_string()),
+            Some("user_login".to_string()),
             Some(self.user_login.to_string()),
-            Some("displayName".to_string()),
+            Some("display_name".to_string()),
             Some(self.display_name.to_string()),
         ];
 
@@ -7994,19 +7994,19 @@ impl std::str::FromStr for User {
                 #[allow(clippy::match_single_binding)]
                 match key {
                     #[allow(clippy::redundant_clone)]
-                    "id" => intermediate_rep.id.push(
+                    "ID" => intermediate_rep.id.push(
                         <u32 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "userEmail" => intermediate_rep.user_email.push(
+                    "user_email" => intermediate_rep.user_email.push(
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "userLogin" => intermediate_rep.user_login.push(
+                    "user_login" => intermediate_rep.user_login.push(
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "displayName" => intermediate_rep.display_name.push(
+                    "display_name" => intermediate_rep.display_name.push(
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     _ => {
@@ -8027,22 +8027,22 @@ impl std::str::FromStr for User {
                 .id
                 .into_iter()
                 .next()
-                .ok_or_else(|| "id missing in User".to_string())?,
+                .ok_or_else(|| "ID missing in User".to_string())?,
             user_email: intermediate_rep
                 .user_email
                 .into_iter()
                 .next()
-                .ok_or_else(|| "userEmail missing in User".to_string())?,
+                .ok_or_else(|| "user_email missing in User".to_string())?,
             user_login: intermediate_rep
                 .user_login
                 .into_iter()
                 .next()
-                .ok_or_else(|| "userLogin missing in User".to_string())?,
+                .ok_or_else(|| "user_login missing in User".to_string())?,
             display_name: intermediate_rep
                 .display_name
                 .into_iter()
                 .next()
-                .ok_or_else(|| "displayName missing in User".to_string())?,
+                .ok_or_else(|| "display_name missing in User".to_string())?,
         })
     }
 }

@@ -222,7 +222,7 @@ impl Device for ServerImpl {
                 session_id: Some(console_session_id_to_core_session_id(
                     secrets.get_session_id(),
                 )),
-                value: secrets.license_key,
+                license: secrets.license_key,
             },
         ))
     }

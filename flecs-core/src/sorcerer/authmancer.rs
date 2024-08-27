@@ -79,7 +79,7 @@ mod tests {
             },
             feature_flags: FeatureFlags {
                 is_vendor: false,
-                is_white_labeled: false,
+                is_whitelabeled: false,
             },
         }
     }
