@@ -20,12 +20,15 @@
 
 namespace flecs {
 
-static const auto mapping = std::array<std::tuple<network_type_e, std::string_view>, 6>{{
+static const auto mapping = std::array<std::tuple<network_type_e, std::string_view>, 7>{{
     {network_type_e::None, "none"},
     {network_type_e::Internal, "internal"},
     {network_type_e::Bridge, "bridge"},
     {network_type_e::MACVLAN, "macvlan"},
     {network_type_e::IPVLAN_L2, "ipvlan_l2"},
+    // "ipvlan" is required for string-to-type conversion from Docker output
+    // kept after "ipvlan_l2" to prefer the latter in type-to-string conversion
+    {network_type_e::IPVLAN_L2, "ipvlan"},
     {network_type_e::IPVLAN_L3, "ipvlan_l3"},
 }};
 

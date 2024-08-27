@@ -31,38 +31,34 @@
 
 TEST(network_type, to_string)
 {
-    const auto values = std::array<flecs::network_type_e, 8>{
-        flecs::network_type_e::None,
-        flecs::network_type_e::Internal,
-        flecs::network_type_e::Bridge,
-        flecs::network_type_e::MACVLAN,
-        flecs::network_type_e::IPVLAN_L2,
-        flecs::network_type_e::IPVLAN_L3,
-        flecs::network_type_e::Unknown,
-        static_cast<flecs::network_type_e>(-1),
-    };
+    const auto to_string_mapping = std::array<std::pair<flecs::network_type_e, std::string_view>, 8>{{
+        {flecs::network_type_e::None, "none"},
+        {flecs::network_type_e::Internal, "internal"},
+        {flecs::network_type_e::Bridge, "bridge"},
+        {flecs::network_type_e::MACVLAN, "macvlan"},
+        {flecs::network_type_e::IPVLAN_L2, "ipvlan_l2"},
+        {flecs::network_type_e::IPVLAN_L3, "ipvlan_l3"},
+        {flecs::network_type_e::Unknown, "unknown"},
+        {static_cast<flecs::network_type_e>(-1), "unknown"},
+    }};
 
-    const auto strings = std::array<std::string_view, 8>{
-        "none",
-        "internal",
-        "bridge",
-        "macvlan",
-        "ipvlan_l2",
-        "ipvlan_l3",
-        "unknown",
-        "unknown",
-    };
+    const auto from_string_mapping = std::array<std::pair<std::string_view, flecs::network_type_e>, 8>{{
+        {"none", flecs::network_type_e::None},
+        {"internal", flecs::network_type_e::Internal},
+        {"bridge", flecs::network_type_e::Bridge},
+        {"macvlan", flecs::network_type_e::MACVLAN},
+        {"ipvlan", flecs::network_type_e::IPVLAN_L2},
+        {"ipvlan_l2", flecs::network_type_e::IPVLAN_L2},
+        {"ipvlan_l3", flecs::network_type_e::IPVLAN_L3},
+        {"unknown", flecs::network_type_e::Unknown},
+    }};
 
-    for (size_t i = 0; i < values.size(); ++i) {
-        ASSERT_EQ(flecs::to_string(values[i]), strings[i]);
+    for (const auto& uut : to_string_mapping) {
+        ASSERT_EQ(flecs::to_string(uut.first), uut.second);
+        ASSERT_EQ(flecs::to_string_view(uut.first), uut.second);
     }
 
-    for (size_t i = 0; i < values.size(); ++i) {
-        ASSERT_EQ(flecs::to_string_view(values[i]), strings[i]);
-    }
-
-    /* skip last element as conversion is not bidirectional */
-    for (size_t i = 0; i < values.size() - 1; ++i) {
-        ASSERT_EQ(flecs::network_type_from_string(strings[i]), values[i]);
+    for (const auto& uut : from_string_mapping) {
+        ASSERT_EQ(flecs::network_type_from_string(uut.first), uut.second);
     }
 }
