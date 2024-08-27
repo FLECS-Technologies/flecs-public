@@ -496,17 +496,21 @@ auto docker_t::do_create_network(
     std::string parent_adapter) //
     -> result_t
 {
-    // @todo review and cleanup
     auto docker_process = process_t{};
-
-    auto subnet = std::string{cidr_subnet};
-    auto gw = std::string{gateway};
+    docker_process.arg("network");
+    docker_process.arg("create");
 
     switch (network_type) {
-        case network_type_e::Bridge: {
+        case network_type_e::Bridge:
+        case network_type_e::MACVLAN:
+        case network_type_e::Internal: {
+            docker_process.arg("--driver");
+            docker_process.arg(stringify(network_type));
             break;
         }
-        case network_type_e::IPVLAN_L2: {
+
+        case network_type_e::IPVLAN_L2:
+        case network_type_e::IPVLAN_L3: {
             if (parent_adapter.empty()) {
                 return {-1, "cannot create ipvlan network without parent"};
             }
@@ -514,7 +518,7 @@ auto docker_t::do_create_network(
                 const auto system_api =
                     dynamic_cast<const module::system_t*>(api::query_module("system").get());
                 const auto adapters = system_api->get_network_adapters();
-                const auto netif = adapters.find(parent_adapter.data());
+                const auto netif = adapters.find(parent_adapter);
                 if (netif == adapters.cend()) {
                     return {-1, "network adapter does not exist"};
                 }
@@ -527,22 +531,20 @@ auto docker_t::do_create_network(
                     netif->second.ipv4addresses[0].subnet_mask.data());
                 gateway = std::string{netif->second.gateway};
             }
-            break;
-        }
-        case network_type_e::MACVLAN: {
-            break;
-        }
-        case network_type_e::Internal: {
+
+            docker_process.arg("--driver");
+            docker_process.arg("ipvlan");
+            docker_process.arg("--opt");
+            docker_process.arg(
+                std::string{"ipvlan_mode="} + (network_type == network_type_e::IPVLAN_L2 ? "l2" : "l3"));
+
             break;
         }
         default: {
-            break;
+            return {-1, "Invalid network_type specified"};
         }
     }
-    docker_process.arg("network");
-    docker_process.arg("create");
-    docker_process.arg("--driver");
-    docker_process.arg(stringify(network_type));
+
     docker_process.arg("--subnet");
     docker_process.arg(std::move(cidr_subnet));
     docker_process.arg("--gateway");
@@ -570,32 +572,32 @@ auto docker_t::do_query_network(std::string_view network) const //
     {
         // Get type of network
         auto docker_process = process_t{};
-
-        docker_process.arg("network");
-        docker_process.arg("inspect");
-        docker_process.arg("--format");
-        docker_process.arg("{{.IPAM.Driver}}");
-        docker_process.arg(std::string{network});
-
-        docker_process.spawnp("docker");
+        docker_process.spawnp(
+            "docker",
+            "network",
+            "inspect",
+            "--format",
+            "{{.Driver}}{{if ne .Options.ipvlan_mode nil}}_{{.Options.ipvlan_mode}}{{end}}",
+            std::string{network});
         docker_process.wait(false, false);
         if (docker_process.exit_code() != 0) {
             return {};
         }
-        auto out = docker_process.stdout();
-        res.type = network_type_from_string(trim(out));
+
+        auto network_type = docker_process.stdout();
+        trim(network_type);
+        res.type = network_type_from_string(network_type);
     }
     {
         // Get base IP and subnet of network as "a.b.c.d/x"
         auto docker_process = process_t{};
-
-        docker_process.arg("network");
-        docker_process.arg("inspect");
-        docker_process.arg("--format");
-        docker_process.arg("{{range .IPAM.Config}}{{.Subnet}}{{end}}");
-        docker_process.arg(std::string{network});
-
-        docker_process.spawnp("docker");
+        docker_process.spawnp(
+            "docker",
+            "network",
+            "inspect",
+            "--format",
+            "{{range .IPAM.Config}}{{.Subnet}}{{end}}",
+            std::string{network});
         docker_process.wait(false, false);
         if (docker_process.exit_code() != 0) {
             return {};
@@ -605,22 +607,37 @@ auto docker_t::do_query_network(std::string_view network) const //
     }
     {
         // Get gateway of network as "a.b.c.d"
-
         auto docker_process = process_t{};
-
-        docker_process.arg("network");
-        docker_process.arg("inspect");
-        docker_process.arg("--format");
-        docker_process.arg("{{range .IPAM.Config}}{{.Gateway}}{{end}}");
-        docker_process.arg(std::string{network});
-
-        docker_process.spawnp("docker");
+        docker_process.spawnp(
+            "docker",
+            "network",
+            "inspect",
+            "--format",
+            "{{range .IPAM.Config}}{{.Gateway}}{{end}}",
+            std::string{network});
         docker_process.wait(false, false);
         if (docker_process.exit_code() != 0) {
             return {};
         }
         auto out = docker_process.stdout();
         res.gateway = trim(out);
+    }
+    {
+        // Get parent adapter of network, if present
+        auto docker_process = process_t{};
+        docker_process.spawnp(
+            "docker",
+            "network",
+            "inspect",
+            "--format",
+            "{{if ne .Options.parent nil}}{{.Options.parent}}{{end}}",
+            std::string{network});
+        docker_process.wait(false, false);
+        if (docker_process.exit_code() != 0) {
+            return {};
+        }
+        auto parent = docker_process.stdout();
+        res.parent = trim(parent);
     }
 
     return res;
