@@ -52,10 +52,10 @@ private:
         std::vector<network_t> override;
     auto do_create_network(
         network_type_e network_type,
-        std::string_view network,
-        std::string_view cidr_subnet,
-        std::string_view gateway,
-        std::string_view parent_adapter) //
+        std::string network_name,
+        std::string cidr_subnet,
+        std::string gateway,
+        std::string parent_adapter) //
         -> result_t override;
     auto do_query_network(std::string_view network) const //
         -> std::optional<network_t> override;

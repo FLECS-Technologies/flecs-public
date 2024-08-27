@@ -490,10 +490,10 @@ auto docker_t::do_networks() const //
 
 auto docker_t::do_create_network(
     network_type_e network_type,
-    std::string_view network,
-    std::string_view cidr_subnet,
-    std::string_view gateway,
-    std::string_view parent_adapter) //
+    std::string network_name,
+    std::string cidr_subnet,
+    std::string gateway,
+    std::string parent_adapter) //
     -> result_t
 {
     // @todo review and cleanup
@@ -522,11 +522,10 @@ auto docker_t::do_create_network(
                     return {-1, "network adapter is not ready"};
                 }
 
-                // create ipvlan network, if not exists
-                subnet = ipv4_to_network(
-                    std::string{netif->second.ipv4addresses[0].addr},
-                    std::string{netif->second.ipv4addresses[0].subnet_mask});
-                gw = std::string{netif->second.gateway};
+                cidr_subnet = ipv4_to_network(
+                    netif->second.ipv4addresses[0].addr.data(),
+                    netif->second.ipv4addresses[0].subnet_mask.data());
+                gateway = std::string{netif->second.gateway};
             }
             break;
         }
@@ -545,14 +544,14 @@ auto docker_t::do_create_network(
     docker_process.arg("--driver");
     docker_process.arg(stringify(network_type));
     docker_process.arg("--subnet");
-    docker_process.arg(subnet);
+    docker_process.arg(std::move(cidr_subnet));
     docker_process.arg("--gateway");
-    docker_process.arg(gw);
+    docker_process.arg(std::move(gateway));
     if (!parent_adapter.empty()) {
         docker_process.arg("--opt");
-        docker_process.arg("parent=" + std::string{parent_adapter});
+        docker_process.arg("parent=" + std::move(parent_adapter));
     }
-    docker_process.arg(std::string{network});
+    docker_process.arg(std::move(network_name));
 
     docker_process.spawnp("docker");
     docker_process.wait(false, true);
