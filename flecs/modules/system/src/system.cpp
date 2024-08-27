@@ -41,24 +41,12 @@ system_t::system_t()
 auto system_t::do_init() //
     -> void
 {
-    FLECS_V2_ROUTE("/system/ping").methods("GET"_method)([this]() { return ping(); });
-
     FLECS_V2_ROUTE("/system/info").methods("GET"_method)([this]() { return info(); });
 }
 
 auto system_t::do_deinit() //
     -> void
 {}
-
-auto system_t::ping() const //
-    -> crow::response
-{
-    const auto response = json_t({
-        {"additionalInfo", "OK"},
-    });
-
-    return crow::response{crow::status::OK, "json", response.dump()};
-}
 
 auto system_t::info() const //
     -> crow::response

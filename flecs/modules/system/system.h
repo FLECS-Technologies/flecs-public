@@ -40,9 +40,6 @@ protected:
     auto do_deinit() //
         -> void override;
 
-    auto ping() const //
-        -> crow::response;
-
     auto info() const //
         -> crow::response;
 };
