@@ -174,9 +174,9 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
         if (!network.has_value()) {
             const auto [res, additional_info] = create_network(
                 default_network_type(),
-                default_network_name(),
-                default_network_cidr_subnet(),
-                default_network_gateway(),
+                std::string{default_network_name()},
+                std::string{default_network_cidr_subnet()},
+                std::string{default_network_gateway()},
                 {});
             if (res != 0) {
                 return {-1, instance->id().hex()};
@@ -482,15 +482,15 @@ auto deployment_t::networks() const //
 
 auto deployment_t::create_network(
     network_type_e network_type,
-    std::string_view network,
-    std::string_view cidr_subnet,
-    std::string_view gateway,
-    std::string_view parent_adapter) //
+    std::string network_name,
+    std::string cidr_subnet,
+    std::string gateway,
+    std::string parent_adapter) //
     -> result_t
 {
     return do_create_network(
         std::move(network_type),
-        std::move(network),
+        std::move(network_name),
         std::move(cidr_subnet),
         std::move(gateway),
         std::move(parent_adapter));

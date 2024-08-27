@@ -52,10 +52,10 @@ public:
         result_t,
         do_create_network,
         ((network_type_e network_type),
-         (std::string_view network),
-         (std::string_view cidr_subnet),
-         (std::string_view gateway),
-         (std::string_view parent_adapter)),
+         (std::string network_name),
+         (std::string cidr_subnet),
+         (std::string gateway),
+         (std::string parent_adapter)),
         (override));
     MOCK_METHOD(
         bool, do_is_instance_running, (std::shared_ptr<instances::instance_t> instance), (const, override));
