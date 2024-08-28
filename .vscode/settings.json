@@ -91,7 +91,11 @@
         "span": "cpp",
         "format": "cpp",
         "charconv": "cpp",
-        "shared_mutex": "cpp"
+        "shared_mutex": "cpp",
+        "hash_map": "cpp",
+        "cfenv": "cpp",
+        "stdfloat": "cpp",
+        "text_encoding": "cpp"
     },
     "cSpell.words": [
         "flecs"
