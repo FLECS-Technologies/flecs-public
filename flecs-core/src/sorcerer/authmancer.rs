@@ -1,4 +1,5 @@
 use super::spell;
+pub use super::{Error, Result};
 use crate::vault::pouch::Pouch;
 use crate::vault::Vault;
 use flecs_console_client::apis::configuration::Configuration;
@@ -33,7 +34,7 @@ pub async fn acquire_download_token(
     vault: &Vault,
     app: &str,
     version: &str,
-) -> Result<PostApiV2Tokens200ResponseData, String> {
+) -> Result<PostApiV2Tokens200ResponseData> {
     let session_id = vault
         .reservation()
         .reserve_secret_pouch()
@@ -45,13 +46,7 @@ pub async fn acquire_download_token(
         .get_session_id()
         .id
         .unwrap_or_default();
-    spell::auth::acquire_download_token(
-        configuration,
-        &session_id,
-        app.to_string(),
-        version.to_string(),
-    )
-    .await
+    spell::auth::acquire_download_token(configuration, &session_id, app, version).await
 }
 
 #[cfg(test)]

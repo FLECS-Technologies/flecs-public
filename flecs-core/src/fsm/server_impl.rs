@@ -1,4 +1,5 @@
 use crate::vault::Vault;
+use anyhow::Error;
 use axum::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -52,6 +53,18 @@ use flecsd_axum_server::models::{
 };
 use http::Method;
 use std::sync::Arc;
+
+fn additional_info_from_error(error: Error) -> AdditionalInfo {
+    AdditionalInfo {
+        additional_info: format!("{error:#}"),
+    }
+}
+
+fn ok() -> AdditionalInfo {
+    AdditionalInfo {
+        additional_info: "OK".to_string(),
+    }
+}
 
 pub struct ServerImpl {
     vault: Arc<Vault>,
@@ -177,14 +190,10 @@ impl Device for ServerImpl {
         )
         .await
         {
-            Ok(()) => Ok(DeviceLicenseActivationPostResponse::Status200_Success(
-                AdditionalInfo {
-                    additional_info: "OK".to_string(),
-                },
-            )),
-            Err(additional_info) => Ok(
+            Ok(()) => Ok(DeviceLicenseActivationPostResponse::Status200_Success(ok())),
+            Err(e) => Ok(
                 DeviceLicenseActivationPostResponse::Status500_InternalServerError(
-                    AdditionalInfo { additional_info },
+                    additional_info_from_error(e),
                 ),
             ),
         }
@@ -200,9 +209,9 @@ impl Device for ServerImpl {
             Ok(is_valid) => Ok(DeviceLicenseActivationStatusGetResponse::Status200_Success(
                 DeviceLicenseActivationStatusGet200Response { is_valid },
             )),
-            Err(additional_info) => Ok(
+            Err(e) => Ok(
                 DeviceLicenseActivationStatusGetResponse::Status500_InternalServerError({
-                    AdditionalInfo { additional_info }
+                    additional_info_from_error(e)
                 }),
             ),
         }
@@ -477,9 +486,7 @@ impl System for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<SystemPingGetResponse, String> {
-        Ok(SystemPingGetResponse::Status200_Success(
-            AdditionalInfo::new(String::from("Ok")),
-        ))
+        Ok(SystemPingGetResponse::Status200_Success(ok()))
     }
 
     async fn system_version_get(

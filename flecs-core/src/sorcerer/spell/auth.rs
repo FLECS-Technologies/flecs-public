@@ -1,4 +1,6 @@
+pub use super::Result;
 use crate::vault::pouch::Secrets;
+use anyhow::{anyhow, Context};
 use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::default_api::{post_api_v2_tokens, PostApiV2TokensSuccess};
 use flecs_console_client::apis::ResponseContent;
@@ -19,13 +21,16 @@ pub fn store_authentication(auth: AuthResponseData, secrets: &mut Secrets) {
 pub async fn acquire_download_token(
     console_configuration: &Configuration,
     x_session_id: &str,
-    app: String,
-    version: String,
-) -> Result<PostApiV2Tokens200ResponseData, String> {
+    app: &str,
+    version: &str,
+) -> Result<PostApiV2Tokens200ResponseData> {
     match post_api_v2_tokens(
         console_configuration,
         x_session_id,
-        Some(PostApiV2TokensRequest { app, version }),
+        Some(PostApiV2TokensRequest {
+            app: app.to_string(),
+            version: version.to_string(),
+        }),
     )
     .await
     {
@@ -41,11 +46,12 @@ pub async fn acquire_download_token(
         }),
         Ok(ResponseContent {
             status, content, ..
-        }) => Err(format!(
+        }) => Err(anyhow!(
             "Received invalid response for tokens request with status {status}: {content}"
         )),
-        Err(e) => Err(format!("Error during tokens request: {e}")),
+        Err(e) => Err(anyhow!(e)),
     }
+    .with_context(|| format!("Failed to acquire download token for app {app}-{version}"))
 }
 
 #[cfg(test)]
@@ -109,12 +115,12 @@ mod tests {
             }
         });
         let body = serde_json::to_string(&body).unwrap();
-        let expected_result = Ok(PostApiV2Tokens200ResponseData {
+        let expected_result = PostApiV2Tokens200ResponseData {
             token: Box::new(PostApiV2Tokens200ResponseDataToken {
                 username: USERNAME.to_string(),
                 password: PASSWORD.to_string(),
             }),
-        });
+        };
         let mock = server
             .mock("POST", "/api/v2/tokens")
             .with_status(200)
@@ -123,7 +129,7 @@ mod tests {
             .create_async()
             .await;
         assert_eq!(
-            acquire_download_token(&config, "", String::new(), String::new()).await,
+            acquire_download_token(&config, "", "", "").await.unwrap(),
             expected_result
         );
         mock.assert();
@@ -136,16 +142,16 @@ mod tests {
             base_path: server.url(),
             ..Configuration::default()
         };
-        let expected_result = Ok(PostApiV2Tokens200ResponseData {
+        let expected_result = PostApiV2Tokens200ResponseData {
             token: Box::<PostApiV2Tokens200ResponseDataToken>::default(),
-        });
+        };
         let mock = server
             .mock("POST", "/api/v2/tokens")
             .with_status(204)
             .create_async()
             .await;
         assert_eq!(
-            acquire_download_token(&config, "", String::new(), String::new()).await,
+            acquire_download_token(&config, "", "", "").await.unwrap(),
             expected_result
         );
         mock.assert();
@@ -174,11 +180,7 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert!(
-            acquire_download_token(&config, "", String::new(), String::new())
-                .await
-                .is_err()
-        );
+        assert!(acquire_download_token(&config, "", "", "").await.is_err());
         mock.assert();
     }
 
@@ -200,11 +202,7 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert!(
-            acquire_download_token(&config, "", String::new(), String::new())
-                .await
-                .is_err()
-        );
+        assert!(acquire_download_token(&config, "", "", "").await.is_err());
         mock.assert();
     }
 }

@@ -1,5 +1,6 @@
 use crate::ffi;
 use flecs_core::relic::device::usb;
+use flecs_core::Result;
 
 impl From<usb::UsbDevice> for ffi::UsbDevice {
     fn from(value: usb::UsbDevice) -> Self {
@@ -13,6 +14,6 @@ impl From<usb::UsbDevice> for ffi::UsbDevice {
     }
 }
 
-pub fn read_usb_devices() -> Result<Vec<ffi::UsbDevice>, usb::Error> {
-    usb::read_usb_devices().map(|set| set.into_iter().map(|dev| dev.into()).collect())
+pub fn read_usb_devices() -> Result<Vec<ffi::UsbDevice>> {
+    Ok(usb::read_usb_devices().map(|set| set.into_iter().map(|dev| dev.into()).collect())?)
 }

@@ -1,4 +1,5 @@
-use crate::sorcerer::spell::Error;
+pub use super::Result;
+use anyhow::anyhow;
 use flecs_app_manifest::AppManifestVersion;
 use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::default_api::{
@@ -11,24 +12,28 @@ pub async fn download_manifest(
     x_session_id: &str,
     app: &str,
     version: &str,
-) -> Result<AppManifestVersion, Error> {
+) -> Result<AppManifestVersion> {
     let response =
         get_api_v2_manifests_app_version(console_configuration, x_session_id, app, version).await?;
     if response.status != StatusCode::OK {
-        return Err(Error::UnexpectedResponse {
-            status: response.status,
-            content: response.content,
-        });
+        return Err(anyhow!(
+            "Unexpected response (status {}): {}",
+            response.status,
+            response.content
+        ));
     }
-    match response
-        .entity
-        .ok_or_else(|| Error::InvalidContent(response.content))?
-    {
+    match response.entity.ok_or_else(|| {
+        anyhow!(
+            "Invalid response (status {}): {}",
+            response.status,
+            response.content
+        )
+    })? {
         GetApiV2ManifestsAppVersionSuccess::Status200(val) => {
-            let val = val.data.ok_or_else(|| Error::NoData)?;
-            serde_json::from_value::<AppManifestVersion>(val).map_err(Error::Serde)
+            let val = val.data.ok_or_else(|| anyhow!("No data"))?;
+            serde_json::from_value::<AppManifestVersion>(val).map_err(|e| e.into())
         }
-        GetApiV2ManifestsAppVersionSuccess::UnknownValue(v) => Err(Error::UnexpectedData(v)),
+        GetApiV2ManifestsAppVersionSuccess::UnknownValue(v) => Err(anyhow!("Unknown value {v}")),
     }
 }
 
@@ -114,7 +119,9 @@ mod tests {
         let result = download_manifest(&config, "", APP_NAME, APP_VERSION).await;
         mock.assert();
         match result {
-            Err(Error::NoData) => {}
+            Err(e) => {
+                assert!(e.to_string().contains("No data"))
+            }
             x => {
                 panic!("Expected Error::NoData, got {:?}", x)
             }
@@ -144,10 +151,9 @@ mod tests {
         let result = download_manifest(&config, "", APP_NAME, APP_VERSION).await;
         mock.assert();
         match result {
-            Err(Error::UnexpectedResponse {
-                status: StatusCode::ACCEPTED,
-                ..
-            }) => {}
+            Err(e) => {
+                assert!(e.to_string().contains("Unexpected response (status"))
+            }
             x => {
                 panic!("Expected Error::UnexpectedResponse {{status: StatusCode::ACCEPTED, ..}}, got {:?}", x)
             }

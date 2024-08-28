@@ -1,7 +1,8 @@
 use crate::ffi;
 use flecs_core::relic::network;
+use flecs_core::Result;
 
-pub fn read_network_adapters() -> Result<Vec<ffi::NetAdapter>, network::Error> {
+pub fn read_network_adapters() -> Result<Vec<ffi::NetAdapter>> {
     Ok(network::NetInfo::try_read_from_system()?
         .into_iter()
         .map(|(name, info)| ffi::NetAdapter {
