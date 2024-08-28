@@ -123,6 +123,55 @@ instances_t::instances_t(flecs::module::instances_t* parent)
 instances_t::~instances_t()
 {}
 
+auto instances_t::migrate_macvlan_to_ipvlan() //
+    -> void
+{
+    // find all existing macvlan networks
+    auto macvlan_networks = _deployment->networks();
+    std::erase_if(macvlan_networks, [](decltype(macvlan_networks)::const_reference n) {
+        return n.type != network_type_e::MACVLAN;
+    });
+
+    for (const auto& network : macvlan_networks) {
+        const auto old_name = network.name;
+        const auto new_name = std::string{old_name}.replace(network.name.find("macvlan"), 7, "ipvlan_l2");
+        std::cout << "Migrating network " << old_name << " to " << new_name << "\n";
+        // stop all instances connected to the macvlan network
+        for (const auto& id : _parent->instance_ids()) {
+            auto instance = _parent->query(id);
+            auto it = std::find_if(
+                instance->networks().begin(),
+                instance->networks().end(),
+                [&old_name](std::remove_cvref_t<decltype(instance->networks())>::const_reference n) {
+                    return n.network_name == old_name;
+                });
+            if (it != instance->networks().end()) {
+                _parent->stop_once(id);
+                it->network_name = new_name;
+            }
+        }
+
+        // delete macvlan network
+        auto [res, message] = _deployment->delete_network(old_name);
+        if (res != 0) {
+            std::cerr << "Could not delete network " << old_name << ": " << message;
+            continue;
+        }
+
+        // recreate network as ipvlan_l2
+        std::tie(res, message) = _deployment->create_network(
+            network_type_e::IPVLAN_L2,
+            new_name,
+            network.cidr_subnet,
+            network.gateway,
+            network.parent);
+        if (res != 0) {
+            std::cerr << "Could not create ipvlan network " << new_name << ": " << message;
+            continue;
+        }
+    }
+}
+
 auto instances_t::do_load(const fs::path& base_path) //
     -> result_t
 {
@@ -142,6 +191,8 @@ auto instances_t::do_module_init() //
         hosts_process.wait(false, false);
     });
     hosts_thread.detach();
+
+    migrate_macvlan_to_ipvlan();
 }
 
 auto instances_t::do_module_start() //
@@ -445,7 +496,7 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
     const auto adapters = system_api->get_network_adapters();
 
     for (const auto& network : config.networkAdapters) {
-        const auto docker_network = std::string{"flecs-macvlan-"} + network.name;
+        const auto docker_network = std::string{"flecs-ipvlan_l2-"} + network.name;
         if (network.active) {
             // ensure network adapter exists
             const auto netif = adapters.find(network.name);
@@ -457,7 +508,7 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
                 continue;
             }
 
-            // create macvlan network, if not exists
+            // create ipvlan_l2 network, if not exists
             const auto cidr_subnet = ipv4_to_network(
                 std::string{netif->second.ipv4addresses[0].addr},
                 std::string{netif->second.ipv4addresses[0].subnet_mask});
@@ -480,7 +531,7 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
                 // apply settings
                 // @todo verify validity of IP address
                 _deployment->create_network(
-                    network_type_e::MACVLAN,
+                    network_type_e::IPVLAN_L2,
                     docker_network,
                     cidr_subnet,
                     std::string{netif->second.gateway},
