@@ -2,7 +2,9 @@ use crate::vault::pouch::Secrets;
 use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::default_api::{post_api_v2_tokens, PostApiV2TokensSuccess};
 use flecs_console_client::apis::ResponseContent;
-use flecs_console_client::models::{PostApiV2Tokens200ResponseData, PostApiV2TokensRequest};
+use flecs_console_client::models::{
+    PostApiV2Tokens200ResponseData, PostApiV2Tokens200ResponseDataToken, PostApiV2TokensRequest,
+};
 use flecsd_axum_server::models::AuthResponseData;
 use http::StatusCode;
 
@@ -34,7 +36,9 @@ pub async fn acquire_download_token(
         Ok(ResponseContent {
             status: StatusCode::NO_CONTENT,
             ..
-        }) => Err("Received no content".to_string()),
+        }) => Ok(PostApiV2Tokens200ResponseData {
+            token: Box::<PostApiV2Tokens200ResponseDataToken>::default(),
+        }),
         Ok(ResponseContent {
             status, content, ..
         }) => Err(format!(
@@ -132,7 +136,9 @@ mod tests {
             base_path: server.url(),
             ..Configuration::default()
         };
-        let expected_result = Err("Received no content".to_string());
+        let expected_result = Ok(PostApiV2Tokens200ResponseData {
+            token: Box::<PostApiV2Tokens200ResponseDataToken>::default(),
+        });
         let mock = server
             .mock("POST", "/api/v2/tokens")
             .with_status(204)
