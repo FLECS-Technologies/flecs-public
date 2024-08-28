@@ -1,3 +1,5 @@
+pub use super::Result;
+use anyhow::{anyhow, Context};
 use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::device_api::{
     PostApiV2DeviceLicenseActivateError, PostApiV2DeviceLicenseActivateSuccess,
@@ -12,12 +14,12 @@ use http::StatusCode;
 pub async fn validate_license(
     session_id: Option<String>,
     configuration: &Configuration,
-) -> Result<bool, String> {
-    match session_id {
+) -> Result<bool> {
+    match &session_id {
         Some(session_id) => {
             match flecs_console_client::apis::device_api::post_api_v2_device_license_validate(
                 configuration,
-                &session_id,
+                session_id,
             )
             .await
             {
@@ -28,15 +30,16 @@ pub async fn validate_license(
                 Ok(ResponseContent {
                     entity: Some(PostApiV2DeviceLicenseValidateSuccess::UnknownValue(value)),
                     ..
-                }) => Err(format!("Received unknown value from console: {value:?}")),
+                }) => Err(anyhow!("Received unknown value from console: {value:?}")),
                 Ok(ResponseContent { entity: None, .. }) => {
-                    Err("Received no data from console".to_string())
+                    Err(anyhow!("Received no data from console".to_string()))
                 }
-                Err(e) => Err(e.to_string()),
+                Err(e) => Err(anyhow!(e)),
             }
         }
         None => Ok(false),
     }
+    .with_context(|| format!("Could not validate session id: {session_id:?}"))
 }
 
 pub fn read_serial_number() -> Option<String> {
@@ -54,7 +57,7 @@ fn handle_activation_response(
         ResponseContent<PostApiV2DeviceLicenseActivateSuccess>,
         Error<PostApiV2DeviceLicenseActivateError>,
     >,
-) -> Result<ActivationResult, String> {
+) -> Result<ActivationResult> {
     match response {
         Ok(ResponseContent {
             entity: Some(PostApiV2DeviceLicenseActivateSuccess::Status200(activation_data)),
@@ -67,7 +70,7 @@ fn handle_activation_response(
         Ok(ResponseContent {
             entity: Some(PostApiV2DeviceLicenseActivateSuccess::UnknownValue(value)),
             ..
-        }) => Err(format!("Received unknown value from console: {value:?}")),
+        }) => Err(anyhow!("Received unknown value from console: {value:?}")),
         Ok(ResponseContent {
             entity: None,
             status: StatusCode::NO_CONTENT,
@@ -77,8 +80,8 @@ fn handle_activation_response(
             entity: None,
             content,
             ..
-        }) => Err(format!("Received invalid data from console: {content}")),
-        Err(e) => Err(e.to_string()),
+        }) => Err(anyhow!("Received invalid data from console: {content}")),
+        Err(e) => Err(anyhow!(e)),
     }
 }
 
@@ -86,7 +89,7 @@ pub async fn activate_via_license_key(
     license_key: &str,
     session_id: SessionId,
     configuration: &Configuration,
-) -> Result<ActivationResult, String> {
+) -> Result<ActivationResult> {
     let response = flecs_console_client::apis::device_api::post_api_v2_device_license_activate(
         configuration,
         None,
@@ -97,12 +100,13 @@ pub async fn activate_via_license_key(
     )
     .await;
     handle_activation_response(response)
+        .with_context(|| format!("Could not activate via license key {license_key}"))
 }
 
 pub async fn activate_via_user_license(
     configuration: &Configuration,
     authorization_token: &str,
-) -> Result<ActivationResult, String> {
+) -> Result<ActivationResult> {
     let bearer_token = format!("Bearer {authorization_token}");
     let response = flecs_console_client::apis::device_api::post_api_v2_device_license_activate(
         configuration,
@@ -111,7 +115,7 @@ pub async fn activate_via_user_license(
         None,
     )
     .await;
-    handle_activation_response(response)
+    handle_activation_response(response).context("Could not activate via user license")
 }
 
 #[cfg(test)]
@@ -147,8 +151,10 @@ mod tests {
             .create_async()
             .await;
         assert_eq!(
-            Ok(ActivationResult::AlreadyActive),
-            activate_via_license_key(LICENSE_KEY, session, &config).await
+            ActivationResult::AlreadyActive,
+            activate_via_license_key(LICENSE_KEY, session, &config)
+                .await
+                .unwrap()
         );
         mock.assert();
     }
@@ -188,11 +194,13 @@ mod tests {
             .create_async()
             .await;
         assert_eq!(
-            Ok(ActivationResult::Activated(ActivationData {
+            ActivationResult::Activated(ActivationData {
                 session_id: Box::new(resulting_session_id),
                 license_key: LICENSE_KEY.to_string(),
-            })),
-            activate_via_license_key(LICENSE_KEY, session, &config).await
+            }),
+            activate_via_license_key(LICENSE_KEY, session, &config)
+                .await
+                .unwrap()
         );
         mock.assert();
     }
@@ -228,11 +236,13 @@ mod tests {
             .create_async()
             .await;
         assert_eq!(
-            Ok(ActivationResult::Activated(ActivationData {
+            ActivationResult::Activated(ActivationData {
                 session_id: Box::new(resulting_session_id),
                 license_key: LICENSE_KEY.to_string(),
-            })),
-            activate_via_user_license(&config, "valid authorization token").await
+            }),
+            activate_via_user_license(&config, "valid authorization token")
+                .await
+                .unwrap()
         );
         mock.assert();
     }
@@ -258,8 +268,8 @@ mod tests {
             )),
         });
         assert_eq!(
-            Ok(ActivationResult::Activated(activation_data)),
-            handle_activation_response(response)
+            ActivationResult::Activated(activation_data),
+            handle_activation_response(response).unwrap()
         );
     }
     #[test]
@@ -270,8 +280,8 @@ mod tests {
             entity: Some(PostApiV2DeviceLicenseActivateSuccess::Status204()),
         });
         assert_eq!(
-            Ok(ActivationResult::AlreadyActive),
-            handle_activation_response(response)
+            ActivationResult::AlreadyActive,
+            handle_activation_response(response).unwrap()
         );
     }
     #[test]
@@ -282,8 +292,8 @@ mod tests {
             entity: None,
         });
         assert_eq!(
-            Ok(ActivationResult::AlreadyActive),
-            handle_activation_response(response)
+            ActivationResult::AlreadyActive,
+            handle_activation_response(response).unwrap()
         );
     }
     #[test]
@@ -296,12 +306,13 @@ mod tests {
                 unknown_value.clone(),
             )),
         });
-        assert_eq!(
-            Err(format!(
+        assert!(handle_activation_response(response)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains(&format!(
                 "Received unknown value from console: {unknown_value:?}"
-            )),
-            handle_activation_response(response)
-        );
+            )));
     }
     #[test]
     fn handle_invalid_response_test() {
@@ -311,13 +322,14 @@ mod tests {
             content: invalid_content.to_string(),
             entity: None,
         });
-        assert_eq!(
-            Err(format!(
+        assert!(handle_activation_response(response)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains(&format!(
                 "Received invalid data from console: {}",
                 invalid_content
-            )),
-            handle_activation_response(response)
-        );
+            )));
     }
     #[test]
     fn handle_error_response_test() {
@@ -333,10 +345,11 @@ mod tests {
             )),
         };
         let response = Err(Error::ResponseError(error_content.clone()));
-        assert_eq!(
-            Err(Error::ResponseError(error_content).to_string()),
-            handle_activation_response(response)
-        );
+        assert!(handle_activation_response(response)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains(&Error::ResponseError(error_content).to_string()));
     }
 
     #[tokio::test]
@@ -362,7 +375,7 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert_eq!(validate_license(session_id, &config).await, Ok(true));
+        assert!(validate_license(session_id, &config).await.unwrap());
         mock.assert();
     }
     #[tokio::test]
@@ -388,7 +401,7 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert_eq!(validate_license(session_id, &config).await, Ok(false));
+        assert!(!validate_license(session_id, &config).await.unwrap());
         mock.assert();
     }
 
@@ -405,7 +418,7 @@ mod tests {
             .expect(0)
             .create_async()
             .await;
-        assert_eq!(validate_license(None, &config).await, Ok(false));
+        assert!(!validate_license(None, &config).await.unwrap());
         mock.assert();
     }
 
@@ -432,12 +445,13 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert_eq!(
-            validate_license(session_id, &config).await,
-            Err(format!(
-                "Received unknown value from console: {body_json:?}"
-            ))
-        );
+        assert!(format!(
+            "{:#}",
+            validate_license(session_id, &config).await.err().unwrap()
+        )
+        .contains(&format!(
+            "Received unknown value from console: {body_json:?}"
+        )));
         mock.assert();
     }
     #[tokio::test]
@@ -453,10 +467,11 @@ mod tests {
             .with_status(200)
             .create_async()
             .await;
-        assert_eq!(
-            validate_license(session_id, &config).await,
-            Err("Received no data from console".to_string())
-        );
+        assert!(format!(
+            "{:#}",
+            validate_license(session_id, &config).await.err().unwrap()
+        )
+        .contains("Received no data from console"));
         mock.assert();
     }
     #[tokio::test]

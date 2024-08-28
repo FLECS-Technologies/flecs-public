@@ -1,10 +1,12 @@
 use super::spell;
 use super::spell::license::ActivationResult;
+pub use super::Result;
 use crate::vault::pouch::Pouch;
 use crate::vault::{GrabbedPouches, Vault};
+use anyhow::{anyhow, Context};
 use flecs_console_client::apis::configuration::Configuration;
 
-pub async fn activate_license(vault: &Vault, configuration: &Configuration) -> Result<(), String> {
+pub async fn activate_license(vault: &Vault, configuration: &Configuration) -> Result<()> {
     let secrets = vault.get_secrets();
 
     let activation_result = match (
@@ -21,8 +23,7 @@ pub async fn activate_license(vault: &Vault, configuration: &Configuration) -> R
                 .authentication
                 .as_ref()
                 .ok_or_else(|| {
-                    "Can not activate license, as no license key or user authentication is present"
-                        .to_string()
+                    anyhow!("Can not activate license, as no license key or user authentication is present")
                 })?
                 .jwt
                 .token,
@@ -52,19 +53,19 @@ pub async fn activate_license(vault: &Vault, configuration: &Configuration) -> R
             } = vault.reservation().reserve_secret_pouch().grab()
             {
                 match (&secret_pouch.gems().license_key, secret_pouch.gems().get_session_id().id) {
-                    (None, None) => Err("Console responded with already active, but license and session id are not set".to_string()),
-                    (None, Some(_)) => Err("Console responded with already active, but license is not set".to_string()),
-                    (Some(_), None)=> Err("Console responded with already active, but session id is not set".to_string()),
+                    (None, None) => Err(anyhow!("Console responded with already active, but license and session id are not set")),
+                    (None, Some(_)) => Err(anyhow!("Console responded with already active, but license is not set")),
+                    (Some(_), None)=> Err(anyhow!("Console responded with already active, but session id is not set")),
                     _ => Ok(()),
                 }
             } else {
                 panic!("Failed to reserve secret pouch");
             }
         }
-    }
+    }.context("Could not activate license")
 }
 
-pub async fn validate_license(vault: &Vault) -> Result<bool, String> {
+pub async fn validate_license(vault: &Vault) -> Result<bool> {
     let session_id = vault
         .reservation()
         .reserve_secret_pouch()
@@ -286,13 +287,11 @@ mod tests {
             .with_status(204)
             .create_async()
             .await;
-        assert_eq!(
-            activate_license(&vault, &config).await,
-            Err(
-                "Console responded with already active, but license and session id are not set"
-                    .to_string()
-            )
-        );
+        assert!(format!(
+            "{:#}",
+            activate_license(&vault, &config).await.err().unwrap()
+        )
+        .contains("Console responded with already active, but license and session id are not set"));
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
@@ -326,10 +325,11 @@ mod tests {
             .with_status(204)
             .create_async()
             .await;
-        assert_eq!(
-            activate_license(&vault, &config).await,
-            Err("Console responded with already active, but license is not set".to_string())
-        );
+        assert!(format!(
+            "{:#}",
+            activate_license(&vault, &config).await.err().unwrap()
+        )
+        .contains("Console responded with already active, but license is not set"));
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
@@ -362,10 +362,11 @@ mod tests {
             .with_status(204)
             .create_async()
             .await;
-        assert_eq!(
-            activate_license(&vault, &config).await,
-            Err("Console responded with already active, but session id is not set".to_string())
-        );
+        assert!(format!(
+            "{:#}",
+            activate_license(&vault, &config).await.err().unwrap()
+        )
+        .contains("Console responded with already active, but session id is not set"));
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
@@ -391,13 +392,14 @@ mod tests {
             .expect(0)
             .create_async()
             .await;
-        assert_eq!(
-            activate_license(&vault, &config).await,
-            Err(
+        assert!(activate_license(&vault, &config)
+            .await
+            .err()
+            .unwrap()
+            .to_string()
+            .contains(
                 "Can not activate license, as no license key or user authentication is present"
-                    .to_string()
-            )
-        );
+            ),);
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();

@@ -35,6 +35,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
 reqwest-middleware = { version = "^0.3", features = ["json", "multipart"] }
 async-trait = "0.1.80"
+anyhow = { version = "1.0.86", features = ["backtrace"] }
 
 [dev-dependencies]
 mockito = "1.4"
