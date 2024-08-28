@@ -327,20 +327,11 @@ impl<'a> Reservation<'a> {
 
 impl Drop for GrabbedPouches<'_> {
     fn drop(&mut self) {
-        if let Some(app_pouch) = &mut self.app_pouch_mut {
-            app_pouch
-                .close()
-                .unwrap_or_else(|e| eprintln!("Error saving AppPouch: {e}"));
-        }
+        // TODO: Close manifest and app, if the C++ core does not access the corresponding files anymore
         if let Some(secret_pouch) = &mut self.secret_pouch_mut {
             secret_pouch
                 .close()
                 .unwrap_or_else(|e| eprintln!("Error saving SecretPouch: {e}"));
-        }
-        if let Some(manifest_pouch) = &mut self.manifest_pouch_mut {
-            manifest_pouch
-                .close()
-                .unwrap_or_else(|e| eprintln!("Error saving ManifestPouch: {e}"));
         }
     }
 }
