@@ -46,6 +46,9 @@ public:
 private:
     explicit instances_t(flecs::module::instances_t* parent);
 
+    auto migrate_macvlan_to_ipvlan() //
+        -> void;
+
     auto do_load(const fs::path& base_path) //
         -> result_t;
 
