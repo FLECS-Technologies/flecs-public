@@ -90,6 +90,7 @@ pub fn start_server() {
     let server = get_server();
     let mut server = server.lock().unwrap();
     assert!(server.handle.is_none());
+    flecs_core::fsm::init_backtracing();
     flecs_core::fsm::init_tracing();
     info!("Spawning rust server");
     server.handle = Some(server.runtime.spawn(async {
