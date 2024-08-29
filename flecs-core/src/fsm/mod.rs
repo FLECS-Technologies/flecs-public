@@ -50,6 +50,16 @@ impl Debug for StartupError {
 
 pub type Result<T> = std::result::Result<T, StartupError>;
 
+pub fn init_backtracing() {
+    if std::env::var("RUST_BACKTRACE").is_err() {
+        #[cfg(debug_assertions)]
+        const BT_VALUE: &str = "1";
+        #[cfg(not(debug_assertions))]
+        const BT_VALUE: &str = "0";
+        std::env::set_var("RUST_BACKTRACE", BT_VALUE);
+    }
+}
+
 pub fn init_tracing() {
     tracing_subscriber::registry()
         .with(crate::lore::tracing::default_filter())
