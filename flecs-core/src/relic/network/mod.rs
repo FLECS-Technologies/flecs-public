@@ -171,10 +171,10 @@ impl TryFrom<ifaddrs> for NetworkAddress {
             }
             SaFamily::Inet4 => {
                 let s = unsafe { *(value.ifa_addr as *const sockaddr_in) };
-                let addr: Ipv4Addr = s.sin_addr.s_addr.into();
+                let addr: Ipv4Addr = u32::from_be(s.sin_addr.s_addr).into();
                 let addr = addr.to_string();
                 let s = unsafe { *(value.ifa_netmask as *const sockaddr_in) };
-                let subnet_mask: Ipv4Addr = s.sin_addr.s_addr.into();
+                let subnet_mask: Ipv4Addr = u32::from_be(s.sin_addr.s_addr).into();
                 let subnet_mask = subnet_mask.to_string();
                 Ok(NetworkAddress {
                     address: Address::Ipv4(IpAddr { addr, subnet_mask }),
