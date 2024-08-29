@@ -52,10 +52,7 @@ pub type Result<T> = std::result::Result<T, StartupError>;
 
 pub fn init_tracing() {
     tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,tower_http=debug,axum::rejection=debug".into()),
-        )
+        .with(crate::lore::tracing::default_filter())
         .with(tracing_subscriber::fmt::layer())
         .init();
     info!("Tracing initialized");

@@ -33,4 +33,16 @@ pub mod vault {
     }
 }
 
+pub mod tracing {
+    use tracing_subscriber::EnvFilter;
+
+    #[cfg(debug_assertions)]
+    const DEFAULT_TRACING_FILTER: &str = "debug";
+    #[cfg(not(debug_assertions))]
+    const DEFAULT_TRACING_FILTER: &str = "info,tower_http=debug,axum::rejection=debug";
+    pub fn default_filter() -> EnvFilter {
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| DEFAULT_TRACING_FILTER.into())
+    }
+}
+
 pub const BASE_PATH: &str = "/var/lib/flecs/";
