@@ -93,7 +93,10 @@ impl NetInfo {
             .iter()
             .map(NetworkAddress::try_from)
             .collect();
-        let route_entries = procfs::net::route()?;
+        let route_entries: Vec<_> = procfs::net::route()?
+            .into_iter()
+            .filter(|route_entry| route_entry.destination.is_unspecified())
+            .collect();
         for NetworkAddress { name, address } in addresses?.into_iter() {
             let entry = adapters
                 .entry(name.clone())
