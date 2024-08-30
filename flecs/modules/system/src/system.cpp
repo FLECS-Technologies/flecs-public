@@ -56,15 +56,5 @@ auto system_t::info() const //
     return crow::response{crow::status::OK, "json", response.dump()};
 }
 
-auto system_t::get_network_adapters() const //
-    -> std::map<std::string, NetInfo>
-{
-    auto adapters = std::map<std::string, NetInfo>{};
-    for (auto adapter : read_network_adapters()) {
-        adapters.insert({std::string(adapter.name.c_str()), std::move(adapter.info)});
-    }
-    return adapters;
-}
-
 } // namespace module
 } // namespace flecs

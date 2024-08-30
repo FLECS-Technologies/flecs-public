@@ -17,7 +17,6 @@
 #include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/factory/factory.h"
-#include "flecs/modules/system/system.h"
 #include "flecs/util/cxx23/string.h"
 #include "flecs/util/network/network.h"
 #include "flecs/util/process/process.h"
@@ -146,9 +145,7 @@ auto docker_t::create_container(std::shared_ptr<instances::instance_t> instance)
                     return {-1, "Cloned MAC address is invalid"};
                 }
 
-                const auto system_api =
-                    dynamic_cast<const module::system_t*>(api::query_module("system").get());
-                const auto adapters = system_api->get_network_adapters();
+                const auto adapters = get_network_adapters();
                 const auto netif = adapters.find(parts[1]);
                 if (netif == adapters.cend()) {
                     return {-1, "Could not find network adapter for cloned MAC address"};
@@ -515,9 +512,7 @@ auto docker_t::do_create_network(
                 return {-1, "cannot create ipvlan network without parent"};
             }
             if (cidr_subnet.empty() || gateway.empty()) {
-                const auto system_api =
-                    dynamic_cast<const module::system_t*>(api::query_module("system").get());
-                const auto adapters = system_api->get_network_adapters();
+                const auto adapters = get_network_adapters();
                 const auto netif = adapters.find(parent_adapter);
                 if (netif == adapters.cend()) {
                     return {-1, "network adapter does not exist"};

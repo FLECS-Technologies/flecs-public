@@ -29,9 +29,6 @@ class system_t FLECS_FINAL_UNLESS_TESTED : public base_t
 {
     friend class factory_t;
 
-public:
-    auto get_network_adapters() const -> std::map<std::string, NetInfo>;
-
 protected:
     system_t();
 

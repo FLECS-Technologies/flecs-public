@@ -20,18 +20,15 @@
 
 #include "flecs/modules/deployments/types/deployment_docker.h"
 #include "flecs/modules/factory/factory.h"
-#include "flecs/modules/system/system.h"
 #include "flecs/util/process/process.h"
+#include "flecs/util/network/network.h"
 
 class deployment_docker_test : public testing::Test
 {
 protected:
     static void SetUpTestSuite()
     {
-        flecs::module::register_module_t<flecs::module::system_t>("system");
-        auto sys = std::dynamic_pointer_cast<flecs::module::system_t>(flecs::api::query_module("system"));
-
-        auto adapters = sys->get_network_adapters();
+        auto adapters = flecs::get_network_adapters();
         const auto wired_adapter = std::find_if(
             adapters.cbegin(),
             adapters.cend(),
@@ -53,8 +50,6 @@ protected:
 
     static void TearDownTestSuite()
     {
-        flecs::module::unregister_module_t("system");
-
         if (_eth_dummy_created) {
             auto p = flecs::process_t{};
             p.spawnp("ip", "link", "delete", _parent_adapter);
