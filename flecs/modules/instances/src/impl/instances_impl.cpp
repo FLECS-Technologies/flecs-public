@@ -48,7 +48,7 @@ auto build_network_adapters_json(std::shared_ptr<instances::instance_t> instance
             adapter_json["name"] = adapter.first;
             adapter_json["active"] = false;
             adapter_json["connected"] = !adapter.second.ipv4addresses.empty();
-            auto network = std::string{"flecs-macvlan-"} + adapter.first;
+            auto network = std::string{"flecs-ipvlan_l2-"} + adapter.first;
             auto it = std::find_if(
                 instance->networks().cbegin(),
                 instance->networks().cend(),
@@ -68,7 +68,7 @@ auto build_network_adapters_json(std::shared_ptr<instances::instance_t> instance
         }
     }
     for (decltype(auto) network : instance->networks()) {
-        if (network.network_name.starts_with("flecs-macvlan-")) {
+        if (network.network_name.starts_with("flecs-ipvlan_l2-")) {
             const auto adapter = network.network_name.substr(14);
             if (!adapters.count(adapter)) {
                 auto adapter_json = json_t{};
