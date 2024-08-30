@@ -36,11 +36,8 @@ private:
     friend auto from_json(const json_t& j, sysinfo_t& sysinfo) //
         -> void;
 
-    auto parse_os_release(fs::path path) //
-        -> void;
 
     // uname info
-    std::string _os;             // sysname
     std::string _kernel_version; // release
     std::string _kernel_build;   // version
     std::string _machine;        // machine
@@ -55,8 +52,5 @@ private:
     std::string _arch;
     std::string _platform;
 };
-
-auto machine_to_arch(std::string_view machine) //
-    -> std::string;
 
 } // namespace flecs

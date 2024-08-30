@@ -1,5 +1,6 @@
 mod manifest;
 mod network;
+mod system;
 mod token;
 mod usb;
 
@@ -7,6 +8,7 @@ pub use crate::manifest::download_manifest;
 pub use network::read_network_adapters;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
+pub use system::read_system_info;
 pub use token::acquire_download_token;
 use tokio::runtime::Runtime;
 use tokio::task::JoinHandle;
@@ -59,10 +61,34 @@ mod ffi {
         password: String,
     }
 
+    #[derive(Debug, Default)]
+    pub struct Kernel {
+        version: String,
+        build: String,
+        machine: String,
+    }
+
+    #[derive(Debug, Default)]
+    pub struct Distro {
+        id: String,
+        codename: String,
+        name: String,
+        version: String,
+    }
+
+    #[derive(Debug, Default)]
+    pub struct SystemInfo {
+        arch: String,
+        platform: String,
+        kernel: Kernel,
+        distro: Distro,
+    }
+
     extern "Rust" {
         fn download_manifest(app: &str, version: &str) -> Result<String>;
         fn read_usb_devices() -> Result<Vec<UsbDevice>>;
         fn read_network_adapters() -> Result<Vec<NetAdapter>>;
+        fn read_system_info() -> SystemInfo;
         fn start_server();
         fn stop_server();
         fn acquire_download_token(app: &str, version: &str) -> Result<Token>;

@@ -23,6 +23,7 @@ udev = { version = "0.8.0", features = ["hwdb"] }
 http = "1.1"
 flecs-core = { path = "../flecs-core", version = "0.1.0" }
 flecs_console_client = { path = "../flecs-console-api/flecs_console_client", version = "1.0.0" }
+flecsd-axum-server = { path = "../flecsd-axum-server", version = "2.0.0" }
 tracing = "0.1.40"
 
 [dev-dependencies]

@@ -528,6 +528,7 @@ dependencies = [
  "cxx-build",
  "flecs-core",
  "flecs_console_client",
+ "flecsd-axum-server",
  "http 1.1.0",
  "libc",
  "mockito",

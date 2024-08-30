@@ -19,7 +19,7 @@ flecs_add_module(
     ADDITIONAL_HEADERS
     export_manifest.h impl/flecsport_impl.h dos_manifest.h
     LIBS_PUBLIC common
-    LIBS_PRIVATE util.archive util.datetime
+    LIBS_PRIVATE util.archive util.datetime util.sysinfo
 )
 
 if(FLECS_BUILD_TESTS)
