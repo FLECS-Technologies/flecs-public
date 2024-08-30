@@ -43,7 +43,6 @@ flecs_add_module(
     LIBS_PUBLIC
         common
         modules.instances.types
-        modules.system
         modules.jobs.types
     LIBS_PRIVATE
         modules.deployments.types

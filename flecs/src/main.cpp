@@ -24,7 +24,6 @@
 #include "flecs/modules/instances/instances.h"
 #include "flecs/modules/jobs/jobs.h"
 #include "flecs/modules/manifests/manifests.h"
-#include "flecs/modules/system/system.h"
 #include "flecs/modules/version/version.h"
 #include "flecs/util/signal_handler/signal_handler.h"
 #include "flecs_core_cxx_bridge/src/lib.rs.h"
@@ -38,7 +37,6 @@ flecs::module::register_module_t<flecs::module::floxy_t> _reg_floxy("floxy");
 flecs::module::register_module_t<flecs::module::instances_t> _reg_instances("instances");
 flecs::module::register_module_t<flecs::module::jobs_t> _reg_jobs("jobs");
 flecs::module::register_module_t<flecs::module::manifests_t> _reg_manifests("manifests");
-flecs::module::register_module_t<flecs::module::system_t> _reg_system("system");
 flecs::module::register_module_t<flecs::module::version_t> _reg_version("version");
 
 int main(int /*argc*/, char** /*argv*/)
