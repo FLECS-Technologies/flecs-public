@@ -67,9 +67,10 @@ auto build_network_adapters_json(std::shared_ptr<instances::instance_t> instance
             adapters_json.push_back(adapter_json);
         }
     }
+    const auto net_prefix = std::string_view{"flecs-ipvlan_l2-"};
     for (decltype(auto) network : instance->networks()) {
-        if (network.network_name.starts_with("flecs-ipvlan_l2-")) {
-            const auto adapter = network.network_name.substr(14);
+        if (network.network_name.starts_with(net_prefix)) {
+            const auto adapter = network.network_name.substr(net_prefix.size());
             if (!adapters.count(adapter)) {
                 auto adapter_json = json_t{};
                 adapter_json["name"] = adapter;
