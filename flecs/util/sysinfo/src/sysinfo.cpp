@@ -14,19 +14,13 @@
 
 #include "flecs/util/sysinfo/sysinfo.h"
 
-#include <sys/utsname.h>
-
-#include <fstream>
-#include <map>
-#include <regex>
-
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
 #include "flecs/util/cxx23/string.h"
 
 namespace flecs {
 
 sysinfo_t::sysinfo_t()
-    : _os{}
-    , _kernel_version{}
+    : _kernel_version{}
     , _kernel_build{}
     , _machine{}
     , _distro_id{}
@@ -36,58 +30,25 @@ sysinfo_t::sysinfo_t()
     , _arch{}
     , _platform{}
 {
-    auto buf = utsname{};
-    const auto res = uname(&buf);
-    if (res < 0) {
-        return;
-    }
+    auto source = read_system_info();
 
-    _os = buf.sysname;
-    _kernel_version = buf.release;
-    _kernel_build = buf.version;
-    _machine = buf.machine;
-    _arch = machine_to_arch(_machine);
+    _kernel_version = std::string(source.kernel.version);
+    _kernel_build = std::string(source.kernel.build);
+    _machine = std::string(source.kernel.machine);
 
-    auto ec = std::error_code{};
-    if (fs::exists("/etc/os-release", ec)) {
-        parse_os_release("/etc/os-release");
-    } else if (fs::exists("/usr/lib/os-release")) {
-        parse_os_release("/usr/lib/os-release");
-    }
-    if (cxx23::contains(_kernel_version, "weidmueller")) {
-        _platform = "weidmueller";
-    }
+    _arch = std::string(source.arch);
+    _platform = std::string(source.platform);
+
+    _distro_code = std::string(source.distro.codename);
+    _distro_id = std::string(source.distro.id);
+    _distro_name = std::string(source.distro.name);
+    _distro_version = std::string(source.distro.version);
 }
 
 auto sysinfo_t::arch() const noexcept //
     -> const std::string&
 {
     return _arch;
-}
-
-auto sysinfo_t::parse_os_release(fs::path path) //
-    -> void
-{
-    const auto codename_regex = std::regex{R"#(^VERSION_CODENAME=(?:"(.+)"|(.+))$)#"};
-    const auto id_regex = std::regex{R"#(^ID=(?:"(.+)"|(.+))$)#"};
-    const auto name_regex = std::regex{R"#(^PRETTY_NAME=(?:"(.+)"|(.+))$)#"};
-    const auto version_regex = std::regex{R"#(^VERSION_ID=(?:"(.+)"|(.+))$)#"};
-
-    auto os_release = std::ifstream{path};
-
-    auto line = std::string{};
-    while (std::getline(os_release, line)) {
-        auto m = std::smatch{};
-        if (std::regex_match(line, m, codename_regex)) {
-            _distro_code = m[1].matched ? m[1] : m[2];
-        } else if (std::regex_match(line, m, id_regex)) {
-            _distro_id = m[1].matched ? m[1] : m[2];
-        } else if (std::regex_match(line, m, name_regex)) {
-            _distro_name = m[1].matched ? m[1] : m[2];
-        } else if (std::regex_match(line, m, version_regex)) {
-            _distro_version = m[1].matched ? m[1] : m[2];
-        }
-    }
 }
 
 auto to_json(json_t& j, const sysinfo_t& sysinfo) //
@@ -124,21 +85,6 @@ auto from_json(const json_t& j, sysinfo_t& sysinfo) //
     } catch (...) {
         sysinfo = {};
     }
-}
-
-auto machine_to_arch(std::string_view machine) //
-    -> std::string
-{
-    using std::operator""s;
-
-    const auto m = std::map<std::string_view, std::string_view>{
-        {"aarch64", "arm64"},
-        {"armv7l", "armhf"},
-        {"x86", "i386"},
-        {"x86_64", "amd64"}};
-
-    const auto it = m.find(machine);
-    return (it != m.cend()) ? std::string{it->second} : "unknown"s;
 }
 
 } // namespace flecs
