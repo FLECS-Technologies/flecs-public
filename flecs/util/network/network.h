@@ -14,9 +14,11 @@
 
 #pragma once
 
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
+#include <map>
 #include <string>
 
 namespace flecs {
@@ -28,5 +30,8 @@ auto cidr_to_subnet_mask_v4(std::string_view cidr_subnet) //
 
 auto ipv4_to_network(std::string_view ip, std::string_view subnet_mask) //
     -> std::string;
+
+auto get_network_adapters() //
+    -> std::map<std::string, NetInfo>;
 
 } // namespace flecs

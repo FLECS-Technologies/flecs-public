@@ -24,6 +24,7 @@ if(FLECS_BUILD_TESTS)
         GTest::gtest
         GTest::gtest_main
         util.network
+        magic::flecs_core_cxx_bridge
     )
 
     add_test(NAME test.util.network COMMAND test.util.network)

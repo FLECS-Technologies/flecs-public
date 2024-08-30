@@ -69,4 +69,14 @@ auto ipv4_to_network(std::string_view ip, std::string_view subnet_mask) //
     return stringify_delim('/', network_addr, subnet_mask_to_cidr_v4(subnet_mask));
 }
 
+auto get_network_adapters() //
+    -> std::map<std::string, NetInfo>
+{
+    auto adapters = std::map<std::string, NetInfo>{};
+    for (auto adapter : read_network_adapters()) {
+        adapters.insert({std::string(adapter.name.c_str()), std::move(adapter.info)});
+    }
+    return adapters;
+}
+
 } // namespace flecs

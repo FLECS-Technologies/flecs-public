@@ -24,7 +24,6 @@
 #else // FLECS_MOCK_MODULES
 #include "flecs/modules/apps/apps.h"
 #include "flecs/modules/jobs/jobs.h"
-#include "flecs/modules/system/system.h"
 #endif // FLECS_MOCK_MODULES
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/factory/factory.h"
@@ -39,8 +38,7 @@ namespace impl {
 namespace {
 auto build_network_adapters_json(std::shared_ptr<instances::instance_t> instance)
 {
-    const auto system_api = dynamic_cast<const module::system_t*>(api::query_module("system").get());
-    const auto adapters = system_api->get_network_adapters();
+    const auto adapters = get_network_adapters();
     auto adapters_json = json_t::array();
     for (decltype(auto) adapter : adapters) {
         if ((adapter.second.net_type == NetType::Wired) || (adapter.second.net_type == NetType::Wireless)) {
@@ -493,8 +491,7 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
     auto response = json_t();
     response["networkAdapters"] = build_network_adapters_json(instance);
 
-    const auto system_api = dynamic_cast<const module::system_t*>(api::query_module("system").get());
-    const auto adapters = system_api->get_network_adapters();
+    const auto adapters = get_network_adapters();
 
     for (const auto& network : config.networkAdapters) {
         const auto docker_network = std::string{"flecs-ipvlan_l2-"} + network.name;
