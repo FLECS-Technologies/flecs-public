@@ -53,6 +53,7 @@ use flecsd_axum_server::models::{
 };
 use http::Method;
 use std::sync::Arc;
+use tracing::error;
 
 fn additional_info_from_error(error: Error) -> AdditionalInfo {
     AdditionalInfo {
@@ -477,7 +478,13 @@ impl System for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<SystemInfoGetResponse, String> {
-        todo!()
+        Ok(SystemInfoGetResponse::Status200_Sucess(
+            crate::relic::system::info::try_create_system_info().map_err(|e| {
+                let e = e.to_string();
+                error!("Could not create SystemInfo: {e}");
+                e
+            })?,
+        ))
     }
 
     async fn system_ping_get(
