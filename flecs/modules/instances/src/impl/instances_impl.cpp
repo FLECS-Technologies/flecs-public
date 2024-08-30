@@ -20,7 +20,6 @@
 #ifdef FLECS_MOCK_MODULES
 #include "flecs/modules/apps/__mocks__/apps.h"
 #include "flecs/modules/jobs/__mocks__/jobs.h"
-#include "flecs/modules/system/__mocks__/system.h"
 #else // FLECS_MOCK_MODULES
 #include "flecs/modules/apps/apps.h"
 #include "flecs/modules/jobs/jobs.h"

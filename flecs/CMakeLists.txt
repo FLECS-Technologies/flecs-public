@@ -45,7 +45,6 @@ target_link_libraries(daemon PRIVATE
     modules.jobs
     modules.manifests
     modules.module_base
-    modules.system
     modules.version
     util.datetime
     util.process
