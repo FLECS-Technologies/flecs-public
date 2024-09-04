@@ -1,4 +1,5 @@
 pub use super::Result;
+use crate::lore;
 use anyhow::anyhow;
 use flecs_app_manifest::AppManifestVersion;
 use flecs_console_client::apis::configuration::Configuration;
@@ -13,8 +14,15 @@ pub async fn download_manifest(
     app: &str,
     version: &str,
 ) -> Result<AppManifestVersion> {
-    let response =
-        get_api_v2_manifests_app_version(console_configuration, x_session_id, app, version).await?;
+    let response = get_api_v2_manifests_app_version(
+        console_configuration,
+        x_session_id,
+        app,
+        version,
+        Some(lore::MAX_SUPPORTED_APP_MANIFEST_VERSION),
+        None,
+    )
+    .await?;
     if response.status != StatusCode::OK {
         return Err(anyhow!(
             "Unexpected response (status {}): {}",
@@ -82,7 +90,10 @@ mod tests {
             version: APP_VERSION.to_string(),
             volumes: vec![],
         });
-        let path: String = format!("/api/v2/manifests/{}/{}", APP_NAME, APP_VERSION);
+        let path: String = format!(
+            "/api/v2/manifests/{}/{}?max_manifest_version=3.0.0",
+            APP_NAME, APP_VERSION
+        );
         let mock = server
             .mock("GET", path.as_str())
             .with_status(200)
@@ -108,7 +119,10 @@ mod tests {
     }"#;
         const APP_NAME: &str = "my.no-data.app";
         const APP_VERSION: &str = "3.0.0";
-        let path: String = format!("/api/v2/manifests/{}/{}", APP_NAME, APP_VERSION);
+        let path: String = format!(
+            "/api/v2/manifests/{}/{}?max_manifest_version=3.0.0",
+            APP_NAME, APP_VERSION
+        );
         let mock = server
             .mock("GET", path.as_str())
             .with_status(200)
@@ -140,7 +154,10 @@ mod tests {
     }"#;
         const APP_NAME: &str = "my.no-data.app";
         const APP_VERSION: &str = "3.0.0";
-        let path: String = format!("/api/v2/manifests/{}/{}", APP_NAME, APP_VERSION);
+        let path: String = format!(
+            "/api/v2/manifests/{}/{}?max_manifest_version=3.0.0",
+            APP_NAME, APP_VERSION
+        );
         let mock = server
             .mock("GET", path.as_str())
             .with_status(202)
