@@ -7,8 +7,8 @@ case $1 in
     ;;
   configure|abort-remove)
     flecsd.sh migrate || exit 1
-    systemctl preset ##PACKAGE##
-    systemctl is-enabled ##PACKAGE## >/dev/null && systemctl start ##PACKAGE##
+    systemctl preset flecs
+    systemctl is-enabled flecs >/dev/null && systemctl start flecs
     ;;
 esac
 
