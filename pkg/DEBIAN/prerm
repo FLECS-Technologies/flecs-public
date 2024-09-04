@@ -7,12 +7,12 @@ case $1 in
     ;;
   upgrade)
     # TODO implement graceful detach in flecsd
-    echo "Detaching ##PACKAGE##.service"
-    systemctl kill --signal=KILL ##PACKAGE##
+    echo "Detaching flecs.service"
+    systemctl kill --signal=KILL flecs
     ;;
   remove)
-    echo "Disabling ##PACKAGE##.service"
-    systemctl disable --now ##PACKAGE##
+    echo "Disabling flecs.service"
+    systemctl disable --now flecs
     ;;
 esac
 
