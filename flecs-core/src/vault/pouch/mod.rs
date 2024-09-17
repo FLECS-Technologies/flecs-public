@@ -39,12 +39,9 @@ pub(super) trait VaultPouch: Pouch {
 ///     fn gems_mut(&mut self) -> &mut Self::Gems {
 ///         &mut self.arrows
 ///     }
-///
 /// }
 ///
-/// let mut arrow_pouch = ArrowPouch {
-///     arrows: Vec::new(),
-/// };
+/// let mut arrow_pouch = ArrowPouch { arrows: Vec::new() };
 ///
 /// arrow_pouch.gems_mut().push(Arrow::Fire);
 /// arrow_pouch.gems_mut().push(Arrow::Ice);

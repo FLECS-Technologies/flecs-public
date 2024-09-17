@@ -59,10 +59,12 @@ impl Error {
 /// Contains all the information for constructing a [Vault].
 /// # Examples
 /// ```
-/// use std::path::PathBuf;
 /// use flecs_core::vault::VaultConfig;
+/// use std::path::PathBuf;
 ///
-/// let config = VaultConfig{path: PathBuf::from("/flecs-tests/vault/")};
+/// let config = VaultConfig {
+///     path: PathBuf::from("/flecs-tests/vault/"),
+/// };
 /// ```
 pub struct VaultConfig {
     pub path: PathBuf,
@@ -91,10 +93,12 @@ impl Vault {
     /// separate call to [Vault::open()] is necessary.
     /// # Example
     /// ```
-    /// use std::path::PathBuf;
     /// use flecs_core::vault::{Vault, VaultConfig};
+    /// use std::path::PathBuf;
     ///
-    /// let config = VaultConfig{path: PathBuf::from("/flecs-tests/vault/")};
+    /// let config = VaultConfig {
+    ///     path: PathBuf::from("/flecs-tests/vault/"),
+    /// };
     /// let vault = Vault::new(config);
     /// vault.open();
     /// ```
@@ -110,11 +114,14 @@ impl Vault {
     /// its Pouches. See [Reservation::grab()] for details.
     /// # Examples
     /// ```
-    /// use std::path::Path;
     /// use flecs_core::vault::{Vault, VaultConfig};
+    /// use std::path::Path;
     ///
-    /// let vault = Vault::new(VaultConfig{path: Path::new("/tmp/vault/").to_path_buf()});
-    /// let reservation = vault.reservation()
+    /// let vault = Vault::new(VaultConfig {
+    ///     path: Path::new("/tmp/vault/").to_path_buf(),
+    /// });
+    /// let reservation = vault
+    ///     .reservation()
     ///     .reserve_app_pouch()
     ///     .reserve_manifest_pouch()
     ///     .reserve_secret_pouch_mut();
@@ -128,10 +135,12 @@ impl Vault {
     /// ```
     /// More concise variant
     /// ```
-    /// use std::path::Path;
     /// use flecs_core::vault::{GrabbedPouches, Vault, VaultConfig};
+    /// use std::path::Path;
     ///
-    /// let vault = Vault::new(VaultConfig {path: Path::new("/tmp/vault/").to_path_buf()});
+    /// let vault = Vault::new(VaultConfig {
+    ///     path: Path::new("/tmp/vault/").to_path_buf(),
+    /// });
     /// if let GrabbedPouches {
     ///     app_pouch: Some(apps),
     ///     manifest_pouch: Some(manifests),
