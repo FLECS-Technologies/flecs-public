@@ -141,7 +141,7 @@ impl<T> Nullable<T> {
     /// let mut x = Nullable::Present(2);
     /// match x.as_mut() {
     ///     Nullable::Present(v) => *v = 42,
-    ///     Nullable::Null => {},
+    ///     Nullable::Null => {}
     /// }
     /// assert_eq!(x, Nullable::Present(42));
     /// ```
@@ -434,12 +434,25 @@ impl<T> Nullable<T> {
     /// ```
     /// # use flecsd_axum_server::types::Nullable;
     ///
-    /// fn sq(x: u32) -> Nullable<u32> { Nullable::Present(x * x) }
-    /// fn nope(_: u32) -> Nullable<u32> { Nullable::Null }
+    /// fn sq(x: u32) -> Nullable<u32> {
+    ///     Nullable::Present(x * x)
+    /// }
+    /// fn nope(_: u32) -> Nullable<u32> {
+    ///     Nullable::Null
+    /// }
     ///
-    /// assert_eq!(Nullable::Present(2).and_then(sq).and_then(sq), Nullable::Present(16));
-    /// assert_eq!(Nullable::Present(2).and_then(sq).and_then(nope), Nullable::Null);
-    /// assert_eq!(Nullable::Present(2).and_then(nope).and_then(sq), Nullable::Null);
+    /// assert_eq!(
+    ///     Nullable::Present(2).and_then(sq).and_then(sq),
+    ///     Nullable::Present(16)
+    /// );
+    /// assert_eq!(
+    ///     Nullable::Present(2).and_then(sq).and_then(nope),
+    ///     Nullable::Null
+    /// );
+    /// assert_eq!(
+    ///     Nullable::Present(2).and_then(nope).and_then(sq),
+    ///     Nullable::Null
+    /// );
     /// assert_eq!(Nullable::Null.and_then(sq).and_then(sq), Nullable::Null);
     /// ```
     #[inline]
@@ -489,12 +502,21 @@ impl<T> Nullable<T> {
     /// ```
     /// # use flecsd_axum_server::types::Nullable;
     ///
-    /// fn nobody() -> Nullable<&'static str> { Nullable::Null }
-    /// fn vikings() -> Nullable<&'static str> { Nullable::Present("vikings") }
+    /// fn nobody() -> Nullable<&'static str> {
+    ///     Nullable::Null
+    /// }
+    /// fn vikings() -> Nullable<&'static str> {
+    ///     Nullable::Present("vikings")
+    /// }
     ///
-    /// assert_eq!(Nullable::Present("barbarians").or_else(vikings),
-    ///            Nullable::Present("barbarians"));
-    /// assert_eq!(Nullable::Null.or_else(vikings), Nullable::Present("vikings"));
+    /// assert_eq!(
+    ///     Nullable::Present("barbarians").or_else(vikings),
+    ///     Nullable::Present("barbarians")
+    /// );
+    /// assert_eq!(
+    ///     Nullable::Null.or_else(vikings),
+    ///     Nullable::Present("vikings")
+    /// );
     /// assert_eq!(Nullable::Null.or_else(nobody), Nullable::Null);
     /// ```
     #[inline]
