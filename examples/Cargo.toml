@@ -1,0 +1,18 @@
+[package]
+name = "examples"
+version = "0.0.0"
+publish = false
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = "1.40.0"
+flecs-core = { path = "../flecs-core", version = "0.1.0" }
+
+[[example]]
+name = "princess_quest"
+path = "princess_quest.rs"
