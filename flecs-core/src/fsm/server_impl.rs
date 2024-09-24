@@ -71,10 +71,10 @@ pub struct ServerImpl {
     vault: Arc<Vault>,
 }
 
-impl Default for ServerImpl {
-    fn default() -> Self {
+impl ServerImpl {
+    pub async fn default() -> Self {
         Self {
-            vault: crate::lore::vault::default(),
+            vault: crate::lore::vault::default().await,
         }
     }
 }
@@ -161,7 +161,7 @@ impl Console for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ConsoleAuthenticationDeleteResponse, String> {
-        crate::sorcerer::authmancer::delete_authentication(&self.vault);
+        crate::sorcerer::authmancer::delete_authentication(&self.vault).await;
         Ok(ConsoleAuthenticationDeleteResponse::Status204_NoContent)
     }
 
@@ -172,7 +172,7 @@ impl Console for ServerImpl {
         _cookies: CookieJar,
         body: AuthResponseData,
     ) -> Result<ConsoleAuthenticationPutResponse, String> {
-        crate::sorcerer::authmancer::store_authentication(body, &self.vault);
+        crate::sorcerer::authmancer::store_authentication(body, &self.vault).await;
         Ok(ConsoleAuthenticationPutResponse::Status204_NoContent)
     }
 }
@@ -187,7 +187,7 @@ impl Device for ServerImpl {
     ) -> Result<DeviceLicenseActivationPostResponse, String> {
         match crate::sorcerer::licenso::activate_license(
             &self.vault,
-            crate::lore::console_client_config::default(),
+            crate::lore::console_client_config::default().await,
         )
         .await
         {
@@ -224,7 +224,7 @@ impl Device for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<DeviceLicenseInfoGetResponse, String> {
-        let secrets = self.vault.get_secrets();
+        let secrets = self.vault.get_secrets().await;
         Ok(DeviceLicenseInfoGetResponse::Status200_Success(
             DeviceLicenseInfoGet200Response {
                 // TODO: Use correct type, as soon as serial numbers are implemented

@@ -68,8 +68,8 @@ pub fn init_tracing() {
     info!("Tracing initialized");
 }
 
-fn create_service() -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
-    let server = server_impl::ServerImpl::default();
+async fn create_service() -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
+    let server = server_impl::ServerImpl::default().await;
     let app = flecsd_axum_server::server::new(Arc::new(server)).layer(
         tower_http::trace::TraceLayer::new_for_http()
             .make_span_with(|request: &Request<_>| {
@@ -137,7 +137,11 @@ async fn serve(
 }
 
 pub async fn server(socket_path: PathBuf) -> Result<()> {
-    serve(create_unix_socket(socket_path).await?, create_service()).await;
+    serve(
+        create_unix_socket(socket_path).await?,
+        create_service().await,
+    )
+    .await;
     Ok(())
 }
 

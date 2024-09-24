@@ -11,17 +11,17 @@ struct SessionIdMiddleware {
     vault: Arc<Vault>,
 }
 
-impl Default for SessionIdMiddleware {
-    fn default() -> Self {
+impl SessionIdMiddleware {
+    pub async fn default() -> Self {
         Self {
-            vault: crate::lore::vault::default(),
+            vault: crate::lore::vault::default().await,
         }
     }
 }
 
-pub fn create_default_client_with_middleware() -> ClientWithMiddleware {
+pub async fn create_default_client_with_middleware() -> ClientWithMiddleware {
     ClientBuilder::new(reqwest::Client::new())
-        .with(SessionIdMiddleware::default())
+        .with(SessionIdMiddleware::default().await)
         .build()
 }
 
@@ -36,7 +36,7 @@ impl SessionIdMiddleware {
         debug!("{request:?}");
     }
 
-    fn handle_response(&self, response: Result<Response>) -> Result<Response> {
+    async fn handle_response(&self, response: Result<Response>) -> Result<Response> {
         debug!("{response:?}");
         if let Ok(response) = response {
             if let Some(session) = response.headers().get("x-session-id") {
@@ -48,6 +48,7 @@ impl SessionIdMiddleware {
                             .reservation()
                             .reserve_secret_pouch_mut()
                             .grab()
+                            .await
                             .secret_pouch_mut
                             .as_mut()
                             .unwrap()
@@ -80,6 +81,6 @@ impl Middleware for SessionIdMiddleware {
     ) -> Result<Response> {
         self.handle_request(&mut req);
         let res = next.run(req, extensions).await;
-        self.handle_response(res)
+        self.handle_response(res).await
     }
 }
