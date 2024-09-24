@@ -7,7 +7,7 @@ use anyhow::{anyhow, Context};
 use flecs_console_client::apis::configuration::Configuration;
 
 pub async fn activate_license(vault: &Vault, configuration: &Configuration) -> Result<()> {
-    let secrets = vault.get_secrets();
+    let secrets = vault.get_secrets().await;
 
     let activation_result = match (
         secrets.license_key.as_ref(),
@@ -35,7 +35,7 @@ pub async fn activate_license(vault: &Vault, configuration: &Configuration) -> R
             if let GrabbedPouches {
                 secret_pouch_mut: Some(ref mut secret_pouch),
                 ..
-            } = vault.reservation().reserve_secret_pouch_mut().grab()
+            } = vault.reservation().reserve_secret_pouch_mut().grab().await
             {
                 secret_pouch.gems_mut().license_key = Some(activation_data.license_key);
                 secret_pouch
@@ -50,7 +50,7 @@ pub async fn activate_license(vault: &Vault, configuration: &Configuration) -> R
             if let GrabbedPouches {
                 secret_pouch: Some(ref secret_pouch),
                 ..
-            } = vault.reservation().reserve_secret_pouch().grab()
+            } = vault.reservation().reserve_secret_pouch().grab().await
             {
                 match (&secret_pouch.gems().license_key, secret_pouch.gems().get_session_id().id) {
                     (None, None) => Err(anyhow!("Console responded with already active, but license and session id are not set")),
@@ -70,14 +70,18 @@ pub async fn validate_license(vault: &Vault) -> Result<bool> {
         .reservation()
         .reserve_secret_pouch()
         .grab()
+        .await
         .secret_pouch
         .as_ref()
         .unwrap()
         .gems()
         .get_session_id()
         .id;
-    spell::license::validate_license(session_id, crate::lore::console_client_config::default())
-        .await
+    spell::license::validate_license(
+        session_id,
+        crate::lore::console_client_config::default().await,
+    )
+    .await
 }
 
 #[cfg(test)]
@@ -96,8 +100,8 @@ mod tests {
     const SESSION_ID: &str = "74c3b620-6048-4bfd-9bf7-c9857a001694";
     const TIMESTAMP: u64 = 17243237291234u64;
 
-    fn setup_secrets(vault: &Vault, secrets: Secrets) {
-        let mut pouches = vault.reservation().reserve_secret_pouch_mut().grab();
+    async fn setup_secrets(vault: &Vault, secrets: Secrets) {
+        let mut pouches = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secret_pouch = pouches.secret_pouch_mut.as_mut().unwrap();
         assert!(secret_pouch.gems().license_key.is_none());
         assert!(secret_pouch.gems().get_session_id().id.is_none());
@@ -142,7 +146,8 @@ mod tests {
                 SessionId::default(),
                 create_auth_for_token(auth.to_string()),
             ),
-        );
+        )
+        .await;
         let mut server = mockito::Server::new_async().await;
         let config = Configuration {
             base_path: server.url(),
@@ -174,7 +179,7 @@ mod tests {
             .await;
         activate_license(&vault, &config).await.unwrap();
         mock.assert();
-        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
         assert_eq!(secrets.gems().get_session_id(), resulting_session_id);
         assert_eq!(secrets.gems().license_key, Some(LICENSE_KEY.to_string()));
@@ -188,7 +193,8 @@ mod tests {
         setup_secrets(
             &vault,
             Secrets::new(Some(LICENSE_KEY.to_string()), SessionId::default(), None),
-        );
+        )
+        .await;
         let mut server = mockito::Server::new_async().await;
         let config = Configuration {
             base_path: server.url(),
@@ -220,7 +226,7 @@ mod tests {
             .await;
         activate_license(&vault, &config).await.unwrap();
         mock.assert();
-        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
         assert_eq!(secrets.gems().get_session_id(), resulting_session_id);
         assert_eq!(secrets.gems().license_key, Some(LICENSE_KEY.to_string()));
@@ -241,7 +247,8 @@ mod tests {
                 },
                 None,
             ),
-        );
+        )
+        .await;
         let mut server = mockito::Server::new_async().await;
         let config = Configuration {
             base_path: server.url(),
@@ -258,7 +265,7 @@ mod tests {
             .await;
         activate_license(&vault, &config).await.unwrap();
         mock.assert();
-        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
         assert_eq!(secrets.gems().get_session_id(), resulting_session_id);
         assert_eq!(secrets.gems().license_key, Some(LICENSE_KEY.to_string()));
@@ -276,7 +283,8 @@ mod tests {
                 SessionId::default(),
                 create_auth_for_token("irrelevant".to_string()),
             ),
-        );
+        )
+        .await;
         let mut server = mockito::Server::new_async().await;
         let config = Configuration {
             base_path: server.url(),
@@ -293,7 +301,7 @@ mod tests {
         )
         .contains("Console responded with already active, but license and session id are not set"));
         mock.assert();
-        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
         assert_eq!(secrets.gems().get_session_id(), SessionId::default());
         assert_eq!(secrets.gems().license_key, None);
@@ -314,7 +322,8 @@ mod tests {
                 },
                 create_auth_for_token("irrelevant".to_string()),
             ),
-        );
+        )
+        .await;
         let mut server = mockito::Server::new_async().await;
         let config = Configuration {
             base_path: server.url(),
@@ -331,7 +340,7 @@ mod tests {
         )
         .contains("Console responded with already active, but license is not set"));
         mock.assert();
-        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
         assert_eq!(
             secrets.gems().get_session_id(),
@@ -351,7 +360,8 @@ mod tests {
         setup_secrets(
             &vault,
             Secrets::new(Some(LICENSE_KEY.to_string()), SessionId::default(), None),
-        );
+        )
+        .await;
         let mut server = mockito::Server::new_async().await;
         let config = Configuration {
             base_path: server.url(),
@@ -368,7 +378,7 @@ mod tests {
         )
         .contains("Console responded with already active, but session id is not set"));
         mock.assert();
-        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
         assert_eq!(secrets.gems().get_session_id(), SessionId::default());
         assert_eq!(secrets.gems().license_key, Some(LICENSE_KEY.to_string()));
@@ -379,7 +389,7 @@ mod tests {
         let vault = Vault::new(VaultConfig {
             path: Path::new(TEST_PATH).to_path_buf(),
         });
-        setup_secrets(&vault, Secrets::new(None, SessionId::default(), None));
+        setup_secrets(&vault, Secrets::new(None, SessionId::default(), None)).await;
         let mut server = mockito::Server::new_async().await;
         let config = Configuration {
             base_path: server.url(),
@@ -401,7 +411,7 @@ mod tests {
                 "Can not activate license, as no license key or user authentication is present"
             ),);
         mock.assert();
-        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+        let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
         assert_eq!(secrets.gems().get_session_id(), SessionId::default());
         assert_eq!(secrets.gems().license_key, None);

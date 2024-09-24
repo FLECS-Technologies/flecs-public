@@ -12,6 +12,7 @@ pub async fn download_manifest(
         .reservation()
         .reserve_secret_pouch()
         .grab()
+        .await
         .secret_pouch
         .as_ref()
         .unwrap()
@@ -20,7 +21,7 @@ pub async fn download_manifest(
         .id;
     let session_id = session_id.unwrap_or_default();
     spell::manifest::download_manifest(
-        crate::lore::console_client_config::default(),
+        crate::lore::console_client_config::default().await,
         &session_id,
         &app_key.name,
         &app_key.version,

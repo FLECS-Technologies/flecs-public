@@ -4,7 +4,7 @@ use crate::vault::pouch::{Pouch, Secrets};
 use pouch::{AppPouch, ManifestPouch, SecretPouch, VaultPouch};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub enum Error {
     Single(String),
@@ -117,46 +117,55 @@ impl Vault {
     /// use flecs_core::vault::{Vault, VaultConfig};
     /// use std::path::Path;
     ///
-    /// let vault = Vault::new(VaultConfig {
-    ///     path: Path::new("/tmp/vault/").to_path_buf(),
-    /// });
-    /// let reservation = vault
-    ///     .reservation()
-    ///     .reserve_app_pouch()
-    ///     .reserve_manifest_pouch()
-    ///     .reserve_secret_pouch_mut();
-    /// let pouches = reservation.grab();
-    /// assert!(pouches.app_pouch.is_some());
-    /// assert!(pouches.app_pouch_mut.is_none());
-    /// assert!(pouches.manifest_pouch.is_some());
-    /// assert!(pouches.manifest_pouch_mut.is_none());
-    /// assert!(pouches.secret_pouch.is_none());
-    /// assert!(pouches.secret_pouch_mut.is_some());
+    /// # tokio_test::block_on(
+    /// async {
+    ///     let vault = Vault::new(VaultConfig {
+    ///         path: Path::new("/tmp/vault/").to_path_buf(),
+    ///     });
+    ///     let reservation = vault
+    ///         .reservation()
+    ///         .reserve_app_pouch()
+    ///         .reserve_manifest_pouch()
+    ///         .reserve_secret_pouch_mut();
+    ///     let pouches = reservation.grab().await;
+    ///     assert!(pouches.app_pouch.is_some());
+    ///     assert!(pouches.app_pouch_mut.is_none());
+    ///     assert!(pouches.manifest_pouch.is_some());
+    ///     assert!(pouches.manifest_pouch_mut.is_none());
+    ///     assert!(pouches.secret_pouch.is_none());
+    ///     assert!(pouches.secret_pouch_mut.is_some());
+    /// }
+    /// # )
     /// ```
     /// More concise variant
     /// ```
     /// use flecs_core::vault::{GrabbedPouches, Vault, VaultConfig};
     /// use std::path::Path;
     ///
-    /// let vault = Vault::new(VaultConfig {
-    ///     path: Path::new("/tmp/vault/").to_path_buf(),
-    /// });
-    /// if let GrabbedPouches {
-    ///     app_pouch: Some(apps),
-    ///     manifest_pouch: Some(manifests),
-    ///     secret_pouch_mut: Some(secrets),
-    ///     ..
-    /// } = &vault
-    ///     .reservation()
-    ///     .reserve_app_pouch()
-    ///     .reserve_manifest_pouch()
-    ///     .reserve_secret_pouch_mut()
-    ///     .grab()
-    /// {
-    ///     // use pouches
-    /// } else {
-    ///     panic!("This branch is unreachable if the correct pouches are reserved and matched");
-    /// };
+    /// # tokio_test::block_on(
+    /// async {
+    ///     let vault = Vault::new(VaultConfig {
+    ///         path: Path::new("/tmp/vault/").to_path_buf(),
+    ///     });
+    ///     if let GrabbedPouches {
+    ///         app_pouch: Some(apps),
+    ///         manifest_pouch: Some(manifests),
+    ///         secret_pouch_mut: Some(secrets),
+    ///         ..
+    ///     } = &vault
+    ///         .reservation()
+    ///         .reserve_app_pouch()
+    ///         .reserve_manifest_pouch()
+    ///         .reserve_secret_pouch_mut()
+    ///         .grab()
+    ///         .await
+    ///     {
+    ///         // use pouches
+    ///     } else {
+    ///         panic!("This branch is unreachable if the correct pouches are reserved and matched");
+    ///     };
+    /// }
+    /// # )
     /// ```
     pub fn reservation(&self) -> Reservation {
         Reservation::new(self)
@@ -164,13 +173,14 @@ impl Vault {
 
     /// Replaces the content of all pouches with data from disk. See [AppPouch::open()],
     /// [ManifestPouch::open()] and [SecretPouch::open()] for details.
-    pub fn open(&self) {
+    pub async fn open(&self) {
         let mut grabbed_pouches = self
             .reservation()
             .reserve_app_pouch_mut()
             .reserve_manifest_pouch_mut()
             .reserve_secret_pouch_mut()
-            .grab();
+            .grab()
+            .await;
         if let GrabbedPouches {
             app_pouch_mut: Some(ref mut app_pouch_mut),
             manifest_pouch_mut: Some(ref mut manifest_pouch_mut),
@@ -194,24 +204,26 @@ impl Vault {
 
     /// Saves the content of all contained pouches. Calling this function is generally not necessary
     /// as the pouches are implicitly saved after accessing them mutably via [Self::reservation()].
-    pub fn close(&self) {
+    pub async fn close(&self) {
         // Dropping 'GrabbedPouches' closes all contained pouches
         let _ = self
             .reservation()
             .reserve_app_pouch_mut()
             .reserve_manifest_pouch_mut()
             .reserve_secret_pouch_mut()
-            .grab();
+            .grab()
+            .await;
     }
 
     /// Creates a copy of the [Secrets] contained in the [SecretPouch] of this vault.
     /// <div class="warning">Do not use this function if any other pouches of the vault are needed.
     /// Using this method while access to the secret pouch was granted via reservation will lead to
     /// a deadlock!</div>
-    pub fn get_secrets(&self) -> Secrets {
+    pub async fn get_secrets(&self) -> Secrets {
         self.reservation()
             .reserve_secret_pouch()
             .grab()
+            .await
             .secret_pouch
             .as_ref()
             .unwrap()
@@ -300,29 +312,31 @@ impl<'a> Reservation<'a> {
         self
     }
 
-    fn create_reservation_guards<T>(
+    async fn create_reservation_guards<T>(
         reserve_kind: ReserveKind,
         lock: &RwLock<T>,
     ) -> (Option<RwLockReadGuard<T>>, Option<RwLockWriteGuard<T>>) {
         match reserve_kind {
             ReserveKind::None => (None, None),
-            ReserveKind::Read => (Some(lock.read().unwrap()), None),
-            ReserveKind::Write => (None, Some(lock.write().unwrap())),
+            ReserveKind::Read => (Some(lock.read().await), None),
+            ReserveKind::Write => (None, Some(lock.write().await)),
         }
     }
 
     /// Converts the [Reservation] into [GrabbedPouches] which allows accessing the previously
     /// reserved pouches. This function blocks until all reserved pouches are available.
     /// For usage examples see [Vault::reservation()].
-    pub fn grab(self) -> GrabbedPouches<'a> {
+    pub async fn grab(self) -> GrabbedPouches<'a> {
         let (app_pouch, app_pouch_mut) =
-            Self::create_reservation_guards(self.app_pouch_reserved, &self.vault.app_pouch);
+            Self::create_reservation_guards(self.app_pouch_reserved, &self.vault.app_pouch).await;
         let (secret_pouch, secret_pouch_mut) =
-            Self::create_reservation_guards(self.secret_pouch_reserved, &self.vault.secret_pouch);
+            Self::create_reservation_guards(self.secret_pouch_reserved, &self.vault.secret_pouch)
+                .await;
         let (manifest_pouch, manifest_pouch_mut) = Self::create_reservation_guards(
             self.manifest_pouch_reserved,
             &self.vault.manifest_pouch,
-        );
+        )
+        .await;
         GrabbedPouches {
             app_pouch,
             secret_pouch,
@@ -351,9 +365,9 @@ mod tests {
     use flecs_console_client::models::SessionId;
     use ntest::timeout;
 
-    #[test]
+    #[tokio::test]
     #[timeout(100)]
-    fn grab_multiple() {
+    async fn grab_multiple() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
         });
@@ -362,7 +376,8 @@ mod tests {
             .reserve_manifest_pouch()
             .reserve_app_pouch()
             .reserve_secret_pouch()
-            .grab();
+            .grab()
+            .await;
         assert!(grab.manifest_pouch.is_some());
         assert!(grab.app_pouch.is_some());
         assert!(grab.secret_pouch.is_some());
@@ -371,68 +386,72 @@ mod tests {
         assert!(grab.secret_pouch_mut.is_none());
     }
 
-    #[test]
+    #[tokio::test]
     #[timeout(100)]
     #[should_panic]
-    fn double_grab_mutable_mutable() {
+    async fn double_grab_mutable_mutable() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
         });
-        let _grab1 = vault.reservation().reserve_secret_pouch_mut().grab();
-        let _grab2 = vault.reservation().reserve_secret_pouch_mut().grab();
+        let _grab1 = vault.reservation().reserve_secret_pouch_mut().grab().await;
+        let _grab2 = vault.reservation().reserve_secret_pouch_mut().grab().await;
     }
 
-    #[test]
+    #[tokio::test]
     #[timeout(100)]
     #[should_panic]
-    fn double_grab_mutable_immutable() {
+    async fn double_grab_mutable_immutable() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
         });
-        let _grab1 = vault.reservation().reserve_secret_pouch_mut().grab();
-        let _grab2 = vault.reservation().reserve_secret_pouch().grab();
+        let _grab1 = vault.reservation().reserve_secret_pouch_mut().grab().await;
+        let _grab2 = vault.reservation().reserve_secret_pouch().grab().await;
     }
 
-    #[test]
+    #[tokio::test]
     #[timeout(100)]
-    fn double_grab_immutable_immutable() {
+    async fn double_grab_immutable_immutable() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
         });
-        let grab1 = vault.reservation().reserve_secret_pouch().grab();
+        let grab1 = vault.reservation().reserve_secret_pouch().grab().await;
         assert!(grab1.secret_pouch.is_some());
-        let grab2 = vault.reservation().reserve_secret_pouch().grab();
+        let grab2 = vault.reservation().reserve_secret_pouch().grab().await;
         assert!(grab2.secret_pouch.is_some());
     }
 
-    #[test]
+    #[tokio::test]
     #[timeout(100)]
     #[should_panic]
-    fn double_grab_immutable_mutable() {
+    async fn double_grab_immutable_mutable() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
         });
-        let _grab1 = vault.reservation().reserve_secret_pouch().grab();
-        let _grab2 = vault.reservation().reserve_secret_pouch_mut().grab();
+        let _grab1 = vault.reservation().reserve_secret_pouch().grab().await;
+        let _grab2 = vault.reservation().reserve_secret_pouch_mut().grab().await;
     }
 
-    #[test]
+    #[tokio::test]
     #[timeout(100)]
-    fn reserving_one_pouch_leaves_other_pouches_mut() {
+    async fn reserving_one_pouch_leaves_other_pouches_mut() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
         });
-        let grab_secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+        let grab_secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         assert!(grab_secrets.secret_pouch_mut.is_some());
-        let grab_apps = vault.reservation().reserve_app_pouch_mut().grab();
+        let grab_apps = vault.reservation().reserve_app_pouch_mut().grab().await;
         assert!(grab_apps.app_pouch_mut.is_some());
-        let grab_manifests = vault.reservation().reserve_manifest_pouch_mut().grab();
+        let grab_manifests = vault
+            .reservation()
+            .reserve_manifest_pouch_mut()
+            .grab()
+            .await;
         assert!(grab_manifests.manifest_pouch_mut.is_some());
     }
 
-    #[test]
+    #[tokio::test]
     #[timeout(100)]
-    fn get_secrets() {
+    async fn get_secrets() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
         });
@@ -445,12 +464,12 @@ mod tests {
             None,
         );
         {
-            let mut grab_secrets = vault.reservation().reserve_secret_pouch_mut().grab();
+            let mut grab_secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
             let secrets = grab_secrets.secret_pouch_mut.as_mut().unwrap().gems_mut();
             secrets.set_session_id(expected_secrets.get_session_id());
             secrets.authentication = expected_secrets.authentication.clone();
             secrets.license_key = expected_secrets.license_key.clone();
         }
-        assert_eq!(expected_secrets, vault.get_secrets());
+        assert_eq!(expected_secrets, vault.get_secrets().await);
     }
 }
