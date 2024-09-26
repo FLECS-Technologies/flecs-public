@@ -1,3 +1,4 @@
+use crate::sorcerer::appraiser;
 use crate::vault::Vault;
 use anyhow::Error;
 use axum::async_trait;
@@ -48,7 +49,7 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdDeletePathParams, InstancesInstanceIdEditorPortGetPathParams,
     InstancesInstanceIdGetPathParams, InstancesInstanceIdLogsGetPathParams,
     InstancesInstanceIdPatchPathParams, InstancesInstanceIdPatchRequest,
-    InstancesInstanceIdStartPostPathParams, InstancesInstanceIdStopPostPathParams,
+    InstancesInstanceIdStartPostPathParams, InstancesInstanceIdStopPostPathParams, JobMeta,
     JobsJobIdDeletePathParams, JobsJobIdGetPathParams,
 };
 use http::Method;
@@ -137,9 +138,16 @@ impl Apps for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _body: AppsInstallPostRequest,
+        body: AppsInstallPostRequest,
     ) -> Result<AppsInstallPostResponse, String> {
-        todo!()
+        match appraiser::install_app(self.vault.clone(), body.app_key.into()).await {
+            Ok(job_id) => Ok(AppsInstallPostResponse::Status202_Accepted(JobMeta::new(
+                job_id,
+            ))),
+            Err(e) => Ok(AppsInstallPostResponse::Status500_InternalServerError(
+                AdditionalInfo::new(e.to_string()),
+            )),
+        }
     }
 
     async fn apps_sideload_post(

@@ -66,3 +66,12 @@ pub struct AppKey {
     pub name: String,
     pub version: String,
 }
+
+impl From<flecsd_axum_server::models::AppKey> for AppKey {
+    fn from(value: flecsd_axum_server::models::AppKey) -> Self {
+        Self {
+            name: value.name,
+            version: value.version,
+        }
+    }
+}
