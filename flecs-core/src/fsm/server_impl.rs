@@ -34,6 +34,7 @@ use flecsd_axum_server::apis::jobs::{
 use flecsd_axum_server::apis::system::{
     System, SystemInfoGetResponse, SystemPingGetResponse, SystemVersionGetResponse,
 };
+use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
     AdditionalInfo, AppEditor, AppKey, AppStatus, AppsAppDeletePathParams,
     AppsAppDeleteQueryParams, AppsAppGetPathParams, AppsAppGetQueryParams, AppsInstallPostRequest,
@@ -502,7 +503,12 @@ impl System for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<SystemVersionGetResponse, String> {
-        todo!()
+        Ok(SystemVersionGetResponse::Status200_Success(
+            models::SystemVersionGet200Response {
+                api: crate::lore::API_VERSION.to_string(),
+                core: crate::lore::CORE_VERSION.to_string(),
+            },
+        ))
     }
 }
 
