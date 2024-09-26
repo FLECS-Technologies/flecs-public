@@ -53,3 +53,5 @@ pub mod tracing {
 
 pub const BASE_PATH: &str = "/var/lib/flecs/";
 pub const MAX_SUPPORTED_APP_MANIFEST_VERSION: &str = "3.0.0";
+pub const API_VERSION: &str = env!("FLECS_API_VERSION");
+pub const CORE_VERSION: &str = concat!(env!("FLECS_VERSION"), "-", env!("FLECS_GIT_SHA"));
