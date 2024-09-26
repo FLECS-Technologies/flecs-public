@@ -391,7 +391,7 @@ pub async fn load(
 /// }
 /// # )
 /// ```
-pub fn save(docker_client: Arc<Docker>, path: &Path, image: &str) -> ByteResult {
+pub fn save(docker_client: Arc<Docker>, path: &Path, image: &str) -> ByteResult<()> {
     let status = Arc::new(Mutex::new(ByteStatus::Partial(0)));
     let image = image.to_string();
     let path = path.to_path_buf();

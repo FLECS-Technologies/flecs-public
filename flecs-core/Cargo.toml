@@ -43,6 +43,7 @@ futures-util = "0.3.30"
 tokio-util = "0.7.11"
 tokio-stream = "0.1.16"
 futures = "0.3.30"
+
 [dev-dependencies]
 mockito = "1.4"
 tokio = { version = "1.38", features = ["full"] }

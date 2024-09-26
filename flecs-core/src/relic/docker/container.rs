@@ -1,5 +1,6 @@
 pub use super::Result;
-use crate::relic::docker::{write_stream_to_file, ByteResult, ByteStatus};
+use crate::relic::async_flecstract::{archive_to_memory, extract_from_memory};
+use crate::relic::docker::{write_stream_to_memory, ByteResult, ByteStatus};
 use bollard::container::{
     Config, CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions,
     RemoveContainerOptions, StartContainerOptions, StopContainerOptions, UploadToContainerOptions,
@@ -10,6 +11,7 @@ use bollard::Docker;
 use futures_util::stream::StreamExt;
 use serde::Serialize;
 use std::hash::Hash;
+use std::io::Cursor;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::fs::File;
@@ -221,50 +223,128 @@ pub async fn remove(
         .await?)
 }
 
-// TODO: Support files and directories (i.e. function that creates an archive from those files and directories and calls this function)
-pub async fn copy_to<T>(
+pub enum Data {
+    File(File),
+    InMemory(Vec<u8>),
+}
+
+/// # Example
+/// ```no_run
+/// use bollard::Docker;
+/// use flecs_core::relic::docker::container::copy_to;
+/// use std::path::Path;
+/// use std::sync::Arc;
+///
+/// # tokio_test::block_on(
+/// async {
+///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let src = Path::new("/path/on/host");
+///     let dst = Path::new("/path/on/container");
+///     copy_to(docker_client, src, dst, "my-container", false)
+///         .await
+///         .unwrap();
+/// }
+/// # )
+/// ```
+pub async fn copy_to(
+    docker_client: Arc<Docker>,
+    src_path: &Path,
+    dst_path: &Path,
+    container_name: &str,
+    follow_symlinks: bool,
+) -> Result<()> {
+    let archive = archive_to_memory(src_path, follow_symlinks).await?;
+    let archive = Data::InMemory(archive);
+    copy_archive_to(
+        docker_client,
+        Some(UploadToContainerOptions {
+            path: dst_path.to_str().unwrap(),
+            no_overwrite_dir_non_dir: "false",
+        }),
+        archive,
+        container_name,
+    )
+    .await
+}
+
+async fn copy_archive_to<T>(
     docker_client: Arc<Docker>,
     options: Option<UploadToContainerOptions<T>>,
-    tar_path: &Path,
+    archive: Data,
     container_name: &str,
 ) -> Result<()>
 where
     T: Into<String> + Eq + Hash + Serialize,
 {
-    let file = File::open(tar_path).await?;
-
-    let byte_stream =
-        codec::FramedRead::new(file, codec::BytesCodec::new()).map(|r| r.unwrap().freeze());
-
-    Ok(docker_client
-        .upload_to_container_streaming(container_name, options, byte_stream)
-        .await?)
+    match archive {
+        Data::File(file) => {
+            let byte_stream =
+                codec::FramedRead::new(file, codec::BytesCodec::new()).map(|r| r.unwrap().freeze());
+            docker_client
+                .upload_to_container_streaming(container_name, options, byte_stream)
+                .await?
+        }
+        Data::InMemory(data) => {
+            let reader = Cursor::new(data);
+            let byte_stream = codec::FramedRead::new(reader, codec::BytesCodec::new())
+                .map(|r| r.unwrap().freeze());
+            docker_client
+                .upload_to_container_streaming(container_name, options, byte_stream)
+                .await?
+        }
+    };
+    Ok(())
 }
 
-// TODO: Support files and directories (i.e. function that calls this function and extracts the result)
-pub async fn copy_from<T>(
+async fn copy_archive_from(
     docker_client: Arc<Docker>,
-    options: Option<DownloadFromContainerOptions<T>>,
-    tar_path: &Path,
+    src: &Path,
     container_name: &str,
-) -> ByteResult
-where
-    T: Into<String> + Eq + Hash + Serialize + Send,
-{
+) -> ByteResult<Vec<u8>> {
     let status = Arc::new(Mutex::new(ByteStatus::Partial(0)));
-    let options = options.map(|o| DownloadFromContainerOptions::<String> {
-        path: o.path.into(),
+    let options = Some(DownloadFromContainerOptions {
+        path: src.to_string_lossy().to_string(),
     });
     let container_name = container_name.to_string();
-    let tar_path = tar_path.to_path_buf();
     let closure_status = status.clone();
     let handle = tokio::spawn(async move {
         let result = docker_client.download_from_container(&container_name, options);
-        let result = write_stream_to_file(result, &tar_path, closure_status.clone()).await;
+        let result = write_stream_to_memory(result, closure_status.clone()).await;
         if result.is_err() {
             closure_status.lock().await.fail();
         }
         result
     });
     ByteResult { status, handle }
+}
+
+/// # Example
+/// ```no_run
+/// use bollard::Docker;
+/// use flecs_core::relic::docker::container::copy_from;
+/// use std::path::Path;
+/// use std::sync::Arc;
+///
+/// # tokio_test::block_on(
+/// async {
+///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let dst = Path::new("/path/on/host");
+///     let src = Path::new("/path/on/container");
+///     copy_from(docker_client, src, dst, "my-container")
+///         .await
+///         .unwrap();
+/// }
+/// # )
+/// ```
+pub async fn copy_from(
+    docker_client: Arc<Docker>,
+    src: &Path,
+    dst: &Path,
+    container_name: &str,
+) -> Result<()> {
+    let archive = copy_archive_from(docker_client, src, container_name)
+        .await
+        .handle
+        .await??;
+    extract_from_memory(archive, dst).await
 }
