@@ -24,9 +24,6 @@ class version_t FLECS_FINAL_UNLESS_TESTED : public base_t
     friend class factory_t;
 
 public:
-    auto http_version() const //
-        -> crow::response;
-
     auto core_version() const //
         -> std::string;
 

@@ -28,7 +28,6 @@ class version_t FLECS_FINAL_UNLESS_TESTED : public base_t
     friend class factory_t;
 
 public:
-    MOCK_METHOD((crow::response), http_version, (), (const));
     MOCK_METHOD((std::string), core_version, (), (const));
     MOCK_METHOD((std::string), api_version, (), (const));
 

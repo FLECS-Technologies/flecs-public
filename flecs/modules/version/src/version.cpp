@@ -27,25 +27,11 @@ version_t::version_t()
 
 auto version_t::do_init() //
     -> void
-{
-    FLECS_V2_ROUTE("/system/version").methods("GET"_method)([this]() { return http_version(); });
-}
+{}
 
 auto version_t::do_deinit() //
     -> void
 {}
-
-auto version_t::http_version() const //
-    -> crow::response
-{
-    using std::operator""s;
-
-    auto response = json_t{};
-    response["core"] = core_version();
-    response["api"] = api_version();
-
-    return crow::response{crow::status::OK, "json", response.dump()};
-}
 
 auto version_t::core_version() const //
     -> std::string
