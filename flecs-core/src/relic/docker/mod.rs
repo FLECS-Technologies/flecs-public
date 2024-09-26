@@ -48,9 +48,9 @@ impl ByteStatus {
     }
 }
 
-pub struct ByteResult {
+pub struct ByteResult<T> {
     pub status: Arc<Mutex<ByteStatus>>,
-    pub handle: JoinHandle<Result<()>>,
+    pub handle: JoinHandle<Result<T>>,
 }
 
 async fn write_stream_to_file<T>(
@@ -73,6 +73,20 @@ where
     }
     status.lock().await.complete();
     Ok(())
+}
+
+async fn write_stream_to_memory<T>(mut stream: T, status: Arc<Mutex<ByteStatus>>) -> Result<Vec<u8>>
+where
+    T: Stream<Item = Result<Bytes, bollard::errors::Error>> + Unpin,
+{
+    let mut buffer = Vec::new();
+    while let Some(data) = stream.next().await {
+        let data = data?;
+        buffer.write_all(data.as_ref()).await?;
+        status.lock().await.add_bytes(data.len());
+    }
+    status.lock().await.complete();
+    Ok(buffer)
 }
 
 #[derive(Debug, Default)]
