@@ -5,14 +5,15 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::Arc;
 
 pub struct ManifestPouch {
     path: PathBuf,
-    manifests: HashMap<AppKey, AppManifest>,
+    manifests: HashMap<AppKey, Arc<AppManifest>>,
 }
 
 impl Pouch for ManifestPouch {
-    type Gems = HashMap<AppKey, AppManifest>;
+    type Gems = HashMap<AppKey, Arc<AppManifest>>;
 
     fn gems(&self) -> &Self::Gems {
         &self.manifests
@@ -63,7 +64,7 @@ impl VaultPouch for ManifestPouch {
                             name: (*manifest.manifest.app).clone(),
                             version: manifest.manifest.version.clone(),
                         },
-                        manifest,
+                        Arc::new(manifest),
                     );
                     eprintln!("Successful read manifest from {entry:?}");
                 }
