@@ -133,7 +133,7 @@ impl TryFrom<&manifest_2_0_0::FlecsAppManifestEnvItem> for manifest_3_0_0::Flecs
     type Error = ConversionError;
 
     fn try_from(value: &manifest_2_0_0::FlecsAppManifestEnvItem) -> Result<Self, Self::Error> {
-        manifest_3_0_0::FlecsAppManifestEnvItem::from_str(value.as_str())
+        manifest_3_0_0::FlecsAppManifestEnvItem::from_str(&value.as_str().replacen(':', "=", 1))
     }
 }
 
@@ -255,6 +255,26 @@ mod tests {
             manifest_3_0_0::FlecsAppManifestEnvItem::try_from(
                 &manifest_2_0_0::FlecsAppManifestEnvItem::from_str("tech.flecs.some-app_value=any")
                     .unwrap()
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            manifest_3_0_0::FlecsAppManifestEnvItem::from_str("tech.flecs.some-app_value=any")
+                .unwrap(),
+            manifest_3_0_0::FlecsAppManifestEnvItem::try_from(
+                &manifest_2_0_0::FlecsAppManifestEnvItem::from_str("tech.flecs.some-app_value:any")
+                    .unwrap()
+            )
+            .unwrap()
+        );
+        assert_eq!(
+            manifest_3_0_0::FlecsAppManifestEnvItem::from_str("tech.flecs.some-app_value=a:n:y")
+                .unwrap(),
+            manifest_3_0_0::FlecsAppManifestEnvItem::try_from(
+                &manifest_2_0_0::FlecsAppManifestEnvItem::from_str(
+                    "tech.flecs.some-app_value:a:n:y"
+                )
+                .unwrap()
             )
             .unwrap()
         );
