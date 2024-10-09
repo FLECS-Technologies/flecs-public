@@ -351,6 +351,7 @@ mod tests {
                 manifest_2_0_0::FlecsAppManifestEnvItem::from_str("tech.flecs.some-app_value=any")
                     .unwrap(),
             ],
+            hostname: None,
             image: manifest_2_0_0::FlecsAppManifestImage::from_str(
                 "flecs.azurecr.io/tech.flecs.plunder",
             )
