@@ -1,9 +1,11 @@
 mod app;
+mod deployment;
 mod manifest;
 mod secret;
 
-use super::Result;
+pub use super::Result;
 pub use app::*;
+pub use deployment::*;
 pub use manifest::*;
 pub use secret::*;
 use serde::{Deserialize, Serialize};
