@@ -20,7 +20,7 @@ rusb = "0.9.3"
 thiserror = "1.0.62"
 libc = "0.2.153"
 procfs = "0.16.0"
-serde = { version = "1.0.203", features = ["derive"] }
+serde = { version = "1.0.203", features = ["derive", "rc"] }
 usb-ids = "1.2024.4"
 glob = "0.3.1"
 axum = "0.7"
