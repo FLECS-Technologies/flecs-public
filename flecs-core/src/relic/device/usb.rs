@@ -1,4 +1,5 @@
 use rusb::Device;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use thiserror::Error;
@@ -12,7 +13,7 @@ pub enum Error {
     Io(#[from] std::io::Error),
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct UsbDevice {
     pub vid: u16,
     pub pid: u16,
