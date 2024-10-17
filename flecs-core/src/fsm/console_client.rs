@@ -59,6 +59,20 @@ impl SessionIdMiddleware {
                         error!("Error extracting session id: {e}");
                     }
                 }
+            } else {
+                println!(
+                    "Current session id: {}",
+                    self.vault
+                        .reservation()
+                        .reserve_secret_pouch_mut()
+                        .grab()
+                        .await
+                        .secret_pouch_mut
+                        .as_mut()
+                        .unwrap()
+                        .gems_mut()
+                        .get_session_id()
+                );
             }
             Ok(response)
         } else {
