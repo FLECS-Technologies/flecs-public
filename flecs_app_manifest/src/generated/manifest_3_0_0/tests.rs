@@ -365,7 +365,7 @@ fn minimum_flecs_version() {
     "app": "tech.flecs.flunder",
     "version": "3.0.0",
     "image": "flecs.azurecr.io/tech.flecs.flunder",
-    "_minimumFlecsVersion": "3.4.0-hedgehog"
+    "_minimumFlecsVersion": "3.5.0-hedgehog"
 }
 "#;
 
@@ -373,7 +373,7 @@ fn minimum_flecs_version() {
     assert_eq!(
         manifest.minimum_flecs_version,
         Some(FlecsAppManifestMinimumFlecsVersion(
-            "3.4.0-hedgehog".to_string()
+            "3.5.0-hedgehog".to_string()
         ))
     )
 }
