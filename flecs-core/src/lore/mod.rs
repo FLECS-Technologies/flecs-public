@@ -51,6 +51,20 @@ pub mod tracing {
     }
 }
 
+pub mod quest {
+    use crate::quest::quest_master::QuestMaster;
+    use std::sync::Arc;
+    use tokio::sync::{Mutex, OnceCell};
+
+    pub async fn default() -> Arc<Mutex<QuestMaster>> {
+        static DEFAULT_VAULT: OnceCell<Arc<Mutex<QuestMaster>>> = OnceCell::const_new();
+        DEFAULT_VAULT
+            .get_or_init(|| async { Arc::default() })
+            .await
+            .clone()
+    }
+}
+
 pub const BASE_PATH: &str = "/var/lib/flecs/";
 pub const MAX_SUPPORTED_APP_MANIFEST_VERSION: &str = "3.0.0";
 pub const API_VERSION: &str = env!("FLECS_API_VERSION");

@@ -447,7 +447,9 @@ impl Jobs for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<JobsGetResponse, String> {
-        todo!()
+        Ok(JobsGetResponse::Status200_Success(
+            crate::sorcerer::magequester::get_jobs().await,
+        ))
     }
 
     async fn jobs_job_id_delete(
@@ -455,9 +457,20 @@ impl Jobs for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: JobsJobIdDeletePathParams,
+        path_params: JobsJobIdDeletePathParams,
     ) -> Result<JobsJobIdDeleteResponse, String> {
-        todo!()
+        match crate::sorcerer::magequester::delete_job(path_params.job_id as u64).await {
+            Ok(_) => Ok(JobsJobIdDeleteResponse::Status200_Success),
+            Err(crate::quest::quest_master::DeleteQuestError::StillRunning) => {
+                Ok(JobsJobIdDeleteResponse::Status400_JobNotFinished(format!(
+                    "Not removing unfinished job {}",
+                    path_params.job_id
+                )))
+            }
+            Err(crate::quest::quest_master::DeleteQuestError::Unknown) => {
+                Ok(JobsJobIdDeleteResponse::Status404_NotFound)
+            }
+        }
     }
 
     async fn jobs_job_id_get(
@@ -465,9 +478,12 @@ impl Jobs for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: JobsJobIdGetPathParams,
+        path_params: JobsJobIdGetPathParams,
     ) -> Result<JobsJobIdGetResponse, String> {
-        todo!()
+        match crate::sorcerer::magequester::get_job(path_params.job_id as u64).await {
+            Some(job) => Ok(JobsJobIdGetResponse::Status200_Success(job)),
+            None => Ok(JobsJobIdGetResponse::Status404_NotFound),
+        }
     }
 }
 
