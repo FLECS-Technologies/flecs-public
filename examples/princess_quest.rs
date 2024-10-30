@@ -1,10 +1,13 @@
+use flecs_core::quest::quest_master::QuestMaster;
 use flecs_core::quest::Quest;
 use std::time::Duration;
 use tokio::time::sleep;
 
 pub mod save_princess {
     use super::*;
-    use flecs_core::quest::{AwaitResult, Progress, QuestResult, State, SyncAwaitResult};
+    use flecs_core::quest::{
+        AwaitResult, Progress, QuestResult, State, SyncAwaitResult, SyncQuest,
+    };
     use std::fmt::{Display, Formatter};
     use tokio::task::JoinSet;
     use tokio::time::{sleep, Duration};
@@ -104,30 +107,23 @@ pub mod save_princess {
         Fiona,
     }
 
-    pub fn save_princess(name: &str, cats: u16) -> QuestResult<Princess> {
-        let quest = Quest::new_synced(format!("Saving princess {name}"));
-        let closure_quest = quest.clone();
-        let name = name.to_string();
-        let handle = tokio::spawn(async move {
-            let quest = closure_quest;
-            quest.lock().await.state = State::Ongoing;
-            let (investigate_quest, suspect) = investigate_kidnapping(&name, cats);
+    pub async fn save_princess(quest: SyncQuest, name: &str, cats: u16) -> Princess {
+        quest.lock().await.state = State::Ongoing;
+        let (investigate_quest, suspect) = investigate_kidnapping(name, cats);
 
-            quest.lock().await.sub_quests.push(investigate_quest);
-            let (get_strong_quest, results) = get_strong();
+        quest.lock().await.sub_quests.push(investigate_quest);
+        let (get_strong_quest, results) = get_strong();
 
-            quest.lock().await.sub_quests.push(get_strong_quest);
-            // TODO: Error handling
-            let suspect = suspect.await.unwrap();
-            let (experience, sword) = results.await.unwrap();
+        quest.lock().await.sub_quests.push(get_strong_quest);
+        // TODO: Error handling
+        let suspect = suspect.await.unwrap();
+        let (experience, sword) = results.await.unwrap();
 
-            let (fight_quest, princess) = fight_kidnapper(suspect, experience, sword);
-            quest.lock().await.sub_quests.push(fight_quest);
-            let princess = princess.await.unwrap();
-            quest.lock().await.state = State::Success;
-            princess
-        });
-        (quest, handle)
+        let (fight_quest, princess) = fight_kidnapper(suspect, experience, sword);
+        quest.lock().await.sub_quests.push(fight_quest);
+        let princess = princess.await.unwrap();
+        quest.lock().await.state = State::Success;
+        princess
     }
 
     fn fight_kidnapper(
@@ -641,11 +637,21 @@ pub mod save_princess {
 
 #[tokio::main]
 async fn main() {
-    let result = save_princess::save_princess("Fiona", 3);
-    while !result.0.lock().await.state.is_finished() {
-        println!("{}", Quest::fmt(result.0.clone()).await);
+    const PRINCESS: &str = "Fiona";
+    let mut master = QuestMaster::default();
+    let (_, quest) = master
+        .schedule_quest(format!("Saving princes {PRINCESS}"), |quest| async {
+            let princess = save_princess::save_princess(quest, PRINCESS, 3).await;
+
+            println!("Result {:?}", princess);
+            Ok(())
+        })
+        .await
+        .unwrap();
+
+    while !quest.lock().await.state.is_finished() {
+        println!("{}", Quest::fmt(quest.clone()).await);
         sleep(Duration::from_millis(500)).await;
     }
-    println!("{}", Quest::fmt(result.0.clone()).await);
-    println!("Result {:?}", result.1.await);
+    println!("{}", Quest::fmt(quest.clone()).await);
 }

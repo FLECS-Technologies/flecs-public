@@ -1,4 +1,4 @@
-pub use super::Result;
+pub use super::{Error, Result};
 use futures_util::StreamExt;
 use std::fmt::{Display, Formatter};
 use std::sync::atomic::AtomicU64;
