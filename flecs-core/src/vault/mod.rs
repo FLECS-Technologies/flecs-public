@@ -419,7 +419,7 @@ mod tests {
     #[timeout(100)]
     async fn grab_multiple() {
         let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
+            path: Path::new("/tmp/flecs-tests/vault/grab_mul/").to_path_buf(),
         });
         let grab = vault
             .reservation()
@@ -439,7 +439,7 @@ mod tests {
     #[tokio::test]
     #[timeout(100)]
     async fn default_deployment_is_created() {
-        let path = Path::new("/tmp/flecs-tests/vault/").to_path_buf();
+        let path = Path::new("/tmp/flecs-tests/vault/default_depl/").to_path_buf();
         let _ = fs::remove_dir_all(&path);
         assert!(!path.try_exists().unwrap());
         let vault = Vault::new(VaultConfig { path });
@@ -456,7 +456,7 @@ mod tests {
     #[should_panic]
     async fn double_grab_mutable_mutable() {
         let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
+            path: Path::new("/tmp/flecs-tests/vault/double_grab_mut/").to_path_buf(),
         });
         let _grab1 = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let _grab2 = vault.reservation().reserve_secret_pouch_mut().grab().await;
@@ -467,7 +467,7 @@ mod tests {
     #[should_panic]
     async fn double_grab_mutable_immutable() {
         let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
+            path: Path::new("/tmp/flecs-tests/vault/double_grab_mut_im/").to_path_buf(),
         });
         let _grab1 = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let _grab2 = vault.reservation().reserve_secret_pouch().grab().await;
@@ -477,7 +477,7 @@ mod tests {
     #[timeout(100)]
     async fn double_grab_immutable_immutable() {
         let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
+            path: Path::new("/tmp/flecs-tests/vault/double_grab/").to_path_buf(),
         });
         let grab1 = vault.reservation().reserve_secret_pouch().grab().await;
         assert!(grab1.secret_pouch.is_some());
@@ -490,7 +490,7 @@ mod tests {
     #[should_panic]
     async fn double_grab_immutable_mutable() {
         let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
+            path: Path::new("/tmp/flecs-tests/vault/double_grab_im_mut/").to_path_buf(),
         });
         let _grab1 = vault.reservation().reserve_secret_pouch().grab().await;
         let _grab2 = vault.reservation().reserve_secret_pouch_mut().grab().await;
@@ -500,7 +500,7 @@ mod tests {
     #[timeout(100)]
     async fn reserving_one_pouch_leaves_other_pouches_mut() {
         let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
+            path: Path::new("/tmp/flecs-tests/vault/reserve/").to_path_buf(),
         });
         let grab_secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         assert!(grab_secrets.secret_pouch_mut.is_some());
@@ -518,7 +518,7 @@ mod tests {
     #[timeout(100)]
     async fn get_secrets() {
         let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/").to_path_buf(),
+            path: Path::new("/tmp/flecs-tests/vault/get_secrets/").to_path_buf(),
         });
         let expected_secrets = Secrets::new(
             Some("9876-TZUI-VBNM-4567".to_string()),
