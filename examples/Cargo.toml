@@ -12,6 +12,7 @@ authors.workspace = true
 [dependencies]
 tokio = "1.40.0"
 flecs-core = { path = "../flecs-core", version = "0.1.0" }
+anyhow = { version = "1.0.86", features = ["backtrace"] }
 
 [[example]]
 name = "princess_quest"

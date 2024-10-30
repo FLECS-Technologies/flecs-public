@@ -107,23 +107,26 @@ pub mod save_princess {
         Fiona,
     }
 
-    pub async fn save_princess(quest: SyncQuest, name: &str, cats: u16) -> Princess {
-        quest.lock().await.state = State::Ongoing;
+    pub async fn save_princess(
+        quest: SyncQuest,
+        name: &str,
+        cats: u16,
+    ) -> anyhow::Result<Princess> {
         let (investigate_quest, suspect) = investigate_kidnapping(name, cats);
 
         quest.lock().await.sub_quests.push(investigate_quest);
         let (get_strong_quest, results) = get_strong();
 
         quest.lock().await.sub_quests.push(get_strong_quest);
-        // TODO: Error handling
-        let suspect = suspect.await.unwrap();
-        let (experience, sword) = results.await.unwrap();
+        let suspect = suspect.await?;
+        let results = results.await?;
+
+        let suspect = suspect?;
+        let (experience, sword) = results?;
 
         let (fight_quest, princess) = fight_kidnapper(suspect, experience, sword);
         quest.lock().await.sub_quests.push(fight_quest);
-        let princess = princess.await.unwrap();
-        quest.lock().await.state = State::Success;
-        princess
+        princess.await?
     }
 
     fn fight_kidnapper(
@@ -139,7 +142,7 @@ pub mod save_princess {
 
             match kidnapper {
                 Kidnapper::Bowser => {}
-                x => panic!(
+                x => anyhow::bail!(
                     "You are fighting {x}, but the kidnapper is {}",
                     Kidnapper::Bowser
                 ),
@@ -147,7 +150,7 @@ pub mod save_princess {
 
             match experience {
                 Experience::Master => {}
-                x => panic!(
+                x => anyhow::bail!(
                     "Your experience level is {x}, but you need at least {} to fight {}",
                     Experience::Master,
                     Kidnapper::Bowser
@@ -156,7 +159,7 @@ pub mod save_princess {
 
             match sword {
                 Sword::Enchanted(Ruby::FinelyPolished) => {}
-                x => panic!(
+                x => anyhow::bail!(
                     "Your sword is too weak, you have {x:?}, but you need {:?}",
                     Sword::Enchanted(Ruby::FinelyPolished)
                 ),
@@ -169,7 +172,7 @@ pub mod save_princess {
             }
             quest.lock().await.detail = Some("🎆".to_string());
             quest.lock().await.state = State::Success;
-            Princess::Fiona
+            Ok(Princess::Fiona)
         });
         (quest, handle)
     }
@@ -185,12 +188,21 @@ pub mod save_princess {
 
             quest.lock().await.sub_quests.push(sword_quest);
             quest.lock().await.sub_quests.push(train_quest);
-            // TODO: Error handling
-            let sword = sword.await.unwrap();
-            let experience = experience.await.unwrap();
-
-            quest.lock().await.state = State::Success;
-            (experience, sword)
+            match (sword.await, experience.await) {
+                (Ok(Ok(sword)), Ok(Ok(experience))) => {
+                    quest.lock().await.state = State::Success;
+                    Ok((experience, sword))
+                }
+                (Ok(Ok(_)), Ok(Err(e))) | (Ok(Err(e)), Ok(_)) => {
+                    quest.lock().await.fail_with_error(&e);
+                    Err(e)
+                }
+                (Err(e), _) | (_, Err(e)) => {
+                    let error = anyhow::anyhow!(e);
+                    quest.lock().await.fail_with_error(&error);
+                    Err(error)
+                }
+            }
         });
         (quest, handle)
     }
@@ -221,9 +233,21 @@ pub mod save_princess {
             let (enchant_quest, sword) = enchant_sword(sword, ruby);
             quest.lock().await.sub_quests.push(enchant_quest);
 
-            let sword = sword.await.unwrap();
-            quest.lock().await.state = State::Success;
-            sword
+            match sword.await {
+                Ok(Ok(sword)) => {
+                    quest.lock().await.state = State::Success;
+                    Ok(sword)
+                }
+                Ok(Err(e)) => {
+                    quest.lock().await.fail_with_error(&e);
+                    Err(e)
+                }
+                Err(e) => {
+                    let error = anyhow::anyhow!(e);
+                    quest.lock().await.fail_with_error(&error);
+                    Err(error)
+                }
+            }
         });
         (quest, handle)
     }
@@ -242,7 +266,7 @@ pub mod save_princess {
             let (process_quest, ruby) = process_ruby(ruby);
             quest.lock().await.sub_quests.push(process_quest);
 
-            let ruby = ruby.await.unwrap();
+            let ruby = ruby.await?;
             quest.lock().await.state = State::Success;
             ruby
         });
@@ -258,7 +282,7 @@ pub mod save_princess {
 
             sleep(Duration::from_secs(2)).await;
 
-            let ruby = Ruby::Raw;
+            let ruby = Ok(Ruby::Raw);
             quest.lock().await.state = State::Success;
             ruby
         });
@@ -271,7 +295,7 @@ pub mod save_princess {
         let handle = tokio::spawn(async move {
             let quest = closure_quest;
             quest.lock().await.state = State::Ongoing;
-            let mut ruby = ruby.lock().await.try_access_value().await.unwrap().clone();
+            let mut ruby = ruby.lock().await.try_access_value().await?.clone();
             loop {
                 match ruby {
                     Ruby::Raw => {
@@ -305,7 +329,7 @@ pub mod save_princess {
             }
 
             quest.lock().await.state = State::Success;
-            ruby
+            Ok(ruby)
         });
         (quest, handle)
     }
@@ -317,19 +341,25 @@ pub mod save_princess {
             let quest = closure_quest;
             quest.lock().await.state = State::Ongoing;
 
-            let amount = match iron.lock().await.try_access_value().await.unwrap() {
-                Sword::Iron(amount) => *amount,
-                x => {
-                    panic!("Expected Iron, received {x:?}");
+            let amount = match iron.lock().await.try_access_value().await {
+                Ok(Sword::Iron(amount)) => *amount,
+                Ok(x) => {
+                    let e = anyhow::anyhow!("Expected Iron, received {x:?}");
+                    quest.lock().await.fail_with_error(&e);
+                    anyhow::bail!(e)
+                }
+                Err(e) => {
+                    quest.lock().await.fail_with_error(&e);
+                    anyhow::bail!(e)
                 }
             };
 
             if amount < 100 {
-                panic!("Expected at least 100 IronOre, received {amount}");
+                anyhow::bail!("Expected at least 100 IronOre, received {amount}");
             }
             sleep(Duration::from_secs(4)).await;
             quest.lock().await.state = State::Success;
-            Sword::Forged
+            Ok(Sword::Forged)
         });
         (quest, handle)
     }
@@ -338,24 +368,30 @@ pub mod save_princess {
         sword: SyncAwaitResult<Sword>,
         ruby: SyncAwaitResult<Ruby>,
     ) -> QuestResult<Sword> {
-        let quest = Quest::new_synced("Forge sword".to_string());
+        let quest = Quest::new_synced("Enchant sword".to_string());
         let closure_quest = quest.clone();
         let handle = tokio::spawn(async move {
             let quest = closure_quest;
             quest.lock().await.state = State::Ongoing;
 
-            match sword.lock().await.try_access_value().await.unwrap() {
-                Sword::Forged => {}
-                x => {
-                    panic!("Expected forged sword, received {x:?}");
+            match sword.lock().await.try_access_value().await {
+                Ok(Sword::Forged) => {}
+                Ok(x) => {
+                    let e = anyhow::anyhow!("Expected forged sword, received {x:?}");
+                    quest.lock().await.fail_with_error(&e);
+                    anyhow::bail!(e)
+                }
+                Err(e) => {
+                    quest.lock().await.fail_with_error(&e);
+                    anyhow::bail!(e)
                 }
             };
 
-            let ruby = ruby.lock().await.try_access_value().await.unwrap().clone();
+            let ruby = ruby.lock().await.try_access_value().await?.clone();
 
             sleep(Duration::from_secs(1)).await;
             quest.lock().await.state = State::Success;
-            Sword::Enchanted(ruby)
+            Ok(Sword::Enchanted(ruby))
         });
         (quest, handle)
     }
@@ -405,7 +441,7 @@ pub mod save_princess {
             }
 
             quest.lock().await.state = State::Success;
-            experience
+            Ok(experience)
         });
         (quest, handle)
     }
@@ -434,6 +470,7 @@ pub mod save_princess {
             }
 
             quest.lock().await.state = State::Success;
+            Ok(())
         });
         (quest, handle)
     }
@@ -447,6 +484,11 @@ pub mod save_princess {
 
             let mut total_ore = Sword::IronOre(0);
             for ore in 1..=amount {
+                if ore > 90 {
+                    let e = anyhow::anyhow!("Too much ore");
+                    quest.lock().await.fail_with_error(&e);
+                    return Err(e);
+                }
                 sleep(Duration::from_millis(100)).await;
                 total_ore = Sword::IronOre(ore);
                 quest.lock().await.progress = Some(Progress {
@@ -455,7 +497,7 @@ pub mod save_princess {
                 })
             }
             quest.lock().await.state = State::Success;
-            total_ore
+            Ok(total_ore)
         });
         (quest, handle)
     }
@@ -466,9 +508,17 @@ pub mod save_princess {
         let handle = tokio::spawn(async move {
             let quest = closure_quest;
             quest.lock().await.state = State::Ongoing;
-            let amount = match ore.lock().await.try_access_value().await.unwrap() {
-                Sword::IronOre(amount) => *amount,
-                x => panic!("Expected IronOre, received {x:?}"),
+            let amount = match ore.lock().await.try_access_value().await {
+                Ok(Sword::IronOre(amount)) => *amount,
+                Ok(x) => {
+                    let e = anyhow::anyhow!("Expected IronOre, received {x:?}");
+                    quest.lock().await.fail_with_error(&e);
+                    anyhow::bail!(e)
+                }
+                Err(e) => {
+                    quest.lock().await.fail_with_error(&e);
+                    anyhow::bail!(e)
+                }
             };
             let mut total_iron = Sword::Iron(0);
             for iron in 1..=amount {
@@ -480,7 +530,7 @@ pub mod save_princess {
                 })
             }
             quest.lock().await.state = State::Success;
-            total_iron
+            Ok(total_iron)
         });
         (quest, handle)
     }
@@ -502,9 +552,8 @@ pub mod save_princess {
             quest.lock().await.sub_quests.push(question_quest);
             let (draw_conclusion_quest, suspect) = draw_conclusion(results, witness_results);
             quest.lock().await.sub_quests.push(draw_conclusion_quest);
-            // // TODO: Error handling
             sleep(Duration::from_secs(2)).await;
-            let kidnapper = suspect.await.unwrap();
+            let kidnapper = suspect.await?;
             quest.lock().await.state = State::Success;
             kidnapper
         });
@@ -522,22 +571,12 @@ pub mod save_princess {
             quest.lock().await.state = State::Ongoing;
             // study crime scene for some time
             quest.lock().await.detail = Some("Studying crime scene infos".to_string());
-            let _infos = crime_scene_infos
-                .lock()
-                .await
-                .try_access_value()
-                .await
-                .unwrap();
+            let _infos = crime_scene_infos.lock().await.try_access_value().await?;
             sleep(Duration::from_secs(5)).await;
 
             // study witness reports for some time
             quest.lock().await.detail = Some("Studying witness reports".to_string());
-            let _infos = witness_reports
-                .lock()
-                .await
-                .try_access_value()
-                .await
-                .unwrap();
+            let _infos = witness_reports.lock().await.try_access_value().await?;
             sleep(Duration::from_secs(2)).await;
 
             quest.lock().await.detail = Some("Thinking".to_string());
@@ -545,7 +584,7 @@ pub mod save_princess {
             sleep(Duration::from_secs(4)).await;
             quest.lock().await.detail = None;
             quest.lock().await.state = State::Success;
-            Kidnapper::Bowser
+            Ok(Kidnapper::Bowser)
         });
         (quest, handle)
     }
@@ -559,7 +598,7 @@ pub mod save_princess {
             // use some time
             sleep(Duration::from_secs(5)).await;
             quest.lock().await.state = State::Success;
-            "Sketches and notes".to_string()
+            Ok("Sketches and notes".to_string())
         });
         (quest, handle)
     }
@@ -585,11 +624,10 @@ pub mod save_princess {
             }
             let mut answers = Vec::new();
             while let Some(answer) = results.join_next().await {
-                // TODO: Error handling
-                answers.push(answer.unwrap().unwrap())
+                answers.push(answer???)
             }
             quest.lock().await.state = State::Success;
-            answers
+            Ok(answers)
         });
         (quest, handle)
     }
@@ -600,12 +638,11 @@ pub mod save_princess {
         let handle = tokio::spawn(async move {
             let quest = closure_quest;
             quest.lock().await.state = State::Ongoing;
-            // TODO: ErrorHandling
-            let _ = crime_scene_infos.lock().await.try_access_value().await;
+            let _ = crime_scene_infos.lock().await.try_access_value().await?;
             // use some time
             sleep(Duration::from_secs(5)).await;
             quest.lock().await.state = State::Success;
-            "Wuff".to_string()
+            Ok("Wuff".to_string())
         });
         (quest, handle)
     }
@@ -619,17 +656,16 @@ pub mod save_princess {
         let handle = tokio::spawn(async move {
             let quest = closure_quest;
             quest.lock().await.state = State::Ongoing;
-            // TODO: ErrorHandling
-            let _ = crime_scene_infos.lock().await.try_access_value().await;
+            let _ = crime_scene_infos.lock().await.try_access_value().await?;
             // use some time
             sleep(Duration::from_secs((number % 5) as u64)).await;
             quest.lock().await.state = State::Success;
-            match number % 3 {
+            Ok(match number % 3 {
                 0 => "Hiss",
                 1 => "Scratch",
                 _ => "Miou",
             }
-            .to_string()
+            .to_string())
         });
         (quest, handle)
     }
