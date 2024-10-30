@@ -22,9 +22,4 @@ set (HEADER_ARCHIVE
 
 add_library(util.datetime OBJECT ${SRC_ARCHIVE} ${HEADER_ARCHIVE})
 
-target_compile_definitions(util.datetime PUBLIC
-    -D_FILE_OFFSET_BITS=64
-    -D_TIME_BITS=64
-)
-
 add_subdirectory(test)
