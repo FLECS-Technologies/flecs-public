@@ -1,9 +1,12 @@
 pub use super::Result;
+use futures_util::StreamExt;
 use std::fmt::{Display, Formatter};
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, OnceLock};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
+
+pub mod quest_master;
 
 pub enum AwaitResult<T> {
     Value(T),
@@ -34,15 +37,21 @@ impl<T> AwaitResult<T> {
 }
 
 pub type SyncAwaitResult<T> = Arc<Mutex<AwaitResult<T>>>;
-pub type QuestResult<T> = (Arc<Mutex<Quest>>, JoinHandle<T>);
+#[repr(transparent)]
+#[derive(Hash, Eq, PartialEq, Copy, Clone)]
+pub struct QuestId(pub u64);
+pub type SyncQuest = Arc<Mutex<Quest>>;
+pub type QuestResult<T> = (SyncQuest, JoinHandle<T>);
 
-fn get_quest_id() -> u64 {
+fn get_quest_id() -> QuestId {
     static ID: OnceLock<AtomicU64> = OnceLock::new();
-    ID.get_or_init(|| AtomicU64::new(0))
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    QuestId(
+        ID.get_or_init(|| AtomicU64::new(0))
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+    )
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum State {
     Failing,
     Ongoing,
@@ -84,10 +93,10 @@ impl Display for State {
 }
 
 pub struct Quest {
-    pub id: u64,
+    pub id: QuestId,
     pub description: String,
     pub detail: Option<String>,
-    pub sub_quests: Vec<Arc<Mutex<Quest>>>,
+    pub sub_quests: Vec<SyncQuest>,
     pub progress: Option<Progress>,
     pub state: State,
 }
@@ -111,6 +120,17 @@ impl Quest {
 
     pub fn new_synced(description: String) -> Arc<Mutex<Self>> {
         Arc::new(Mutex::new(Self::new(description)))
+    }
+
+    pub async fn sub_quest_progress(&self) -> Progress {
+        let current = futures::stream::iter(self.sub_quests.iter())
+            .filter(|sub_quest| async { sub_quest.lock().await.state.is_finished() })
+            .count()
+            .await;
+        Progress {
+            current: current as u64,
+            total: self.sub_quests.len() as u64,
+        }
     }
 }
 
