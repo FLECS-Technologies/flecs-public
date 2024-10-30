@@ -1,0 +1,4820 @@
+{
+  "conclusion": "fail (vetting)",
+  "failures": [
+    {
+      "name": "addr2line",
+      "version": "0.24.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "ahash",
+      "version": "0.8.11",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "android-tzdata",
+      "version": "0.1.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "async-stream",
+      "version": "0.3.6",
+      "missing_criteria": [
+        "safe-to-run"
+      ]
+    },
+    {
+      "name": "async-stream-impl",
+      "version": "0.3.6",
+      "missing_criteria": [
+        "safe-to-run"
+      ]
+    },
+    {
+      "name": "atomic-waker",
+      "version": "1.1.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "axum",
+      "version": "0.7.7",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "axum-core",
+      "version": "0.4.5",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "axum-extra",
+      "version": "0.9.4",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "bollard",
+      "version": "0.17.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "bollard-stubs",
+      "version": "1.45.0-rc.26.0.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "cc",
+      "version": "1.1.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "chrono",
+      "version": "0.4.38",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "colored",
+      "version": "2.1.0",
+      "missing_criteria": [
+        "safe-to-run"
+      ]
+    },
+    {
+      "name": "cookie",
+      "version": "0.18.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "core-foundation-sys",
+      "version": "0.8.7",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "darling",
+      "version": "0.20.10",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "darling_core",
+      "version": "0.20.10",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "darling_macro",
+      "version": "0.20.10",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "frunk",
+      "version": "0.4.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "frunk-enum-core",
+      "version": "0.3.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "frunk-enum-derive",
+      "version": "0.3.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "frunk_core",
+      "version": "0.4.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "frunk_derives",
+      "version": "0.4.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "frunk_proc_macro_helpers",
+      "version": "0.1.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "frunk_proc_macros",
+      "version": "0.1.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "futures",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "futures-channel",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "futures-core",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "futures-executor",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "futures-io",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "futures-macro",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "futures-sink",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "futures-task",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "futures-util",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "getrandom",
+      "version": "0.2.15",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "gimli",
+      "version": "0.31.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "hdrhistogram",
+      "version": "7.5.4",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "hermit-abi",
+      "version": "0.3.9",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "hyper-named-pipe",
+      "version": "0.1.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "hyper-rustls",
+      "version": "0.27.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "hyperlocal",
+      "version": "0.9.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "iana-time-zone",
+      "version": "0.1.61",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "ipnet",
+      "version": "2.10.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "itertools",
+      "version": "0.12.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "libc",
+      "version": "0.2.161",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "libredox",
+      "version": "0.1.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "libudev-sys",
+      "version": "0.1.4",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "libusb1-sys",
+      "version": "0.7.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "matchit",
+      "version": "0.7.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "mime_guess",
+      "version": "2.0.5",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "minimal-lexical",
+      "version": "0.2.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "mio",
+      "version": "1.0.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "mockito",
+      "version": "1.5.0",
+      "missing_criteria": [
+        "safe-to-run"
+      ]
+    },
+    {
+      "name": "multer",
+      "version": "3.1.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "native-tls",
+      "version": "0.2.12",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "ntest_test_cases",
+      "version": "0.9.3",
+      "missing_criteria": [
+        "safe-to-run"
+      ]
+    },
+    {
+      "name": "object",
+      "version": "0.36.5",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "once_cell",
+      "version": "1.20.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "openssl",
+      "version": "0.10.68",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "openssl-sys",
+      "version": "0.9.104",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "pin-project",
+      "version": "1.1.7",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "pin-project-internal",
+      "version": "1.1.7",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "pin-project-lite",
+      "version": "0.2.15",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "pkg-config",
+      "version": "0.3.31",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "platform-info",
+      "version": "2.0.4",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "ppv-lite86",
+      "version": "0.2.20",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "proc-macro-crate",
+      "version": "3.2.0",
+      "missing_criteria": [
+        "safe-to-run"
+      ]
+    },
+    {
+      "name": "proc-macro-error",
+      "version": "1.0.4",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "procfs",
+      "version": "0.16.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "rand",
+      "version": "0.8.5",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "redox_syscall",
+      "version": "0.5.7",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "regress",
+      "version": "0.10.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "reqwest-middleware",
+      "version": "0.3.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "rusb",
+      "version": "0.9.4",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "rustls",
+      "version": "0.23.16",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "rustls-pemfile",
+      "version": "2.2.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "rustls-pki-types",
+      "version": "1.10.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "rustls-webpki",
+      "version": "0.102.8",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "schannel",
+      "version": "0.1.26",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "schemars",
+      "version": "0.8.21",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "schemars_derive",
+      "version": "0.8.21",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "security-framework",
+      "version": "2.11.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "security-framework-sys",
+      "version": "2.12.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "serde_tokenstream",
+      "version": "0.2.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "serde_urlencoded",
+      "version": "0.7.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "serde_with",
+      "version": "3.11.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "shlex",
+      "version": "1.3.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "signal-hook-registry",
+      "version": "1.4.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "similar",
+      "version": "2.6.0",
+      "missing_criteria": [
+        "safe-to-run"
+      ]
+    },
+    {
+      "name": "siphasher",
+      "version": "0.3.11",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "socket2",
+      "version": "0.5.7",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "spin",
+      "version": "0.9.8",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "sync_wrapper",
+      "version": "0.1.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "sync_wrapper",
+      "version": "1.0.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "system-configuration",
+      "version": "0.6.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "system-configuration-sys",
+      "version": "0.6.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "tempfile",
+      "version": "3.13.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "time",
+      "version": "0.3.36",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "tokio-rustls",
+      "version": "0.26.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "tower",
+      "version": "0.4.13",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "tower-http",
+      "version": "0.5.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "tower-layer",
+      "version": "0.3.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "tower-service",
+      "version": "0.3.3",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "tracing",
+      "version": "0.1.40",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "tracing-attributes",
+      "version": "0.1.27",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "tracing-log",
+      "version": "0.2.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "typify",
+      "version": "0.1.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "typify-macro",
+      "version": "0.1.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "udev",
+      "version": "0.8.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "unicode-bidi",
+      "version": "0.3.17",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "unicode-normalization",
+      "version": "0.1.24",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "untrusted",
+      "version": "0.9.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "url",
+      "version": "2.5.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "usb-ids",
+      "version": "1.2024.4",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "uuid",
+      "version": "1.11.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "validator",
+      "version": "0.18.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "validator_derive",
+      "version": "0.18.2",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "version_check",
+      "version": "0.9.5",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "winapi-i686-pc-windows-gnu",
+      "version": "0.4.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "winapi-x86_64-pc-windows-gnu",
+      "version": "0.4.0",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "zerocopy",
+      "version": "0.7.35",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "zerocopy-derive",
+      "version": "0.7.35",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    },
+    {
+      "name": "zeroize",
+      "version": "1.8.1",
+      "missing_criteria": [
+        "safe-to-deploy"
+      ]
+    }
+  ],
+  "suggest": {
+    "suggestions": [
+      {
+        "name": "signal-hook-registry",
+        "notable_parents": "tokio",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "1.4.1",
+          "to": "1.4.2",
+          "diffstat": {
+            "insertions": 6,
+            "deletions": 2,
+            "files_changed": 3
+          }
+        }
+      },
+      {
+        "name": "core-foundation-sys",
+        "notable_parents": "iana-time-zone and 4 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.8.6",
+          "to": "0.8.7",
+          "diffstat": {
+            "insertions": 19,
+            "deletions": 3,
+            "files_changed": 3
+          }
+        }
+      },
+      {
+        "name": "tracing-attributes",
+        "notable_parents": "tracing",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.1.24",
+          "to": "0.1.25",
+          "diffstat": {
+            "insertions": 24,
+            "deletions": 5,
+            "files_changed": 5
+          }
+        }
+      },
+      {
+        "name": "futures-sink",
+        "notable_parents": "h2, futures, tokio-util, and 2 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.3.28",
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 29,
+            "deletions": 6,
+            "files_changed": 3
+          }
+        }
+      },
+      {
+        "name": "futures-io",
+        "notable_parents": "futures and futures-util",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.3.30",
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 32,
+            "deletions": 6,
+            "files_changed": 3
+          }
+        }
+      },
+      {
+        "name": "async-stream-impl",
+        "notable_parents": "async-stream",
+        "suggested_criteria": [
+          "safe-to-run"
+        ],
+        "suggested_diff": {
+          "from": "0.3.5",
+          "to": "0.3.6",
+          "diffstat": {
+            "insertions": 37,
+            "deletions": 16,
+            "files_changed": 3
+          }
+        }
+      },
+      {
+        "name": "url",
+        "notable_parents": "bollard, reqwest, validator, and 1 other",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "2.5.1",
+          "to": "2.5.2",
+          "diffstat": {
+            "insertions": 39,
+            "deletions": 16,
+            "files_changed": 5
+          }
+        }
+      },
+      {
+        "name": "version_check",
+        "notable_parents": "ahash, cookie, multer, and 2 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.9.4",
+          "to": "0.9.5",
+          "diffstat": {
+            "insertions": 55,
+            "deletions": 4,
+            "files_changed": 4
+          }
+        }
+      },
+      {
+        "name": "futures-core",
+        "notable_parents": "h2, tower, bollard, futures, and 9 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.3.30",
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 55,
+            "deletions": 11,
+            "files_changed": 6
+          }
+        }
+      },
+      {
+        "name": "colored",
+        "notable_parents": "mockito",
+        "suggested_criteria": [
+          "safe-to-run"
+        ],
+        "suggested_diff": {
+          "from": "2.0.4",
+          "to": "2.1.0",
+          "diffstat": {
+            "insertions": 65,
+            "deletions": 14,
+            "files_changed": 9
+          }
+        }
+      },
+      {
+        "name": "futures-executor",
+        "notable_parents": "futures",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.3.30",
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 58,
+            "deletions": 27,
+            "files_changed": 8
+          }
+        }
+      },
+      {
+        "name": "pkg-config",
+        "notable_parents": "udev, libudev-sys, and 2 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.3.30",
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 58,
+            "deletions": 27,
+            "files_changed": 8
+          }
+        }
+      },
+      {
+        "name": "proc-macro-crate",
+        "notable_parents": "ntest_timeout",
+        "suggested_criteria": [
+          "safe-to-run"
+        ],
+        "suggested_diff": {
+          "from": "2.0.1",
+          "to": "3.2.0",
+          "diffstat": {
+            "insertions": 56,
+            "deletions": 47,
+            "files_changed": 4
+          }
+        }
+      },
+      {
+        "name": "darling_macro",
+        "notable_parents": "darling",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.13.4",
+          "diffstat": {
+            "insertions": 113,
+            "deletions": 0,
+            "files_changed": 4
+          }
+        }
+      },
+      {
+        "name": "futures-channel",
+        "notable_parents": "hyper, futures, reqwest, and 2 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.3.30",
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 82,
+            "deletions": 34,
+            "files_changed": 7
+          }
+        }
+      },
+      {
+        "name": "frunk_proc_macros",
+        "notable_parents": "frunk",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.3",
+          "diffstat": {
+            "insertions": 131,
+            "deletions": 0,
+            "files_changed": 3
+          }
+        }
+      },
+      {
+        "name": "iana-time-zone",
+        "notable_parents": "chrono",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.1.59",
+          "to": "0.1.61",
+          "diffstat": {
+            "insertions": 86,
+            "deletions": 55,
+            "files_changed": 8
+          }
+        }
+      },
+      {
+        "name": "async-stream",
+        "notable_parents": "tokio-test",
+        "suggested_criteria": [
+          "safe-to-run"
+        ],
+        "suggested_diff": {
+          "from": "0.3.5",
+          "to": "0.3.6",
+          "diffstat": {
+            "insertions": 176,
+            "deletions": 23,
+            "files_changed": 13
+          }
+        }
+      },
+      {
+        "name": "frunk-enum-core",
+        "notable_parents": "flecsd-axum-server",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.3.0",
+          "diffstat": {
+            "insertions": 201,
+            "deletions": 0,
+            "files_changed": 6
+          }
+        }
+      },
+      {
+        "name": "zerocopy-derive",
+        "notable_parents": "zerocopy",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.7.34",
+          "to": "0.7.35",
+          "diffstat": {
+            "insertions": 106,
+            "deletions": 108,
+            "files_changed": 5
+          }
+        }
+      },
+      {
+        "name": "native-tls",
+        "notable_parents": "reqwest, hyper-tls, and tokio-native-tls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.2.11",
+          "to": "0.2.12",
+          "diffstat": {
+            "insertions": 144,
+            "deletions": 78,
+            "files_changed": 9
+          }
+        }
+      },
+      {
+        "name": "pin-project-lite",
+        "notable_parents": "axum, hyper, tokio, tower, and 14 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.2.14",
+          "to": "0.2.15",
+          "diffstat": {
+            "insertions": 212,
+            "deletions": 64,
+            "files_changed": 29
+          }
+        }
+      },
+      {
+        "name": "cc",
+        "notable_parents": "cxx, ring, cxx-build, and 4 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "1.1.13",
+          "to": "1.1.31",
+          "diffstat": {
+            "insertions": 236,
+            "deletions": 73,
+            "files_changed": 9
+          }
+        }
+      },
+      {
+        "name": "frunk_derives",
+        "notable_parents": "frunk and flecsd-axum-server",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.4.3",
+          "diffstat": {
+            "insertions": 347,
+            "deletions": 0,
+            "files_changed": 5
+          }
+        }
+      },
+      {
+        "name": "libredox",
+        "notable_parents": "filetime",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.0.1",
+          "diffstat": {
+            "insertions": 421,
+            "deletions": 0,
+            "files_changed": 5
+          }
+        }
+      },
+      {
+        "name": "zerocopy",
+        "notable_parents": "ahash and ppv-lite86",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.7.34",
+          "to": "0.7.35",
+          "diffstat": {
+            "insertions": 312,
+            "deletions": 129,
+            "files_changed": 21
+          }
+        }
+      },
+      {
+        "name": "frunk-enum-derive",
+        "notable_parents": "flecsd-axum-server",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.3.0",
+          "diffstat": {
+            "insertions": 460,
+            "deletions": 0,
+            "files_changed": 6
+          }
+        }
+      },
+      {
+        "name": "android-tzdata",
+        "notable_parents": "chrono",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.1",
+          "diffstat": {
+            "insertions": 486,
+            "deletions": 0,
+            "files_changed": 7
+          }
+        }
+      },
+      {
+        "name": "sync_wrapper",
+        "notable_parents": "axum, tower, reqwest, and axum-core",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.2",
+          "diffstat": {
+            "insertions": 496,
+            "deletions": 0,
+            "files_changed": 6
+          }
+        }
+      },
+      {
+        "name": "frunk_proc_macro_helpers",
+        "notable_parents": "frunk_derives and 2 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.3",
+          "diffstat": {
+            "insertions": 515,
+            "deletions": 0,
+            "files_changed": 3
+          }
+        }
+      },
+      {
+        "name": "ntest_test_cases",
+        "notable_parents": "ntest",
+        "suggested_criteria": [
+          "safe-to-run"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.9.3",
+          "diffstat": {
+            "insertions": 538,
+            "deletions": 0,
+            "files_changed": 7
+          }
+        }
+      },
+      {
+        "name": "similar",
+        "notable_parents": "mockito",
+        "suggested_criteria": [
+          "safe-to-run"
+        ],
+        "suggested_diff": {
+          "from": "2.2.1",
+          "to": "2.6.0",
+          "diffstat": {
+            "insertions": 512,
+            "deletions": 85,
+            "files_changed": 19
+          }
+        }
+      },
+      {
+        "name": "tower-service",
+        "notable_parents": "axum, tower, bollard, reqwest, and 9 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.3.3",
+          "diffstat": {
+            "insertions": 609,
+            "deletions": 0,
+            "files_changed": 6
+          }
+        }
+      },
+      {
+        "name": "futures",
+        "notable_parents": "flecs-core",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.3.30",
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 480,
+            "deletions": 137,
+            "files_changed": 14
+          }
+        }
+      },
+      {
+        "name": "tower-http",
+        "notable_parents": "flecs-core",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.6.1",
+          "to": "0.5.2",
+          "diffstat": {
+            "insertions": 102,
+            "deletions": 521,
+            "files_changed": 18
+          }
+        }
+      },
+      {
+        "name": "regress",
+        "notable_parents": "flecs_app_manifest",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.9.1",
+          "to": "0.10.1",
+          "diffstat": {
+            "insertions": 521,
+            "deletions": 119,
+            "files_changed": 13
+          }
+        }
+      },
+      {
+        "name": "libudev-sys",
+        "notable_parents": "udev",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.4",
+          "diffstat": {
+            "insertions": 653,
+            "deletions": 0,
+            "files_changed": 11
+          }
+        }
+      },
+      {
+        "name": "hyper-named-pipe",
+        "notable_parents": "bollard",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.0",
+          "diffstat": {
+            "insertions": 677,
+            "deletions": 0,
+            "files_changed": 10
+          }
+        }
+      },
+      {
+        "name": "tracing-log",
+        "notable_parents": "tracing-subscriber",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.1.3",
+          "to": "0.2.0",
+          "diffstat": {
+            "insertions": 86,
+            "deletions": 600,
+            "files_changed": 8
+          }
+        }
+      },
+      {
+        "name": "tower-layer",
+        "notable_parents": "axum, tower, axum-core, and 2 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.1.0",
+          "to": "0.3.3",
+          "diffstat": {
+            "insertions": 678,
+            "deletions": 33,
+            "files_changed": 9
+          }
+        }
+      },
+      {
+        "name": "typify-macro",
+        "notable_parents": "typify",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.0",
+          "diffstat": {
+            "insertions": 791,
+            "deletions": 0,
+            "files_changed": 6
+          }
+        }
+      },
+      {
+        "name": "schemars_derive",
+        "notable_parents": "schemars",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.8.12",
+          "to": "0.8.21",
+          "diffstat": {
+            "insertions": 399,
+            "deletions": 427,
+            "files_changed": 12
+          }
+        }
+      },
+      {
+        "name": "hyperlocal",
+        "notable_parents": "bollard",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.9.1",
+          "diffstat": {
+            "insertions": 975,
+            "deletions": 0,
+            "files_changed": 15
+          }
+        }
+      },
+      {
+        "name": "atomic-waker",
+        "notable_parents": "h2",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.1.2",
+          "diffstat": {
+            "insertions": 990,
+            "deletions": 0,
+            "files_changed": 10
+          }
+        }
+      },
+      {
+        "name": "futures-macro",
+        "notable_parents": "futures-util",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 1006,
+            "deletions": 0,
+            "files_changed": 9
+          }
+        }
+      },
+      {
+        "name": "unicode-bidi",
+        "notable_parents": "idna",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.3.15",
+          "to": "0.3.17",
+          "diffstat": {
+            "insertions": 672,
+            "deletions": 459,
+            "files_changed": 12
+          }
+        }
+      },
+      {
+        "name": "winapi-i686-pc-windows-gnu",
+        "notable_parents": "winapi",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.4.0",
+          "diffstat": {
+            "insertions": 1132,
+            "deletions": 0,
+            "files_changed": 1391
+          }
+        }
+      },
+      {
+        "name": "futures-task",
+        "notable_parents": "futures, futures-util, and 1 other",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 1155,
+            "deletions": 0,
+            "files_changed": 12
+          }
+        }
+      },
+      {
+        "name": "winapi-x86_64-pc-windows-gnu",
+        "notable_parents": "winapi",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.4.0",
+          "diffstat": {
+            "insertions": 1167,
+            "deletions": 0,
+            "files_changed": 1420
+          }
+        }
+      },
+      {
+        "name": "untrusted",
+        "notable_parents": "ring and rustls-webpki",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.7.1",
+          "to": "0.9.0",
+          "diffstat": {
+            "insertions": 998,
+            "deletions": 404,
+            "files_changed": 16
+          }
+        }
+      },
+      {
+        "name": "tokio-rustls",
+        "notable_parents": "hyper-rustls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.24.0",
+          "to": "0.26.0",
+          "diffstat": {
+            "insertions": 896,
+            "deletions": 524,
+            "files_changed": 17
+          }
+        }
+      },
+      {
+        "name": "shlex",
+        "notable_parents": "cc",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.3.0",
+          "diffstat": {
+            "insertions": 1495,
+            "deletions": 0,
+            "files_changed": 11
+          }
+        }
+      },
+      {
+        "name": "hermit-abi",
+        "notable_parents": "mio and io-lifetimes",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.3.3",
+          "diffstat": {
+            "insertions": 1529,
+            "deletions": 0,
+            "files_changed": 9
+          }
+        }
+      },
+      {
+        "name": "reqwest-middleware",
+        "notable_parents": "flecs-core and flecs_console_client",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.3.3",
+          "diffstat": {
+            "insertions": 1545,
+            "deletions": 0,
+            "files_changed": 11
+          }
+        }
+      },
+      {
+        "name": "schemars",
+        "notable_parents": "typify-impl, typify-macro, and 1 other",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.8.12",
+          "to": "0.8.21",
+          "diffstat": {
+            "insertions": 1179,
+            "deletions": 372,
+            "files_changed": 59
+          }
+        }
+      },
+      {
+        "name": "system-configuration-sys",
+        "notable_parents": "system-configuration",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.6.0",
+          "diffstat": {
+            "insertions": 1604,
+            "deletions": 0,
+            "files_changed": 12
+          }
+        }
+      },
+      {
+        "name": "system-configuration",
+        "notable_parents": "reqwest",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.6.1",
+          "diffstat": {
+            "insertions": 1755,
+            "deletions": 0,
+            "files_changed": 12
+          }
+        }
+      },
+      {
+        "name": "siphasher",
+        "notable_parents": "phf_shared",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.3.10",
+          "diffstat": {
+            "insertions": 1840,
+            "deletions": 0,
+            "files_changed": 12
+          }
+        }
+      },
+      {
+        "name": "rustls-pemfile",
+        "notable_parents": "reqwest",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "2.2.0",
+          "diffstat": {
+            "insertions": 1870,
+            "deletions": 0,
+            "files_changed": 30
+          }
+        }
+      },
+      {
+        "name": "validator_derive",
+        "notable_parents": "validator",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.18.2",
+          "diffstat": {
+            "insertions": 1889,
+            "deletions": 0,
+            "files_changed": 22
+          }
+        }
+      },
+      {
+        "name": "serde_urlencoded",
+        "notable_parents": "axum, bollard, mockito, and 2 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.7.1",
+          "diffstat": {
+            "insertions": 2120,
+            "deletions": 0,
+            "files_changed": 17
+          }
+        }
+      },
+      {
+        "name": "zeroize",
+        "notable_parents": "rustls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.8.1",
+          "diffstat": {
+            "insertions": 2182,
+            "deletions": 0,
+            "files_changed": 11
+          }
+        }
+      },
+      {
+        "name": "getrandom",
+        "notable_parents": "ring, uuid, and rand_core",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.2.2",
+          "diffstat": {
+            "insertions": 2241,
+            "deletions": 0,
+            "files_changed": 31
+          }
+        }
+      },
+      {
+        "name": "udev",
+        "notable_parents": "flecs_core_cxx_bridge",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.8.0",
+          "diffstat": {
+            "insertions": 2257,
+            "deletions": 0,
+            "files_changed": 16
+          }
+        }
+      },
+      {
+        "name": "hyper-rustls",
+        "notable_parents": "reqwest",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.27.3",
+          "diffstat": {
+            "insertions": 2276,
+            "deletions": 0,
+            "files_changed": 24
+          }
+        }
+      },
+      {
+        "name": "darling",
+        "notable_parents": "validator_derive",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.13.4",
+          "diffstat": {
+            "insertions": 2366,
+            "deletions": 0,
+            "files_changed": 36
+          }
+        }
+      },
+      {
+        "name": "validator",
+        "notable_parents": "flecsd-axum-server",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.18.1",
+          "diffstat": {
+            "insertions": 2449,
+            "deletions": 0,
+            "files_changed": 21
+          }
+        }
+      },
+      {
+        "name": "security-framework-sys",
+        "notable_parents": "native-tls and security-framework",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "2.12.0",
+          "diffstat": {
+            "insertions": 2473,
+            "deletions": 0,
+            "files_changed": 29
+          }
+        }
+      },
+      {
+        "name": "mime_guess",
+        "notable_parents": "reqwest",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "2.0.5",
+          "diffstat": {
+            "insertions": 2619,
+            "deletions": 0,
+            "files_changed": 13
+          }
+        }
+      },
+      {
+        "name": "proc-macro-error",
+        "notable_parents": "validator_derive",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.0.4",
+          "diffstat": {
+            "insertions": 2654,
+            "deletions": 0,
+            "files_changed": 50
+          }
+        }
+      },
+      {
+        "name": "tracing",
+        "notable_parents": "h2, axum, tower, axum-core, and 7 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.1.37",
+          "to": "0.1.40",
+          "diffstat": {
+            "insertions": 2023,
+            "deletions": 705,
+            "files_changed": 22
+          }
+        }
+      },
+      {
+        "name": "serde_tokenstream",
+        "notable_parents": "typify-macro",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.2.2",
+          "diffstat": {
+            "insertions": 2781,
+            "deletions": 0,
+            "files_changed": 13
+          }
+        }
+      },
+      {
+        "name": "matchit",
+        "notable_parents": "axum",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.7.3",
+          "diffstat": {
+            "insertions": 2810,
+            "deletions": 0,
+            "files_changed": 16
+          }
+        }
+      },
+      {
+        "name": "multer",
+        "notable_parents": "axum-extra",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "3.1.0",
+          "diffstat": {
+            "insertions": 2817,
+            "deletions": 0,
+            "files_changed": 26
+          }
+        }
+      },
+      {
+        "name": "tower",
+        "notable_parents": "flecs-core",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.5.1",
+          "to": "0.4.13",
+          "diffstat": {
+            "insertions": 1484,
+            "deletions": 1504,
+            "files_changed": 83
+          }
+        }
+      },
+      {
+        "name": "libc",
+        "notable_parents": "mio, tar, rand, ring, rusb, and 26 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.2.158",
+          "to": "0.2.161",
+          "diffstat": {
+            "insertions": 2563,
+            "deletions": 448,
+            "files_changed": 76
+          }
+        }
+      },
+      {
+        "name": "pin-project-internal",
+        "notable_parents": "pin-project",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.1.7",
+          "diffstat": {
+            "insertions": 3091,
+            "deletions": 0,
+            "files_changed": 12
+          }
+        }
+      },
+      {
+        "name": "platform-info",
+        "notable_parents": "flecs-core",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "2.0.4",
+          "diffstat": {
+            "insertions": 3198,
+            "deletions": 0,
+            "files_changed": 26
+          }
+        }
+      },
+      {
+        "name": "axum-core",
+        "notable_parents": "axum and axum-extra",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.4.5",
+          "diffstat": {
+            "insertions": 3574,
+            "deletions": 0,
+            "files_changed": 22
+          }
+        }
+      },
+      {
+        "name": "time",
+        "notable_parents": "cookie and serde_with",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.44",
+          "diffstat": {
+            "insertions": 3915,
+            "deletions": 0,
+            "files_changed": 11
+          }
+        }
+      },
+      {
+        "name": "once_cell",
+        "notable_parents": "ahash, rustls, openssl, and 11 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.12.0",
+          "diffstat": {
+            "insertions": 3974,
+            "deletions": 0,
+            "files_changed": 21
+          }
+        }
+      },
+      {
+        "name": "addr2line",
+        "notable_parents": "backtrace",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.24.2",
+          "diffstat": {
+            "insertions": 4101,
+            "deletions": 0,
+            "files_changed": 15
+          }
+        }
+      },
+      {
+        "name": "ppv-lite86",
+        "notable_parents": "rand_chacha",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.2.20",
+          "diffstat": {
+            "insertions": 4136,
+            "deletions": 0,
+            "files_changed": 11
+          }
+        }
+      },
+      {
+        "name": "redox_syscall",
+        "notable_parents": "libredox and parking_lot_core",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.5.7",
+          "diffstat": {
+            "insertions": 4578,
+            "deletions": 0,
+            "files_changed": 30
+          }
+        }
+      },
+      {
+        "name": "ipnet",
+        "notable_parents": "reqwest",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "2.10.1",
+          "diffstat": {
+            "insertions": 4586,
+            "deletions": 0,
+            "files_changed": 15
+          }
+        }
+      },
+      {
+        "name": "ahash",
+        "notable_parents": "hashbrown",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.7.6",
+          "diffstat": {
+            "insertions": 4646,
+            "deletions": 0,
+            "files_changed": 23
+          }
+        }
+      },
+      {
+        "name": "tempfile",
+        "notable_parents": "native-tls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "3.13.0",
+          "diffstat": {
+            "insertions": 4881,
+            "deletions": 0,
+            "files_changed": 29
+          }
+        }
+      },
+      {
+        "name": "schannel",
+        "notable_parents": "native-tls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.26",
+          "diffstat": {
+            "insertions": 5027,
+            "deletions": 0,
+            "files_changed": 33
+          }
+        }
+      },
+      {
+        "name": "rustls-pki-types",
+        "notable_parents": "rustls, hyper-rustls, and 3 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.10.0",
+          "diffstat": {
+            "insertions": 5334,
+            "deletions": 0,
+            "files_changed": 41
+          }
+        }
+      },
+      {
+        "name": "spin",
+        "notable_parents": "ring and multer",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.9.8",
+          "diffstat": {
+            "insertions": 5458,
+            "deletions": 0,
+            "files_changed": 21
+          }
+        }
+      },
+      {
+        "name": "mockito",
+        "notable_parents": "flecs-core and flecs_core_cxx_bridge",
+        "suggested_criteria": [
+          "safe-to-run"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.5.0",
+          "diffstat": {
+            "insertions": 5613,
+            "deletions": 0,
+            "files_changed": 24
+          }
+        }
+      },
+      {
+        "name": "frunk",
+        "notable_parents": "frunk-enum-core and flecsd-axum-server",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.4.3",
+          "diffstat": {
+            "insertions": 5738,
+            "deletions": 0,
+            "files_changed": 33
+          }
+        }
+      },
+      {
+        "name": "cookie",
+        "notable_parents": "axum-extra",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.18.1",
+          "diffstat": {
+            "insertions": 5982,
+            "deletions": 0,
+            "files_changed": 24
+          }
+        }
+      },
+      {
+        "name": "gimli",
+        "notable_parents": "addr2line",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.30.0",
+          "to": "0.31.1",
+          "diffstat": {
+            "insertions": 2753,
+            "deletions": 3328,
+            "files_changed": 32
+          }
+        }
+      },
+      {
+        "name": "frunk_core",
+        "notable_parents": "frunk, frunk_proc_macros, and 2 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.4.3",
+          "diffstat": {
+            "insertions": 6139,
+            "deletions": 0,
+            "files_changed": 13
+          }
+        }
+      },
+      {
+        "name": "procfs",
+        "notable_parents": "flecs-core and flecs_core_cxx_bridge",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.16.0",
+          "diffstat": {
+            "insertions": 6267,
+            "deletions": 0,
+            "files_changed": 44
+          }
+        }
+      },
+      {
+        "name": "typify",
+        "notable_parents": "flecs_app_manifest",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.1.0",
+          "diffstat": {
+            "insertions": 6803,
+            "deletions": 0,
+            "files_changed": 39
+          }
+        }
+      },
+      {
+        "name": "axum-extra",
+        "notable_parents": "flecs-core and flecsd-axum-server",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.9.4",
+          "diffstat": {
+            "insertions": 6925,
+            "deletions": 0,
+            "files_changed": 35
+          }
+        }
+      },
+      {
+        "name": "rusb",
+        "notable_parents": "flecs-core and flecs_core_cxx_bridge",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.9.4",
+          "diffstat": {
+            "insertions": 7370,
+            "deletions": 0,
+            "files_changed": 30
+          }
+        }
+      },
+      {
+        "name": "socket2",
+        "notable_parents": "tokio and hyper-util",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.3.12",
+          "to": "0.4.4",
+          "diffstat": {
+            "insertions": 4706,
+            "deletions": 2974,
+            "files_changed": 13
+          }
+        }
+      },
+      {
+        "name": "darling_core",
+        "notable_parents": "darling and darling_macro",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.13.4",
+          "diffstat": {
+            "insertions": 7830,
+            "deletions": 0,
+            "files_changed": 64
+          }
+        }
+      },
+      {
+        "name": "mio",
+        "notable_parents": "tokio",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.7.4",
+          "to": "1.0.2",
+          "diffstat": {
+            "insertions": 6238,
+            "deletions": 2052,
+            "files_changed": 68
+          }
+        }
+      },
+      {
+        "name": "uuid",
+        "notable_parents": "flecsd-axum-server and flecs_console_client",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.11.0",
+          "diffstat": {
+            "insertions": 8421,
+            "deletions": 0,
+            "files_changed": 27
+          }
+        }
+      },
+      {
+        "name": "bollard-stubs",
+        "notable_parents": "bollard",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.45.0-rc.26.0.1",
+          "diffstat": {
+            "insertions": 8732,
+            "deletions": 0,
+            "files_changed": 14
+          }
+        }
+      },
+      {
+        "name": "minimal-lexical",
+        "notable_parents": "nom",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.2.1",
+          "diffstat": {
+            "insertions": 8787,
+            "deletions": 0,
+            "files_changed": 56
+          }
+        }
+      },
+      {
+        "name": "rand",
+        "notable_parents": "tower, mockito, and phf_generator",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.8.5",
+          "diffstat": {
+            "insertions": 9838,
+            "deletions": 0,
+            "files_changed": 33
+          }
+        }
+      },
+      {
+        "name": "security-framework",
+        "notable_parents": "native-tls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "2.11.1",
+          "diffstat": {
+            "insertions": 10297,
+            "deletions": 0,
+            "files_changed": 44
+          }
+        }
+      },
+      {
+        "name": "openssl-sys",
+        "notable_parents": "openssl and native-tls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.9.104",
+          "diffstat": {
+            "insertions": 12084,
+            "deletions": 0,
+            "files_changed": 74
+          }
+        }
+      },
+      {
+        "name": "pin-project",
+        "notable_parents": "tower",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.1.7",
+          "diffstat": {
+            "insertions": 13855,
+            "deletions": 0,
+            "files_changed": 206
+          }
+        }
+      },
+      {
+        "name": "rustls-webpki",
+        "notable_parents": "rustls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.101.4",
+          "to": "0.102.8",
+          "diffstat": {
+            "insertions": 10376,
+            "deletions": 5592,
+            "files_changed": 222
+          }
+        }
+      },
+      {
+        "name": "itertools",
+        "notable_parents": "frunk-enum-derive",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.10.3",
+          "diffstat": {
+            "insertions": 17908,
+            "deletions": 0,
+            "files_changed": 78
+          }
+        }
+      },
+      {
+        "name": "bollard",
+        "notable_parents": "flecs-core",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.17.1",
+          "diffstat": {
+            "insertions": 18521,
+            "deletions": 0,
+            "files_changed": 76
+          }
+        }
+      },
+      {
+        "name": "axum",
+        "notable_parents": "axum-extra, flecs-core, and 1 other",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.7.7",
+          "diffstat": {
+            "insertions": 24227,
+            "deletions": 0,
+            "files_changed": 83
+          }
+        }
+      },
+      {
+        "name": "futures-util",
+        "notable_parents": "axum, hyper, tower, multer, and 11 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.3.31",
+          "diffstat": {
+            "insertions": 26613,
+            "deletions": 0,
+            "files_changed": 190
+          }
+        }
+      },
+      {
+        "name": "usb-ids",
+        "notable_parents": "flecs-core",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "1.2024.4",
+          "diffstat": {
+            "insertions": 27554,
+            "deletions": 0,
+            "files_changed": 13
+          }
+        }
+      },
+      {
+        "name": "serde_with",
+        "notable_parents": "bollard-stubs",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "3.11.0",
+          "diffstat": {
+            "insertions": 30628,
+            "deletions": 0,
+            "files_changed": 94
+          }
+        }
+      },
+      {
+        "name": "chrono",
+        "notable_parents": "procfs, serde_with, and 2 others",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.4.38",
+          "diffstat": {
+            "insertions": 32748,
+            "deletions": 0,
+            "files_changed": 48
+          }
+        }
+      },
+      {
+        "name": "unicode-normalization",
+        "notable_parents": "idna",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.1.23",
+          "to": "0.1.24",
+          "diffstat": {
+            "insertions": 10376,
+            "deletions": 25327,
+            "files_changed": 16
+          }
+        }
+      },
+      {
+        "name": "openssl",
+        "notable_parents": "native-tls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.10.68",
+          "diffstat": {
+            "insertions": 36906,
+            "deletions": 0,
+            "files_changed": 103
+          }
+        }
+      },
+      {
+        "name": "libusb1-sys",
+        "notable_parents": "rusb",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.7.0",
+          "diffstat": {
+            "insertions": 38569,
+            "deletions": 0,
+            "files_changed": 85
+          }
+        }
+      },
+      {
+        "name": "rustls",
+        "notable_parents": "hyper-rustls and tokio-rustls",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": "0.21.6",
+          "to": "0.23.16",
+          "diffstat": {
+            "insertions": 28948,
+            "deletions": 18794,
+            "files_changed": 173
+          }
+        }
+      },
+      {
+        "name": "object",
+        "notable_parents": "backtrace",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "0.36.5",
+          "diffstat": {
+            "insertions": 54266,
+            "deletions": 0,
+            "files_changed": 103
+          }
+        }
+      },
+      {
+        "name": "hdrhistogram",
+        "notable_parents": "tower",
+        "suggested_criteria": [
+          "safe-to-deploy"
+        ],
+        "suggested_diff": {
+          "from": null,
+          "to": "7.5.4",
+          "diffstat": {
+            "insertions": 112899,
+            "deletions": 0,
+            "files_changed": 58
+          }
+        }
+      }
+    ],
+    "suggest_by_criteria": {
+      "safe-to-deploy": [
+        {
+          "name": "signal-hook-registry",
+          "notable_parents": "tokio",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "1.4.1",
+            "to": "1.4.2",
+            "diffstat": {
+              "insertions": 6,
+              "deletions": 2,
+              "files_changed": 3
+            }
+          }
+        },
+        {
+          "name": "core-foundation-sys",
+          "notable_parents": "iana-time-zone and 4 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.8.6",
+            "to": "0.8.7",
+            "diffstat": {
+              "insertions": 19,
+              "deletions": 3,
+              "files_changed": 3
+            }
+          }
+        },
+        {
+          "name": "tracing-attributes",
+          "notable_parents": "tracing",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.1.24",
+            "to": "0.1.25",
+            "diffstat": {
+              "insertions": 24,
+              "deletions": 5,
+              "files_changed": 5
+            }
+          }
+        },
+        {
+          "name": "futures-sink",
+          "notable_parents": "h2, futures, tokio-util, and 2 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.3.28",
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 29,
+              "deletions": 6,
+              "files_changed": 3
+            }
+          }
+        },
+        {
+          "name": "futures-io",
+          "notable_parents": "futures and futures-util",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.3.30",
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 32,
+              "deletions": 6,
+              "files_changed": 3
+            }
+          }
+        },
+        {
+          "name": "url",
+          "notable_parents": "bollard, reqwest, validator, and 1 other",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "2.5.1",
+            "to": "2.5.2",
+            "diffstat": {
+              "insertions": 39,
+              "deletions": 16,
+              "files_changed": 5
+            }
+          }
+        },
+        {
+          "name": "version_check",
+          "notable_parents": "ahash, cookie, multer, and 2 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.9.4",
+            "to": "0.9.5",
+            "diffstat": {
+              "insertions": 55,
+              "deletions": 4,
+              "files_changed": 4
+            }
+          }
+        },
+        {
+          "name": "futures-core",
+          "notable_parents": "h2, tower, bollard, futures, and 9 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.3.30",
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 55,
+              "deletions": 11,
+              "files_changed": 6
+            }
+          }
+        },
+        {
+          "name": "futures-executor",
+          "notable_parents": "futures",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.3.30",
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 58,
+              "deletions": 27,
+              "files_changed": 8
+            }
+          }
+        },
+        {
+          "name": "pkg-config",
+          "notable_parents": "udev, libudev-sys, and 2 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.3.30",
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 58,
+              "deletions": 27,
+              "files_changed": 8
+            }
+          }
+        },
+        {
+          "name": "darling_macro",
+          "notable_parents": "darling",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.13.4",
+            "diffstat": {
+              "insertions": 113,
+              "deletions": 0,
+              "files_changed": 4
+            }
+          }
+        },
+        {
+          "name": "futures-channel",
+          "notable_parents": "hyper, futures, reqwest, and 2 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.3.30",
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 82,
+              "deletions": 34,
+              "files_changed": 7
+            }
+          }
+        },
+        {
+          "name": "frunk_proc_macros",
+          "notable_parents": "frunk",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.3",
+            "diffstat": {
+              "insertions": 131,
+              "deletions": 0,
+              "files_changed": 3
+            }
+          }
+        },
+        {
+          "name": "iana-time-zone",
+          "notable_parents": "chrono",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.1.59",
+            "to": "0.1.61",
+            "diffstat": {
+              "insertions": 86,
+              "deletions": 55,
+              "files_changed": 8
+            }
+          }
+        },
+        {
+          "name": "frunk-enum-core",
+          "notable_parents": "flecsd-axum-server",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.3.0",
+            "diffstat": {
+              "insertions": 201,
+              "deletions": 0,
+              "files_changed": 6
+            }
+          }
+        },
+        {
+          "name": "zerocopy-derive",
+          "notable_parents": "zerocopy",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.7.34",
+            "to": "0.7.35",
+            "diffstat": {
+              "insertions": 106,
+              "deletions": 108,
+              "files_changed": 5
+            }
+          }
+        },
+        {
+          "name": "native-tls",
+          "notable_parents": "reqwest, hyper-tls, and tokio-native-tls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.2.11",
+            "to": "0.2.12",
+            "diffstat": {
+              "insertions": 144,
+              "deletions": 78,
+              "files_changed": 9
+            }
+          }
+        },
+        {
+          "name": "pin-project-lite",
+          "notable_parents": "axum, hyper, tokio, tower, and 14 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.2.14",
+            "to": "0.2.15",
+            "diffstat": {
+              "insertions": 212,
+              "deletions": 64,
+              "files_changed": 29
+            }
+          }
+        },
+        {
+          "name": "cc",
+          "notable_parents": "cxx, ring, cxx-build, and 4 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "1.1.13",
+            "to": "1.1.31",
+            "diffstat": {
+              "insertions": 236,
+              "deletions": 73,
+              "files_changed": 9
+            }
+          }
+        },
+        {
+          "name": "frunk_derives",
+          "notable_parents": "frunk and flecsd-axum-server",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.4.3",
+            "diffstat": {
+              "insertions": 347,
+              "deletions": 0,
+              "files_changed": 5
+            }
+          }
+        },
+        {
+          "name": "libredox",
+          "notable_parents": "filetime",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.0.1",
+            "diffstat": {
+              "insertions": 421,
+              "deletions": 0,
+              "files_changed": 5
+            }
+          }
+        },
+        {
+          "name": "zerocopy",
+          "notable_parents": "ahash and ppv-lite86",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.7.34",
+            "to": "0.7.35",
+            "diffstat": {
+              "insertions": 312,
+              "deletions": 129,
+              "files_changed": 21
+            }
+          }
+        },
+        {
+          "name": "frunk-enum-derive",
+          "notable_parents": "flecsd-axum-server",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.3.0",
+            "diffstat": {
+              "insertions": 460,
+              "deletions": 0,
+              "files_changed": 6
+            }
+          }
+        },
+        {
+          "name": "android-tzdata",
+          "notable_parents": "chrono",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.1",
+            "diffstat": {
+              "insertions": 486,
+              "deletions": 0,
+              "files_changed": 7
+            }
+          }
+        },
+        {
+          "name": "sync_wrapper",
+          "notable_parents": "axum, tower, reqwest, and axum-core",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.2",
+            "diffstat": {
+              "insertions": 496,
+              "deletions": 0,
+              "files_changed": 6
+            }
+          }
+        },
+        {
+          "name": "frunk_proc_macro_helpers",
+          "notable_parents": "frunk_derives and 2 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.3",
+            "diffstat": {
+              "insertions": 515,
+              "deletions": 0,
+              "files_changed": 3
+            }
+          }
+        },
+        {
+          "name": "tower-service",
+          "notable_parents": "axum, tower, bollard, reqwest, and 9 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.3.3",
+            "diffstat": {
+              "insertions": 609,
+              "deletions": 0,
+              "files_changed": 6
+            }
+          }
+        },
+        {
+          "name": "futures",
+          "notable_parents": "flecs-core",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.3.30",
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 480,
+              "deletions": 137,
+              "files_changed": 14
+            }
+          }
+        },
+        {
+          "name": "tower-http",
+          "notable_parents": "flecs-core",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.6.1",
+            "to": "0.5.2",
+            "diffstat": {
+              "insertions": 102,
+              "deletions": 521,
+              "files_changed": 18
+            }
+          }
+        },
+        {
+          "name": "regress",
+          "notable_parents": "flecs_app_manifest",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.9.1",
+            "to": "0.10.1",
+            "diffstat": {
+              "insertions": 521,
+              "deletions": 119,
+              "files_changed": 13
+            }
+          }
+        },
+        {
+          "name": "libudev-sys",
+          "notable_parents": "udev",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.4",
+            "diffstat": {
+              "insertions": 653,
+              "deletions": 0,
+              "files_changed": 11
+            }
+          }
+        },
+        {
+          "name": "hyper-named-pipe",
+          "notable_parents": "bollard",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.0",
+            "diffstat": {
+              "insertions": 677,
+              "deletions": 0,
+              "files_changed": 10
+            }
+          }
+        },
+        {
+          "name": "tracing-log",
+          "notable_parents": "tracing-subscriber",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.1.3",
+            "to": "0.2.0",
+            "diffstat": {
+              "insertions": 86,
+              "deletions": 600,
+              "files_changed": 8
+            }
+          }
+        },
+        {
+          "name": "tower-layer",
+          "notable_parents": "axum, tower, axum-core, and 2 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.1.0",
+            "to": "0.3.3",
+            "diffstat": {
+              "insertions": 678,
+              "deletions": 33,
+              "files_changed": 9
+            }
+          }
+        },
+        {
+          "name": "typify-macro",
+          "notable_parents": "typify",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.0",
+            "diffstat": {
+              "insertions": 791,
+              "deletions": 0,
+              "files_changed": 6
+            }
+          }
+        },
+        {
+          "name": "schemars_derive",
+          "notable_parents": "schemars",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.8.12",
+            "to": "0.8.21",
+            "diffstat": {
+              "insertions": 399,
+              "deletions": 427,
+              "files_changed": 12
+            }
+          }
+        },
+        {
+          "name": "hyperlocal",
+          "notable_parents": "bollard",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.9.1",
+            "diffstat": {
+              "insertions": 975,
+              "deletions": 0,
+              "files_changed": 15
+            }
+          }
+        },
+        {
+          "name": "atomic-waker",
+          "notable_parents": "h2",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.1.2",
+            "diffstat": {
+              "insertions": 990,
+              "deletions": 0,
+              "files_changed": 10
+            }
+          }
+        },
+        {
+          "name": "futures-macro",
+          "notable_parents": "futures-util",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 1006,
+              "deletions": 0,
+              "files_changed": 9
+            }
+          }
+        },
+        {
+          "name": "unicode-bidi",
+          "notable_parents": "idna",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.3.15",
+            "to": "0.3.17",
+            "diffstat": {
+              "insertions": 672,
+              "deletions": 459,
+              "files_changed": 12
+            }
+          }
+        },
+        {
+          "name": "winapi-i686-pc-windows-gnu",
+          "notable_parents": "winapi",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.4.0",
+            "diffstat": {
+              "insertions": 1132,
+              "deletions": 0,
+              "files_changed": 1391
+            }
+          }
+        },
+        {
+          "name": "futures-task",
+          "notable_parents": "futures, futures-util, and 1 other",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 1155,
+              "deletions": 0,
+              "files_changed": 12
+            }
+          }
+        },
+        {
+          "name": "winapi-x86_64-pc-windows-gnu",
+          "notable_parents": "winapi",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.4.0",
+            "diffstat": {
+              "insertions": 1167,
+              "deletions": 0,
+              "files_changed": 1420
+            }
+          }
+        },
+        {
+          "name": "untrusted",
+          "notable_parents": "ring and rustls-webpki",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.7.1",
+            "to": "0.9.0",
+            "diffstat": {
+              "insertions": 998,
+              "deletions": 404,
+              "files_changed": 16
+            }
+          }
+        },
+        {
+          "name": "tokio-rustls",
+          "notable_parents": "hyper-rustls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.24.0",
+            "to": "0.26.0",
+            "diffstat": {
+              "insertions": 896,
+              "deletions": 524,
+              "files_changed": 17
+            }
+          }
+        },
+        {
+          "name": "shlex",
+          "notable_parents": "cc",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.3.0",
+            "diffstat": {
+              "insertions": 1495,
+              "deletions": 0,
+              "files_changed": 11
+            }
+          }
+        },
+        {
+          "name": "hermit-abi",
+          "notable_parents": "mio and io-lifetimes",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.3.3",
+            "diffstat": {
+              "insertions": 1529,
+              "deletions": 0,
+              "files_changed": 9
+            }
+          }
+        },
+        {
+          "name": "reqwest-middleware",
+          "notable_parents": "flecs-core and flecs_console_client",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.3.3",
+            "diffstat": {
+              "insertions": 1545,
+              "deletions": 0,
+              "files_changed": 11
+            }
+          }
+        },
+        {
+          "name": "schemars",
+          "notable_parents": "typify-impl, typify-macro, and 1 other",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.8.12",
+            "to": "0.8.21",
+            "diffstat": {
+              "insertions": 1179,
+              "deletions": 372,
+              "files_changed": 59
+            }
+          }
+        },
+        {
+          "name": "system-configuration-sys",
+          "notable_parents": "system-configuration",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.6.0",
+            "diffstat": {
+              "insertions": 1604,
+              "deletions": 0,
+              "files_changed": 12
+            }
+          }
+        },
+        {
+          "name": "system-configuration",
+          "notable_parents": "reqwest",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.6.1",
+            "diffstat": {
+              "insertions": 1755,
+              "deletions": 0,
+              "files_changed": 12
+            }
+          }
+        },
+        {
+          "name": "siphasher",
+          "notable_parents": "phf_shared",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.3.10",
+            "diffstat": {
+              "insertions": 1840,
+              "deletions": 0,
+              "files_changed": 12
+            }
+          }
+        },
+        {
+          "name": "rustls-pemfile",
+          "notable_parents": "reqwest",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "2.2.0",
+            "diffstat": {
+              "insertions": 1870,
+              "deletions": 0,
+              "files_changed": 30
+            }
+          }
+        },
+        {
+          "name": "validator_derive",
+          "notable_parents": "validator",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.18.2",
+            "diffstat": {
+              "insertions": 1889,
+              "deletions": 0,
+              "files_changed": 22
+            }
+          }
+        },
+        {
+          "name": "serde_urlencoded",
+          "notable_parents": "axum, bollard, mockito, and 2 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.7.1",
+            "diffstat": {
+              "insertions": 2120,
+              "deletions": 0,
+              "files_changed": 17
+            }
+          }
+        },
+        {
+          "name": "zeroize",
+          "notable_parents": "rustls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.8.1",
+            "diffstat": {
+              "insertions": 2182,
+              "deletions": 0,
+              "files_changed": 11
+            }
+          }
+        },
+        {
+          "name": "getrandom",
+          "notable_parents": "ring, uuid, and rand_core",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.2.2",
+            "diffstat": {
+              "insertions": 2241,
+              "deletions": 0,
+              "files_changed": 31
+            }
+          }
+        },
+        {
+          "name": "udev",
+          "notable_parents": "flecs_core_cxx_bridge",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.8.0",
+            "diffstat": {
+              "insertions": 2257,
+              "deletions": 0,
+              "files_changed": 16
+            }
+          }
+        },
+        {
+          "name": "hyper-rustls",
+          "notable_parents": "reqwest",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.27.3",
+            "diffstat": {
+              "insertions": 2276,
+              "deletions": 0,
+              "files_changed": 24
+            }
+          }
+        },
+        {
+          "name": "darling",
+          "notable_parents": "validator_derive",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.13.4",
+            "diffstat": {
+              "insertions": 2366,
+              "deletions": 0,
+              "files_changed": 36
+            }
+          }
+        },
+        {
+          "name": "validator",
+          "notable_parents": "flecsd-axum-server",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.18.1",
+            "diffstat": {
+              "insertions": 2449,
+              "deletions": 0,
+              "files_changed": 21
+            }
+          }
+        },
+        {
+          "name": "security-framework-sys",
+          "notable_parents": "native-tls and security-framework",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "2.12.0",
+            "diffstat": {
+              "insertions": 2473,
+              "deletions": 0,
+              "files_changed": 29
+            }
+          }
+        },
+        {
+          "name": "mime_guess",
+          "notable_parents": "reqwest",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "2.0.5",
+            "diffstat": {
+              "insertions": 2619,
+              "deletions": 0,
+              "files_changed": 13
+            }
+          }
+        },
+        {
+          "name": "proc-macro-error",
+          "notable_parents": "validator_derive",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.0.4",
+            "diffstat": {
+              "insertions": 2654,
+              "deletions": 0,
+              "files_changed": 50
+            }
+          }
+        },
+        {
+          "name": "tracing",
+          "notable_parents": "h2, axum, tower, axum-core, and 7 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.1.37",
+            "to": "0.1.40",
+            "diffstat": {
+              "insertions": 2023,
+              "deletions": 705,
+              "files_changed": 22
+            }
+          }
+        },
+        {
+          "name": "serde_tokenstream",
+          "notable_parents": "typify-macro",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.2.2",
+            "diffstat": {
+              "insertions": 2781,
+              "deletions": 0,
+              "files_changed": 13
+            }
+          }
+        },
+        {
+          "name": "matchit",
+          "notable_parents": "axum",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.7.3",
+            "diffstat": {
+              "insertions": 2810,
+              "deletions": 0,
+              "files_changed": 16
+            }
+          }
+        },
+        {
+          "name": "multer",
+          "notable_parents": "axum-extra",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "3.1.0",
+            "diffstat": {
+              "insertions": 2817,
+              "deletions": 0,
+              "files_changed": 26
+            }
+          }
+        },
+        {
+          "name": "tower",
+          "notable_parents": "flecs-core",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.5.1",
+            "to": "0.4.13",
+            "diffstat": {
+              "insertions": 1484,
+              "deletions": 1504,
+              "files_changed": 83
+            }
+          }
+        },
+        {
+          "name": "libc",
+          "notable_parents": "mio, tar, rand, ring, rusb, and 26 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.2.158",
+            "to": "0.2.161",
+            "diffstat": {
+              "insertions": 2563,
+              "deletions": 448,
+              "files_changed": 76
+            }
+          }
+        },
+        {
+          "name": "pin-project-internal",
+          "notable_parents": "pin-project",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.1.7",
+            "diffstat": {
+              "insertions": 3091,
+              "deletions": 0,
+              "files_changed": 12
+            }
+          }
+        },
+        {
+          "name": "platform-info",
+          "notable_parents": "flecs-core",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "2.0.4",
+            "diffstat": {
+              "insertions": 3198,
+              "deletions": 0,
+              "files_changed": 26
+            }
+          }
+        },
+        {
+          "name": "axum-core",
+          "notable_parents": "axum and axum-extra",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.4.5",
+            "diffstat": {
+              "insertions": 3574,
+              "deletions": 0,
+              "files_changed": 22
+            }
+          }
+        },
+        {
+          "name": "time",
+          "notable_parents": "cookie and serde_with",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.44",
+            "diffstat": {
+              "insertions": 3915,
+              "deletions": 0,
+              "files_changed": 11
+            }
+          }
+        },
+        {
+          "name": "once_cell",
+          "notable_parents": "ahash, rustls, openssl, and 11 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.12.0",
+            "diffstat": {
+              "insertions": 3974,
+              "deletions": 0,
+              "files_changed": 21
+            }
+          }
+        },
+        {
+          "name": "addr2line",
+          "notable_parents": "backtrace",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.24.2",
+            "diffstat": {
+              "insertions": 4101,
+              "deletions": 0,
+              "files_changed": 15
+            }
+          }
+        },
+        {
+          "name": "ppv-lite86",
+          "notable_parents": "rand_chacha",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.2.20",
+            "diffstat": {
+              "insertions": 4136,
+              "deletions": 0,
+              "files_changed": 11
+            }
+          }
+        },
+        {
+          "name": "redox_syscall",
+          "notable_parents": "libredox and parking_lot_core",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.5.7",
+            "diffstat": {
+              "insertions": 4578,
+              "deletions": 0,
+              "files_changed": 30
+            }
+          }
+        },
+        {
+          "name": "ipnet",
+          "notable_parents": "reqwest",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "2.10.1",
+            "diffstat": {
+              "insertions": 4586,
+              "deletions": 0,
+              "files_changed": 15
+            }
+          }
+        },
+        {
+          "name": "ahash",
+          "notable_parents": "hashbrown",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.7.6",
+            "diffstat": {
+              "insertions": 4646,
+              "deletions": 0,
+              "files_changed": 23
+            }
+          }
+        },
+        {
+          "name": "tempfile",
+          "notable_parents": "native-tls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "3.13.0",
+            "diffstat": {
+              "insertions": 4881,
+              "deletions": 0,
+              "files_changed": 29
+            }
+          }
+        },
+        {
+          "name": "schannel",
+          "notable_parents": "native-tls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.26",
+            "diffstat": {
+              "insertions": 5027,
+              "deletions": 0,
+              "files_changed": 33
+            }
+          }
+        },
+        {
+          "name": "rustls-pki-types",
+          "notable_parents": "rustls, hyper-rustls, and 3 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.10.0",
+            "diffstat": {
+              "insertions": 5334,
+              "deletions": 0,
+              "files_changed": 41
+            }
+          }
+        },
+        {
+          "name": "spin",
+          "notable_parents": "ring and multer",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.9.8",
+            "diffstat": {
+              "insertions": 5458,
+              "deletions": 0,
+              "files_changed": 21
+            }
+          }
+        },
+        {
+          "name": "frunk",
+          "notable_parents": "frunk-enum-core and flecsd-axum-server",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.4.3",
+            "diffstat": {
+              "insertions": 5738,
+              "deletions": 0,
+              "files_changed": 33
+            }
+          }
+        },
+        {
+          "name": "cookie",
+          "notable_parents": "axum-extra",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.18.1",
+            "diffstat": {
+              "insertions": 5982,
+              "deletions": 0,
+              "files_changed": 24
+            }
+          }
+        },
+        {
+          "name": "gimli",
+          "notable_parents": "addr2line",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.30.0",
+            "to": "0.31.1",
+            "diffstat": {
+              "insertions": 2753,
+              "deletions": 3328,
+              "files_changed": 32
+            }
+          }
+        },
+        {
+          "name": "frunk_core",
+          "notable_parents": "frunk, frunk_proc_macros, and 2 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.4.3",
+            "diffstat": {
+              "insertions": 6139,
+              "deletions": 0,
+              "files_changed": 13
+            }
+          }
+        },
+        {
+          "name": "procfs",
+          "notable_parents": "flecs-core and flecs_core_cxx_bridge",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.16.0",
+            "diffstat": {
+              "insertions": 6267,
+              "deletions": 0,
+              "files_changed": 44
+            }
+          }
+        },
+        {
+          "name": "typify",
+          "notable_parents": "flecs_app_manifest",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.1.0",
+            "diffstat": {
+              "insertions": 6803,
+              "deletions": 0,
+              "files_changed": 39
+            }
+          }
+        },
+        {
+          "name": "axum-extra",
+          "notable_parents": "flecs-core and flecsd-axum-server",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.9.4",
+            "diffstat": {
+              "insertions": 6925,
+              "deletions": 0,
+              "files_changed": 35
+            }
+          }
+        },
+        {
+          "name": "rusb",
+          "notable_parents": "flecs-core and flecs_core_cxx_bridge",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.9.4",
+            "diffstat": {
+              "insertions": 7370,
+              "deletions": 0,
+              "files_changed": 30
+            }
+          }
+        },
+        {
+          "name": "socket2",
+          "notable_parents": "tokio and hyper-util",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.3.12",
+            "to": "0.4.4",
+            "diffstat": {
+              "insertions": 4706,
+              "deletions": 2974,
+              "files_changed": 13
+            }
+          }
+        },
+        {
+          "name": "darling_core",
+          "notable_parents": "darling and darling_macro",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.13.4",
+            "diffstat": {
+              "insertions": 7830,
+              "deletions": 0,
+              "files_changed": 64
+            }
+          }
+        },
+        {
+          "name": "mio",
+          "notable_parents": "tokio",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.7.4",
+            "to": "1.0.2",
+            "diffstat": {
+              "insertions": 6238,
+              "deletions": 2052,
+              "files_changed": 68
+            }
+          }
+        },
+        {
+          "name": "uuid",
+          "notable_parents": "flecsd-axum-server and flecs_console_client",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.11.0",
+            "diffstat": {
+              "insertions": 8421,
+              "deletions": 0,
+              "files_changed": 27
+            }
+          }
+        },
+        {
+          "name": "bollard-stubs",
+          "notable_parents": "bollard",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.45.0-rc.26.0.1",
+            "diffstat": {
+              "insertions": 8732,
+              "deletions": 0,
+              "files_changed": 14
+            }
+          }
+        },
+        {
+          "name": "minimal-lexical",
+          "notable_parents": "nom",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.2.1",
+            "diffstat": {
+              "insertions": 8787,
+              "deletions": 0,
+              "files_changed": 56
+            }
+          }
+        },
+        {
+          "name": "rand",
+          "notable_parents": "tower, mockito, and phf_generator",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.8.5",
+            "diffstat": {
+              "insertions": 9838,
+              "deletions": 0,
+              "files_changed": 33
+            }
+          }
+        },
+        {
+          "name": "security-framework",
+          "notable_parents": "native-tls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "2.11.1",
+            "diffstat": {
+              "insertions": 10297,
+              "deletions": 0,
+              "files_changed": 44
+            }
+          }
+        },
+        {
+          "name": "openssl-sys",
+          "notable_parents": "openssl and native-tls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.9.104",
+            "diffstat": {
+              "insertions": 12084,
+              "deletions": 0,
+              "files_changed": 74
+            }
+          }
+        },
+        {
+          "name": "pin-project",
+          "notable_parents": "tower",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.1.7",
+            "diffstat": {
+              "insertions": 13855,
+              "deletions": 0,
+              "files_changed": 206
+            }
+          }
+        },
+        {
+          "name": "rustls-webpki",
+          "notable_parents": "rustls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.101.4",
+            "to": "0.102.8",
+            "diffstat": {
+              "insertions": 10376,
+              "deletions": 5592,
+              "files_changed": 222
+            }
+          }
+        },
+        {
+          "name": "itertools",
+          "notable_parents": "frunk-enum-derive",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.10.3",
+            "diffstat": {
+              "insertions": 17908,
+              "deletions": 0,
+              "files_changed": 78
+            }
+          }
+        },
+        {
+          "name": "bollard",
+          "notable_parents": "flecs-core",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.17.1",
+            "diffstat": {
+              "insertions": 18521,
+              "deletions": 0,
+              "files_changed": 76
+            }
+          }
+        },
+        {
+          "name": "axum",
+          "notable_parents": "axum-extra, flecs-core, and 1 other",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.7.7",
+            "diffstat": {
+              "insertions": 24227,
+              "deletions": 0,
+              "files_changed": 83
+            }
+          }
+        },
+        {
+          "name": "futures-util",
+          "notable_parents": "axum, hyper, tower, multer, and 11 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.3.31",
+            "diffstat": {
+              "insertions": 26613,
+              "deletions": 0,
+              "files_changed": 190
+            }
+          }
+        },
+        {
+          "name": "usb-ids",
+          "notable_parents": "flecs-core",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.2024.4",
+            "diffstat": {
+              "insertions": 27554,
+              "deletions": 0,
+              "files_changed": 13
+            }
+          }
+        },
+        {
+          "name": "serde_with",
+          "notable_parents": "bollard-stubs",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "3.11.0",
+            "diffstat": {
+              "insertions": 30628,
+              "deletions": 0,
+              "files_changed": 94
+            }
+          }
+        },
+        {
+          "name": "chrono",
+          "notable_parents": "procfs, serde_with, and 2 others",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.4.38",
+            "diffstat": {
+              "insertions": 32748,
+              "deletions": 0,
+              "files_changed": 48
+            }
+          }
+        },
+        {
+          "name": "unicode-normalization",
+          "notable_parents": "idna",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.1.23",
+            "to": "0.1.24",
+            "diffstat": {
+              "insertions": 10376,
+              "deletions": 25327,
+              "files_changed": 16
+            }
+          }
+        },
+        {
+          "name": "openssl",
+          "notable_parents": "native-tls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.10.68",
+            "diffstat": {
+              "insertions": 36906,
+              "deletions": 0,
+              "files_changed": 103
+            }
+          }
+        },
+        {
+          "name": "libusb1-sys",
+          "notable_parents": "rusb",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.7.0",
+            "diffstat": {
+              "insertions": 38569,
+              "deletions": 0,
+              "files_changed": 85
+            }
+          }
+        },
+        {
+          "name": "rustls",
+          "notable_parents": "hyper-rustls and tokio-rustls",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": "0.21.6",
+            "to": "0.23.16",
+            "diffstat": {
+              "insertions": 28948,
+              "deletions": 18794,
+              "files_changed": 173
+            }
+          }
+        },
+        {
+          "name": "object",
+          "notable_parents": "backtrace",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.36.5",
+            "diffstat": {
+              "insertions": 54266,
+              "deletions": 0,
+              "files_changed": 103
+            }
+          }
+        },
+        {
+          "name": "hdrhistogram",
+          "notable_parents": "tower",
+          "suggested_criteria": [
+            "safe-to-deploy"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "7.5.4",
+            "diffstat": {
+              "insertions": 112899,
+              "deletions": 0,
+              "files_changed": 58
+            }
+          }
+        }
+      ],
+      "safe-to-run (or safe-to-deploy)": [
+        {
+          "name": "async-stream-impl",
+          "notable_parents": "async-stream",
+          "suggested_criteria": [
+            "safe-to-run"
+          ],
+          "suggested_diff": {
+            "from": "0.3.5",
+            "to": "0.3.6",
+            "diffstat": {
+              "insertions": 37,
+              "deletions": 16,
+              "files_changed": 3
+            }
+          }
+        },
+        {
+          "name": "colored",
+          "notable_parents": "mockito",
+          "suggested_criteria": [
+            "safe-to-run"
+          ],
+          "suggested_diff": {
+            "from": "2.0.4",
+            "to": "2.1.0",
+            "diffstat": {
+              "insertions": 65,
+              "deletions": 14,
+              "files_changed": 9
+            }
+          }
+        },
+        {
+          "name": "proc-macro-crate",
+          "notable_parents": "ntest_timeout",
+          "suggested_criteria": [
+            "safe-to-run"
+          ],
+          "suggested_diff": {
+            "from": "2.0.1",
+            "to": "3.2.0",
+            "diffstat": {
+              "insertions": 56,
+              "deletions": 47,
+              "files_changed": 4
+            }
+          }
+        },
+        {
+          "name": "async-stream",
+          "notable_parents": "tokio-test",
+          "suggested_criteria": [
+            "safe-to-run"
+          ],
+          "suggested_diff": {
+            "from": "0.3.5",
+            "to": "0.3.6",
+            "diffstat": {
+              "insertions": 176,
+              "deletions": 23,
+              "files_changed": 13
+            }
+          }
+        },
+        {
+          "name": "ntest_test_cases",
+          "notable_parents": "ntest",
+          "suggested_criteria": [
+            "safe-to-run"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "0.9.3",
+            "diffstat": {
+              "insertions": 538,
+              "deletions": 0,
+              "files_changed": 7
+            }
+          }
+        },
+        {
+          "name": "similar",
+          "notable_parents": "mockito",
+          "suggested_criteria": [
+            "safe-to-run"
+          ],
+          "suggested_diff": {
+            "from": "2.2.1",
+            "to": "2.6.0",
+            "diffstat": {
+              "insertions": 512,
+              "deletions": 85,
+              "files_changed": 19
+            }
+          }
+        },
+        {
+          "name": "mockito",
+          "notable_parents": "flecs-core and flecs_core_cxx_bridge",
+          "suggested_criteria": [
+            "safe-to-run"
+          ],
+          "suggested_diff": {
+            "from": null,
+            "to": "1.5.0",
+            "diffstat": {
+              "insertions": 5613,
+              "deletions": 0,
+              "files_changed": 24
+            }
+          }
+        }
+      ]
+    },
+    "total_lines": 813484
+  }
+}
