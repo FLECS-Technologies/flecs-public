@@ -202,10 +202,10 @@ mod tests {
 
     #[tokio::test]
     async fn open_deployment_pouch() {
-        let path = test_path();
-        prepare_path(path);
+        let path = test_path().join("open");
+        prepare_path(&path);
         let json = serde_json::to_string(&test_deployment_json()).unwrap();
-        let mut deployment_pouch = DeploymentPouch::new(path);
+        let mut deployment_pouch = DeploymentPouch::new(&path);
         fs::write(deployment_pouch.deployments_path(), json).unwrap();
         deployment_pouch.open().unwrap();
         assert_eq!(
@@ -222,7 +222,7 @@ mod tests {
 
     #[tokio::test]
     async fn close_deployment_pouch() {
-        let path = test_path().join("deployments.json");
+        let path = test_path().join("close/deployments.json");
         prepare_path(path.parent().unwrap());
         let json = test_deployment_json();
         let mut deployment_pouch = DeploymentPouch {
@@ -243,7 +243,7 @@ mod tests {
 
     #[tokio::test]
     async fn read_deployments() {
-        let path = test_path().join("deployments.json");
+        let path = test_path().join("read/deployments.json");
         prepare_path(path.parent().unwrap());
 
         let json = serde_json::to_string(&test_deployments_json()).unwrap();
