@@ -20,25 +20,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Set up pkg-config for arm64
-        if: ${{ matrix.arch == 'arm64' }}
-        run: | # Cross compiling rust crates with C/C++ dependencies requires pkg-config to be set up (e.g. openssl-sys and libudev-sys)
-          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/local/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
-          echo "PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu" >> $GITHUB_ENV
-          echo "PKG_CONFIG_SYSROOT_DIR=/" >> $GITHUB_ENV
-      - name: Set up pkg-config for armhf
-        if: ${{ matrix.arch == 'armhf' }}
-        run: | # Cross compiling rust crates with C/C++ dependencies requires pkg-config to be set up (e.g. openssl-sys and libudev-sys)
-          echo "PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/share/pkgconfig:/usr/local/lib/arm-linux-gnueabihf/pkgconfig" >> $GITHUB_ENV
-          echo "PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf" >> $GITHUB_ENV
-          echo "PKG_CONFIG_SYSROOT_DIR=/" >> $GITHUB_ENV
       - name: "CMake: Configure"
         run: |
           cmake -G Ninja -B build/${{ matrix.arch }} -DFLECS_BUILD_TESTS=Yes -DARCH=${{ matrix.arch }} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=out/${{ matrix.arch }}
 
       - name: "CMake: Build"
-        run: | # flecs_core_cxx_bridge_cxxbridge generates header files needed by subsequent targets TODO: Improve
-          cmake --build build/${{ matrix.arch }} --target flecs_core_cxx_bridge_cxxbridge
+        run: |
           cmake --build build/${{ matrix.arch }}
 
       - name: "CMake: Test"

@@ -22,6 +22,7 @@ flecs_add_module(
         cpr::cpr
         common.app.manifest
         modules.apps.types
+        magic::flecs_core_cxx_bridge
 )
 
 add_library(modules.manifests.mocked_modules STATIC
@@ -29,6 +30,9 @@ add_library(modules.manifests.mocked_modules STATIC
     src/impl/manifests_impl.cpp
     manifests.h
     impl/manifests_impl.h
+)
+target_link_libraries(modules.manifests.mocked_modules PRIVATE
+    magic::flecs_core_cxx_bridge
 )
 
 if(FLECS_BUILD_TESTS)

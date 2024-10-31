@@ -19,6 +19,8 @@ add_library(util.usb OBJECT
 
 target_link_libraries(util.usb INTERFACE
     util.sysfs
+)
+target_link_libraries(util.usb PRIVATE
     magic::flecs_core_cxx_bridge
 )
 

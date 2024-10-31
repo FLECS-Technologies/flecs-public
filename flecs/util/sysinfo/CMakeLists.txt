@@ -17,4 +17,8 @@ add_library(util.sysinfo STATIC
     sysinfo.h
 )
 
+target_link_libraries(util.sysinfo PRIVATE
+    magic::flecs_core_cxx_bridge
+)
+
 # add_subdirectory(test)
