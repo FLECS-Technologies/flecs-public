@@ -17,4 +17,8 @@ add_library(util.network STATIC
     ip_addr.h network.h
 )
 
+target_link_libraries(util.network PRIVATE
+    magic::flecs_core_cxx_bridge
+)
+
 add_subdirectory(test)

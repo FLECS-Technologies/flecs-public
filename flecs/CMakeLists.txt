@@ -36,6 +36,7 @@ set_target_properties(daemon PROPERTIES OUTPUT_NAME flecsd)
 target_link_libraries(daemon PRIVATE
     api
     common
+    magic::flecs_core_cxx_bridge
     modules.apps
     modules.data_layer
     modules.deployments

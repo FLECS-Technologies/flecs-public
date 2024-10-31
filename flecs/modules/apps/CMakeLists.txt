@@ -59,6 +59,11 @@ if(FLECS_BUILD_TESTS)
         modules.module_base
     )
 
+    target_link_libraries(
+        modules.apps.mocked_modules PRIVATE
+        magic::flecs_core_cxx_bridge
+    )
+
     target_compile_definitions(
         modules.apps.mocked_modules PRIVATE
         -DFLECS_MOCK_MODULES
