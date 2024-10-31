@@ -127,7 +127,7 @@ auto manifests_t::do_add_from_url(std::string_view url) //
 {
     auto manifest = std::string{};
 
-    auto cbk = [&manifest](std::string data, intptr_t) {
+    auto cbk = [&manifest](const std::string_view& data, intptr_t) {
         if ((manifest.size() + data.size()) > 64_kiB) {
             return false;
         }
