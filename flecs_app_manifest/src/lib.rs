@@ -27,7 +27,7 @@ impl FromStr for AppManifestVersion {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct AppManifest {
     pub manifest: manifest_3_0_0::FlecsAppManifest,
     pub original: AppManifestVersion,
