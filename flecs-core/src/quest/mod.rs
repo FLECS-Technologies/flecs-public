@@ -1,6 +1,8 @@
 pub use super::{Error, Result};
+use futures_util::future::BoxFuture;
 use futures_util::StreamExt;
 use std::fmt::{Display, Formatter};
+use std::future::Future;
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, OnceLock};
 use tokio::sync::Mutex;
@@ -94,11 +96,27 @@ impl Display for State {
     }
 }
 
+async fn finish_quest<T>(quest: &SyncQuest, result: Result<T>) -> Result<T> {
+    match result {
+        Ok(ok) => {
+            let mut quest = quest.lock().await;
+            if !quest.state.is_finished() {
+                quest.state = State::Success
+            }
+            Ok(ok)
+        }
+        Err(e) => {
+            quest.lock().await.fail_with_error(&e);
+            Err(e)
+        }
+    }
+}
+
 pub struct Quest {
     pub id: QuestId,
     pub description: String,
     pub detail: Option<String>,
-    pub sub_quests: Vec<SyncQuest>,
+    sub_quests: Vec<SyncQuest>,
     pub progress: Option<Progress>,
     pub state: State,
 }
@@ -123,6 +141,50 @@ impl Quest {
 
     pub fn new_synced(description: String) -> Arc<Mutex<Self>> {
         Arc::new(Mutex::new(Self::new(description)))
+    }
+
+    pub async fn create_sub_quest<F, Fut, T>(
+        &mut self,
+        description: String,
+        f: F,
+    ) -> (QuestId, SyncQuest, BoxFuture<'static, Result<T>>)
+    where
+        F: FnOnce(SyncQuest) -> Fut,
+        Fut: Future<Output = Result<T>> + Send + 'static,
+        T: Send + Sync,
+    {
+        let quest = Quest::new_synced(description);
+        let quest_id = quest.lock().await.id;
+        let f = Box::pin(f(quest.clone()));
+        self.sub_quests.push(quest.clone());
+        let return_quest = quest.clone();
+        let result = Box::pin(async move {
+            quest.lock().await.state = State::Ongoing;
+            finish_quest(&quest, f.await).await
+        });
+        (quest_id, return_quest, result)
+    }
+
+    pub async fn spawn_sub_quest<'a, F, Fut, T>(
+        &'a mut self,
+        description: String,
+        f: F,
+    ) -> (QuestId, SyncQuest, JoinHandle<Result<T>>)
+    where
+        F: FnOnce(SyncQuest) -> Fut,
+        Fut: Future<Output = Result<T>> + Send + 'static,
+        T: Send + Sync + 'a + 'static,
+    {
+        let quest = Quest::new_synced(description);
+        let quest_id = quest.lock().await.id;
+        let f = Box::pin(f(quest.clone()));
+        self.sub_quests.push(quest.clone());
+        let return_quest = quest.clone();
+        let result = tokio::spawn(async move {
+            quest.lock().await.state = State::Ongoing;
+            finish_quest(&quest, f.await).await
+        });
+        (quest_id, return_quest, result)
     }
 
     pub async fn sub_quest_progress(&self) -> Progress {
