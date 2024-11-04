@@ -1,5 +1,5 @@
 pub use super::{Error, Result};
-use crate::quest::{Quest, QuestId, State, SyncQuest};
+use crate::quest::{finish_quest, Quest, QuestId, State, SyncQuest};
 use futures::future::BoxFuture;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -30,12 +30,8 @@ impl QuestMaster {
         tokio::spawn(async move {
             while let Some((quest, future)) = rx.recv().await {
                 quest.lock().await.state = State::Ongoing;
-                match future.await {
-                    Err(e) => {
-                        println!("Quest with id {} failed: {e}", quest.lock().await.id.0);
-                        quest.lock().await.state = State::Failed;
-                    }
-                    Ok(()) => quest.lock().await.state = State::Success,
+                if let Err(e) = finish_quest(&quest, future.await).await {
+                    println!("Quest with id {} failed: {e}", quest.lock().await.id.0);
                 }
             }
         });
@@ -72,7 +68,7 @@ impl QuestMaster {
     ) -> Result<(QuestId, SyncQuest)>
     where
         F: FnOnce(SyncQuest) -> Fut,
-        Fut: Future<Output = Result<()>> + Send + Sync + 'static,
+        Fut: Future<Output = Result<()>> + Send + 'static,
     {
         let quest = Quest::new_synced(description.clone());
         let quest_id = quest.lock().await.id;
