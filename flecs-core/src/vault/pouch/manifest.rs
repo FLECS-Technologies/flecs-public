@@ -34,7 +34,7 @@ impl VaultPouch for ManifestPouch {
                 errors.push(e.to_string());
                 break;
             }
-            match serde_json::to_string(&manifest.original) {
+            match serde_json::to_string_pretty(manifest) {
                 Err(e) => errors.push(e.to_string()),
                 Ok(content) => {
                     if let Err(e) = fs::write(path.join(MANIFEST_FILE_NAME), content) {

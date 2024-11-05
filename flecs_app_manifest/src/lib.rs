@@ -27,10 +27,12 @@ impl FromStr for AppManifestVersion {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Serialize)]
 pub struct AppManifest {
+    #[serde(skip_serializing)]
     pub manifest: manifest_3_0_0::FlecsAppManifest,
-    pub original: AppManifestVersion,
+    #[serde(flatten)]
+    original: AppManifestVersion,
 }
 
 impl TryFrom<AppManifestVersion> for AppManifest {
@@ -51,9 +53,33 @@ impl TryFrom<AppManifestVersion> for AppManifest {
 mod tests {
     use super::*;
 
-    #[test]
-    fn parse_valid_manifest_3_test() {
-        const MANIFEST_STR: &str = r#"{
+    const VALID_MANIFEST_NO_SCHEMA_VERSION: &str = r#"{
+    "app": "tech.flecs.flunder",
+    "version": "3.0.0",
+    "image": "flecs.azurecr.io/tech.flecs.flunder",
+    "multiInstance": false,
+    "editor": ":1234",
+    "args": [
+        "--adminspace-permissions=rw",
+        "--rest-http-port=8000"
+    ],
+    "env": [
+        "RUST_LOG=debug"
+    ],
+    "interactive": false,
+    "ports": [
+        "7447:7447"
+    ],
+    "volumes": [
+        "zenoh:/root/.zenoh"
+    ],
+    "labels": [
+        "mqtt",
+        "realtime"
+    ]
+}
+"#;
+    const VALID_MANIFEST_3: &str = r#"{
     "app": "tech.flecs.flunder",
     "_schemaVersion": "3.0.0",
     "version": "3.0.0",
@@ -87,14 +113,7 @@ mod tests {
 }
 "#;
 
-        match AppManifestVersion::from_str(MANIFEST_STR).unwrap() {
-            AppManifestVersion::V3_0_0(val) => val,
-            _ => panic!("Wrong enum variant"),
-        };
-    }
-    #[test]
-    fn parse_valid_manifest_2_test() {
-        const MANIFEST_STR: &str = r#"{
+    const VALID_MANIFEST_2: &str = r#"{
     "app": "tech.flecs.flunder",
     "_schemaVersion": "2.0.0",
     "version": "3.0.0",
@@ -122,42 +141,55 @@ mod tests {
 }
 "#;
 
-        match AppManifestVersion::from_str(MANIFEST_STR).unwrap() {
+    #[test]
+    fn parse_valid_manifest_3_test() {
+        match AppManifestVersion::from_str(VALID_MANIFEST_3).unwrap() {
+            AppManifestVersion::V3_0_0(val) => val,
+            _ => panic!("Wrong enum variant"),
+        };
+    }
+
+    #[test]
+    fn parse_valid_manifest_2_test() {
+        match AppManifestVersion::from_str(VALID_MANIFEST_2).unwrap() {
             AppManifestVersion::V2_0_0(val) => val,
             _ => panic!("Wrong enum variant"),
         };
     }
 
     #[test]
-    fn parse_valid_manifest_no_schema_version_test() {
-        const MANIFEST_STR: &str = r#"{
-    "app": "tech.flecs.flunder",
-    "version": "3.0.0",
-    "image": "flecs.azurecr.io/tech.flecs.flunder",
-    "multiInstance": false,
-    "editor": ":1234",
-    "args": [
-        "--adminspace-permissions=rw",
-        "--rest-http-port=8000"
-    ],
-    "env": [
-        "RUST_LOG=debug"
-    ],
-    "interactive": false,
-    "ports": [
-        "7447:7447"
-    ],
-    "volumes": [
-        "zenoh:/root/.zenoh"
-    ],
-    "labels": [
-        "mqtt",
-        "realtime"
-    ]
-}
-"#;
+    fn manifest_serialized_as_original_v2() {
+        let original = AppManifestVersion::from_str(VALID_MANIFEST_2).unwrap();
+        let manifest = AppManifest::try_from(original.clone()).unwrap();
+        assert_eq!(
+            serde_json::to_string(&original).unwrap(),
+            serde_json::to_string(&manifest).unwrap()
+        );
+    }
 
-        match AppManifestVersion::from_str(MANIFEST_STR).unwrap() {
+    #[test]
+    fn manifest_serialized_as_original_v3() {
+        let original = AppManifestVersion::from_str(VALID_MANIFEST_3).unwrap();
+        let manifest = AppManifest::try_from(original.clone()).unwrap();
+        assert_eq!(
+            serde_json::to_string(&original).unwrap(),
+            serde_json::to_string(&manifest).unwrap()
+        );
+    }
+
+    #[test]
+    fn manifest_serialized_as_original_no_schema_version() {
+        let original = AppManifestVersion::from_str(VALID_MANIFEST_NO_SCHEMA_VERSION).unwrap();
+        let manifest = AppManifest::try_from(original.clone()).unwrap();
+        assert_eq!(
+            serde_json::to_string(&original).unwrap(),
+            serde_json::to_string(&manifest).unwrap()
+        );
+    }
+
+    #[test]
+    fn parse_valid_manifest_no_schema_version_test() {
+        match AppManifestVersion::from_str(VALID_MANIFEST_NO_SCHEMA_VERSION).unwrap() {
             AppManifestVersion::V2_0_0(val) => val,
             _ => panic!("Wrong enum variant"),
         };
