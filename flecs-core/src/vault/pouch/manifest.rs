@@ -6,16 +6,17 @@ use std::fs;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::Arc;
 
 const MANIFEST_FILE_NAME: &str = "manifest.json";
 
 pub struct ManifestPouch {
     path: PathBuf,
-    manifests: HashMap<AppKey, AppManifest>,
+    manifests: HashMap<AppKey, Arc<AppManifest>>,
 }
 
 impl Pouch for ManifestPouch {
-    type Gems = HashMap<AppKey, AppManifest>;
+    type Gems = HashMap<AppKey, Arc<AppManifest>>;
 
     fn gems(&self) -> &Self::Gems {
         &self.manifests
@@ -66,7 +67,7 @@ impl VaultPouch for ManifestPouch {
                             name: manifest.app.deref().clone(),
                             version: manifest.version.clone(),
                         },
-                        manifest,
+                        Arc::new(manifest),
                     );
                     println!("Successful read manifest from {entry:?}");
                 }
@@ -197,14 +198,14 @@ mod tests {
                     name: manifest1.app.deref().clone(),
                     version: manifest1.version.clone(),
                 },
-                manifest1,
+                Arc::new(manifest1),
             ),
             (
                 AppKey {
                     name: manifest2.app.deref().clone(),
                     version: manifest2.version.clone(),
                 },
-                manifest2,
+                Arc::new(manifest2),
             ),
         ]);
         let mut manifest_pouch = ManifestPouch { manifests, path };
@@ -238,14 +239,14 @@ mod tests {
                     name: manifest1.app.deref().clone(),
                     version: manifest1.version.clone(),
                 },
-                manifest1,
+                Arc::new(manifest1),
             ),
             (
                 AppKey {
                     name: manifest2.app.deref().clone(),
                     version: manifest2.version.clone(),
                 },
-                manifest2,
+                Arc::new(manifest2),
             ),
         ]);
         let mut manifest_pouch = ManifestPouch {
@@ -283,7 +284,7 @@ mod tests {
                 name: manifest.app.deref().clone(),
                 version: manifest.version.clone(),
             },
-            manifest,
+            Arc::new(manifest),
         )]);
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
@@ -343,14 +344,14 @@ mod tests {
                     name: manifest1.app.deref().clone(),
                     version: manifest1.version.clone(),
                 },
-                manifest1,
+                Arc::new(manifest1),
             ),
             (
                 AppKey {
                     name: manifest2.app.deref().clone(),
                     version: manifest2.version.clone(),
                 },
-                manifest2,
+                Arc::new(manifest2),
             ),
         ]);
         let mut manifest_pouch = ManifestPouch {
