@@ -1,6 +1,7 @@
 use generated::manifest_2_0_0;
 use generated::manifest_3_0_0;
 use serde::{Deserialize, Serialize};
+use std::ops::Deref;
 use std::str::FromStr;
 
 pub mod conversion;
@@ -30,9 +31,17 @@ impl FromStr for AppManifestVersion {
 #[derive(Debug, Eq, PartialEq, Clone, Serialize)]
 pub struct AppManifest {
     #[serde(skip_serializing)]
-    pub manifest: manifest_3_0_0::FlecsAppManifest,
+    manifest: manifest_3_0_0::FlecsAppManifest,
     #[serde(flatten)]
     original: AppManifestVersion,
+}
+
+impl Deref for AppManifest {
+    type Target = manifest_3_0_0::FlecsAppManifest;
+
+    fn deref(&self) -> &Self::Target {
+        &self.manifest
+    }
 }
 
 impl TryFrom<AppManifestVersion> for AppManifest {

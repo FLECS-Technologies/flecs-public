@@ -3,6 +3,7 @@ use crate::vault::Error;
 use flecs_app_manifest::AppManifest;
 use std::collections::HashMap;
 use std::fs;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -62,8 +63,8 @@ impl VaultPouch for ManifestPouch {
                 Ok(manifest) => {
                     self.manifests.insert(
                         AppKey {
-                            name: (*manifest.manifest.app).clone(),
-                            version: manifest.manifest.version.clone(),
+                            name: manifest.app.deref().clone(),
+                            version: manifest.version.clone(),
                         },
                         manifest,
                     );
@@ -97,6 +98,7 @@ mod tests {
     use serde_json::Value;
     use std::fs;
     use std::io::Write;
+    use std::ops::Deref;
     use std::path::Path;
 
     const TEST_PATH: &str = "/tmp/flecs-tests/manifest-pouch/";
@@ -192,15 +194,15 @@ mod tests {
         let manifests = HashMap::from([
             (
                 AppKey {
-                    name: manifest1.manifest.app.to_string(),
-                    version: manifest1.manifest.version.clone(),
+                    name: manifest1.app.deref().clone(),
+                    version: manifest1.version.clone(),
                 },
                 manifest1,
             ),
             (
                 AppKey {
-                    name: manifest2.manifest.app.to_string(),
-                    version: manifest2.manifest.version.clone(),
+                    name: manifest2.app.deref().clone(),
+                    version: manifest2.version.clone(),
                 },
                 manifest2,
             ),
@@ -233,15 +235,15 @@ mod tests {
         let manifests = HashMap::from([
             (
                 AppKey {
-                    name: manifest1.manifest.app.to_string(),
-                    version: manifest1.manifest.version.clone(),
+                    name: manifest1.app.deref().clone(),
+                    version: manifest1.version.clone(),
                 },
                 manifest1,
             ),
             (
                 AppKey {
-                    name: manifest2.manifest.app.to_string(),
-                    version: manifest2.manifest.version.clone(),
+                    name: manifest2.app.deref().clone(),
+                    version: manifest2.version.clone(),
                 },
                 manifest2,
             ),
@@ -278,8 +280,8 @@ mod tests {
 
         let manifests = HashMap::from([(
             AppKey {
-                name: manifest.manifest.app.to_string(),
-                version: manifest.manifest.version.clone(),
+                name: manifest.app.deref().clone(),
+                version: manifest.version.clone(),
             },
             manifest,
         )]);
@@ -338,15 +340,15 @@ mod tests {
         let gems = HashMap::from([
             (
                 AppKey {
-                    name: manifest1.manifest.app.to_string(),
-                    version: manifest1.manifest.version.clone(),
+                    name: manifest1.app.deref().clone(),
+                    version: manifest1.version.clone(),
                 },
                 manifest1,
             ),
             (
                 AppKey {
-                    name: manifest2.manifest.app.to_string(),
-                    version: manifest2.manifest.version.clone(),
+                    name: manifest2.app.deref().clone(),
+                    version: manifest2.version.clone(),
                 },
                 manifest2,
             ),
