@@ -1,4 +1,4 @@
-use crate::vault::pouch::{AppKey, Pouch, VaultPouch};
+use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Error;
 use flecs_app_manifest::AppManifest;
 use std::collections::HashMap;
@@ -27,8 +27,9 @@ impl Pouch for ManifestPouch {
     }
 }
 
-impl VaultPouch for ManifestPouch {
-    fn close(&mut self) -> crate::vault::Result<()> {
+impl ManifestPouch {
+    #[allow(dead_code)] // TODO: We currently can not close the pouch as this would overwrite data of C++ core
+    pub(in super::super) fn close(&mut self) -> crate::vault::Result<()> {
         let mut errors: Vec<String> = Vec::new();
         for (key, manifest) in &self.manifests {
             let path = self.path.join(key.name.as_str()).join(key.version.as_str());
@@ -52,7 +53,7 @@ impl VaultPouch for ManifestPouch {
         }
     }
 
-    fn open(&mut self) -> crate::vault::Result<()> {
+    pub(in super::super) fn open(&mut self) -> crate::vault::Result<()> {
         let path = self.path.join(format!("*/*/{MANIFEST_FILE_NAME}"));
         let path = path.to_str().ok_or(Error::Single(String::from("")))?;
         self.manifests.clear();
@@ -332,7 +333,7 @@ mod tests {
 
     #[test]
     fn manifest_gems() {
-        let path = Path::new(TEST_PATH).join("close_pouch");
+        let path = Path::new(TEST_PATH).join("manifest_gems");
         prepare_path(&path);
 
         let manifest1 = create_test_manifest("mample", "2.1.3");

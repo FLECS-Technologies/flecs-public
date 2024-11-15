@@ -1,7 +1,7 @@
 pub mod pouch;
 
 use crate::vault::pouch::{Deployment, DeploymentPouch, Pouch, Secrets};
-use pouch::{AppPouch, ManifestPouch, SecretPouch, VaultPouch};
+use pouch::{AppPouch, ManifestPouch, SecretPouch};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -193,9 +193,6 @@ impl Vault {
             ..
         } = grabbed_pouches
         {
-            app_pouch_mut
-                .open()
-                .unwrap_or_else(|e| eprintln!("Could not open AppPouch: {e}"));
             secret_pouch_mut
                 .open()
                 .unwrap_or_else(|e| eprintln!("Could not open SecretPouch: {e}"));
@@ -207,7 +204,12 @@ impl Vault {
                     let deployments = deployment_pouch_mut.gems_mut();
                     if deployments.is_empty() {
                         let default_deployment = Deployment::default();
-                        deployments.insert(default_deployment.id(), Arc::new(default_deployment));
+                        deployments.insert(
+                            default_deployment.id(),
+                            Arc::new(match default_deployment {
+                                Deployment::Docker(default) => default,
+                            }),
+                        );
                         println!("No deployments configured, added default Docker deployment");
                     }
                 }
@@ -215,6 +217,9 @@ impl Vault {
                     eprintln!("Could not open DeploymentPouch: {e}");
                 }
             }
+            app_pouch_mut
+                .open(manifest_pouch_mut.gems(), deployment_pouch_mut.gems())
+                .unwrap_or_else(|e| eprintln!("Could not open AppPouch: {e}"));
         } else {
             panic!("Could not reserve pouches for filling");
         }
@@ -446,9 +451,17 @@ mod tests {
         vault.open().await;
         let grab = vault.reservation().reserve_deployment_pouch().grab().await;
         let expected = Deployment::default();
-        let expected: <DeploymentPouch as Pouch>::Gems =
-            [(expected.id(), Arc::new(expected))].into();
-        assert_eq!(grab.deployment_pouch.as_ref().unwrap().gems(), &expected);
+        assert_eq!(grab.deployment_pouch.as_ref().unwrap().gems().len(), 1);
+        assert_eq!(
+            grab.deployment_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&expected.id())
+                .unwrap()
+                .id(),
+            expected.id()
+        );
     }
 
     #[tokio::test]

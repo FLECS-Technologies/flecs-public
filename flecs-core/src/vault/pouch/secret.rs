@@ -1,5 +1,5 @@
 use super::Result;
-use super::{combine_results, Pouch, VaultPouch};
+use super::{combine_results, Pouch};
 use flecs_console_client::models::SessionId;
 use flecsd_axum_server::models::AuthResponseData;
 use std::fs;
@@ -60,13 +60,13 @@ impl Pouch for SecretPouch {
     }
 }
 
-impl VaultPouch for SecretPouch {
-    fn close(&mut self) -> crate::vault::Result<()> {
+impl SecretPouch {
+    pub(in super::super) fn close(&mut self) -> crate::vault::Result<()> {
         fs::create_dir_all(&self.path)?;
         combine_results(self.save_session(), self.save_license())
     }
 
-    fn open(&mut self) -> crate::vault::Result<()> {
+    pub(in super::super) fn open(&mut self) -> crate::vault::Result<()> {
         combine_results(self.read_session(), self.read_license())
     }
 }
