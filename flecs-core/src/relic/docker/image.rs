@@ -1,11 +1,11 @@
 pub use super::Result;
-use crate::relic::docker::{
-    error_detail_to_update, progress_detail_to_update, write_stream_to_file, ByteResult,
-    ByteStatus, CallResult, Status, StatusUpdate,
-};
+use crate::quest::{Progress, State, SyncQuest};
+use crate::relic::docker::write_stream_to_file;
 use bollard::auth::DockerCredentials;
 use bollard::image::{CreateImageOptions, ImportImageOptions, RemoveImageOptions};
-use bollard::models::{BuildInfo, CreateImageInfo, ImageDeleteResponseItem, ImageInspect};
+use bollard::models::{
+    BuildInfo, CreateImageInfo, ErrorDetail, ImageDeleteResponseItem, ImageInspect, ProgressDetail,
+};
 use bollard::Docker;
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
@@ -13,57 +13,83 @@ use std::default::Default;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::fs::File;
-use tokio::sync::Mutex;
 use tokio_util::codec;
 
-impl StatusUpdate for CreateImageInfo {
-    fn get_status_update(&self) -> Option<(String, String)> {
-        match self {
-            CreateImageInfo {
-                id: Some(id),
-                status: Some(status),
-                progress_detail,
-                ..
-            } => {
-                let details = progress_detail_to_update(progress_detail);
-                Some((id.clone(), format!("{status}{details}")))
-            }
-            CreateImageInfo {
-                id: Some(id),
-                error: Some(error),
-                error_detail,
-                ..
-            } => {
-                let details = error_detail_to_update(error_detail);
-                Some((id.clone(), format!("Error: {error}{details}")))
-            }
-            _ => None,
+impl TryFrom<&ProgressDetail> for Progress {
+    type Error = ();
+
+    fn try_from(value: &ProgressDetail) -> Result<Self, Self::Error> {
+        match value {
+            ProgressDetail {
+                current: Some(current),
+                total: Some(total),
+            } => Ok(Progress {
+                current: *current as u64,
+                total: Some(*total as u64),
+            }),
+            _ => Err(()),
         }
     }
 }
 
-impl StatusUpdate for BuildInfo {
-    fn get_status_update(&self) -> Option<(String, String)> {
-        match self {
-            Self {
-                id: Some(id),
-                status: Some(status),
-                progress_detail,
-                ..
-            } => {
-                let details = progress_detail_to_update(progress_detail);
-                Some((id.clone(), format!("{status}{details}")))
-            }
-            Self {
-                id: Some(id),
-                error: Some(error),
-                error_detail,
-                ..
-            } => {
-                let details = error_detail_to_update(error_detail);
-                Some((id.clone(), format!("Error: {error}{details}")))
-            }
-            _ => None,
+fn details_from_error_details(
+    error: Option<&String>,
+    error_detail: Option<&ErrorDetail>,
+    status: Option<&String>,
+) -> Option<String> {
+    let error_details = match (error, error_detail) {
+        (Some(error), error_details) => {
+            let error_details = match error_details {
+                Some(ErrorDetail {
+                    code: Some(code),
+                    message: Some(message),
+                }) => {
+                    format!(" (code {code}, {message})")
+                }
+                Some(ErrorDetail {
+                    code: Some(code), ..
+                }) => {
+                    format!(" (code {code})")
+                }
+                Some(ErrorDetail {
+                    message: Some(message),
+                    ..
+                }) => {
+                    format!(" ({message})")
+                }
+                _ => String::new(),
+            };
+            Some(format!("{error}{error_details})"))
+        }
+        _ => None,
+    };
+    match (status, &error_details) {
+        (Some(status), Some(error_details)) => Some(format!("{status}: {error_details})")),
+        (Some(detail), None) | (None, Some(detail)) => Some(detail.clone()),
+        _ => None,
+    }
+}
+
+impl crate::quest::StatusUpdate for CreateImageInfo {
+    fn progress(&self) -> Option<Progress> {
+        match &self.progress_detail {
+            Some(progress) => Progress::try_from(progress).ok(),
+            None => None,
+        }
+    }
+
+    fn details(&self) -> Option<String> {
+        details_from_error_details(
+            self.error.as_ref(),
+            self.error_detail.as_ref(),
+            self.status.as_ref(),
+        )
+    }
+
+    fn state(&self) -> Option<State> {
+        match (&self.error, &self.error_detail) {
+            (None, None) => None,
+            _ => Some(State::Failing),
         }
     }
 }
@@ -72,30 +98,42 @@ impl StatusUpdate for BuildInfo {
 /// Poll and print the status until pull is complete:
 /// ```no_run
 /// use bollard::Docker;
+/// use flecs_core::quest::quest_master::QuestMaster;
+/// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::image::pull;
 /// use std::sync::Arc;
+/// use tokio::sync::oneshot;
 /// use tokio::time::{sleep, Duration};
 ///
 /// # tokio_test::block_on(
 /// async {
+///     let mut quest_master = QuestMaster::new();
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
-///     let result = pull(
-///         docker_client,
-///         Default::default(),
-///         "opensearchproject/opensearch",
-///         "latest",
-///         "linux/amd64",
-///     );
+///     let (tx, rx) = oneshot::channel();
+///     let (_id, quest) = quest_master
+///         .schedule_quest("Docker pull quest".to_string(), |quest| async move {
+///             let pull_result = pull(
+///                 quest,
+///                 docker_client,
+///                 Default::default(),
+///                 "opensearchproject/opensearch",
+///                 "latest",
+///             )
+///             .await;
+///             tx.send(pull_result).unwrap();
+///             Ok(())
+///         })
+///         .await
+///         .unwrap();
 ///     loop {
 ///         sleep(Duration::from_millis(2000)).await;
-///         let result = result.status.lock().await;
 ///         println!("----------");
-///         println!("{result}");
-///         if result.finished {
+///         println!("{}", Quest::fmt(quest.clone()).await);
+///         if quest.lock().await.state.is_finished() {
 ///             break;
 ///         }
 ///     }
-///     result.handle.await.unwrap();
+///     let _id = rx.await.unwrap();
 /// }
 /// # )
 /// ```
@@ -103,56 +141,56 @@ impl StatusUpdate for BuildInfo {
 /// Await the complete pull without accessing any sub results:
 /// ```no_run
 /// use bollard::Docker;
+/// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::image::pull;
 /// use std::sync::Arc;
-/// use tokio::time::{sleep, Duration};
 /// # tokio_test::block_on(
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
-///     let result = pull(
+///     let quest = Quest::new_synced("Docker pull quest".to_string());
+///     let id = pull(
+///         quest,
 ///         docker_client,
 ///         Default::default(),
 ///         "opensearchproject/opensearch",
 ///         "latest",
-///         "linux/arm64",
-///     );
-///     result.handle.await.unwrap();
-///     let result = result.status.lock().await;
-///     println!("{result}");
+///     )
+///     .await
+///     .unwrap();
+///     println!("{id}");
 /// }
 /// # )
 /// ```
-pub fn pull(
+pub async fn pull(
+    quest: SyncQuest,
     docker_client: Arc<Docker>,
     credentials: Option<DockerCredentials>,
     image: &str,
     tag: &str,
-    platform: &str,
-) -> CallResult<()> {
-    let status: Arc<Mutex<Status>> = Default::default();
-    let image = image.to_string();
-    let tag = tag.to_string();
-    let platform = platform.to_string();
-    let closure_status = status.clone();
-    let handle = tokio::spawn(async move {
-        let status = closure_status;
-        let options = Some(CreateImageOptions {
-            from_image: image.as_str(),
-            tag: tag.as_str(),
-            platform: platform.as_str(),
-            ..Default::default()
-        });
-
-        let mut results = docker_client.create_image(options, None, credentials);
-        while let Some(result) = results.next().await {
-            status
-                .lock()
-                .await
-                .add_result(result.map_err(anyhow::Error::from));
-        }
-        status.lock().await.finish();
+) -> Result<String> {
+    let options = Some(CreateImageOptions {
+        from_image: image,
+        tag,
+        ..Default::default()
     });
-    CallResult { status, handle }
+
+    let mut last_result = None;
+    let mut results = docker_client.create_image(options, None, credentials);
+    while let Some(result) = results.next().await {
+        let result = result?;
+        quest.lock().await.update(&result);
+        last_result = Some(result);
+    }
+    match last_result {
+        None => anyhow::bail!("Received no info from docker"),
+        Some(_) => {
+            let id = format!("{image}:{tag}");
+            let image = inspect(docker_client, &id).await?;
+            image
+                .id
+                .ok_or_else(|| anyhow::anyhow!("Could not get image id for {id}"))
+        }
+    }
 }
 
 /// # Example
@@ -214,11 +252,35 @@ pub async fn remove(
         .await?)
 }
 
+impl crate::quest::StatusUpdate for BuildInfo {
+    fn progress(&self) -> Option<Progress> {
+        match &self.progress_detail {
+            Some(progress) => Progress::try_from(progress).ok(),
+            None => None,
+        }
+    }
+
+    fn details(&self) -> Option<String> {
+        details_from_error_details(
+            self.error.as_ref(),
+            self.error_detail.as_ref(),
+            self.status.as_ref(),
+        )
+    }
+
+    fn state(&self) -> Option<State> {
+        match (&self.error, &self.error_detail) {
+            (None, None) => None,
+            _ => Some(State::Failing),
+        }
+    }
+}
 /// # Example
 /// ```no_run
 /// use bollard::auth::DockerCredentials;
 /// use bollard::image::ImportImageOptions;
 /// use bollard::Docker;
+/// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::image::load;
 /// use std::collections::HashMap;
 /// use std::path::Path;
@@ -230,6 +292,7 @@ pub async fn remove(
 ///     let path = Path::new("/path/to/image.tar");
 ///     let password = Some("e8bb92d7-cf1c-4f50-802f-3482b3ac38c4".to_string());
 ///     let username = Some("peter".to_string());
+///     let quest = Quest::new_synced("Docker load image".to_string());
 ///     let credentials: HashMap<String, DockerCredentials> = HashMap::from([
 ///         (
 ///             // For legacy reasons the docker hub registry has to specified exactly like this
@@ -246,16 +309,15 @@ pub async fn remove(
 ///         ),
 ///     ]);
 ///
-///     let result = load(
+///     load(
+///         quest,
 ///         docker_client,
 ///         path,
 ///         ImportImageOptions::default(),
 ///         Some(credentials),
 ///     )
-///     .await;
-///
-///     result.handle.await.unwrap();
-///     let _result = result.status.lock().await;
+///     .await
+///     .unwrap();
 /// }
 /// # )
 /// ```
@@ -263,6 +325,8 @@ pub async fn remove(
 /// ```no_run
 /// use bollard::image::ImportImageOptions;
 /// use bollard::Docker;
+/// use flecs_core::quest::quest_master::QuestMaster;
+/// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::image::load;
 /// use std::path::Path;
 /// use std::sync::Arc;
@@ -271,69 +335,58 @@ pub async fn remove(
 /// # tokio_test::block_on(
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
-///     let result = load(
-///         docker_client,
-///         Path::new("/tmp/opensearch.latest.tar"),
-///         ImportImageOptions { quiet: false },
-///         None,
-///     )
-///     .await;
+///     let mut quest_master = QuestMaster::new();
+///     let (_id, quest) = quest_master
+///         .schedule_quest("Docker load image".to_string(), |quest| async move {
+///             load(
+///                 quest,
+///                 docker_client,
+///                 Path::new("/tmp/opensearch.latest.tar"),
+///                 ImportImageOptions { quiet: false },
+///                 None,
+///             )
+///             .await
+///         })
+///         .await
+///         .unwrap();
 ///
 ///     loop {
-///         sleep(Duration::from_millis(100)).await;
-///         let result = result.status.lock().await;
+///         sleep(Duration::from_millis(2000)).await;
 ///         println!("----------");
-///         println!("{result}");
-///         if result.finished {
+///         println!("{}", Quest::fmt(quest.clone()).await);
+///         if quest.lock().await.state.is_finished() {
 ///             break;
 ///         }
 ///     }
-///     result.handle.await.unwrap();
 /// }
 /// # )
 /// ```
 pub async fn load(
+    quest: SyncQuest,
     docker_client: Arc<Docker>,
     path: &Path,
     options: ImportImageOptions,
     credentials: Option<HashMap<String, DockerCredentials>>,
-) -> CallResult<()> {
-    let status: Arc<Mutex<Status>> = Default::default();
-    let path = path.to_path_buf();
-    let closure_status = status.clone();
+) -> Result<()> {
+    let file = File::open(path).await?;
 
-    let handle = tokio::spawn(async move {
-        let status = closure_status;
-        let file = match File::open(path).await {
-            Ok(file) => file,
-            Err(e) => {
-                let mut status = status.lock().await;
-                status.add_error(anyhow::anyhow!(e));
-                status.finish();
-                return;
-            }
-        };
+    let byte_stream =
+        codec::FramedRead::new(file, codec::BytesCodec::new()).map(|r| r.unwrap().freeze());
 
-        let byte_stream =
-            codec::FramedRead::new(file, codec::BytesCodec::new()).map(|r| r.unwrap().freeze());
+    let mut stream = docker_client.import_image_stream(options, byte_stream, credentials);
 
-        let mut stream = docker_client.import_image_stream(options, byte_stream, credentials);
-
-        while let Some(result) = stream.next().await {
-            status
-                .lock()
-                .await
-                .add_result(result.map_err(anyhow::Error::from));
-        }
-        status.lock().await.finish();
-    });
-    CallResult { status, handle }
+    while let Some(result) = stream.next().await {
+        quest.lock().await.update(&result?)
+    }
+    Ok(())
 }
 
 /// # Examples
 /// Poll and print the progress until save is complete:
 /// ```no_run
 /// use bollard::Docker;
+/// use flecs_core::quest::quest_master::QuestMaster;
+/// use flecs_core::quest::Progress;
 /// use flecs_core::relic::docker::image::save;
 /// use flecs_core::relic::docker::ByteStatus;
 /// use std::path::Path;
@@ -343,36 +396,38 @@ pub async fn load(
 /// # tokio_test::block_on(
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
-///     let result = save(
-///         docker_client,
-///         Path::new("/tmp/opensearch.latest.tar"),
-///         "opensearchproject/opensearch:latest",
-///     );
+///     let mut quest_master = QuestMaster::new();
+///     let (_id, quest) = quest_master
+///         .schedule_quest("Docker save".to_string(), |quest| async move {
+///             save(
+///                 quest,
+///                 docker_client,
+///                 Path::new("/tmp/opensearch.latest.tar"),
+///                 "opensearchproject/opensearch:latest",
+///             )
+///             .await
+///         })
+///         .await
+///         .unwrap();
 ///     loop {
 ///         sleep(Duration::from_millis(100)).await;
-///         let result = result.status.lock().await;
+///         let quest = quest.lock().await;
 ///         println!("----------");
-///         match *result {
-///             ByteStatus::Complete(bytes) => {
-///                 println!("Export complete, {bytes} bytes written");
-///                 break;
-///             }
-///             ByteStatus::Partial(bytes) => {
-///                 println!("Export ongoing, {bytes} bytes written");
-///             }
-///             ByteStatus::Error(bytes) => {
-///                 println!("Export failed, {bytes} bytes written");
-///                 break;
-///             }
+///         if let Some(Progress { current, .. }) = quest.progress {
+///             println!("{current} bytes written");
+///         }
+///         if quest.state.is_finished() {
+///             println!("Docker save finished with {}", quest.state);
+///             break;
 ///         }
 ///     }
-///     result.handle.await.unwrap().unwrap();
 /// }
 /// # )
 /// ```
 /// Await the complete save without accessing any sub progress:
 /// ```no_run
 /// use bollard::Docker;
+/// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::image::save;
 /// use std::path::Path;
 /// use std::sync::Arc;
@@ -380,30 +435,35 @@ pub async fn load(
 /// # tokio_test::block_on(
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let quest = Quest::new_synced("Docker save".to_string());
 ///     let result = save(
+///         quest,
 ///         docker_client,
 ///         Path::new("/tmp/opensearch.latest.tar"),
 ///         "opensearchproject/opensearch:latest",
-///     );
-///     result.handle.await.unwrap().unwrap();
-///     let result = result.status.lock().await;
-///     println!("{:?}", *result);
+///     )
+///     .await
+///     .unwrap();
 /// }
 /// # )
 /// ```
-pub fn save(docker_client: Arc<Docker>, path: &Path, image: &str) -> ByteResult<()> {
-    let status = Arc::new(Mutex::new(ByteStatus::Partial(0)));
+pub async fn save(
+    quest: SyncQuest,
+    docker_client: Arc<Docker>,
+    path: &Path,
+    image: &str,
+) -> Result<()> {
     let image = image.to_string();
     let path = path.to_path_buf();
-    let closure_status = status.clone();
-    let handle = tokio::spawn(async move {
-        let result = docker_client.export_image(&image);
-
-        let result = write_stream_to_file(result, &path, closure_status.clone()).await;
-        if result.is_err() {
-            closure_status.lock().await.fail();
-        }
-        result
-    });
-    ByteResult { status, handle }
+    quest
+        .lock()
+        .await
+        .create_sub_quest("Writing image to file".to_string(), |quest| async move {
+            let result = docker_client.export_image(&image);
+            write_stream_to_file(quest, result, &path).await?;
+            Ok(())
+        })
+        .await
+        .2
+        .await
 }
