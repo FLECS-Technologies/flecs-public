@@ -6,10 +6,10 @@ use async_compression::tokio::bufread::{GzipDecoder, GzipEncoder};
 use axum::body::Bytes;
 use bollard::container::{
     Config, CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions,
-    RemoveContainerOptions, StartContainerOptions, StopContainerOptions, UploadToContainerOptions,
+    RemoveContainerOptions, StopContainerOptions, UploadToContainerOptions,
 };
 use bollard::exec::{CreateExecOptions, StartExecOptions, StartExecResults};
-use bollard::models::{ContainerCreateResponse, ContainerInspectResponse, ContainerSummary};
+use bollard::models::{ContainerInspectResponse, ContainerSummary};
 use bollard::Docker;
 use futures::Stream;
 use futures_util::stream::StreamExt;
@@ -119,22 +119,13 @@ pub async fn stop(
 /// # tokio_test::block_on(
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
-///     start::<&str>(docker_client, "8c9a8332827c", None)
-///         .await
-///         .unwrap();
+///     start(docker_client, "8c9a8332827c").await.unwrap();
 /// }
 /// # )
 /// ```
-pub async fn start<T>(
-    docker_client: Arc<Docker>,
-    container_name: &str,
-    options: Option<StartContainerOptions<T>>,
-) -> Result<()>
-where
-    T: Into<String> + Serialize,
-{
+pub async fn start(docker_client: Arc<Docker>, container_name: &str) -> Result<()> {
     Ok(docker_client
-        .start_container(container_name, options)
+        .start_container::<&str>(container_name, None)
         .await?)
 }
 
@@ -169,12 +160,19 @@ pub async fn create<T, Z>(
     docker_client: Arc<Docker>,
     options: Option<CreateContainerOptions<T>>,
     config: Config<Z>,
-) -> Result<ContainerCreateResponse>
+) -> Result<String>
 where
     T: Into<String> + Eq + Hash + Serialize,
     Z: Into<String> + Hash + Eq + Serialize,
 {
-    Ok(docker_client.create_container(options, config).await?)
+    let response = docker_client.create_container(options, config).await?;
+    for warning in response.warnings {
+        println!(
+            "Received warning during creation of container {}: {warning}",
+            response.id
+        )
+    }
+    Ok(response.id)
 }
 
 /// # Example

@@ -1,68 +1,18 @@
-use crate::relic::device::usb::UsbDevice;
-use crate::vault::pouch::{AppKey, DeploymentId, Pouch, VaultPouch};
-use flecsd_axum_server::models;
-use flecsd_axum_server::models::InstanceStatus;
-use serde::{Deserialize, Serialize};
+use crate::jeweler;
+use crate::jeweler::deployment::Deployment;
+use crate::jeweler::gem::app::{try_create_app, App, AppDeserializable};
+use crate::vault::pouch::{AppKey, DeploymentId, Pouch};
+pub use crate::Result;
+use flecs_app_manifest::AppManifest;
 use std::collections::HashMap;
 use std::fs;
-use std::net::IpAddr;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 const APPS_FILE_NAME: &str = "apps.json";
-pub type AppStatus = models::AppStatus;
+pub type AppStatus = jeweler::app::AppStatus;
 
 pub type InstanceId = String;
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct PortRange {
-    start: u16,
-    end: u16,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(untagged)]
-pub enum PortMapping {
-    Range { from: PortRange, to: PortRange },
-    Single { from: u16, to: u16 },
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct EnvironmentVariable {
-    name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    value: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Network {
-    ip_addr: IpAddr,
-    mac_addr: String,
-    name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Instance {
-    id: InstanceId,
-    name: String,
-    desired: InstanceStatus,
-    networks: Vec<Network>,
-    environment: Vec<EnvironmentVariable>,
-    ports: Vec<PortMapping>,
-    usb_devices: Vec<UsbDevice>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct AppData {
-    desired: AppStatus,
-    instances: Vec<Instance>,
-}
-
-// TODO: Implement version handling
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct App {
-    app_key: AppKey,
-    properties: HashMap<DeploymentId, AppData>,
-}
 
 pub struct AppPouch {
     path: PathBuf,
@@ -81,22 +31,46 @@ impl Pouch for AppPouch {
     }
 }
 
-impl VaultPouch for AppPouch {
-    fn close(&mut self) -> crate::vault::Result<()> {
+impl AppPouch {
+    #[allow(dead_code)] // TODO: We currently can not close the pouch as this would overwrite data of C++ core
+    pub(in super::super) fn close(&mut self) -> Result<()> {
         let file = fs::File::create(self.path.join(APPS_FILE_NAME))?;
         let content: Vec<_> = self.apps.values().collect();
         serde_json::to_writer_pretty(file, &content)?;
         Ok(())
     }
 
-    fn open(&mut self) -> crate::vault::Result<()> {
-        let file = fs::File::open(self.path.join(APPS_FILE_NAME))?;
-        let apps: Vec<App> = serde_json::from_reader(file)?;
-        self.apps = apps
-            .into_iter()
-            .map(|app| (app.app_key.clone(), app))
-            .collect();
+    pub(in super::super) fn open(
+        &mut self,
+        manifests: &HashMap<AppKey, Arc<AppManifest>>,
+        deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
+    ) -> Result<()> {
+        self.apps = Self::create_apps(self.read_apps()?, manifests, deployments);
         Ok(())
+    }
+
+    fn read_apps(&self) -> Result<Vec<AppDeserializable>> {
+        let file = fs::File::open(self.path.join(APPS_FILE_NAME))?;
+        Ok(serde_json::from_reader(file)?)
+    }
+
+    fn create_apps(
+        apps: Vec<AppDeserializable>,
+        manifests: &HashMap<AppKey, Arc<AppManifest>>,
+        deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
+    ) -> HashMap<AppKey, App> {
+        apps.into_iter()
+            .filter_map(|app| {
+                let key = app.key.clone();
+                match try_create_app(app, manifests, deployments) {
+                    Ok(app) => Some((key, app)),
+                    Err(e) => {
+                        eprintln!("Could not create app {key}: {e}");
+                        None
+                    }
+                }
+            })
+            .collect()
     }
 }
 
@@ -112,11 +86,14 @@ impl AppPouch {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::jeweler::gem::app::AppDataDeserializable;
+    use crate::jeweler::gem::deployment::docker::DockerDeployment;
+    use crate::jeweler::gem::instance::{InstanceConfig, InstanceDeserializable, InstanceStatus};
+    use crate::vault::pouch;
+    use flecs_app_manifest::AppManifestVersion;
     use serde_json::Value;
     use std::fs;
-    use std::net::Ipv4Addr;
     use std::path::Path;
-    use std::str::FromStr;
 
     const TEST_PATH: &str = "/tmp/flecs-tests/app-pouch/";
 
@@ -131,117 +108,85 @@ mod tests {
     fn create_test_json() -> Value {
         serde_json::json!([
             {
-                "app_key": {
+                "key": {
                     "name": "test-app-1",
                     "version": "1.2.3"
                 },
                 "properties": {
                     "test-deployment-id-1": {
-                        "desired": "installed",
-                        "instances": [
-                            {
-                                "id": "test-instance-id-1",
+                        "desired": "Installed",
+                        "instances": {
+                            "1": {
+                                "id": 1,
                                 "name": "Some Test Instance #1",
-                                "desired": "running",
-                                "networks": [
-                                    {
-                                        "ip_addr": "12.34.56.78",
-                                        "mac_addr": "60:2D:2F:45:BA:72",
-                                        "name": "Some Test Network #1"
-                                    }
-                                ],
-                                "environment": [
-                                    {
-                                        "name": "VariableWithValue",
-                                        "value": "TestValue"
-                                    },
-                                    {
-                                        "name": "VariableWithoutValue"
-                                    }
-                                ],
-                                "ports": [
-                                    {
-                                        "from": 10,
-                                        "to": 20
-                                    },
-                                    {
-                                        "from": {
-                                            "start": 2000,
-                                            "end": 3000,
-                                        },
-                                        "to": {
-                                            "start": 5000,
-                                            "end": 6000,
-                                        }
-                                    }
-                                ],
-                                "usb_devices": [
-                                    {
-                                        "vid": 123,
-                                        "pid": 456,
-                                        "port": "test-port-1",
-                                        "device": "test-device-1",
-                                        "vendor": "test-vendor-1"
-                                    }
-                                ]
+                                "desired": "Running",
+                                "config": {
+                                    "image": "test-image"
+                                }
                             }
-                        ]
+                        }
                     }
                 }
             }
         ])
     }
 
+    fn create_test_manifests() -> HashMap<AppKey, Arc<AppManifest>> {
+        let manifest: flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifest =
+            flecs_app_manifest::generated::manifest_3_0_0::builder::FlecsAppManifest::default()
+                .app("test-app-1")
+                .image("test-image")
+                .version("1.2.3")
+                .try_into()
+                .unwrap();
+        HashMap::from([(
+            AppKey {
+                name: manifest.app.to_string(),
+                version: manifest.version.clone(),
+            },
+            Arc::new(AppManifestVersion::V3_0_0(manifest).try_into().unwrap()),
+        )])
+    }
+
+    fn create_test_deployments() -> HashMap<jeweler::deployment::DeploymentId, Arc<dyn Deployment>>
+    {
+        let deployment: Arc<dyn Deployment> =
+            pouch::deployment::Deployment::Docker(DockerDeployment::new(
+                "test-deployment-id-1".to_string(),
+                PathBuf::from("/var/run/docker.sock"),
+            ))
+            .into();
+        HashMap::from([(deployment.id(), deployment)])
+    }
+
     fn create_test_app() -> App {
-        App {
-            app_key: AppKey {
+        let manifests = create_test_manifests();
+        let deployments = create_test_deployments();
+        try_create_app(create_test_app_deserializable(), &manifests, &deployments).unwrap()
+    }
+
+    fn create_test_app_deserializable() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
                 name: "test-app-1".to_string(),
                 version: "1.2.3".to_string(),
             },
             properties: HashMap::from([(
                 "test-deployment-id-1".to_string(),
-                AppData {
+                AppDataDeserializable {
+                    id: None,
                     desired: AppStatus::Installed,
-                    instances: vec![Instance {
-                        id: "test-instance-id-1".to_string(),
-                        name: "Some Test Instance #1".to_string(),
-                        desired: InstanceStatus::Running,
-                        networks: vec![Network {
-                            ip_addr: IpAddr::V4(Ipv4Addr::from_str("12.34.56.78").unwrap()),
-                            mac_addr: "60:2D:2F:45:BA:72".to_string(),
-                            name: "Some Test Network #1".to_string(),
-                        }],
-                        environment: vec![
-                            EnvironmentVariable {
-                                name: "VariableWithValue".to_string(),
-                                value: Some("TestValue".to_string()),
+                    instances: HashMap::from([(
+                        1.into(),
+                        InstanceDeserializable {
+                            name: "Some Test Instance #1".to_string(),
+                            id: 1.into(),
+                            desired: InstanceStatus::Running,
+                            config: InstanceConfig {
+                                image: "test-image".to_string(),
                             },
-                            EnvironmentVariable {
-                                name: "VariableWithoutValue".to_string(),
-                                value: None,
-                            },
-                        ],
-                        ports: vec![
-                            PortMapping::Single { from: 10, to: 20 },
-                            PortMapping::Range {
-                                from: PortRange {
-                                    start: 2000,
-                                    end: 3000,
-                                },
-                                to: PortRange {
-                                    start: 5000,
-                                    end: 6000,
-                                },
-                            },
-                        ],
-                        usb_devices: vec![UsbDevice {
-                            vid: 123,
-                            pid: 456,
-                            port: "test-port-1".to_string(),
-                            device: "test-device-1".to_string(),
-                            vendor: "test-vendor-1".to_string(),
-                        }],
-                    }],
+                        },
+                    )]),
                 },
             )]),
         }
@@ -261,7 +206,9 @@ mod tests {
             apps: HashMap::default(),
             path,
         };
-        app_pouch.open().unwrap();
+        app_pouch
+            .open(&create_test_manifests(), &create_test_deployments())
+            .unwrap();
     }
 
     #[test]
@@ -271,7 +218,7 @@ mod tests {
         let json = create_test_json();
         let app = create_test_app();
         let mut app_pouch = AppPouch {
-            apps: HashMap::from([(app.app_key.clone(), app)]),
+            apps: HashMap::from([(app.key.clone(), app)]),
             path: path.clone(),
         };
         app_pouch.close().unwrap();
@@ -283,12 +230,15 @@ mod tests {
     #[test]
     fn app_gems() {
         let app = create_test_app();
-        let gems = HashMap::from([(app.app_key.clone(), app)]);
+        let key = app.key.clone();
+        let gems = HashMap::from([(key.clone(), app)]);
         let mut app_pouch = AppPouch {
-            apps: gems.clone(),
+            apps: gems,
             path: PathBuf::from(TEST_PATH),
         };
-        assert_eq!(&gems, app_pouch.gems());
-        assert_eq!(&gems, app_pouch.gems_mut());
+        assert_eq!(app_pouch.gems().len(), 1);
+        assert_eq!(app_pouch.gems().get(&key).unwrap().key, key);
+        assert_eq!(app_pouch.gems_mut().len(), 1);
+        assert_eq!(app_pouch.gems_mut().get(&key).unwrap().key, key);
     }
 }

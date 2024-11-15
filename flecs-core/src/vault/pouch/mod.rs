@@ -9,11 +9,7 @@ pub use deployment::*;
 pub use manifest::*;
 pub use secret::*;
 use serde::{Deserialize, Serialize};
-
-pub(super) trait VaultPouch: Pouch {
-    fn close(&mut self) -> Result<()>;
-    fn open(&mut self) -> Result<()>;
-}
+use std::fmt::{Display, Formatter};
 
 /// Structs that implement the Pouch trait have to provide an object of the chosen type [Self::Gems]
 /// with the functions [Self::gems()] and [Self::gems_mut()].
@@ -67,4 +63,10 @@ fn combine_results(left: Result<()>, right: Result<()>) -> Result<()> {
 pub struct AppKey {
     pub name: String,
     pub version: String,
+}
+
+impl Display for AppKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}-{}", self.name, self.version)
+    }
 }

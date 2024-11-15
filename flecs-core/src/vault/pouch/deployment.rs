@@ -1,6 +1,9 @@
 pub use super::Result;
+use crate::jeweler;
+use crate::jeweler::deployment::Deployment as DeploymentTrait;
+use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::relic::serde::SerdeIteratorAdapter;
-use crate::vault::pouch::{Pouch, VaultPouch};
+use crate::vault::pouch::Pouch;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -15,29 +18,31 @@ pub enum Deployment {
 
 impl Default for Deployment {
     fn default() -> Self {
-        Self::Docker(DockerDeployment {
-            id: "DefaultDockerDeployment".to_string(),
-            path: PathBuf::from("/var/run/docker.sock"),
-        })
+        Self::Docker(DockerDeployment::new(
+            "DefaultDockerDeployment".to_string(),
+            PathBuf::from("/var/run/docker.sock"),
+        ))
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
-pub struct DockerDeployment {
-    id: DeploymentId,
-    path: PathBuf,
+impl From<Deployment> for Arc<dyn DeploymentTrait> {
+    fn from(value: Deployment) -> Self {
+        match value {
+            Deployment::Docker(d) => Arc::new(d),
+        }
+    }
 }
 
 pub type DeploymentId = String;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct DeploymentPouch {
-    deployments: HashMap<DeploymentId, Arc<Deployment>>,
+    deployments: HashMap<DeploymentId, Arc<dyn DeploymentTrait>>,
     path: PathBuf,
 }
 
 impl Pouch for DeploymentPouch {
-    type Gems = HashMap<DeploymentId, Arc<Deployment>>;
+    type Gems = HashMap<DeploymentId, Arc<dyn DeploymentTrait>>;
 
     fn gems(&self) -> &Self::Gems {
         &self.deployments
@@ -48,19 +53,25 @@ impl Pouch for DeploymentPouch {
     }
 }
 
-impl VaultPouch for DeploymentPouch {
-    fn close(&mut self) -> Result<()> {
+impl DeploymentPouch {
+    pub(in super::super) fn close(&mut self) -> Result<()> {
         fs::create_dir_all(&self.path)?;
         let file = fs::File::create(self.deployments_path())?;
         serde_json::to_writer_pretty(file, &SerdeIteratorAdapter::new(self.deployments.values()))?;
         Ok(())
     }
 
-    fn open(&mut self) -> Result<()> {
+    pub(in super::super) fn open(&mut self) -> Result<()> {
         let deployments = Self::read_deployments(&self.deployments_path())?;
         self.deployments = deployments
             .into_iter()
-            .map(|d| (d.id(), Arc::new(d)))
+            .map(|d| {
+                let id = d.id();
+                let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(match d {
+                    Deployment::Docker(d) => d,
+                });
+                (id, deployment)
+            })
             .collect();
         Ok(())
     }
@@ -69,7 +80,7 @@ impl VaultPouch for DeploymentPouch {
 impl Deployment {
     pub fn id(&self) -> DeploymentId {
         match self {
-            Self::Docker(deployment) => deployment.id.clone(),
+            Self::Docker(deployment) => deployment.id().clone(),
         }
     }
 }
@@ -155,28 +166,33 @@ mod tests {
 
     #[test]
     fn deployment_gems() {
-        let gems = HashMap::from([(
+        let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(DockerDeployment::new(
             TEST_DEPLOYMENT_ID.to_string(),
-            Arc::new(Deployment::Docker(DockerDeployment {
-                id: TEST_DEPLOYMENT_ID.to_string(),
-                path: PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-            })),
-        )]);
+            PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
+        ));
+        let gems = HashMap::from([(TEST_DEPLOYMENT_ID.to_string(), deployment)]);
         let mut deployment_pouch = DeploymentPouch {
-            deployments: gems.clone(),
+            deployments: gems,
             path: test_path().to_path_buf(),
         };
-        assert_eq!(&gems, deployment_pouch.gems());
-        assert_eq!(&gems, deployment_pouch.gems_mut());
-    }
-
-    #[test]
-    fn deployment_id() {
-        let deployment = Deployment::Docker(DockerDeployment {
-            id: TEST_DEPLOYMENT_ID.to_string(),
-            path: PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-        });
-        assert_eq!(deployment.id(), TEST_DEPLOYMENT_ID);
+        assert_eq!(deployment_pouch.gems().len(), 1);
+        assert_eq!(
+            deployment_pouch
+                .gems()
+                .get(TEST_DEPLOYMENT_ID)
+                .unwrap()
+                .id(),
+            TEST_DEPLOYMENT_ID
+        );
+        assert_eq!(deployment_pouch.gems_mut().len(), 1);
+        assert_eq!(
+            deployment_pouch
+                .gems_mut()
+                .get(TEST_DEPLOYMENT_ID)
+                .unwrap()
+                .id(),
+            TEST_DEPLOYMENT_ID
+        );
     }
 
     #[test]
@@ -187,19 +203,6 @@ mod tests {
         assert_eq!(deployment_pouch.path, path);
     }
 
-    #[test]
-    fn default_deployment() {
-        let deployment = Deployment::default();
-        #[allow(unreachable_patterns)]
-        match deployment {
-            Deployment::Docker(deployment) => {
-                assert_eq!(deployment.id, "DefaultDockerDeployment");
-                assert_eq!(deployment.path, PathBuf::from("/var/run/docker.sock"));
-            }
-            _ => panic!("Expected default deployment to be of type Docker"),
-        }
-    }
-
     #[tokio::test]
     async fn open_deployment_pouch() {
         let path = test_path().join("open");
@@ -208,15 +211,14 @@ mod tests {
         let mut deployment_pouch = DeploymentPouch::new(&path);
         fs::write(deployment_pouch.deployments_path(), json).unwrap();
         deployment_pouch.open().unwrap();
+        assert_eq!(deployment_pouch.deployments.len(), 1);
         assert_eq!(
-            deployment_pouch.deployments,
-            HashMap::from([(
-                TEST_DEPLOYMENT_ID.to_string(),
-                Arc::new(Deployment::Docker(DockerDeployment {
-                    id: TEST_DEPLOYMENT_ID.to_string(),
-                    path: PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                }))
-            )])
+            deployment_pouch
+                .deployments
+                .get(TEST_DEPLOYMENT_ID)
+                .unwrap()
+                .id(),
+            TEST_DEPLOYMENT_ID
         );
     }
 
@@ -225,14 +227,12 @@ mod tests {
         let path = test_path().join("close/deployments.json");
         prepare_path(path.parent().unwrap());
         let json = test_deployment_json();
+        let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(DockerDeployment::new(
+            TEST_DEPLOYMENT_ID.to_string(),
+            PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
+        ));
         let mut deployment_pouch = DeploymentPouch {
-            deployments: HashMap::from([(
-                TEST_DEPLOYMENT_ID.to_string(),
-                Arc::new(Deployment::Docker(DockerDeployment {
-                    id: TEST_DEPLOYMENT_ID.to_string(),
-                    path: PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                })),
-            )]),
+            deployments: HashMap::from([(TEST_DEPLOYMENT_ID.to_string(), deployment)]),
             path: path.parent().unwrap().to_path_buf(),
         };
         deployment_pouch.close().unwrap();
@@ -251,22 +251,22 @@ mod tests {
         assert_eq!(
             DeploymentPouch::read_deployments(&path).unwrap(),
             vec![
-                Deployment::Docker(DockerDeployment {
-                    id: "test1".to_string(),
-                    path: PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                }),
-                Deployment::Docker(DockerDeployment {
-                    id: "test2".to_string(),
-                    path: PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                }),
-                Deployment::Docker(DockerDeployment {
-                    id: "test3".to_string(),
-                    path: PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                }),
-                Deployment::Docker(DockerDeployment {
-                    id: "test4".to_string(),
-                    path: PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                })
+                Deployment::Docker(DockerDeployment::new(
+                    "test1".to_string(),
+                    PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
+                )),
+                Deployment::Docker(DockerDeployment::new(
+                    "test2".to_string(),
+                    PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
+                )),
+                Deployment::Docker(DockerDeployment::new(
+                    "test3".to_string(),
+                    PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
+                )),
+                Deployment::Docker(DockerDeployment::new(
+                    "test4".to_string(),
+                    PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
+                ))
             ]
         );
     }
