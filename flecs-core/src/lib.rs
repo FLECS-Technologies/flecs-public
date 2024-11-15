@@ -107,7 +107,7 @@ pub mod lore;
 ///     const N: u64 = 10;
 ///     quest.lock().await.progress = Some(Progress {
 ///         current: 0,
-///         total: N,
+///         total: Some(N),
 ///     });
 ///     for i in 0..=N {
 ///         println!("{i}");

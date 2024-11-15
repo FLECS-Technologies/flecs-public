@@ -121,10 +121,10 @@ pub struct Quest {
     pub state: State,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Default, Clone)]
 pub struct Progress {
     pub current: u64,
-    pub total: u64,
+    pub total: Option<u64>,
 }
 
 impl Quest {
@@ -194,7 +194,7 @@ impl Quest {
             .await;
         Progress {
             current: current as u64,
-            total: self.sub_quests.len() as u64,
+            total: Some(self.sub_quests.len() as u64),
         }
     }
 
@@ -232,9 +232,18 @@ impl Quest {
                     "{indent}{}: {}{} {current}/{total}\n",
                     quest.description, quest.state, details
                 )
-            } else if let Some(Progress { current, total }) = &quest.progress {
+            } else if let Some(Progress {
+                current,
+                total: Some(total),
+            }) = &quest.progress
+            {
                 format!(
                     "{indent}{}: {}{} {current}/{total}\n",
+                    quest.description, quest.state, details
+                )
+            } else if let Some(Progress { current, .. }) = &quest.progress {
+                format!(
+                    "{indent}{}: {}{} {current}\n",
                     quest.description, quest.state, details
                 )
             } else {
@@ -269,7 +278,7 @@ mod tests {
             quest.sub_quest_progress().await,
             Progress {
                 current: 0,
-                total: 0
+                total: Some(0)
             }
         );
         quest
@@ -279,7 +288,7 @@ mod tests {
             quest.sub_quest_progress().await,
             Progress {
                 current: 0,
-                total: 1
+                total: Some(1)
             }
         );
         quest
@@ -289,7 +298,7 @@ mod tests {
             quest.sub_quest_progress().await,
             Progress {
                 current: 0,
-                total: 2
+                total: Some(2)
             }
         );
         quest.sub_quests[0].lock().await.state = State::Failed;
@@ -297,7 +306,7 @@ mod tests {
             quest.sub_quest_progress().await,
             Progress {
                 current: 1,
-                total: 2
+                total: Some(2)
             }
         );
         quest.sub_quests[1].lock().await.state = State::Success;
@@ -305,7 +314,7 @@ mod tests {
             quest.sub_quest_progress().await,
             Progress {
                 current: 2,
-                total: 2
+                total: Some(2)
             }
         );
     }

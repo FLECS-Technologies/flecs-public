@@ -414,7 +414,7 @@ pub mod save_princess {
         for ore in 1..=number {
             sleep(Duration::from_millis(difficulty)).await;
             quest.lock().await.progress = Some(Progress {
-                total: number as u64,
+                total: Some(number as u64),
                 current: ore as u64,
             })
         }
@@ -433,7 +433,7 @@ pub mod save_princess {
             sleep(Duration::from_millis(100)).await;
             total_ore = Sword::IronOre(ore);
             quest.lock().await.progress = Some(Progress {
-                total: amount as u64,
+                total: Some(amount as u64),
                 current: ore as u64,
             })
         }
@@ -452,7 +452,7 @@ pub mod save_princess {
             sleep(Duration::from_millis(50)).await;
             total_iron = Sword::Iron(iron);
             quest.lock().await.progress = Some(Progress {
-                total: amount as u64,
+                total: Some(amount as u64),
                 current: iron as u64,
             })
         }
