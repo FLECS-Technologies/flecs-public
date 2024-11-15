@@ -2,6 +2,8 @@ pub use super::Result;
 use crate::quest::{Progress, SyncQuest};
 use crate::relic::async_flecstract::{archive_to_memory, extract_from_memory};
 use crate::relic::docker::write_stream_to_memory;
+use async_compression::tokio::bufread::{GzipDecoder, GzipEncoder};
+use axum::body::Bytes;
 use bollard::container::{
     Config, CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions,
     RemoveContainerOptions, StartContainerOptions, StopContainerOptions, UploadToContainerOptions,
@@ -9,13 +11,18 @@ use bollard::container::{
 use bollard::exec::{CreateExecOptions, StartExecOptions, StartExecResults};
 use bollard::models::{ContainerCreateResponse, ContainerInspectResponse, ContainerSummary};
 use bollard::Docker;
+use futures::Stream;
 use futures_util::stream::StreamExt;
 use serde::Serialize;
 use std::hash::Hash;
 use std::io::Cursor;
 use std::path::Path;
+use std::pin::Pin;
 use std::sync::Arc;
+use std::task::{Context, Poll};
 use tokio::fs::File;
+use tokio::io::{AsyncRead, AsyncWriteExt, BufReader, ReadBuf};
+use tokio::join;
 use tokio_util::codec;
 
 /// # Example
@@ -398,6 +405,293 @@ pub async fn copy_from(
         .await
         .2
         .await
+}
+
+struct AsyncReadStream<R>(R);
+
+impl<R: AsyncRead + Unpin> Stream for AsyncReadStream<R> {
+    type Item = Bytes;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let mut data = vec![0; 256];
+        let mut buf = ReadBuf::new(&mut data);
+        let mut pinned = Pin::new(&mut self.0);
+        match pinned.as_mut().poll_read(cx, &mut buf) {
+            Poll::Ready(Ok(_)) => {
+                let data = Bytes::from(buf.filled().to_vec());
+                match data.len() {
+                    0 => Poll::Ready(None),
+                    _ => Poll::Ready(Some(data)),
+                }
+            }
+            Poll::Ready(Err(_)) => Poll::Ready(None),
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
+/// # Example
+/// ```no_run
+/// use bollard::Docker;
+/// use flecs_core::quest::Quest;
+/// use flecs_core::relic::docker::container::upload_gzip_file_streamed;
+/// use std::path::Path;
+/// use std::sync::Arc;
+///
+/// # tokio_test::block_on(
+/// async {
+///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let dst = Path::new("/tmp/test");
+///     let src = Path::new("/tmp/test-archive.tar.gz");
+///     let container_name = "beautiful_haibt";
+///     let quest = Quest::new_synced(format!(
+///         "Upload {src:?} to {dst:?} on container {container_name}"
+///     ));
+///
+///     upload_gzip_file_streamed(docker_client, quest, src, dst, container_name)
+///         .await
+///         .unwrap();
+/// }
+/// # )
+/// ```
+pub async fn upload_gzip_file_streamed(
+    docker_client: Arc<Docker>,
+    quest: SyncQuest,
+    src: &Path,
+    dst: &Path,
+    container_name: &str,
+) -> Result<()> {
+    let file = File::open(src).await?;
+    let total = Some(file.metadata().await?.len());
+    let (read_file, mut write_file) = tokio::io::simplex(1024);
+    let (read, mut write) = tokio::io::simplex(1024);
+    let read_result = quest
+        .lock()
+        .await
+        .create_sub_quest(format!("Reading file {src:?}"), |quest| async move {
+            quest.lock().await.progress = Some(Progress { total, current: 0 });
+            let mut reader = codec::FramedRead::new(file, codec::BytesCodec::new());
+            while let Some(data) = reader.next().await {
+                match data {
+                    Err(e) => {
+                        write_file.shutdown().await?;
+                        anyhow::bail!(e);
+                    }
+                    Ok(data) => {
+                        let len = data.len();
+                        if let Err(e) = write_file.write_all(data.as_ref()).await {
+                            write_file.shutdown().await?;
+                            anyhow::bail!(e);
+                        };
+                        quest.lock().await.add_progress(len as u64);
+                    }
+                }
+            }
+            write_file.shutdown().await?;
+            Ok(())
+        })
+        .await
+        .2;
+    let decompress_result = quest
+        .lock()
+        .await
+        .create_sub_quest("Decompress file".to_string(), |quest| async move {
+            quest.lock().await.progress = Some(Progress {
+                current: 0,
+                total: None,
+            });
+            let mut reader = codec::FramedRead::new(
+                GzipDecoder::new(BufReader::new(read_file)),
+                codec::BytesCodec::new(),
+            );
+            while let Some(data) = reader.next().await {
+                match data {
+                    Ok(data) => {
+                        let written = data.len();
+                        if let Err(e) = write.write_all(data.as_ref()).await {
+                            write.shutdown().await?;
+                            anyhow::bail!(e)
+                        }
+                        quest.lock().await.add_progress(written as u64);
+                    }
+                    Err(e) => {
+                        write.shutdown().await?;
+                        anyhow::bail!(e)
+                    }
+                }
+            }
+            write.shutdown().await?;
+            Ok(())
+        })
+        .await
+        .2;
+    let upload_result = quest
+        .lock()
+        .await
+        .create_sub_quest(format!("Upload to container {container_name}"), |_quest| {
+            let path = dst.to_string_lossy().to_string();
+            let container_name = container_name.to_string();
+            async move {
+                let stream = AsyncReadStream(read);
+                docker_client
+                    .upload_to_container_streaming(
+                        &container_name,
+                        Some(UploadToContainerOptions {
+                            path,
+                            no_overwrite_dir_non_dir: "false".to_string(),
+                        }),
+                        stream,
+                    )
+                    .await?;
+                Ok(())
+            }
+        })
+        .await
+        .2;
+    let (read_result, upload_result, decompress_result) =
+        join!(read_result, upload_result, decompress_result);
+    let _ = (read_result?, upload_result?, decompress_result?);
+    Ok(())
+}
+
+/// # Example
+/// ```no_run
+/// use bollard::Docker;
+/// use flecs_core::quest::Quest;
+/// use flecs_core::relic::docker::container::download_gzip_streamed;
+/// use std::path::Path;
+/// use std::sync::Arc;
+///
+/// # tokio_test::block_on(
+/// async {
+///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let src = Path::new("/tmp/test");
+///     let dst = Path::new("/tmp/test-archive.tar.gz");
+///     let container_name = "beautiful_haibt";
+///     let quest = Quest::new_synced(format!("Download {src:?} from {container_name} to {dst:?}"));
+///
+///     download_gzip_streamed(docker_client, quest, src, dst, container_name)
+///         .await
+///         .unwrap();
+/// }
+/// # )
+/// ```
+pub async fn download_gzip_streamed(
+    docker_client: Arc<Docker>,
+    quest: SyncQuest,
+    src: &Path,
+    dst: &Path,
+    container_name: &str,
+) -> Result<()> {
+    let (read_download, mut write_download) = tokio::io::simplex(1024);
+    let (read, mut write) = tokio::io::simplex(1024);
+    let download_result = quest
+        .lock()
+        .await
+        .create_sub_quest(
+            format!("Downloading {src:?} from {container_name}"),
+            |quest| {
+                let options = Some(DownloadFromContainerOptions {
+                    path: src.to_string_lossy().to_string(),
+                });
+                let container_name = container_name.to_string();
+                async move {
+                    quest.lock().await.progress = Some(Progress {
+                        total: None,
+                        current: 0,
+                    });
+                    let mut download_stream =
+                        docker_client.download_from_container(&container_name, options);
+                    while let Some(data) = download_stream.next().await {
+                        match data {
+                            Err(e) => {
+                                write_download.shutdown().await?;
+                                anyhow::bail!(e);
+                            }
+                            Ok(data) => {
+                                let len = data.len();
+                                if let Err(e) = write_download.write_all(data.as_ref()).await {
+                                    write_download.shutdown().await?;
+                                    anyhow::bail!(e);
+                                };
+                                quest.lock().await.add_progress(len as u64);
+                            }
+                        }
+                    }
+                    write_download.shutdown().await?;
+                    Ok(())
+                }
+            },
+        )
+        .await
+        .2;
+    let compress_result = quest
+        .lock()
+        .await
+        .create_sub_quest("Compress download".to_string(), |quest| async move {
+            quest.lock().await.progress = Some(Progress {
+                current: 0,
+                total: None,
+            });
+            let mut reader = codec::FramedRead::new(
+                GzipEncoder::new(BufReader::new(read_download)),
+                codec::BytesCodec::new(),
+            );
+            while let Some(data) = reader.next().await {
+                match data {
+                    Ok(data) => {
+                        let written = data.len();
+                        if let Err(e) = write.write_all(data.as_ref()).await {
+                            write.shutdown().await?;
+                            anyhow::bail!(e)
+                        }
+                        quest.lock().await.add_progress(written as u64);
+                    }
+                    Err(e) => {
+                        write.shutdown().await?;
+                        anyhow::bail!(e)
+                    }
+                }
+            }
+            write.shutdown().await?;
+            Ok(())
+        })
+        .await
+        .2;
+    let save_result = quest
+        .lock()
+        .await
+        .create_sub_quest(format!("Write to disk at {dst:?}"), |quest| {
+            let dst = dst.to_path_buf();
+            async move {
+                quest.lock().await.progress = Some(Progress {
+                    total: None,
+                    current: 0,
+                });
+                let mut file = File::create(&dst).await?;
+                let mut stream = AsyncReadStream(read);
+                while let Some(data) = stream.next().await {
+                    match file.write_all(data.as_ref()).await {
+                        Ok(()) => {
+                            quest.lock().await.add_progress(data.len() as u64);
+                        }
+                        Err(e) => {
+                            if let Err(e) = tokio::fs::remove_file(&dst).await {
+                                eprintln!("Could not remove {dst:?}: {e}");
+                            }
+                            anyhow::bail!(e);
+                        }
+                    }
+                }
+                Ok(())
+            }
+        })
+        .await
+        .2;
+    let (save_result, download_result, compress_result) =
+        join!(save_result, download_result, compress_result);
+    let _ = (save_result?, download_result?, compress_result?);
+    Ok(())
 }
 
 /// # Example
