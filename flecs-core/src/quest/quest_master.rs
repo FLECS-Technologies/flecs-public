@@ -30,8 +30,19 @@ impl QuestMaster {
         tokio::spawn(async move {
             while let Some((quest, future)) = rx.recv().await {
                 quest.lock().await.state = State::Ongoing;
-                if let Err(e) = finish_quest(&quest, future.await).await {
-                    println!("Quest with id {} failed: {e}", quest.lock().await.id.0);
+                match tokio::spawn(future).await {
+                    Ok(result) => {
+                        if let Err(e) = finish_quest(&quest, result).await {
+                            eprintln!("Quest with id {} failed: {e}", quest.lock().await.id.0);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "Quest with id {} caused a panic: {e}",
+                            quest.lock().await.id.0
+                        );
+                        quest.lock().await.state = State::Failed;
+                    }
                 }
             }
         });
