@@ -203,6 +203,15 @@ impl Quest {
         self.detail = Some(error.to_string());
     }
 
+    pub fn update<T: StatusUpdate>(&mut self, update: &T) {
+        match update.state() {
+            None => {}
+            Some(state) => self.state = state,
+        }
+        self.detail = update.details();
+        self.progress = update.progress();
+    }
+
     pub fn add_progress(&mut self, new_progress: u64) {
         match &mut self.progress {
             Some(progress) => progress.current += new_progress,
@@ -270,9 +279,35 @@ impl Quest {
     }
 }
 
+pub trait StatusUpdate {
+    fn progress(&self) -> Option<Progress>;
+    fn details(&self) -> Option<String>;
+    fn state(&self) -> Option<State>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct TestStatusUpdate {
+        state: Option<State>,
+        details: Option<String>,
+        progress: Option<Progress>,
+    }
+
+    impl StatusUpdate for TestStatusUpdate {
+        fn progress(&self) -> Option<Progress> {
+            self.progress.clone()
+        }
+
+        fn details(&self) -> Option<String> {
+            self.details.clone()
+        }
+
+        fn state(&self) -> Option<State> {
+            self.state
+        }
+    }
 
     #[tokio::test]
     async fn test_fail() {
@@ -281,6 +316,39 @@ mod tests {
         quest.fail_with_error(&anyhow::anyhow!(""));
         assert_eq!(quest.state, State::Failed);
         assert!(quest.detail.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_status_update() {
+        let mut quest = Quest::new("TestQuest #1".to_string());
+        assert_eq!(quest.state, State::Pending);
+        assert_eq!(quest.progress, None);
+        assert_eq!(quest.detail, None);
+        let empty_update = TestStatusUpdate {
+            state: None,
+            details: None,
+            progress: None,
+        };
+        quest.update(&empty_update);
+        assert_eq!(quest.state, State::Pending);
+        assert_eq!(quest.progress, None);
+        assert_eq!(quest.detail, None);
+        let update = TestStatusUpdate {
+            state: Some(State::Failing),
+            details: Some("Details".to_string()),
+            progress: Some(Progress {
+                total: Some(1000),
+                current: 100,
+            }),
+        };
+        quest.update(&update);
+        assert_eq!(quest.state, State::Failing);
+        assert_eq!(quest.progress, update.progress);
+        assert_eq!(quest.detail, update.details);
+        quest.update(&empty_update);
+        assert_eq!(quest.state, State::Failing);
+        assert_eq!(quest.progress, None);
+        assert_eq!(quest.detail, None);
     }
 
     #[tokio::test]
