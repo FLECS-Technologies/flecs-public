@@ -6,8 +6,10 @@ use procfs::net::RouteEntry;
 use procfs::ProcError;
 use std::collections::HashMap;
 use std::ffi::CStr;
+use std::fmt::{Display, Formatter};
 use std::mem::MaybeUninit;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -69,6 +71,74 @@ pub struct IfAddrs {
     inner: *mut ifaddrs,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub enum Network {
+    Ipv4(Ipv4Network),
+    Ipv6(Ipv6Network),
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub struct Ipv4Network {
+    address: Ipv4Addr,
+    size: u8,
+}
+
+impl Ipv4Network {
+    fn try_new(address: Ipv4Addr, size: u8) -> crate::Result<Self> {
+        const ZERO: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 0);
+        anyhow::ensure!(size <= 32, "Network size has to be 32 or less, not {size}");
+        let mask = Ipv4Addr::from(0xffffffff >> size);
+        anyhow::ensure!((address & mask) == ZERO, "Address part of network is not 0");
+        Ok(Self { address, size })
+    }
+}
+
+impl FromStr for Ipv4Network {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let (address, size) = s
+            .split_once('/')
+            .ok_or_else(|| anyhow::anyhow!("No '/' found"))?;
+        Ipv4Network::try_new(Ipv4Addr::from_str(address)?, u8::from_str(size)?)
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub struct Ipv6Network {
+    address: Ipv6Addr,
+    suffix: u8,
+}
+
+impl Display for Ipv4Network {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}/{}", self.address, self.size)
+    }
+}
+
+impl Display for Ipv6Network {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}/{}", self.address, self.suffix)
+    }
+}
+
+impl Display for Network {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Network::Ipv4(ip) => {
+                    ip.to_string()
+                }
+                Network::Ipv6(ip) => {
+                    ip.to_string()
+                }
+            }
+        )
+    }
+}
+
 impl From<u16> for SaFamily {
     fn from(value: u16) -> Self {
         match value {
@@ -78,6 +148,12 @@ impl From<u16> for SaFamily {
             x => SaFamily::Unsupported(x),
         }
     }
+}
+
+pub fn transfer_ipv4_to_network(network: Ipv4Network, address: Ipv4Addr) -> Ipv4Addr {
+    // Remove network part from address
+    let address = address & Ipv4Addr::from(0xffffffffu32 >> network.size);
+    address | network.address
 }
 
 impl Default for NetType {
@@ -251,9 +327,80 @@ impl Iterator for IfAddrsIterator {
     }
 }
 
+pub fn ipv4_to_network(ip: Ipv4Addr, subnet_mask: Ipv4Addr) -> Ipv4Network {
+    let address = ip & subnet_mask;
+    let subnet_mask: u32 = subnet_mask.into();
+    Ipv4Network {
+        address,
+        size: subnet_mask.count_ones() as u8,
+    }
+}
+
+pub fn ipv6_to_network(ip: Ipv6Addr, subnet_mask: Ipv6Addr) -> Ipv6Network {
+    let address = ip & subnet_mask;
+    let subnet_mask: u128 = subnet_mask.into();
+    Ipv6Network {
+        address,
+        suffix: subnet_mask.count_ones() as u8,
+    }
+}
+
+pub fn ip_to_network(
+    ip: std::net::IpAddr,
+    subnet_mask: std::net::IpAddr,
+) -> crate::Result<Network> {
+    match (ip, subnet_mask) {
+        (std::net::IpAddr::V4(ip), std::net::IpAddr::V4(subnet_mask)) => {
+            Ok(Network::Ipv4(ipv4_to_network(ip, subnet_mask)))
+        }
+        (std::net::IpAddr::V6(ip), std::net::IpAddr::V6(subnet_mask)) => {
+            Ok(Network::Ipv6(ipv6_to_network(ip, subnet_mask)))
+        }
+        _ => anyhow::bail!("Can not create network witch mixed ip versions"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_transfer_ipv4_to_network() {
+        assert_eq!(
+            transfer_ipv4_to_network(
+                Ipv4Network::try_new(
+                    Ipv4Addr::new(0b10101010, 0b10101010, 0b10100000, 0b00000000),
+                    20
+                )
+                .unwrap(),
+                Ipv4Addr::new(0b01010101, 0b01010101, 0b01010101, 0b01010101)
+            ),
+            Ipv4Addr::new(0b10101010, 0b10101010, 0b10100101, 0b01010101)
+        );
+        assert_eq!(
+            transfer_ipv4_to_network(
+                Ipv4Network::try_new(Ipv4Addr::new(10, 20, 30, 0), 24).unwrap(),
+                Ipv4Addr::new(55, 55, 55, 99)
+            ),
+            Ipv4Addr::new(10, 20, 30, 99)
+        );
+    }
+    #[test]
+    fn test_try_new_ipv4network() {
+        let address = Ipv4Addr::new(20, 30, 1, 0);
+        let size = 24;
+        assert_eq!(
+            Ipv4Network::try_new(address, size).unwrap(),
+            Ipv4Network { address, size }
+        );
+        let address = Ipv4Addr::new(0, 0, 0, 0);
+        let size = 33;
+        assert!(Ipv4Network::try_new(address, size).is_err());
+        let address = Ipv4Addr::new(0, 0, 1, 0);
+        let size = 9;
+        assert!(Ipv4Network::try_new(address, size).is_err());
+    }
 
     #[test]
     fn test_address() {
@@ -272,5 +419,131 @@ mod tests {
         for (name, info) in infos {
             println!("Parsed adapter {}: {:?}", name, info);
         }
+    }
+
+    #[test]
+    fn test_ipv4_to_network() {
+        assert_eq!(
+            ipv4_to_network(
+                Ipv4Addr::from_str("192.168.99.21").unwrap(),
+                Ipv4Addr::from_str("255.255.252.0").unwrap()
+            ),
+            Ipv4Network {
+                address: Ipv4Addr::from_str("192.168.96.0").unwrap(),
+                size: 22
+            }
+        );
+        assert_eq!(
+            ipv4_to_network(
+                Ipv4Addr::from_str("127.0.0.1").unwrap(),
+                Ipv4Addr::from_str("255.0.0.0").unwrap()
+            ),
+            Ipv4Network {
+                address: Ipv4Addr::from_str("127.0.0.0").unwrap(),
+                size: 8
+            }
+        );
+        assert_eq!(
+            ipv4_to_network(
+                Ipv4Addr::from_str("169.254.52.1").unwrap(),
+                Ipv4Addr::from_str("255.255.0.0").unwrap()
+            ),
+            Ipv4Network {
+                address: Ipv4Addr::from_str("169.254.0.0").unwrap(),
+                size: 16
+            }
+        );
+    }
+
+    #[test]
+    fn test_ipv6_to_network() {
+        assert_eq!(
+            ipv6_to_network(
+                Ipv6Addr::from_str("2002:0000:0000:1234:abcd:ffff:c0a8:0101").unwrap(),
+                Ipv6Addr::from_str("ffff:ffff:ffff:ffff:0000:0000:0000:0000").unwrap()
+            ),
+            Ipv6Network {
+                address: Ipv6Addr::from_str("2002:0000:0000:1234:0000:0000:0000:0000").unwrap(),
+                suffix: 64
+            }
+        );
+        assert_eq!(
+            ipv6_to_network(
+                Ipv6Addr::from_str("abcd:4422:efef:0707:8888:1212:3234:1256").unwrap(),
+                Ipv6Addr::from_str("ffff:ffff:0000:0000:0000:0000:0000:0000").unwrap()
+            ),
+            Ipv6Network {
+                address: Ipv6Addr::from_str("abcd:4422:0000:0000:0000:0000:0000:0000").unwrap(),
+                suffix: 32
+            }
+        );
+        assert_eq!(
+            ipv6_to_network(
+                Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap(),
+                Ipv6Addr::from_str("ffff:ffff:ffff:ffff:ffff:fff0:0000:0000").unwrap()
+            ),
+            Ipv6Network {
+                address: Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1110:0000:0000").unwrap(),
+                suffix: 92
+            }
+        );
+    }
+
+    #[test]
+    fn test_ip_to_network() {
+        assert!(ip_to_network(
+            std::net::IpAddr::V6(
+                Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap()
+            ),
+            std::net::IpAddr::V4(Ipv4Addr::from_str("169.254.52.1").unwrap())
+        )
+        .is_err());
+        assert!(ip_to_network(
+            std::net::IpAddr::V4(Ipv4Addr::from_str("169.254.52.1").unwrap()),
+            std::net::IpAddr::V6(
+                Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap()
+            )
+        )
+        .is_err());
+        assert_eq!(
+            ip_to_network(
+                std::net::IpAddr::V6(
+                    Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap()
+                ),
+                std::net::IpAddr::V6(
+                    Ipv6Addr::from_str("ffff:ffff:ffff:ffff:ffff:fff0:0000:0000").unwrap()
+                )
+            )
+            .unwrap(),
+            Network::Ipv6(Ipv6Network {
+                address: Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1110:0000:0000").unwrap(),
+                suffix: 92
+            })
+        );
+
+        assert_eq!(
+            ip_to_network(
+                std::net::IpAddr::V4(Ipv4Addr::from_str("169.254.52.1").unwrap()),
+                std::net::IpAddr::V4(Ipv4Addr::from_str("255.255.0.0").unwrap())
+            )
+            .unwrap(),
+            Network::Ipv4(Ipv4Network {
+                address: Ipv4Addr::from_str("169.254.0.0").unwrap(),
+                size: 16
+            })
+        );
+    }
+
+    #[test]
+    fn ipv4_network_from_str() {
+        let ip = Ipv4Addr::new(10, 0b11100000, 0, 0);
+        let suffix = 11;
+        assert_eq!(
+            Ipv4Network {
+                address: ip,
+                size: suffix,
+            },
+            Ipv4Network::from_str(&format!("{}/{}", ip, suffix)).unwrap()
+        )
     }
 }
