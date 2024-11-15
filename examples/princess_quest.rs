@@ -410,13 +410,14 @@ pub mod save_princess {
             Enemy::Vampire => 200,
             Enemy::Dragon => 400,
         };
+        quest.lock().await.progress = Some(Progress {
+            total: Some(number as u64),
+            current: 0,
+        });
 
-        for ore in 1..=number {
+        for _ in 1..=number {
             sleep(Duration::from_millis(difficulty)).await;
-            quest.lock().await.progress = Some(Progress {
-                total: Some(number as u64),
-                current: ore as u64,
-            })
+            quest.lock().await.add_progress(1);
         }
 
         Ok(())
@@ -424,6 +425,10 @@ pub mod save_princess {
 
     async fn gather_iron_ore(quest: SyncQuest, amount: u16) -> Result<Sword> {
         let mut total_ore = Sword::IronOre(0);
+        quest.lock().await.progress = Some(Progress {
+            total: Some(amount as u64),
+            current: 0,
+        });
         for ore in 1..=amount {
             if ore > 90 {
                 let e = anyhow::anyhow!("Too much ore");
@@ -432,10 +437,7 @@ pub mod save_princess {
             }
             sleep(Duration::from_millis(100)).await;
             total_ore = Sword::IronOre(ore);
-            quest.lock().await.progress = Some(Progress {
-                total: Some(amount as u64),
-                current: ore as u64,
-            })
+            quest.lock().await.add_progress(1);
         }
         Ok(total_ore)
     }
@@ -448,13 +450,14 @@ pub mod save_princess {
             }
         };
         let mut total_iron = Sword::Iron(0);
+        quest.lock().await.progress = Some(Progress {
+            total: Some(amount as u64),
+            current: 0,
+        });
         for iron in 1..=amount {
             sleep(Duration::from_millis(50)).await;
             total_iron = Sword::Iron(iron);
-            quest.lock().await.progress = Some(Progress {
-                total: Some(amount as u64),
-                current: iron as u64,
-            })
+            quest.lock().await.add_progress(1);
         }
         Ok(total_iron)
     }

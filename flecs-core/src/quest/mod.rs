@@ -202,6 +202,18 @@ impl Quest {
         self.state = State::Failed;
         self.detail = Some(error.to_string());
     }
+
+    pub fn add_progress(&mut self, new_progress: u64) {
+        match &mut self.progress {
+            Some(progress) => progress.current += new_progress,
+            None => {
+                self.progress = Some(Progress {
+                    current: new_progress,
+                    total: None,
+                })
+            }
+        }
+    }
 }
 
 impl Quest {
@@ -269,6 +281,32 @@ mod tests {
         quest.fail_with_error(&anyhow::anyhow!(""));
         assert_eq!(quest.state, State::Failed);
         assert!(quest.detail.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_add_progress() {
+        let mut quest = Quest::new("TestQuest #1".to_string());
+        assert_eq!(quest.progress, None);
+        quest.add_progress(100);
+        assert_eq!(
+            quest.progress,
+            Some(Progress {
+                total: None,
+                current: 100
+            })
+        );
+        quest.progress = Some(Progress {
+            total: Some(10000),
+            current: 500,
+        });
+        quest.add_progress(100);
+        assert_eq!(
+            quest.progress,
+            Some(Progress {
+                total: Some(10000),
+                current: 600,
+            })
+        );
     }
 
     #[tokio::test]
