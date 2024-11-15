@@ -537,6 +537,7 @@ dependencies = [
  "flecs-core",
  "futures",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

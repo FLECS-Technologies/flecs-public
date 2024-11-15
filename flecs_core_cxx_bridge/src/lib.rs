@@ -125,6 +125,10 @@ pub fn start_server() {
             .await
             .unwrap();
     }));
+    info!("Executing test pull");
+    server
+        .runtime
+        .block_on(flecs_core::relic::docker::image::test_pull());
 }
 
 pub fn stop_server() {

@@ -467,3 +467,16 @@ pub async fn save(
         .2
         .await
 }
+
+pub async fn test_pull() {
+    let options = Some(CreateImageOptions {
+        from_image: "tensorflow/tensorflow",
+        tag: "nightly",
+        ..Default::default()
+    });
+    let docker_client = Docker::connect_with_defaults().unwrap();
+    let mut results = docker_client.create_image(options, None, None);
+    while let Some(result) = results.next().await {
+        result.unwrap();
+    }
+}

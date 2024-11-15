@@ -14,7 +14,12 @@ tokio = "1.40.0"
 flecs-core = { path = "../flecs-core", version = "0.1.0" }
 anyhow = { version = "1.0.86", features = ["backtrace"] }
 futures = "0.3.30"
+tracing = "0.1.40"
 
 [[example]]
 name = "princess_quest"
 path = "princess_quest.rs"
+
+[[example]]
+name = "test_pull"
+path = "test_pull.rs"
