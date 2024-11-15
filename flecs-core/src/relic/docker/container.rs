@@ -1,6 +1,7 @@
 pub use super::Result;
+use crate::quest::{Progress, SyncQuest};
 use crate::relic::async_flecstract::{archive_to_memory, extract_from_memory};
-use crate::relic::docker::{write_stream_to_memory, ByteResult, ByteStatus};
+use crate::relic::docker::write_stream_to_memory;
 use bollard::container::{
     Config, CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions,
     RemoveContainerOptions, StartContainerOptions, StopContainerOptions, UploadToContainerOptions,
@@ -15,7 +16,6 @@ use std::io::Cursor;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::fs::File;
-use tokio::sync::Mutex;
 use tokio_util::codec;
 
 /// # Example
@@ -231,6 +231,7 @@ pub enum Data {
 /// # Example
 /// ```no_run
 /// use bollard::Docker;
+/// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::container::copy_to;
 /// use std::path::Path;
 /// use std::sync::Arc;
@@ -238,9 +239,10 @@ pub enum Data {
 /// # tokio_test::block_on(
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let quest = Quest::new_synced("Copy to container".to_string());
 ///     let src = Path::new("/path/on/host");
 ///     let dst = Path::new("/path/on/container");
-///     copy_to(docker_client, src, dst, "my-container", false)
+///     copy_to(docker_client, quest, src, dst, "my-container", false)
 ///         .await
 ///         .unwrap();
 /// }
@@ -248,15 +250,18 @@ pub enum Data {
 /// ```
 pub async fn copy_to(
     docker_client: Arc<Docker>,
+    quest: SyncQuest,
     src_path: &Path,
     dst_path: &Path,
     container_name: &str,
     follow_symlinks: bool,
 ) -> Result<()> {
+    // TODO: Create subquests, use streamed/async archiving
     let archive = archive_to_memory(src_path, follow_symlinks).await?;
     let archive = Data::InMemory(archive);
     copy_archive_to(
         docker_client,
+        quest,
         Some(UploadToContainerOptions {
             path: dst_path.to_str().unwrap(),
             no_overwrite_dir_non_dir: "false",
@@ -269,6 +274,7 @@ pub async fn copy_to(
 
 async fn copy_archive_to<T>(
     docker_client: Arc<Docker>,
+    quest: SyncQuest,
     options: Option<UploadToContainerOptions<T>>,
     archive: Data,
     container_name: &str,
@@ -278,16 +284,36 @@ where
 {
     match archive {
         Data::File(file) => {
-            let byte_stream =
-                codec::FramedRead::new(file, codec::BytesCodec::new()).map(|r| r.unwrap().freeze());
+            let total = file.metadata().await.map(|meta| meta.len()).ok();
+            quest.lock().await.progress = Some(Progress { total, current: 0 });
+            let byte_stream = codec::FramedRead::new(file, codec::BytesCodec::new())
+                .map(|r| r.unwrap().freeze())
+                .then(move |data| {
+                    let quest = quest.clone();
+                    async move {
+                        quest.lock().await.add_progress(data.len() as u64);
+                        data
+                    }
+                });
             docker_client
                 .upload_to_container_streaming(container_name, options, byte_stream)
                 .await?
         }
         Data::InMemory(data) => {
+            quest.lock().await.progress = Some(Progress {
+                total: Some(data.len() as u64),
+                current: 0,
+            });
             let reader = Cursor::new(data);
             let byte_stream = codec::FramedRead::new(reader, codec::BytesCodec::new())
-                .map(|r| r.unwrap().freeze());
+                .map(|r| r.unwrap().freeze())
+                .then(move |data| {
+                    let quest = quest.clone();
+                    async move {
+                        quest.lock().await.add_progress(data.len() as u64);
+                        data
+                    }
+                });
             docker_client
                 .upload_to_container_streaming(container_name, options, byte_stream)
                 .await?
@@ -297,30 +323,33 @@ where
 }
 
 async fn copy_archive_from(
+    quest: SyncQuest,
     docker_client: Arc<Docker>,
     src: &Path,
     container_name: &str,
-) -> ByteResult<Vec<u8>> {
-    let status = Arc::new(Mutex::new(ByteStatus::Partial(0)));
+) -> Result<Vec<u8>> {
     let options = Some(DownloadFromContainerOptions {
         path: src.to_string_lossy().to_string(),
     });
     let container_name = container_name.to_string();
-    let closure_status = status.clone();
-    let handle = tokio::spawn(async move {
-        let result = docker_client.download_from_container(&container_name, options);
-        let result = write_stream_to_memory(result, closure_status.clone()).await;
-        if result.is_err() {
-            closure_status.lock().await.fail();
-        }
-        result
-    });
-    ByteResult { status, handle }
+    let (.., result) = quest
+        .lock()
+        .await
+        .create_sub_quest(
+            format!("Download archive {src:?} from container {container_name}"),
+            |quest| async move {
+                let result = docker_client.download_from_container(&container_name, options);
+                write_stream_to_memory(quest, result).await
+            },
+        )
+        .await;
+    result.await
 }
 
 /// # Example
 /// ```no_run
 /// use bollard::Docker;
+/// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::container::copy_from;
 /// use std::path::Path;
 /// use std::sync::Arc;
@@ -328,25 +357,47 @@ async fn copy_archive_from(
 /// # tokio_test::block_on(
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let quest = Quest::new_synced("Docker copy from".to_string());
 ///     let dst = Path::new("/path/on/host");
 ///     let src = Path::new("/path/on/container");
-///     copy_from(docker_client, src, dst, "my-container")
+///     copy_from(quest, docker_client, src, dst, "my-container")
 ///         .await
 ///         .unwrap();
 /// }
 /// # )
 /// ```
 pub async fn copy_from(
+    quest: SyncQuest,
     docker_client: Arc<Docker>,
     src: &Path,
     dst: &Path,
     container_name: &str,
 ) -> Result<()> {
-    let archive = copy_archive_from(docker_client, src, container_name)
+    let container_name = container_name.to_string();
+    let src = src.to_path_buf();
+    let dst = dst.to_path_buf();
+    let archive =
+        quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!("Download archive {src:?} from {container_name}"),
+                |quest| async move {
+                    copy_archive_from(quest, docker_client, &src, &container_name).await
+                },
+            )
+            .await
+            .2;
+    quest
+        .lock()
         .await
-        .handle
-        .await??;
-    extract_from_memory(archive, dst).await
+        .create_sub_quest(format!("Extract archive to {dst:?}"), |_quest| async move {
+            // TODO: Use streamed/async extracting
+            extract_from_memory(archive.await?, &dst).await
+        })
+        .await
+        .2
+        .await
 }
 
 /// # Example
