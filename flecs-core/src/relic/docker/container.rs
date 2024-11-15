@@ -6,7 +6,7 @@ use bollard::container::{
     RemoveContainerOptions, StartContainerOptions, StopContainerOptions, UploadToContainerOptions,
 };
 use bollard::exec::{CreateExecOptions, StartExecOptions, StartExecResults};
-use bollard::models::{ContainerCreateResponse, ContainerSummary};
+use bollard::models::{ContainerCreateResponse, ContainerInspectResponse, ContainerSummary};
 use bollard::Docker;
 use futures_util::stream::StreamExt;
 use serde::Serialize;
@@ -347,4 +347,38 @@ pub async fn copy_from(
         .handle
         .await??;
     extract_from_memory(archive, dst).await
+}
+
+/// # Example
+/// ```no_run
+/// use bollard::Docker;
+/// use flecs_core::relic::docker::container::inspect;
+/// use std::sync::Arc;
+///
+/// # tokio_test::block_on(
+/// async {
+///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let container_name = "beautiful_haibt";
+///
+///     println!(
+///         "{:?}",
+///         inspect(docker_client, container_name)
+///             .await
+///             .unwrap()
+///             .unwrap()
+///     );
+/// }
+/// # )
+/// ```
+pub async fn inspect(
+    docker_client: Arc<Docker>,
+    container: &str,
+) -> Result<Option<ContainerInspectResponse>> {
+    match docker_client.inspect_container(container, None).await {
+        Ok(container) => Ok(Some(container)),
+        Err(bollard::errors::Error::DockerResponseServerError {
+            status_code: 404, ..
+        }) => Ok(None),
+        Err(e) => Err(anyhow::anyhow!(e)),
+    }
 }
