@@ -39,7 +39,10 @@ async fn job_from_quest(quest: SyncQuest) -> models::Job {
     let quest = quest.lock().await;
     let sub_quest_progress = quest.sub_quest_progress().await;
     let (units_total, units_done) = if let Some(progress) = &quest.progress {
-        (progress.total as i32, progress.current as i32)
+        (
+            progress.total.unwrap_or_default() as i32,
+            progress.current as i32,
+        )
     } else {
         (0, 0)
     };
@@ -48,7 +51,7 @@ async fn job_from_quest(quest: SyncQuest) -> models::Job {
         id: quest.id.0 as u32,
         status: quest.state.into(),
         description: quest.description.clone(),
-        num_steps: sub_quest_progress.total as i32,
+        num_steps: sub_quest_progress.total.unwrap_or_default() as i32,
         current_step: models::JobStep {
             description: if let Some(detail) = &quest.detail {
                 detail.clone()
