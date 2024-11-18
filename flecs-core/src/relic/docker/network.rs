@@ -1,5 +1,5 @@
 pub use super::Result;
-use bollard::models::{Network, NetworkCreateResponse};
+use bollard::models::Network;
 use bollard::network::{
     ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions, InspectNetworkOptions,
     ListNetworksOptions,
@@ -110,29 +110,8 @@ pub async fn create<T>(
 where
     T: Into<String> + Eq + Hash + serde::ser::Serialize,
 {
-    match docker_client.create_network(options).await? {
-        NetworkCreateResponse {
-            id: None,
-            warning: Some(warning),
-        } => Err(anyhow::anyhow!(
-            "Received no id from docker daemon: {warning}"
-        )),
-        NetworkCreateResponse {
-            id: None,
-            warning: None,
-        } => Err(anyhow::anyhow!("Received no id from docker daemon")),
-        NetworkCreateResponse {
-            id: Some(id),
-            warning: None,
-        } => Ok(id),
-        NetworkCreateResponse {
-            id: Some(id),
-            warning: Some(warning),
-        } => {
-            println!("Received warning from docker daemon during network creation: {warning}");
-            Ok(id)
-        }
-    }
+    let response = docker_client.create_network(options).await?;
+    Ok(response.id)
 }
 
 /// # Example
