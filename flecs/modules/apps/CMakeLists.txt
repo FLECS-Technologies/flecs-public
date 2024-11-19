@@ -43,31 +43,4 @@ flecs_add_module(
         modules.flecsport
 )
 
-if(FLECS_BUILD_TESTS)
-    add_library(modules.apps.mocked_modules STATIC
-        src/apps.cpp
-        src/impl/apps_impl.cpp
-        apps.h
-        impl/apps_impl.h
-    )
-
-    target_link_libraries(
-        modules.apps.mocked_modules PUBLIC
-        GTest::gmock
-        common
-        modules.factory
-        modules.module_base
-    )
-
-    target_link_libraries(
-        modules.apps.mocked_modules PRIVATE
-        magic::flecs_core_cxx_bridge
-    )
-
-    target_compile_definitions(
-        modules.apps.mocked_modules PRIVATE
-        -DFLECS_MOCK_MODULES
-    )
-endif()
-
 add_subdirectory(test)

@@ -25,30 +25,4 @@ flecs_add_module(
         magic::flecs_core_cxx_bridge
 )
 
-add_library(modules.manifests.mocked_modules STATIC
-    src/manifests.cpp
-    src/impl/manifests_impl.cpp
-    manifests.h
-    impl/manifests_impl.h
-)
-target_link_libraries(modules.manifests.mocked_modules PRIVATE
-    magic::flecs_core_cxx_bridge
-)
-
-if(FLECS_BUILD_TESTS)
-    target_link_libraries(
-        modules.manifests.mocked_modules PUBLIC
-        cpr::cpr
-        GTest::gmock
-        common
-        modules.factory
-        modules.module_base
-    )
-
-    target_compile_definitions(
-        modules.manifests.mocked_modules PRIVATE
-        -DFLECS_MOCK_MODULES
-    )
-endif()
-
 add_subdirectory(test)

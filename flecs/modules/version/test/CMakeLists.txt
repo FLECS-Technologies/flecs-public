@@ -13,6 +13,10 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
+    target_compile_definitions(modules.version.mocked_modules PUBLIC
+        -DFLECS_GIT_SHA="${FLECS_GIT_SHA}"
+    )
+
     add_executable(modules.version.test
         test_version.cpp
     )

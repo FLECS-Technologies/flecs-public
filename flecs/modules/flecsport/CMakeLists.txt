@@ -21,24 +21,3 @@ flecs_add_module(
     LIBS_PUBLIC common
     LIBS_PRIVATE util.archive util.datetime util.sysinfo
 )
-
-if(FLECS_BUILD_TESTS)
-    add_library(modules.flecsport.mocked_modules STATIC
-        src/flecsport.cpp
-        src/impl/flecsport_impl.cpp
-        flecsport.h
-        impl/flecsport_impl.h
-    )
-
-    target_link_libraries(
-        modules.flecsport.mocked_modules PUBLIC
-        GTest::gmock
-        modules.factory
-        modules.module_base
-    )
-
-    target_compile_definitions(
-        modules.flecsport.mocked_modules PRIVATE
-        -DFLECS_MOCK_MODULES
-    )
-endif()

@@ -34,26 +34,4 @@ flecs_add_module(
         util.signal_handler
 )
 
-if(FLECS_BUILD_TESTS)
-    add_library(modules.jobs.mocked_modules STATIC
-        src/jobs.cpp
-        src/impl/jobs_impl.cpp
-        jobs.h
-        impl/jobs_impl.h
-    )
-
-    target_link_libraries(
-        modules.jobs.mocked_modules PUBLIC
-        GTest::gmock
-        modules.factory
-        modules.jobs.types
-        modules.module_base
-    )
-
-    target_compile_definitions(
-        modules.jobs.mocked_modules PRIVATE
-        -DFLECS_MOCK_MODULES
-    )
-endif()
-
 add_subdirectory(test)

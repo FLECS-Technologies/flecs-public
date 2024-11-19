@@ -53,26 +53,4 @@ flecs_add_module(
         util.network
 )
 
-if(FLECS_BUILD_TESTS)
-    add_library(modules.instances.mocked_modules STATIC
-        src/instances.cpp
-        src/impl/instances_impl.cpp
-        instances.h
-        impl/instances_impl.h
-    )
-
-    target_link_libraries(
-        modules.instances.mocked_modules PUBLIC
-        GTest::gmock
-        modules.factory
-        modules.module_base
-        modules.instances.types
-    )
-
-    target_compile_definitions(
-        modules.instances.mocked_modules PRIVATE
-        -DFLECS_MOCK_MODULES
-    )
-endif()
-
 add_subdirectory(test)

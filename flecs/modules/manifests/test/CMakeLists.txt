@@ -13,6 +13,11 @@
 # limitations under the License.
 
 if(FLECS_BUILD_TESTS)
+    target_link_libraries(modules.manifests.mocked_modules PRIVATE
+        cpr::cpr
+        common.app.manifest
+    )
+
     set(TEST_NAME modules.manifests.test)
 
     add_executable(${TEST_NAME}
@@ -25,6 +30,7 @@ if(FLECS_BUILD_TESTS)
         GTest::gtest
         GTest::gtest_main
         common.app.manifest
+        modules.apps.types
         modules.manifests.mocked_modules
         magic::flecs_core_cxx_bridge
     )

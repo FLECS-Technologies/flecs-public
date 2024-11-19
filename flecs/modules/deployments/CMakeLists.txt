@@ -53,25 +53,6 @@ if(FLECS_BUILD_TESTS)
         modules.deployments.types.mocked_modules PRIVATE
         -DFLECS_MOCK_MODULES
     )
-
-    add_library(modules.deployments.mocked_modules STATIC
-        src/deployments.cpp
-        src/impl/deployments_impl.cpp
-        deployments.h
-        impl/deployments_impl.h
-    )
-    target_link_libraries(
-        modules.deployments.mocked_modules PUBLIC
-        GTest::gmock
-        modules.factory
-        modules.module_base
-        modules.deployments.types.mocked_modules
-        modules.instances.types
-    )
-    target_compile_definitions(
-        modules.deployments.mocked_modules PRIVATE
-        -DFLECS_MOCK_MODULES
-    )
 endif()
 
 add_subdirectory(test)

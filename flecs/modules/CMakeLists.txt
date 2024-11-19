@@ -36,6 +36,25 @@ macro(flecs_add_module)
     target_link_libraries(modules.${mod_MODULE_NAME} PRIVATE
         ${mod_LIBS_PRIVATE}
     )
+
+    if(FLECS_BUILD_TESTS)
+        add_library(modules.${mod_MODULE_NAME}.mocked_modules STATIC
+            src/${mod_MODULE_NAME}.cpp ${mod_ADDITIONAL_SOURCES}
+            ${mod_MODULE_NAME}.h ${mod_ADDITIONAL_HEADERS}
+        )
+
+        target_link_libraries(
+            modules.${mod_MODULE_NAME}.mocked_modules PUBLIC
+            GTest::gmock
+            modules.factory
+            modules.module_base
+        )
+
+        target_compile_definitions(
+            modules.${mod_MODULE_NAME}.mocked_modules PRIVATE
+            -DFLECS_MOCK_MODULES
+        )
+    endif()
 endmacro()
 
 add_subdirectory(apps)

@@ -20,25 +20,4 @@ flecs_add_module(
     LIBS_PUBLIC modules.instances.types
 )
 
-if(FLECS_BUILD_TESTS)
-    add_library(modules.floxy.mocked_modules STATIC
-        src/floxy.cpp
-        src/impl/floxy_impl.cpp
-        floxy.h
-        impl/floxy_impl.h
-    )
-
-    target_link_libraries(
-        modules.floxy.mocked_modules PUBLIC
-        GTest::gmock
-        modules.factory
-        modules.module_base
-    )
-
-    target_compile_definitions(
-        modules.floxy.mocked_modules PRIVATE
-        -DFLECS_MOCK_MODULES
-    )
-endif()
-
 #add_subdirectory(test)

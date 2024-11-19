@@ -18,3 +18,10 @@ flecs_add_module(
     ADDITIONAL_HEADERS impl/data_layer_impl.h
     LIBS_PRIVATE flunder.static
 )
+
+
+if (FLECS_BUILD_TESTS)
+    target_link_libraries(modules.data_layer.mocked_modules PRIVATE
+        flunder.static
+    )
+endif()
