@@ -15,7 +15,9 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
 
+#include "flecs/modules/deployments/types/deployment.h"
 #include "flecs/modules/module_base/module.h"
 
 namespace flecs {
@@ -31,8 +33,14 @@ class deployments_t FLECS_FINAL_UNLESS_TESTED : public base_t
 public:
     ~deployments_t() override;
 
+    auto query_deployment(std::string_view id) //
+        -> std::shared_ptr<deployments::deployment_t>;
+
 protected:
     deployments_t();
+
+    auto do_load(const fs::path& base_path) //
+        -> result_t override;
 
     auto do_init() //
         -> void override;

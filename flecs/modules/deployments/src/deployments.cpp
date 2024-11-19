@@ -28,6 +28,12 @@ deployments_t::deployments_t()
 deployments_t::~deployments_t()
 {}
 
+auto deployments_t::do_load(const fs::path& base_path) //
+    -> result_t
+{
+    return _impl->do_module_load(base_path);
+}
+
 auto deployments_t::do_init() //
     -> void
 {}
@@ -35,6 +41,12 @@ auto deployments_t::do_init() //
 auto deployments_t::do_deinit() //
     -> void
 {}
+
+auto deployments_t::query_deployment(std::string_view id) //
+    -> std::shared_ptr<deployments::deployment_t>
+{
+    return _impl->do_query_deployment(std::move(id));
+}
 
 } // namespace module
 } // namespace flecs

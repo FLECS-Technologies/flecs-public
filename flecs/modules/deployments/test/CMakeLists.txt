@@ -29,7 +29,7 @@ if(FLECS_BUILD_TESTS)
         GTest::gtest_main
         modules.factory
         modules.module_base
-        modules.deployments
+        modules.deployments.mocked_modules
     )
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})

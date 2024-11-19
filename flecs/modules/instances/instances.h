@@ -170,7 +170,7 @@ protected:
 
     instances_t();
 
-    auto do_load(const fs::path& base_path) //
+    auto do_load(const fs::path&) //
         -> result_t override;
 
     auto do_init() //

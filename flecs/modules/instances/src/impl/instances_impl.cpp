@@ -19,9 +19,11 @@
 #include "flecs/modules/deployments/types/deployment_docker.h"
 #ifdef FLECS_MOCK_MODULES
 #include "flecs/modules/apps/__mocks__/apps.h"
+#include "flecs/modules/deployments/__mocks__/deployments.h"
 #include "flecs/modules/jobs/__mocks__/jobs.h"
 #else // FLECS_MOCK_MODULES
 #include "flecs/modules/apps/apps.h"
+#include "flecs/modules/deployments/deployments.h"
 #include "flecs/modules/jobs/jobs.h"
 #endif // FLECS_MOCK_MODULES
 #include "flecs/modules/apps/types/app.h"
@@ -113,9 +115,10 @@ auto build_usb_devices_json(std::shared_ptr<instances::instance_t> instance)
 
 instances_t::instances_t(flecs::module::instances_t* parent)
     : _parent{parent}
-    , _deployment{new deployments::docker_t{}}
     , _apps_api{}
+    , _deployments_api{}
     , _jobs_api{}
+    , _deployment{}
 {}
 
 instances_t::~instances_t()
@@ -170,12 +173,16 @@ auto instances_t::migrate_macvlan_to_ipvlan() //
     }
 }
 
-auto instances_t::do_load(const fs::path& base_path) //
+auto instances_t::do_load(const fs::path&) //
     -> result_t
 {
     _apps_api = std::dynamic_pointer_cast<module::apps_t>(api::query_module("apps"));
+    _deployments_api = std::dynamic_pointer_cast<module::deployments_t>(api::query_module("deployments"));
     _jobs_api = std::dynamic_pointer_cast<module::jobs_t>(api::query_module("jobs"));
-    return _deployment->load(base_path);
+
+    _deployment = _deployments_api->query_deployment("docker");
+
+    return {0, {}};
 }
 
 auto instances_t::do_module_init() //
