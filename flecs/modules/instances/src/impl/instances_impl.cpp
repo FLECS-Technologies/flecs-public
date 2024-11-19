@@ -173,15 +173,14 @@ auto instances_t::migrate_macvlan_to_ipvlan() //
 auto instances_t::do_load(const fs::path& base_path) //
     -> result_t
 {
+    _apps_api = std::dynamic_pointer_cast<module::apps_t>(api::query_module("apps"));
+    _jobs_api = std::dynamic_pointer_cast<module::jobs_t>(api::query_module("jobs"));
     return _deployment->load(base_path);
 }
 
 auto instances_t::do_module_init() //
     -> void
 {
-    _apps_api = std::dynamic_pointer_cast<flecs::module::apps_t>(api::query_module("apps"));
-    _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
-
     auto hosts_thread = std::thread([] {
         pthread_setname_np(pthread_self(), "flecs-update-hosts");
         auto hosts_process = process_t{};

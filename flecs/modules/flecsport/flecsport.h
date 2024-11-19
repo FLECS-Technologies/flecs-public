@@ -63,6 +63,9 @@ protected:
 
     flecsport_t();
 
+    auto do_load(const fs::path&) //
+        -> result_t override;
+
     auto do_init() //
         -> void override;
 

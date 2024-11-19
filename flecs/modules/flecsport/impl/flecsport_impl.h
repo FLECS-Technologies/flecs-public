@@ -36,6 +36,9 @@ class flecsport_t
 private:
     explicit flecsport_t(flecs::module::flecsport_t* parent);
 
+    auto do_module_load(const fs::path&) -> //
+        result_t;
+
     auto do_init() //
         -> void;
 

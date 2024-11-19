@@ -31,6 +31,12 @@ flecsport_t::flecsport_t()
 flecsport_t::~flecsport_t()
 {}
 
+auto flecsport_t::do_load(const fs::path& base_path) //
+    -> result_t
+{
+    return _impl->do_module_load(base_path);
+}
+
 auto flecsport_t::do_init() //
     -> void
 {
