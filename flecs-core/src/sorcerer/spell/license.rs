@@ -10,15 +10,16 @@ use flecs_console_client::models::{
     ActivationData, PostApiV2DeviceLicenseActivateRequest, SessionId,
 };
 use http::StatusCode;
+use std::sync::Arc;
 
 pub async fn validate_license(
     session_id: Option<String>,
-    configuration: &Configuration,
+    configuration: Arc<Configuration>,
 ) -> Result<bool> {
     match &session_id {
         Some(session_id) => {
             match flecs_console_client::apis::device_api::post_api_v2_device_license_validate(
-                configuration,
+                &configuration,
                 session_id,
             )
             .await
@@ -88,10 +89,10 @@ fn handle_activation_response(
 pub async fn activate_via_license_key(
     license_key: &str,
     session_id: SessionId,
-    configuration: &Configuration,
+    configuration: Arc<Configuration>,
 ) -> Result<ActivationResult> {
     let response = flecs_console_client::apis::device_api::post_api_v2_device_license_activate(
-        configuration,
+        &configuration,
         None,
         session_id.id.as_deref(),
         Some(PostApiV2DeviceLicenseActivateRequest {
@@ -104,12 +105,12 @@ pub async fn activate_via_license_key(
 }
 
 pub async fn activate_via_user_license(
-    configuration: &Configuration,
+    configuration: Arc<Configuration>,
     authorization_token: &str,
 ) -> Result<ActivationResult> {
     let bearer_token = format!("Bearer {authorization_token}");
     let response = flecs_console_client::apis::device_api::post_api_v2_device_license_activate(
-        configuration,
+        &configuration,
         Some(&bearer_token),
         None,
         None,
@@ -121,7 +122,6 @@ pub async fn activate_via_user_license(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flecs_console_client::apis::configuration::Configuration;
     use flecs_console_client::apis::device_api::PostApiV2DeviceLicenseActivateSuccess;
     use flecs_console_client::apis::ResponseContent;
     use flecs_console_client::models::{
@@ -139,11 +139,7 @@ mod tests {
             id: Some(SESSION_ID.to_string()),
             timestamp: Some(TIMESTAMP),
         };
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
 
         let mock = server
             .mock("POST", "/api/v2/device/license/activate")
@@ -152,7 +148,7 @@ mod tests {
             .await;
         assert_eq!(
             ActivationResult::AlreadyActive,
-            activate_via_license_key(LICENSE_KEY, session, &config)
+            activate_via_license_key(LICENSE_KEY, session, config)
                 .await
                 .unwrap()
         );
@@ -165,11 +161,7 @@ mod tests {
             id: None,
             timestamp: None,
         };
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body = serde_json::json!({
             "statusCode": 200,
             "statusTest": "OK",
@@ -198,7 +190,7 @@ mod tests {
                 session_id: Box::new(resulting_session_id),
                 license_key: LICENSE_KEY.to_string(),
             }),
-            activate_via_license_key(LICENSE_KEY, session, &config)
+            activate_via_license_key(LICENSE_KEY, session, config)
                 .await
                 .unwrap()
         );
@@ -207,11 +199,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_via_user_test() {
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body = serde_json::json!({
             "statusCode": 200,
             "statusTest": "OK",
@@ -240,7 +228,7 @@ mod tests {
                 session_id: Box::new(resulting_session_id),
                 license_key: LICENSE_KEY.to_string(),
             }),
-            activate_via_user_license(&config, "valid authorization token")
+            activate_via_user_license(config, "valid authorization token")
                 .await
                 .unwrap()
         );
@@ -355,11 +343,7 @@ mod tests {
     #[tokio::test]
     async fn validate_license_valid() {
         let session_id = Some(SESSION_ID.to_string());
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body = serde_json::json!({
             "statusCode": 200,
             "statusTest": "OK",
@@ -375,17 +359,13 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert!(validate_license(session_id, &config).await.unwrap());
+        assert!(validate_license(session_id, config).await.unwrap());
         mock.assert();
     }
     #[tokio::test]
     async fn validate_license_invalid() {
         let session_id = Some(SESSION_ID.to_string());
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body = serde_json::json!({
             "statusCode": 200,
             "statusTest": "OK",
@@ -401,35 +381,27 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert!(!validate_license(session_id, &config).await.unwrap());
+        assert!(!validate_license(session_id, config).await.unwrap());
         mock.assert();
     }
 
     #[tokio::test]
     async fn validate_license_missing() {
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = server
             .mock("POST", "/api/v2/device/license/validate")
             .with_status(200)
             .expect(0)
             .create_async()
             .await;
-        assert!(!validate_license(None, &config).await.unwrap());
+        assert!(!validate_license(None, config).await.unwrap());
         mock.assert();
     }
 
     #[tokio::test]
     async fn validate_license_unknown_value() {
         let session_id = Some(SESSION_ID.to_string());
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body_json = serde_json::json!({
             "statusCode": 200,
             "statusTest": "OK",
@@ -447,7 +419,7 @@ mod tests {
             .await;
         assert!(format!(
             "{:#}",
-            validate_license(session_id, &config).await.err().unwrap()
+            validate_license(session_id, config).await.err().unwrap()
         )
         .contains(&format!(
             "Received unknown value from console: {body_json:?}"
@@ -457,11 +429,7 @@ mod tests {
     #[tokio::test]
     async fn validate_license_no_data() {
         let session_id = Some(SESSION_ID.to_string());
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = server
             .mock("POST", "/api/v2/device/license/validate")
             .with_status(200)
@@ -469,7 +437,7 @@ mod tests {
             .await;
         assert!(format!(
             "{:#}",
-            validate_license(session_id, &config).await.err().unwrap()
+            validate_license(session_id, config).await.err().unwrap()
         )
         .contains("Received no data from console"));
         mock.assert();
@@ -477,17 +445,13 @@ mod tests {
     #[tokio::test]
     async fn validate_license_error() {
         let session_id = Some(SESSION_ID.to_string());
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = server
             .mock("POST", "/api/v2/device/license/validate")
             .with_status(500)
             .create_async()
             .await;
-        assert!(validate_license(session_id, &config).await.is_err());
+        assert!(validate_license(session_id, config).await.is_err());
         mock.assert();
     }
 }

@@ -7,15 +7,16 @@ use flecs_console_client::apis::default_api::{
     get_api_v2_manifests_app_version, GetApiV2ManifestsAppVersionSuccess,
 };
 use http::StatusCode;
+use std::sync::Arc;
 
 pub async fn download_manifest(
-    console_configuration: &Configuration,
+    console_configuration: Arc<Configuration>,
     x_session_id: &str,
     app: &str,
     version: &str,
 ) -> Result<AppManifestVersion> {
     let response = get_api_v2_manifests_app_version(
-        console_configuration,
+        &console_configuration,
         x_session_id,
         app,
         version,
@@ -55,11 +56,7 @@ mod tests {
 
     #[tokio::test]
     async fn download_valid_manifest_test() {
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         const BODY: &str = r#"{
     "statusCode": 200,
     "statusText": "OK",
@@ -101,18 +98,14 @@ mod tests {
             .with_body(BODY)
             .create_async()
             .await;
-        let result = download_manifest(&config, "", APP_NAME, APP_VERSION).await;
+        let result = download_manifest(config, "", APP_NAME, APP_VERSION).await;
         mock.assert();
         assert_eq!(result.unwrap(), expected_result);
     }
 
     #[tokio::test]
     async fn download_no_data_manifest_test() {
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         const BODY: &str = r#"{
         "statusCode": 200,
         "statusText": "OK"
@@ -130,7 +123,7 @@ mod tests {
             .with_body(BODY)
             .create_async()
             .await;
-        let result = download_manifest(&config, "", APP_NAME, APP_VERSION).await;
+        let result = download_manifest(config, "", APP_NAME, APP_VERSION).await;
         mock.assert();
         match result {
             Err(e) => {
@@ -143,11 +136,7 @@ mod tests {
     }
     #[tokio::test]
     async fn download_manifest_unexpected_response_test() {
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         const BODY: &str = r#"{
         "statusCode": 202,
         "statusText": "OK"
@@ -165,7 +154,7 @@ mod tests {
             .with_body(BODY)
             .create_async()
             .await;
-        let result = download_manifest(&config, "", APP_NAME, APP_VERSION).await;
+        let result = download_manifest(config, "", APP_NAME, APP_VERSION).await;
         mock.assert();
         match result {
             Err(e) => {

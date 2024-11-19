@@ -13,6 +13,7 @@ pub fn download_manifest(app: &str, version: &str) -> Result<String> {
                 name: app.into(),
                 version: version.into(),
             },
+            lore::console_client_config::default().await,
         )
         .await
     })?;

@@ -9,6 +9,7 @@ use flecs_console_client::models::{
 };
 use flecsd_axum_server::models::AuthResponseData;
 use http::StatusCode;
+use std::sync::Arc;
 
 pub fn delete_authentication(secrets: &mut Secrets) {
     secrets.authentication = None;
@@ -19,13 +20,13 @@ pub fn store_authentication(auth: AuthResponseData, secrets: &mut Secrets) {
 }
 
 pub async fn acquire_download_token(
-    console_configuration: &Configuration,
+    console_configuration: Arc<Configuration>,
     x_session_id: &str,
     app: &str,
     version: &str,
 ) -> Result<PostApiV2Tokens200ResponseData> {
     match post_api_v2_tokens(
-        console_configuration,
+        &console_configuration,
         x_session_id,
         Some(PostApiV2TokensRequest {
             app: app.to_string(),
@@ -99,11 +100,7 @@ mod tests {
 
     #[tokio::test]
     async fn acquire_download_token_test() {
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body = serde_json::json!({
             "statusCode": 200,
             "statusTest": "OK",
@@ -129,7 +126,7 @@ mod tests {
             .create_async()
             .await;
         assert_eq!(
-            acquire_download_token(&config, "", "", "").await.unwrap(),
+            acquire_download_token(config, "", "", "").await.unwrap(),
             expected_result
         );
         mock.assert();
@@ -137,11 +134,7 @@ mod tests {
 
     #[tokio::test]
     async fn acquire_download_token_no_content_test() {
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let expected_result = PostApiV2Tokens200ResponseData {
             token: Box::<PostApiV2Tokens200ResponseDataToken>::default(),
         };
@@ -151,7 +144,7 @@ mod tests {
             .create_async()
             .await;
         assert_eq!(
-            acquire_download_token(&config, "", "", "").await.unwrap(),
+            acquire_download_token(config, "", "", "").await.unwrap(),
             expected_result
         );
         mock.assert();
@@ -159,11 +152,7 @@ mod tests {
 
     #[tokio::test]
     async fn acquire_download_token_invalid_data_test() {
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body = serde_json::json!({
             "statusCode": 200,
             "statusTest": "OK",
@@ -180,17 +169,13 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert!(acquire_download_token(&config, "", "", "").await.is_err());
+        assert!(acquire_download_token(config, "", "", "").await.is_err());
         mock.assert();
     }
 
     #[tokio::test]
     async fn acquire_download_token_error_test() {
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body = serde_json::json!({
             "additionalInfo": "Access denied"
         });
@@ -202,7 +187,7 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert!(acquire_download_token(&config, "", "", "").await.is_err());
+        assert!(acquire_download_token(config, "", "", "").await.is_err());
         mock.assert();
     }
 }
