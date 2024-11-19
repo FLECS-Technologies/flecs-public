@@ -65,6 +65,15 @@ pub struct AppKey {
     pub version: String,
 }
 
+impl From<flecsd_axum_server::models::AppKey> for AppKey {
+    fn from(value: flecsd_axum_server::models::AppKey) -> Self {
+        Self {
+            version: value.version,
+            name: value.name,
+        }
+    }
+}
+
 impl Display for AppKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}-{}", self.name, self.version)
