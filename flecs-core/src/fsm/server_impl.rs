@@ -49,7 +49,7 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdDeletePathParams, InstancesInstanceIdEditorPortGetPathParams,
     InstancesInstanceIdGetPathParams, InstancesInstanceIdLogsGetPathParams,
     InstancesInstanceIdPatchPathParams, InstancesInstanceIdPatchRequest,
-    InstancesInstanceIdStartPostPathParams, InstancesInstanceIdStopPostPathParams,
+    InstancesInstanceIdStartPostPathParams, InstancesInstanceIdStopPostPathParams, JobMeta,
     JobsJobIdDeletePathParams, JobsJobIdGetPathParams,
 };
 use http::Method;
@@ -138,9 +138,28 @@ impl Apps for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _body: AppsInstallPostRequest,
+        body: AppsInstallPostRequest,
     ) -> Result<AppsInstallPostResponse, String> {
-        todo!()
+        let app_key = body.app_key.into();
+        let config = crate::lore::console_client_config::default().await;
+        match crate::lore::quest::default()
+            .await
+            .lock()
+            .await
+            .schedule_quest(format!("Install {}", app_key), |quest| {
+                crate::sorcerer::appraiser::install_app(quest, self.vault.clone(), app_key, config)
+            })
+            .await
+        {
+            Ok((id, _)) => Ok(AppsInstallPostResponse::Status202_Accepted(JobMeta {
+                job_id: id.0 as i32,
+            })),
+            Err(e) => Ok(AppsInstallPostResponse::Status500_InternalServerError(
+                AdditionalInfo {
+                    additional_info: e.to_string(),
+                },
+            )),
+        }
     }
 
     async fn apps_sideload_post(
