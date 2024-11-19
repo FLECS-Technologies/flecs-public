@@ -16,6 +16,9 @@
 
 DIR=$(dirname $(readlink -f ${0}))
 
+BUILD_DIR='build/${ARCH}'
+INSTALL_DIR='out/${ARCH}'
+
 while [ "$1" != "" ]; do
   case $1 in
     --debug)
@@ -26,7 +29,9 @@ while [ "$1" != "" ]; do
       ;;
     --with-tests)
       CMAKE_OPTIONS+="-DFLECS_BUILD_TESTS=On"
-      BUILD_TYPE=Debug
+      BUILD_TYPE=RelWithDebInfo
+      BUILD_DIR=build/test
+      INSTALL_DIR=out/test
       ;;
     --arch)
       shift
@@ -60,5 +65,8 @@ fi
 
 echo "Building ${BUILD_TYPE} for ${ARCH} with options ${CMAKE_OPTIONS}"
 
-cmake -G Ninja -B build/${ARCH} -DARCH=${ARCH} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=out/${ARCH} ${CMAKE_OPTIONS}
-cmake --build build/${ARCH}
+BUILD_DIR=`eval echo ${BUILD_DIR}`
+INSTALL_DIR=`eval echo ${INSTALL_DIR}`
+
+cmake -G Ninja -B ${BUILD_DIR} -DARCH=${ARCH} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${CMAKE_OPTIONS}
+cmake --build ${BUILD_DIR}
