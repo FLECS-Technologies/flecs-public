@@ -52,6 +52,8 @@ apps_t::apps_t(flecs::module::apps_t* parent)
     : _parent{parent}
     , _apps{}
     , _apps_mutex{}
+    , _instances_api{}
+    , _manifests_api{}
     , _jobs_api{}
 {}
 
@@ -61,10 +63,6 @@ apps_t::~apps_t()
 auto apps_t::do_module_init() //
     -> void
 {
-    _instances_api = std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
-    _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
-    _manifests_api = std::dynamic_pointer_cast<flecs::module::manifests_t>(api::query_module("manifests"));
-
     auto ec = std::error_code{};
     if (fs::is_directory("/var/lib/flecs/apps", ec)) {
         _manifests_api->base_path("/var/lib/flecs/apps");
@@ -90,6 +88,10 @@ auto apps_t::do_module_init() //
 auto apps_t::do_load(const fs::path& base_path) //
     -> result_t
 {
+    _instances_api = std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
+    _manifests_api = std::dynamic_pointer_cast<flecs::module::manifests_t>(api::query_module("manifests"));
+    _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
+
     const auto json_path = base_path / "apps.json";
     auto json_file = std::ifstream{json_path};
 
@@ -208,18 +210,17 @@ auto apps_t::do_install_many_from_marketplace(std::vector<apps::key_t> app_keys,
 {
     static constexpr std::int16_t TOTAL_STEPS_PER_APP = 9;
     progress.num_steps(TOTAL_STEPS_PER_APP * app_keys.size());
-    auto instances_api = std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
 
     auto failed_apps = std::vector<std::pair<apps::key_t, std::string>>{};
     for (size_t i = 0; i < app_keys.size(); i++) {
         auto [app_result, message] = install_from_marketplace(app_keys[i], progress);
         if (app_result == 0) {
             progress.next_step("Creating instance of " + app_keys[i].name() + " (" + app_keys[i].version() + ")" );
-            std::tie(app_result, message) = instances_api->create(app_keys[i].name(), app_keys[i].version());
+            std::tie(app_result, message) = _instances_api->create(app_keys[i].name(), app_keys[i].version());
         }
         if (app_result == 0) {
             progress.next_step("Starting instance " + message + "of " + app_keys[i].name() + " (" + app_keys[i].version() + ")" );
-            std::tie(app_result, message) = instances_api->start(instances::id_t{message});
+            std::tie(app_result, message) = _instances_api->start(instances::id_t{message});
         }
         if (app_result != 0) {
             progress.skip_to_step(TOTAL_STEPS_PER_APP * (i + 1));

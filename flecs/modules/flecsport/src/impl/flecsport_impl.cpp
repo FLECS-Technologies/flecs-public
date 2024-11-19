@@ -48,10 +48,16 @@ flecsport_t::flecsport_t(flecs::module::flecsport_t* parent)
 
 auto flecsport_t::do_init() //
     -> void
+{}
+
+auto flecsport_t::do_module_load(const fs::path&) //
+    -> result_t
 {
     _apps_api = std::dynamic_pointer_cast<flecs::module::apps_t>(api::query_module("apps"));
     _instances_api = std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
     _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
+
+    return {0, {}};
 }
 
 auto flecsport_t::do_exports() const //
