@@ -32,6 +32,9 @@ private:
     auto do_deployment_id() const noexcept //
         -> std::string_view override;
 
+    auto do_download_app(std::shared_ptr<apps::app_t> app, std::optional<Token> token) //
+        -> result_t override;
+
     auto do_create_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t override;
     auto do_delete_instance(std::shared_ptr<instances::instance_t> instance) //

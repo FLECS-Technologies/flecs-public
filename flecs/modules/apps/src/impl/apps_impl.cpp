@@ -34,6 +34,7 @@
 #include "flecs/modules/jobs/jobs.h"
 #include "flecs/modules/manifests/manifests.h"
 #endif // FLECS_MOCK_MODULES
+#include "flecs/modules/deployments/deployments.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/instances/types/instance.h"
 #include "flecs/util/cxx23/string.h"
@@ -201,7 +202,7 @@ auto apps_t::do_install_many_from_marketplace_sync(std::vector<apps::key_t> app_
 auto apps_t::do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
     -> result_t
 {
-    progress.num_steps(7);
+    progress.num_steps(6);
     return install_from_marketplace(std::move(app_key), progress);
 }
 
@@ -317,55 +318,15 @@ auto apps_t::do_install_impl(
             [[fallthrough]];
         }
         case apps::status_e::TokenAcquired: {
-            // Step 4: Pull Docker image for this App
-            auto docker_pull_process = process_t{};
-            auto docker_logout_process = process_t{};
-
-            progress.next_step("Authenticating");
-            if (token.has_value() && !token->username.empty() && !token->password.empty()) {
-                auto docker_process = process_t{};
-
-                auto login_attempts = 3;
-                while (login_attempts-- > 0) {
-                    docker_process = process_t{};
-                    docker_process.spawnp(
-                        "docker",
-                        "login",
-                        "--username",
-                        token->username.c_str(),
-                        "--password",
-                        token->password.c_str(),
-                        app->manifest()->image_with_tag());
-                    docker_process.wait(true, true);
-                    if (docker_process.exit_code() == 0) {
-                        break;
-                    }
-                }
-
-                if (docker_process.exit_code() != 0) {
-                    _parent->save();
-                    return {-1, docker_process.stderr()};
-                }
-            }
-
+            // Step 4: Download App through deployment
             progress.next_step("Downloading App");
-
-            auto pull_attempts = 3;
-            while (pull_attempts-- > 0) {
-                docker_pull_process = process_t{};
-                docker_pull_process.spawnp("docker", "pull", manifest->image_with_tag());
-                docker_pull_process.wait(true, true);
-                if (docker_pull_process.exit_code() == 0) {
-                    break;
-                }
-            }
-
-            docker_logout_process.spawnp("docker", "logout");
-            docker_logout_process.wait(true, true);
-
-            if (docker_pull_process.exit_code() != 0) {
+            auto deployment_api =
+                std::dynamic_pointer_cast<module::deployments_t>(api::query_module("deployments"));
+            auto deployment = deployment_api->query_deployment("docker");
+            const auto [res, message] = deployment->download_app(app, token);
+            if (res != 0) {
                 _parent->save();
-                return {-1, docker_pull_process.stderr()};
+                return {res, message};
             }
             app->status(apps::status_e::ImageDownloaded);
             [[fallthrough]];

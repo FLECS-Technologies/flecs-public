@@ -351,6 +351,51 @@ auto docker_t::do_deployment_id() const noexcept //
     return "docker";
 }
 
+auto docker_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<Token> token) //
+    -> result_t
+{
+    if (token.has_value()) {
+        auto login_attempts = 3;
+        while (login_attempts-- > 0) {
+            auto process = process_t{};
+            process.spawnp(
+                "docker",
+                "login",
+                "--username",
+                token->username.c_str(),
+                "--password",
+                token->password.c_str(),
+                app->manifest()->image_with_tag());
+            process.wait(true, true);
+            if (process.exit_code() == 0) {
+                break;
+            }
+        }
+    }
+
+    auto pull_process = process_t{};
+    auto pull_attempts = 3;
+    while (pull_attempts-- > 0) {
+        pull_process.spawnp("docker", "pull", app->manifest()->image_with_tag());
+        pull_process.wait(true, true);
+        if (pull_process.exit_code() == 0) {
+            break;
+        }
+    }
+
+    if (token.has_value()) {
+        auto process = process_t{};
+        process.spawnp("docker", "logout");
+        process.wait(true, true);
+    }
+
+    if (pull_process.exit_code() == 0) {
+        return {0, {}};
+    }
+
+    return {-1, pull_process.stderr()};
+}
+
 auto docker_t::do_create_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
