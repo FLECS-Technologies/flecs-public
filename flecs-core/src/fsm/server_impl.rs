@@ -3,6 +3,7 @@ use anyhow::Error;
 use axum::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
+use flecs_app_manifest::{AppManifest, AppManifestVersion};
 use flecs_console_client::models::SessionId;
 use flecsd_axum_server::apis::apps::{
     Apps, AppsAppDeleteResponse, AppsAppGetResponse, AppsGetResponse, AppsInstallPostResponse,
@@ -53,8 +54,9 @@ use flecsd_axum_server::models::{
     JobsJobIdDeletePathParams, JobsJobIdGetPathParams,
 };
 use http::Method;
+use std::ops::Deref;
 use std::sync::Arc;
-use tracing::error;
+use tracing::{error, warn};
 
 fn additional_info_from_error(error: Error) -> AdditionalInfo {
     AdditionalInfo {
@@ -167,9 +169,46 @@ impl Apps for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _body: AppsSideloadPostRequest,
+        body: AppsSideloadPostRequest,
     ) -> Result<AppsSideloadPostResponse, String> {
-        todo!()
+        match serde_json::from_str::<AppManifestVersion>(&body.manifest).map(AppManifest::try_from)
+        {
+            Err(e) => Ok(AppsSideloadPostResponse::Status400_MalformedRequest(
+                AdditionalInfo {
+                    additional_info: e.to_string(),
+                },
+            )),
+            Ok(Err(e)) => Ok(AppsSideloadPostResponse::Status400_MalformedRequest(
+                AdditionalInfo {
+                    additional_info: e.to_string(),
+                },
+            )),
+            Ok(Ok(manifest)) => {
+                let config = crate::lore::console_client_config::default().await;
+                match crate::lore::quest::default()
+                    .await
+                    .lock()
+                    .await
+                    .schedule_quest(
+                        format!("Sideloading {}-{}", manifest.app.deref(), manifest.version),
+                        |quest| {
+                            crate::sorcerer::appraiser::install_app_from_manifest(
+                                quest,
+                                self.vault.clone(),
+                                Arc::new(manifest),
+                                config,
+                            )
+                        },
+                    )
+                    .await
+                {
+                    Ok((id, _)) => Ok(AppsSideloadPostResponse::Status202_Accepted(JobMeta {
+                        job_id: id.0 as i32,
+                    })),
+                    Err(e) => Err(e.to_string()),
+                }
+            }
+        }
     }
 }
 
@@ -267,9 +306,53 @@ impl Device for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _body: Dosschema,
+        body: Dosschema,
     ) -> Result<DeviceOnboardingPostResponse, String> {
-        todo!()
+        if body.apps.is_empty() {
+            return Ok(DeviceOnboardingPostResponse::Status400_MalformedRequest(
+                AdditionalInfo {
+                    additional_info: "No apps to install given (field 'apps' is empty)".to_string(),
+                },
+            ));
+        }
+        let app_keys = body
+            .apps
+            .into_iter()
+            .filter_map(|app| {
+                if let Some(version) = app.version {
+                    Some(crate::vault::pouch::AppKey {
+                        name: app.name,
+                        version,
+                    })
+                } else {
+                    warn!(
+                        "Skip installing newest version of app {}, not implemented yet",
+                        app.name
+                    );
+                    None
+                }
+            })
+            .collect();
+        let config = crate::lore::console_client_config::default().await;
+        match crate::lore::quest::default()
+            .await
+            .lock()
+            .await
+            .schedule_quest("Install apps via device onboarding".to_string(), |quest| {
+                crate::sorcerer::appraiser::install_apps(
+                    quest,
+                    self.vault.clone(),
+                    app_keys,
+                    config,
+                )
+            })
+            .await
+        {
+            Ok((id, _)) => Ok(DeviceOnboardingPostResponse::Status202_Accepted(JobMeta {
+                job_id: id.0 as i32,
+            })),
+            Err(e) => Err(e.to_string()),
+        }
     }
 }
 
