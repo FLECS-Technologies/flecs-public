@@ -14,15 +14,48 @@
 
 #include "flecs/modules/deployments/impl/deployments_impl.h"
 
+#include "flecs/modules/deployments/types/deployment_docker.h"
+
 namespace flecs {
 namespace module {
 namespace impl {
 
 deployments_t::deployments_t()
+    : _deployments{std::make_shared<deployments::docker_t>()}
 {}
 
 deployments_t::~deployments_t()
 {}
+
+auto deployments_t::do_module_load(const fs::path& base_path) //
+    -> result_t
+{
+    auto result = result_t{};
+    for (auto deployment : _deployments) {
+        const auto [res, message] = deployment->load(base_path);
+        if (res != 0) {
+            std::get<0>(result) = res;
+            std::get<1>(result).append(message);
+        }
+    }
+
+    return result;
+}
+
+auto deployments_t::do_query_deployment(std::string_view id) //
+    -> std::shared_ptr<deployments::deployment_t>
+{
+    auto it = std::find_if(
+        _deployments.cbegin(),
+        _deployments.cend(),
+        [&id](decltype(_deployments)::const_reference elem) { return elem->deployment_id() == id; });
+
+    if (it != _deployments.end()) {
+        return *it;
+    }
+
+    return {};
+}
 
 } // namespace impl
 } // namespace module

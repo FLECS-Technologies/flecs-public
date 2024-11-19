@@ -29,6 +29,14 @@ public:
 
 private:
     deployments_t();
+
+    auto do_module_load(const fs::path& base_path) //
+        -> result_t;
+
+    auto do_query_deployment(std::string_view id) //
+        -> std::shared_ptr<deployments::deployment_t>;
+
+    std::vector<std::shared_ptr<deployments::deployment_t>> _deployments;
 };
 
 } // namespace impl

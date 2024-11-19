@@ -16,27 +16,40 @@
 
 #include <gmock/gmock.h>
 
-#include <string>
+#include <memory>
+#include <string_view>
 
+#include "flecs/modules/deployments/types/deployment.h"
 #include "flecs/modules/module_base/module.h"
 
 namespace flecs {
 namespace module {
 
-class version_t FLECS_FINAL_UNLESS_TESTED : public base_t
+namespace impl {
+class deployments_t
 {
-    friend class factory_t;
+    ~deployments_t() = default;
+};
+} // namespace impl
 
+class deployments_t FLECS_FINAL_UNLESS_TESTED : public base_t
+{
 public:
-    MOCK_METHOD((crow::response), http_version, (), (const));
-    MOCK_METHOD((std::string), core_version, (), (const));
-    MOCK_METHOD((std::string), api_version, (), (const));
+    ~deployments_t() override = default;
+
+    MOCK_METHOD(
+        std::shared_ptr<flecs::deployments::deployment_t>, query_deployment, (std::string_view), ()); //
 
 protected:
-    version_t() = default;
+    friend class factory_t;
 
+    deployments_t() = default;
+
+    MOCK_METHOD((flecs::result_t), do_load, (const fs::path&), (override));
     MOCK_METHOD((void), do_init, (), (override));
     MOCK_METHOD((void), do_deinit, (), (override));
+
+    std::unique_ptr<impl::deployments_t> _impl;
 };
 
 } // namespace module

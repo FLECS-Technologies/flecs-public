@@ -32,6 +32,7 @@ class deployment_t;
 namespace module {
 
 class apps_t;
+class deployments_t;
 class jobs_t;
 
 namespace impl {
@@ -49,7 +50,7 @@ private:
     auto migrate_macvlan_to_ipvlan() //
         -> void;
 
-    auto do_load(const fs::path& base_path) //
+    auto do_load(const fs::path&) //
         -> result_t;
 
     auto do_module_init() //
@@ -158,9 +159,11 @@ private:
 
     flecs::module::instances_t* _parent;
 
-    std::unique_ptr<deployments::deployment_t> _deployment;
     std::shared_ptr<flecs::module::apps_t> _apps_api;
+    std::shared_ptr<flecs::module::deployments_t> _deployments_api;
     std::shared_ptr<flecs::module::jobs_t> _jobs_api;
+
+    std::shared_ptr<deployments::deployment_t> _deployment;
 };
 
 } // namespace impl
