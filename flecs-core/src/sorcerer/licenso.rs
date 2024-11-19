@@ -5,8 +5,9 @@ use crate::vault::pouch::Pouch;
 use crate::vault::{GrabbedPouches, Vault};
 use anyhow::{anyhow, Context};
 use flecs_console_client::apis::configuration::Configuration;
+use std::sync::Arc;
 
-pub async fn activate_license(vault: &Vault, configuration: &Configuration) -> Result<()> {
+pub async fn activate_license(vault: &Vault, configuration: Arc<Configuration>) -> Result<()> {
     let secrets = vault.get_secrets().await;
 
     let activation_result = match (
@@ -65,7 +66,7 @@ pub async fn activate_license(vault: &Vault, configuration: &Configuration) -> R
     }.context("Could not activate license")
 }
 
-pub async fn validate_license(vault: &Vault) -> Result<bool> {
+pub async fn validate_license(vault: &Vault, configuration: Arc<Configuration>) -> Result<bool> {
     let session_id = vault
         .reservation()
         .reserve_secret_pouch()
@@ -77,11 +78,7 @@ pub async fn validate_license(vault: &Vault) -> Result<bool> {
         .gems()
         .get_session_id()
         .id;
-    spell::license::validate_license(
-        session_id,
-        crate::lore::console_client_config::default().await,
-    )
-    .await
+    spell::license::validate_license(session_id, configuration).await
 }
 
 #[cfg(test)]
@@ -89,7 +86,6 @@ mod tests {
     use super::*;
     use crate::vault::pouch::Secrets;
     use crate::vault::VaultConfig;
-    use flecs_console_client::apis::configuration::Configuration;
     use flecs_console_client::models::SessionId;
     use flecsd_axum_server::models::{AuthResponseData, FeatureFlags, Jwt, User};
     use mockito::Matcher;
@@ -148,11 +144,7 @@ mod tests {
             ),
         )
         .await;
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body = serde_json::json!({
             "statusCode": 200,
             "statusTest": "OK",
@@ -177,7 +169,7 @@ mod tests {
             .match_header("Authorization", format!("Bearer {}", auth).as_str())
             .create_async()
             .await;
-        activate_license(&vault, &config).await.unwrap();
+        activate_license(&vault, config).await.unwrap();
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
@@ -195,11 +187,7 @@ mod tests {
             Secrets::new(Some(LICENSE_KEY.to_string()), SessionId::default(), None),
         )
         .await;
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let body = serde_json::json!({
             "statusCode": 200,
             "statusTest": "OK",
@@ -224,7 +212,7 @@ mod tests {
             .match_header("Authorization", Matcher::Missing)
             .create_async()
             .await;
-        activate_license(&vault, &config).await.unwrap();
+        activate_license(&vault, config).await.unwrap();
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
@@ -249,11 +237,7 @@ mod tests {
             ),
         )
         .await;
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let resulting_session_id = SessionId {
             id: Some(SESSION_ID.to_string()),
             timestamp: Some(TIMESTAMP),
@@ -263,7 +247,7 @@ mod tests {
             .with_status(204)
             .create_async()
             .await;
-        activate_license(&vault, &config).await.unwrap();
+        activate_license(&vault, config).await.unwrap();
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
@@ -285,11 +269,7 @@ mod tests {
             ),
         )
         .await;
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = server
             .mock("POST", "/api/v2/device/license/activate")
             .with_status(204)
@@ -297,7 +277,7 @@ mod tests {
             .await;
         assert!(format!(
             "{:#}",
-            activate_license(&vault, &config).await.err().unwrap()
+            activate_license(&vault, config).await.err().unwrap()
         )
         .contains("Console responded with already active, but license and session id are not set"));
         mock.assert();
@@ -324,11 +304,7 @@ mod tests {
             ),
         )
         .await;
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = server
             .mock("POST", "/api/v2/device/license/activate")
             .with_status(204)
@@ -336,7 +312,7 @@ mod tests {
             .await;
         assert!(format!(
             "{:#}",
-            activate_license(&vault, &config).await.err().unwrap()
+            activate_license(&vault, config).await.err().unwrap()
         )
         .contains("Console responded with already active, but license is not set"));
         mock.assert();
@@ -362,11 +338,7 @@ mod tests {
             Secrets::new(Some(LICENSE_KEY.to_string()), SessionId::default(), None),
         )
         .await;
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = server
             .mock("POST", "/api/v2/device/license/activate")
             .with_status(204)
@@ -374,7 +346,7 @@ mod tests {
             .await;
         assert!(format!(
             "{:#}",
-            activate_license(&vault, &config).await.err().unwrap()
+            activate_license(&vault, config).await.err().unwrap()
         )
         .contains("Console responded with already active, but session id is not set"));
         mock.assert();
@@ -390,11 +362,7 @@ mod tests {
             path: Path::new(TEST_PATH).to_path_buf(),
         });
         setup_secrets(&vault, Secrets::new(None, SessionId::default(), None)).await;
-        let mut server = mockito::Server::new_async().await;
-        let config = Configuration {
-            base_path: server.url(),
-            ..Configuration::default()
-        };
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = server
             .mock("POST", "/api/v2/device/license/activate")
             .with_status(200)
@@ -402,7 +370,7 @@ mod tests {
             .expect(0)
             .create_async()
             .await;
-        assert!(activate_license(&vault, &config)
+        assert!(activate_license(&vault, config)
             .await
             .err()
             .unwrap()

@@ -434,3 +434,18 @@ pub mod vault;
 pub use anyhow::Error;
 pub use anyhow::Result;
 // TODO: Unify structs (App, Instance, Deployment, ...) with structs from Pouches and move them there
+
+#[cfg(test)]
+mod tests {
+    use flecs_console_client::apis::configuration::Configuration;
+    use std::sync::Arc;
+
+    pub async fn create_test_server_and_config() -> (mockito::ServerGuard, Arc<Configuration>) {
+        let server = mockito::Server::new_async().await;
+        let config = Arc::new(Configuration {
+            base_path: server.url(),
+            ..Configuration::default()
+        });
+        (server, config)
+    }
+}

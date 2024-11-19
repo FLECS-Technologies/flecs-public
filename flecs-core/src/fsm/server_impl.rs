@@ -207,7 +207,12 @@ impl Device for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<DeviceLicenseActivationStatusGetResponse, String> {
-        match crate::sorcerer::licenso::validate_license(&self.vault).await {
+        match crate::sorcerer::licenso::validate_license(
+            &self.vault,
+            crate::lore::console_client_config::default().await,
+        )
+        .await
+        {
             Ok(is_valid) => Ok(DeviceLicenseActivationStatusGetResponse::Status200_Success(
                 DeviceLicenseActivationStatusGet200Response { is_valid },
             )),

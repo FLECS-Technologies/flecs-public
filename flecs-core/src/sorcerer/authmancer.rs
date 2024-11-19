@@ -5,6 +5,7 @@ use crate::vault::Vault;
 use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::models::PostApiV2Tokens200ResponseData;
 use flecsd_axum_server::models::AuthResponseData;
+use std::sync::Arc;
 
 pub async fn delete_authentication(vault: &Vault) {
     let mut grabbed_pouches = vault.reservation().reserve_secret_pouch_mut().grab().await;
@@ -30,7 +31,7 @@ pub async fn store_authentication(auth: AuthResponseData, vault: &Vault) {
 }
 
 pub async fn acquire_download_token(
-    configuration: &Configuration,
+    configuration: Arc<Configuration>,
     vault: &Vault,
     app: &str,
     version: &str,
