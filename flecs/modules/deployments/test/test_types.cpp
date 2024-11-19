@@ -33,6 +33,11 @@ class mock_deployment_t : public deployment_t
 {
 public:
     MOCK_METHOD(std::string_view, do_deployment_id, (), (const, noexcept, override));
+    MOCK_METHOD(
+        result_t,
+        do_download_app,
+        (std::shared_ptr<apps::app_t> app, std::optional<Token> token),
+        (override));
     MOCK_METHOD(result_t, do_create_instance, (std::shared_ptr<instances::instance_t> instance), (override));
     MOCK_METHOD(result_t, do_delete_instance, (std::shared_ptr<instances::instance_t> instance), (override));
     MOCK_METHOD(result_t, do_start_instance, (std::shared_ptr<instances::instance_t> instance), (override));

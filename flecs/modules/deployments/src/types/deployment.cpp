@@ -54,6 +54,12 @@ auto deployment_t::save(const fs::path& base_path) //
     return do_save(base_path);
 }
 
+auto deployment_t::download_app(std::shared_ptr<apps::app_t> app, std::optional<Token> token) //
+    -> result_t
+{
+    return do_download_app(std::move(app), std::move(token));
+}
+
 auto deployment_t::instance_ids() const //
     -> std::vector<instances::id_t>
 {

@@ -21,6 +21,7 @@
 #include <string_view>
 #include <vector>
 
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
 #include "flecs/common/network/network_type.h"
 #include "flecs/core/flecs.h"
 #include "flecs/modules/instances/types/instance.h"
@@ -60,6 +61,9 @@ public:
     auto load(const fs::path& base_path = "/var/lib/flecs/") //
         -> result_t;
     auto save(const fs::path& base_path = "/var/lib/flecs/") //
+        -> result_t;
+
+    auto download_app(std::shared_ptr<apps::app_t> app, std::optional<Token> token) //
         -> result_t;
 
     auto instance_ids(const apps::key_t& app_key) const //
@@ -191,6 +195,9 @@ private:
 
     virtual auto do_deployment_id() const noexcept //
         -> std::string_view = 0;
+
+    virtual auto do_download_app(std::shared_ptr<apps::app_t> app, std::optional<Token> token) //
+        -> result_t = 0;
 
     virtual auto do_create_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t = 0;
