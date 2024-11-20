@@ -78,7 +78,6 @@ const auto raw_json_manifest_v_unspecified =
     R"-("volumes":["var:/var/","etc:/etc/","/home/app1/dir:/home/"],)-"
     R"-("labels":["empty=","some.json={\"varname\": 123}","with-whitespace=some\tvalue with\nwhitespace"]})-";
 
-
 TEST(daemon_app, json)
 {
     const auto app_manifest = flecs::app_manifest_t::from_json_string(raw_json_manifest);

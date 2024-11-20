@@ -55,7 +55,8 @@ TEST(env_var, mapped_valid)
     auto mapped_env_var1 = flecs::mapped_env_var_t::try_parse("VALID_ENV_VAR=VALUE"s);
     auto mapped_env_var2 = flecs::mapped_env_var_t::try_parse("VALID_ENV_VAR=VALUE"s);
     auto mapped_env_var3 = flecs::mapped_env_var_t::try_parse("VALID_ENV_VAR=ANOTHER_VALUE"s);
-    auto mapped_env_var4 = flecs::mapped_env_var_t::try_parse("another.valid-env_var.2=some special! value?"s);
+    auto mapped_env_var4 =
+        flecs::mapped_env_var_t::try_parse("another.valid-env_var.2=some special! value?"s);
 
     ASSERT_TRUE(mapped_env_var1.has_value());
     ASSERT_TRUE(mapped_env_var2.has_value());

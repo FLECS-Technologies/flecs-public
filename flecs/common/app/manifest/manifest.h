@@ -19,9 +19,9 @@
 
 #include "flecs/common/app/manifest/conffile/conffile.h"
 #include "flecs/common/app/manifest/editor/editor.h"
-#include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/common/app/manifest/port_range/port_range.h"
 #include "flecs/common/app/manifest/startup_option/startup_option.h"
+#include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/common/network/network.h"
 #include "flecs/util/fs/fs.h"
 #include "flecs/util/json/json.h"

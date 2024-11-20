@@ -21,7 +21,6 @@ namespace flecs {
 class editor_t
 {
 public:
-
     editor_t() = default;
 
     editor_t(std::string name, uint16_t port, bool supports_reverse_proxy);
@@ -29,6 +28,7 @@ public:
     auto& name() const noexcept { return _name; }
     auto port() const noexcept { return _port; }
     auto supports_reverse_proxy() const noexcept { return _supports_reverse_proxy; }
+
 private:
     friend auto to_json(json_t& json, const editor_t& app_manifest) //
         -> void;
@@ -40,4 +40,3 @@ private:
 };
 
 } // namespace flecs
-

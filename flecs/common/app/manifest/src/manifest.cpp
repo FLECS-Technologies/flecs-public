@@ -113,7 +113,7 @@ void app_manifest_t::validate()
 auto to_json(json_t& json, const app_manifest_t& app_manifest) //
     -> void
 {
-    auto editors = json_t::array_t {};
+    auto editors = json_t::array_t{};
     for (const auto& [_, editor] : app_manifest.editors()) {
         editors.emplace_back(editor);
     }

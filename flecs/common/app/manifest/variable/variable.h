@@ -65,15 +65,14 @@ public:
         -> bool;
 
     mapped_var_t(var_t var, std::string value);
-private:
 
+private:
     friend auto to_json(json_t& json, const mapped_var_t& mapped_env_var) //
         -> void;
 
     var_t _env_var;
     std::string _value;
 };
-
 
 auto to_string(const mapped_var_t& mapped_env_var) //
     -> std::string;
@@ -85,6 +84,7 @@ public:
     mapped_env_var_t(var_t var, std::string value);
     static auto try_parse(std::string_view str) //
         -> std::optional<mapped_env_var_t>;
+
 private:
     friend auto from_json(const json_t& json, mapped_env_var_t& mapped_env_var) //
         -> void;
@@ -97,6 +97,7 @@ public:
     mapped_label_var_t(var_t var, std::string value);
     static auto try_parse(std::string_view str) //
         -> std::optional<mapped_label_var_t>;
+
 private:
     friend auto from_json(const json_t& json, mapped_label_var_t& mapped_env_var) //
         -> void;
