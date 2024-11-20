@@ -37,6 +37,11 @@ public:
         do_download_app,
         (std::shared_ptr<apps::app_t> app, std::optional<Token> token),
         (override));
+    MOCK_METHOD(
+        std::optional<std::size_t>,
+        do_determine_app_size,
+        (std::shared_ptr<const apps::app_t> app),
+        (const, override));
     MOCK_METHOD(result_t, do_create_instance, (std::shared_ptr<instances::instance_t> instance), (override));
     MOCK_METHOD(result_t, do_delete_instance, (std::shared_ptr<instances::instance_t> instance), (override));
     MOCK_METHOD(result_t, do_start_instance, (std::shared_ptr<instances::instance_t> instance), (override));

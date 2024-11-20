@@ -396,6 +396,24 @@ auto docker_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<T
     return {-1, pull_process.stderr()};
 }
 
+auto docker_t::do_determine_app_size(std::shared_ptr<const apps::app_t> app) const //
+    -> std::optional<std::size_t>
+{
+    auto process = process_t{};
+    process.spawnp("docker", "inspect", "-f", "{{ .Size }}", app->manifest()->image_with_tag());
+    process.wait(false, true);
+
+    if (process.exit_code() == 0) {
+        try {
+            auto image_size = std::stoll(process.stdout());
+            return image_size;
+        } catch (...) {
+        }
+    }
+
+    return {};
+}
+
 auto docker_t::do_create_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
