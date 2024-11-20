@@ -29,7 +29,6 @@ class floxy_t
     friend class flecs::module::floxy_t;
 
 private:
-
     floxy_t(flecs::module::floxy_t* parent);
 
     auto do_init() //

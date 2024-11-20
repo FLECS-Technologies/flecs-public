@@ -37,7 +37,11 @@ class floxy_t FLECS_FINAL_UNLESS_TESTED : public base_t
 public:
     ~floxy_t() = default;
 
-    MOCK_METHOD((result_t), load_instance_reverse_proxy_config, (const std::string&, const std::string&, const instances::id_t&, std::vector<std::uint16_t>&), ());
+    MOCK_METHOD(
+        (result_t),
+        load_instance_reverse_proxy_config,
+        (const std::string&, const std::string&, const instances::id_t&, std::vector<std::uint16_t>&),
+        ());
     MOCK_METHOD((result_t), delete_reverse_proxy_configs, (std::shared_ptr<instances::instance_t>), ());
     MOCK_METHOD((result_t), delete_server_proxy_configs, (std::shared_ptr<instances::instance_t>), ());
 

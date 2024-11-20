@@ -31,7 +31,11 @@ class floxy_t FLECS_FINAL_UNLESS_TESTED : public base_t
 public:
     ~floxy_t();
 
-    auto load_instance_reverse_proxy_config(const std::string& ip_address, const std::string& app_name, const instances::id_t& instance_id, std::vector<std::uint16_t>& dest_ports) //
+    auto load_instance_reverse_proxy_config(
+        const std::string& ip_address,
+        const std::string& app_name,
+        const instances::id_t& instance_id,
+        std::vector<std::uint16_t>& dest_ports) //
         -> result_t;
 
     auto delete_reverse_proxy_configs(std::shared_ptr<instances::instance_t> instance) //

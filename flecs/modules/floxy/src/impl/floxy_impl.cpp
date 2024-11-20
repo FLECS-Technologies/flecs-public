@@ -14,16 +14,17 @@
 
 #include "flecs/modules/floxy/impl/floxy_impl.h"
 
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 #include <fstream>
 #include <string>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
+#include "flecs/common/app/manifest/manifest.h"
+#include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/instances/instances.h"
 #include "flecs/modules/instances/types/instance.h"
-#include "flecs/common/app/manifest/manifest.h"
-#include "flecs/modules/apps/types/app.h"
 #include "flecs/util/process/process.h"
 
 namespace flecs {
@@ -59,7 +60,6 @@ auto get_random_free_port() //
 floxy_t::floxy_t(flecs::module::floxy_t* parent)
     : _parent{parent}
 {}
-
 
 auto floxy_t::do_init() //
     -> void
