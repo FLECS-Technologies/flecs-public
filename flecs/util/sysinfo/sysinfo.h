@@ -36,7 +36,6 @@ private:
     friend auto from_json(const json_t& j, sysinfo_t& sysinfo) //
         -> void;
 
-
     // uname info
     std::string _kernel_version; // release
     std::string _kernel_build;   // version

@@ -14,12 +14,13 @@
 
 #pragma once
 
-#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
+
 #include <map>
 #include <string>
+
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
 
 namespace flecs {
 
