@@ -20,7 +20,6 @@
 namespace flecs {
 namespace module {
 
-
 jobs_t::jobs_t()
     : _impl{new impl::jobs_t{}}
 {}
@@ -58,7 +57,6 @@ auto jobs_t::list_jobs() const //
 {
     return _impl->do_list_jobs();
 }
-
 
 auto jobs_t::get_job(jobs::id_t job_id) const //
     -> crow::response
