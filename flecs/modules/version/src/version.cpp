@@ -21,7 +21,6 @@
 namespace flecs {
 namespace module {
 
-
 version_t::version_t()
 {}
 
