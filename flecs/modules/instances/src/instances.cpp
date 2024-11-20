@@ -14,9 +14,9 @@
 
 #include "flecs/modules/instances/instances.h"
 
+#include "flecs/common/app/manifest/manifest.h"
 #include "flecs/common/app/manifest/port_range/port_range.h"
 #include "flecs/common/app/manifest/variable/variable.h"
-#include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/instances/impl/instances_impl.h"
@@ -24,7 +24,6 @@
 
 namespace flecs {
 namespace module {
-
 
 instances_t::instances_t()
     : _impl{new impl::instances_t{this}}
@@ -103,50 +102,53 @@ auto instances_t::do_init() //
         return http_logs(instances::id_t{instance_id});
     });
 
-    FLECS_V2_ROUTE("/instances/<string>/config/environment").methods("GET"_method)([this](const std::string& instance_id) {
-        return http_get_env(instances::id_t{instance_id});
-    });
+    FLECS_V2_ROUTE("/instances/<string>/config/environment")
+        .methods("GET"_method)(
+            [this](const std::string& instance_id) { return http_get_env(instances::id_t{instance_id}); });
 
-    FLECS_V2_ROUTE("/instances/<string>/config/environment").methods("PUT"_method)([this](const crow::request& req, const std::string& instance_id) {
-        auto response = json_t{};
-        const auto args = parse_json(req.body);
-        auto environment = std::vector<mapped_env_var_t>{};
-        if (!args.contains("environment")) {
-            response["additionalInfo"] = "Missing field environment in request";
-            return crow::response{crow::status::BAD_REQUEST, response.dump()};
-        }
-        for (auto& json_env : args["environment"]) {
-            mapped_env_var_t env_var = json_env;
-            if (!env_var.is_valid()) {
-                response["additionalInfo"] = "Invalid environment key value pair: " + json_env.dump();
+    FLECS_V2_ROUTE("/instances/<string>/config/environment")
+        .methods("PUT"_method)([this](const crow::request& req, const std::string& instance_id) {
+            auto response = json_t{};
+            const auto args = parse_json(req.body);
+            auto environment = std::vector<mapped_env_var_t>{};
+            if (!args.contains("environment")) {
+                response["additionalInfo"] = "Missing field environment in request";
                 return crow::response{crow::status::BAD_REQUEST, response.dump()};
             }
-            environment.push_back(std::move(env_var));
-        }
-        return http_put_env(instances::id_t{instance_id}, environment);
-    });
+            for (auto& json_env : args["environment"]) {
+                mapped_env_var_t env_var = json_env;
+                if (!env_var.is_valid()) {
+                    response["additionalInfo"] = "Invalid environment key value pair: " + json_env.dump();
+                    return crow::response{crow::status::BAD_REQUEST, response.dump()};
+                }
+                environment.push_back(std::move(env_var));
+            }
+            return http_put_env(instances::id_t{instance_id}, environment);
+        });
 
-    FLECS_V2_ROUTE("/instances/<string>/config/environment").methods("DELETE"_method)([this](const std::string& instance_id) {
-        return http_delete_env(instances::id_t{instance_id});
-    });
+    FLECS_V2_ROUTE("/instances/<string>/config/environment")
+        .methods("DELETE"_method)(
+            [this](const std::string& instance_id) { return http_delete_env(instances::id_t{instance_id}); });
 
-    FLECS_V2_ROUTE("/instances/<string>/config/ports").methods("GET"_method)([this](const std::string& instance_id) {
-        return http_get_ports(instances::id_t{instance_id});
-    });
-    FLECS_V2_ROUTE("/instances/<string>/config/ports").methods("PUT"_method)([this](const crow::request& req, const std::string& instance_id) {
-        auto ports = std::vector<mapped_port_range_t>{};
-        try {
-            ports = parse_json(req.body);
-        } catch (const std::exception& e) {
-            auto response = json_t{};
-            response["additionalInfo"] = "Invalid port mapping";
-            return crow::response{crow::status::BAD_REQUEST, response.dump()};
-        }
-        return http_put_ports(instances::id_t{instance_id}, ports);
-    });
-    FLECS_V2_ROUTE("/instances/<string>/config/ports").methods("DELETE"_method)([this](const std::string& instance_id) {
-        return http_delete_ports(instances::id_t{instance_id});
-    });
+    FLECS_V2_ROUTE("/instances/<string>/config/ports")
+        .methods("GET"_method)(
+            [this](const std::string& instance_id) { return http_get_ports(instances::id_t{instance_id}); });
+    FLECS_V2_ROUTE("/instances/<string>/config/ports")
+        .methods("PUT"_method)([this](const crow::request& req, const std::string& instance_id) {
+            auto ports = std::vector<mapped_port_range_t>{};
+            try {
+                ports = parse_json(req.body);
+            } catch (const std::exception& e) {
+                auto response = json_t{};
+                response["additionalInfo"] = "Invalid port mapping";
+                return crow::response{crow::status::BAD_REQUEST, response.dump()};
+            }
+            return http_put_ports(instances::id_t{instance_id}, ports);
+        });
+    FLECS_V2_ROUTE("/instances/<string>/config/ports")
+        .methods("DELETE"_method)([this](const std::string& instance_id) {
+            return http_delete_ports(instances::id_t{instance_id});
+        });
 
     return _impl->do_module_init();
 }

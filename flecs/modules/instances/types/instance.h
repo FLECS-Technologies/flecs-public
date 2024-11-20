@@ -18,8 +18,8 @@
 #include <set>
 #include <string>
 
-#include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/common/app/manifest/port_range/port_range.h"
+#include "flecs/common/app/manifest/variable/variable.h"
 #include "flecs/core/flecs.h"
 #include "flecs/util/json/json.h"
 #include "flecs/util/usb/usb.h"

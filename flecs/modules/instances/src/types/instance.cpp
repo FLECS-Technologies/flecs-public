@@ -16,10 +16,10 @@
 
 #include <cstdio>
 
+#include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/util/random/random.h"
 #include "flecs/util/string/format.h"
-#include "flecs/common/app/manifest/manifest.h"
 
 namespace flecs {
 namespace instances {
@@ -245,14 +245,14 @@ auto to_json(json_t& json, const instance_t& instance) //
     auto app_key = apps::key_t{instance.app_name().data(), instance.app_version().data()};
     json = json_t({
         {"_schemaVersion", "2.0.0"},
-         {"instanceId", instance.id().hex()},
-         {"instanceName", instance.instance_name()},
-         {"appKey", app_key},
-         {"status", to_string(instance.status())},
-         {"desired", to_string(instance.desired())},
-         {"networks", instance.networks()},
-         {"startupOptions", instance.startup_options()},
-         {"usbDevices", instance.usb_devices()},
+        {"instanceId", instance.id().hex()},
+        {"instanceName", instance.instance_name()},
+        {"appKey", app_key},
+        {"status", to_string(instance.status())},
+        {"desired", to_string(instance.desired())},
+        {"networks", instance.networks()},
+        {"startupOptions", instance.startup_options()},
+        {"usbDevices", instance.usb_devices()},
     });
     if (instance.environment().has_value()) {
         json["environment"] = instance.environment().value();
