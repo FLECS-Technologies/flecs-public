@@ -20,7 +20,6 @@
 namespace flecs {
 namespace module {
 
-
 deployments_t::deployments_t()
     : _impl{new impl::deployments_t{}}
 {}

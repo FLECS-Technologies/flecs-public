@@ -22,10 +22,9 @@
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/apps/types/app_key.h"
 #include "flecs/modules/deployments/types.h"
-#include "flecs/util/fs/fs.h"
-
-#include "flecs/modules/floxy/__mocks__/floxy.h"
 #include "flecs/modules/factory/factory.h"
+#include "flecs/modules/floxy/__mocks__/floxy.h"
+#include "flecs/util/fs/fs.h"
 
 namespace flecs {
 namespace deployments {
@@ -120,12 +119,8 @@ public:
     MOCK_METHOD(network_type_e, do_default_network_type, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_cidr_subnet, (), (const, override));
     MOCK_METHOD(std::string_view, do_default_network_gateway, (), (const, override));
-    mock_deployment_t() {
-        flecs::module::register_module_t<flecs::module::floxy_t>("floxy");
-    }
-    ~mock_deployment_t() {
-        flecs::module::unregister_module_t("floxy");
-    }
+    mock_deployment_t() { flecs::module::register_module_t<flecs::module::floxy_t>("floxy"); }
+    ~mock_deployment_t() { flecs::module::unregister_module_t("floxy"); }
 };
 } // namespace deployments
 } // namespace flecs
@@ -151,15 +146,13 @@ using namespace testing;
 #define G_FILE_LOCAL "/some/local/file"
 #define G_FILE_CONTAINER "/some/other/container/file"
 
-static const auto json_manifest_1 =
-    R"-({"app":"tech.flecs.test-app",)-"
-    R"-("version":"1.2.3.4-f1",)-"
-    R"-("image":"flecs/test-app",)-";
+static const auto json_manifest_1 = R"-({"app":"tech.flecs.test-app",)-"
+                                    R"-("version":"1.2.3.4-f1",)-"
+                                    R"-("image":"flecs/test-app",)-";
 
-static const auto json_manifest_2 =
-    R"-({"app":"tech.flecs.test-app",)-"
-    R"-("version":"2.3.4.5-f1",)-"
-    R"-("image":"flecs/test-app",)-";
+static const auto json_manifest_2 = R"-({"app":"tech.flecs.test-app",)-"
+                                    R"-("version":"2.3.4.5-f1",)-"
+                                    R"-("image":"flecs/test-app",)-";
 
 static const auto manifest_1 =
     std::make_shared<flecs::app_manifest_t>(flecs::app_manifest_t::from_json_string(json_manifest_1));

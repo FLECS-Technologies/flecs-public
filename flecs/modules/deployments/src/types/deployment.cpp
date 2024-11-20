@@ -142,7 +142,7 @@ auto deployment_t::create_instance(std::shared_ptr<const apps::app_t> app, std::
     // Conflicting host ports will be replaced to let docker choose random free host ports
     auto ports = std::vector<mapped_port_range_t>{};
     constexpr auto port_range_for_random_host = port_range_t{port_t{0}, port_t{0}};
-    for (auto & port : manifest->ports()) {
+    for (auto& port : manifest->ports()) {
         if (do_host_ports_collide(port.host_port_range())) {
             ports.emplace_back(port_range_for_random_host, port.container_port_range());
         } else {
@@ -270,7 +270,6 @@ auto deployment_t::start_instance(std::shared_ptr<instances::instance_t> instanc
             connect_network(instance, network.network_name, network.ip_address);
         }
     }
-
 
     // Create config for reverse proxy
     std::optional<std::string> instance_ip;
@@ -435,7 +434,7 @@ auto deployment_t::do_host_ports_collide(const port_range_t& port_range) const /
 {
     for (auto instance : _instances) {
         auto ports = instance->ports();
-        if (ports.has_value()){
+        if (ports.has_value()) {
             for (auto& existing_port_range : ports.value()) {
                 if (port_range.does_collide_with(existing_port_range.host_port_range())) {
                     return true;

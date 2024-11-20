@@ -20,8 +20,8 @@
 
 #include "flecs/modules/deployments/types/deployment_docker.h"
 #include "flecs/modules/factory/factory.h"
-#include "flecs/util/process/process.h"
 #include "flecs/util/network/network.h"
+#include "flecs/util/process/process.h"
 
 class deployment_docker_test : public testing::Test
 {
