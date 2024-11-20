@@ -7,7 +7,7 @@ use typify::{TypeSpace, TypeSpaceSettings};
 struct Error(String, bool);
 
 fn download_app_manifest_schema(version: &str) -> Result<String, reqwest::Error> {
-    let url = format!("https://raw.githubusercontent.com/FLECS-Technologies/app-sdk/{version}/manifest.schema.json");
+    let url = format!("https://raw.githubusercontent.com/FLECS-Technologies/app-manifest/{version}/manifest.schema.json");
     let content = reqwest::blocking::get(url)?.text()?;
     eprintln!("{}", content);
     Ok(content)
