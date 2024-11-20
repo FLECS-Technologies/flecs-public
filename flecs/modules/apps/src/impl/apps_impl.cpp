@@ -314,6 +314,10 @@ auto apps_t::do_install_impl(
     }
 
     auto token = std::optional<Token>{};
+
+    auto deployment_api = std::dynamic_pointer_cast<module::deployments_t>(api::query_module("deployments"));
+    auto deployment = deployment_api->query_deployment("docker");
+
     switch (app->status()) {
         case apps::status_e::ManifestDownloaded: {
             progress.next_step("Acquiring download token");
@@ -328,9 +332,6 @@ auto apps_t::do_install_impl(
         case apps::status_e::TokenAcquired: {
             // Step 4: Download App through deployment
             progress.next_step("Downloading App");
-            auto deployment_api =
-                std::dynamic_pointer_cast<module::deployments_t>(api::query_module("deployments"));
-            auto deployment = deployment_api->query_deployment("docker");
             const auto [res, message] = deployment->download_app(app, token);
             if (res != 0) {
                 _parent->save();
@@ -341,18 +342,8 @@ auto apps_t::do_install_impl(
         }
         case apps::status_e::ImageDownloaded: {
             progress.next_step("Expiring download token");
-
-            auto docker_size_process = process_t{};
-            docker_size_process.spawnp("docker", "inspect", "-f", "{{ .Size }}", manifest->image_with_tag());
-            docker_size_process.wait(false, true);
-
-            if (docker_size_process.exit_code() == 0) {
-                try {
-                    auto image_size = stoll(docker_size_process.stdout());
-                    app->installed_size(image_size);
-                } catch (...) {
-                }
-            }
+            const auto app_size = deployment->determine_app_size(app);
+            app->installed_size(app_size.value_or(0));
             app->status(apps::status_e::Installed);
             break;
         }

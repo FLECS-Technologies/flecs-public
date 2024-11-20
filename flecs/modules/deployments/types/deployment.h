@@ -65,6 +65,8 @@ public:
 
     auto download_app(std::shared_ptr<apps::app_t> app, std::optional<Token> token) //
         -> result_t;
+    auto determine_app_size(std::shared_ptr<const apps::app_t> app) const //
+        -> std::optional<std::size_t>;
 
     auto instance_ids(const apps::key_t& app_key) const //
         -> std::vector<instances::id_t>;
@@ -198,6 +200,8 @@ private:
 
     virtual auto do_download_app(std::shared_ptr<apps::app_t> app, std::optional<Token> token) //
         -> result_t = 0;
+    virtual auto do_determine_app_size(std::shared_ptr<const apps::app_t> app) const //
+        -> std::optional<std::size_t> = 0;
 
     virtual auto do_create_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t = 0;
