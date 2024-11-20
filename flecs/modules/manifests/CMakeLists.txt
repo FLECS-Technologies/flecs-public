@@ -22,7 +22,6 @@ flecs_add_module(
         cpr::cpr
         common.app.manifest
         modules.apps.types
-        magic::flecs_core_cxx_bridge
 )
 
 add_subdirectory(test)

@@ -27,6 +27,7 @@ macro(flecs_add_module)
     )
 
     target_link_libraries(modules.${mod_MODULE_NAME} PUBLIC
+        magic::flecs_core_cxx_bridge
         api
         modules.factory
         modules.module_base
@@ -45,6 +46,7 @@ macro(flecs_add_module)
 
         target_link_libraries(
             modules.${mod_MODULE_NAME}.mocked_modules PUBLIC
+            magic::flecs_core_cxx_bridge
             GTest::gmock
             modules.factory
             modules.module_base

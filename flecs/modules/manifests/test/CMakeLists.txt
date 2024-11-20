@@ -32,7 +32,6 @@ if(FLECS_BUILD_TESTS)
         common.app.manifest
         modules.apps.types
         modules.manifests.mocked_modules
-        magic::flecs_core_cxx_bridge
     )
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
