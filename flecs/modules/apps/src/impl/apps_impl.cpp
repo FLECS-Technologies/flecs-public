@@ -20,10 +20,10 @@
 #include <fstream>
 #include <sstream>
 
-#include "flecs/api/api.h"
-#include "flecs/common/app/manifest/manifest.h"
 #include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
 #include "cxxbridge/rust/cxx.h"
+#include "flecs/api/api.h"
+#include "flecs/common/app/manifest/manifest.h"
 
 #ifdef FLECS_MOCK_MODULES
 #include "flecs/modules/instances/__mocks__/instances.h"
@@ -179,8 +179,11 @@ auto apps_t::queue_install_many_from_marketplace(std::vector<apps::key_t> app_ke
 {
     auto desc = "Installation of "s + to_string(app_keys.size()) + " apps";
 
-    auto job = jobs::job_t{
-        std::bind(&apps_t::do_install_many_from_marketplace, this, std::move(app_keys), std::placeholders::_1)};
+    auto job = jobs::job_t{std::bind(
+        &apps_t::do_install_many_from_marketplace,
+        this,
+        std::move(app_keys),
+        std::placeholders::_1)};
 
     return _jobs_api->append(std::move(job), std::move(desc));
 }
@@ -206,7 +209,8 @@ auto apps_t::do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& 
     return install_from_marketplace(std::move(app_key), progress);
 }
 
-auto apps_t::do_install_many_from_marketplace(std::vector<apps::key_t> app_keys, jobs::progress_t& progress) //
+auto apps_t::do_install_many_from_marketplace(
+    std::vector<apps::key_t> app_keys, jobs::progress_t& progress) //
     -> result_t
 {
     static constexpr std::int16_t TOTAL_STEPS_PER_APP = 9;
@@ -216,11 +220,14 @@ auto apps_t::do_install_many_from_marketplace(std::vector<apps::key_t> app_keys,
     for (size_t i = 0; i < app_keys.size(); i++) {
         auto [app_result, message] = install_from_marketplace(app_keys[i], progress);
         if (app_result == 0) {
-            progress.next_step("Creating instance of " + app_keys[i].name() + " (" + app_keys[i].version() + ")" );
+            progress.next_step(
+                "Creating instance of " + app_keys[i].name() + " (" + app_keys[i].version() + ")");
             std::tie(app_result, message) = _instances_api->create(app_keys[i].name(), app_keys[i].version());
         }
         if (app_result == 0) {
-            progress.next_step("Starting instance " + message + "of " + app_keys[i].name() + " (" + app_keys[i].version() + ")" );
+            progress.next_step(
+                "Starting instance " + message + "of " + app_keys[i].name() + " (" + app_keys[i].version() +
+                ")");
             std::tie(app_result, message) = _instances_api->start(instances::id_t{message});
         }
         if (app_result != 0) {
@@ -235,7 +242,8 @@ auto apps_t::do_install_many_from_marketplace(std::vector<apps::key_t> app_keys,
         std::for_each(failed_apps.begin(), failed_apps.end() - 1, [&message](auto& app_key) {
             message << to_string(std::get<0>(app_key)) << " [" << std::get<1>(app_key) << "], ";
         });
-        message << to_string(std::get<0>(failed_apps.back())) << " [" << std::get<1>(failed_apps.back()) << "]";
+        message << to_string(std::get<0>(failed_apps.back())) << " [" << std::get<1>(failed_apps.back())
+                << "]";
         return {-1, message.str()};
     }
     return {0, {}};
@@ -311,7 +319,7 @@ auto apps_t::do_install_impl(
             progress.next_step("Acquiring download token");
             try {
                 token = acquire_download_token(app->key().name(), app->key().version());
-            } catch (const rust::Error &e) {
+            } catch (const rust::Error& e) {
                 progress.result(0, std::string{"Could not acquire download token: "} + e.what());
             }
 

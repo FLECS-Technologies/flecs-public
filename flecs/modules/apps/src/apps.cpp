@@ -23,7 +23,6 @@
 namespace flecs {
 namespace module {
 
-
 apps_t::apps_t()
     : _impl{new impl::apps_t{this}}
 {}
@@ -144,7 +143,7 @@ auto apps_t::http_install_many(std::vector<apps::key_t> app_keys) //
     -> crow::response
 {
     auto job_id = _impl->queue_install_many_from_marketplace(std::move(app_keys));
-    return crow::response{crow::status::ACCEPTED, "json", json_t {{"jobId", job_id}}.dump()};
+    return crow::response{crow::status::ACCEPTED, "json", json_t{{"jobId", job_id}}.dump()};
 }
 
 auto apps_t::http_sideload(std::string manifest_string) //
