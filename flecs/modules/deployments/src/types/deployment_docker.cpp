@@ -396,6 +396,20 @@ auto docker_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<T
     return {-1, pull_process.stderr()};
 }
 
+auto docker_t::do_delete_app(std::shared_ptr<apps::app_t> app) //
+    -> result_t
+{
+    const auto image = app->manifest()->image_with_tag();
+    auto process = process_t{};
+    process.spawnp("docker", "rmi", "-f", image);
+    process.wait(false, true);
+    if (process.exit_code() != 0) {
+        return {-1, process.stderr()};
+    }
+
+    return {0, {}};
+}
+
 auto docker_t::do_determine_app_size(std::shared_ptr<const apps::app_t> app) const //
     -> std::optional<std::size_t>
 {

@@ -29,6 +29,7 @@ class progress_t;
 
 namespace module {
 
+class deployments_t;
 class instances_t;
 class manifests_t;
 class jobs_t;
@@ -126,6 +127,7 @@ private:
     std::vector<std::shared_ptr<apps::app_t>> _apps;
     std::mutex _apps_mutex;
 
+    std::shared_ptr<flecs::module::deployments_t> _deployments_api;
     std::shared_ptr<flecs::module::instances_t> _instances_api;
     std::shared_ptr<flecs::module::manifests_t> _manifests_api;
     std::shared_ptr<flecs::module::jobs_t> _jobs_api;

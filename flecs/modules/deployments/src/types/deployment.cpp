@@ -60,6 +60,12 @@ auto deployment_t::download_app(std::shared_ptr<apps::app_t> app, std::optional<
     return do_download_app(std::move(app), std::move(token));
 }
 
+auto deployment_t::delete_app(std::shared_ptr<apps::app_t> app) //
+    -> result_t
+{
+    return do_delete_app(std::move(app));
+}
+
 auto deployment_t::determine_app_size(std::shared_ptr<const apps::app_t> app) const //
     -> std::optional<std::size_t>
 {

@@ -26,15 +26,16 @@
 #include "flecs/common/app/manifest/manifest.h"
 
 #ifdef FLECS_MOCK_MODULES
+#include "flecs/modules/deployments/__mocks__/deployments.h"
 #include "flecs/modules/instances/__mocks__/instances.h"
 #include "flecs/modules/jobs/__mocks__/jobs.h"
 #include "flecs/modules/manifests/__mocks__/manifests.h"
 #else // FLECS_MOCK_MODULES
+#include "flecs/modules/deployments/deployments.h"
 #include "flecs/modules/instances/instances.h"
 #include "flecs/modules/jobs/jobs.h"
 #include "flecs/modules/manifests/manifests.h"
 #endif // FLECS_MOCK_MODULES
-#include "flecs/modules/deployments/deployments.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/instances/types/instance.h"
 #include "flecs/util/cxx23/string.h"
@@ -89,6 +90,8 @@ auto apps_t::do_module_init() //
 auto apps_t::do_load(const fs::path& base_path) //
     -> result_t
 {
+    _deployments_api =
+        std::dynamic_pointer_cast<flecs::module::deployments_t>(api::query_module("deployments"));
     _instances_api = std::dynamic_pointer_cast<flecs::module::instances_t>(api::query_module("instances"));
     _manifests_api = std::dynamic_pointer_cast<flecs::module::manifests_t>(api::query_module("manifests"));
     _jobs_api = std::dynamic_pointer_cast<flecs::module::jobs_t>(api::query_module("jobs"));
@@ -315,8 +318,7 @@ auto apps_t::do_install_impl(
 
     auto token = std::optional<Token>{};
 
-    auto deployment_api = std::dynamic_pointer_cast<module::deployments_t>(api::query_module("deployments"));
-    auto deployment = deployment_api->query_deployment("docker");
+    auto deployment = _deployments_api->query_deployment("docker");
 
     switch (app->status()) {
         case apps::status_e::ManifestDownloaded: {
@@ -400,17 +402,16 @@ auto apps_t::do_uninstall(apps::key_t app_key, jobs::progress_t& progress) //
     progress.next_step("Removing App image");
 
     if (manifest) {
-        const auto image = manifest->image_with_tag();
-        auto docker_process = process_t{};
-        docker_process.spawnp("docker", "rmi", "-f", image);
-        docker_process.wait(false, true);
-        if (docker_process.exit_code() != 0) {
+        auto deployment = _deployments_api->query_deployment("docker");
+        const auto [res, message] = deployment->delete_app(app);
+        if (res != 0) {
             std::fprintf(
                 stderr,
-                "Warning: Could not remove image %s of app %s (%s)\n",
-                image.c_str(),
+                "Warning: Could not remove image %s of app %s (%s): %s\n",
+                manifest->image_with_tag().data(),
                 app_key.name().data(),
-                app_key.version().data());
+                app_key.version().data(),
+                message.data());
         }
     }
 
