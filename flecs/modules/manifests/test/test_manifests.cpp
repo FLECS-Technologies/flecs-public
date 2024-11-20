@@ -27,7 +27,6 @@ namespace fs = std::filesystem;
 class test_module_manifests_t : public flecs::module::manifests_t
 {
 public:
-
 private:
 };
 

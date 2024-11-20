@@ -196,7 +196,10 @@ auto manifests_t::do_add_from_file(const fs::path& path) //
         try {
             copy = fs::canonical(path) != fs::canonical(dest_path);
         } catch (const fs::filesystem_error& e) {
-            std::fprintf(stderr, "Could not canonize source or destination of manifest file path: %s\n", e.what());
+            std::fprintf(
+                stderr,
+                "Could not canonize source or destination of manifest file path: %s\n",
+                e.what());
             return {p, false};
         }
     }

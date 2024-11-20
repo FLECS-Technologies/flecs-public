@@ -14,16 +14,15 @@
 
 #include "flecs/modules/manifests/manifests.h"
 
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
+#include "cxxbridge/rust/cxx.h"
 #include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app_key.h"
 #include "flecs/modules/factory/factory.h"
 #include "flecs/modules/manifests/impl/manifests_impl.h"
-#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
-#include "cxxbridge/rust/cxx.h"
 
 namespace flecs {
 namespace module {
-
 
 manifests_t::manifests_t()
     : _impl{new impl::manifests_t{this}}
@@ -94,7 +93,7 @@ auto manifests_t::add_from_console(const apps::key_t& app_key) //
     auto str = std::string{};
     try {
         str = std::string(download_manifest(app_key.name(), app_key.version()));
-    } catch (const rust::Error &e) {
+    } catch (const rust::Error& e) {
         std::cerr << e.what() << "\n";
     }
 
