@@ -20,7 +20,6 @@
 namespace flecs {
 namespace module {
 
-
 data_layer_t::data_layer_t()
     : _impl{new impl::data_layer_t{}}
 {}
