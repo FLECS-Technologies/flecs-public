@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "flecs/util/json/json.h"
 #include "flecs/modules/flecsport/dos_manifest.h"
+
+#include "flecs/util/json/json.h"
 
 namespace flecs {
 
 auto to_json(json_t& j, const dos_manifest_t& dos_manifest) //
     -> void
 {
-    j = json_t {
+    j = json_t{
         {"_schemaVersion", dos_manifest.schema_version},
         {"time", dos_manifest.time},
         {"apps", dos_manifest.apps},

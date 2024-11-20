@@ -23,7 +23,6 @@
 namespace flecs {
 namespace module {
 
-
 flecsport_t::flecsport_t()
     : _impl{new impl::flecsport_t{this}}
 {}
