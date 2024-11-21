@@ -6,9 +6,69 @@ use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
 use flecs_app_manifest::AppManifest;
 use flecs_console_client::apis::configuration::Configuration;
+use flecsd_axum_server::models::InstalledApp;
 use futures_util::future::join_all;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
+use tracing::error;
+
+pub async fn get_app(
+    vault: Arc<Vault>,
+    name: String,
+    version: Option<String>,
+) -> Result<Vec<InstalledApp>> {
+    let Some(ref apps) = vault
+        .reservation()
+        .reserve_app_pouch()
+        .grab()
+        .await
+        .app_pouch
+    else {
+        unreachable!("Reservation failed")
+    };
+    if let Some(version) = version {
+        if let Some(app) = apps.gems().get(&AppKey { name, version }) {
+            Ok(vec![app.try_create_installed_info().await?])
+        } else {
+            Ok(Vec::new())
+        }
+    } else {
+        let mut result = Vec::new();
+        for app in apps.gems().values() {
+            if app.key.name == name {
+                match app.try_create_installed_info().await {
+                    Ok(installed_info) => result.push(installed_info),
+                    Err(e) => {
+                        error!("Failed to create installed info for app {}: {e}", app.key);
+                    }
+                }
+            }
+        }
+        Ok(result)
+    }
+}
+
+pub async fn get_apps(vault: Arc<Vault>) -> Result<Vec<InstalledApp>> {
+    let Some(ref mut apps) = vault
+        .reservation()
+        .reserve_app_pouch()
+        .grab()
+        .await
+        .app_pouch
+    else {
+        unreachable!("Reservation failed")
+    };
+    let mut result = Vec::new();
+    for app in apps.gems().values() {
+        match app.try_create_installed_info().await {
+            Ok(installed_info) => result.push(installed_info),
+            Err(e) => {
+                error!("Failed to create installed info for app {}: {e}", app.key);
+            }
+        }
+    }
+    Ok(result)
+}
 
 pub async fn install_app_from_manifest(
     quest: SyncQuest,
@@ -122,7 +182,7 @@ async fn download_manifest(
         .grab()
         .await
     else {
-        panic!("Reservation failed")
+        unreachable!("Reservation should never fail");
     };
 
     if let Some(_previous_manifest) = manifests
@@ -155,7 +215,7 @@ async fn set_manifest_or_create_app(
         .grab()
         .await
     else {
-        panic!("Reservation failed")
+        unreachable!("Reservation should never fail");
     };
     match apps.gems_mut().entry(app_key.clone()) {
         Entry::Occupied(mut app) => {
@@ -271,11 +331,14 @@ pub async fn install_app_in_vault(
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
+    use crate::jeweler::app::AppInfo;
+    use crate::jeweler::deployment::tests::MockedDeployment;
+    use crate::jeweler::deployment::Deployment;
     use crate::jeweler::gem::app::App;
     use crate::quest::{Progress, Quest};
     use crate::sorcerer::appraiser::{
-        download_manifest, install_app, install_app_from_manifest, install_apps,
+        download_manifest, get_app, get_apps, install_app, install_app_from_manifest, install_apps,
         install_existing_app, set_manifest_or_create_app,
     };
     use crate::vault::pouch::{AppKey, Pouch};
@@ -328,20 +391,21 @@ mod tests {
         token_mock_ok_called(server, 1).await
     }
     async fn manifest_mock_err(server: &mut ServerGuard, status: usize) -> Mock {
-        manifest_mock_err_numbered(server, status, 0).await
+        manifest_mock_err_numbered(server, status, 0, 0).await
     }
     async fn manifest_mock_err_numbered(
         server: &mut ServerGuard,
         status: usize,
-        number: u8,
+        name_number: u8,
+        version_number: u8,
     ) -> Mock {
+        let key = test_key_numbered(name_number, version_number);
         server
             .mock(
                 "GET",
                 format!(
                     "/api/v2/manifests/{}/{}?max_manifest_version=3.0.0",
-                    test_key_numbered(number).name,
-                    test_key_numbered(number).version
+                    key.name, key.version
                 )
                 .as_str(),
             )
@@ -351,13 +415,15 @@ mod tests {
             .await
     }
     async fn manifest_mock_ok(server: &mut ServerGuard, manifest: Arc<AppManifest>) -> Mock {
-        manifest_mock_ok_numbered(server, manifest, 0).await
+        manifest_mock_ok_numbered(server, manifest, 0, 0).await
     }
     async fn manifest_mock_ok_numbered(
         server: &mut ServerGuard,
         manifest: Arc<AppManifest>,
-        number: u8,
+        name_number: u8,
+        version_number: u8,
     ) -> Mock {
+        let key = test_key_numbered(name_number, version_number);
         let body = serde_json::to_vec(&GetApiV2ManifestsAppVersion200Response {
             status_code: Some(200),
             status_text: None,
@@ -369,8 +435,7 @@ mod tests {
                 "GET",
                 format!(
                     "/api/v2/manifests/{}/{}?max_manifest_version=3.0.0",
-                    test_key_numbered(number).name,
-                    test_key_numbered(number).version
+                    key.name, key.version
                 )
                 .as_str(),
             )
@@ -381,13 +446,34 @@ mod tests {
             .await
     }
 
-    fn create_test_manifest(revision: Option<String>) -> Arc<AppManifest> {
-        create_test_manifest_numbered(0, revision)
+    pub fn create_test_manifest(revision: Option<String>) -> Arc<AppManifest> {
+        create_test_manifest_numbered(0, 0, revision)
     }
 
-    fn create_test_manifest_numbered(number: u8, revision: Option<String>) -> Arc<AppManifest> {
-        let manifest = manifest_3_0_0::FlecsAppManifest {
-            app: FromStr::from_str(&format!("some.test.app-{number}")).unwrap(),
+    pub fn create_test_manifest_raw(revision: Option<String>) -> manifest_3_0_0::FlecsAppManifest {
+        create_test_manifest_numbered_raw(0, 0, revision)
+    }
+
+    fn create_test_manifest_numbered(
+        name_number: u8,
+        version_number: u8,
+        revision: Option<String>,
+    ) -> Arc<AppManifest> {
+        Arc::new(
+            AppManifest::try_from(AppManifestVersion::V3_0_0(
+                create_test_manifest_numbered_raw(name_number, version_number, revision),
+            ))
+            .unwrap(),
+        )
+    }
+
+    fn create_test_manifest_numbered_raw(
+        name_number: u8,
+        version_number: u8,
+        revision: Option<String>,
+    ) -> manifest_3_0_0::FlecsAppManifest {
+        manifest_3_0_0::FlecsAppManifest {
+            app: FromStr::from_str(&format!("some.test.app-{name_number}")).unwrap(),
             args: vec![],
             capabilities: None,
             conffiles: vec![],
@@ -401,20 +487,185 @@ mod tests {
             multi_instance: None,
             ports: vec![],
             revision,
-            version: FromStr::from_str(&format!("1.2.{number}")).unwrap(),
+            version: FromStr::from_str(&format!("1.2.{version_number}")).unwrap(),
             volumes: vec![],
-        };
-        Arc::new(AppManifest::try_from(AppManifestVersion::V3_0_0(manifest)).unwrap())
+        }
     }
 
     fn test_key() -> AppKey {
-        test_key_numbered(0)
+        test_key_numbered(0, 0)
     }
 
-    fn test_key_numbered(number: u8) -> AppKey {
+    fn test_key_numbered(name_number: u8, version_number: u8) -> AppKey {
         AppKey {
-            name: format!("some.test.app-{number}"),
-            version: format!("1.2.{number}"),
+            name: format!("some.test.app-{name_number}"),
+            version: format!("1.2.{version_number}"),
+        }
+    }
+    const CREATED_APPS_WITH_MANIFEST: [(u8, u8); 4] = [(1, 1), (1, 2), (1, 3), (1, 4)];
+    const CREATED_APPS_WITHOUT_MANIFEST: [(u8, u8); 4] = [(2, 1), (2, 2), (2, 3), (2, 4)];
+    const INSTALLED_APPS_WITHOUT_MANIFEST: [(u8, u8); 4] = [(3, 1), (3, 2), (3, 3), (3, 4)];
+    const INSTALLED_APPS_WITH_MANIFEST: [(u8, u8); 4] = [(4, 1), (4, 2), (4, 3), (4, 4)];
+    const UNKNOWN_APPS: [(u8, u8); 4] = [(5, 1), (5, 2), (5, 3), (5, 4)];
+    fn create_test_deployment() -> Arc<dyn Deployment> {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_app_info()
+            .withf(|_, id| id == "INSTALLED")
+            .returning(|_, _| {
+                Ok(AppInfo {
+                    size: Some(2000),
+                    ..AppInfo::default()
+                })
+            });
+        deployment
+            .expect_app_info()
+            .returning(|_, _| Err(anyhow::anyhow!("test")));
+        deployment.expect_id().returning(String::new);
+        Arc::new(deployment) as Arc<dyn Deployment>
+    }
+    async fn create_test_vault() -> Arc<Vault> {
+        let deployments = vec![create_test_deployment()];
+        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        {
+            let mut reserved_pouch = vault.reservation().reserve_app_pouch_mut().grab().await;
+            let apps = reserved_pouch.app_pouch_mut.as_mut().unwrap();
+            for (name_number, version_number) in CREATED_APPS_WITH_MANIFEST {
+                let mut app = App::new(
+                    test_key_numbered(name_number, version_number),
+                    deployments.clone(),
+                );
+                app.set_manifest(create_test_manifest_numbered(
+                    name_number,
+                    version_number,
+                    None,
+                ));
+                app.properties
+                    .values_mut()
+                    .next()
+                    .unwrap()
+                    .set_id("INSTALLED".to_string());
+                apps.gems_mut().insert(app.key.clone(), app);
+            }
+            for (name_number, version_number) in INSTALLED_APPS_WITHOUT_MANIFEST {
+                let mut app = App::new(
+                    test_key_numbered(name_number, version_number),
+                    deployments.clone(),
+                );
+                app.properties
+                    .values_mut()
+                    .next()
+                    .unwrap()
+                    .set_id("INSTALLED".to_string());
+                apps.gems_mut().insert(app.key.clone(), app);
+            }
+            for (name_number, version_number) in INSTALLED_APPS_WITH_MANIFEST {
+                let mut app = App::new(
+                    test_key_numbered(name_number, version_number),
+                    deployments.clone(),
+                );
+                app.properties
+                    .values_mut()
+                    .next()
+                    .unwrap()
+                    .set_id("INSTALLED".to_string());
+                app.set_manifest(create_test_manifest_numbered(
+                    name_number,
+                    version_number,
+                    None,
+                ));
+                apps.gems_mut().insert(app.key.clone(), app);
+            }
+            for (name_number, version_number) in CREATED_APPS_WITHOUT_MANIFEST {
+                let app = App::new(
+                    test_key_numbered(name_number, version_number),
+                    deployments.clone(),
+                );
+                apps.gems_mut().insert(app.key.clone(), app);
+            }
+        }
+        vault
+    }
+
+    #[tokio::test]
+    async fn test_get_app_explicit_version() {
+        let vault = create_test_vault().await;
+        for (name_number, version_number) in INSTALLED_APPS_WITH_MANIFEST {
+            let key = test_key_numbered(name_number, version_number);
+            let result = get_app(vault.clone(), key.name, Some(key.version)).await;
+            assert_eq!(result.unwrap().len(), 1);
+        }
+        for (name_number, version_number) in INSTALLED_APPS_WITHOUT_MANIFEST {
+            let key = test_key_numbered(name_number, version_number);
+            let result = get_app(vault.clone(), key.name, Some(key.version)).await;
+            assert!(result.is_err());
+        }
+        for (name_number, version_number) in CREATED_APPS_WITH_MANIFEST {
+            let key = test_key_numbered(name_number, version_number);
+            let result = get_app(vault.clone(), key.name, Some(key.version)).await;
+            assert_eq!(result.unwrap().len(), 1);
+        }
+        for (name_number, version_number) in CREATED_APPS_WITHOUT_MANIFEST {
+            let key = test_key_numbered(name_number, version_number);
+            let result = get_app(vault.clone(), key.name, Some(key.version)).await;
+            assert!(result.is_err());
+        }
+        for (name_number, version_number) in UNKNOWN_APPS {
+            let key = test_key_numbered(name_number, version_number);
+            let result = get_app(vault.clone(), key.name, Some(key.version)).await;
+            assert_eq!(result.unwrap().len(), 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_app_no_version() {
+        let vault = create_test_vault().await;
+        {
+            let name_number = INSTALLED_APPS_WITH_MANIFEST[0].0;
+            let name = test_key_numbered(name_number, 0).name;
+            let result = get_app(vault.clone(), name, None).await;
+            assert_eq!(result.unwrap().len(), 4);
+        }
+        {
+            let name_number = INSTALLED_APPS_WITHOUT_MANIFEST[0].0;
+            let name = test_key_numbered(name_number, 0).name;
+            let result = get_app(vault.clone(), name, None).await;
+            assert_eq!(result.unwrap().len(), 0);
+        }
+        {
+            let name_number = CREATED_APPS_WITH_MANIFEST[0].0;
+            let name = test_key_numbered(name_number, 0).name;
+            let result = get_app(vault.clone(), name, None).await;
+            assert_eq!(result.unwrap().len(), 4);
+        }
+        {
+            let name_number = CREATED_APPS_WITHOUT_MANIFEST[0].0;
+            let name = test_key_numbered(name_number, 0).name;
+            let result = get_app(vault.clone(), name, None).await;
+            assert_eq!(result.unwrap().len(), 0);
+        }
+        {
+            let name_number = UNKNOWN_APPS[0].0;
+            let name = test_key_numbered(name_number, 0).name;
+            let result = get_app(vault.clone(), name, None).await;
+            assert_eq!(result.unwrap().len(), 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_apps_no_version() {
+        let vault = create_test_vault().await;
+        let result = get_apps(vault).await.unwrap();
+        assert_eq!(
+            result.len(),
+            INSTALLED_APPS_WITH_MANIFEST.len() + CREATED_APPS_WITH_MANIFEST.len()
+        );
+        for (name_number, version_number) in INSTALLED_APPS_WITH_MANIFEST
+            .iter()
+            .chain(CREATED_APPS_WITH_MANIFEST.iter())
+        {
+            let key = test_key_numbered(*name_number, *version_number).into();
+            assert!(result.iter().any(|info| info.app_key == key));
         }
     }
 
@@ -588,7 +839,7 @@ mod tests {
                 .grab()
                 .await
             else {
-                panic!("Reservation failed")
+                unreachable!("Reservation failed")
             };
             apps.gems_mut().insert(test_key(), app);
             manifests.gems_mut().insert(test_key(), manifest.clone());
@@ -802,10 +1053,15 @@ mod tests {
         let mut keys = Vec::new();
         for i in 0..APP_COUNT {
             manifest_mocks.push(
-                manifest_mock_ok_numbered(&mut server, create_test_manifest_numbered(i, None), i)
-                    .await,
+                manifest_mock_ok_numbered(
+                    &mut server,
+                    create_test_manifest_numbered(i, i, None),
+                    i,
+                    i,
+                )
+                .await,
             );
-            keys.push(test_key_numbered(i));
+            keys.push(test_key_numbered(i, i));
         }
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(install_apps(quest.clone(), vault.clone(), keys, config)
@@ -839,8 +1095,8 @@ mod tests {
             manifest_mock.assert();
         }
         for i in 0..APP_COUNT {
-            let key = test_key_numbered(i);
-            let manifest = create_test_manifest_numbered(i, None);
+            let key = test_key_numbered(i, i);
+            let manifest = create_test_manifest_numbered(i, i, None);
             let app = apps.gems().get(&key).unwrap();
             assert_eq!(Some(&manifest), manifests.gems().get(&key));
             assert_eq!(Some(manifest), app.manifest());
@@ -860,14 +1116,19 @@ mod tests {
         let mut keys = Vec::new();
         for i in 0..OK_APP_COUNT {
             manifest_mocks.push(
-                manifest_mock_ok_numbered(&mut server, create_test_manifest_numbered(i, None), i)
-                    .await,
+                manifest_mock_ok_numbered(
+                    &mut server,
+                    create_test_manifest_numbered(i, i, None),
+                    i,
+                    i,
+                )
+                .await,
             );
-            keys.push(test_key_numbered(i));
+            keys.push(test_key_numbered(i, i));
         }
         for i in OK_APP_COUNT..TOTAL_APP_COUNT {
-            manifest_mocks.push(manifest_mock_err_numbered(&mut server, 404, i).await);
-            keys.push(test_key_numbered(i));
+            manifest_mocks.push(manifest_mock_err_numbered(&mut server, 404, i, i).await);
+            keys.push(test_key_numbered(i, i));
         }
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(install_apps(quest.clone(), vault.clone(), keys, config)
@@ -901,15 +1162,15 @@ mod tests {
             manifest_mock.assert();
         }
         for i in 0..OK_APP_COUNT {
-            let key = test_key_numbered(i);
-            let manifest = create_test_manifest_numbered(i, None);
+            let key = test_key_numbered(i, i);
+            let manifest = create_test_manifest_numbered(i, i, None);
             let app = apps.gems().get(&key).unwrap();
             assert_eq!(Some(&manifest), manifests.gems().get(&key));
             assert_eq!(Some(manifest), app.manifest());
             assert_eq!(key, app.key);
         }
         for i in OK_APP_COUNT..TOTAL_APP_COUNT {
-            let key = test_key_numbered(i);
+            let key = test_key_numbered(i, i);
             assert!(apps.gems().get(&key).is_none());
             assert!(manifests.gems().get(&key).is_none());
         }

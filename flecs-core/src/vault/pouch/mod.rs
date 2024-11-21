@@ -74,6 +74,15 @@ impl From<flecsd_axum_server::models::AppKey> for AppKey {
     }
 }
 
+impl From<AppKey> for flecsd_axum_server::models::AppKey {
+    fn from(value: AppKey) -> Self {
+        Self {
+            version: value.version,
+            name: value.name,
+        }
+    }
+}
+
 impl Display for AppKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}-{}", self.name, self.version)
