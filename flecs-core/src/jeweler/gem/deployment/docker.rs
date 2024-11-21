@@ -1,4 +1,4 @@
-use crate::jeweler::app::{AppDeployment, AppId};
+use crate::jeweler::app::{AppDeployment, AppId, AppInfo};
 use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
 use crate::jeweler::instance::InstanceDeployment;
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
@@ -112,11 +112,9 @@ impl AppDeployment for DockerDeployment {
             .await
     }
 
-    async fn is_app_installed(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<bool> {
+    async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<AppInfo> {
         let docker_client = self.client()?;
-        Ok(relic::docker::image::inspect(docker_client, &id)
-            .await
-            .is_ok())
+        relic::docker::image::inspect(docker_client, &id).await
     }
 }
 

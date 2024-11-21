@@ -36,9 +36,10 @@ pub mod tests {
     use crate::jeweler::app::AppInfo;
     use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
     use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
-    use crate::jeweler::volume::{Volume, VolumeId};
+    use crate::jeweler::volume::VolumeId;
     use crate::quest::SyncQuest;
     use crate::Result;
+    use bollard::models::Volume;
     use flecs_app_manifest::AppManifest;
     use mockall::mock;
     use serde::{Serialize, Serializer};

@@ -37,12 +37,12 @@ use flecsd_axum_server::apis::system::{
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
-    AdditionalInfo, AppEditor, AppKey, AppStatus, AppsAppDeletePathParams,
-    AppsAppDeleteQueryParams, AppsAppGetPathParams, AppsAppGetQueryParams, AppsInstallPostRequest,
-    AppsSideloadPostRequest, AuthResponseData, DeviceLicenseActivationStatusGet200Response,
-    DeviceLicenseInfoGet200Response, Dosschema, FlunderBrowseGetQueryParams, InstalledApp,
-    InstanceConfig, InstanceEnvironment, InstancePorts, InstancesCreatePostRequest,
-    InstancesGetQueryParams, InstancesInstanceIdConfigEnvironmentDeletePathParams,
+    AdditionalInfo, AppsAppDeletePathParams, AppsAppDeleteQueryParams, AppsAppGetPathParams,
+    AppsAppGetQueryParams, AppsInstallPostRequest, AppsSideloadPostRequest, AuthResponseData,
+    DeviceLicenseActivationStatusGet200Response, DeviceLicenseInfoGet200Response, Dosschema,
+    FlunderBrowseGetQueryParams, InstanceConfig, InstanceEnvironment, InstancePorts,
+    InstancesCreatePostRequest, InstancesGetQueryParams,
+    InstancesInstanceIdConfigEnvironmentDeletePathParams,
     InstancesInstanceIdConfigEnvironmentGetPathParams,
     InstancesInstanceIdConfigEnvironmentPutPathParams, InstancesInstanceIdConfigGetPathParams,
     InstancesInstanceIdConfigPortsDeletePathParams, InstancesInstanceIdConfigPortsGetPathParams,
@@ -98,32 +98,23 @@ impl Apps for ServerImpl {
     async fn apps_app_get(
         &self,
         _method: Method,
-        host: Host,
+        _host: Host,
         _cookies: CookieJar,
         path_params: AppsAppGetPathParams,
         query_params: AppsAppGetQueryParams,
     ) -> Result<AppsAppGetResponse, String> {
-        println!(
-            "Received app request from {} for app {} in version {}",
-            host.0,
+        let apps = crate::sorcerer::appraiser::get_app(
+            self.vault.clone(),
             path_params.app,
-            query_params.version.unwrap_or("unknown".to_string())
-        );
-        Ok(AppsAppGetResponse::Status200_Success(vec![InstalledApp {
-            app_key: AppKey {
-                name: "some app".into(),
-                version: "1.0.2".into(),
-            },
-            status: AppStatus::Installed,
-            desired: AppStatus::Installed,
-            editors: vec![AppEditor {
-                name: "Some".to_string(),
-                port: 123,
-                supports_reverse_proxy: Some(true),
-            }],
-            installed_size: 1234,
-            multi_instance: false,
-        }]))
+            query_params.version,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        if apps.is_empty() {
+            Ok(AppsAppGetResponse::Status404_NoSuchAppOrApp)
+        } else {
+            Ok(AppsAppGetResponse::Status200_Success(apps))
+        }
     }
 
     async fn apps_get(
@@ -132,7 +123,10 @@ impl Apps for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<AppsGetResponse, String> {
-        todo!()
+        let apps = crate::sorcerer::appraiser::get_apps(self.vault.clone())
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(AppsGetResponse::Status200_Success(apps))
     }
 
     async fn apps_install_post(
