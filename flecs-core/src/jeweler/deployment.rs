@@ -28,3 +28,118 @@ impl Debug for dyn Deployment {
         write!(f, "Deployment: {}", self.id())
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use crate::jeweler::app::AppId;
+    use crate::jeweler::app::AppInfo;
+    use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
+    use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
+    use crate::jeweler::volume::{Volume, VolumeId};
+    use crate::quest::SyncQuest;
+    use crate::Result;
+    use flecs_app_manifest::AppManifest;
+    use mockall::mock;
+    use serde::{Serialize, Serializer};
+    use std::collections::HashMap;
+    use std::net::Ipv4Addr;
+    use std::path::Path;
+    use std::sync::Arc;
+
+    mock! {
+        pub edDeployment {}
+        #[async_trait]
+        impl AppDeployment for edDeployment {
+            async fn install_app(&self, quest: SyncQuest, manifest: Arc<AppManifest>, username: String, password: String) -> Result<AppId>;
+            async fn uninstall_app(&self, quest: SyncQuest, id: AppId) -> Result<()>;
+            async fn app_info(&self, quest: SyncQuest, id: AppId) -> Result<AppInfo>;
+        }
+        #[async_trait]
+        impl InstanceDeployment for edDeployment {
+            async fn delete_instance(&self, id: InstanceId) -> Result<()>;
+            async fn start_instance(&self,config: InstanceConfig,id: Option<InstanceId>,) -> Result<InstanceId>;
+            async fn stop_instance(&self, id: InstanceId) -> Result<()>;
+            async fn ready_instance(&self, id: InstanceId) -> Result<()>;
+            async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
+            async fn copy_from_instance(
+                &self,
+                quest: SyncQuest,
+                id: InstanceId,
+                src: &Path,
+                dst: &Path,
+            ) -> Result<()>;
+            async fn copy_to_instance(
+                &self,
+                quest: SyncQuest,
+                id: InstanceId,
+                src: &Path,
+                dst: &Path,
+            ) -> Result<()>;
+        }
+        #[async_trait]
+        impl NetworkDeployment for edDeployment {
+            async fn create_network(&self, quest: SyncQuest, config: NetworkConfig) -> Result<NetworkId>;
+            async fn delete_network(&self, id: NetworkId) -> Result<()>;
+            async fn network(&self, id: NetworkId) -> Result<Network>;
+            async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;
+            async fn connect_network(
+                &self,
+                quest: SyncQuest,
+                id: NetworkId,
+                address: Ipv4Addr,
+                container: &str,
+            ) -> Result<()>;
+            async fn disconnect_network(
+                &self,
+                quest: SyncQuest,
+                id: NetworkId,
+                container: &str,
+            ) -> Result<()>;
+        }
+        #[async_trait]
+        impl VolumeDeployment for edDeployment {
+            async fn create_volume(&self, quest: SyncQuest, name: &str) -> Result<VolumeId>;
+            async fn delete_volume(&self, _quest: SyncQuest, id: VolumeId) -> Result<()>;
+            async fn import_volume(
+                &self,
+                _quest: SyncQuest,
+                path: &Path,
+                name: &str,
+                image: &str,
+            ) -> Result<VolumeId>;
+            async fn export_volume(
+                &self,
+                quest: SyncQuest,
+                id: VolumeId,
+                path: &Path,
+                image: &str,
+            ) -> Result<()>;
+            async fn volumes(
+                &self,
+                quest: SyncQuest,
+                instance_id: InstanceId,
+            ) -> Result<HashMap<VolumeId, Volume>>;
+            async fn export_volumes(
+                &self,
+                quest: SyncQuest,
+                instance_id: InstanceId,
+                path: &Path,
+                image: &str,
+            ) -> Result<()>;
+        }
+        #[async_trait]
+        impl Deployment for edDeployment {
+            fn id(&self) -> DeploymentId;
+        }
+    }
+
+    impl Serialize for MockedDeployment {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_str("MockedDeployment")
+        }
+    }
+}
