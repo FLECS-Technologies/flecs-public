@@ -36,6 +36,10 @@ private:
         -> result_t override;
     auto do_delete_app(std::shared_ptr<apps::app_t> app) //
         -> result_t override;
+    auto do_import_app(std::shared_ptr<apps::app_t> app, fs::path archive) //
+        -> result_t override;
+    auto do_export_app(std::shared_ptr<const apps::app_t> app, fs::path archive) //
+        -> result_t override;
     auto do_determine_app_size(std::shared_ptr<const apps::app_t> app) const //
         -> std::optional<std::size_t> override;
 

@@ -410,6 +410,32 @@ auto docker_t::do_delete_app(std::shared_ptr<apps::app_t> app) //
     return {0, {}};
 }
 
+auto docker_t::do_import_app(std::shared_ptr<apps::app_t> /* app*/, fs::path archive) //
+    -> result_t
+{
+    auto process = process_t{};
+    process.spawnp("docker", "load", "--input", archive.c_str());
+    process.wait(false, true);
+    if (process.exit_code() != 0) {
+        return {-1, process.stderr()};
+    }
+
+    return {0, {}};
+}
+
+auto docker_t::do_export_app(std::shared_ptr<const apps::app_t> app, fs::path archive) //
+    -> result_t
+{
+    auto process = process_t{};
+    process.spawnp("docker", "save", "--output", archive.string(), app->manifest()->image_with_tag());
+    process.wait(false, true);
+    if (process.exit_code() != 0) {
+        return {-1, process.stderr()};
+    }
+
+    return {0, {}};
+}
+
 auto docker_t::do_determine_app_size(std::shared_ptr<const apps::app_t> app) const //
     -> std::optional<std::size_t>
 {
