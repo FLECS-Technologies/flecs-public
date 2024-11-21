@@ -67,6 +67,10 @@ public:
         -> result_t;
     auto delete_app(std::shared_ptr<apps::app_t> app) //
         -> result_t;
+    auto import_app(std::shared_ptr<apps::app_t> app, fs::path archive) //
+        -> result_t;
+    auto export_app(std::shared_ptr<const apps::app_t> app, fs::path archive) //
+        -> result_t;
     auto determine_app_size(std::shared_ptr<const apps::app_t> app) const //
         -> std::optional<std::size_t>;
 
@@ -203,6 +207,10 @@ private:
     virtual auto do_download_app(std::shared_ptr<apps::app_t> app, std::optional<Token> token) //
         -> result_t = 0;
     virtual auto do_delete_app(std::shared_ptr<apps::app_t> app) //
+        -> result_t = 0;
+    virtual auto do_import_app(std::shared_ptr<apps::app_t> app, fs::path archive) //
+        -> result_t = 0;
+    virtual auto do_export_app(std::shared_ptr<const apps::app_t> app, fs::path archive) //
         -> result_t = 0;
     virtual auto do_determine_app_size(std::shared_ptr<const apps::app_t> app) const //
         -> std::optional<std::size_t> = 0;

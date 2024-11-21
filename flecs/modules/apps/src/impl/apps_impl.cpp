@@ -473,12 +473,11 @@ auto apps_t::do_export_to(apps::key_t app_key, fs::path dest_dir, jobs::progress
 
     // Step 3: Export image
     progress.next_step("Exporting App");
-    auto docker_process = process_t{};
-    const auto filename = dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".tar");
-    docker_process.spawnp("docker", "save", "--output", filename.string(), manifest->image_with_tag());
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
+    auto deployment = _deployments_api->query_deployment("docker");
+    const auto archive = dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".tar");
+    const auto [res, message] = deployment->export_app(app, std::move(archive));
+    if (res != 0) {
+        return {1, message};
     }
 
     // Step 4: Copy manifest
@@ -521,15 +520,6 @@ auto apps_t::do_import_from(apps::key_t app_key, fs::path src_dir, jobs::progres
         return {-1, "Could not add App manifest"};
     }
 
-    /* import image */
-    path.replace_extension(".tar");
-    auto docker_process = process_t{};
-    docker_process.spawnp("docker", "load", "--input", path.c_str());
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {-1, docker_process.stderr()};
-    }
-
     /* add to installed Apps */
     auto app = _parent->query(app_key);
     if (!app) {
@@ -537,7 +527,17 @@ auto apps_t::do_import_from(apps::key_t app_key, fs::path src_dir, jobs::progres
         _apps.push_back(std::make_shared<apps::app_t>(std::move(tmp)));
         app = *_apps.rbegin();
     }
-    app->status(apps::status_e::Installed);
+    app->status(apps::status_e::ManifestDownloaded);
+
+    /* import image */
+    auto deployment = _deployments_api->query_deployment("docker");
+    path.replace_extension(".tar");
+    const auto [res, message] = deployment->import_app(app, std::move(path));
+    if (res != 0) {
+        return {-1, message};
+    }
+
+    /* mark App as installed */
     app->desired(apps::status_e::Installed);
 
     return {0, {}};

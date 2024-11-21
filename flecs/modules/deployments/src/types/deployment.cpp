@@ -66,6 +66,18 @@ auto deployment_t::delete_app(std::shared_ptr<apps::app_t> app) //
     return do_delete_app(std::move(app));
 }
 
+auto deployment_t::import_app(std::shared_ptr<apps::app_t> app, fs::path archive) //
+    -> result_t
+{
+    return do_import_app(std::move(app), std::move(archive));
+}
+
+auto deployment_t::export_app(std::shared_ptr<const apps::app_t> app, fs::path archive) //
+    -> result_t
+{
+    return do_export_app(std::move(app), std::move(archive));
+}
+
 auto deployment_t::determine_app_size(std::shared_ptr<const apps::app_t> app) const //
     -> std::optional<std::size_t>
 {
