@@ -5,6 +5,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::future::Future;
 use tokio::sync::mpsc::{channel, error::TrySendError, Sender};
+use tracing::{error, info, warn};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum DeleteQuestError {
@@ -14,7 +15,11 @@ pub enum DeleteQuestError {
 
 pub struct QuestMaster {
     quests: HashMap<QuestId, SyncQuest>,
-    schedule_channel: Sender<(SyncQuest, BoxFuture<'static, Result<()>>)>,
+    schedule_channel: Sender<(
+        SyncQuest,
+        BoxFuture<'static, Result<()>>,
+        std::time::Instant,
+    )>,
 }
 
 impl Default for QuestMaster {
@@ -25,23 +30,56 @@ impl Default for QuestMaster {
 
 impl QuestMaster {
     pub fn new() -> Self {
-        let (tx, mut rx) = channel::<(SyncQuest, BoxFuture<'static, Result<()>>)>(1000);
+        let (tx, mut rx) = channel::<(
+            SyncQuest,
+            BoxFuture<'static, Result<()>>,
+            std::time::Instant,
+        )>(1000);
 
         tokio::spawn(async move {
-            while let Some((quest, future)) = rx.recv().await {
-                quest.lock().await.state = State::Ongoing;
+            while let Some((quest, future, start)) = rx.recv().await {
+                let start = {
+                    let mut quest = quest.lock().await;
+                    quest.state = State::Ongoing;
+                    info!(
+                        "Quest '{}' with id {} started. It waited for {:#?} in queue.",
+                        quest.id.0,
+                        quest.description,
+                        std::time::Instant::now() - start
+                    );
+                    std::time::Instant::now()
+                };
+
                 match tokio::spawn(future).await {
-                    Ok(result) => {
-                        if let Err(e) = finish_quest(&quest, result).await {
-                            eprintln!("Quest with id {} failed: {e}", quest.lock().await.id.0);
+                    Ok(result) => match finish_quest(&quest, result).await {
+                        Err(e) => {
+                            let quest = quest.lock().await;
+                            warn!(
+                                "Quest '{}' with id {} failed after {:#?}: {e}",
+                                quest.description,
+                                quest.id.0,
+                                std::time::Instant::now() - start
+                            )
                         }
-                    }
+                        Ok(_) => {
+                            let quest = quest.lock().await;
+                            info!(
+                                "Quest '{}' with id {} succeeded after {:#?}.",
+                                quest.description,
+                                quest.id.0,
+                                std::time::Instant::now() - start
+                            )
+                        }
+                    },
                     Err(e) => {
-                        eprintln!(
-                            "Quest with id {} caused a panic: {e}",
-                            quest.lock().await.id.0
+                        let mut quest = quest.lock().await;
+                        error!(
+                            "Quest '{}' with id {} caused a panic after {:#?}: {e}",
+                            quest.description,
+                            quest.id.0,
+                            std::time::Instant::now() - start
                         );
-                        quest.lock().await.state = State::Failed;
+                        quest.state = State::Failed;
                     }
                 }
             }
@@ -84,10 +122,11 @@ impl QuestMaster {
         let quest = Quest::new_synced(description.clone());
         let quest_id = quest.lock().await.id;
 
-        match self
-            .schedule_channel
-            .try_send((quest.clone(), Box::pin(f(quest.clone()))))
-        {
+        match self.schedule_channel.try_send((
+            quest.clone(),
+            Box::pin(f(quest.clone())),
+            std::time::Instant::now(),
+        )) {
             Ok(()) => {
                 self.quests.insert(quest_id, quest.clone());
                 Ok((quest_id, quest))

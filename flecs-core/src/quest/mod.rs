@@ -3,10 +3,12 @@ use futures_util::future::BoxFuture;
 use futures_util::StreamExt;
 use std::fmt::{Display, Formatter};
 use std::future::Future;
+use std::pin::Pin;
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, OnceLock};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
+use tracing::debug;
 
 pub mod quest_master;
 
@@ -151,17 +153,14 @@ impl Quest {
     where
         F: FnOnce(SyncQuest) -> Fut,
         Fut: Future<Output = Result<T>> + Send + 'static,
-        T: Send + Sync,
+        T: Send + Sync + 'static,
     {
         let quest = Quest::new_synced(description);
         let quest_id = quest.lock().await.id;
         let f = Box::pin(f(quest.clone()));
         self.sub_quests.push(quest.clone());
         let return_quest = quest.clone();
-        let result = Box::pin(async move {
-            quest.lock().await.state = State::Ongoing;
-            finish_quest(&quest, f.await).await
-        });
+        let result = Box::pin(Self::process_sub_quest(quest, f));
         (quest_id, return_quest, result)
     }
 
@@ -180,13 +179,46 @@ impl Quest {
         let f = Box::pin(f(quest.clone()));
         self.sub_quests.push(quest.clone());
         let return_quest = quest.clone();
-        let result = tokio::spawn(async move {
-            quest.lock().await.state = State::Ongoing;
-            finish_quest(&quest, f.await).await
-        });
+        let result = tokio::spawn(Self::process_sub_quest(quest, f));
         (quest_id, return_quest, result)
     }
 
+    async fn process_sub_quest<Fut, T>(quest: SyncQuest, f: Pin<Box<Fut>>) -> Result<T>
+    where
+        Fut: Future<Output = Result<T>> + Send,
+        T: Send + Sync,
+    {
+        let start = {
+            let mut quest = quest.lock().await;
+            quest.state = State::Ongoing;
+            debug!(
+                "Started sub-quest '{}' with id {}",
+                quest.description.as_str(),
+                quest.id.0,
+            );
+            std::time::Instant::now()
+        };
+        let result = finish_quest(&quest, f.await).await;
+        {
+            let quest = quest.lock().await;
+            if result.is_ok() {
+                debug!(
+                    "Sub-quest '{}' with id {} succeeded after {:#?}.",
+                    quest.description,
+                    quest.id.0,
+                    std::time::Instant::now() - start
+                )
+            } else {
+                debug!(
+                    "Sub-quest '{}' with id {} failed after {:#?}.",
+                    quest.description,
+                    quest.id.0,
+                    std::time::Instant::now() - start
+                )
+            }
+        }
+        result
+    }
     pub async fn sub_quest_progress(&self) -> Progress {
         let current = futures::stream::iter(self.sub_quests.iter())
             .filter(|sub_quest| async { sub_quest.lock().await.state.is_finished() })
