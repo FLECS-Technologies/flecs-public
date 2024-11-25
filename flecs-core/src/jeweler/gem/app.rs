@@ -85,7 +85,7 @@ pub fn try_create_app(
                             )
                         })
                         .collect(),
-                    id: None,
+                    id: data.id,
                     deployment: deployment.clone(),
                 },
             )),
