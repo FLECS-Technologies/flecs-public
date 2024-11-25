@@ -96,8 +96,8 @@ pub struct InstanceDeserializable {
 
 #[derive(Debug, Serialize)]
 pub struct Instance {
-    name: String,
-    id: InstanceId,
+    pub name: String,
+    pub id: InstanceId,
     pub config: InstanceConfig,
     #[serde(skip)]
     deployment: Arc<dyn Deployment>,
@@ -142,6 +142,13 @@ impl Instance {
             }
         }
         Ok(())
+    }
+
+    pub async fn stop_and_delete(mut self) -> anyhow::Result<(), (anyhow::Error, Self)> {
+        match self.stop().await {
+            Err(e) => Err((e, self)),
+            Ok(_) => self.delete().await,
+        }
     }
 
     pub async fn stop(&mut self) -> anyhow::Result<()> {

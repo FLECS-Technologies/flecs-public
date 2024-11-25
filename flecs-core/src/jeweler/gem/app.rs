@@ -8,7 +8,9 @@ use flecsd_axum_server::models::InstalledApp;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::mem::swap;
 use std::sync::Arc;
+use tracing::error;
 
 #[derive(Debug, Serialize)]
 pub struct AppData {
@@ -279,6 +281,188 @@ impl App {
             }
         }
     }
+
+    async fn uninstall_from_deployment(
+        quest: SyncQuest,
+        mut data: AppData,
+    ) -> Result<(), (anyhow::Error, AppData)> {
+        data.desired = AppStatus::NotInstalled;
+        let Some(id) = data.id.clone() else {
+            let mut quest = quest.lock().await;
+            quest.state = State::Skipped;
+            quest.detail = Some(format!(
+                "App is not installed on deployment {}",
+                data.deployment.id()
+            ));
+            return Ok(());
+        };
+        let app_installed = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!(
+                    "Check if app {id} is installed in deployment {}",
+                    data.deployment.id()
+                ),
+                |quest| {
+                    let deployment = data.deployment.clone();
+                    let id = id.clone();
+                    async move { deployment.is_app_installed(quest, id).await }
+                },
+            )
+            .await
+            .2
+            .await;
+        match app_installed {
+            Ok(false) => {
+                let mut quest = quest.lock().await;
+                quest.state = State::Skipped;
+                quest.detail = Some(format!(
+                    "App is not installed on deployment {}",
+                    data.deployment.id()
+                ));
+                return Ok(());
+            }
+            Err(e) => {
+                return Err((e, data));
+            }
+            Ok(true) => {}
+        }
+        let mut instance_delete_results = Vec::new();
+        let mut instance_ids = Vec::new();
+        let mut instances = HashMap::new();
+        swap(&mut instances, &mut data.instances);
+        for instance in instances.into_values() {
+            instance_ids.push(instance.id);
+            let delete_result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!("Delete instance '{}' ({})", instance.name, instance.id),
+                    |_quest| async move {
+                        match instance.stop_and_delete().await {
+                            Ok(()) => Ok(None),
+                            Err((e, instance)) => Ok(Some((e, instance))),
+                        }
+                    },
+                )
+                .await
+                .2;
+            instance_delete_results.push(delete_result);
+        }
+        for (instance_id, result) in instance_ids
+            .into_iter()
+            .zip(join_all(instance_delete_results).await)
+        {
+            match result {
+                Ok(None) => {}
+                Err(e) => {
+                    error!("Failed to delete instance {instance_id} of app {}: {e}", id);
+                }
+                Ok(Some((e, instance))) => {
+                    error!(
+                        "Failed to delete instance {} ({}) of app {}: {e}",
+                        instance.name, instance.id, id
+                    );
+                    data.instances.insert(instance.id, instance);
+                }
+            }
+        }
+        let result = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!(
+                    "Uninstall app {id} from deployment {}",
+                    data.deployment.id()
+                ),
+                |quest| {
+                    let id = id.clone();
+                    async move {
+                        match data.deployment.uninstall_app(quest, id).await {
+                            Ok(()) => Ok(None),
+                            Err(e) => Ok(Some((e, data))),
+                        }
+                    }
+                },
+            )
+            .await
+            .2
+            .await;
+        match result {
+            Ok(None) => Ok(()),
+            Ok(Some((e, data))) => Err((e, data)),
+            Err(e) => {
+                error!("Unexpected error during uninstallation of app {}: {e}", id);
+                Ok(())
+            }
+        }
+    }
+
+    pub async fn uninstall(mut self, quest: SyncQuest) -> Result<(), (anyhow::Error, Self)> {
+        let mut deployment_ids = Vec::new();
+        let mut uninstall_results = Vec::new();
+        let mut app_data = HashMap::new();
+        swap(&mut app_data, &mut self.properties);
+        for data in app_data.into_values() {
+            deployment_ids.push(data.deployment.id().clone());
+            let uninstall_result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!(
+                        "Uninstall {} from deployment {}",
+                        self.key,
+                        data.deployment.id()
+                    ),
+                    |quest| async move {
+                        match Self::uninstall_from_deployment(quest, data).await {
+                            Ok(()) => Ok(None),
+                            Err((e, data)) => Ok(Some((e, data))),
+                        }
+                    },
+                )
+                .await
+                .2;
+            uninstall_results.push(uninstall_result);
+        }
+
+        for (deployment_id, result) in deployment_ids
+            .into_iter()
+            .zip(join_all(uninstall_results).await)
+        {
+            match result {
+                Err(e) => error!(
+                    "Failed to uninstall {} from deployment {}: {e}",
+                    self.key, deployment_id
+                ),
+                Ok(None) => {}
+                Ok(Some((e, app_data))) => {
+                    error!(
+                        "Failed to uninstall {} from deployment {}: {e}",
+                        self.key, deployment_id
+                    );
+                    self.properties.insert(deployment_id, app_data);
+                }
+            }
+        }
+        if self.properties.is_empty() {
+            Ok(())
+        } else {
+            Err((
+                anyhow::anyhow!(
+                    "Failed to uninstall {}, from deployments {}",
+                    self.key,
+                    self.properties
+                        .keys()
+                        .map(Clone::clone)
+                        .collect::<Vec<String>>()
+                        .join(",")
+                ),
+                self,
+            ))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -286,8 +470,10 @@ mod tests {
     use super::*;
     use crate::jeweler::app::AppInfo;
     use crate::jeweler::deployment::tests::MockedDeployment;
+    use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
     use crate::sorcerer::appraiser::tests::create_test_manifest;
     use flecs_app_manifest::AppManifestVersion;
+    use mockall::predicate::eq;
 
     fn test_key() -> AppKey {
         AppKey {
@@ -296,6 +482,17 @@ mod tests {
         }
     }
 
+    fn test_instance(id: u8, deployment: Arc<dyn Deployment>) -> Instance {
+        Instance::new(
+            InstanceId { value: id as u32 },
+            format!("TestInstance #{id}"),
+            InstanceConfig {
+                image: format!("test-image-#{id}"),
+            },
+            deployment,
+            InstanceStatus::Running,
+        )
+    }
     #[tokio::test]
     async fn status_no_deployment() {
         let app = App::new(test_key(), vec![]);
@@ -490,5 +687,291 @@ mod tests {
         );
         assert_eq!(info.installed_size, 1234);
         assert!(info.multi_instance);
+    }
+
+    #[tokio::test]
+    async fn uninstall_app_no_id() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        let app_data = AppData::new(Arc::new(deployment));
+        assert!(app_data.id.is_none());
+        let quest = Quest::new_synced("TestQuest".to_string());
+        App::uninstall_from_deployment(quest.clone(), app_data)
+            .await
+            .unwrap();
+        assert_eq!(quest.lock().await.state, State::Skipped);
+    }
+
+    #[tokio::test]
+    async fn uninstall_app_not_installed() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_app_info()
+            .times(1)
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        let mut app_data = AppData::new(Arc::new(deployment));
+        app_data.id = Some("TestAppId".to_string());
+        let quest = Quest::new_synced("TestQuest".to_string());
+        App::uninstall_from_deployment(quest.clone(), app_data)
+            .await
+            .unwrap();
+        assert_eq!(quest.lock().await.state, State::Skipped);
+    }
+
+    #[tokio::test]
+    async fn uninstall_app_data_no_instances_ok() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_app_info()
+            .times(1)
+            .returning(|_, _| Ok(AppInfo::default()));
+        deployment
+            .expect_uninstall_app()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        let mut app_data = AppData::new(Arc::new(deployment));
+        app_data.id = Some("TestAppId".to_string());
+        app_data.desired = AppStatus::Installed;
+        App::uninstall_from_deployment(Quest::new_synced("TestQuest".to_string()), app_data)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn uninstall_app_data_ok() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_app_info()
+            .times(1)
+            .returning(|_, _| Ok(AppInfo::default()));
+        deployment
+            .expect_uninstall_app()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        deployment
+            .expect_delete_instance()
+            .times(5)
+            .returning(|_| Ok(()));
+        deployment
+            .expect_instance_status()
+            .times(5)
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let mut app_data = AppData::new(deployment.clone());
+        app_data.id = Some("TestAppId".to_string());
+        app_data.desired = AppStatus::Installed;
+        for i in 0..5 {
+            let test_instance = test_instance(i, deployment.clone());
+            app_data.instances.insert(test_instance.id, test_instance);
+        }
+        App::uninstall_from_deployment(Quest::new_synced("TestQuest".to_string()), app_data)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn uninstall_app_data_instance_err() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_app_info()
+            .times(1)
+            .returning(|_, _| Ok(AppInfo::default()));
+        deployment
+            .expect_uninstall_app()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        deployment
+            .expect_delete_instance()
+            .with(eq(InstanceId { value: 6 }))
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_delete_instance()
+            .times(5)
+            .returning(|_| Ok(()));
+        deployment
+            .expect_instance_status()
+            .times(6)
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let mut app_data = AppData::new(deployment.clone());
+        app_data.id = Some("TestAppId".to_string());
+        app_data.desired = AppStatus::Installed;
+        for i in 0..5 {
+            let test_instance = test_instance(i, deployment.clone());
+            app_data.instances.insert(test_instance.id, test_instance);
+        }
+        let failing_instance = test_instance(6, deployment.clone());
+        app_data
+            .instances
+            .insert(failing_instance.id, failing_instance);
+        // The app should be uninstalled even if some instances fail to be removed
+        App::uninstall_from_deployment(Quest::new_synced("TestQuest".to_string()), app_data)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn uninstall_app_data_no_instances_err() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_app_info()
+            .times(1)
+            .returning(|_, _| Ok(AppInfo::default()));
+        deployment
+            .expect_uninstall_app()
+            .times(1)
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        let mut app_data = AppData::new(Arc::new(deployment));
+        app_data.id = Some("TestAppId".to_string());
+        app_data.desired = AppStatus::Installed;
+        let result =
+            App::uninstall_from_deployment(Quest::new_synced("TestQuest".to_string()), app_data)
+                .await;
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().1.desired, AppStatus::NotInstalled);
+    }
+
+    #[tokio::test]
+    async fn uninstall_ok() {
+        const DEPLOYMENT_COUNT: usize = 5;
+        let mut deployments = HashMap::new();
+        for i in 0..DEPLOYMENT_COUNT {
+            let mut deployment = MockedDeployment::new();
+            let deployment_id = format!("MockedDeployment-{}", i);
+            let closure_deployment_id = deployment_id.clone();
+            deployment
+                .expect_id()
+                .returning(move || closure_deployment_id.clone());
+            deployment
+                .expect_app_info()
+                .times(1)
+                .returning(|_, _| Ok(AppInfo::default()));
+            deployment
+                .expect_uninstall_app()
+                .times(1)
+                .returning(|_, _| Ok(()));
+            let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+            deployments.insert(deployment_id, deployment);
+        }
+
+        let mut app = AppDeserializable {
+            key: AppKey {
+                name: "TestApp".to_string(),
+                version: "1.2.3".to_string(),
+            },
+            properties: HashMap::new(),
+        };
+        for i in 0..DEPLOYMENT_COUNT {
+            let deployment_id = format!("MockedDeployment-{}", i);
+            app.properties.insert(
+                deployment_id,
+                AppDataDeserializable {
+                    desired: AppStatus::Installed,
+                    instances: HashMap::new(),
+                    id: Some(format!("MockedAppId-{}", i)),
+                },
+            );
+        }
+        let app = try_create_app(app, &HashMap::new(), &deployments).unwrap();
+        assert_eq!(app.properties.len(), DEPLOYMENT_COUNT);
+        app.uninstall(Quest::new_synced("TestQuest".to_string()))
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn uninstall_err() {
+        const DEPLOYMENT_COUNT: usize = 5;
+        const ERR_DEPLOYMENT_COUNT: usize = 3;
+        let mut deployments = HashMap::new();
+        for i in 0..DEPLOYMENT_COUNT {
+            let mut deployment = MockedDeployment::new();
+            let deployment_id = format!("MockedDeployment-{}", i);
+            let closure_deployment_id = deployment_id.clone();
+            deployment
+                .expect_id()
+                .returning(move || closure_deployment_id.clone());
+            deployment
+                .expect_app_info()
+                .times(1)
+                .returning(|_, _| Ok(AppInfo::default()));
+            deployment
+                .expect_uninstall_app()
+                .times(1)
+                .returning(|_, _| Ok(()));
+            let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+            deployments.insert(deployment_id, deployment);
+        }
+        for i in DEPLOYMENT_COUNT..DEPLOYMENT_COUNT + ERR_DEPLOYMENT_COUNT {
+            let mut deployment = MockedDeployment::new();
+            let deployment_id = format!("MockedDeployment-{}", i);
+            let closure_deployment_id = deployment_id.clone();
+            deployment
+                .expect_id()
+                .returning(move || closure_deployment_id.clone());
+            deployment
+                .expect_app_info()
+                .times(1)
+                .returning(|_, _| Ok(AppInfo::default()));
+            deployment
+                .expect_uninstall_app()
+                .times(1)
+                .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+            let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+            deployments.insert(deployment_id, deployment);
+        }
+
+        let mut app = AppDeserializable {
+            key: AppKey {
+                name: "TestApp".to_string(),
+                version: "1.2.3".to_string(),
+            },
+            properties: HashMap::new(),
+        };
+        for i in 0..DEPLOYMENT_COUNT + ERR_DEPLOYMENT_COUNT {
+            let deployment_id = format!("MockedDeployment-{}", i);
+            app.properties.insert(
+                deployment_id,
+                AppDataDeserializable {
+                    desired: AppStatus::Installed,
+                    instances: HashMap::new(),
+                    id: Some(format!("MockedAppId-{}", i)),
+                },
+            );
+        }
+        let app = try_create_app(app, &HashMap::new(), &deployments).unwrap();
+        assert_eq!(
+            app.properties.len(),
+            DEPLOYMENT_COUNT + ERR_DEPLOYMENT_COUNT
+        );
+        let result = app
+            .uninstall(Quest::new_synced("TestQuest".to_string()))
+            .await;
+        assert!(result.is_err());
+        let (_error, app) = result.err().unwrap();
+        assert_eq!(app.properties.len(), ERR_DEPLOYMENT_COUNT);
+        for i in DEPLOYMENT_COUNT..DEPLOYMENT_COUNT + ERR_DEPLOYMENT_COUNT {
+            assert!(app
+                .properties
+                .contains_key(&format!("MockedDeployment-{}", i)));
+        }
     }
 }

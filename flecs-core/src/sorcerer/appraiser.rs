@@ -12,6 +12,10 @@ use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use tracing::error;
 
+pub async fn uninstall_app(quest: SyncQuest, vault: Arc<Vault>, app_key: AppKey) -> Result<()> {
+    spell::app::uninstall_app(quest, vault, app_key).await
+}
+
 pub async fn get_app(
     vault: Arc<Vault>,
     name: String,

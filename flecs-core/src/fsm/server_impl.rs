@@ -1,3 +1,4 @@
+use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
 use anyhow::Error;
 use axum::async_trait;
@@ -89,10 +90,44 @@ impl Apps for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: AppsAppDeletePathParams,
-        _query_params: AppsAppDeleteQueryParams,
+        path_params: AppsAppDeletePathParams,
+        query_params: AppsAppDeleteQueryParams,
     ) -> Result<AppsAppDeleteResponse, String> {
-        todo!()
+        match query_params.version {
+            Some(app_version) => {
+                let key = AppKey {
+                    name: path_params.app,
+                    version: app_version,
+                };
+                if !self
+                    .vault
+                    .reservation()
+                    .reserve_app_pouch()
+                    .grab()
+                    .await
+                    .app_pouch
+                    .as_ref()
+                    .expect("Vault reservations should never fail")
+                    .gems()
+                    .contains_key(&key)
+                {
+                    return Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp);
+                }
+                let (id, _) = crate::lore::quest::default()
+                    .await
+                    .lock()
+                    .await
+                    .schedule_quest(format!("Uninstall {key}"), |quest| {
+                        crate::sorcerer::appraiser::uninstall_app(quest, self.vault.clone(), key)
+                    })
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok(AppsAppDeleteResponse::Status202_Accepted(JobMeta {
+                    job_id: id.0 as i32,
+                }))
+            }
+            None => Err("Missing query parameter 'version'".to_string()),
+        }
     }
 
     async fn apps_app_get(
@@ -635,5 +670,64 @@ fn console_session_id_to_core_session_id(
     flecsd_axum_server::models::SessionId {
         id: session_id.id,
         timestamp: session_id.timestamp,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::fsm::server_impl::ServerImpl;
+    use crate::vault::{Vault, VaultConfig};
+    use axum::extract::Host;
+    use axum_extra::extract::CookieJar;
+    use flecsd_axum_server::apis::apps::{Apps, AppsAppDeleteResponse};
+    use flecsd_axum_server::models::{AppsAppDeletePathParams, AppsAppDeleteQueryParams};
+    use http::Method;
+    use std::path::Path;
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn uninstall_404() {
+        let server = ServerImpl {
+            vault: Arc::new(Vault::new(VaultConfig {
+                path: Path::new("/tmp/flecs-tests/uninstall_404/").to_path_buf(),
+            })),
+        };
+        assert_eq!(
+            Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp),
+            server
+                .apps_app_delete(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    AppsAppDeletePathParams {
+                        app: "app".to_string(),
+                    },
+                    AppsAppDeleteQueryParams {
+                        version: Some("version".to_string())
+                    },
+                )
+                .await
+        )
+    }
+
+    #[tokio::test]
+    async fn uninstall_no_version() {
+        let server = ServerImpl {
+            vault: Arc::new(Vault::new(VaultConfig {
+                path: Path::new("/tmp/flecs-tests/uninstall_404/").to_path_buf(),
+            })),
+        };
+        assert!(server
+            .apps_app_delete(
+                Method::default(),
+                Host("host".to_string()),
+                CookieJar::default(),
+                AppsAppDeletePathParams {
+                    app: "app".to_string(),
+                },
+                AppsAppDeleteQueryParams { version: None },
+            )
+            .await
+            .is_err())
     }
 }
