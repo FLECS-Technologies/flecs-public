@@ -121,6 +121,15 @@ impl Instance {
         }
     }
 
+    pub async fn create() -> anyhow::Result<Self> {
+        // TODO: Create portmapping
+        // TODO: Set env and ports
+        // TODO: Create volumes
+        // TODO: Create networks
+        // TODO: Create conffiles
+        todo!()
+    }
+
     pub async fn start(&mut self) -> anyhow::Result<()> {
         self.desired = InstanceStatus::Running;
         match self.deployment.instance_status(self.id).await? {
@@ -136,6 +145,8 @@ impl Instance {
     }
 
     pub async fn stop(&mut self) -> anyhow::Result<()> {
+        // TODO: Disconnect networks
+        // TODO: Save config files
         self.desired = InstanceStatus::Stopped;
         match self.deployment.instance_status(self.id).await? {
             InstanceStatus::Stopped => Ok(()),
@@ -144,6 +155,8 @@ impl Instance {
     }
 
     pub async fn delete(self) -> anyhow::Result<(), (anyhow::Error, Self)> {
+        // TODO: Delete volumes
+        // TODO: Delete floxy config
         self.deployment
             .delete_instance(self.id)
             .await
