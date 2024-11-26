@@ -8,9 +8,7 @@ use crate::vault::pouch::DeploymentId;
 use crate::{jeweler, relic};
 use async_trait::async_trait;
 use bollard::auth::DockerCredentials;
-use bollard::container::{
-    Config, CreateContainerOptions, LogOutput, RemoveContainerOptions, StopContainerOptions,
-};
+use bollard::container::{Config, CreateContainerOptions, LogOutput, RemoveContainerOptions};
 use bollard::exec::{CreateExecOptions, StartExecOptions, StartExecResults};
 use bollard::image::RemoveImageOptions;
 use bollard::models::{
@@ -733,12 +731,7 @@ impl InstanceDeployment for DockerDeployment {
 
     async fn stop_instance(&self, id: InstanceId) -> anyhow::Result<()> {
         let client = self.client()?;
-        relic::docker::container::stop(
-            client,
-            &id.to_docker_id(),
-            Some(StopContainerOptions { t: 5 }),
-        )
-        .await?;
+        relic::docker::container::stop(client, &id.to_docker_id(), None).await?;
         self.delete_instance(id).await
     }
 
