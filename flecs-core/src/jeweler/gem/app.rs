@@ -14,7 +14,7 @@ use tracing::error;
 
 #[derive(Debug, Serialize)]
 pub struct AppData {
-    desired: AppStatus,
+    pub desired: AppStatus,
     instances: HashMap<InstanceId, Instance>,
     #[serde(skip_serializing_if = "Option::is_none")]
     id: Option<AppId>,
@@ -108,6 +108,12 @@ pub fn try_create_app(
 impl App {
     pub fn set_manifest(&mut self, manifest: Arc<AppManifest>) {
         self.manifest = Some(manifest)
+    }
+
+    pub fn set_desired(&mut self, status: AppStatus) {
+        for data in self.properties.values_mut() {
+            data.desired = status;
+        }
     }
 
     pub fn manifest(&self) -> Option<Arc<AppManifest>> {
@@ -497,6 +503,32 @@ mod tests {
     async fn status_no_deployment() {
         let app = App::new(test_key(), vec![]);
         assert!(app.status().await.is_err());
+    }
+
+    #[test]
+    fn set_desired() {
+        let deployments = [
+            "MockedDeployment#1",
+            "MockedDeployment#2",
+            "MockedDeployment#3",
+            "MockedDeployment#4",
+        ]
+        .into_iter()
+        .map(|id| {
+            let mut deployment = MockedDeployment::new();
+            deployment.expect_id().returning(|| id.to_string());
+            Arc::new(deployment) as Arc<dyn Deployment>
+        })
+        .collect();
+        let mut app = App::new(test_key(), deployments);
+        assert_eq!(app.properties.len(), 4);
+        for data in app.properties.values() {
+            assert_eq!(data.desired, AppStatus::None);
+        }
+        app.set_desired(AppStatus::Installed);
+        for data in app.properties.values() {
+            assert_eq!(data.desired, AppStatus::Installed);
+        }
     }
 
     #[tokio::test]

@@ -1,4 +1,5 @@
 pub use super::Result;
+use crate::jeweler::app::AppStatus;
 use crate::jeweler::gem::app::App;
 use crate::quest::SyncQuest;
 use crate::sorcerer::spell;
@@ -88,7 +89,12 @@ pub async fn install_app_from_manifest(
         .lock()
         .await
         .create_sub_quest("Create app".to_string(), |_quest| {
-            set_manifest_or_create_app(vault.clone(), manifest, app_key.clone())
+            set_manifest_and_desired_or_create_app(
+                vault.clone(),
+                manifest,
+                app_key.clone(),
+                AppStatus::Installed,
+            )
         })
         .await
         .2
@@ -203,10 +209,11 @@ async fn download_manifest(
     Ok(manifest)
 }
 
-async fn set_manifest_or_create_app(
+async fn set_manifest_and_desired_or_create_app(
     vault: Arc<Vault>,
     manifest: Arc<AppManifest>,
     app_key: AppKey,
+    desired: AppStatus,
 ) -> Result<()> {
     let GrabbedPouches {
         app_pouch_mut: Some(ref mut apps),
@@ -224,6 +231,7 @@ async fn set_manifest_or_create_app(
     match apps.gems_mut().entry(app_key.clone()) {
         Entry::Occupied(mut app) => {
             app.get_mut().set_manifest(manifest);
+            app.get_mut().set_desired(desired);
             Ok(())
         }
         Entry::Vacant(app_entry) => {
@@ -232,6 +240,7 @@ async fn set_manifest_or_create_app(
                 deployments.gems().values().map(Clone::clone).collect(),
             );
             app.set_manifest(manifest);
+            app.set_desired(desired);
             app_entry.insert(app);
             Ok(())
         }
@@ -336,14 +345,14 @@ pub async fn install_app_in_vault(
 
 #[cfg(test)]
 pub mod tests {
-    use crate::jeweler::app::AppInfo;
+    use crate::jeweler::app::{AppInfo, AppStatus};
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::deployment::Deployment;
     use crate::jeweler::gem::app::App;
     use crate::quest::{Progress, Quest};
     use crate::sorcerer::appraiser::{
         download_manifest, get_app, get_apps, install_app, install_app_from_manifest, install_apps,
-        install_existing_app, set_manifest_or_create_app,
+        install_existing_app, set_manifest_and_desired_or_create_app,
     };
     use crate::vault::pouch::{AppKey, Pouch};
     use crate::vault::{GrabbedPouches, Vault, VaultConfig};
@@ -689,14 +698,22 @@ pub mod tests {
             .gems_mut()
             .insert(test_key(), app)
             .is_none());
-        set_manifest_or_create_app(vault.clone(), manifest.clone(), test_key())
-            .await
-            .unwrap();
+        set_manifest_and_desired_or_create_app(
+            vault.clone(),
+            manifest.clone(),
+            test_key(),
+            AppStatus::Installed,
+        )
+        .await
+        .unwrap();
         let grab = vault.reservation().reserve_app_pouch().grab().await;
         let apps = grab.app_pouch.as_ref().unwrap();
         assert_eq!(apps.gems().len(), 1);
         let app = apps.gems().get(&test_key()).unwrap();
         assert_eq!(app.key, test_key());
+        for data in app.properties.values() {
+            assert_eq!(data.desired, AppStatus::Installed);
+        }
         assert_eq!(Some(manifest), app.manifest())
     }
 
@@ -704,14 +721,22 @@ pub mod tests {
     async fn test_set_manifest() {
         let manifest = create_test_manifest(None);
         let vault = Arc::new(Vault::new(VaultConfig::default()));
-        set_manifest_or_create_app(vault.clone(), manifest.clone(), test_key())
-            .await
-            .unwrap();
+        set_manifest_and_desired_or_create_app(
+            vault.clone(),
+            manifest.clone(),
+            test_key(),
+            AppStatus::NotInstalled,
+        )
+        .await
+        .unwrap();
         let grab = vault.reservation().reserve_app_pouch().grab().await;
         let apps = grab.app_pouch.as_ref().unwrap();
         assert_eq!(apps.gems().len(), 1);
         let app = apps.gems().get(&test_key()).unwrap();
         assert_eq!(app.key, test_key());
+        for data in app.properties.values() {
+            assert_eq!(data.desired, AppStatus::NotInstalled);
+        }
         assert_eq!(Some(manifest), app.manifest())
     }
 
