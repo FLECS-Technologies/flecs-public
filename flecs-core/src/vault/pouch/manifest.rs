@@ -1,7 +1,7 @@
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Error;
 use flecs_app_manifest::AppManifest;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
@@ -13,6 +13,7 @@ const MANIFEST_FILE_NAME: &str = "manifest.json";
 pub struct ManifestPouch {
     path: PathBuf,
     manifests: HashMap<AppKey, Arc<AppManifest>>,
+    existing_manifest_keys: HashSet<AppKey>,
 }
 
 impl Pouch for ManifestPouch {
@@ -46,6 +47,19 @@ impl ManifestPouch {
                 }
             }
         }
+        let mut existing_manifest_keys = self.manifests.keys().cloned().collect();
+        std::mem::swap(
+            &mut existing_manifest_keys,
+            &mut self.existing_manifest_keys,
+        );
+        for key in existing_manifest_keys {
+            if !self.existing_manifest_keys.contains(&key) {
+                let path = self.path.join(key.name.as_str()).join(key.version.as_str());
+                if let Err(e) = fs::remove_dir_all(&path) {
+                    errors.push(e.to_string());
+                }
+            }
+        }
         match errors.len() {
             0 => Ok(()),
             1 => Err(Error::Single(errors.into_iter().next().unwrap())),
@@ -63,13 +77,12 @@ impl ManifestPouch {
                     eprintln!("Could not read manifest from {entry:?}: {e}");
                 }
                 Ok(manifest) => {
-                    self.manifests.insert(
-                        AppKey {
-                            name: manifest.app.deref().clone(),
-                            version: manifest.version.clone(),
-                        },
-                        Arc::new(manifest),
-                    );
+                    let key = AppKey {
+                        name: manifest.app.deref().clone(),
+                        version: manifest.version.clone(),
+                    };
+                    self.manifests.insert(key.clone(), Arc::new(manifest));
+                    self.existing_manifest_keys.insert(key);
                     println!("Successful read manifest from {entry:?}");
                 }
             }
@@ -83,6 +96,7 @@ impl ManifestPouch {
         Self {
             path: path.to_path_buf(),
             manifests: HashMap::default(),
+            existing_manifest_keys: HashSet::default(),
         }
     }
     fn read_manifest(path: &Path) -> crate::vault::Result<AppManifest> {
@@ -178,6 +192,7 @@ mod tests {
         })
     }
 
+    // TODO: Test delete of manifest files on close
     #[test]
     fn close_manifest_pouch() {
         let path = Path::new(TEST_PATH).join("close_pouch");
@@ -187,7 +202,10 @@ mod tests {
         let manifest_path1 = path.join(&name).join(&version).join(MANIFEST_FILE_NAME);
         let json1 = create_test_json_v3(&name, &version);
         let manifest1 = create_test_manifest(&name, &version);
-
+        let manifest_key1 = AppKey {
+            name: name.clone(),
+            version: version.clone(),
+        };
         let (name, version) = ("tamble".to_string(), "10.23.1".to_string());
         let manifest_path2 = path.join(&name).join(&version).join(MANIFEST_FILE_NAME);
         let json2 = create_test_json_v3(&name, &version);
@@ -209,14 +227,27 @@ mod tests {
                 Arc::new(manifest2),
             ),
         ]);
-        let mut manifest_pouch = ManifestPouch { manifests, path };
+        let existing_manifest_keys = manifests.keys().cloned().collect();
+        let mut manifest_pouch = ManifestPouch {
+            manifests,
+            path,
+            existing_manifest_keys,
+        };
         manifest_pouch.close().unwrap();
-        let file = fs::File::open(manifest_path1).unwrap();
+        let file = fs::File::open(manifest_path1.clone()).unwrap();
         let content: Value = serde_json::from_reader(file).unwrap();
         assert_eq!(content, json1);
+        let file = fs::File::open(manifest_path2.clone()).unwrap();
+        let content: Value = serde_json::from_reader(file).unwrap();
+        assert_eq!(content, json2);
+        manifest_pouch.manifests.remove(&manifest_key1).unwrap();
+        assert_eq!(manifest_pouch.manifests.len(), 1);
+        assert!(!manifest_pouch.manifests.contains_key(&manifest_key1));
+        manifest_pouch.close().unwrap();
         let file = fs::File::open(manifest_path2).unwrap();
         let content: Value = serde_json::from_reader(file).unwrap();
         assert_eq!(content, json2);
+        assert!(!manifest_path1.try_exists().unwrap());
     }
 
     #[test]
@@ -253,6 +284,7 @@ mod tests {
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
             path,
+            existing_manifest_keys: HashSet::new(),
         };
         fs::create_dir_all(manifest_path1.parent().unwrap()).unwrap();
         fs::File::create(manifest_path1)
@@ -290,6 +322,7 @@ mod tests {
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
             path,
+            existing_manifest_keys: HashSet::new(),
         };
         fs::create_dir_all(manifest_path1.parent().unwrap()).unwrap();
         fs::File::create(manifest_path1)
@@ -316,6 +349,7 @@ mod tests {
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
             path,
+            existing_manifest_keys: HashSet::default(),
         };
         fs::create_dir_all(manifest_path1.parent().unwrap()).unwrap();
         fs::File::create(manifest_path1)
@@ -358,6 +392,7 @@ mod tests {
         let mut manifest_pouch = ManifestPouch {
             manifests: gems.clone(),
             path: PathBuf::from(TEST_PATH),
+            existing_manifest_keys: gems.keys().cloned().collect(),
         };
         assert_eq!(&gems, manifest_pouch.gems_mut());
         assert_eq!(&gems, manifest_pouch.gems());
