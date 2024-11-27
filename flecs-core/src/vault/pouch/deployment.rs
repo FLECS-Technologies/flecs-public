@@ -108,12 +108,9 @@ impl DeploymentPouch {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tests::prepare_test_path;
     use serde_json::json;
     use std::path::Path;
-
-    fn test_path() -> &'static Path {
-        Path::new("/tmp/flecs-tests/deployment_pouch/")
-    }
 
     fn test_deployment_json() -> serde_json::Value {
         json!([{
@@ -143,14 +140,6 @@ mod tests {
         }])
     }
 
-    fn prepare_path(path: &Path) {
-        println!("Preparing {:?}", path);
-        let _ = fs::remove_dir_all(path);
-        assert!(!path.try_exists().unwrap());
-        fs::create_dir_all(path).unwrap();
-        assert!(path.try_exists().unwrap());
-    }
-
     const TEST_DEPLOYMENT_ID: &str = "some-deployment-id";
     const TEST_DEPLOYMENT_SOCK_PATH: &str = "/path/to/docker.sock";
 
@@ -173,7 +162,7 @@ mod tests {
         let gems = HashMap::from([(TEST_DEPLOYMENT_ID.to_string(), deployment)]);
         let mut deployment_pouch = DeploymentPouch {
             deployments: gems,
-            path: test_path().to_path_buf(),
+            path: prepare_test_path(module_path!(), "gems"),
         };
         assert_eq!(deployment_pouch.gems().len(), 1);
         assert_eq!(
@@ -197,16 +186,15 @@ mod tests {
 
     #[test]
     fn new_deployment_pouch() {
-        let path = test_path();
-        let deployment_pouch = DeploymentPouch::new(path);
+        let path = prepare_test_path(module_path!(), "new_pouch");
+        let deployment_pouch = DeploymentPouch::new(&path);
         assert!(deployment_pouch.deployments.is_empty());
         assert_eq!(deployment_pouch.path, path);
     }
 
     #[tokio::test]
     async fn open_deployment_pouch() {
-        let path = test_path().join("open");
-        prepare_path(&path);
+        let path = prepare_test_path(module_path!(), "open_pouch");
         let json = serde_json::to_string(&test_deployment_json()).unwrap();
         let mut deployment_pouch = DeploymentPouch::new(&path);
         fs::write(deployment_pouch.deployments_path(), json).unwrap();
@@ -224,8 +212,7 @@ mod tests {
 
     #[tokio::test]
     async fn close_deployment_pouch() {
-        let path = test_path().join("close/deployments.json");
-        prepare_path(path.parent().unwrap());
+        let path = prepare_test_path(module_path!(), "close_pouch").join("deployments.json");
         let json = test_deployment_json();
         let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(DockerDeployment::new(
             TEST_DEPLOYMENT_ID.to_string(),
@@ -243,8 +230,7 @@ mod tests {
 
     #[tokio::test]
     async fn read_deployments() {
-        let path = test_path().join("read/deployments.json");
-        prepare_path(path.parent().unwrap());
+        let path = prepare_test_path(module_path!(), "read").join("deployments.json");
 
         let json = serde_json::to_string(&test_deployments_json()).unwrap();
         fs::write(&path, json).unwrap();

@@ -89,21 +89,11 @@ mod tests {
     use crate::jeweler::gem::app::AppDataDeserializable;
     use crate::jeweler::gem::deployment::docker::DockerDeployment;
     use crate::jeweler::gem::instance::{InstanceConfig, InstanceDeserializable, InstanceStatus};
+    use crate::tests::prepare_test_path;
     use crate::vault::pouch;
     use flecs_app_manifest::AppManifestVersion;
     use serde_json::Value;
     use std::fs;
-    use std::path::Path;
-
-    const TEST_PATH: &str = "/tmp/flecs-tests/app-pouch/";
-
-    fn prepare_path(path: &Path) {
-        println!("Preparing {:?}", path);
-        let _ = fs::remove_dir_all(path);
-        assert!(!path.try_exists().unwrap());
-        fs::create_dir_all(path).unwrap();
-        assert!(path.try_exists().unwrap());
-    }
 
     fn create_test_json() -> Value {
         serde_json::json!([
@@ -194,8 +184,7 @@ mod tests {
 
     #[test]
     fn open_app_pouch() {
-        let path = Path::new(TEST_PATH).join("open_pouch");
-        prepare_path(&path);
+        let path = prepare_test_path(module_path!(), "open_pouch");
         let json = create_test_json();
         fs::write(
             path.join(APPS_FILE_NAME),
@@ -213,8 +202,7 @@ mod tests {
 
     #[test]
     fn close_app_pouch() {
-        let path = Path::new(TEST_PATH).join("close_pouch");
-        prepare_path(&path);
+        let path = prepare_test_path(module_path!(), "close_pouch");
         let json = create_test_json();
         let app = create_test_app();
         let mut app_pouch = AppPouch {
@@ -234,7 +222,7 @@ mod tests {
         let gems = HashMap::from([(key.clone(), app)]);
         let mut app_pouch = AppPouch {
             apps: gems,
-            path: PathBuf::from(TEST_PATH),
+            path: prepare_test_path(module_path!(), "gems"),
         };
         assert_eq!(app_pouch.gems().len(), 1);
         assert_eq!(app_pouch.gems().get(&key).unwrap().key, key);
