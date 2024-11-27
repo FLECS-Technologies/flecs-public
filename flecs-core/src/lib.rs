@@ -438,6 +438,8 @@ pub use anyhow::Result;
 #[cfg(test)]
 mod tests {
     use flecs_console_client::apis::configuration::Configuration;
+    use std::fs;
+    use std::path::{Path, PathBuf};
     use std::sync::Arc;
 
     pub async fn create_test_server_and_config() -> (mockito::ServerGuard, Arc<Configuration>) {
@@ -447,5 +449,17 @@ mod tests {
             ..Configuration::default()
         });
         (server, config)
+    }
+    const TEST_PATH: &str = "/tmp/flecs-tests/";
+
+    pub fn prepare_test_path(module_path: &str, test_name: &str) -> PathBuf {
+        let module_path = module_path.replace(':', "_");
+        let path = Path::new(TEST_PATH).join(module_path).join(test_name);
+        println!("Preparing {:?}", path);
+        let _ = fs::remove_dir_all(&path);
+        assert!(!path.try_exists().unwrap());
+        fs::create_dir_all(&path).unwrap();
+        assert!(path.try_exists().unwrap());
+        path
     }
 }

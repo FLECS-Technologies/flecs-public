@@ -110,22 +110,12 @@ impl ManifestPouch {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tests::prepare_test_path;
     use flecs_app_manifest::AppManifestVersion;
     use serde_json::Value;
     use std::fs;
     use std::io::Write;
     use std::ops::Deref;
-    use std::path::Path;
-
-    const TEST_PATH: &str = "/tmp/flecs-tests/manifest-pouch/";
-
-    fn prepare_path(path: &Path) {
-        println!("Preparing {:?}", path);
-        let _ = fs::remove_dir_all(path);
-        assert!(!path.try_exists().unwrap());
-        fs::create_dir_all(path).unwrap();
-        assert!(path.try_exists().unwrap());
-    }
 
     fn create_test_manifest(app_name: &str, app_version: &str) -> AppManifest {
         let manifest = AppManifestVersion::from_str(
@@ -195,8 +185,7 @@ mod tests {
     // TODO: Test delete of manifest files on close
     #[test]
     fn close_manifest_pouch() {
-        let path = Path::new(TEST_PATH).join("close_pouch");
-        prepare_path(&path);
+        let path = prepare_test_path(module_path!(), "close_pouch");
 
         let (name, version) = ("mample".to_string(), "2.1.3".to_string());
         let manifest_path1 = path.join(&name).join(&version).join(MANIFEST_FILE_NAME);
@@ -252,8 +241,7 @@ mod tests {
 
     #[test]
     fn open_manifest_pouch() {
-        let path = Path::new(TEST_PATH).join("open_pouch");
-        prepare_path(&path);
+        let path = prepare_test_path(module_path!(), "open_pouch");
 
         let (name, version) = ("mample".to_string(), "2.1.3".to_string());
         let manifest_path1 = path.join(&name).join(&version).join(MANIFEST_FILE_NAME);
@@ -302,8 +290,7 @@ mod tests {
 
     #[test]
     fn open_manifest_pouch_error() {
-        let path = Path::new(TEST_PATH).join("open_pouch_error");
-        prepare_path(&path);
+        let path = prepare_test_path(module_path!(), "open_pouch_error");
 
         let manifest_path1 = path.join("mample").join("2.1.3").join(MANIFEST_FILE_NAME);
 
@@ -340,8 +327,7 @@ mod tests {
 
     #[test]
     fn open_manifest_pouch_errors() {
-        let path = Path::new(TEST_PATH).join("open_pouch_errors");
-        prepare_path(&path);
+        let path = prepare_test_path(module_path!(), "open_pouch_errors");
 
         let manifest_path1 = path.join("mample").join("2.1.3").join(MANIFEST_FILE_NAME);
         let manifest_path2 = path.join("tamble").join("10.23.1").join(MANIFEST_FILE_NAME);
@@ -367,8 +353,7 @@ mod tests {
 
     #[test]
     fn manifest_gems() {
-        let path = Path::new(TEST_PATH).join("manifest_gems");
-        prepare_path(&path);
+        let path = prepare_test_path(module_path!(), "gems");
 
         let manifest1 = create_test_manifest("mample", "2.1.3");
         let manifest2 = create_test_manifest("tamble", "10.23.1");
@@ -391,7 +376,7 @@ mod tests {
         ]);
         let mut manifest_pouch = ManifestPouch {
             manifests: gems.clone(),
-            path: PathBuf::from(TEST_PATH),
+            path: path.parent().unwrap().to_path_buf(),
             existing_manifest_keys: gems.keys().cloned().collect(),
         };
         assert_eq!(&gems, manifest_pouch.gems_mut());
