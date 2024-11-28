@@ -1,11 +1,12 @@
 pub mod pouch;
 
 use crate::vault::pouch::{Deployment, DeploymentPouch, Pouch, Secrets};
-use pouch::{AppPouch, ManifestPouch, SecretPouch};
+use pouch::{AppPouch, InstancePouch, ManifestPouch, SecretPouch};
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use tracing::{error, info};
 
 pub enum Error {
     Single(String),
@@ -85,6 +86,7 @@ impl Default for VaultConfig {
 /// For accessing the content of a [Vault] see [Vault::reservation()].
 pub struct Vault {
     app_pouch: RwLock<AppPouch>,
+    instance_pouch: RwLock<InstancePouch>,
     manifest_pouch: RwLock<ManifestPouch>,
     secret_pouch: RwLock<SecretPouch>,
     deployment_pouch: RwLock<DeploymentPouch>,
@@ -110,6 +112,7 @@ impl Vault {
             manifest_pouch: RwLock::new(ManifestPouch::new(&config.path.join("manifests"))),
             secret_pouch: RwLock::new(SecretPouch::new(&config.path.join("device"))),
             deployment_pouch: RwLock::new(DeploymentPouch::new(&config.path.join("deployments"))),
+            instance_pouch: RwLock::new(InstancePouch::new(&config.path.join("instances"))),
         }
     }
 
@@ -183,46 +186,50 @@ impl Vault {
             .reserve_manifest_pouch_mut()
             .reserve_secret_pouch_mut()
             .reserve_deployment_pouch_mut()
+            .reserve_instance_pouch_mut()
             .grab()
             .await;
-        if let GrabbedPouches {
+        let GrabbedPouches {
             app_pouch_mut: Some(ref mut app_pouch_mut),
             manifest_pouch_mut: Some(ref mut manifest_pouch_mut),
             secret_pouch_mut: Some(ref mut secret_pouch_mut),
             deployment_pouch_mut: Some(ref mut deployment_pouch_mut),
+            instance_pouch_mut: Some(ref mut instance_pouch_mut),
             ..
         } = grabbed_pouches
-        {
-            secret_pouch_mut
-                .open()
-                .unwrap_or_else(|e| eprintln!("Could not open SecretPouch: {e}"));
-            manifest_pouch_mut
-                .open()
-                .unwrap_or_else(|e| eprintln!("Could not open ManifestPouch: {e}"));
-            match deployment_pouch_mut.open() {
-                Ok(_) => {
-                    let deployments = deployment_pouch_mut.gems_mut();
-                    if deployments.is_empty() {
-                        let default_deployment = Deployment::default();
-                        deployments.insert(
-                            default_deployment.id(),
-                            Arc::new(match default_deployment {
-                                Deployment::Docker(default) => default,
-                            }),
-                        );
-                        println!("No deployments configured, added default Docker deployment");
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Could not open DeploymentPouch: {e}");
+        else {
+            unreachable!("Vault reservations should never fail")
+        };
+        secret_pouch_mut
+            .open()
+            .unwrap_or_else(|e| error!("Could not open SecretPouch: {e}"));
+        manifest_pouch_mut
+            .open()
+            .unwrap_or_else(|e| error!("Could not open ManifestPouch: {e}"));
+        match deployment_pouch_mut.open() {
+            Ok(_) => {
+                let deployments = deployment_pouch_mut.gems_mut();
+                if deployments.is_empty() {
+                    let default_deployment = Deployment::default();
+                    deployments.insert(
+                        default_deployment.id(),
+                        Arc::new(match default_deployment {
+                            Deployment::Docker(default) => default,
+                        }),
+                    );
+                    info!("No deployments configured, added default Docker deployment");
                 }
             }
-            app_pouch_mut
-                .open(manifest_pouch_mut.gems(), deployment_pouch_mut.gems())
-                .unwrap_or_else(|e| eprintln!("Could not open AppPouch: {e}"));
-        } else {
-            panic!("Could not reserve pouches for filling");
+            Err(e) => {
+                error!("Could not open DeploymentPouch: {e}");
+            }
         }
+        app_pouch_mut
+            .open(manifest_pouch_mut.gems(), deployment_pouch_mut.gems())
+            .unwrap_or_else(|e| error!("Could not open AppPouch: {e}"));
+        instance_pouch_mut
+            .open(manifest_pouch_mut.gems(), deployment_pouch_mut.gems())
+            .unwrap_or_else(|e| error!("Could not open InstancePouch: {e}"));
     }
 
     /// Saves the content of all contained pouches. Calling this function is generally not necessary
@@ -235,6 +242,7 @@ impl Vault {
             .reserve_manifest_pouch_mut()
             .reserve_secret_pouch_mut()
             .reserve_deployment_pouch_mut()
+            .reserve_instance_pouch_mut()
             .grab()
             .await;
     }
@@ -271,6 +279,7 @@ pub struct Reservation<'a> {
     manifest_pouch_reserved: ReserveKind,
     secret_pouch_reserved: ReserveKind,
     deployment_pouch_reserved: ReserveKind,
+    instance_pouch_reserved: ReserveKind,
 }
 
 /// Contains references to pouches behind RwLockGuards for thread-safe access. This struct is
@@ -281,10 +290,12 @@ pub struct GrabbedPouches<'a> {
     pub secret_pouch: Option<RwLockReadGuard<'a, SecretPouch>>,
     pub deployment_pouch: Option<RwLockReadGuard<'a, DeploymentPouch>>,
     pub manifest_pouch: Option<RwLockReadGuard<'a, ManifestPouch>>,
+    pub instance_pouch: Option<RwLockReadGuard<'a, InstancePouch>>,
     pub app_pouch_mut: Option<RwLockWriteGuard<'a, AppPouch>>,
     pub secret_pouch_mut: Option<RwLockWriteGuard<'a, SecretPouch>>,
     pub manifest_pouch_mut: Option<RwLockWriteGuard<'a, ManifestPouch>>,
     pub deployment_pouch_mut: Option<RwLockWriteGuard<'a, DeploymentPouch>>,
+    pub instance_pouch_mut: Option<RwLockWriteGuard<'a, InstancePouch>>,
 }
 
 impl<'a> Reservation<'a> {
@@ -295,6 +306,7 @@ impl<'a> Reservation<'a> {
             manifest_pouch_reserved: ReserveKind::None,
             secret_pouch_reserved: ReserveKind::None,
             deployment_pouch_reserved: ReserveKind::None,
+            instance_pouch_reserved: ReserveKind::None,
         }
     }
 
@@ -326,6 +338,13 @@ impl<'a> Reservation<'a> {
         self
     }
 
+    /// Marks the instance pouch as immutably reserved. See [Vault::reservation()] for general usage
+    /// examples. Calling [Self::reserve_instance_pouch_mut()] overwrites the reservation as mutable.
+    pub fn reserve_instance_pouch(mut self) -> Self {
+        self.instance_pouch_reserved = ReserveKind::Read;
+        self
+    }
+
     /// Marks the app pouch as mutably reserved. See [Vault::reservation()] for general usage
     /// examples. Calling [Self::reserve_app_pouch()] overwrites the reservation as immutable.
     pub fn reserve_app_pouch_mut(mut self) -> Self {
@@ -351,6 +370,13 @@ impl<'a> Reservation<'a> {
     /// examples. Calling [Self::reserve_deployment_pouch()] overwrites the reservation as immutable.
     pub fn reserve_deployment_pouch_mut(mut self) -> Self {
         self.deployment_pouch_reserved = ReserveKind::Write;
+        self
+    }
+
+    /// Marks the instance pouch as mutably reserved. See [Vault::reservation()] for general usage
+    /// examples. Calling [Self::reserve_instance_pouch()] overwrites the reservation as immutable.
+    pub fn reserve_instance_pouch_mut(mut self) -> Self {
+        self.instance_pouch_reserved = ReserveKind::Write;
         self
     }
 
@@ -384,15 +410,22 @@ impl<'a> Reservation<'a> {
             &self.vault.deployment_pouch,
         )
         .await;
+        let (instance_pouch, instance_pouch_mut) = Self::create_reservation_guards(
+            self.instance_pouch_reserved,
+            &self.vault.instance_pouch,
+        )
+        .await;
         GrabbedPouches {
             app_pouch,
             secret_pouch,
             manifest_pouch,
             deployment_pouch,
+            instance_pouch,
             app_pouch_mut,
             secret_pouch_mut,
             manifest_pouch_mut,
             deployment_pouch_mut,
+            instance_pouch_mut,
         }
     }
 }
@@ -403,12 +436,17 @@ impl Drop for GrabbedPouches<'_> {
         if let Some(secret_pouch) = &mut self.secret_pouch_mut {
             secret_pouch
                 .close()
-                .unwrap_or_else(|e| eprintln!("Error saving SecretPouch: {e}"));
+                .unwrap_or_else(|e| error!("Error saving SecretPouch: {e}"));
         }
         if let Some(deployment_pouch) = &mut self.deployment_pouch_mut {
             deployment_pouch
                 .close()
-                .unwrap_or_else(|e| eprintln!("Error saving DeploymentPouch: {e}"));
+                .unwrap_or_else(|e| error!("Error saving DeploymentPouch: {e}"));
+        }
+        if let Some(instance_pouch) = &mut self.instance_pouch_mut {
+            instance_pouch
+                .close()
+                .unwrap_or_else(|e| error!("Error saving InstancePouch: {e}"));
         }
     }
 }
@@ -549,5 +587,59 @@ mod tests {
             secrets.license_key = expected_secrets.license_key.clone();
         }
         assert_eq!(expected_secrets, vault.get_secrets().await);
+    }
+
+    #[tokio::test]
+    #[timeout(100)]
+    async fn grab_all() {
+        let vault = Vault::new(VaultConfig {
+            path: Path::new("/tmp/flecs-tests/vault/grab_all/").to_path_buf(),
+        });
+        let grab = vault
+            .reservation()
+            .reserve_manifest_pouch()
+            .reserve_app_pouch()
+            .reserve_secret_pouch()
+            .reserve_instance_pouch()
+            .reserve_deployment_pouch()
+            .grab()
+            .await;
+        assert!(grab.manifest_pouch.is_some());
+        assert!(grab.app_pouch.is_some());
+        assert!(grab.secret_pouch.is_some());
+        assert!(grab.deployment_pouch.is_some());
+        assert!(grab.instance_pouch.is_some());
+        assert!(grab.manifest_pouch_mut.is_none());
+        assert!(grab.app_pouch_mut.is_none());
+        assert!(grab.secret_pouch_mut.is_none());
+        assert!(grab.deployment_pouch_mut.is_none());
+        assert!(grab.instance_pouch_mut.is_none());
+    }
+
+    #[tokio::test]
+    #[timeout(100)]
+    async fn grab_all_mut() {
+        let vault = Vault::new(VaultConfig {
+            path: Path::new("/tmp/flecs-tests/vault/grab_all_mut/").to_path_buf(),
+        });
+        let grab = vault
+            .reservation()
+            .reserve_manifest_pouch_mut()
+            .reserve_app_pouch_mut()
+            .reserve_secret_pouch_mut()
+            .reserve_instance_pouch_mut()
+            .reserve_deployment_pouch_mut()
+            .grab()
+            .await;
+        assert!(grab.manifest_pouch_mut.is_some());
+        assert!(grab.app_pouch_mut.is_some());
+        assert!(grab.secret_pouch_mut.is_some());
+        assert!(grab.deployment_pouch_mut.is_some());
+        assert!(grab.instance_pouch_mut.is_some());
+        assert!(grab.manifest_pouch.is_none());
+        assert!(grab.app_pouch.is_none());
+        assert!(grab.secret_pouch.is_none());
+        assert!(grab.deployment_pouch.is_none());
+        assert!(grab.instance_pouch.is_none());
     }
 }

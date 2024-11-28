@@ -553,7 +553,7 @@ pub mod tests {
                     version_number,
                     None,
                 ));
-                app.properties
+                app.deployments
                     .values_mut()
                     .next()
                     .unwrap()
@@ -565,7 +565,7 @@ pub mod tests {
                     test_key_numbered(name_number, version_number),
                     deployments.clone(),
                 );
-                app.properties
+                app.deployments
                     .values_mut()
                     .next()
                     .unwrap()
@@ -577,7 +577,7 @@ pub mod tests {
                     test_key_numbered(name_number, version_number),
                     deployments.clone(),
                 );
-                app.properties
+                app.deployments
                     .values_mut()
                     .next()
                     .unwrap()
@@ -711,7 +711,7 @@ pub mod tests {
         assert_eq!(apps.gems().len(), 1);
         let app = apps.gems().get(&test_key()).unwrap();
         assert_eq!(app.key, test_key());
-        for data in app.properties.values() {
+        for data in app.deployments.values() {
             assert_eq!(data.desired, AppStatus::Installed);
         }
         assert_eq!(Some(manifest), app.manifest())
@@ -734,7 +734,7 @@ pub mod tests {
         assert_eq!(apps.gems().len(), 1);
         let app = apps.gems().get(&test_key()).unwrap();
         assert_eq!(app.key, test_key());
-        for data in app.properties.values() {
+        for data in app.deployments.values() {
             assert_eq!(data.desired, AppStatus::NotInstalled);
         }
         assert_eq!(Some(manifest), app.manifest())

@@ -108,7 +108,7 @@ impl ManifestPouch {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::tests::prepare_test_path;
     use flecs_app_manifest::AppManifestVersion;
@@ -117,7 +117,7 @@ mod tests {
     use std::io::Write;
     use std::ops::Deref;
 
-    fn create_test_manifest(app_name: &str, app_version: &str) -> AppManifest {
+    pub fn create_test_manifest(app_name: &str, app_version: &str) -> AppManifest {
         let manifest = AppManifestVersion::from_str(
             &serde_json::to_string(&create_test_json_v3(app_name, app_version)).unwrap(),
         )

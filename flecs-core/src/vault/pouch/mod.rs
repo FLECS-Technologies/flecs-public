@@ -1,11 +1,13 @@
 mod app;
 mod deployment;
+mod instance;
 mod manifest;
 mod secret;
 
 pub use super::Result;
 pub use app::*;
 pub use deployment::*;
+pub use instance::*;
 pub use manifest::*;
 pub use secret::*;
 use serde::{Deserialize, Serialize};
