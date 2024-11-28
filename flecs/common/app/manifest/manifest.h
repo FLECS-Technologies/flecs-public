@@ -53,11 +53,14 @@ public:
     static app_manifest_t from_json_file(const fs::path& path);
 
     auto& is_valid() const noexcept { return _valid; }
+    auto deployment_type() const noexcept //
+        -> std::string_view;
 
     auto& app() const noexcept { return _app; }
     auto& args() const noexcept { return _args; }
     auto& capabilities() const noexcept { return _capabilities; }
     auto& conffiles() const noexcept { return _conffiles; }
+    auto& deployment() const noexcept { return _deployment; }
     auto& devices() const noexcept { return _devices; }
     auto& editors() const noexcept { return _editors; }
     auto& env() const noexcept { return _env; }
@@ -99,6 +102,7 @@ private:
     args_t _args;
     capabilities_t _capabilities;
     conffiles_t _conffiles;
+    json_t _deployment;
     devices_t _devices;
     editors_t _editors;
     envs_t _env;
