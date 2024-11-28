@@ -345,6 +345,38 @@ auto docker_t::delete_container(std::shared_ptr<instances::instance_t> instance)
     return {0, {}};
 }
 
+auto docker_t::docker_login(std::shared_ptr<const apps::app_t> app, std::optional<Token> token) const //
+    -> result_t
+{
+    if (!token.has_value()) {
+        return {-1, "No credentials provided"};
+    }
+
+    auto process = process_t{};
+    auto login_attempts = 3;
+    while (login_attempts-- > 0) {
+        process = process_t{};
+        process.spawnp(
+            "docker",
+            "login",
+            "--username",
+            token->username.c_str(),
+            "--password",
+            token->password.c_str(),
+            app->manifest()->image_with_tag());
+        process.wait(true, true);
+        if (process.exit_code() == 0) {
+            break;
+        }
+    }
+
+    if (process.exit_code() != 0) {
+        return {-1, process.stderr()};
+    }
+
+    return {0, {}};
+}
+
 auto docker_t::do_deployment_id() const noexcept //
     -> std::string_view
 {
@@ -355,21 +387,9 @@ auto docker_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<T
     -> result_t
 {
     if (token.has_value()) {
-        auto login_attempts = 3;
-        while (login_attempts-- > 0) {
-            auto process = process_t{};
-            process.spawnp(
-                "docker",
-                "login",
-                "--username",
-                token->username.c_str(),
-                "--password",
-                token->password.c_str(),
-                app->manifest()->image_with_tag());
-            process.wait(true, true);
-            if (process.exit_code() == 0) {
-                break;
-            }
+        const auto [res, message] = docker_login(app, std::move(token));
+        if (res != 0) {
+            std::fprintf(stderr, "Warning: docker login unsuccessful: %s\n", message.c_str());
         }
     }
 

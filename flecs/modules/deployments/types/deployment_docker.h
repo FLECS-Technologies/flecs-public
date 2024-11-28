@@ -28,6 +28,10 @@ public:
 
     ~docker_t() override;
 
+protected:
+    auto docker_login(std::shared_ptr<const apps::app_t> app, std::optional<Token> token) const //
+        -> result_t;
+
 private:
     auto do_deployment_id() const noexcept //
         -> std::string_view override;
