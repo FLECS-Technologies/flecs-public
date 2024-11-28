@@ -1,6 +1,6 @@
 use crate::jeweler::app::{AppId, AppStatus};
 use crate::jeweler::deployment::{Deployment, DeploymentId};
-use crate::jeweler::gem::instance::{Instance, InstanceDeserializable, InstanceId};
+use crate::jeweler::{serialize_deployment_id, serialize_hashmap_values};
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch::AppKey;
 use flecs_app_manifest::AppManifest;
@@ -15,10 +15,9 @@ use tracing::error;
 #[derive(Debug, Serialize)]
 pub struct AppData {
     pub desired: AppStatus,
-    instances: HashMap<InstanceId, Instance>,
     #[serde(skip_serializing_if = "Option::is_none")]
     id: Option<AppId>,
-    #[serde(skip_serializing)]
+    #[serde(serialize_with = "serialize_deployment_id", rename = "deployment_id")]
     deployment: Arc<dyn Deployment>,
 }
 
@@ -26,7 +25,6 @@ impl AppData {
     pub fn new(deployment: Arc<dyn Deployment>) -> Self {
         AppData {
             desired: AppStatus::None,
-            instances: HashMap::new(),
             id: None,
             deployment,
         }
@@ -40,7 +38,8 @@ impl AppData {
 #[derive(Debug, Serialize)]
 pub struct App {
     pub key: AppKey,
-    pub(crate) properties: HashMap<DeploymentId, AppData>,
+    #[serde(serialize_with = "serialize_hashmap_values")]
+    pub(crate) deployments: HashMap<DeploymentId, AppData>,
     #[serde(skip)]
     manifest: Option<Arc<AppManifest>>, // TODO: Can we remove the Option and always have a manifest?
 }
@@ -48,14 +47,14 @@ pub struct App {
 #[derive(Debug, Deserialize)]
 pub struct AppDataDeserializable {
     pub desired: AppStatus,
-    pub instances: HashMap<InstanceId, InstanceDeserializable>,
+    pub deployment_id: DeploymentId,
     pub id: Option<AppId>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct AppDeserializable {
     pub key: AppKey,
-    pub properties: HashMap<DeploymentId, AppDataDeserializable>,
+    pub deployments: Vec<AppDataDeserializable>,
 }
 
 pub fn try_create_app(
@@ -63,43 +62,30 @@ pub fn try_create_app(
     manifests: &HashMap<AppKey, Arc<AppManifest>>,
     deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
 ) -> anyhow::Result<App> {
-    let properties = app
-        .properties
+    let deployments = app
+        .deployments
         .into_iter()
-        .filter_map(|(key, data)| match deployments.get(&key) {
+        .filter_map(|data| match deployments.get(&data.deployment_id) {
             Some(deployment) => Some((
-                key,
+                data.deployment_id,
                 AppData {
                     desired: data.desired,
-                    instances: data
-                        .instances
-                        .into_iter()
-                        .map(|(id, instance)| {
-                            (
-                                id,
-                                Instance::new(
-                                    instance.id,
-                                    instance.name,
-                                    instance.config,
-                                    deployment.clone(),
-                                    instance.desired,
-                                ),
-                            )
-                        })
-                        .collect(),
                     id: data.id,
                     deployment: deployment.clone(),
                 },
             )),
             None => {
                 // TODO: Decide if returning an error would be better
-                eprintln!("Ignoring unknown deployment {key} of {}", app.key);
+                error!(
+                    "Ignoring unknown deployment {} of {}",
+                    data.deployment_id, app.key
+                );
                 None
             }
         })
         .collect();
     Ok(App {
-        properties,
+        deployments,
         manifest: manifests.get(&app.key).cloned(),
         key: app.key,
     })
@@ -111,7 +97,7 @@ impl App {
     }
 
     pub fn set_desired(&mut self, status: AppStatus) {
-        for data in self.properties.values_mut() {
+        for data in self.deployments.values_mut() {
             data.desired = status;
         }
     }
@@ -124,7 +110,7 @@ impl App {
         Self {
             key,
             manifest: None,
-            properties: deployments
+            deployments: deployments
                 .into_iter()
                 .map(|deployment| (deployment.id(), AppData::new(deployment)))
                 .collect(),
@@ -133,7 +119,7 @@ impl App {
 
     pub async fn try_create_installed_info(&self) -> anyhow::Result<InstalledApp> {
         Ok(Self::create_installed_info(
-            self.properties
+            self.deployments
                 .values()
                 .next()
                 .ok_or_else(|| anyhow::anyhow!("No data available"))?,
@@ -165,7 +151,7 @@ impl App {
 
     pub async fn status(&self) -> crate::Result<AppStatus> {
         let data = self
-            .properties
+            .deployments
             .values()
             .next()
             .ok_or_else(|| anyhow::anyhow!("No data available"))?;
@@ -186,7 +172,7 @@ impl App {
 
     pub async fn installed_size(&self) -> crate::Result<usize> {
         let data = self
-            .properties
+            .deployments
             .values()
             .next()
             .ok_or_else(|| anyhow::anyhow!("No data available"))?;
@@ -211,7 +197,7 @@ impl App {
             Some(manifest) => {
                 let mut deployment_ids = Vec::new();
                 let mut install_app_results = Vec::new();
-                for data in self.properties.values_mut() {
+                for data in self.deployments.values_mut() {
                     data.desired = AppStatus::Installed;
                     let deployment = data.deployment.clone();
                     let manifest = manifest.clone();
@@ -260,26 +246,26 @@ impl App {
                 {
                     match result {
                         Err(e) => {
-                            eprintln!(
+                            error!(
                                 "Failed to install {} to deployment {}: {e}",
                                 self.key, deployment_id
                             )
                         }
                         Ok(app_id) => {
-                            if let Some(app_data) = self.properties.get_mut(&deployment_id) {
+                            if let Some(app_data) = self.deployments.get_mut(&deployment_id) {
                                 success_count += 1;
                                 app_data.id = Some(app_id);
                             } else {
-                                eprintln!("No app data for deployment {} found ", deployment_id)
+                                error!("No app data for deployment {} found ", deployment_id)
                             }
                         }
                     }
                 }
-                if success_count == 0 && !self.properties.is_empty() {
+                if success_count == 0 && !self.deployments.is_empty() {
                     anyhow::bail!(
                         "Failed to install {} in any of the {} deployments",
                         self.key,
-                        self.properties.len()
+                        self.deployments.len()
                     );
                 } else {
                     Ok(())
@@ -334,46 +320,6 @@ impl App {
             }
             Ok(true) => {}
         }
-        let mut instance_delete_results = Vec::new();
-        let mut instance_ids = Vec::new();
-        let mut instances = HashMap::new();
-        swap(&mut instances, &mut data.instances);
-        for instance in instances.into_values() {
-            instance_ids.push(instance.id);
-            let delete_result = quest
-                .lock()
-                .await
-                .create_sub_quest(
-                    format!("Delete instance '{}' ({})", instance.name, instance.id),
-                    |_quest| async move {
-                        match instance.stop_and_delete().await {
-                            Ok(()) => Ok(None),
-                            Err((e, instance)) => Ok(Some((e, instance))),
-                        }
-                    },
-                )
-                .await
-                .2;
-            instance_delete_results.push(delete_result);
-        }
-        for (instance_id, result) in instance_ids
-            .into_iter()
-            .zip(join_all(instance_delete_results).await)
-        {
-            match result {
-                Ok(None) => {}
-                Err(e) => {
-                    error!("Failed to delete instance {instance_id} of app {}: {e}", id);
-                }
-                Ok(Some((e, instance))) => {
-                    error!(
-                        "Failed to delete instance {} ({}) of app {}: {e}",
-                        instance.name, instance.id, id
-                    );
-                    data.instances.insert(instance.id, instance);
-                }
-            }
-        }
         let result = quest
             .lock()
             .await
@@ -409,7 +355,7 @@ impl App {
         let mut deployment_ids = Vec::new();
         let mut uninstall_results = Vec::new();
         let mut app_data = HashMap::new();
-        swap(&mut app_data, &mut self.properties);
+        swap(&mut app_data, &mut self.deployments);
         for data in app_data.into_values() {
             deployment_ids.push(data.deployment.id().clone());
             let uninstall_result = quest
@@ -448,18 +394,18 @@ impl App {
                         "Failed to uninstall {} from deployment {}: {e}",
                         self.key, deployment_id
                     );
-                    self.properties.insert(deployment_id, app_data);
+                    self.deployments.insert(deployment_id, app_data);
                 }
             }
         }
-        if self.properties.is_empty() {
+        if self.deployments.is_empty() {
             Ok(())
         } else {
             Err((
                 anyhow::anyhow!(
                     "Failed to uninstall {}, from deployments {}",
                     self.key,
-                    self.properties
+                    self.deployments
                         .keys()
                         .map(Clone::clone)
                         .collect::<Vec<String>>()
@@ -476,28 +422,14 @@ mod tests {
     use super::*;
     use crate::jeweler::app::AppInfo;
     use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
     use crate::sorcerer::appraiser::tests::create_test_manifest;
     use flecs_app_manifest::AppManifestVersion;
-    use mockall::predicate::eq;
 
     fn test_key() -> AppKey {
         AppKey {
             name: "test-app".to_string(),
             version: "1.0.0".to_string(),
         }
-    }
-
-    fn test_instance(id: u8, deployment: Arc<dyn Deployment>) -> Instance {
-        Instance::new(
-            InstanceId { value: id as u32 },
-            format!("TestInstance #{id}"),
-            InstanceConfig {
-                image: format!("test-image-#{id}"),
-            },
-            deployment,
-            InstanceStatus::Running,
-        )
     }
     #[tokio::test]
     async fn status_no_deployment() {
@@ -521,12 +453,12 @@ mod tests {
         })
         .collect();
         let mut app = App::new(test_key(), deployments);
-        assert_eq!(app.properties.len(), 4);
-        for data in app.properties.values() {
+        assert_eq!(app.deployments.len(), 4);
+        for data in app.deployments.values() {
             assert_eq!(data.desired, AppStatus::None);
         }
         app.set_desired(AppStatus::Installed);
-        for data in app.properties.values() {
+        for data in app.deployments.values() {
             assert_eq!(data.desired, AppStatus::Installed);
         }
     }
@@ -555,7 +487,7 @@ mod tests {
             test_key(),
             vec![Arc::new(deployment) as Arc<dyn Deployment>],
         );
-        app.properties.values_mut().next().unwrap().id = Some("DataId".to_string());
+        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
         assert_eq!(app.status().await.unwrap(), AppStatus::Installed);
     }
 
@@ -571,7 +503,7 @@ mod tests {
             test_key(),
             vec![Arc::new(deployment) as Arc<dyn Deployment>],
         );
-        app.properties.values_mut().next().unwrap().id = Some("DataId".to_string());
+        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
         assert_eq!(app.status().await.unwrap(), AppStatus::NotInstalled);
     }
 
@@ -607,7 +539,7 @@ mod tests {
             test_key(),
             vec![Arc::new(deployment) as Arc<dyn Deployment>],
         );
-        app.properties.values_mut().next().unwrap().id = Some("DataId".to_string());
+        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
         assert_eq!(app.installed_size().await.unwrap(), 6520);
     }
 
@@ -623,7 +555,7 @@ mod tests {
             test_key(),
             vec![Arc::new(deployment) as Arc<dyn Deployment>],
         );
-        app.properties.values_mut().next().unwrap().id = Some("DataId".to_string());
+        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
         assert!(app.installed_size().await.is_err());
     }
 
@@ -637,7 +569,6 @@ mod tests {
     async fn create_app_info_defaults() {
         let data = AppData {
             desired: AppStatus::Installed,
-            instances: Default::default(),
             id: Some("DataId".to_string()),
             deployment: Arc::new(MockedDeployment::new()),
         };
@@ -657,7 +588,6 @@ mod tests {
     async fn create_app_info() {
         let data = AppData {
             desired: AppStatus::Installed,
-            instances: Default::default(),
             id: Some("DataId".to_string()),
             deployment: Arc::new(MockedDeployment::new()),
         };
@@ -688,7 +618,7 @@ mod tests {
             test_key(),
             vec![Arc::new(deployment) as Arc<dyn Deployment>],
         );
-        app.properties.values_mut().next().unwrap().id = Some("DataId".to_string());
+        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
         assert!(app.try_create_installed_info().await.is_err());
     }
 
@@ -706,7 +636,7 @@ mod tests {
             test_key(),
             vec![Arc::new(deployment) as Arc<dyn Deployment>],
         );
-        app.properties.values_mut().next().unwrap().id = Some("DataId".to_string());
+        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
         let mut manifest = crate::sorcerer::appraiser::tests::create_test_manifest_raw(None);
         manifest.multi_instance = Some(true);
         let manifest =
@@ -756,28 +686,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn uninstall_app_data_no_instances_ok() {
-        let mut deployment = MockedDeployment::new();
-        deployment
-            .expect_app_info()
-            .times(1)
-            .returning(|_, _| Ok(AppInfo::default()));
-        deployment
-            .expect_uninstall_app()
-            .times(1)
-            .returning(|_, _| Ok(()));
-        deployment
-            .expect_id()
-            .returning(|| "MockedDeployment".to_string());
-        let mut app_data = AppData::new(Arc::new(deployment));
-        app_data.id = Some("TestAppId".to_string());
-        app_data.desired = AppStatus::Installed;
-        App::uninstall_from_deployment(Quest::new_synced("TestQuest".to_string()), app_data)
-            .await
-            .unwrap();
-    }
-
-    #[tokio::test]
     async fn uninstall_app_data_ok() {
         let mut deployment = MockedDeployment::new();
         deployment
@@ -789,76 +697,19 @@ mod tests {
             .times(1)
             .returning(|_, _| Ok(()));
         deployment
-            .expect_delete_instance()
-            .times(5)
-            .returning(|_| Ok(()));
-        deployment
-            .expect_instance_status()
-            .times(5)
-            .returning(|_| Ok(InstanceStatus::Stopped));
-        deployment
             .expect_id()
             .returning(|| "MockedDeployment".to_string());
         let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
         let mut app_data = AppData::new(deployment.clone());
         app_data.id = Some("TestAppId".to_string());
         app_data.desired = AppStatus::Installed;
-        for i in 0..5 {
-            let test_instance = test_instance(i, deployment.clone());
-            app_data.instances.insert(test_instance.id, test_instance);
-        }
         App::uninstall_from_deployment(Quest::new_synced("TestQuest".to_string()), app_data)
             .await
             .unwrap();
     }
 
     #[tokio::test]
-    async fn uninstall_app_data_instance_err() {
-        let mut deployment = MockedDeployment::new();
-        deployment
-            .expect_app_info()
-            .times(1)
-            .returning(|_, _| Ok(AppInfo::default()));
-        deployment
-            .expect_uninstall_app()
-            .times(1)
-            .returning(|_, _| Ok(()));
-        deployment
-            .expect_delete_instance()
-            .with(eq(InstanceId { value: 6 }))
-            .times(1)
-            .returning(|_| Err(anyhow::anyhow!("TestError")));
-        deployment
-            .expect_delete_instance()
-            .times(5)
-            .returning(|_| Ok(()));
-        deployment
-            .expect_instance_status()
-            .times(6)
-            .returning(|_| Ok(InstanceStatus::Stopped));
-        deployment
-            .expect_id()
-            .returning(|| "MockedDeployment".to_string());
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
-        let mut app_data = AppData::new(deployment.clone());
-        app_data.id = Some("TestAppId".to_string());
-        app_data.desired = AppStatus::Installed;
-        for i in 0..5 {
-            let test_instance = test_instance(i, deployment.clone());
-            app_data.instances.insert(test_instance.id, test_instance);
-        }
-        let failing_instance = test_instance(6, deployment.clone());
-        app_data
-            .instances
-            .insert(failing_instance.id, failing_instance);
-        // The app should be uninstalled even if some instances fail to be removed
-        App::uninstall_from_deployment(Quest::new_synced("TestQuest".to_string()), app_data)
-            .await
-            .unwrap();
-    }
-
-    #[tokio::test]
-    async fn uninstall_app_data_no_instances_err() {
+    async fn uninstall_app_data_err() {
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_app_info()
@@ -909,21 +760,18 @@ mod tests {
                 name: "TestApp".to_string(),
                 version: "1.2.3".to_string(),
             },
-            properties: HashMap::new(),
+            deployments: Vec::new(),
         };
         for i in 0..DEPLOYMENT_COUNT {
             let deployment_id = format!("MockedDeployment-{}", i);
-            app.properties.insert(
+            app.deployments.push(AppDataDeserializable {
+                desired: AppStatus::Installed,
                 deployment_id,
-                AppDataDeserializable {
-                    desired: AppStatus::Installed,
-                    instances: HashMap::new(),
-                    id: Some(format!("MockedAppId-{}", i)),
-                },
-            );
+                id: Some(format!("MockedAppId-{}", i)),
+            });
         }
         let app = try_create_app(app, &HashMap::new(), &deployments).unwrap();
-        assert_eq!(app.properties.len(), DEPLOYMENT_COUNT);
+        assert_eq!(app.deployments.len(), DEPLOYMENT_COUNT);
         app.uninstall(Quest::new_synced("TestQuest".to_string()))
             .await
             .unwrap();
@@ -976,22 +824,19 @@ mod tests {
                 name: "TestApp".to_string(),
                 version: "1.2.3".to_string(),
             },
-            properties: HashMap::new(),
+            deployments: Vec::new(),
         };
         for i in 0..DEPLOYMENT_COUNT + ERR_DEPLOYMENT_COUNT {
             let deployment_id = format!("MockedDeployment-{}", i);
-            app.properties.insert(
+            app.deployments.push(AppDataDeserializable {
+                desired: AppStatus::Installed,
                 deployment_id,
-                AppDataDeserializable {
-                    desired: AppStatus::Installed,
-                    instances: HashMap::new(),
-                    id: Some(format!("MockedAppId-{}", i)),
-                },
-            );
+                id: Some(format!("MockedAppId-{}", i)),
+            });
         }
         let app = try_create_app(app, &HashMap::new(), &deployments).unwrap();
         assert_eq!(
-            app.properties.len(),
+            app.deployments.len(),
             DEPLOYMENT_COUNT + ERR_DEPLOYMENT_COUNT
         );
         let result = app
@@ -999,10 +844,10 @@ mod tests {
             .await;
         assert!(result.is_err());
         let (_error, app) = result.err().unwrap();
-        assert_eq!(app.properties.len(), ERR_DEPLOYMENT_COUNT);
+        assert_eq!(app.deployments.len(), ERR_DEPLOYMENT_COUNT);
         for i in DEPLOYMENT_COUNT..DEPLOYMENT_COUNT + ERR_DEPLOYMENT_COUNT {
             assert!(app
-                .properties
+                .deployments
                 .contains_key(&format!("MockedDeployment-{}", i)));
         }
     }

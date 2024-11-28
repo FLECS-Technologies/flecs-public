@@ -80,7 +80,7 @@ mod tests {
             version: "1.2.3".to_string(),
         };
         let mut app = App::new(key.clone(), Vec::new());
-        app.properties
+        app.deployments
             .insert("Mocked_deployment".to_string(), app_data);
         let vault = Arc::new(Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/uninstall_app_error/").to_path_buf(),
@@ -120,7 +120,7 @@ mod tests {
             version: "1.2.3".to_string(),
         };
         let mut app = App::new(key.clone(), Vec::new());
-        app.properties
+        app.deployments
             .insert("Mocked_deployment".to_string(), app_data);
         let vault = Arc::new(Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/uninstall_app_ok/").to_path_buf(),

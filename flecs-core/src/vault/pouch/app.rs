@@ -8,11 +8,10 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use tracing::error;
 
 const APPS_FILE_NAME: &str = "apps.json";
 pub type AppStatus = jeweler::app::AppStatus;
-
-pub type InstanceId = String;
 
 pub struct AppPouch {
     path: PathBuf,
@@ -65,7 +64,7 @@ impl AppPouch {
                 match try_create_app(app, manifests, deployments) {
                     Ok(app) => Some((key, app)),
                     Err(e) => {
-                        eprintln!("Could not create app {key}: {e}");
+                        error!("Could not create app {key}: {e}");
                         None
                     }
                 }
@@ -88,7 +87,6 @@ mod tests {
     use super::*;
     use crate::jeweler::gem::app::AppDataDeserializable;
     use crate::jeweler::gem::deployment::docker::DockerDeployment;
-    use crate::jeweler::gem::instance::{InstanceConfig, InstanceDeserializable, InstanceStatus};
     use crate::tests::prepare_test_path;
     use crate::vault::pouch;
     use flecs_app_manifest::AppManifestVersion;
@@ -102,21 +100,11 @@ mod tests {
                     "name": "test-app-1",
                     "version": "1.2.3"
                 },
-                "properties": {
-                    "test-deployment-id-1": {
-                        "desired": "Installed",
-                        "instances": {
-                            "1": {
-                                "id": 1,
-                                "name": "Some Test Instance #1",
-                                "desired": "Running",
-                                "config": {
-                                    "image": "test-image"
-                                }
-                            }
-                        }
-                    }
-                }
+                "deployments": [{
+                    "id": "test-app-id-1",
+                    "desired": "Installed",
+                    "deployment_id": "test-deployment-id-1"
+                }]
             }
         ])
     }
@@ -161,24 +149,11 @@ mod tests {
                 name: "test-app-1".to_string(),
                 version: "1.2.3".to_string(),
             },
-            properties: HashMap::from([(
-                "test-deployment-id-1".to_string(),
-                AppDataDeserializable {
-                    id: None,
-                    desired: AppStatus::Installed,
-                    instances: HashMap::from([(
-                        1.into(),
-                        InstanceDeserializable {
-                            name: "Some Test Instance #1".to_string(),
-                            id: 1.into(),
-                            desired: InstanceStatus::Running,
-                            config: InstanceConfig {
-                                image: "test-image".to_string(),
-                            },
-                        },
-                    )]),
-                },
-            )]),
+            deployments: vec![AppDataDeserializable {
+                id: Some("test-app-id-1".to_string()),
+                desired: AppStatus::Installed,
+                deployment_id: "test-deployment-id-1".to_string(),
+            }],
         }
     }
 
