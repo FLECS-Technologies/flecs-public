@@ -57,6 +57,7 @@ public:
     int wait(bool dump_stdout, bool dump_stderr) noexcept;
     int exit_code() const noexcept;
 
+    void stdin(std::string input);
     std::string stdout() const noexcept;
     std::string stderr() const noexcept;
 
@@ -67,6 +68,7 @@ private:
 
     std::string output(int fd) const noexcept;
 
+    std::string _input;
     std::list<std::string> _args;
     char _filename_stdout[25];
     char _filename_stderr[25];

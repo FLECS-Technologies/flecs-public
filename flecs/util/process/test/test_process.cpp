@@ -63,6 +63,26 @@ TEST(util_process, spawnp_args)
     ASSERT_EQ(testing::internal::GetCapturedStdout(), "FLECS");
 }
 
+TEST(util_process, spawnp_stdin)
+{
+    const auto input = "Hello, world";
+
+    auto test_process = flecs::process_t{};
+
+    test_process.stdin(input);
+
+    testing::internal::CaptureStdout();
+
+    const auto spawn_res = test_process.spawnp("cat");
+    ASSERT_EQ(spawn_res, 0);
+
+    const auto wait_res = test_process.wait(true, true);
+    ASSERT_NE(wait_res, 0);
+
+    ASSERT_EQ(test_process.exit_code(), 0);
+    ASSERT_EQ(testing::internal::GetCapturedStdout(), input);
+}
+
 TEST(util_process, spawn_fail)
 {
     auto test_process = flecs::process_t{};
