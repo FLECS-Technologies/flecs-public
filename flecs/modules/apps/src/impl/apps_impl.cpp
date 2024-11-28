@@ -316,10 +316,12 @@ auto apps_t::do_install_impl(
         app = *_apps.rbegin();
     }
 
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {-1, "App has no valid deployment type"};
+    }
+
     auto token = std::optional<Token>{};
-
-    auto deployment = _deployments_api->query_deployment("docker");
-
     switch (app->status()) {
         case apps::status_e::ManifestDownloaded: {
             progress.next_step("Acquiring download token");
@@ -402,7 +404,10 @@ auto apps_t::do_uninstall(apps::key_t app_key, jobs::progress_t& progress) //
     progress.next_step("Removing App image");
 
     if (manifest) {
-        auto deployment = _deployments_api->query_deployment("docker");
+        auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+        if (!deployment) {
+            return {-1, "App has no valid deployment type"};
+        }
         const auto [res, message] = deployment->delete_app(app);
         if (res != 0) {
             std::fprintf(
@@ -473,7 +478,10 @@ auto apps_t::do_export_to(apps::key_t app_key, fs::path dest_dir, jobs::progress
 
     // Step 3: Export image
     progress.next_step("Exporting App");
-    auto deployment = _deployments_api->query_deployment("docker");
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {-1, "App has no valid deployment type"};
+    }
     const auto archive = dest_dir / (app_key.name().data() + "_"s + app_key.version().data() + ".tar");
     const auto [res, message] = deployment->export_app(app, std::move(archive));
     if (res != 0) {
@@ -530,7 +538,10 @@ auto apps_t::do_import_from(apps::key_t app_key, fs::path src_dir, jobs::progres
     app->status(apps::status_e::ManifestDownloaded);
 
     /* import image */
-    auto deployment = _deployments_api->query_deployment("docker");
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {-1, "App has no valid deployment type"};
+    }
     path.replace_extension(".tar");
     const auto [res, message] = deployment->import_app(app, std::move(path));
     if (res != 0) {

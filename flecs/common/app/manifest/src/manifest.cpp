@@ -76,6 +76,18 @@ app_manifest_t app_manifest_t::from_json_file(const fs::path& path)
     return from_json(parse_json(json_file));
 }
 
+auto app_manifest_t::deployment_type() const noexcept //
+    -> std::string_view
+{
+    if (!image().empty()) {
+        return "docker";
+    }
+    if (deployment().contains("compose")) {
+        return "compose";
+    }
+    return "none";
+}
+
 void app_manifest_t::validate()
 {
     _valid = false;
@@ -163,15 +175,16 @@ auto from_json_common(const json_t& json, app_manifest_t& app_manifest) //
 {
     REQUIRED_JSON_VALUE(json, app, app_manifest._app);
     REQUIRED_JSON_VALUE(json, version, app_manifest._version);
-    REQUIRED_JSON_VALUE(json, image, app_manifest._image);
     OPTIONAL_JSON_VALUE(json, multiInstance, app_manifest._multi_instance);
 
     OPTIONAL_JSON_VALUE(json, args, app_manifest._args);
     OPTIONAL_JSON_VALUE(json, capabilities, app_manifest._capabilities);
     OPTIONAL_JSON_VALUE(json, conffiles, app_manifest._conffiles);
+    OPTIONAL_JSON_VALUE(json, deployment, app_manifest._deployment);
     OPTIONAL_JSON_VALUE(json, devices, app_manifest._devices);
     OPTIONAL_JSON_VALUE(json, env, app_manifest._env);
     OPTIONAL_JSON_VALUE(json, hostname, app_manifest._hostname);
+    OPTIONAL_JSON_VALUE(json, image, app_manifest._image);
     OPTIONAL_JSON_VALUE(json, interactive, app_manifest._interactive);
     OPTIONAL_JSON_VALUE(json, networks, app_manifest._networks);
     OPTIONAL_JSON_VALUE(json, ports, app_manifest._ports);
