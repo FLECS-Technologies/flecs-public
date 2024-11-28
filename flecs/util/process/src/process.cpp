@@ -30,7 +30,8 @@
 namespace flecs {
 
 process_t::process_t()
-    : _args{}
+    : _input{}
+    , _args{}
     , _filename_stdout{"/tmp/flecs-stdout-XXXXXX"}
     , _filename_stderr{"/tmp/flecs-stderr-XXXXXX"}
     , _fd_stdout{mkostemp(_filename_stdout, 0)}
@@ -80,6 +81,11 @@ int process_t::exit_code() const noexcept
     return WEXITSTATUS(_status);
 }
 
+void process_t::stdin(std::string input)
+{
+    _input = std::move(input);
+}
+
 std::string process_t::stdout() const noexcept
 {
     return output(_fd_stdout);
@@ -112,6 +118,26 @@ int process_t::do_spawn(const char* exec, bool path)
     res = posix_spawn_file_actions_adddup2(file_actions.pointer(), _fd_stderr, STDERR_FILENO);
     if (res < 0) {
         return -1;
+    }
+
+    if (!_input.empty()) {
+        int pipefd[2];
+        res = pipe(pipefd);
+        if (res < 0) {
+            return -1;
+        }
+        res = posix_spawn_file_actions_adddup2(file_actions.pointer(), pipefd[0], STDIN_FILENO);
+        if (res < 0) {
+            return -1;
+        }
+        res = write(pipefd[1], _input.c_str(), _input.length());
+        if (res < 0) {
+            return -1;
+        }
+        res = close(pipefd[1]);
+        if (res < 0) {
+            return -1;
+        }
     }
 
     flecs_posix_spawnattr_t attr;
