@@ -42,6 +42,12 @@ auto deployments_t::do_module_load(const fs::path& base_path) //
     return result;
 }
 
+auto deployments_t::do_deployments() const noexcept //
+    -> std::vector<std::shared_ptr<deployments::deployment_t>>
+{
+    return _deployments;
+}
+
 auto deployments_t::do_query_deployment(std::string_view id) //
     -> std::shared_ptr<deployments::deployment_t>
 {

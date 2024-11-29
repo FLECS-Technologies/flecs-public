@@ -33,6 +33,9 @@ class deployments_t FLECS_FINAL_UNLESS_TESTED : public base_t
 public:
     ~deployments_t() override;
 
+    auto deployments() const noexcept //
+        -> std::vector<std::shared_ptr<deployments::deployment_t>>;
+
     auto query_deployment(std::string_view id) //
         -> std::shared_ptr<deployments::deployment_t>;
 

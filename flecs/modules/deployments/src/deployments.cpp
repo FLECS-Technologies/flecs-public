@@ -41,6 +41,12 @@ auto deployments_t::do_deinit() //
     -> void
 {}
 
+auto deployments_t::deployments() const noexcept //
+    -> std::vector<std::shared_ptr<deployments::deployment_t>>
+{
+    return _impl->do_deployments();
+}
+
 auto deployments_t::query_deployment(std::string_view id) //
     -> std::shared_ptr<deployments::deployment_t>
 {
