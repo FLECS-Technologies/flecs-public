@@ -57,7 +57,7 @@ pub mod tests {
         }
         #[async_trait]
         impl InstanceDeployment for edDeployment {
-            async fn delete_instance(&self, id: InstanceId) -> Result<()>;
+            async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
             async fn start_instance(&self,config: InstanceConfig,id: Option<InstanceId>,) -> Result<InstanceId>;
             async fn stop_instance(&self, id: InstanceId) -> Result<()>;
             async fn ready_instance(&self, id: InstanceId) -> Result<()>;

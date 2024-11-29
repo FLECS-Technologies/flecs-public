@@ -3,6 +3,7 @@ use crate::jeweler::deployment::{Deployment, DeploymentId};
 use crate::jeweler::{serialize_deployment_id, serialize_hashmap_values};
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch::AppKey;
+pub use crate::Result;
 use flecs_app_manifest::AppManifest;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::future::join_all;
@@ -410,17 +411,21 @@ impl App {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::jeweler::app::AppInfo;
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::sorcerer::appraiser::tests::create_test_manifest;
     use flecs_app_manifest::AppManifestVersion;
 
-    fn test_key() -> AppKey {
+    pub fn test_key() -> AppKey {
+        test_key_numbered(0, 0)
+    }
+
+    pub fn test_key_numbered(name_number: u8, version_number: u8) -> AppKey {
         AppKey {
-            name: "test-app".to_string(),
-            version: "1.0.0".to_string(),
+            name: format!("some.test.app-{name_number}"),
+            version: format!("1.2.{version_number}"),
         }
     }
     #[tokio::test]

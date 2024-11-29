@@ -340,13 +340,14 @@ pub mod tests {
     use crate::jeweler::app::{AppInfo, AppStatus};
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::deployment::Deployment;
+    use crate::jeweler::gem::app::tests::{test_key, test_key_numbered};
     use crate::jeweler::gem::app::App;
     use crate::quest::{Progress, Quest};
     use crate::sorcerer::appraiser::{
         download_manifest, get_app, get_apps, install_app, install_app_from_manifest, install_apps,
         install_existing_app, set_manifest_and_desired_or_create_app,
     };
-    use crate::vault::pouch::{AppKey, Pouch};
+    use crate::vault::pouch::Pouch;
     use crate::vault::{GrabbedPouches, Vault, VaultConfig};
     use flecs_app_manifest::generated::manifest_3_0_0;
     use flecs_app_manifest::{AppManifest, AppManifestVersion};
@@ -494,17 +495,6 @@ pub mod tests {
             revision,
             version: FromStr::from_str(&format!("1.2.{version_number}")).unwrap(),
             volumes: vec![],
-        }
-    }
-
-    fn test_key() -> AppKey {
-        test_key_numbered(0, 0)
-    }
-
-    fn test_key_numbered(name_number: u8, version_number: u8) -> AppKey {
-        AppKey {
-            name: format!("some.test.app-{name_number}"),
-            version: format!("1.2.{version_number}"),
         }
     }
     const CREATED_APPS_WITH_MANIFEST: [(u8, u8); 4] = [(1, 1), (1, 2), (1, 3), (1, 4)];

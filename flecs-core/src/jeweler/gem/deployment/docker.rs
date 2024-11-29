@@ -697,7 +697,7 @@ impl NetworkDeployment for DockerDeployment {
 
 #[async_trait]
 impl InstanceDeployment for DockerDeployment {
-    async fn delete_instance(&self, id: InstanceId) -> anyhow::Result<()> {
+    async fn delete_instance(&self, id: InstanceId) -> anyhow::Result<bool> {
         let docker_client = self.client()?;
         relic::docker::container::remove(
             docker_client,
@@ -731,7 +731,8 @@ impl InstanceDeployment for DockerDeployment {
     async fn stop_instance(&self, id: InstanceId) -> anyhow::Result<()> {
         let client = self.client()?;
         relic::docker::container::stop(client, &id.to_docker_id(), None).await?;
-        self.delete_instance(id).await
+        self.delete_instance(id).await?;
+        Ok(())
     }
 
     async fn ready_instance(&self, id: InstanceId) -> anyhow::Result<()> {

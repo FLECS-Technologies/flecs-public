@@ -1,4 +1,4 @@
-pub use super::Result;
+pub use super::{Error, Result};
 use crate::quest::{Progress, SyncQuest};
 use crate::relic::async_flecstract::{archive_to_memory, extract_from_memory};
 use crate::relic::docker::write_stream_to_memory;
@@ -201,6 +201,8 @@ where
     Ok(docker_client.list_containers(options).await?)
 }
 
+/// Returns Ok(true) if the specified container was removed, Ok(false) if the container did not exist
+/// and an error otherwise
 /// # Example
 /// ```no_run
 /// use bollard::container::RemoveContainerOptions;
@@ -212,7 +214,7 @@ where
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
 ///     let options: Option<RemoveContainerOptions> = None;
-///     remove(docker_client, options, "8c9a8332827c")
+///     let was_container_removed = remove(docker_client, options, "8c9a8332827c")
 ///         .await
 ///         .unwrap();
 /// }
@@ -222,10 +224,17 @@ pub async fn remove(
     docker_client: Arc<Docker>,
     options: Option<RemoveContainerOptions>,
     container_name: &str,
-) -> Result<()> {
-    Ok(docker_client
+) -> Result<bool> {
+    match docker_client
         .remove_container(container_name, options)
-        .await?)
+        .await
+    {
+        Ok(_) => Ok(true),
+        Err(bollard::errors::Error::DockerResponseServerError {
+            status_code: 404, ..
+        }) => Ok(false),
+        Err(e) => Err(Error::from(e)),
+    }
 }
 
 pub enum Data {
