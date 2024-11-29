@@ -12,39 +12,8 @@ use tracing::debug;
 
 pub mod quest_master;
 
-pub enum AwaitResult<T> {
-    Result(Result<T>),
-    JoinHandle(JoinHandle<Result<T>>),
-}
-
-impl<T> AwaitResult<T> {
-    pub async fn try_access_value(&mut self) -> Result<&T> {
-        match self {
-            Self::Result(Ok(v)) => Ok(v),
-            Self::Result(Err(e)) => Err(anyhow::anyhow!("{}", e)),
-            Self::JoinHandle(j) => {
-                *self = Self::Result(j.await?);
-                match self {
-                    Self::Result(Ok(v)) => Ok(v),
-                    Self::Result(Err(e)) => Err(anyhow::anyhow!("{}", e)),
-                    _ => panic!(),
-                }
-            }
-        }
-    }
-
-    pub fn new_synced_join_handle(handle: JoinHandle<Result<T>>) -> SyncAwaitResult<T> {
-        Arc::new(Mutex::new(Self::JoinHandle(handle)))
-    }
-
-    pub fn new_synced_value(value: T) -> SyncAwaitResult<T> {
-        Arc::new(Mutex::new(Self::Result(Ok(value))))
-    }
-}
-
-pub type SyncAwaitResult<T> = Arc<Mutex<AwaitResult<T>>>;
 #[repr(transparent)]
-#[derive(Hash, Eq, PartialEq, Copy, Clone)]
+#[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
 pub struct QuestId(pub u64);
 pub type SyncQuest = Arc<Mutex<Quest>>;
 pub type QuestResult<T> = (Arc<Mutex<Quest>>, JoinHandle<Result<T>>);
@@ -164,6 +133,25 @@ impl Quest {
         (quest_id, return_quest, result)
     }
 
+    pub async fn create_infallible_sub_quest<F, Fut, T>(
+        &mut self,
+        description: String,
+        f: F,
+    ) -> (QuestId, SyncQuest, BoxFuture<'static, T>)
+    where
+        F: FnOnce(SyncQuest) -> Fut,
+        Fut: Future<Output = T> + Send + 'static,
+        T: Send + Sync + 'static,
+    {
+        let quest = Quest::new_synced(description);
+        let quest_id = quest.lock().await.id;
+        let f = Box::pin(f(quest.clone()));
+        self.sub_quests.push(quest.clone());
+        let return_quest = quest.clone();
+        let result = Box::pin(Self::process_infallible_sub_quest(quest, f));
+        (quest_id, return_quest, result)
+    }
+
     pub async fn spawn_sub_quest<'a, F, Fut, T>(
         &'a mut self,
         description: String,
@@ -183,21 +171,23 @@ impl Quest {
         (quest_id, return_quest, result)
     }
 
+    async fn start_quest(quest: &SyncQuest) -> std::time::Instant {
+        let mut quest = quest.lock().await;
+        quest.state = State::Ongoing;
+        debug!(
+            "Started sub-quest '{}' with id {}",
+            quest.description.as_str(),
+            quest.id.0,
+        );
+        std::time::Instant::now()
+    }
+
     async fn process_sub_quest<Fut, T>(quest: SyncQuest, f: Pin<Box<Fut>>) -> Result<T>
     where
         Fut: Future<Output = Result<T>> + Send,
         T: Send + Sync,
     {
-        let start = {
-            let mut quest = quest.lock().await;
-            quest.state = State::Ongoing;
-            debug!(
-                "Started sub-quest '{}' with id {}",
-                quest.description.as_str(),
-                quest.id.0,
-            );
-            std::time::Instant::now()
-        };
+        let start = Self::start_quest(&quest).await;
         let result = finish_quest(&quest, f.await).await;
         {
             let quest = quest.lock().await;
@@ -219,6 +209,30 @@ impl Quest {
         }
         result
     }
+
+    async fn process_infallible_sub_quest<Fut, T>(quest: SyncQuest, f: Pin<Box<Fut>>) -> T
+    where
+        Fut: Future<Output = T> + Send,
+        T: Send + Sync,
+    {
+        let start = Self::start_quest(&quest).await;
+        let result = f.await;
+
+        let mut quest = quest.lock().await;
+        if !quest.state.is_finished() {
+            quest.state = State::Success;
+        }
+        debug!(
+            "Sub-quest '{}' with id {} finished after {:#?} with state {}.",
+            quest.description,
+            quest.id.0,
+            std::time::Instant::now() - start,
+            quest.state
+        );
+
+        result
+    }
+
     pub async fn sub_quest_progress(&self) -> Progress {
         let current = futures::stream::iter(self.sub_quests.iter())
             .filter(|sub_quest| async { sub_quest.lock().await.state.is_finished() })
@@ -339,6 +353,178 @@ mod tests {
         fn state(&self) -> Option<State> {
             self.state
         }
+    }
+
+    #[tokio::test]
+    async fn create_sub_quest_ok() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let (id, sub_quest, result) = quest
+            .lock()
+            .await
+            .create_sub_quest("TestSubQuest".to_string(), |_quest| async { Ok(true) })
+            .await;
+        assert_eq!(quest.lock().await.sub_quests.len(), 1);
+        assert_eq!(quest.lock().await.sub_quests[0].lock().await.id, id);
+        assert_eq!(sub_quest.lock().await.id, id);
+        assert_eq!(sub_quest.lock().await.state, State::Pending);
+        assert!(result.await.unwrap());
+        assert_eq!(sub_quest.lock().await.state, State::Success);
+    }
+
+    #[tokio::test]
+    async fn create_infallible_sub_quest_ok() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let (id, sub_quest, result) = quest
+            .lock()
+            .await
+            .create_infallible_sub_quest("TestSubQuest".to_string(), |_quest| async { true })
+            .await;
+        assert_eq!(quest.lock().await.sub_quests.len(), 1);
+        assert_eq!(quest.lock().await.sub_quests[0].lock().await.id, id);
+        assert_eq!(sub_quest.lock().await.id, id);
+        assert_eq!(sub_quest.lock().await.state, State::Pending);
+        assert!(result.await);
+        assert_eq!(sub_quest.lock().await.state, State::Success);
+    }
+
+    #[tokio::test]
+    async fn create_sub_quest_err() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let (id, sub_quest, result) = quest
+            .lock()
+            .await
+            .create_sub_quest("TestSubQuest".to_string(), |_quest| async {
+                Err::<bool, anyhow::Error>(anyhow::anyhow!("TestError"))
+            })
+            .await;
+        assert_eq!(quest.lock().await.sub_quests.len(), 1);
+        assert_eq!(quest.lock().await.sub_quests[0].lock().await.id, id);
+        assert_eq!(sub_quest.lock().await.id, id);
+        assert_eq!(sub_quest.lock().await.state, State::Pending);
+        assert!(result.await.is_err());
+        assert_eq!(sub_quest.lock().await.state, State::Failed);
+    }
+
+    #[tokio::test]
+    async fn spawn_sub_quest_ok() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let (id, sub_quest, result) = quest
+            .lock()
+            .await
+            .spawn_sub_quest("TestSubQuest".to_string(), |_quest| async { Ok(true) })
+            .await;
+        assert_eq!(quest.lock().await.sub_quests.len(), 1);
+        assert_eq!(quest.lock().await.sub_quests[0].lock().await.id, id);
+        assert_eq!(sub_quest.lock().await.id, id);
+        assert!(result.await.unwrap().unwrap());
+        assert_eq!(sub_quest.lock().await.state, State::Success);
+    }
+
+    #[tokio::test]
+    async fn spawn_sub_quest_err() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let (id, sub_quest, result) = quest
+            .lock()
+            .await
+            .spawn_sub_quest("TestSubQuest".to_string(), |_quest| async {
+                Err::<bool, anyhow::Error>(anyhow::anyhow!("TestError"))
+            })
+            .await;
+        assert_eq!(quest.lock().await.sub_quests.len(), 1);
+        assert_eq!(quest.lock().await.sub_quests[0].lock().await.id, id);
+        assert_eq!(sub_quest.lock().await.id, id);
+        assert!(result.await.unwrap().is_err());
+        assert_eq!(sub_quest.lock().await.state, State::Failed);
+    }
+
+    #[tokio::test]
+    async fn spawn_sub_quest_panic() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let (id, sub_quest, result): (
+            QuestId,
+            Arc<Mutex<Quest>>,
+            JoinHandle<std::result::Result<bool, anyhow::Error>>,
+        ) = quest
+            .lock()
+            .await
+            .spawn_sub_quest("TestSubQuest".to_string(), |_quest| async { panic!() })
+            .await;
+        assert_eq!(quest.lock().await.sub_quests.len(), 1);
+        assert_eq!(quest.lock().await.sub_quests[0].lock().await.id, id);
+        assert_eq!(sub_quest.lock().await.id, id);
+        assert!(result.await.is_err());
+    }
+
+    #[tokio::test]
+    async fn process_infallible_sub_quest_ok() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let f = || async { true };
+        let f = Box::pin(f());
+        assert!(Quest::process_infallible_sub_quest(quest.clone(), f).await);
+        assert_eq!(quest.lock().await.state, State::Success);
+    }
+
+    #[tokio::test]
+    async fn process_infallible_sub_quest_state_kept() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let f = |quest: SyncQuest| async move {
+            quest.lock().await.state = State::Failed;
+            true
+        };
+        let f = Box::pin(f(quest.clone()));
+        assert!(Quest::process_infallible_sub_quest(quest.clone(), f).await);
+        assert_eq!(quest.lock().await.state, State::Failed);
+    }
+
+    #[tokio::test]
+    async fn process_sub_quest_ok() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let f = || async { Ok::<bool, anyhow::Error>(true) };
+        let f = Box::pin(f());
+        assert!(Quest::process_sub_quest(quest.clone(), f).await.unwrap());
+        assert_eq!(quest.lock().await.state, State::Success);
+    }
+
+    #[tokio::test]
+    async fn process_sub_quest_err() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let f = || async { Err::<bool, anyhow::Error>(anyhow::anyhow!("TestError")) };
+        let f = Box::pin(f());
+        assert!(Quest::process_sub_quest(quest.clone(), f).await.is_err());
+        assert_eq!(quest.lock().await.state, State::Failed);
+    }
+
+    #[tokio::test]
+    async fn test_finish_quest() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        assert_eq!(quest.lock().await.state, State::Pending);
+        Quest::start_quest(&quest).await;
+        assert_eq!(quest.lock().await.state, State::Ongoing);
+    }
+
+    #[tokio::test]
+    async fn start_quest_ok() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let result: Result<bool> = Ok(true);
+        assert!(finish_quest(&quest, result).await.unwrap());
+        assert_eq!(quest.lock().await.state, State::Success);
+    }
+
+    #[tokio::test]
+    async fn start_quest_err() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        let result: Result<bool> = Err(anyhow::anyhow!("TestError"));
+        assert!(finish_quest(&quest, result).await.is_err());
+        assert_eq!(quest.lock().await.state, State::Failed);
+    }
+
+    #[tokio::test]
+    async fn start_quest_state_kept() {
+        let quest = Quest::new_synced("TestQuest #1".to_string());
+        quest.lock().await.state = State::Failed;
+        let result: Result<bool> = Ok(true);
+        assert!(finish_quest(&quest, result).await.unwrap());
+        assert_eq!(quest.lock().await.state, State::Failed);
     }
 
     #[tokio::test]
