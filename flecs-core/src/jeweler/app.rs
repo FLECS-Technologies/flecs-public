@@ -2,20 +2,42 @@ pub use super::Result;
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
 use flecs_app_manifest::AppManifest;
+use flecs_console_client::models::{
+    PostApiV2Tokens200ResponseData, PostApiV2Tokens200ResponseDataToken,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 pub(crate) type AppId = String;
 // TODO: Change to a custom general type as soon as the second Deployment implementation is created
 pub(crate) type AppInfo = bollard::models::ImageInspect;
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Token {
+    pub username: String,
+    pub password: String,
+}
+
+impl From<PostApiV2Tokens200ResponseDataToken> for Token {
+    fn from(value: PostApiV2Tokens200ResponseDataToken) -> Self {
+        Self {
+            username: value.username,
+            password: value.password,
+        }
+    }
+}
+impl From<PostApiV2Tokens200ResponseData> for Token {
+    fn from(value: PostApiV2Tokens200ResponseData) -> Self {
+        (*value.token).into()
+    }
+}
+
 #[async_trait]
 pub trait AppDeployment {
     async fn install_app(
         &self,
         quest: SyncQuest,
         manifest: Arc<AppManifest>,
-        username: String,
-        password: String,
+        token: Option<Token>,
     ) -> Result<AppId>;
     async fn uninstall_app(&self, quest: SyncQuest, id: AppId) -> Result<()>;
 

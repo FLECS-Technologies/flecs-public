@@ -1,5 +1,5 @@
 pub use super::Result;
-use crate::jeweler::app::AppStatus;
+use crate::jeweler::app::{AppStatus, Token};
 use crate::jeweler::gem::app::App;
 use crate::quest::SyncQuest;
 use crate::sorcerer::spell;
@@ -305,15 +305,8 @@ async fn install_existing_app(
         .lock()
         .await
         .create_sub_quest(format!("Install app {}", app_key), |quest| async move {
-            let token = token.await?;
-            install_app_in_vault(
-                quest,
-                vault.clone(),
-                app_key.clone(),
-                token.token.username,
-                token.token.password,
-            )
-            .await
+            let token = token.await?.map(Into::into);
+            install_app_in_vault(quest, vault.clone(), app_key.clone(), token).await
         })
         .await
         .2
@@ -324,8 +317,7 @@ pub async fn install_app_in_vault(
     quest: SyncQuest,
     vault: Arc<Vault>,
     app_key: AppKey,
-    username: String,
-    password: String,
+    token: Option<Token>,
 ) -> Result<()> {
     vault
         .reservation()
@@ -338,7 +330,7 @@ pub async fn install_app_in_vault(
         .gems_mut()
         .get_mut(&app_key)
         .ok_or_else(|| anyhow::anyhow!("App {app_key} was unexpectedly removed"))?
-        .install(quest, username, password)
+        .install(quest, token)
         .await?;
     Ok(())
 }

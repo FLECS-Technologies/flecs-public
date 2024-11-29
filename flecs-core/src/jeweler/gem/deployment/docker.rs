@@ -1,4 +1,4 @@
-use crate::jeweler::app::{AppDeployment, AppId, AppInfo};
+use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
 use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
 use crate::jeweler::instance::InstanceDeployment;
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
@@ -59,8 +59,7 @@ impl AppDeployment for DockerDeployment {
         &self,
         quest: SyncQuest,
         manifest: Arc<AppManifest>,
-        username: String,
-        password: String,
+        token: Option<Token>,
     ) -> anyhow::Result<AppId> {
         let docker_client = self.client()?;
         let (.., id) = quest
@@ -72,9 +71,9 @@ impl AppDeployment for DockerDeployment {
                     relic::docker::image::pull(
                         quest,
                         docker_client,
-                        Some(DockerCredentials {
-                            username: Some(username),
-                            password: Some(password),
+                        token.map(|token| DockerCredentials {
+                            username: Some(token.username),
+                            password: Some(token.password),
                             ..DockerCredentials::default()
                         }),
                         manifest.image.deref(),
