@@ -118,7 +118,6 @@ instances_t::instances_t(flecs::module::instances_t* parent)
     , _apps_api{}
     , _deployments_api{}
     , _jobs_api{}
-    , _deployment{}
 {}
 
 instances_t::~instances_t()
@@ -128,7 +127,8 @@ auto instances_t::migrate_macvlan_to_ipvlan() //
     -> void
 {
     // find all existing macvlan networks
-    auto macvlan_networks = _deployment->networks();
+    auto deployment = _deployments_api->query_deployment("docker");
+    auto macvlan_networks = deployment->networks();
     std::erase_if(macvlan_networks, [](decltype(macvlan_networks)::const_reference n) {
         return n.type != network_type_e::MACVLAN;
     });
@@ -153,14 +153,14 @@ auto instances_t::migrate_macvlan_to_ipvlan() //
         }
 
         // delete macvlan network
-        auto [res, message] = _deployment->delete_network(old_name);
+        auto [res, message] = deployment->delete_network(old_name);
         if (res != 0) {
             std::cerr << "Could not delete network " << old_name << ": " << message;
             continue;
         }
 
         // recreate network as ipvlan_l2
-        std::tie(res, message) = _deployment->create_network(
+        std::tie(res, message) = deployment->create_network(
             network_type_e::IPVLAN_L2,
             new_name,
             network.cidr_subnet,
@@ -179,8 +179,6 @@ auto instances_t::do_load(const fs::path&) //
     _apps_api = std::dynamic_pointer_cast<module::apps_t>(api::query_module("apps"));
     _deployments_api = std::dynamic_pointer_cast<module::deployments_t>(api::query_module("deployments"));
     _jobs_api = std::dynamic_pointer_cast<module::jobs_t>(api::query_module("jobs"));
-
-    _deployment = _deployments_api->query_deployment("docker");
 
     return {0, {}};
 }
@@ -223,19 +221,50 @@ auto instances_t::do_module_stop() //
 auto instances_t::do_instance_ids(const apps::key_t& app_key) const //
     -> std::vector<instances::id_t>
 {
-    return _deployment->instance_ids(app_key);
+    auto res = std::vector<instances::id_t>{};
+    for (auto deployment : _deployments_api->deployments()) {
+        res.insert(
+            res.end(),
+            deployment->instance_ids(app_key).cbegin(),
+            deployment->instance_ids(app_key).cend());
+    }
+    return res;
 }
 
 auto instances_t::do_query(instances::id_t instance_id) const //
     -> std::shared_ptr<instances::instance_t>
 {
-    return _deployment->query_instance(std::move(instance_id));
+    for (auto deployment : _deployments_api->deployments()) {
+        auto res = deployment->query_instance(std::move(instance_id));
+        if (res) {
+            return res;
+        }
+    }
+    return nullptr;
 }
 
 auto instances_t::do_is_running(std::shared_ptr<instances::instance_t> instance) const //
     -> bool
 {
-    return _deployment->is_instance_running(std::move(instance));
+    if (!instance) {
+        return false;
+    }
+
+    const auto app = instance->app();
+    if (!app) {
+        return false;
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return false;
+    }
+
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return false;
+    }
+
+    return deployment->is_instance_running(std::move(instance));
 }
 
 auto instances_t::queue_create(apps::key_t app_key, std::string instance_name, bool running) //
@@ -276,12 +305,17 @@ auto instances_t::do_create(
     if (!manifest || !manifest->is_valid()) {
         return {-1, "Could not create instance of " + to_string(app_key) + ": manifest error"};
     }
+    // Step 2a: Determine correct deployment
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {-1, "Could not create instance of " + to_string(app_key) + ": unsupported deployment"};
+    }
 
     // Step 3: Ensure there is only one instance of single-instance apps
     if (!manifest->multi_instance()) {
-        const auto instance_ids = _deployment->instance_ids(app->key());
+        const auto instance_ids = deployment->instance_ids(app->key());
         if (!instance_ids.empty()) {
-            auto instance = _deployment->query_instance(instance_ids.front());
+            auto instance = deployment->query_instance(instance_ids.front());
             instance->app(std::move(app));
 
             return {0, instance->id().hex()};
@@ -289,10 +323,10 @@ auto instances_t::do_create(
     }
 
     // Step 4: Forward to deployment
-    const auto [res, instance_id] = _deployment->create_instance(std::move(app), instance_name);
+    const auto [res, instance_id] = deployment->create_instance(std::move(app), instance_name);
 
     // Final step: Persist creation into db
-    _deployment->save();
+    deployment->save();
 
     if (res != 0) {
         return {-1, "Could not create instance of " + to_string(app_key)};
@@ -334,17 +368,31 @@ auto instances_t::do_start_sync(instances::id_t instance_id, bool once) //
 auto instances_t::do_start(instances::id_t instance_id, bool once, jobs::progress_t& progress) //
     -> result_t
 {
-    auto instance = _deployment->query_instance(instance_id);
     // Step 1: Verify instance does actually exist and is fully created
-    if (!_deployment->is_instance_runnable(instance)) {
+    auto instance = _parent->query(instance_id);
+
+    const auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an App"};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {-1, "App not connected to a Manifest"};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {-1, "Instance has unsupported deployment"};
+    }
+
+    if (!deployment->is_instance_runnable(instance)) {
         return {-1, instance ? "Instance not fully created" : "Instance does not exist"};
     }
 
     auto desc = progress.desc();
     desc += " (" + to_string(instance->app()->key()) + ")";
     progress.desc(std::move(desc));
-    // Step 3: Return if instance is already running
-    if (_deployment->is_instance_running(instance)) {
+    // Step 2: Return if instance is already running
+    if (deployment->is_instance_running(instance)) {
         return {0, "Instance already running"};
     }
 
@@ -354,10 +402,10 @@ auto instances_t::do_start(instances::id_t instance_id, bool once, jobs::progres
     }
 
     // Step 4: Forward to deployment
-    const auto [res, additional_info] = _deployment->start_instance(instance);
+    const auto [res, additional_info] = deployment->start_instance(std::move(instance));
 
     // Final step: Persist instance status into deployment
-    _deployment->save();
+    deployment->save();
 
     return {res, additional_info};
 }
@@ -387,32 +435,43 @@ auto instances_t::do_stop_sync(instances::id_t instance_id, bool once) //
 auto instances_t::do_stop(instances::id_t instance_id, bool once, jobs::progress_t& progress) //
     -> result_t
 {
-    // get instance details from database
-    auto instance = _deployment->query_instance(instance_id);
-
+    // Step 1: Verify instance does actually exist
+    auto instance = _parent->query(instance_id);
     if (!instance) {
         return {-1, "Instance does not exist"};
+    }
+    const auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an App"};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {-1, "App not connected to a Manifest"};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {-1, "Instance has unsupported deployment"};
     }
 
     auto desc = progress.desc();
     desc += " (" + to_string(instance->app()->key()) + ")";
     progress.desc(std::move(desc));
 
-    // Step 3: Return if instance is not running
-    if (!_deployment->is_instance_running(instance)) {
+    // Step 2: Return if instance is not running
+    if (!deployment->is_instance_running(instance)) {
         return {0, "Instance not running"};
     }
 
-    // Step 4: Persist desired status into db
+    // Step 3: Persist desired status into db
     if (!once) {
         instance->desired(instances::status_e::Stopped);
     }
 
-    // Step 5: Forward to deployment
-    const auto [res, additional_info] = _deployment->stop_instance(instance);
+    // Step 4: Forward to deployment
+    const auto [res, additional_info] = deployment->stop_instance(std::move(instance));
 
     // Final step: Persist instance status into deployment
-    _deployment->save();
+    deployment->save();
 
     return {res, additional_info};
 }
@@ -441,9 +500,21 @@ auto instances_t::do_remove(instances::id_t instance_id, jobs::progress_t& progr
     progress.num_steps(3);
 
     // Step 1: Verify instance does actually exist
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
         return {-1, "Instance does not exist"};
+    }
+    const auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an App"};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {-1, "App not connected to a Manifest"};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {-1, "Instance has unsupported deployment"};
     }
 
     auto desc = progress.desc();
@@ -452,17 +523,17 @@ auto instances_t::do_remove(instances::id_t instance_id, jobs::progress_t& progr
 
     // Step 2: Attempt to stop instance
     progress.next_step("Stopping instance");
-    _deployment->stop_instance(instance);
+    deployment->stop_instance(instance);
 
     // Step 3: Remove volumes of instance
     progress.next_step("Removing volumes");
-    _deployment->delete_volumes(instance);
+    deployment->delete_volumes(instance);
 
     /// @todo: move functionality to deployment
     progress.next_step("Removing instance");
 
-    auto [res, message] = _deployment->delete_instance(instance);
-    _deployment->save();
+    auto [res, message] = deployment->delete_instance(instance);
+    deployment->save();
 
     return {res, message};
 }
@@ -472,9 +543,20 @@ auto instances_t::do_get_config(instances::id_t instance_id) const //
 {
     auto response = json_t();
 
-    // Step 1: Verify instance does actually exist
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto app = instance->app();
+    if (!app) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
         return {crow::status::NOT_FOUND, {}};
     }
 
@@ -487,9 +569,20 @@ auto instances_t::do_get_config(instances::id_t instance_id) const //
 auto instances_t::do_post_config(instances::id_t instance_id, const instances::config_t& config) //
     -> crow::response
 {
-    // Step 1: Verify instance does actually exist
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto app = instance->app();
+    if (!app) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
         return {crow::status::NOT_FOUND, {}};
     }
 
@@ -522,9 +615,8 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
                 for (auto& adapter_json : response["networkAdapters"]) {
                     if (adapter_json["name"] == netif->first) {
                         adapter_json["active"] = true;
-                        adapter_json["ipAddress"] = _deployment->generate_instance_ip(
-                            cidr_subnet,
-                            std::string{netif->second.gateway});
+                        adapter_json["ipAddress"] =
+                            deployment->generate_instance_ip(cidr_subnet, std::string{netif->second.gateway});
                         adapter_json["subnetMask"] = netif->second.ipv4addresses[0].subnet_mask;
                         adapter_json["gateway"] = netif->second.gateway;
                         break;
@@ -533,17 +625,17 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
             } else {
                 // apply settings
                 // @todo verify validity of IP address
-                _deployment->create_network(
+                deployment->create_network(
                     network_type_e::IPVLAN_L2,
                     docker_network,
                     cidr_subnet,
                     std::string{netif->second.gateway},
                     netif->first);
 
-                _deployment->disconnect_network(instance, docker_network);
+                deployment->disconnect_network(instance, docker_network);
 
                 const auto [res, additional_info] =
-                    _deployment->connect_network(instance, docker_network, network.ipAddress);
+                    deployment->connect_network(instance, docker_network, network.ipAddress);
 
                 if (res == 0) {
                     auto it = std::find_if(
@@ -560,7 +652,7 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
                             .mac_address = {},
                             .ip_address = network.ipAddress});
                     }
-                    _deployment->save();
+                    deployment->save();
                     for (auto& adapter_json : response["networkAdapters"]) {
                         if (adapter_json.contains("name") && (adapter_json["name"] == netif->first)) {
                             adapter_json["active"] = true;
@@ -577,8 +669,8 @@ auto instances_t::do_post_config(instances::id_t instance_id, const instances::c
                 }
             }
         } else {
-            _deployment->disconnect_network(instance, docker_network);
-            _deployment->delete_network(docker_network);
+            deployment->disconnect_network(instance, docker_network);
+            deployment->delete_network(docker_network);
 
             instance->networks().erase(
                 std::remove_if(
@@ -613,23 +705,26 @@ auto instances_t::do_details(instances::id_t instance_id) const //
     -> crow::response
 {
     // Step 1: Verify instance does actually exist
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
 
-    auto response = json_t();
     // Step 2: Obtain corresponding app and manifest
-    auto app = instance->app();
+    auto response = json_t();
+    const auto app = instance->app();
     if (!app) {
         response["additionalInfo"] = "Instance not connected to an App";
         return {crow::status::INTERNAL_SERVER_ERROR, "json", response.dump()};
     }
-
-    auto manifest = app->manifest();
+    const auto manifest = app->manifest();
     if (!manifest) {
         response["additionalInfo"] = "App not connected to a Manifest";
         return {crow::status::INTERNAL_SERVER_ERROR, "json", response.dump()};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {crow::status::NOT_FOUND, {}};
     }
 
     // Implicitly use to_json function for instance_t for as much as possible
@@ -677,8 +772,20 @@ auto instances_t::do_logs(instances::id_t instance_id) const //
     -> crow::response
 {
     // Step 1: Verify instance does actually exist
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto app = instance->app();
+    if (!app) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
         return {crow::status::NOT_FOUND, {}};
     }
 
@@ -704,7 +811,7 @@ auto instances_t::do_logs(instances::id_t instance_id) const //
 auto instances_t::do_get_env(instances::id_t instance_id) const //
     -> crow::response
 {
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
@@ -716,8 +823,20 @@ auto instances_t::do_get_env(instances::id_t instance_id) const //
 auto instances_t::do_put_env(instances::id_t instance_id, std::vector<mapped_env_var_t> env_vars) //
     -> crow::response
 {
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto app = instance->app();
+    if (!app) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
         return {crow::status::NOT_FOUND, {}};
     }
     auto env = std::set<mapped_env_var_t>{};
@@ -731,26 +850,38 @@ auto instances_t::do_put_env(instances::id_t instance_id, std::vector<mapped_env
         }
     }
     instance->set_environment(std::move(env));
-    _deployment->save();
+    deployment->save();
     return crow::response{crow::status::OK};
 }
 
 auto instances_t::do_delete_env(instances::id_t instance_id) //
     -> crow::response
 {
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
+    const auto app = instance->app();
+    if (!app) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {crow::status::NOT_FOUND, {}};
+    }
     instance->clear_environment();
-    _deployment->save();
+    deployment->save();
     return crow::response{crow::status::OK};
 }
 
 auto instances_t::do_get_ports(instances::id_t instance_id) const //
     -> crow::response
 {
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
@@ -762,24 +893,48 @@ auto instances_t::do_get_ports(instances::id_t instance_id) const //
 auto instances_t::do_put_ports(instances::id_t instance_id, std::vector<mapped_port_range_t> ports) //
     -> crow::response
 {
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
+    const auto app = instance->app();
+    if (!app) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {crow::status::NOT_FOUND, {}};
+    }
     instance->set_ports(std::move(ports));
-    _deployment->save();
+    deployment->save();
     return crow::response{crow::status::OK};
 }
 
 auto instances_t::do_delete_ports(instances::id_t instance_id) //
     -> crow::response
 {
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
         return {crow::status::NOT_FOUND, {}};
     }
+    const auto app = instance->app();
+    if (!app) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {crow::status::NOT_FOUND, {}};
+    }
     instance->clear_ports();
-    _deployment->save();
+    deployment->save();
     return crow::response{crow::status::OK};
 }
 
@@ -809,13 +964,22 @@ auto instances_t::do_update(instances::id_t instance_id, std::string to, jobs::p
     -> result_t
 {
     // Step 1: Verify instance does actually exist, is fully created and valid
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
-        return {-1, "Instance does not exist"};
+        return {crow::status::NOT_FOUND, {}};
     }
-    auto app = instance->app();
+    const auto app = instance->app();
     if (!app) {
-        return {-1, "Instance not connected to an App"};
+        return {crow::status::NOT_FOUND, {}};
+    }
+    // Step 2: Query manifest and deployment
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {crow::status::NOT_FOUND, {}};
     }
 
     auto to_app_key = apps::key_t{app->key().name().data(), to};
@@ -853,7 +1017,7 @@ auto instances_t::do_update(instances::id_t instance_id, std::string to, jobs::p
         }
 
         if (!latest_path.empty()) {
-            _deployment->import_instance(instance, latest_path);
+            deployment->import_instance(instance, latest_path);
         }
     }
 
@@ -861,7 +1025,7 @@ auto instances_t::do_update(instances::id_t instance_id, std::string to, jobs::p
     instance->app(to_app);
 
     // Step 8: Persist updated instance into deployment
-    _deployment->save();
+    deployment->save();
 
     // Final step: Start instance
     if (instance->desired() == instances::status_e::Running) {
@@ -898,13 +1062,24 @@ auto instances_t::do_export_to(
     instances::id_t instance_id, fs::path base_path, jobs::progress_t& /*progress*/) //
     -> result_t
 {
-    // Step 1: Verify instance does actually exist, is fully created and valid
-    auto instance = _deployment->query_instance(instance_id);
+    auto instance = _parent->query(instance_id);
     if (!instance) {
-        return {-1, "Instance does not exist"};
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto app = instance->app();
+    if (!app) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {crow::status::NOT_FOUND, {}};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {crow::status::NOT_FOUND, {}};
     }
 
-    const auto [res, additional_info] = _deployment->export_instance(instance, std::move(base_path));
+    const auto [res, additional_info] = deployment->export_instance(instance, std::move(base_path));
 
     return {res, additional_info};
 }
@@ -939,13 +1114,22 @@ auto instances_t::do_import_from(
     }
     instance.app(std::move(app));
 
-    auto p = _deployment->query_instance(instance.id());
+    const auto manifest = app->manifest();
+    if (!manifest) {
+        return {-1, "App not connected to a Manifest"};
+    }
+    auto deployment = _deployments_api->query_deployment(app->manifest()->deployment_type());
+    if (!deployment) {
+        return {-1, "Instance has unsupported deployment"};
+    }
+
+    auto p = deployment->query_instance(instance.id());
     if (!p) {
-        p = _deployment->insert_instance(std::move(instance));
+        p = deployment->insert_instance(std::move(instance));
     } else {
         *p = std::move(instance);
     }
-    auto [res, message] = _deployment->import_instance(p, base_path);
+    auto [res, message] = deployment->import_instance(p, base_path);
 
     return {res, message};
 }
