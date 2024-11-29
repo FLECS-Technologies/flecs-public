@@ -32,8 +32,7 @@ impl Debug for dyn Deployment {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::jeweler::app::AppId;
-    use crate::jeweler::app::AppInfo;
+    use crate::jeweler::app::{AppId, AppInfo, Token};
     use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
     use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
     use crate::jeweler::volume::VolumeId;
@@ -52,7 +51,7 @@ pub mod tests {
         pub edDeployment {}
         #[async_trait]
         impl AppDeployment for edDeployment {
-            async fn install_app(&self, quest: SyncQuest, manifest: Arc<AppManifest>, username: String, password: String) -> Result<AppId>;
+            async fn install_app(&self, quest: SyncQuest, manifest: Arc<AppManifest>, token: Option<Token>) -> Result<AppId>;
             async fn uninstall_app(&self, quest: SyncQuest, id: AppId) -> Result<()>;
             async fn app_info(&self, quest: SyncQuest, id: AppId) -> Result<AppInfo>;
         }

@@ -1,4 +1,4 @@
-use crate::jeweler::app::{AppId, AppStatus};
+use crate::jeweler::app::{AppId, AppStatus, Token};
 use crate::jeweler::deployment::{Deployment, DeploymentId};
 use crate::jeweler::{serialize_deployment_id, serialize_hashmap_values};
 use crate::quest::{Quest, State, SyncQuest};
@@ -186,12 +186,7 @@ impl App {
             .await
     }
 
-    pub async fn install(
-        &mut self,
-        quest: SyncQuest,
-        username: String,
-        password: String,
-    ) -> anyhow::Result<()> {
+    pub async fn install(&mut self, quest: SyncQuest, token: Option<Token>) -> anyhow::Result<()> {
         match &self.manifest {
             None => anyhow::bail!("Can not install {:?}, no manifest present.", self.key),
             Some(manifest) => {
@@ -202,8 +197,7 @@ impl App {
                     let deployment = data.deployment.clone();
                     let manifest = manifest.clone();
                     let id = data.id.clone();
-                    let username = username.clone();
-                    let password = password.clone();
+                    let token = token.clone();
                     let (.., id) = quest
                         .lock()
                         .await
@@ -229,9 +223,7 @@ impl App {
                                         Some("Already installed".to_string());
                                     Ok(id.unwrap())
                                 } else {
-                                    deployment
-                                        .install_app(quest, manifest.clone(), username, password)
-                                        .await
+                                    deployment.install_app(quest, manifest.clone(), token).await
                                 }
                             },
                         )

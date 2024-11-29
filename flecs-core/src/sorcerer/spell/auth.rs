@@ -1,12 +1,11 @@
 pub use super::Result;
+use crate::jeweler::app::Token;
 use crate::vault::pouch::Secrets;
 use anyhow::{anyhow, Context};
 use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::default_api::{post_api_v2_tokens, PostApiV2TokensSuccess};
 use flecs_console_client::apis::ResponseContent;
-use flecs_console_client::models::{
-    PostApiV2Tokens200ResponseData, PostApiV2Tokens200ResponseDataToken, PostApiV2TokensRequest,
-};
+use flecs_console_client::models::PostApiV2TokensRequest;
 use flecsd_axum_server::models::AuthResponseData;
 use http::StatusCode;
 use std::sync::Arc;
@@ -24,7 +23,7 @@ pub async fn acquire_download_token(
     x_session_id: &str,
     app: &str,
     version: &str,
-) -> Result<PostApiV2Tokens200ResponseData> {
+) -> Result<Option<Token>> {
     match post_api_v2_tokens(
         &console_configuration,
         x_session_id,
@@ -38,13 +37,11 @@ pub async fn acquire_download_token(
         Ok(ResponseContent {
             entity: Some(PostApiV2TokensSuccess::Status200(response)),
             ..
-        }) => Ok(*response.data),
+        }) => Ok(Some((*response.data).into())),
         Ok(ResponseContent {
             status: StatusCode::NO_CONTENT,
             ..
-        }) => Ok(PostApiV2Tokens200ResponseData {
-            token: Box::<PostApiV2Tokens200ResponseDataToken>::default(),
-        }),
+        }) => Ok(None),
         Ok(ResponseContent {
             status, content, ..
         }) => Err(anyhow!(
@@ -58,7 +55,7 @@ pub async fn acquire_download_token(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flecs_console_client::models::{PostApiV2Tokens200ResponseDataToken, SessionId};
+    use flecs_console_client::models::SessionId;
     use flecsd_axum_server::models::{AuthResponseData, FeatureFlags, Jwt, User};
 
     fn create_test_auth() -> AuthResponseData {
@@ -112,11 +109,9 @@ mod tests {
             }
         });
         let body = serde_json::to_string(&body).unwrap();
-        let expected_result = PostApiV2Tokens200ResponseData {
-            token: Box::new(PostApiV2Tokens200ResponseDataToken {
-                username: USERNAME.to_string(),
-                password: PASSWORD.to_string(),
-            }),
+        let expected_result = Token {
+            username: USERNAME.to_string(),
+            password: PASSWORD.to_string(),
         };
         let mock = server
             .mock("POST", "/api/v2/tokens")
@@ -127,7 +122,7 @@ mod tests {
             .await;
         assert_eq!(
             acquire_download_token(config, "", "", "").await.unwrap(),
-            expected_result
+            Some(expected_result)
         );
         mock.assert();
     }
@@ -135,9 +130,6 @@ mod tests {
     #[tokio::test]
     async fn acquire_download_token_no_content_test() {
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
-        let expected_result = PostApiV2Tokens200ResponseData {
-            token: Box::<PostApiV2Tokens200ResponseDataToken>::default(),
-        };
         let mock = server
             .mock("POST", "/api/v2/tokens")
             .with_status(204)
@@ -145,7 +137,7 @@ mod tests {
             .await;
         assert_eq!(
             acquire_download_token(config, "", "", "").await.unwrap(),
-            expected_result
+            None
         );
         mock.assert();
     }
