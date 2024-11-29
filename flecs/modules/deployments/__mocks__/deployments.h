@@ -38,6 +38,11 @@ public:
     ~deployments_t() override = default;
 
     MOCK_METHOD(
+        std::vector<std::shared_ptr<flecs::deployments::deployment_t>>,
+        deployments,
+        (),
+        (const, noexcept)); //
+    MOCK_METHOD(
         std::shared_ptr<flecs::deployments::deployment_t>, query_deployment, (std::string_view), ()); //
 
 protected:

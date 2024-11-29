@@ -162,8 +162,6 @@ private:
     std::shared_ptr<flecs::module::apps_t> _apps_api;
     std::shared_ptr<flecs::module::deployments_t> _deployments_api;
     std::shared_ptr<flecs::module::jobs_t> _jobs_api;
-
-    std::shared_ptr<deployments::deployment_t> _deployment;
 };
 
 } // namespace impl
