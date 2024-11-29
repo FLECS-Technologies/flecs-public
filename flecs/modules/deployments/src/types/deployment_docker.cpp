@@ -345,7 +345,7 @@ auto docker_t::delete_container(std::shared_ptr<instances::instance_t> instance)
     return {0, {}};
 }
 
-auto docker_t::docker_login(std::shared_ptr<const apps::app_t> app, std::optional<Token> token) const //
+auto docker_t::docker_login(std::optional<Token> token) const //
     -> result_t
 {
     if (token.has_value() && !token->username.empty() && !token->password.empty()) {
@@ -363,7 +363,7 @@ auto docker_t::docker_login(std::shared_ptr<const apps::app_t> app, std::optiona
             token->username.c_str(),
             "--password",
             token->password.c_str(),
-            app->manifest()->image_with_tag());
+            "flecs.azurecr.io");
         process.wait(true, true);
         if (process.exit_code() == 0) {
             break;
@@ -387,7 +387,7 @@ auto docker_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<T
     -> result_t
 {
     if (token.has_value() && !token->username.empty() && !token->password.empty()) {
-        const auto [res, message] = docker_login(app, std::move(token));
+        const auto [res, message] = docker_login(std::move(token));
         if (res != 0) {
             std::fprintf(stderr, "Warning: docker login unsuccessful: %s\n", message.c_str());
         }
