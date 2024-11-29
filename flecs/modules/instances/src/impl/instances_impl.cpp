@@ -223,10 +223,8 @@ auto instances_t::do_instance_ids(const apps::key_t& app_key) const //
 {
     auto res = std::vector<instances::id_t>{};
     for (auto deployment : _deployments_api->deployments()) {
-        res.insert(
-            res.end(),
-            deployment->instance_ids(app_key).cbegin(),
-            deployment->instance_ids(app_key).cend());
+        auto ids = deployment->instance_ids(app_key);
+        res.insert(res.end(), ids.cbegin(), ids.cend());
     }
     return res;
 }

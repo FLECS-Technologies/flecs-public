@@ -348,7 +348,7 @@ auto docker_t::delete_container(std::shared_ptr<instances::instance_t> instance)
 auto docker_t::docker_login(std::optional<Token> token) const //
     -> result_t
 {
-    if (token.has_value() && !token->username.empty() && !token->password.empty()) {
+    if (!token.has_value() || token->username.empty() || token->password.empty()) {
         return {-1, "No credentials provided"};
     }
 
