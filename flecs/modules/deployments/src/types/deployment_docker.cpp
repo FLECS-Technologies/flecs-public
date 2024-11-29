@@ -348,7 +348,7 @@ auto docker_t::delete_container(std::shared_ptr<instances::instance_t> instance)
 auto docker_t::docker_login(std::shared_ptr<const apps::app_t> app, std::optional<Token> token) const //
     -> result_t
 {
-    if (!token.has_value()) {
+    if (token.has_value() && !token->username.empty() && !token->password.empty()) {
         return {-1, "No credentials provided"};
     }
 
@@ -386,7 +386,7 @@ auto docker_t::do_deployment_id() const noexcept //
 auto docker_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<Token> token) //
     -> result_t
 {
-    if (token.has_value()) {
+    if (token.has_value() && !token->username.empty() && !token->password.empty()) {
         const auto [res, message] = docker_login(app, std::move(token));
         if (res != 0) {
             std::fprintf(stderr, "Warning: docker login unsuccessful: %s\n", message.c_str());
