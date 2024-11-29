@@ -124,6 +124,7 @@ mod tests {
             InstanceDeserializable {
                 config: InstanceConfig {
                     image: "flecs.azurecr.io/some.test.app-1".to_string(),
+                    volume_ids: Default::default(),
                 },
                 name: "test-instance-1".to_string(),
                 id: InstanceId::new(1),
@@ -137,6 +138,7 @@ mod tests {
             InstanceDeserializable {
                 config: InstanceConfig {
                     image: "flecs.azurecr.io/some.test.app-2".to_string(),
+                    volume_ids: Default::default(),
                 },
                 name: "test-instance-2".to_string(),
                 id: InstanceId::new(2),

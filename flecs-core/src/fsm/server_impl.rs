@@ -1,3 +1,4 @@
+use crate::jeweler::gem::instance::InstanceId;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
 use anyhow::Error;
@@ -56,6 +57,7 @@ use flecsd_axum_server::models::{
 };
 use http::Method;
 use std::ops::Deref;
+use std::str::FromStr;
 use std::sync::Arc;
 use tracing::{error, warn};
 
@@ -508,9 +510,29 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdDeletePathParams,
+        path_params: InstancesInstanceIdDeletePathParams,
     ) -> Result<InstancesInstanceIdDeleteResponse, String> {
-        todo!()
+        let instance_id =
+            InstanceId::from_str(path_params.instance_id.as_str()).map_err(|e| e.to_string())?;
+        if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
+        {
+            return Ok(InstancesInstanceIdDeleteResponse::Status404_NoInstanceWithThisInstance);
+        }
+        let quest_id = crate::lore::quest::default()
+            .await
+            .lock()
+            .await
+            .schedule_quest(format!("Delete instance {instance_id}"), |quest| {
+                crate::sorcerer::instancius::delete_instance(quest, self.vault.clone(), instance_id)
+            })
+            .await
+            .map_err(|e| e.to_string())?
+            .0;
+        Ok(InstancesInstanceIdDeleteResponse::Status202_Accepted(
+            JobMeta {
+                job_id: quest_id.0 as i32,
+            },
+        ))
     }
 
     async fn instances_instance_id_editor_port_get(

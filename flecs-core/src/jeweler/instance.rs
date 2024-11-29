@@ -7,7 +7,7 @@ use std::path::Path;
 // TODO: Take Quest as parameter, create subquests
 #[async_trait]
 pub trait InstanceDeployment {
-    async fn delete_instance(&self, id: InstanceId) -> Result<()>;
+    async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
     async fn start_instance(
         &self,
         config: InstanceConfig,
