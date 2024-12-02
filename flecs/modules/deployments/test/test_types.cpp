@@ -49,7 +49,6 @@ public:
     MOCK_METHOD(result_t, do_create_instance, (std::shared_ptr<instances::instance_t> instance), (override));
     MOCK_METHOD(result_t, do_delete_instance, (std::shared_ptr<instances::instance_t> instance), (override));
     MOCK_METHOD(result_t, do_start_instance, (std::shared_ptr<instances::instance_t> instance), (override));
-    MOCK_METHOD(result_t, do_ready_instance, (std::shared_ptr<instances::instance_t> instance), (override));
     MOCK_METHOD(result_t, do_stop_instance, (std::shared_ptr<instances::instance_t> instance), (override));
     MOCK_METHOD(
         result_t,
@@ -246,9 +245,6 @@ TEST(deployment, interface)
         auto p = test_deployment.query_instance(G_INSTANCE_ID_1);
         EXPECT_CALL(test_deployment, do_start_instance(p)).Times(1);
         deployment->start_instance(p);
-
-        EXPECT_CALL(test_deployment, do_ready_instance(p)).Times(1);
-        deployment->ready_instance(p);
 
         EXPECT_CALL(test_deployment, do_stop_instance(p)).Times(1);
         deployment->stop_instance(p);

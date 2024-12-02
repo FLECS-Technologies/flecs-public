@@ -325,13 +325,7 @@ auto deployment_t::start_instance(std::shared_ptr<instances::instance_t> instanc
         }
     }
 
-    return ready_instance(std::move(instance));
-}
-
-auto deployment_t::ready_instance(std::shared_ptr<instances::instance_t> instance) //
-    -> result_t
-{
-    return do_ready_instance(std::move(instance));
+    return {0, {}};
 }
 
 auto deployment_t::stop_instance(std::shared_ptr<instances::instance_t> instance) //
