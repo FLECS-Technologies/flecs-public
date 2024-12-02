@@ -94,8 +94,6 @@ public:
         -> result_t;
     auto start_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t;
-    auto ready_instance(std::shared_ptr<instances::instance_t> instance) //
-        -> result_t;
     auto stop_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t;
     auto export_instance(std::shared_ptr<instances::instance_t> instance, fs::path dest_dir) const //
@@ -220,8 +218,6 @@ private:
     virtual auto do_delete_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t = 0;
     virtual auto do_start_instance(std::shared_ptr<instances::instance_t> instance) //
-        -> result_t = 0;
-    virtual auto do_ready_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t = 0;
     virtual auto do_stop_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t = 0;

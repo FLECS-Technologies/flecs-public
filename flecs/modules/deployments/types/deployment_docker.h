@@ -53,8 +53,6 @@ private:
         -> result_t override;
     auto do_start_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t override;
-    auto do_ready_instance(std::shared_ptr<instances::instance_t> instance) //
-        -> result_t override;
     auto do_stop_instance(std::shared_ptr<instances::instance_t> instance) //
         -> result_t override;
     auto do_export_instance(std::shared_ptr<instances::instance_t> instance, fs::path dest_dir) const //

@@ -511,27 +511,6 @@ auto docker_t::do_start_instance(std::shared_ptr<instances::instance_t> instance
     return {0, {}};
 }
 
-auto docker_t::do_ready_instance(std::shared_ptr<instances::instance_t> instance) //
-    -> result_t
-{
-    const auto container_name = "flecs-" + instance->id().hex();
-
-    auto docker_process = process_t{};
-
-    docker_process.arg("exec");
-    docker_process.arg(container_name);
-    docker_process.arg("touch");
-    docker_process.arg("/flecs-tmp/ready");
-
-    docker_process.spawnp("docker");
-    docker_process.wait(false, true);
-    if (docker_process.exit_code() != 0) {
-        return {0, docker_process.stderr()};
-    }
-
-    return {0, {}};
-}
-
 auto docker_t::do_stop_instance(std::shared_ptr<instances::instance_t> instance) //
     -> result_t
 {
