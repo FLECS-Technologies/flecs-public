@@ -356,13 +356,13 @@ auto docker_t::docker_login(std::optional<Token> token) const //
     auto login_attempts = 3;
     while (login_attempts-- > 0) {
         process = process_t{};
+        process.stdin(token->password.c_str());
         process.spawnp(
             "docker",
             "login",
             "--username",
             token->username.c_str(),
-            "--password",
-            token->password.c_str(),
+            "--password-stdin",
             "flecs.azurecr.io");
         process.wait(true, true);
         if (process.exit_code() == 0) {
