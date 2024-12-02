@@ -34,6 +34,7 @@ pub mod tests {
     use super::*;
     use crate::jeweler::app::{AppId, AppInfo, Token};
     use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
+    use crate::jeweler::instance::Logs;
     use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
     use crate::jeweler::volume::VolumeId;
     use crate::quest::SyncQuest;
@@ -62,6 +63,7 @@ pub mod tests {
             async fn stop_instance(&self, id: InstanceId) -> Result<()>;
             async fn ready_instance(&self, id: InstanceId) -> Result<()>;
             async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
+            async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> Result<Logs>;
             async fn copy_from_instance(
                 &self,
                 quest: SyncQuest,

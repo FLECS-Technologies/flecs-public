@@ -538,9 +538,39 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdLogsGetPathParams,
+        path_params: InstancesInstanceIdLogsGetPathParams,
     ) -> Result<InstancesInstanceIdLogsGetResponse, String> {
-        todo!()
+        let instance_id =
+            InstanceId::from_str(path_params.instance_id.as_str()).map_err(|e| e.to_string())?;
+        match crate::sorcerer::instancius::find_instance(self.vault.clone(), instance_id).await {
+            Ok((app_key, deployment_id)) => {
+                let logs = crate::sorcerer::instancius::get_instance_logs(
+                    self.vault.clone(),
+                    instance_id,
+                    app_key,
+                    deployment_id,
+                )
+                .await;
+                match logs {
+                    Err(e) => Ok(
+                        InstancesInstanceIdLogsGetResponse::Status500_InternalServerError(
+                            AdditionalInfo::new(e.to_string()),
+                        ),
+                    ),
+                    Ok(logs) => Ok(InstancesInstanceIdLogsGetResponse::Status200_Success(
+                        logs.into(),
+                    )),
+                }
+            }
+            Err(InstanceError::InstanceNotFound) => {
+                Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance)
+            }
+            Err(InstanceError::Other(e)) => Ok(
+                InstancesInstanceIdLogsGetResponse::Status500_InternalServerError(
+                    AdditionalInfo::new(e.to_string()),
+                ),
+            ),
+        }
     }
 
     async fn instances_instance_id_patch(

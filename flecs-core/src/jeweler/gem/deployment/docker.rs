@@ -1,6 +1,6 @@
 use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
 use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
-use crate::jeweler::instance::InstanceDeployment;
+use crate::jeweler::instance::{InstanceDeployment, Logs};
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
 use crate::jeweler::volume::{VolumeDeployment, VolumeId};
 use crate::quest::{QuestId, State, SyncQuest};
@@ -17,7 +17,7 @@ use bollard::models::{
 use bollard::network::{
     ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions, ListNetworksOptions,
 };
-use bollard::volume::CreateVolumeOptions;
+use bollard::volume::{CreateVolumeOptions, RemoveVolumeOptions};
 use bollard::{Docker, API_DEFAULT_VERSION};
 use flecs_app_manifest::AppManifest;
 use futures_util::future::{join_all, BoxFuture};
@@ -329,7 +329,12 @@ impl VolumeDeployment for DockerDeployment {
 
     async fn delete_volume(&self, _quest: SyncQuest, id: VolumeId) -> anyhow::Result<()> {
         let docker_client = self.client()?;
-        relic::docker::volume::remove(docker_client, None, &id).await
+        relic::docker::volume::remove(
+            docker_client,
+            Some(RemoveVolumeOptions { force: true }),
+            &id,
+        )
+        .await
     }
 
     async fn import_volume(
@@ -792,6 +797,13 @@ impl InstanceDeployment for DockerDeployment {
             }) => Ok(state.into()),
             _ => Ok(InstanceStatus::Unknown),
         }
+    }
+
+    async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> anyhow::Result<Logs> {
+        let docker_client = self.client()?;
+        let (stdout, stderr) =
+            relic::docker::container::logs(docker_client, quest, &id.to_docker_id()).await?;
+        Ok(Logs { stderr, stdout })
     }
 
     async fn copy_from_instance(

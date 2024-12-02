@@ -1,6 +1,8 @@
 use crate::jeweler::app::{AppId, AppStatus, Token};
 use crate::jeweler::deployment::{Deployment, DeploymentId};
 use crate::jeweler::{serialize_deployment_id, serialize_hashmap_values};
+use crate::jeweler::gem::instance::{Instance, InstanceDeserializable, InstanceId};
+use crate::jeweler::instance::Logs;
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch::AppKey;
 use flecs_app_manifest::AppManifest;
@@ -405,6 +407,42 @@ impl App {
                 ),
                 self,
             ))
+        }
+    }
+
+    pub async fn delete_instance(
+        &mut self,
+        _quest: SyncQuest,
+        id: InstanceId,
+        deployment_id: DeploymentId,
+    ) -> Result<()> {
+        match self.properties.get_mut(&deployment_id) {
+            None => anyhow::bail!("Deployment {deployment_id} unknown"),
+            Some(data) => match data.instances.remove(&id) {
+                None => Err(anyhow::anyhow!("Instance {id} unknown")),
+                Some(instance) => {
+                    if let Err((e, instance)) = instance.stop_and_delete().await {
+                        data.instances.insert(id, instance);
+                        Err(e)
+                    } else {
+                        Ok(())
+                    }
+                }
+            },
+        }
+    }
+
+    pub async fn get_instance_logs(
+        &self,
+        id: InstanceId,
+        deployment_id: DeploymentId,
+    ) -> Result<Logs> {
+        match self.properties.get(&deployment_id) {
+            None => anyhow::bail!("Deployment {deployment_id} unknown"),
+            Some(data) => match data.instances.get(&id) {
+                None => Err(anyhow::anyhow!("Instance {id} unknown")),
+                Some(instance) => instance.get_logs().await,
+            },
         }
     }
 }

@@ -4,6 +4,20 @@ use crate::quest::SyncQuest;
 use async_trait::async_trait;
 use std::path::Path;
 
+pub struct Logs {
+    pub stdout: String,
+    pub stderr: String,
+}
+
+impl From<Logs> for flecsd_axum_server::models::InstancesInstanceIdLogsGet200Response {
+    fn from(logs: Logs) -> Self {
+        Self {
+            stdout: logs.stdout,
+            stderr: logs.stderr,
+        }
+    }
+}
+
 // TODO: Take Quest as parameter, create subquests
 #[async_trait]
 pub trait InstanceDeployment {
@@ -16,6 +30,7 @@ pub trait InstanceDeployment {
     async fn stop_instance(&self, id: InstanceId) -> Result<()>;
     async fn ready_instance(&self, id: InstanceId) -> Result<()>;
     async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
+    async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> Result<Logs>;
     async fn copy_from_instance(
         &self,
         quest: SyncQuest,
