@@ -403,6 +403,127 @@ auto docker_t::docker_save(std::string image, fs::path archive) const //
     return {0, {}};
 }
 
+auto docker_t::docker_import_volume(std::string volume_name, fs::path src_dir) //
+    -> result_t
+{
+    using std::operator""s;
+
+    const auto archive = src_dir.string() + "/" + volume_name + ".tar.gz";
+
+    auto ec = std::error_code{};
+    if (!fs::exists(archive, ec)) {
+        return {-1, "Backup archive does not exist"};
+    }
+    if (!fs::is_regular_file(archive, ec)) {
+        return {-1, "Backup archive is no regular file"};
+    }
+
+    auto docker_create_process = process_t{};
+    docker_create_process.arg("create");
+    docker_create_process.arg("--network");
+    docker_create_process.arg("none");
+    docker_create_process.arg("--volume");
+    docker_create_process.arg(volume_name + ":/mnt/restore:rw");
+    docker_create_process.arg("--workdir");
+    docker_create_process.arg("/mnt/restore");
+    docker_create_process.arg("alpine");
+    docker_create_process.arg("tar");
+    docker_create_process.arg("-xf");
+    docker_create_process.arg("/tmp/" + volume_name + ".tar.gz");
+    docker_create_process.spawnp("docker");
+    docker_create_process.wait(false, true);
+    if (docker_create_process.exit_code() != 0) {
+        return {-1, docker_create_process.stderr()};
+    }
+    auto container_id = *split(docker_create_process.stdout(), '\n').rbegin();
+    trim(container_id);
+
+    auto docker_cp_process = process_t{};
+    docker_cp_process.arg("cp");
+    docker_cp_process.arg(archive);
+    docker_cp_process.arg(container_id + ":/tmp/");
+    docker_cp_process.spawnp("docker");
+    docker_cp_process.wait(false, true);
+    if (docker_cp_process.exit_code() != 0) {
+        return {-1, docker_cp_process.stderr()};
+    }
+
+    auto docker_start_process = process_t{};
+    docker_start_process.arg("start");
+    docker_start_process.arg(container_id);
+    docker_start_process.spawnp("docker");
+    docker_start_process.wait(false, true);
+    if (docker_start_process.exit_code() != 0) {
+        return {-1, docker_start_process.stderr()};
+    }
+
+    auto docker_rm_process = process_t{};
+    docker_rm_process.arg("rm");
+    docker_rm_process.arg("--force");
+    docker_rm_process.arg(container_id);
+    docker_rm_process.spawnp("docker");
+    docker_rm_process.wait(false, true);
+
+    return {0, {}};
+}
+
+auto docker_t::docker_export_volume(std::string volume_name, fs::path dest_dir) const //
+    -> result_t
+{
+    const auto archive = volume_name + ".tar.gz";
+
+    auto docker_create_process = process_t{};
+    docker_create_process.arg("create");
+    docker_create_process.arg("--network");
+    docker_create_process.arg("none");
+    docker_create_process.arg("--volume");
+    docker_create_process.arg(std::move(volume_name) + ":/mnt/backup:ro");
+    docker_create_process.arg("--workdir");
+    docker_create_process.arg("/tmp");
+    docker_create_process.arg("alpine");
+    docker_create_process.arg("tar");
+    docker_create_process.arg("-C");
+    docker_create_process.arg("/mnt/backup");
+    docker_create_process.arg("-czf");
+    docker_create_process.arg(archive);
+    docker_create_process.arg(".");
+    docker_create_process.spawnp("docker");
+    docker_create_process.wait(false, true);
+    if (docker_create_process.exit_code() != 0) {
+        return {-1, docker_create_process.stderr()};
+    }
+    auto container_id = *split(docker_create_process.stdout(), '\n').rbegin();
+    trim(container_id);
+
+    auto docker_start_process = process_t{};
+    docker_start_process.arg("start");
+    docker_start_process.arg(container_id);
+    docker_start_process.spawnp("docker");
+    docker_start_process.wait(false, true);
+    if (docker_start_process.exit_code() != 0) {
+        return {-1, docker_start_process.stderr()};
+    }
+
+    auto docker_cp_process = process_t{};
+    docker_cp_process.arg("cp");
+    docker_cp_process.arg(container_id + ":/tmp/" + archive);
+    docker_cp_process.arg(dest_dir);
+    docker_cp_process.spawnp("docker");
+    docker_cp_process.wait(false, true);
+    if (docker_cp_process.exit_code() != 0) {
+        return {-1, docker_cp_process.stderr()};
+    }
+
+    auto docker_rm_process = process_t{};
+    docker_rm_process.arg("rm");
+    docker_rm_process.arg("--force");
+    docker_rm_process.arg(container_id);
+    docker_rm_process.spawnp("docker");
+    docker_rm_process.wait(false, true);
+
+    return {0, {}};
+}
+
 auto docker_t::do_deployment_id() const noexcept //
     -> std::string_view
 {
@@ -843,64 +964,35 @@ auto docker_t::do_import_volume(
     using std::operator""s;
 
     const auto name = "flecs-"s + instance->id().hex() + "-"s + volume.host();
-    const auto archive = src_dir.string() + "/" + name + ".tar.gz";
-
-    auto ec = std::error_code{};
-    if (!fs::exists(archive, ec)) {
-        return {-1, "Backup archive does not exist"};
-    }
-    if (!fs::is_regular_file(archive, ec)) {
-        return {-1, "Backup archive is no regular file"};
-    }
 
     delete_volume(instance, volume.host());
     create_volume(instance, volume.host());
 
-    auto docker_create_process = process_t{};
-    docker_create_process.arg("create");
-    docker_create_process.arg("--network");
-    docker_create_process.arg("none");
-    docker_create_process.arg("--volume");
-    docker_create_process.arg(name + ":/mnt/restore:rw");
-    docker_create_process.arg("--workdir");
-    docker_create_process.arg("/mnt/restore");
-    docker_create_process.arg("alpine");
-    docker_create_process.arg("tar");
-    docker_create_process.arg("-xf");
-    docker_create_process.arg("/tmp/" + name + ".tar.gz");
-    docker_create_process.spawnp("docker");
-    docker_create_process.wait(false, true);
-    if (docker_create_process.exit_code() != 0) {
-        return {-1, docker_create_process.stderr()};
-    }
-    auto container_id = *split(docker_create_process.stdout(), '\n').rbegin();
-    trim(container_id);
+    return docker_import_volume(std::move(name), std::move(src_dir));
+}
 
-    auto docker_cp_process = process_t{};
-    docker_cp_process.arg("cp");
-    docker_cp_process.arg(archive);
-    docker_cp_process.arg(container_id + ":/tmp/");
-    docker_cp_process.spawnp("docker");
-    docker_cp_process.wait(false, true);
-    if (docker_cp_process.exit_code() != 0) {
-        return {-1, docker_cp_process.stderr()};
+auto docker_t::do_import_volumes(
+    std::shared_ptr<instances::instance_t> instance,
+    fs::path src_dir) //
+    -> result_t
+{
+    auto app = instance->app();
+    if (!app) {
+        return {-1, "Instance not connected to an app"};
+    }
+    auto manifest = app->manifest();
+    if (!manifest) {
+        return {-1, "Could not access app manifest"};
     }
 
-    auto docker_start_process = process_t{};
-    docker_start_process.arg("start");
-    docker_start_process.arg(container_id);
-    docker_start_process.spawnp("docker");
-    docker_start_process.wait(false, true);
-    if (docker_start_process.exit_code() != 0) {
-        return {-1, docker_start_process.stderr()};
+    for (auto& volume : manifest->volumes()) {
+        if (volume.type() == volume_t::VOLUME) {
+            const auto [res, additional_info] = import_volume(instance, volume, src_dir);
+            if (res != 0) {
+                return {res, additional_info};
+            }
+        }
     }
-
-    auto docker_rm_process = process_t{};
-    docker_rm_process.arg("rm");
-    docker_rm_process.arg("--force");
-    docker_rm_process.arg(container_id);
-    docker_rm_process.spawnp("docker");
-    docker_rm_process.wait(false, true);
 
     return {0, {}};
 }
@@ -912,56 +1004,31 @@ auto docker_t::do_export_volume(
     -> result_t
 {
     const auto name = "flecs-" + instance->id().hex() + "-" + volume.host();
-    const auto archive = name + ".tar.gz";
+    return docker_export_volume(std::move(name), std::move(dest_dir));
+}
 
-    auto docker_create_process = process_t{};
-    docker_create_process.arg("create");
-    docker_create_process.arg("--network");
-    docker_create_process.arg("none");
-    docker_create_process.arg("--volume");
-    docker_create_process.arg(name + ":/mnt/backup:ro");
-    docker_create_process.arg("--workdir");
-    docker_create_process.arg("/tmp");
-    docker_create_process.arg("alpine");
-    docker_create_process.arg("tar");
-    docker_create_process.arg("-C");
-    docker_create_process.arg("/mnt/backup");
-    docker_create_process.arg("-czf");
-    docker_create_process.arg(name + ".tar.gz");
-    docker_create_process.arg(".");
-    docker_create_process.spawnp("docker");
-    docker_create_process.wait(false, true);
-    if (docker_create_process.exit_code() != 0) {
-        return {-1, docker_create_process.stderr()};
+auto docker_t::do_export_volumes(std::shared_ptr<instances::instance_t> instance, fs::path dest_dir) const //
+    -> result_t
+{
+    auto app = instance->app();
+    if (!app) {
+        LOG_TRACE("<-- %s Instance not connected to an app\n", __FUNCTION__);
+        return {-1, "Instance not connected to an app"};
     }
-    auto container_id = *split(docker_create_process.stdout(), '\n').rbegin();
-    trim(container_id);
-
-    auto docker_start_process = process_t{};
-    docker_start_process.arg("start");
-    docker_start_process.arg(container_id);
-    docker_start_process.spawnp("docker");
-    docker_start_process.wait(false, true);
-    if (docker_start_process.exit_code() != 0) {
-        return {-1, docker_start_process.stderr()};
+    auto manifest = app->manifest();
+    if (!manifest) {
+        LOG_TRACE("<-- %s Could not access app manifest\n", __FUNCTION__);
+        return {-1, "Could not access app manifest"};
     }
 
-    auto docker_cp_process = process_t{};
-    docker_cp_process.arg("cp");
-    docker_cp_process.arg(container_id + ":/tmp/" + archive);
-    docker_cp_process.arg(dest_dir);
-    docker_cp_process.spawnp("docker");
-    docker_cp_process.wait(false, true);
-    if (docker_cp_process.exit_code() != 0) {
-        return {-1, docker_cp_process.stderr()};
+    for (auto& volume : manifest->volumes()) {
+        if (volume.type() == volume_t::VOLUME) {
+            const auto [res, additional_info] = export_volume(instance, volume, dest_dir);
+            if (res != 0) {
+                return {res, additional_info};
+            }
+        }
     }
-
-    auto docker_rm_process = process_t{};
-    docker_rm_process.arg("rm");
-    docker_rm_process.arg("--force");
-    docker_rm_process.arg(container_id);
-    docker_rm_process.spawnp("docker");
-    docker_rm_process.wait(false, true);
 
     return {0, {}};
 }

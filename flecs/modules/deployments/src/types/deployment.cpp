@@ -580,25 +580,7 @@ auto deployment_t::create_volume(
 auto deployment_t::import_volumes(std::shared_ptr<instances::instance_t> instance, fs::path src_dir) //
     -> result_t
 {
-    auto app = instance->app();
-    if (!app) {
-        return {-1, "Instance not connected to an app"};
-    }
-    auto manifest = app->manifest();
-    if (!manifest) {
-        return {-1, "Could not access app manifest"};
-    }
-
-    for (auto& volume : manifest->volumes()) {
-        if (volume.type() == volume_t::VOLUME) {
-            const auto [res, additional_info] = import_volume(instance, volume, src_dir);
-            if (res != 0) {
-                return {res, additional_info};
-            }
-        }
-    }
-
-    return {0, {}};
+    return do_import_volumes(std::move(instance), std::move(src_dir));
 }
 
 auto deployment_t::import_volume(
@@ -626,27 +608,7 @@ auto deployment_t::export_volumes(std::shared_ptr<instances::instance_t> instanc
         instance->id().hex().c_str(),
         dest_dir.c_str());
 
-    auto app = instance->app();
-    if (!app) {
-        LOG_TRACE("<-- %s Instance not connected to an app\n", __FUNCTION__);
-        return {-1, "Instance not connected to an app"};
-    }
-    auto manifest = app->manifest();
-    if (!manifest) {
-        LOG_TRACE("<-- %s Could not access app manifest\n", __FUNCTION__);
-        return {-1, "Could not access app manifest"};
-    }
-
-    for (auto& volume : manifest->volumes()) {
-        if (volume.type() == volume_t::VOLUME) {
-            const auto [res, additional_info] = export_volume(instance, volume, dest_dir);
-            if (res != 0) {
-                return {res, additional_info};
-            }
-        }
-    }
-
-    return {0, {}};
+    return do_export_volumes(std::move(instance), std::move(dest_dir));
 }
 
 auto deployment_t::export_volume(
