@@ -1,5 +1,6 @@
 use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
 use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::instance::InstanceDeployment;
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
 use crate::jeweler::volume::{VolumeDeployment, VolumeId};
@@ -19,13 +20,11 @@ use bollard::network::{
 };
 use bollard::volume::CreateVolumeOptions;
 use bollard::{Docker, API_DEFAULT_VERSION};
-use flecs_app_manifest::AppManifest;
 use futures_util::future::{join_all, BoxFuture};
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -66,7 +65,7 @@ impl AppDeployment for DockerDeployment {
             .lock()
             .await
             .create_sub_quest(
-                format!("Download image {}", manifest.image.deref()),
+                format!("Download image {}", manifest.image()),
                 |quest| async move {
                     relic::docker::image::pull(
                         quest,
@@ -76,8 +75,8 @@ impl AppDeployment for DockerDeployment {
                             password: Some(token.password),
                             ..DockerCredentials::default()
                         }),
-                        manifest.image.deref(),
-                        manifest.version.as_str(),
+                        manifest.image(),
+                        manifest.key.version.as_str(),
                     )
                     .await
                 },

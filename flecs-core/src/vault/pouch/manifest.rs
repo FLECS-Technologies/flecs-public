@@ -1,9 +1,8 @@
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Error;
-use flecs_app_manifest::AppManifest;
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -77,12 +76,9 @@ impl ManifestPouch {
                     eprintln!("Could not read manifest from {entry:?}: {e}");
                 }
                 Ok(manifest) => {
-                    let key = AppKey {
-                        name: manifest.app.deref().clone(),
-                        version: manifest.version.clone(),
-                    };
-                    self.manifests.insert(key.clone(), Arc::new(manifest));
-                    self.existing_manifest_keys.insert(key);
+                    self.existing_manifest_keys.insert(manifest.key.clone());
+                    self.manifests
+                        .insert(manifest.key.clone(), Arc::new(manifest));
                     println!("Successful read manifest from {entry:?}");
                 }
             }
@@ -103,6 +99,7 @@ impl ManifestPouch {
         let content = fs::read_to_string(path)?;
         let manifest = flecs_app_manifest::AppManifestVersion::from_str(&content)?;
         let manifest = flecs_app_manifest::AppManifest::try_from(manifest)?;
+        let manifest = AppManifest::try_from(manifest).map_err(|e| Error::Single(e.to_string()))?;
         Ok(manifest)
     }
 }
@@ -115,7 +112,6 @@ pub mod tests {
     use serde_json::Value;
     use std::fs;
     use std::io::Write;
-    use std::ops::Deref;
 
     pub fn create_test_manifest(app_name: &str, app_version: &str) -> AppManifest {
         let manifest = AppManifestVersion::from_str(
@@ -201,20 +197,8 @@ pub mod tests {
         let manifest2 = create_test_manifest(&name, &version);
 
         let manifests = HashMap::from([
-            (
-                AppKey {
-                    name: manifest1.app.deref().clone(),
-                    version: manifest1.version.clone(),
-                },
-                Arc::new(manifest1),
-            ),
-            (
-                AppKey {
-                    name: manifest2.app.deref().clone(),
-                    version: manifest2.version.clone(),
-                },
-                Arc::new(manifest2),
-            ),
+            (manifest1.key.clone(), Arc::new(manifest1)),
+            (manifest2.key.clone(), Arc::new(manifest2)),
         ]);
         let existing_manifest_keys = manifests.keys().cloned().collect();
         let mut manifest_pouch = ManifestPouch {
@@ -254,20 +238,8 @@ pub mod tests {
         let manifest2 = create_test_manifest(&name, &version);
 
         let manifests = HashMap::from([
-            (
-                AppKey {
-                    name: manifest1.app.deref().clone(),
-                    version: manifest1.version.clone(),
-                },
-                Arc::new(manifest1),
-            ),
-            (
-                AppKey {
-                    name: manifest2.app.deref().clone(),
-                    version: manifest2.version.clone(),
-                },
-                Arc::new(manifest2),
-            ),
+            (manifest1.key.clone(), Arc::new(manifest1)),
+            (manifest2.key.clone(), Arc::new(manifest2)),
         ]);
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
@@ -299,13 +271,7 @@ pub mod tests {
         let json = create_test_json_v3(&name, &version);
         let manifest = create_test_manifest(&name, &version);
 
-        let manifests = HashMap::from([(
-            AppKey {
-                name: manifest.app.deref().clone(),
-                version: manifest.version.clone(),
-            },
-            Arc::new(manifest),
-        )]);
+        let manifests = HashMap::from([(manifest.key.clone(), Arc::new(manifest))]);
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
             path,
@@ -359,20 +325,8 @@ pub mod tests {
         let manifest2 = create_test_manifest("tamble", "10.23.1");
 
         let gems = HashMap::from([
-            (
-                AppKey {
-                    name: manifest1.app.deref().clone(),
-                    version: manifest1.version.clone(),
-                },
-                Arc::new(manifest1),
-            ),
-            (
-                AppKey {
-                    name: manifest2.app.deref().clone(),
-                    version: manifest2.version.clone(),
-                },
-                Arc::new(manifest2),
-            ),
+            (manifest1.key.clone(), Arc::new(manifest1)),
+            (manifest2.key.clone(), Arc::new(manifest2)),
         ]);
         let mut manifest_pouch = ManifestPouch {
             manifests: gems.clone(),

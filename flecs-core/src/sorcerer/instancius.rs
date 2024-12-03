@@ -57,8 +57,8 @@ mod tests {
     use crate::jeweler::deployment::Deployment;
     use crate::jeweler::gem::instance::tests::test_instance;
     use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
+    use crate::jeweler::gem::manifest::tests::create_test_manifest;
     use crate::quest::Quest;
-    use crate::sorcerer::appraiser::tests::create_test_manifest;
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};

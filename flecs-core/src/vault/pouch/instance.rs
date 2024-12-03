@@ -1,9 +1,9 @@
 use crate::jeweler;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::{try_create_instance, Instance, InstanceDeserializable};
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::vault::pouch::{AppKey, DeploymentId, Pouch};
 pub use crate::Result;
-use flecs_app_manifest::AppManifest;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -122,10 +122,7 @@ mod tests {
     fn create_test_instances_deserializable() -> Vec<InstanceDeserializable> {
         vec![
             InstanceDeserializable {
-                config: InstanceConfig {
-                    image: "flecs.azurecr.io/some.test.app-1".to_string(),
-                    volume_ids: Default::default(),
-                },
+                config: InstanceConfig::default(),
                 name: "test-instance-1".to_string(),
                 id: InstanceId::new(1),
                 desired: InstanceStatus::Running,
@@ -136,10 +133,7 @@ mod tests {
                 deployment_id: "test-deployment-1".to_string(),
             },
             InstanceDeserializable {
-                config: InstanceConfig {
-                    image: "flecs.azurecr.io/some.test.app-2".to_string(),
-                    volume_ids: Default::default(),
-                },
+                config: InstanceConfig::default(),
                 name: "test-instance-2".to_string(),
                 id: InstanceId::new(2),
                 desired: InstanceStatus::Running,
@@ -182,9 +176,7 @@ mod tests {
                     "version": "1.2.3"
                 },
                 "deployment_id": "test-deployment-1",
-                "config": {
-                    "image": "flecs.azurecr.io/some.test.app-1"
-                }
+                "config": {}
             },
             {
                 "name": "test-instance-2",
@@ -195,9 +187,7 @@ mod tests {
                     "version": "1.2.4"
                 },
                 "deployment_id": "test-deployment-2",
-                "config": {
-                    "image": "flecs.azurecr.io/some.test.app-2"
-                }
+                "config": {}
             }
         ])
     }
@@ -272,7 +262,10 @@ mod tests {
         let result_json = serde_json::from_str::<Value>(data.as_str()).unwrap();
         let result_json = result_json.as_array().unwrap();
         for json in test_json {
-            result_json.iter().find(|result| *result == json).unwrap();
+            result_json
+                .iter()
+                .find(|result| *result == json)
+                .unwrap_or_else(|| panic!("Expected to find {json:#?}"));
         }
     }
 

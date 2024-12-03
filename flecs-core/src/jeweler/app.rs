@@ -1,7 +1,7 @@
 pub use super::Result;
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
-use flecs_app_manifest::AppManifest;
 use flecs_console_client::models::{
     PostApiV2Tokens200ResponseData, PostApiV2Tokens200ResponseDataToken,
 };
