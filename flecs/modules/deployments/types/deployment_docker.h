@@ -31,6 +31,10 @@ public:
 protected:
     auto docker_login(std::optional<Token> token) const //
         -> result_t;
+    auto docker_load(fs::path archive) //
+        -> result_t;
+    auto docker_save(std::string image, fs::path archive) const //
+        -> result_t;
 
 private:
     auto do_deployment_id() const noexcept //
