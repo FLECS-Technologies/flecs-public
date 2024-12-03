@@ -1,9 +1,9 @@
 use crate::jeweler;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::app::{try_create_app, App, AppDeserializable};
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::vault::pouch::{AppKey, DeploymentId, Pouch};
 pub use crate::Result;
-use flecs_app_manifest::AppManifest;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};

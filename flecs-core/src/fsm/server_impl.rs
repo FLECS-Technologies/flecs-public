@@ -1,11 +1,12 @@
 use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
 use anyhow::Error;
 use axum::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
-use flecs_app_manifest::{AppManifest, AppManifestVersion};
+use flecs_app_manifest::AppManifestVersion;
 use flecs_console_client::models::SessionId;
 use flecsd_axum_server::apis::apps::{
     Apps, AppsAppDeleteResponse, AppsAppGetResponse, AppsGetResponse, AppsInstallPostResponse,
@@ -56,7 +57,6 @@ use flecsd_axum_server::models::{
     JobsJobIdDeletePathParams, JobsJobIdGetPathParams,
 };
 use http::Method;
-use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::{error, warn};
@@ -220,17 +220,14 @@ impl Apps for ServerImpl {
                     .await
                     .lock()
                     .await
-                    .schedule_quest(
-                        format!("Sideloading {}-{}", manifest.app.deref(), manifest.version),
-                        |quest| {
-                            crate::sorcerer::appraiser::install_app_from_manifest(
-                                quest,
-                                self.vault.clone(),
-                                Arc::new(manifest),
-                                config,
-                            )
-                        },
-                    )
+                    .schedule_quest(format!("Sideloading {}", manifest.key), |quest| {
+                        crate::sorcerer::appraiser::install_app_from_manifest(
+                            quest,
+                            self.vault.clone(),
+                            Arc::new(manifest),
+                            config,
+                        )
+                    })
                     .await
                 {
                     Ok((id, _)) => Ok(AppsSideloadPostResponse::Status202_Accepted(JobMeta {

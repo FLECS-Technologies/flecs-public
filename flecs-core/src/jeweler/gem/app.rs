@@ -1,10 +1,10 @@
 use crate::jeweler::app::{AppId, AppStatus, Token};
 use crate::jeweler::deployment::{Deployment, DeploymentId};
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::{serialize_deployment_id, serialize_hashmap_values};
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch::AppKey;
 pub use crate::Result;
-use flecs_app_manifest::AppManifest;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
@@ -145,7 +145,7 @@ impl App {
             status: status.unwrap_or_default().into(),
             desired: data.desired.into(),
             installed_size: installed_size.unwrap_or_default() as i32,
-            multi_instance: manifest.multi_instance.unwrap_or(false),
+            multi_instance: manifest.multi_instance(),
             editors: vec![],
         }
     }
@@ -415,7 +415,7 @@ pub mod tests {
     use super::*;
     use crate::jeweler::app::AppInfo;
     use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::sorcerer::appraiser::tests::create_test_manifest;
+    use crate::jeweler::gem::manifest::tests::{create_test_manifest, create_test_manifest_raw};
     use flecs_app_manifest::AppManifestVersion;
 
     pub fn test_key() -> AppKey {
@@ -634,7 +634,7 @@ pub mod tests {
             vec![Arc::new(deployment) as Arc<dyn Deployment>],
         );
         app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
-        let mut manifest = crate::sorcerer::appraiser::tests::create_test_manifest_raw(None);
+        let mut manifest = create_test_manifest_raw(None);
         manifest.multi_instance = Some(true);
         let manifest =
             Arc::new(AppManifest::try_from(AppManifestVersion::V3_0_0(manifest)).unwrap());

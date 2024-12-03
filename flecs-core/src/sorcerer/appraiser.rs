@@ -1,11 +1,11 @@
 pub use super::Result;
 use crate::jeweler::app::{AppStatus, Token};
 use crate::jeweler::gem::app::App;
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
 use crate::sorcerer::spell;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
-use flecs_app_manifest::AppManifest;
 use flecs_console_client::apis::configuration::Configuration;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::future::join_all;
@@ -81,10 +81,7 @@ pub async fn install_app_from_manifest(
     manifest: Arc<AppManifest>,
     config: Arc<Configuration>,
 ) -> Result<()> {
-    let app_key = AppKey {
-        name: manifest.app.to_string(),
-        version: manifest.version.clone(),
-    };
+    let app_key = manifest.key.clone();
     quest
         .lock()
         .await
@@ -342,6 +339,10 @@ pub mod tests {
     use crate::jeweler::deployment::Deployment;
     use crate::jeweler::gem::app::tests::{test_key, test_key_numbered};
     use crate::jeweler::gem::app::App;
+    use crate::jeweler::gem::manifest::tests::{
+        create_test_manifest, create_test_manifest_numbered,
+    };
+    use crate::jeweler::gem::manifest::AppManifest;
     use crate::quest::{Progress, Quest};
     use crate::sorcerer::appraiser::{
         download_manifest, get_app, get_apps, install_app, install_app_from_manifest, install_apps,
@@ -349,14 +350,11 @@ pub mod tests {
     };
     use crate::vault::pouch::Pouch;
     use crate::vault::{GrabbedPouches, Vault, VaultConfig};
-    use flecs_app_manifest::generated::manifest_3_0_0;
-    use flecs_app_manifest::{AppManifest, AppManifestVersion};
     use flecs_console_client::models::{
         GetApiV2ManifestsAppVersion200Response, PostApiV2Tokens200Response,
         PostApiV2Tokens200ResponseData, PostApiV2Tokens200ResponseDataToken,
     };
     use mockito::{Mock, ServerGuard};
-    use std::str::FromStr;
     use std::sync::Arc;
 
     async fn token_mock_err(server: &mut ServerGuard, status: usize) -> Mock {
@@ -452,51 +450,6 @@ pub mod tests {
             .await
     }
 
-    pub fn create_test_manifest(revision: Option<String>) -> Arc<AppManifest> {
-        create_test_manifest_numbered(0, 0, revision)
-    }
-
-    pub fn create_test_manifest_raw(revision: Option<String>) -> manifest_3_0_0::FlecsAppManifest {
-        create_test_manifest_numbered_raw(0, 0, revision)
-    }
-
-    fn create_test_manifest_numbered(
-        name_number: u8,
-        version_number: u8,
-        revision: Option<String>,
-    ) -> Arc<AppManifest> {
-        Arc::new(
-            AppManifest::try_from(AppManifestVersion::V3_0_0(
-                create_test_manifest_numbered_raw(name_number, version_number, revision),
-            ))
-            .unwrap(),
-        )
-    }
-
-    fn create_test_manifest_numbered_raw(
-        name_number: u8,
-        version_number: u8,
-        revision: Option<String>,
-    ) -> manifest_3_0_0::FlecsAppManifest {
-        manifest_3_0_0::FlecsAppManifest {
-            app: FromStr::from_str(&format!("some.test.app-{name_number}")).unwrap(),
-            args: vec![],
-            capabilities: None,
-            conffiles: vec![],
-            devices: vec![],
-            editors: vec![],
-            env: vec![],
-            image: FromStr::from_str("flecs.azurecr.io/io.anyviz.cloudadapter").unwrap(),
-            interactive: None,
-            labels: vec![],
-            minimum_flecs_version: None,
-            multi_instance: None,
-            ports: vec![],
-            revision,
-            version: FromStr::from_str(&format!("1.2.{version_number}")).unwrap(),
-            volumes: vec![],
-        }
-    }
     const CREATED_APPS_WITH_MANIFEST: [(u8, u8); 4] = [(1, 1), (1, 2), (1, 3), (1, 4)];
     const CREATED_APPS_WITHOUT_MANIFEST: [(u8, u8); 4] = [(2, 1), (2, 2), (2, 3), (2, 4)];
     const INSTALLED_APPS_WITHOUT_MANIFEST: [(u8, u8); 4] = [(3, 1), (3, 2), (3, 3), (3, 4)];

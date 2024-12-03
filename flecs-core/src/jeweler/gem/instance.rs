@@ -1,11 +1,11 @@
 use crate::jeweler::deployment::{Deployment, DeploymentId};
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::volume::VolumeId;
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
 use crate::quest::SyncQuest;
 use crate::vault::pouch::AppKey;
 use bollard::container::Config;
 use bollard::models::ContainerStateStatusEnum;
-use flecs_app_manifest::AppManifest;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -62,16 +62,15 @@ impl Display for InstanceId {
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct InstanceConfig {
     // TODO: Add more info (e.g. from manifest)
-    pub image: String,
     #[serde(skip_serializing_if = "HashSet::is_empty", default)]
     pub volume_ids: HashSet<VolumeId>,
 }
 
 impl From<InstanceConfig> for Config<String> {
-    fn from(value: InstanceConfig) -> Self {
+    fn from(_value: InstanceConfig) -> Self {
         // TODO: Add more info from instance config if available
         Config {
-            image: Some(value.image),
+            image: None,
             ..Default::default()
         }
     }
@@ -130,10 +129,7 @@ pub struct Instance {
 
 impl Instance {
     pub fn app_key(&self) -> AppKey {
-        AppKey {
-            version: self.manifest.version.clone(),
-            name: self.manifest.app.to_string(),
-        }
+        self.manifest.key.clone()
     }
 
     pub async fn create() -> anyhow::Result<Self> {
@@ -343,8 +339,8 @@ pub fn try_create_instance(
 pub mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
+    use crate::jeweler::gem::manifest::tests::create_test_manifest;
     use crate::quest::Quest;
-    use crate::sorcerer::appraiser::tests::create_test_manifest;
     use std::num::IntErrorKind;
 
     #[test]
@@ -358,10 +354,7 @@ pub mod tests {
     #[test]
     fn try_create_ok() {
         let manifest = create_test_manifest(None);
-        let app_key = AppKey {
-            name: manifest.app.to_string(),
-            version: manifest.version.clone(),
-        };
+        let app_key = manifest.key.clone();
         let manifests = HashMap::from([(app_key.clone(), manifest)]);
         let deployment_id = "TestDeployment".to_string();
         let deployments = HashMap::from([(
@@ -382,10 +375,7 @@ pub mod tests {
     #[test]
     fn try_create_no_deployment() {
         let manifest = create_test_manifest(None);
-        let app_key = AppKey {
-            name: manifest.app.to_string(),
-            version: manifest.version.clone(),
-        };
+        let app_key = manifest.key.clone();
         let manifests = HashMap::from([(app_key.clone(), manifest)]);
         let deployment_id = "TestDeployment".to_string();
         let deployments = HashMap::new();
@@ -403,10 +393,7 @@ pub mod tests {
     #[test]
     fn try_create_no_manifest() {
         let manifest = create_test_manifest(None);
-        let app_key = AppKey {
-            name: manifest.app.to_string(),
-            version: manifest.version.clone(),
-        };
+        let app_key = manifest.key.clone();
         let manifests = HashMap::new();
         let deployment_id = "TestDeployment".to_string();
         let deployments = HashMap::from([(
@@ -434,7 +421,6 @@ pub mod tests {
             desired: InstanceStatus::Created,
             name: "TestInstance".to_string(),
             config: InstanceConfig {
-                image: "test/TestInstance:1.2.3".to_string(),
                 volume_ids: HashSet::from([
                     format!("Instance#{id}Volume#1"),
                     format!("Instance#{id}Volume#2"),

@@ -6,8 +6,7 @@ pub mod network;
 pub mod volume;
 pub use super::Result;
 use crate::jeweler::deployment::Deployment;
-use crate::vault::pouch::AppKey;
-use flecs_app_manifest::AppManifest;
+use crate::jeweler::gem::manifest::AppManifest;
 use serde::ser::SerializeSeq;
 use serde::{Serialize, Serializer};
 use std::collections::HashMap;
@@ -31,11 +30,7 @@ fn serialize_manifest_key<S>(
 where
     S: Serializer,
 {
-    let key = AppKey {
-        name: manifest.app.to_string(),
-        version: manifest.version.clone(),
-    };
-    key.serialize(serializer)
+    manifest.key.serialize(serializer)
 }
 
 fn serialize_hashmap_values<K, T, S>(
