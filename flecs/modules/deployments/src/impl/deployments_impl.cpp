@@ -14,6 +14,7 @@
 
 #include "flecs/modules/deployments/impl/deployments_impl.h"
 
+#include "flecs/modules/deployments/types/deployment_compose.h"
 #include "flecs/modules/deployments/types/deployment_docker.h"
 
 namespace flecs {
@@ -21,7 +22,9 @@ namespace module {
 namespace impl {
 
 deployments_t::deployments_t()
-    : _deployments{std::make_shared<deployments::docker_t>()}
+    : _deployments{
+          std::shared_ptr<deployments::deployment_t>(new deployments::docker_t()),
+          std::shared_ptr<deployments::deployment_t>(new deployments::compose_t())}
 {}
 
 deployments_t::~deployments_t()

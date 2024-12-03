@@ -137,7 +137,7 @@ auto flecsport_t::do_export_to(
         manifest.contents.instances.push_back(std::move(instance));
     }
 
-    progress.next_step("Exporting deployment");
+    progress.next_step("Exporting deployments");
     /** @todo there should be an interface for that */
     auto ec = std::error_code{};
     fs::create_directories(dest_dir / "deployment", ec);
@@ -148,7 +148,16 @@ auto flecsport_t::do_export_to(
         ec);
     if (ec) {
         fs::remove_all(dest_dir, ec);
-        return {-1, "Could not export deployment"};
+        return {-1, "Could not export docker deployment"};
+    }
+    fs::copy_file(
+        "/var/lib/flecs/deployment/compose.json",
+        dest_dir / "deployment/compose.json",
+        fs::copy_options::overwrite_existing,
+        ec);
+    if (ec) {
+        fs::remove_all(dest_dir, ec);
+        return {-1, "Could not export compose deployment"};
     }
 
     progress.next_step("Writing manifest");

@@ -14,8 +14,10 @@
 
 add_library(modules.deployments.types STATIC
     src/types/deployment.cpp
+    src/types/deployment_compose.cpp
     src/types/deployment_docker.cpp
     types/deployment.h
+    types/deployment_compose.h
     types/deployment_docker.h
     types.h
 )
@@ -39,8 +41,10 @@ flecs_add_module(
 if(FLECS_BUILD_TESTS)
     add_library(modules.deployments.types.mocked_modules STATIC
         src/types/deployment.cpp
+        src/types/deployment_compose.cpp
         src/types/deployment_docker.cpp
         types/deployment.h
+        types/deployment_compose.h
         types/deployment_docker.h
         types.h
     )
