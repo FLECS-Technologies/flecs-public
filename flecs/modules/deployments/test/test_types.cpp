@@ -98,10 +98,20 @@ public:
         (override));
     MOCK_METHOD(
         result_t,
+        do_import_volumes,
+        ((std::shared_ptr<instances::instance_t> instance), (flecs::fs::path dest_dir)),
+        (override));
+    MOCK_METHOD(
+        result_t,
         do_export_volume,
         ((std::shared_ptr<instances::instance_t> instance),
          (const volume_t& volume),
          (flecs::fs::path dest_dir)),
+        (const, override));
+    MOCK_METHOD(
+        result_t,
+        do_export_volumes,
+        ((std::shared_ptr<instances::instance_t> instance), (flecs::fs::path dest_dir)),
         (const, override));
     MOCK_METHOD(
         result_t,

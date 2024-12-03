@@ -257,9 +257,17 @@ private:
         volume_t& volume,
         fs::path src_dir) //
         -> result_t = 0;
+    virtual auto do_import_volumes(
+        std::shared_ptr<instances::instance_t> instance,
+        fs::path src_dir) //
+        -> result_t = 0;
     virtual auto do_export_volume(
         std::shared_ptr<instances::instance_t> instance,
         const volume_t& volume,
+        fs::path dest_dir) const //
+        -> result_t = 0;
+    virtual auto do_export_volumes(
+        std::shared_ptr<instances::instance_t> instance,
         fs::path dest_dir) const //
         -> result_t = 0;
     virtual auto do_delete_volume(

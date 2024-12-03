@@ -35,6 +35,10 @@ protected:
         -> result_t;
     auto docker_save(std::string image, fs::path archive) const //
         -> result_t;
+    auto docker_import_volume(std::string volume_name, fs::path src_dir) //
+        -> result_t;
+    auto docker_export_volume(std::string volume_name, fs::path dest_dir) const //
+        -> result_t;
 
 private:
     auto do_deployment_id() const noexcept //
@@ -92,9 +96,17 @@ private:
         volume_t& volume,
         fs::path src_dir) //
         -> result_t override;
+    auto do_import_volumes(
+        std::shared_ptr<instances::instance_t> instance,
+        fs::path src_dir) //
+        -> result_t override;
     auto do_export_volume(
         std::shared_ptr<instances::instance_t> instance,
         const volume_t& volume,
+        fs::path dest_dir) const //
+        -> result_t override;
+    auto do_export_volumes(
+        std::shared_ptr<instances::instance_t> instance,
         fs::path dest_dir) const //
         -> result_t override;
     auto do_delete_volume(std::shared_ptr<instances::instance_t> instance, std::string_view volume_name) //
