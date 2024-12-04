@@ -410,6 +410,9 @@ auto deployment_t::import_instance(std::shared_ptr<instances::instance_t> instan
     base_dir /= instance->id().hex();
 
     for (auto& network : instance->networks()) {
+        if (network.ip_address.empty()) {
+            continue;
+        }
         auto net = query_network(network.network_name);
         if (!net.has_value()) {
             return {-1, "Could not find network " + network.network_name};
