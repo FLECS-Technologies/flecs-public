@@ -1110,7 +1110,7 @@ auto instances_t::do_import_from(
     if (!app) {
         return {-1, "App is not installed"};
     }
-    instance.app(std::move(app));
+    instance.app(app);
 
     const auto manifest = app->manifest();
     if (!manifest) {
