@@ -549,7 +549,7 @@ auto apps_t::do_import_from(apps::key_t app_key, fs::path src_dir, jobs::progres
     }
 
     /* mark App as installed */
-    app->desired(apps::status_e::Installed);
+    app->status(apps::status_e::Installed);
 
     return {0, {}};
 }
