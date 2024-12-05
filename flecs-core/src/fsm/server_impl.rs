@@ -404,9 +404,39 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _body: InstancesCreatePostRequest,
+        body: InstancesCreatePostRequest,
     ) -> Result<InstancesCreatePostResponse, String> {
-        todo!()
+        let app_key: AppKey = body.app_key.into();
+        if !crate::sorcerer::appraiser::does_app_exist(self.vault.clone(), app_key.clone()).await {
+            return Ok(InstancesCreatePostResponse::Status400_MalformedRequest(
+                AdditionalInfo {
+                    additional_info: format!("App {app_key} does not exist"),
+                },
+            ));
+        }
+        let (id, _quest) = crate::lore::quest::default()
+            .await
+            .lock()
+            .await
+            .schedule_quest(format!("Create instance for {app_key}"), |quest| {
+                let vault = self.vault.clone();
+                let instance_name = body.instance_name;
+                async move {
+                    let _id = crate::sorcerer::instancius::create_instance(
+                        quest,
+                        vault,
+                        app_key,
+                        instance_name.unwrap_or_default(),
+                    )
+                    .await?;
+                    Ok(())
+                }
+            })
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(InstancesCreatePostResponse::Status202_Accepted(
+            JobMeta::new(id.0 as i32),
+        ))
     }
 
     async fn instances_get(
@@ -695,21 +725,26 @@ fn console_session_id_to_core_session_id(
 #[cfg(test)]
 mod tests {
     use crate::fsm::server_impl::ServerImpl;
+    use crate::jeweler::gem::app::{try_create_app, AppDeserializable};
+    use crate::tests::prepare_test_path;
+    use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
     use axum::extract::Host;
     use axum_extra::extract::CookieJar;
     use flecsd_axum_server::apis::apps::{Apps, AppsAppDeleteResponse};
-    use flecsd_axum_server::models::{AppsAppDeletePathParams, AppsAppDeleteQueryParams};
+    use flecsd_axum_server::apis::instances::{Instances, InstancesCreatePostResponse};
+    use flecsd_axum_server::models::{
+        AppKey, AppsAppDeletePathParams, AppsAppDeleteQueryParams, InstancesCreatePostRequest,
+    };
     use http::Method;
-    use std::path::Path;
+    use std::collections::HashMap;
     use std::sync::Arc;
 
     #[tokio::test]
     async fn uninstall_404() {
+        let path = prepare_test_path(module_path!(), "uninstall_404");
         let server = ServerImpl {
-            vault: Arc::new(Vault::new(VaultConfig {
-                path: Path::new("/tmp/flecs-tests/uninstall_404/").to_path_buf(),
-            })),
+            vault: Arc::new(Vault::new(VaultConfig { path })),
         };
         assert_eq!(
             Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp),
@@ -731,10 +766,9 @@ mod tests {
 
     #[tokio::test]
     async fn uninstall_no_version() {
+        let path = prepare_test_path(module_path!(), "uninstall_no_version");
         let server = ServerImpl {
-            vault: Arc::new(Vault::new(VaultConfig {
-                path: Path::new("/tmp/flecs-tests/uninstall_404/").to_path_buf(),
-            })),
+            vault: Arc::new(Vault::new(VaultConfig { path })),
         };
         assert!(server
             .apps_app_delete(
@@ -748,5 +782,73 @@ mod tests {
             )
             .await
             .is_err())
+    }
+
+    #[tokio::test]
+    async fn create_instance_no_app() {
+        let path = prepare_test_path(module_path!(), "create_instance_no_app");
+        let server = ServerImpl {
+            vault: Arc::new(Vault::new(VaultConfig { path })),
+        };
+        assert!(matches!(
+            server
+                .instances_create_post(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesCreatePostRequest {
+                        app_key: AppKey {
+                            name: "TestName".to_string(),
+                            version: "1.2.3".to_string()
+                        },
+                        instance_name: None,
+                    },
+                )
+                .await,
+            Ok(InstancesCreatePostResponse::Status400_MalformedRequest(_))
+        ))
+    }
+
+    #[tokio::test]
+    async fn create_instance_ok() {
+        let path = prepare_test_path(module_path!(), "create_instance_ok");
+        let vault = Arc::new(Vault::new(VaultConfig { path }));
+        let test_key = AppKey {
+            name: "TestName".to_string(),
+            version: "1.2.3".to_string(),
+        };
+        let app = AppDeserializable {
+            key: test_key.clone().into(),
+            deployments: Vec::new(),
+        };
+        let app = try_create_app(app, &HashMap::new(), &HashMap::new()).unwrap();
+        vault
+            .reservation()
+            .reserve_app_pouch_mut()
+            .grab()
+            .await
+            .app_pouch_mut
+            .as_mut()
+            .unwrap()
+            .gems_mut()
+            .insert(test_key.into(), app);
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_create_post(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesCreatePostRequest {
+                        app_key: AppKey {
+                            name: "TestName".to_string(),
+                            version: "1.2.3".to_string()
+                        },
+                        instance_name: None,
+                    },
+                )
+                .await,
+            Ok(InstancesCreatePostResponse::Status202_Accepted(_))
+        ))
     }
 }

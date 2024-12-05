@@ -1,5 +1,5 @@
 use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
-use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
+use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::instance::InstanceDeployment;
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
@@ -756,7 +756,7 @@ impl InstanceDeployment for DockerDeployment {
 
     async fn start_instance(
         &self,
-        config: InstanceConfig,
+        config: Config<String>,
         id: Option<InstanceId>,
     ) -> anyhow::Result<InstanceId> {
         let client = self.client()?;
@@ -765,8 +765,7 @@ impl InstanceDeployment for DockerDeployment {
             name: id.to_docker_id(),
             platform: None,
         });
-        let docker_id =
-            relic::docker::container::create(client.clone(), options, config.into()).await?;
+        let docker_id = relic::docker::container::create(client.clone(), options, config).await?;
         println!("Created container {}/{}", id, docker_id);
         relic::docker::container::start(client, &id.to_docker_id()).await?;
         Ok(id)

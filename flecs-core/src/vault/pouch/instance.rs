@@ -73,6 +73,19 @@ impl InstancePouch {
             })
             .collect()
     }
+
+    pub fn instance_ids_by_app_key(&self, app_key: AppKey) -> Vec<InstanceId> {
+        self.instances
+            .iter()
+            .filter_map(|(id, instance)| {
+                if instance.app_key() == app_key {
+                    Some(*id)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
 }
 
 impl InstancePouch {

@@ -17,6 +17,20 @@ pub async fn uninstall_app(quest: SyncQuest, vault: Arc<Vault>, app_key: AppKey)
     spell::app::uninstall_app(quest, vault, app_key).await
 }
 
+// TODO: Unit test
+pub async fn does_app_exist(vault: Arc<Vault>, app_key: AppKey) -> bool {
+    vault
+        .reservation()
+        .reserve_app_pouch()
+        .grab()
+        .await
+        .app_pouch
+        .as_ref()
+        .expect("Reservations should never fail")
+        .gems()
+        .contains_key(&app_key)
+}
+
 pub async fn get_app(
     vault: Arc<Vault>,
     name: String,
@@ -345,8 +359,9 @@ pub mod tests {
     use crate::jeweler::gem::manifest::AppManifest;
     use crate::quest::{Progress, Quest};
     use crate::sorcerer::appraiser::{
-        download_manifest, get_app, get_apps, install_app, install_app_from_manifest, install_apps,
-        install_existing_app, set_manifest_and_desired_or_create_app,
+        does_app_exist, download_manifest, get_app, get_apps, install_app,
+        install_app_from_manifest, install_apps, install_existing_app,
+        set_manifest_and_desired_or_create_app,
     };
     use crate::vault::pouch::Pouch;
     use crate::vault::{GrabbedPouches, Vault, VaultConfig};
@@ -1137,6 +1152,34 @@ pub mod tests {
             let key = test_key_numbered(i, i);
             assert!(apps.gems().get(&key).is_none());
             assert!(manifests.gems().get(&key).is_none());
+        }
+    }
+
+    #[tokio::test]
+    async fn app_exist() {
+        let vault = create_test_vault().await;
+        for (name_number, version_number) in CREATED_APPS_WITH_MANIFEST
+            .iter()
+            .chain(CREATED_APPS_WITHOUT_MANIFEST.iter())
+            .chain(INSTALLED_APPS_WITHOUT_MANIFEST.iter())
+            .chain(INSTALLED_APPS_WITH_MANIFEST.iter())
+        {
+            assert!(
+                does_app_exist(
+                    vault.clone(),
+                    test_key_numbered(*name_number, *version_number)
+                )
+                .await
+            )
+        }
+        for (name_number, version_number) in UNKNOWN_APPS.iter() {
+            assert!(
+                !does_app_exist(
+                    vault.clone(),
+                    test_key_numbered(*name_number, *version_number)
+                )
+                .await
+            )
         }
     }
 }

@@ -2,7 +2,8 @@ use super::gem::instance::InstanceId;
 use super::Result;
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
-use bollard::models::Volume;
+// TODO: Use more generic struct as soon as the second type of deployment is implemented
+pub use bollard::models::Volume;
 use std::collections::HashMap;
 use std::path::Path;
 
