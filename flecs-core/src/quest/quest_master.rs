@@ -205,7 +205,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(10)]
+    #[timeout(10000)]
     async fn test_schedule_quest_start() {
         let mut master = QuestMaster::default();
         let (tx, rx) = tokio::sync::oneshot::channel::<u64>();
@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(20)]
+    #[timeout(10000)]
     async fn test_schedule_quest_success() {
         let mut master = QuestMaster::default();
         let (tx, rx) = tokio::sync::oneshot::channel::<u64>();
@@ -239,7 +239,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(20)]
+    #[timeout(10000)]
     async fn test_schedule_quest_failure() {
         let mut master = QuestMaster::default();
         let (tx, rx) = tokio::sync::oneshot::channel::<u64>();

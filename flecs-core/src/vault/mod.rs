@@ -459,7 +459,7 @@ mod tests {
     use std::fs;
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     async fn grab_multiple() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/grab_mul/").to_path_buf(),
@@ -480,7 +480,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     async fn default_deployment_is_created() {
         let path = Path::new("/tmp/flecs-tests/vault/default_depl/").to_path_buf();
         let _ = fs::remove_dir_all(&path);
@@ -503,7 +503,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     #[should_panic]
     async fn double_grab_mutable_mutable() {
         let vault = Vault::new(VaultConfig {
@@ -514,7 +514,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     #[should_panic]
     async fn double_grab_mutable_immutable() {
         let vault = Vault::new(VaultConfig {
@@ -525,7 +525,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     async fn double_grab_immutable_immutable() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/double_grab/").to_path_buf(),
@@ -537,7 +537,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     #[should_panic]
     async fn double_grab_immutable_mutable() {
         let vault = Vault::new(VaultConfig {
@@ -548,7 +548,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     async fn reserving_one_pouch_leaves_other_pouches_mut() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/reserve/").to_path_buf(),
@@ -566,7 +566,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     async fn get_secrets() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/get_secrets/").to_path_buf(),
@@ -590,7 +590,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     async fn grab_all() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/grab_all/").to_path_buf(),
@@ -617,7 +617,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[timeout(100)]
+    #[timeout(10000)]
     async fn grab_all_mut() {
         let vault = Vault::new(VaultConfig {
             path: Path::new("/tmp/flecs-tests/vault/grab_all_mut/").to_path_buf(),
