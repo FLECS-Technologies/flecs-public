@@ -22,6 +22,7 @@ pub trait InstanceDeployment {
         id: InstanceId,
         src: &Path,
         dst: &Path,
+        is_dst_file_path: bool,
     ) -> Result<()>;
     async fn copy_to_instance(
         &self,

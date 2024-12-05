@@ -278,9 +278,15 @@ impl Instance {
         self.deployment.instance_status(self.id).await
     }
 
-    pub async fn copy_from(&self, quest: SyncQuest, src: &Path, dst: &Path) -> anyhow::Result<()> {
+    pub async fn copy_from(
+        &self,
+        quest: SyncQuest,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
         self.deployment
-            .copy_from_instance(quest, self.id, src, dst)
+            .copy_from_instance(quest, self.id, src, dst, is_dst_file_path)
             .await
     }
 

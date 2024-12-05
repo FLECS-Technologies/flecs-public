@@ -54,6 +54,14 @@ pub mod tests {
             async fn install_app(&self, quest: SyncQuest, manifest: Arc<AppManifest>, token: Option<Token>) -> Result<AppId>;
             async fn uninstall_app(&self, quest: SyncQuest, id: AppId) -> Result<()>;
             async fn app_info(&self, quest: SyncQuest, id: AppId) -> Result<AppInfo>;
+            async fn copy_from_app_image(
+                &self,
+                quest: SyncQuest,
+                image: String,
+                src: &Path,
+                dst: &Path,
+                is_dst_file_path: bool,
+            ) -> Result<()>;
         }
         #[async_trait]
         impl InstanceDeployment for edDeployment {
@@ -68,6 +76,7 @@ pub mod tests {
                 id: InstanceId,
                 src: &Path,
                 dst: &Path,
+                is_dst_file_path: bool,
             ) -> Result<()>;
             async fn copy_to_instance(
                 &self,
