@@ -1,6 +1,8 @@
 pub use super::{Error, Result};
 use crate::quest::{Progress, SyncQuest};
-use crate::relic::async_flecstract::{archive_to_memory, extract_from_memory};
+use crate::relic::async_flecstract::{
+    archive_to_memory, extract_from_memory, extract_single_file_from_memory_as,
+};
 use crate::relic::docker::write_stream_to_memory;
 use async_compression::tokio::bufread::{GzipDecoder, GzipEncoder};
 use axum::body::Bytes;
@@ -360,7 +362,10 @@ async fn copy_archive_from(
     result.await
 }
 
-/// # Example
+/// The argument 'is_dst_file_path' should be set to true if 'dst' denotes a file,
+/// otherwise 'dst' will be interpreted as a directory and 'src' copied into it.
+/// # Examples
+/// ## Copy directory
 /// ```no_run
 /// use bollard::Docker;
 /// use flecs_core::quest::Quest;
@@ -374,7 +379,47 @@ async fn copy_archive_from(
 ///     let quest = Quest::new_synced("Docker copy from".to_string());
 ///     let dst = Path::new("/path/on/host");
 ///     let src = Path::new("/path/on/container");
-///     copy_from(quest, docker_client, src, dst, "my-container")
+///     copy_from(quest, docker_client, src, dst, "my-container", false)
+///         .await
+///         .unwrap();
+/// }
+/// # )
+/// ```
+/// ## Copy file into directory (is_dst_file_path = false)
+/// ```no_run
+/// use bollard::Docker;
+/// use flecs_core::quest::Quest;
+/// use flecs_core::relic::docker::container::copy_from;
+/// use std::path::Path;
+/// use std::sync::Arc;
+///
+/// # tokio_test::block_on(
+/// async {
+///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let quest = Quest::new_synced("Docker copy from".to_string());
+///     let dst = Path::new("/path/on/host");
+///     let src = Path::new("/path/on/container.file");
+///     copy_from(quest, docker_client, src, dst, "my-container", false)
+///         .await
+///         .unwrap();
+/// }
+/// # )
+/// ```
+/// ## Copy file with different name (is_dst_file_path = true)
+/// ```no_run
+/// use bollard::Docker;
+/// use flecs_core::quest::Quest;
+/// use flecs_core::relic::docker::container::copy_from;
+/// use std::path::Path;
+/// use std::sync::Arc;
+///
+/// # tokio_test::block_on(
+/// async {
+///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let quest = Quest::new_synced("Docker copy from".to_string());
+///     let dst = Path::new("/path/on/host.file");
+///     let src = Path::new("/path/on/container.file");
+///     copy_from(quest, docker_client, src, dst, "my-container", true)
 ///         .await
 ///         .unwrap();
 /// }
@@ -386,6 +431,7 @@ pub async fn copy_from(
     src: &Path,
     dst: &Path,
     container_name: &str,
+    is_dst_file_path: bool,
 ) -> Result<()> {
     let container_name = container_name.to_string();
     let src = src.to_path_buf();
@@ -407,7 +453,11 @@ pub async fn copy_from(
         .await
         .create_sub_quest(format!("Extract archive to {dst:?}"), |_quest| async move {
             // TODO: Use streamed/async extracting
-            extract_from_memory(archive.await?, &dst).await
+            if is_dst_file_path {
+                extract_single_file_from_memory_as(archive.await?, &dst).await
+            } else {
+                extract_from_memory(archive.await?, &dst).await
+            }
         })
         .await
         .2

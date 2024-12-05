@@ -29,6 +29,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::{fs, join};
+use tracing::log::warn;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(tag = "type")]
@@ -111,6 +112,50 @@ impl AppDeployment for DockerDeployment {
     async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<AppInfo> {
         let docker_client = self.client()?;
         relic::docker::image::inspect(docker_client, &id).await
+    }
+
+    async fn copy_from_app_image(
+        &self,
+        quest: SyncQuest,
+        image: String,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
+        let client = self.client()?;
+        let container = relic::docker::container::create(
+            client.clone(),
+            Option::<CreateContainerOptions<&str>>::None,
+            Config {
+                image: Some(image.clone()),
+                network_disabled: Some(true),
+                ..Config::default()
+            },
+        )
+        .await?;
+        let copy_result = relic::docker::container::copy_from(
+            quest,
+            client.clone(),
+            src,
+            dst,
+            &container,
+            is_dst_file_path,
+        )
+        .await;
+
+        if let Err(e) = relic::docker::container::remove(
+            client.clone(),
+            Some(RemoveContainerOptions {
+                force: true,
+                ..RemoveContainerOptions::default()
+            }),
+            &container,
+        )
+        .await
+        {
+            warn!("Could not remove temporary container '{container}' of image {image} which was created to copy {src:?} to {dst:?}: {e}");
+        }
+        copy_result
     }
 }
 
@@ -800,10 +845,18 @@ impl InstanceDeployment for DockerDeployment {
         id: InstanceId,
         src: &Path,
         dst: &Path,
+        is_dst_file_path: bool,
     ) -> anyhow::Result<()> {
         let docker_client = self.client()?;
-        relic::docker::container::copy_from(quest, docker_client, src, dst, &id.to_docker_id())
-            .await
+        relic::docker::container::copy_from(
+            quest,
+            docker_client,
+            src,
+            dst,
+            &id.to_docker_id(),
+            is_dst_file_path,
+        )
+        .await
     }
 
     async fn copy_to_instance(

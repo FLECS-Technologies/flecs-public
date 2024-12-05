@@ -5,6 +5,7 @@ pub mod tar {
     use anyhow::anyhow;
     use std::io::{Read, Write};
     use std::path::Path;
+    use tar::EntryType;
 
     pub fn archive<W, P>(src: P, mut destination: W, follow_symlinks: bool) -> Result<W>
     where
@@ -42,5 +43,26 @@ pub mod tar {
     {
         tar::Archive::new(src).unpack(dst)?;
         Ok(())
+    }
+
+    pub fn extract_single_file_as<R, P>(src: R, dst: P) -> Result<()>
+    where
+        R: Read,
+        P: AsRef<Path>,
+    {
+        let mut archive = tar::Archive::new(src);
+        let mut entries = archive.entries()?;
+        match entries.next() {
+            None => anyhow::bail!("No entry in archive present"),
+            Some(Ok(mut entry)) => {
+                anyhow::ensure!(
+                    entry.header().entry_type() == EntryType::Regular,
+                    "First entry in archive is not a regular file"
+                );
+                entry.unpack(dst)?;
+                Ok(())
+            }
+            Some(Err(e)) => anyhow::bail!(e),
+        }
     }
 }
