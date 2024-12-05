@@ -196,7 +196,7 @@ pub mod tests {
         create_test_manifest_numbered_raw(0, 0, revision)
     }
 
-    fn create_test_manifest_full() -> AppManifest {
+    pub fn create_test_manifest_full(multi_instance: Option<bool>) -> AppManifest {
         AppManifest::try_from(flecs_app_manifest::AppManifestVersion::V3_0_0(
             flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifest {
                 app: FromStr::from_str("some.test.app").unwrap(),
@@ -242,7 +242,7 @@ pub mod tests {
                     FromStr::from_str("my.label-three").unwrap(),
                 ],
                 minimum_flecs_version: Some(FromStr::from_str("3.0.0").unwrap()),
-                multi_instance: None,
+                multi_instance,
                 ports: vec![
                     FromStr::from_str("8001:8001").unwrap(),
                     FromStr::from_str("5000").unwrap(),
@@ -262,7 +262,7 @@ pub mod tests {
 
     #[test]
     fn manifest_key() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
         assert_eq!(
             manifest.key,
             AppKey {
@@ -274,7 +274,7 @@ pub mod tests {
 
     #[test]
     fn config_files() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(
             manifest.config_files,
@@ -300,7 +300,7 @@ pub mod tests {
 
     #[test]
     fn mounts() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(
             manifest.mounts,
@@ -319,7 +319,7 @@ pub mod tests {
 
     #[test]
     fn environment_variables() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(
             manifest.environment_variables,
@@ -338,7 +338,7 @@ pub mod tests {
 
     #[test]
     fn devices() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(
             manifest.devices,
@@ -355,7 +355,7 @@ pub mod tests {
 
     #[test]
     fn labels() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(
             manifest.labels,
@@ -378,7 +378,7 @@ pub mod tests {
 
     #[test]
     fn ports() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(
             manifest.ports,
@@ -399,7 +399,7 @@ pub mod tests {
 
     #[test]
     fn arguments() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(
             manifest.arguments(),
@@ -412,7 +412,7 @@ pub mod tests {
 
     #[test]
     fn capabilities() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(
             manifest.capabilities(),
@@ -426,28 +426,28 @@ pub mod tests {
 
     #[test]
     fn multi_instance() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert!(!manifest.multi_instance())
     }
 
     #[test]
     fn interactive() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert!(!manifest.interactive())
     }
 
     #[test]
     fn revision() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(manifest.revision(), Some(&"5".to_string()))
     }
 
     #[test]
     fn editors() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
         let editors = vec![
             flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestEditorsItem {
                 name: "Editor#1".to_string(),
@@ -466,14 +466,14 @@ pub mod tests {
 
     #[test]
     fn image() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(manifest.image(), "flecs.azurecr.io/some.test.app")
     }
 
     #[test]
     fn image_with_tag() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(
             manifest.image_with_tag(),
@@ -483,7 +483,7 @@ pub mod tests {
 
     #[test]
     fn minimum_flecs_version() {
-        let manifest = create_test_manifest_full();
+        let manifest = create_test_manifest_full(None);
 
         assert_eq!(manifest.minimum_flecs_version(), Some("3.0.0"))
     }

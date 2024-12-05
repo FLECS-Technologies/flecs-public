@@ -33,13 +33,13 @@ impl Debug for dyn Deployment {
 pub mod tests {
     use super::*;
     use crate::jeweler::app::{AppId, AppInfo, Token};
-    use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
+    use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
     use crate::jeweler::gem::manifest::AppManifest;
+    use crate::jeweler::instance::Config;
     use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
-    use crate::jeweler::volume::VolumeId;
+    use crate::jeweler::volume::{Volume, VolumeId};
     use crate::quest::SyncQuest;
     use crate::Result;
-    use bollard::models::Volume;
     use mockall::mock;
     use serde::{Serialize, Serializer};
     use std::collections::HashMap;
@@ -66,7 +66,7 @@ pub mod tests {
         #[async_trait]
         impl InstanceDeployment for edDeployment {
             async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
-            async fn start_instance(&self,config: InstanceConfig,id: Option<InstanceId>,) -> Result<InstanceId>;
+            async fn start_instance(&self, config: Config<String>, id: Option<InstanceId>) -> Result<InstanceId>;
             async fn stop_instance(&self, id: InstanceId) -> Result<()>;
             async fn ready_instance(&self, id: InstanceId) -> Result<()>;
             async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;

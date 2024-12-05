@@ -1,7 +1,9 @@
 use super::Result;
-use crate::jeweler::gem::instance::{InstanceConfig, InstanceId, InstanceStatus};
+use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
+// TODO: Use more generic struct as soon as the second type of deployment is implemented
+pub use bollard::container::Config;
 use std::path::Path;
 
 // TODO: Take Quest as parameter, create subquests
@@ -10,7 +12,7 @@ pub trait InstanceDeployment {
     async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
     async fn start_instance(
         &self,
-        config: InstanceConfig,
+        config: Config<String>,
         id: Option<InstanceId>,
     ) -> Result<InstanceId>;
     async fn stop_instance(&self, id: InstanceId) -> Result<()>;

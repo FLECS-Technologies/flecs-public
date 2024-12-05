@@ -1,5 +1,7 @@
 use crate::jeweler::deployment::{Deployment, DeploymentId};
-use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::gem::manifest::{
+    AppManifest, ConfigFile, EnvironmentVariable, PortMapping, VolumeMount,
+};
 use crate::jeweler::volume::VolumeId;
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
 use crate::quest::SyncQuest;
@@ -9,10 +11,9 @@ use bollard::models::ContainerStateStatusEnum;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::num::ParseIntError;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::log::warn;
@@ -61,16 +62,19 @@ impl Display for InstanceId {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct InstanceConfig {
-    // TODO: Add more info (e.g. from manifest)
-    #[serde(skip_serializing_if = "HashSet::is_empty", default)]
-    pub volume_ids: HashSet<VolumeId>,
+    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
+    pub volume_mounts: HashMap<VolumeId, VolumeMount>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub environment_variables: Vec<EnvironmentVariable>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub port_mapping: Vec<PortMapping>,
 }
 
-impl From<InstanceConfig> for Config<String> {
-    fn from(_value: InstanceConfig) -> Self {
+impl From<&Instance> for Config<String> {
+    fn from(value: &Instance) -> Self {
         // TODO: Add more info from instance config if available
         Config {
-            image: None,
+            image: Some(value.manifest.image_with_tag().to_string()),
             ..Default::default()
         }
     }
@@ -132,13 +136,116 @@ impl Instance {
         self.manifest.key.clone()
     }
 
-    pub async fn create() -> anyhow::Result<Self> {
-        // TODO: Create portmapping
-        // TODO: Set env and ports
-        // TODO: Create volumes
+    pub async fn create_config_file(
+        quest: SyncQuest,
+        deployment: Arc<dyn Deployment>,
+        config_path: PathBuf,
+        config_file: ConfigFile,
+        manifest: Arc<AppManifest>,
+    ) -> crate::Result<()> {
+        deployment
+            .copy_from_app_image(
+                quest,
+                manifest.image_with_tag(),
+                &config_file.container_file_path,
+                &config_path.join(config_file.host_file_name),
+                true,
+            )
+            .await
+    }
+
+    pub async fn create_config_files(
+        quest: SyncQuest,
+        deployment: Arc<dyn Deployment>,
+        config_path: PathBuf,
+        config_files: Vec<ConfigFile>,
+        manifest: Arc<AppManifest>,
+    ) -> crate::Result<()> {
+        tokio::fs::create_dir_all(&config_path).await?;
+        let mut results = Vec::new();
+        for config_file in config_files {
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!("Create config file {:?}", config_file.container_file_path),
+                    |quest| {
+                        Self::create_config_file(
+                            quest,
+                            deployment.clone(),
+                            config_path.clone(),
+                            config_file,
+                            manifest.clone(),
+                        )
+                    },
+                )
+                .await
+                .2;
+            results.push(result);
+        }
+        if let Some(error) = join_all(results)
+            .await
+            .into_iter()
+            .filter_map(|result| result.err())
+            .next()
+        {
+            tokio::fs::remove_dir_all(&config_path).await?;
+            Err(error)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn create(
+        quest: SyncQuest,
+        deployment: Arc<dyn Deployment>,
+        manifest: Arc<AppManifest>,
+        name: String,
+    ) -> anyhow::Result<Self> {
+        let instance_id = InstanceId::new_random();
+        let port_mapping = manifest.ports.clone();
+        let environment_variables = manifest.environment_variables.clone();
+        // TODO: Create volume mounts
+        let volume_mounts: HashMap<VolumeId, VolumeMount> = HashMap::new();
+        let config = InstanceConfig {
+            environment_variables,
+            port_mapping,
+            volume_mounts,
+        };
         // TODO: Create networks
-        // TODO: Create conffiles
-        todo!()
+        let config_path = crate::lore::base_path()
+            .join(instance_id.to_string())
+            .join("conf");
+        let create_configs_result = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!(
+                    "Create config files for instance {instance_id} of {}",
+                    manifest.key
+                ),
+                |quest| {
+                    Self::create_config_files(
+                        quest,
+                        deployment.clone(),
+                        config_path,
+                        manifest.config_files.clone(),
+                        manifest.clone(),
+                    )
+                },
+            )
+            .await
+            .2;
+        // TODO: Delete all volume_mounts if error occurs
+        create_configs_result.await?;
+        Ok(Self {
+            id: instance_id,
+            deployment,
+            name,
+            manifest,
+            config,
+            desired: InstanceStatus::Created,
+        })
     }
 
     pub async fn start(&mut self) -> anyhow::Result<()> {
@@ -148,7 +255,7 @@ impl Instance {
             _ => {
                 self.id = self
                     .deployment
-                    .start_instance(self.config.clone(), Some(self.id))
+                    .start_instance((&*self).into(), Some(self.id))
                     .await?
             }
         }
@@ -222,7 +329,7 @@ impl Instance {
         self.desired = InstanceStatus::NotCreated;
         let mut volume_ids = Vec::new();
         let mut delete_results = Vec::new();
-        for volume_id in self.config.volume_ids.iter() {
+        for volume_id in self.config.volume_mounts.keys() {
             let result = quest
                 .lock()
                 .await
@@ -345,9 +452,14 @@ pub fn try_create_instance(
 pub mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::gem::manifest::tests::create_test_manifest;
+    use crate::jeweler::gem::manifest::tests::{create_test_manifest, create_test_manifest_full};
+    use crate::jeweler::gem::manifest::PortRange;
     use crate::quest::Quest;
+    use crate::tests::prepare_test_path;
+    use std::fs::File;
+    use std::io::Write;
     use std::num::IntErrorKind;
+    use std::path::PathBuf;
 
     #[test]
     fn display_instance_id() {
@@ -427,12 +539,48 @@ pub mod tests {
             desired: InstanceStatus::Created,
             name: "TestInstance".to_string(),
             config: InstanceConfig {
-                volume_ids: HashSet::from([
-                    format!("Instance#{id}Volume#1"),
-                    format!("Instance#{id}Volume#2"),
-                    format!("Instance#{id}Volume#3"),
-                    format!("Instance#{id}Volume#4"),
+                volume_mounts: HashMap::from([
+                    (
+                        format!("Instance#{id}Volume#1"),
+                        VolumeMount {
+                            name: format!("{id}-Volume#1"),
+                            container_path: PathBuf::from("/volume1"),
+                        },
+                    ),
+                    (
+                        format!("Instance#{id}Volume#2"),
+                        VolumeMount {
+                            name: format!("{id}-Volume#2"),
+                            container_path: PathBuf::from("/volume2"),
+                        },
+                    ),
+                    (
+                        format!("Instance#{id}Volume#3"),
+                        VolumeMount {
+                            name: format!("{id}-Volume#3"),
+                            container_path: PathBuf::from("/volume3"),
+                        },
+                    ),
+                    (
+                        format!("Instance#{id}Volume#4"),
+                        VolumeMount {
+                            name: format!("{id}-Volume#4"),
+                            container_path: PathBuf::from("/volume4"),
+                        },
+                    ),
                 ]),
+                environment_variables: vec![
+                    EnvironmentVariable::from_str("variable-1=value1").unwrap(),
+                    EnvironmentVariable::from_str("variable-2=").unwrap(),
+                    EnvironmentVariable::from_str("variable-3").unwrap(),
+                ],
+                port_mapping: vec![
+                    PortMapping::Single(1002, 2002),
+                    PortMapping::Range {
+                        from: PortRange::try_new(8000, 9000).unwrap(),
+                        to: PortRange::try_new(9500, 10500).unwrap(),
+                    },
+                ],
             },
             deployment,
             manifest,
@@ -631,5 +779,169 @@ pub mod tests {
             &IntErrorKind::Empty,
             InstanceId::from_str("").err().unwrap().kind()
         );
+    }
+
+    #[tokio::test]
+    async fn create_config_file_ok() {
+        let path = prepare_test_path(module_path!(), "create_config_file_err").join("config");
+        let manifest = Arc::new(create_test_manifest_full(None));
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let config_file = ConfigFile {
+            host_file_name: "test.config".to_string(),
+            container_file_path: PathBuf::from("/tmp/flecs-test.config"),
+            read_only: false,
+        };
+        Instance::create_config_file(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path,
+            config_file,
+            manifest,
+        )
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn create_config_file_err() {
+        let path = prepare_test_path(module_path!(), "create_config_file_err").join("config");
+        let manifest = Arc::new(create_test_manifest_full(None));
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(1)
+            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let config_file = ConfigFile {
+            host_file_name: "test.config".to_string(),
+            container_file_path: PathBuf::from("/tmp/flecs-test.config"),
+            read_only: false,
+        };
+        assert!(Instance::create_config_file(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path,
+            config_file,
+            manifest,
+        )
+        .await
+        .is_err())
+    }
+
+    #[tokio::test]
+    async fn create_config_files_ok() {
+        let path = prepare_test_path(module_path!(), "create_config_files_ok").join("config");
+        let manifest = Arc::new(create_test_manifest_full(None));
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(3)
+            .returning(|_, _, _, _, _| Ok(()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        Instance::create_config_files(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path.clone(),
+            manifest.config_files.clone(),
+            manifest,
+        )
+        .await
+        .unwrap();
+        assert!(path.try_exists().unwrap());
+    }
+
+    #[tokio::test]
+    async fn create_config_files_can_not_create_path() {
+        let path = prepare_test_path(module_path!(), "create_config_files_can_not_create_path")
+            .join("config");
+        {
+            let mut file = File::create(&path).unwrap();
+            file.write_all(b"TestData").unwrap();
+        }
+        assert!(path.try_exists().unwrap());
+        let manifest = Arc::new(create_test_manifest_full(None));
+        let deployment: Arc<dyn Deployment> = Arc::new(MockedDeployment::new());
+        assert!(Instance::create_config_files(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path.clone(),
+            manifest.config_files.clone(),
+            manifest,
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn create_config_files_err() {
+        let path = prepare_test_path(module_path!(), "create_config_files_err").join("config");
+        let manifest = Arc::new(create_test_manifest_full(None));
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(3)
+            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        assert!(Instance::create_config_files(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path.clone(),
+            manifest.config_files.clone(),
+            manifest,
+        )
+        .await
+        .is_err());
+        assert!(!path.try_exists().unwrap());
+    }
+
+    #[tokio::test]
+    async fn create_ok() {
+        let manifest = Arc::new(create_test_manifest_full(None));
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(3)
+            .returning(|_, _, _, _, _| Ok(()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let instance = Instance::create(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            manifest.clone(),
+            "TestInstance".to_string(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(&instance.config.port_mapping, &manifest.ports);
+        assert_eq!(instance.desired, InstanceStatus::Created);
+        assert_eq!(
+            &instance.config.environment_variables,
+            &manifest.environment_variables
+        );
+        // TODO: Check volume_mounts
+        // TODO: Check networks
+    }
+
+    #[tokio::test]
+    async fn create_create_config_fails() {
+        let manifest = Arc::new(create_test_manifest_full(None));
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(3)
+            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        assert!(Instance::create(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            manifest.clone(),
+            "TestInstance".to_string(),
+        )
+        .await
+        .is_err());
     }
 }

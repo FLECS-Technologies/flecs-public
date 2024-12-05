@@ -1,3 +1,5 @@
+use std::path::Path;
+
 pub mod console_client_config {
     use crate::fsm::console_client::create_default_client_with_middleware;
     use flecs_console_client::apis::configuration::Configuration;
@@ -67,6 +69,12 @@ pub mod quest {
     }
 }
 
+pub fn base_path() -> &'static Path {
+    Path::new(BASE_PATH)
+}
+#[cfg(test)]
+pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/";
+#[cfg(not(test))]
 pub const BASE_PATH: &str = "/var/lib/flecs/";
 pub const MAX_SUPPORTED_APP_MANIFEST_VERSION: &str = "3.0.0";
 pub const API_VERSION: &str = env!("FLECS_API_VERSION");
