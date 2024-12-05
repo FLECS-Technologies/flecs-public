@@ -208,7 +208,7 @@ auto apps_t::do_install_many_from_marketplace_sync(std::vector<apps::key_t> app_
 auto apps_t::do_install_from_marketplace(apps::key_t app_key, jobs::progress_t& progress) //
     -> result_t
 {
-    progress.num_steps(6);
+    progress.num_steps(5);
     return install_from_marketplace(std::move(app_key), progress);
 }
 
@@ -282,6 +282,8 @@ auto apps_t::do_sideload_sync(std::string manifest_string) //
 auto apps_t::do_sideload(std::string manifest_string, jobs::progress_t& progress) //
     -> result_t
 {
+    progress.num_steps(5);
+    progress.next_step("Importing Manifest");
     const auto [manifest, _] = _manifests_api->add_from_string(manifest_string);
     // Step 1: Validate transferred manifest
     if (manifest) {
@@ -306,8 +308,6 @@ auto apps_t::do_install_impl(
     }
     tmp.desired(apps::status_e::Installed);
     tmp.status(apps::status_e::ManifestDownloaded);
-
-    progress.next_step("Acquiring download token");
 
     // Step 2: Determine current App status to decide where to continue
     auto app = _parent->query(tmp.key());
