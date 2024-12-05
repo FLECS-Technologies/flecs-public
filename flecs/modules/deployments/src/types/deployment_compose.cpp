@@ -43,7 +43,10 @@ auto compose_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<
     auto pull_attempts = 3;
     while (pull_attempts-- > 0) {
         pull_process.stdin(compose_json.dump());
-        pull_process.spawnp("docker-compose", "-f", "-", "pull");
+        const auto res = pull_process.spawnp("docker-compose", "-f", "-", "pull");
+        if (res != 0) {
+            return {res, "Could not execute docker-compoe"};
+        }
         pull_process.wait(true, true);
         if (pull_process.exit_code() == 0) {
             break;
