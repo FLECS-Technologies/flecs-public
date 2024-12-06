@@ -235,6 +235,10 @@ components:
       format: ipv4
       example: 172.21.0.3
     instance_detail_config_files:
+      type: array
+      items:
+        $ref: "#/components/schemas/instance_detail_config_file"
+    instance_detail_config_file:
       type: object
       required:
         - container
