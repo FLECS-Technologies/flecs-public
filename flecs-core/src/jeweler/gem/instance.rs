@@ -56,7 +56,7 @@ impl FromStr for InstanceId {
 
 impl Display for InstanceId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:01x}", self.value)
+        write!(f, "{:08x}", self.value)
     }
 }
 
@@ -463,10 +463,10 @@ pub mod tests {
 
     #[test]
     fn display_instance_id() {
-        assert_eq!("0", InstanceId { value: 0 }.to_string());
-        assert_eq!("1", InstanceId { value: 1 }.to_string());
-        assert_eq!("f0", InstanceId { value: 240 }.to_string());
-        assert_eq!("3da33", InstanceId { value: 252467 }.to_string());
+        assert_eq!("00000000", InstanceId { value: 0 }.to_string());
+        assert_eq!("00000001", InstanceId { value: 1 }.to_string());
+        assert_eq!("000000f0", InstanceId { value: 240 }.to_string());
+        assert_eq!("0003da33", InstanceId { value: 252467 }.to_string());
     }
 
     #[test]
