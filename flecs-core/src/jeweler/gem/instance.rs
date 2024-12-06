@@ -214,6 +214,7 @@ impl Instance {
         };
         // TODO: Create networks
         let config_path = crate::lore::base_path()
+            .join("instances")
             .join(instance_id.to_string())
             .join("conf");
         let create_configs_result = quest
