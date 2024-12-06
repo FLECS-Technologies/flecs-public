@@ -784,7 +784,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_config_file_ok() {
-        let path = prepare_test_path(module_path!(), "create_config_file_err").join("config");
+        let path = prepare_test_path(module_path!(), "create_config_file_ok").join("config");
         let manifest = Arc::new(create_test_manifest_full(None));
         let mut deployment = MockedDeployment::new();
         deployment
