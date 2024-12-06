@@ -8,9 +8,26 @@ RUN apt-get update && \
 
 ARG ARCH
 
-RUN [ "${ARCH}" = "amd64" ] && wget https://download.docker.com/linux/static/stable/x86_64/docker-24.0.6.tgz || true
-RUN [ "${ARCH}" = "armhf" ] && wget https://download.docker.com/linux/static/stable/armhf/docker-24.0.6.tgz || true
-RUN [ "${ARCH}" = "arm64" ] && wget https://download.docker.com/linux/static/stable/aarch64/docker-24.0.6.tgz || true
+RUN mkdir -p /fs/usr/bin
+RUN case "${ARCH}" in \
+    "amd64") \
+    wget https://download.docker.com/linux/static/stable/x86_64/docker-27.3.1.tgz; \
+    wget -O /fs/usr/bin/docker-compose https://github.com/docker/compose/releases/download/v2.31.0/docker-compose-linux-x86_64; \
+    ;; \
+    "armhf") \
+    wget https://download.docker.com/linux/static/stable/armhf/docker-27.3.1.tgz; \
+    wget -O /fs/usr/bin/docker-compose https://github.com/docker/compose/releases/download/v2.31.0/docker-compose-linux-armv7; \
+    ;; \
+    "arm64") \
+    wget https://download.docker.com/linux/static/stable/aarch64/docker-27.3.1.tgz; \
+    wget -O /fs/usr/bin/docker-compose https://github.com/docker/compose/releases/download/v2.31.0/docker-compose-linux-aarch64; \
+    ;; \
+    *) \
+    exit 1 \
+    ;; \
+    esac
+
+RUN chmod a+x /fs/usr/bin/docker-compose
 
 RUN mkdir -p /fs/usr/local/bin && tar -C /fs/usr/local/bin --strip-components=1 -xf docker-*.tgz docker/docker
 
