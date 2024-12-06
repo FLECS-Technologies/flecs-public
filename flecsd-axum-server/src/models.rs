@@ -3572,7 +3572,7 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceConf
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstanceDetailConfigFiles {
+pub struct InstanceDetailConfigFile {
     #[serde(rename = "container")]
     pub container: String,
 
@@ -3580,17 +3580,17 @@ pub struct InstanceDetailConfigFiles {
     pub host: String,
 }
 
-impl InstanceDetailConfigFiles {
+impl InstanceDetailConfigFile {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(container: String, host: String) -> InstanceDetailConfigFiles {
-        InstanceDetailConfigFiles { container, host }
+    pub fn new(container: String, host: String) -> InstanceDetailConfigFile {
+        InstanceDetailConfigFile { container, host }
     }
 }
 
-/// Converts the InstanceDetailConfigFiles value to the Query Parameters representation (style=form, explode=false)
+/// Converts the InstanceDetailConfigFile value to the Query Parameters representation (style=form, explode=false)
 /// specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde serializer
-impl std::fmt::Display for InstanceDetailConfigFiles {
+impl std::fmt::Display for InstanceDetailConfigFile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
             Some("container".to_string()),
@@ -3607,10 +3607,10 @@ impl std::fmt::Display for InstanceDetailConfigFiles {
     }
 }
 
-/// Converts Query Parameters representation (style=form, explode=false) to a InstanceDetailConfigFiles value
+/// Converts Query Parameters representation (style=form, explode=false) to a InstanceDetailConfigFile value
 /// as specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde deserializer
-impl std::str::FromStr for InstanceDetailConfigFiles {
+impl std::str::FromStr for InstanceDetailConfigFile {
     type Err = String;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -3633,7 +3633,7 @@ impl std::str::FromStr for InstanceDetailConfigFiles {
                 Some(x) => x,
                 None => {
                     return std::result::Result::Err(
-                        "Missing value while parsing InstanceDetailConfigFiles".to_string(),
+                        "Missing value while parsing InstanceDetailConfigFile".to_string(),
                     )
                 }
             };
@@ -3651,7 +3651,7 @@ impl std::str::FromStr for InstanceDetailConfigFiles {
                     ),
                     _ => {
                         return std::result::Result::Err(
-                            "Unexpected key while parsing InstanceDetailConfigFiles".to_string(),
+                            "Unexpected key while parsing InstanceDetailConfigFile".to_string(),
                         )
                     }
                 }
@@ -3662,18 +3662,162 @@ impl std::str::FromStr for InstanceDetailConfigFiles {
         }
 
         // Use the intermediate representation to return the struct
-        std::result::Result::Ok(InstanceDetailConfigFiles {
+        std::result::Result::Ok(InstanceDetailConfigFile {
             container: intermediate_rep
                 .container
                 .into_iter()
                 .next()
-                .ok_or_else(|| "container missing in InstanceDetailConfigFiles".to_string())?,
+                .ok_or_else(|| "container missing in InstanceDetailConfigFile".to_string())?,
             host: intermediate_rep
                 .host
                 .into_iter()
                 .next()
-                .ok_or_else(|| "host missing in InstanceDetailConfigFiles".to_string())?,
+                .ok_or_else(|| "host missing in InstanceDetailConfigFile".to_string())?,
         })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstanceDetailConfigFile> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<InstanceDetailConfigFile>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstanceDetailConfigFile>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for InstanceDetailConfigFile - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceDetailConfigFile> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <InstanceDetailConfigFile as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into InstanceDetailConfigFile - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstanceDetailConfigFiles(Vec<InstanceDetailConfigFile>);
+
+impl validator::Validate for InstanceDetailConfigFiles {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<Vec<InstanceDetailConfigFile>> for InstanceDetailConfigFiles {
+    fn from(x: Vec<InstanceDetailConfigFile>) -> Self {
+        InstanceDetailConfigFiles(x)
+    }
+}
+
+impl std::convert::From<InstanceDetailConfigFiles> for Vec<InstanceDetailConfigFile> {
+    fn from(x: InstanceDetailConfigFiles) -> Self {
+        x.0
+    }
+}
+
+impl std::iter::FromIterator<InstanceDetailConfigFile> for InstanceDetailConfigFiles {
+    fn from_iter<U: IntoIterator<Item = InstanceDetailConfigFile>>(u: U) -> Self {
+        InstanceDetailConfigFiles(Vec::<InstanceDetailConfigFile>::from_iter(u))
+    }
+}
+
+impl std::iter::IntoIterator for InstanceDetailConfigFiles {
+    type Item = InstanceDetailConfigFile;
+    type IntoIter = std::vec::IntoIter<InstanceDetailConfigFile>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a> std::iter::IntoIterator for &'a InstanceDetailConfigFiles {
+    type Item = &'a InstanceDetailConfigFile;
+    type IntoIter = std::slice::Iter<'a, InstanceDetailConfigFile>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl<'a> std::iter::IntoIterator for &'a mut InstanceDetailConfigFiles {
+    type Item = &'a mut InstanceDetailConfigFile;
+    type IntoIter = std::slice::IterMut<'a, InstanceDetailConfigFile>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter_mut()
+    }
+}
+
+impl std::ops::Deref for InstanceDetailConfigFiles {
+    type Target = Vec<InstanceDetailConfigFile>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for InstanceDetailConfigFiles {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+/// Converts the InstanceDetailConfigFiles value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstanceDetailConfigFiles {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstanceDetailConfigFiles value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstanceDetailConfigFiles {
+    type Err = <InstanceDetailConfigFile as std::str::FromStr>::Err;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let mut items = vec![];
+        for item in s.split(',') {
+            items.push(item.parse()?);
+        }
+        std::result::Result::Ok(InstanceDetailConfigFiles(items))
     }
 }
 
