@@ -1,6 +1,6 @@
 use crate::jeweler::deployment::{Deployment, DeploymentId};
 use crate::jeweler::gem::manifest::{
-    AppManifest, ConfigFile, EnvironmentVariable, PortMapping, VolumeMount,
+    AppManifest, ConfigFile, EnvironmentVariable, Mount, PortMapping, VolumeMount,
 };
 use crate::jeweler::volume::VolumeId;
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
@@ -93,6 +93,23 @@ pub enum InstanceStatus {
     Unknown,
 }
 
+impl From<InstanceStatus> for flecsd_axum_server::models::InstanceStatus {
+    fn from(value: InstanceStatus) -> Self {
+        match value {
+            InstanceStatus::NotCreated => flecsd_axum_server::models::InstanceStatus::NotCreated,
+            InstanceStatus::Requested => flecsd_axum_server::models::InstanceStatus::Requested,
+            InstanceStatus::ResourcesReady => {
+                flecsd_axum_server::models::InstanceStatus::ResourcesReady
+            }
+            InstanceStatus::Created => flecsd_axum_server::models::InstanceStatus::Created,
+            InstanceStatus::Stopped => flecsd_axum_server::models::InstanceStatus::Stopped,
+            InstanceStatus::Running => flecsd_axum_server::models::InstanceStatus::Running,
+            InstanceStatus::Orphaned => flecsd_axum_server::models::InstanceStatus::Orphaned,
+            InstanceStatus::Unknown => flecsd_axum_server::models::InstanceStatus::Unknown,
+        }
+    }
+}
+
 impl From<ContainerStateStatusEnum> for InstanceStatus {
     fn from(value: ContainerStateStatusEnum) -> Self {
         // TBD
@@ -111,6 +128,7 @@ impl From<ContainerStateStatusEnum> for InstanceStatus {
 
 #[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
 pub struct InstanceDeserializable {
+    pub hostname: String,
     pub name: String,
     pub id: InstanceId,
     pub config: InstanceConfig,
@@ -122,6 +140,7 @@ pub struct InstanceDeserializable {
 #[derive(Debug, Serialize)]
 pub struct Instance {
     pub name: String,
+    pub hostname: String,
     pub id: InstanceId,
     pub config: InstanceConfig,
     #[serde(serialize_with = "serialize_deployment_id", rename = "deployment_id")]
@@ -134,6 +153,60 @@ pub struct Instance {
 impl Instance {
     pub fn app_key(&self) -> AppKey {
         self.manifest.key.clone()
+    }
+
+    pub async fn generate_info(&self) -> crate::Result<flecsd_axum_server::models::AppInstance> {
+        let status = self.status().await?;
+        Ok(flecsd_axum_server::models::AppInstance {
+            instance_id: format!("{}", self.id),
+            instance_name: self.name.clone(),
+            app_key: self.app_key().into(),
+            status: status.into(),
+            desired: self.desired.into(),
+            editors: None,
+        })
+    }
+
+    pub async fn generate_detailed_info(
+        &self,
+    ) -> crate::Result<flecsd_axum_server::models::InstancesInstanceIdGet200Response> {
+        let status = self.status().await?;
+        Ok(
+            flecsd_axum_server::models::InstancesInstanceIdGet200Response {
+                instance_id: format!("{}", self.id),
+                instance_name: self.name.clone(),
+                app_key: self.app_key().into(),
+                status: status.into(),
+                desired: self.desired.into(),
+                config_files: self
+                    .manifest
+                    .config_files
+                    .iter()
+                    .map(Into::into)
+                    .collect::<Vec<_>>()
+                    .into(),
+                hostname: self.hostname.clone(),
+                // TODO: ip_address
+                ip_address: "TODO".to_string(),
+                ports: self.manifest.ports.iter().map(Into::into).collect(),
+                volumes: self
+                    .manifest
+                    .mounts
+                    .iter()
+                    .filter_map(|mount| match mount {
+                        Mount::Volume(volume) => {
+                            Some(flecsd_axum_server::models::InstanceDetailVolume {
+                                name: volume.name.clone(),
+                                path: volume.container_path.to_string_lossy().to_string(),
+                            })
+                        }
+                        _ => None,
+                    })
+                    .collect(),
+                // TODO: Fill editors
+                editors: None,
+            },
+        )
     }
 
     pub async fn create_config_file(
@@ -240,6 +313,7 @@ impl Instance {
         // TODO: Delete all volume_mounts if error occurs
         create_configs_result.await?;
         Ok(Self {
+            hostname: format!("flecs-{instance_id}"),
             id: instance_id,
             deployment,
             name,
@@ -446,6 +520,7 @@ pub fn try_create_instance(
         id: instance.id,
         config: instance.config,
         name: instance.name,
+        hostname: instance.hostname,
     })
 }
 
@@ -457,6 +532,10 @@ pub mod tests {
     use crate::jeweler::gem::manifest::PortRange;
     use crate::quest::Quest;
     use crate::tests::prepare_test_path;
+    use flecsd_axum_server::models::{
+        InstanceDetailConfigFile, InstanceDetailConfigFiles, InstanceDetailPort,
+        InstanceDetailVolume,
+    };
     use std::fs::File;
     use std::io::Write;
     use std::num::IntErrorKind;
@@ -480,13 +559,15 @@ pub mod tests {
             deployment_id.clone(),
             Arc::new(MockedDeployment::new()) as Arc<dyn Deployment>,
         )]);
+        let instance_id = InstanceId::new(10);
         let instance = InstanceDeserializable {
             deployment_id,
-            id: InstanceId::new(10),
+            id: instance_id,
             app_key,
             name: "TestInstance".to_string(),
             desired: InstanceStatus::Running,
             config: InstanceConfig::default(),
+            hostname: format!("flecs-{instance_id}"),
         };
         try_create_instance(instance, &manifests, &deployments).unwrap();
     }
@@ -498,13 +579,15 @@ pub mod tests {
         let manifests = HashMap::from([(app_key.clone(), manifest)]);
         let deployment_id = "TestDeployment".to_string();
         let deployments = HashMap::new();
+        let instance_id = InstanceId::new(10);
         let instance = InstanceDeserializable {
             deployment_id,
-            id: InstanceId::new(10),
+            id: instance_id,
             app_key,
             name: "TestInstance".to_string(),
             desired: InstanceStatus::Running,
             config: InstanceConfig::default(),
+            hostname: format!("flecs-{instance_id}"),
         };
         assert!(try_create_instance(instance, &manifests, &deployments).is_err());
     }
@@ -519,13 +602,15 @@ pub mod tests {
             deployment_id.clone(),
             Arc::new(MockedDeployment::new()) as Arc<dyn Deployment>,
         )]);
+        let instance_id = InstanceId::new(10);
         let instance = InstanceDeserializable {
             deployment_id,
-            id: InstanceId::new(10),
+            id: instance_id,
             app_key,
             name: "TestInstance".to_string(),
             desired: InstanceStatus::Running,
             config: InstanceConfig::default(),
+            hostname: format!("flecs-{instance_id}"),
         };
         assert!(try_create_instance(instance, &manifests, &deployments).is_err());
     }
@@ -539,6 +624,7 @@ pub mod tests {
             id: InstanceId::new(id),
             desired: InstanceStatus::Created,
             name: "TestInstance".to_string(),
+            hostname: format!("flecs-{id}"),
             config: InstanceConfig {
                 volume_mounts: HashMap::from([
                     (
@@ -944,5 +1030,249 @@ pub mod tests {
         )
         .await
         .is_err());
+    }
+
+    #[tokio::test]
+    async fn create_instance_info_ok() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Running));
+        let deployment = Arc::new(deployment);
+        let manifest = Arc::new(create_test_manifest_full(Some(true)));
+        let instance_id = InstanceId::new(0x123);
+        let instance = Instance {
+            name: "TestInstance".to_string(),
+            hostname: format!("flecs-{instance_id}"),
+            id: instance_id,
+            manifest,
+            deployment,
+            config: Default::default(),
+            desired: InstanceStatus::Running,
+        };
+        let expected_info = flecsd_axum_server::models::AppInstance {
+            instance_id: "00000123".to_string(),
+            instance_name: "TestInstance".to_string(),
+            app_key: flecsd_axum_server::models::AppKey {
+                name: "some.test.app".to_string(),
+                version: "1.2.1".to_string(),
+            },
+            status: flecsd_axum_server::models::InstanceStatus::Running,
+            desired: flecsd_axum_server::models::InstanceStatus::Running,
+            editors: None,
+        };
+        assert_eq!(instance.generate_info().await.unwrap(), expected_info);
+    }
+
+    #[tokio::test]
+    async fn create_instance_info_err() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let deployment = Arc::new(deployment);
+        let manifest = Arc::new(create_test_manifest_full(Some(true)));
+        let instance_id = InstanceId::new(0x123);
+        let instance = Instance {
+            name: "TestInstance".to_string(),
+            hostname: format!("flecs-{instance_id}"),
+            id: instance_id,
+            manifest,
+            deployment,
+            config: Default::default(),
+            desired: InstanceStatus::Running,
+        };
+        assert!(instance.generate_info().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn create_instance_info_details_ok() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Running));
+        let deployment = Arc::new(deployment);
+        let manifest = Arc::new(create_test_manifest_full(Some(true)));
+        let instance_id = InstanceId::new(0x123);
+        let instance = Instance {
+            name: "TestInstance".to_string(),
+            hostname: format!("flecs-{instance_id}"),
+            id: instance_id,
+            manifest,
+            deployment,
+            config: Default::default(),
+            desired: InstanceStatus::Running,
+        };
+        let expected_info = flecsd_axum_server::models::InstancesInstanceIdGet200Response {
+            instance_id: "00000123".to_string(),
+            instance_name: "TestInstance".to_string(),
+            app_key: flecsd_axum_server::models::AppKey {
+                name: "some.test.app".to_string(),
+                version: "1.2.1".to_string(),
+            },
+            status: flecsd_axum_server::models::InstanceStatus::Running,
+            desired: flecsd_axum_server::models::InstanceStatus::Running,
+            config_files: InstanceDetailConfigFiles::from(vec![
+                InstanceDetailConfigFile {
+                    host: "default.conf".to_string(),
+                    container: "/etc/my-app/default.conf".to_string(),
+                },
+                InstanceDetailConfigFile {
+                    host: "default.conf".to_string(),
+                    container: "/etc/my-app/default.conf".to_string(),
+                },
+                InstanceDetailConfigFile {
+                    host: "default.conf".to_string(),
+                    container: "/etc/my-app/default.conf".to_string(),
+                },
+            ]),
+            hostname: "flecs-00000123".to_string(),
+            ip_address: "TODO".to_string(),
+            ports: vec![
+                InstanceDetailPort {
+                    host: "8001".to_string(),
+                    container: "8001".to_string(),
+                },
+                InstanceDetailPort {
+                    host: "5000".to_string(),
+                    container: "5000".to_string(),
+                },
+                InstanceDetailPort {
+                    host: "5001-5008".to_string(),
+                    container: "6001-6008".to_string(),
+                },
+                InstanceDetailPort {
+                    host: "6001-6008".to_string(),
+                    container: "6001-6008".to_string(),
+                },
+            ],
+            volumes: vec![InstanceDetailVolume {
+                name: "my-app-etc".to_string(),
+                path: "/etc/my-app".to_string(),
+            }],
+            editors: None,
+        };
+        assert_eq!(
+            instance.generate_detailed_info().await.unwrap(),
+            expected_info
+        );
+    }
+
+    #[tokio::test]
+    async fn create_instance_info_details_err() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let deployment = Arc::new(deployment);
+        let manifest = Arc::new(create_test_manifest_full(Some(true)));
+        let instance_id = InstanceId::new(0x123);
+        let instance = Instance {
+            name: "TestInstance".to_string(),
+            hostname: format!("flecs-{instance_id}"),
+            id: instance_id,
+            manifest,
+            deployment,
+            config: Default::default(),
+            desired: InstanceStatus::Running,
+        };
+        assert!(instance.generate_detailed_info().await.is_err());
+    }
+
+    #[test]
+    fn to_docker_id() {
+        assert_eq!(
+            InstanceId::new(0x2468).to_docker_id(),
+            "flecs-00002468".to_string()
+        );
+    }
+
+    #[test]
+    fn config_from_instance() {
+        let deployment = MockedDeployment::new();
+        let deployment = Arc::new(deployment);
+        let manifest = Arc::new(create_test_manifest_full(Some(true)));
+        let instance = &test_instance(123, deployment, manifest);
+        let config: Config<String> = instance.into();
+        assert_eq!(
+            config.image,
+            Some("flecs.azurecr.io/some.test.app:1.2.1".to_string())
+        );
+    }
+
+    #[test]
+    fn instance_status_from_container_status() {
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::EMPTY),
+            InstanceStatus::Created
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::CREATED),
+            InstanceStatus::Created
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::RUNNING),
+            InstanceStatus::Running
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::PAUSED),
+            InstanceStatus::Running
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::RESTARTING),
+            InstanceStatus::Running
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::REMOVING),
+            InstanceStatus::Running
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::EXITED),
+            InstanceStatus::Created
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::DEAD),
+            InstanceStatus::Created
+        );
+    }
+
+    #[test]
+    fn server_status_from_instance_status() {
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::NotCreated,
+            InstanceStatus::NotCreated.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Requested,
+            InstanceStatus::Requested.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::ResourcesReady,
+            InstanceStatus::ResourcesReady.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Created,
+            InstanceStatus::Created.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Stopped,
+            InstanceStatus::Stopped.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Running,
+            InstanceStatus::Running.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Orphaned,
+            InstanceStatus::Orphaned.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Unknown,
+            InstanceStatus::Unknown.into()
+        );
     }
 }

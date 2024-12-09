@@ -2,7 +2,8 @@ use crate::jeweler;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::{try_create_instance, Instance, InstanceDeserializable};
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::vault::pouch::{AppKey, DeploymentId, Pouch};
+use crate::vault::pouch::deployment::DeploymentId;
+use crate::vault::pouch::{AppKey, Pouch};
 pub use crate::Result;
 use std::collections::HashMap;
 use std::fs;
@@ -11,7 +12,6 @@ use std::sync::Arc;
 use tracing::error;
 
 const INSTANCES_FILE_NAME: &str = "instances.json";
-pub type InstanceStatus = jeweler::gem::instance::InstanceStatus;
 pub type InstanceId = jeweler::gem::instance::InstanceId;
 
 pub struct InstancePouch {
@@ -86,6 +86,32 @@ impl InstancePouch {
             })
             .collect()
     }
+
+    pub fn instance_ids_by_app_name(&self, app_name: String) -> Vec<InstanceId> {
+        self.instances
+            .iter()
+            .filter_map(|(id, instance)| {
+                if instance.app_key().name == app_name {
+                    Some(*id)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    pub fn instance_ids_by_app_version(&self, app_version: String) -> Vec<InstanceId> {
+        self.instances
+            .iter()
+            .filter_map(|(id, instance)| {
+                if instance.app_key().version == app_version {
+                    Some(*id)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
 }
 
 impl InstancePouch {
@@ -98,15 +124,15 @@ impl InstancePouch {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::gem::instance::InstanceConfig;
+    use crate::jeweler::gem::instance::{InstanceConfig, InstanceStatus};
     use crate::tests::prepare_test_path;
-    use crate::vault::pouch::tests::create_test_manifest;
+    use crate::vault::pouch::manifest::tests::create_test_manifest;
     use serde_json::Value;
 
-    fn create_manifest_for_instance(
+    pub fn create_manifest_for_instance(
         instance: &InstanceDeserializable,
     ) -> (AppKey, Arc<AppManifest>) {
         (
@@ -132,11 +158,12 @@ mod tests {
         )
     }
 
-    fn create_test_instances_deserializable() -> Vec<InstanceDeserializable> {
+    pub fn create_test_instances_deserializable() -> Vec<InstanceDeserializable> {
         vec![
             InstanceDeserializable {
                 config: InstanceConfig::default(),
                 name: "test-instance-1".to_string(),
+                hostname: format!("flecs-{}", InstanceId::new(1)),
                 id: InstanceId::new(1),
                 desired: InstanceStatus::Running,
                 app_key: AppKey {
@@ -148,6 +175,7 @@ mod tests {
             InstanceDeserializable {
                 config: InstanceConfig::default(),
                 name: "test-instance-2".to_string(),
+                hostname: format!("flecs-{}", InstanceId::new(2)),
                 id: InstanceId::new(2),
                 desired: InstanceStatus::Running,
                 app_key: AppKey {
@@ -156,10 +184,58 @@ mod tests {
                 },
                 deployment_id: "test-deployment-2".to_string(),
             },
+            InstanceDeserializable {
+                config: InstanceConfig::default(),
+                name: "test-instance-3".to_string(),
+                hostname: format!("flecs-{}", InstanceId::new(3)),
+                id: InstanceId::new(3),
+                desired: InstanceStatus::Running,
+                app_key: AppKey {
+                    name: "some.test.app-3".to_string(),
+                    version: "1.2.4".to_string(),
+                },
+                deployment_id: "test-deployment-3".to_string(),
+            },
+            InstanceDeserializable {
+                config: InstanceConfig::default(),
+                name: "test-instance-4".to_string(),
+                hostname: format!("flecs-{}", InstanceId::new(4)),
+                id: InstanceId::new(4),
+                desired: InstanceStatus::Running,
+                app_key: AppKey {
+                    name: "some.test.app-4".to_string(),
+                    version: "1.2.4".to_string(),
+                },
+                deployment_id: "test-deployment-4".to_string(),
+            },
+            InstanceDeserializable {
+                config: InstanceConfig::default(),
+                name: "test-instance-5".to_string(),
+                hostname: format!("flecs-{}", InstanceId::new(5)),
+                id: InstanceId::new(5),
+                desired: InstanceStatus::Running,
+                app_key: AppKey {
+                    name: "some.test.app-4".to_string(),
+                    version: "1.2.4".to_string(),
+                },
+                deployment_id: "test-deployment-4".to_string(),
+            },
+            InstanceDeserializable {
+                config: InstanceConfig::default(),
+                name: "test-instance-6".to_string(),
+                hostname: format!("flecs-{}", InstanceId::new(6)),
+                id: InstanceId::new(6),
+                desired: InstanceStatus::Running,
+                app_key: AppKey {
+                    name: "some.test.app-4".to_string(),
+                    version: "1.2.6".to_string(),
+                },
+                deployment_id: "test-deployment-4".to_string(),
+            },
         ]
     }
 
-    type TestData = (
+    pub type TestData = (
         Vec<InstanceDeserializable>,
         HashMap<AppKey, Arc<AppManifest>>,
         HashMap<DeploymentId, Arc<dyn Deployment>>,
@@ -182,6 +258,7 @@ mod tests {
         serde_json::json!([
             {
                 "name": "test-instance-1",
+                "hostname": "flecs-00000001",
                 "id": 1,
                 "desired": "Running",
                 "app_key": {
@@ -193,6 +270,7 @@ mod tests {
             },
             {
                 "name": "test-instance-2",
+                "hostname": "flecs-00000002",
                 "id": 2,
                 "desired": "Running",
                 "app_key": {
@@ -200,6 +278,54 @@ mod tests {
                     "version": "1.2.4"
                 },
                 "deployment_id": "test-deployment-2",
+                "config": {}
+            },
+            {
+                "name": "test-instance-3",
+                "hostname": "flecs-00000003",
+                "id": 3,
+                "desired": "Running",
+                "app_key": {
+                    "name": "some.test.app-3",
+                    "version": "1.2.4"
+                },
+                "deployment_id": "test-deployment-3",
+                "config": {}
+            },
+            {
+                "name": "test-instance-4",
+                "hostname": "flecs-00000004",
+                "id": 4,
+                "desired": "Running",
+                "app_key": {
+                    "name": "some.test.app-4",
+                    "version": "1.2.4"
+                },
+                "deployment_id": "test-deployment-4",
+                "config": {}
+            },
+            {
+                "name": "test-instance-5",
+                "hostname": "flecs-00000005",
+                "id": 5,
+                "desired": "Running",
+                "app_key": {
+                    "name": "some.test.app-4",
+                    "version": "1.2.4"
+                },
+                "deployment_id": "test-deployment-4",
+                "config": {}
+            },
+            {
+                "name": "test-instance-6",
+                "hostname": "flecs-00000006",
+                "id": 6,
+                "desired": "Running",
+                "app_key": {
+                    "name": "some.test.app-4",
+                    "version": "1.2.6"
+                },
+                "deployment_id": "test-deployment-4",
                 "config": {}
             }
         ])
@@ -237,7 +363,7 @@ mod tests {
         let (instances, manifests, deployments) = create_test_data();
         assert_eq!(
             InstancePouch::create_instances(instances, &manifests, &deployments).len(),
-            2
+            6
         );
     }
 
@@ -315,5 +441,57 @@ mod tests {
             assert!(pouch.gems().contains_key(&gem.0));
             assert!(pouch.gems_mut().contains_key(&gem.0));
         }
+    }
+
+    #[test]
+    fn get_instance_ids_by_app_key() {
+        let path = prepare_test_path(module_path!(), "get_instance_ids_by_app_key");
+        let (instances, manifests, deployments) = create_test_data();
+        let pouch = InstancePouch {
+            path: path.clone(),
+            instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+        };
+        assert_eq!(pouch.instances.len(), 6);
+        let instance_ids_by_app_key = pouch.instance_ids_by_app_key(AppKey {
+            name: "some.test.app-4".to_string(),
+            version: "1.2.4".to_string(),
+        });
+        assert_eq!(instance_ids_by_app_key.len(), 2);
+        assert!(instance_ids_by_app_key.contains(&InstanceId::new(4)));
+        assert!(instance_ids_by_app_key.contains(&InstanceId::new(5)));
+    }
+
+    #[test]
+    fn get_instance_ids_by_app_name() {
+        let path = prepare_test_path(module_path!(), "get_instance_ids_by_app_name");
+        let (instances, manifests, deployments) = create_test_data();
+        let pouch = InstancePouch {
+            path: path.clone(),
+            instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+        };
+        assert_eq!(pouch.instances.len(), 6);
+        let instance_ids_by_app_name =
+            pouch.instance_ids_by_app_name("some.test.app-4".to_string());
+        assert_eq!(instance_ids_by_app_name.len(), 3);
+        assert!(instance_ids_by_app_name.contains(&InstanceId::new(4)));
+        assert!(instance_ids_by_app_name.contains(&InstanceId::new(5)));
+        assert!(instance_ids_by_app_name.contains(&InstanceId::new(6)));
+    }
+
+    #[test]
+    fn get_instance_ids_by_app_version() {
+        let path = prepare_test_path(module_path!(), "get_instance_ids_by_app_version");
+        let (instances, manifests, deployments) = create_test_data();
+        let pouch = InstancePouch {
+            path: path.clone(),
+            instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+        };
+        assert_eq!(pouch.instances.len(), 6);
+        let instance_ids_by_app_version = pouch.instance_ids_by_app_version("1.2.4".to_string());
+        assert_eq!(instance_ids_by_app_version.len(), 4);
+        assert!(instance_ids_by_app_version.contains(&InstanceId::new(2)));
+        assert!(instance_ids_by_app_version.contains(&InstanceId::new(3)));
+        assert!(instance_ids_by_app_version.contains(&InstanceId::new(4)));
+        assert!(instance_ids_by_app_version.contains(&InstanceId::new(5)));
     }
 }

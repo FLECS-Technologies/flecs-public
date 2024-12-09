@@ -8,6 +8,63 @@ use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
 use std::sync::Arc;
 
+pub async fn get_instance(
+    vault: Arc<Vault>,
+    instance_id: InstanceId,
+) -> Result<Option<flecsd_axum_server::models::AppInstance>> {
+    spell::instance::get_instance_info(vault, instance_id).await
+}
+
+pub async fn get_instance_detailed(
+    vault: Arc<Vault>,
+    instance_id: InstanceId,
+) -> Result<Option<flecsd_axum_server::models::InstancesInstanceIdGet200Response>> {
+    spell::instance::get_instance_detailed_info(vault, instance_id).await
+}
+
+pub async fn get_instances_filtered(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    app_name: Option<String>,
+    app_version: Option<String>,
+) -> Vec<flecsd_axum_server::models::AppInstance> {
+    let instance_ids = {
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let instance_pouch = grab
+            .instance_pouch
+            .as_ref()
+            .expect("Vault reservations should never fail");
+        match (app_name, app_version) {
+            (None, None) => instance_pouch.gems().keys().copied().collect(),
+            (None, Some(version)) => instance_pouch.instance_ids_by_app_version(version),
+            (Some(name), None) => instance_pouch.instance_ids_by_app_name(name),
+            (Some(name), Some(version)) => {
+                instance_pouch.instance_ids_by_app_key(AppKey { name, version })
+            }
+        }
+    };
+    spell::instance::get_instances_info(quest, vault, instance_ids).await
+}
+
+pub async fn get_all_instances(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+) -> Vec<flecsd_axum_server::models::AppInstance> {
+    let instance_ids: Vec<InstanceId> = vault
+        .reservation()
+        .reserve_instance_pouch()
+        .grab()
+        .await
+        .instance_pouch
+        .as_ref()
+        .expect("Vault reservations should never fail")
+        .gems()
+        .keys()
+        .copied()
+        .collect();
+    spell::instance::get_instances_info(quest, vault, instance_ids).await
+}
+
 pub async fn create_instance(
     quest: SyncQuest,
     vault: Arc<Vault>,
@@ -583,5 +640,115 @@ mod tests {
         )
         .await
         .is_err());
+    }
+
+    #[tokio::test]
+    async fn get_all_instances_ok() {
+        let vault = spell::instance::tests::create_test_vault(
+            module_path!(),
+            "get_all_instances",
+            Some(true),
+        )
+        .await;
+        let instances_infos =
+            get_all_instances(Quest::new_synced("TestQuest".to_string()), vault).await;
+        assert_eq!(instances_infos.len(), 6);
+    }
+
+    #[tokio::test]
+    async fn get_instances_filtered_all() {
+        let vault = spell::instance::tests::create_test_vault(
+            module_path!(),
+            "get_instances_filtered_all",
+            Some(true),
+        )
+        .await;
+        let instances_infos = get_instances_filtered(
+            Quest::new_synced("TestQuest".to_string()),
+            vault,
+            None,
+            None,
+        )
+        .await;
+        assert_eq!(instances_infos.len(), 6);
+    }
+
+    #[tokio::test]
+    async fn get_instances_filtered_name() {
+        let vault = spell::instance::tests::create_test_vault(
+            module_path!(),
+            "get_instances_filtered_name",
+            Some(true),
+        )
+        .await;
+        let instances_infos = get_instances_filtered(
+            Quest::new_synced("TestQuest".to_string()),
+            vault,
+            Some("some.test.app-4".to_string()),
+            None,
+        )
+        .await;
+        assert_eq!(instances_infos.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn get_instances_filtered_version() {
+        let vault = spell::instance::tests::create_test_vault(
+            module_path!(),
+            "get_instances_filtered_version",
+            Some(true),
+        )
+        .await;
+        let instances_infos = get_instances_filtered(
+            Quest::new_synced("TestQuest".to_string()),
+            vault,
+            None,
+            Some("1.2.4".to_string()),
+        )
+        .await;
+        assert_eq!(instances_infos.len(), 4);
+    }
+
+    #[tokio::test]
+    async fn get_instances_filtered_key() {
+        let vault = spell::instance::tests::create_test_vault(
+            module_path!(),
+            "get_instances_filtered_key",
+            Some(true),
+        )
+        .await;
+        let instances_infos = get_instances_filtered(
+            Quest::new_synced("TestQuest".to_string()),
+            vault,
+            Some("some.test.app-4".to_string()),
+            Some("1.2.4".to_string()),
+        )
+        .await;
+        assert_eq!(instances_infos.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn get_instance_ok() {
+        let vault = spell::instance::tests::create_test_vault(
+            module_path!(),
+            "get_instance_ok",
+            Some(true),
+        )
+        .await;
+        assert!(get_instance(vault, 1.into()).await.unwrap().is_some());
+    }
+
+    #[tokio::test]
+    async fn get_instance_detailed_ok() {
+        let vault = spell::instance::tests::create_test_vault(
+            module_path!(),
+            "get_instance_detailed_ok",
+            Some(true),
+        )
+        .await;
+        assert!(get_instance_detailed(vault, 1.into())
+            .await
+            .unwrap()
+            .is_some());
     }
 }

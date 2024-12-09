@@ -5,7 +5,7 @@ use crate::jeweler::instance::InstanceDeployment;
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
 use crate::jeweler::volume::{VolumeDeployment, VolumeId};
 use crate::quest::{QuestId, State, SyncQuest};
-use crate::vault::pouch::DeploymentId;
+use crate::vault::pouch::deployment::DeploymentId;
 use crate::{jeweler, relic};
 use async_trait::async_trait;
 use bollard::auth::DockerCredentials;
@@ -881,7 +881,7 @@ impl jeweler::deployment::Deployment for DockerDeployment {
 #[cfg(test)]
 mod tests {
     use crate::jeweler::gem::deployment::docker::DockerDeployment;
-    use crate::vault::pouch::Deployment;
+    use crate::vault::pouch::deployment::Deployment;
     use std::path::PathBuf;
 
     const TEST_DEPLOYMENT_ID: &str = "some-deployment-id";

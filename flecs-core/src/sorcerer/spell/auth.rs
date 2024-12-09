@@ -1,6 +1,6 @@
 pub use super::Result;
 use crate::jeweler::app::Token;
-use crate::vault::pouch::Secrets;
+use crate::vault::pouch::secret::Secrets;
 use anyhow::{anyhow, Context};
 use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::default_api::{post_api_v2_tokens, PostApiV2TokensSuccess};
