@@ -228,6 +228,7 @@ mod tests {
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
+    use bollard::models::Network;
     use std::collections::HashMap;
     use std::sync::Arc;
 
@@ -393,6 +394,12 @@ mod tests {
             .expect_copy_from_app_image()
             .times(3)
             .returning(|_, _, _, _, _| Ok(()));
+        deployment.expect_default_network().times(1).returning(|| {
+            Ok(Network {
+                id: Some("DefaultTestNetworkId".to_string()),
+                ..Network::default()
+            })
+        });
         let (vault, app_key) = create_test_vault(
             "create_instance_ok",
             Arc::new(deployment),
@@ -432,6 +439,12 @@ mod tests {
             .expect_copy_from_app_image()
             .times(6)
             .returning(|_, _, _, _, _| Ok(()));
+        deployment.expect_default_network().times(2).returning(|| {
+            Ok(Network {
+                id: Some("DefaultTestNetworkId".to_string()),
+                ..Network::default()
+            })
+        });
         let (vault, app_key) = create_test_vault(
             "create_multi_instance_ok",
             Arc::new(deployment),
@@ -480,6 +493,12 @@ mod tests {
             .expect_copy_from_app_image()
             .times(3)
             .returning(|_, _, _, _, _| Ok(()));
+        deployment.expect_default_network().times(1).returning(|| {
+            Ok(Network {
+                id: Some("DefaultTestNetworkId".to_string()),
+                ..Network::default()
+            })
+        });
         let (vault, app_key) = create_test_vault(
             "create_instance_single_instance_but_instance_present",
             Arc::new(deployment),
