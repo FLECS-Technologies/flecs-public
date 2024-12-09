@@ -1,5 +1,6 @@
 use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::quest::Quest;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
 use anyhow::Error;
@@ -444,9 +445,33 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _query_params: InstancesGetQueryParams,
+        query_params: InstancesGetQueryParams,
     ) -> Result<InstancesGetResponse, String> {
-        todo!()
+        let instances = match query_params {
+            InstancesGetQueryParams {
+                version: None,
+                app: None,
+            } => {
+                crate::sorcerer::instancius::get_all_instances(
+                    Quest::new_synced("Get info for all instances".to_string()),
+                    self.vault.clone(),
+                )
+                .await
+            }
+            InstancesGetQueryParams { version, app } => {
+                crate::sorcerer::instancius::get_instances_filtered(
+                    Quest::new_synced(format!(
+                        "Get all instances matching {:?} in version {:?}",
+                        app, version
+                    )),
+                    self.vault.clone(),
+                    app,
+                    version,
+                )
+                .await
+            }
+        };
+        Ok(InstancesGetResponse::Status200_Success(instances))
     }
 
     async fn instances_instance_id_config_environment_delete(
@@ -577,9 +602,29 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdGetPathParams,
+        path_params: InstancesInstanceIdGetPathParams,
     ) -> Result<InstancesInstanceIdGetResponse, String> {
-        todo!()
+        let instance_id = match InstanceId::from_str(path_params.instance_id.as_str()) {
+            Err(e) => {
+                return Ok(
+                    InstancesInstanceIdGetResponse::Status500_InternalServerError(AdditionalInfo {
+                        additional_info: format!("Failed to parse instance id: {e}"),
+                    }),
+                )
+            }
+            Ok(instance_id) => instance_id,
+        };
+        match crate::sorcerer::instancius::get_instance_detailed(self.vault.clone(), instance_id)
+            .await
+        {
+            Ok(Some(details)) => Ok(InstancesInstanceIdGetResponse::Status200_Success(details)),
+            Ok(None) => Ok(InstancesInstanceIdGetResponse::Status404_NoInstanceWithThisInstance),
+            Err(e) => Ok(
+                InstancesInstanceIdGetResponse::Status500_InternalServerError(AdditionalInfo {
+                    additional_info: e.to_string(),
+                }),
+            ),
+        }
     }
 
     async fn instances_instance_id_logs_get(

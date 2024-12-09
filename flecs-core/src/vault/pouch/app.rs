@@ -1,8 +1,8 @@
-use crate::jeweler;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::app::{try_create_app, App, AppDeserializable};
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::vault::pouch::{AppKey, DeploymentId, Pouch};
+use crate::vault::pouch::deployment::DeploymentId;
+use crate::vault::pouch::{AppKey, Pouch};
 pub use crate::Result;
 use std::collections::HashMap;
 use std::fs;
@@ -11,7 +11,6 @@ use std::sync::Arc;
 use tracing::error;
 
 const APPS_FILE_NAME: &str = "apps.json";
-pub type AppStatus = jeweler::app::AppStatus;
 
 pub struct AppPouch {
     path: PathBuf,
@@ -85,6 +84,8 @@ impl AppPouch {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::jeweler;
+    use crate::jeweler::app::AppStatus;
     use crate::jeweler::gem::app::AppDataDeserializable;
     use crate::jeweler::gem::deployment::docker::DockerDeployment;
     use crate::tests::prepare_test_path;

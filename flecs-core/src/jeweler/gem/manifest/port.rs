@@ -44,6 +44,21 @@ pub enum PortMapping {
     Range { from: PortRange, to: PortRange },
 }
 
+impl From<&PortMapping> for flecsd_axum_server::models::InstanceDetailPort {
+    fn from(value: &PortMapping) -> Self {
+        match value {
+            PortMapping::Single(host_port, container_port) => Self {
+                container: container_port.to_string(),
+                host: host_port.to_string(),
+            },
+            PortMapping::Range { from, to } => Self {
+                host: format!("{}-{}", from.start, from.end),
+                container: format!("{}-{}", to.start, to.end),
+            },
+        }
+    }
+}
+
 impl FromStr for PortMapping {
     type Err = Error;
 
@@ -235,5 +250,40 @@ mod tests {
             )
             .unwrap();
         assert!(PortMapping::try_from(&item).is_err())
+    }
+
+    #[test]
+    fn port_mapping_to_instance_detail_port_single() {
+        let port_mapping = &PortMapping::Single(1, 2);
+        let result: flecsd_axum_server::models::InstanceDetailPort = port_mapping.into();
+        assert_eq!(
+            result,
+            flecsd_axum_server::models::InstanceDetailPort {
+                host: "1".to_string(),
+                container: "2".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn port_mapping_to_instance_detail_port_range() {
+        let port_mapping = &PortMapping::Range {
+            from: PortRange {
+                start: 100,
+                end: 200,
+            },
+            to: PortRange {
+                start: 800,
+                end: 900,
+            },
+        };
+        let result: flecsd_axum_server::models::InstanceDetailPort = port_mapping.into();
+        assert_eq!(
+            result,
+            flecsd_axum_server::models::InstanceDetailPort {
+                host: "100-200".to_string(),
+                container: "800-900".to_string(),
+            }
+        );
     }
 }

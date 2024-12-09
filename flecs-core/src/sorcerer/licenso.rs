@@ -84,7 +84,7 @@ pub async fn validate_license(vault: &Vault, configuration: Arc<Configuration>) 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vault::pouch::Secrets;
+    use crate::vault::pouch::secret::Secrets;
     use crate::vault::VaultConfig;
     use flecs_console_client::models::SessionId;
     use flecsd_axum_server::models::{AuthResponseData, FeatureFlags, Jwt, User};

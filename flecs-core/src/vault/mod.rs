@@ -1,7 +1,11 @@
 pub mod pouch;
 
-use crate::vault::pouch::{Deployment, DeploymentPouch, Pouch, Secrets};
-use pouch::{AppPouch, InstancePouch, ManifestPouch, SecretPouch};
+use crate::vault::pouch::app::AppPouch;
+use crate::vault::pouch::deployment::{Deployment, DeploymentPouch};
+use crate::vault::pouch::instance::InstancePouch;
+use crate::vault::pouch::manifest::ManifestPouch;
+use crate::vault::pouch::secret::{SecretPouch, Secrets};
+use crate::vault::pouch::Pouch;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

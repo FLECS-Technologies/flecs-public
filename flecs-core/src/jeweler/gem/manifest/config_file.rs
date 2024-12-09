@@ -26,6 +26,15 @@ pub struct ConfigFile {
     pub read_only: bool,
 }
 
+impl From<&ConfigFile> for flecsd_axum_server::models::InstanceDetailConfigFile {
+    fn from(value: &ConfigFile) -> Self {
+        Self {
+            container: value.container_file_path.to_string_lossy().to_string(),
+            host: value.host_file_name.clone(),
+        }
+    }
+}
+
 impl ConfigFile {
     fn new(
         host_file_name: String,
@@ -204,5 +213,22 @@ mod tests {
             .unwrap();
         let result: Result<ConfigFile> = (&item).try_into();
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn from_config_file() {
+        let config_file = &ConfigFile {
+            container_file_path: PathBuf::from("/some/path.config"),
+            host_file_name: "host.config".to_string(),
+            read_only: false,
+        };
+        let result: flecsd_axum_server::models::InstanceDetailConfigFile = config_file.into();
+        assert_eq!(
+            result,
+            flecsd_axum_server::models::InstanceDetailConfigFile {
+                container: "/some/path.config".to_string(),
+                host: "host.config".to_string(),
+            }
+        )
     }
 }

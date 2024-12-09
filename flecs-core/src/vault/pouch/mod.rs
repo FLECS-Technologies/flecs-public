@@ -1,15 +1,10 @@
-mod app;
-mod deployment;
-mod instance;
-mod manifest;
-mod secret;
+pub(crate) mod app;
+pub(crate) mod deployment;
+pub(crate) mod instance;
+pub(crate) mod manifest;
+pub(crate) mod secret;
 
 pub use super::Result;
-pub use app::*;
-pub use deployment::*;
-pub use instance::*;
-pub use manifest::*;
-pub use secret::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
