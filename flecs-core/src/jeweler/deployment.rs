@@ -89,6 +89,7 @@ pub mod tests {
         #[async_trait]
         impl NetworkDeployment for edDeployment {
             async fn create_network(&self, quest: SyncQuest, config: NetworkConfig) -> Result<NetworkId>;
+            async fn default_network(&self) -> Result<Network>;
             async fn delete_network(&self, id: NetworkId) -> Result<()>;
             async fn network(&self, id: NetworkId) -> Result<Network>;
             async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;

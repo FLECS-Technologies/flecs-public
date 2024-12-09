@@ -4,7 +4,7 @@ use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::instance::InstanceDeployment;
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
 use crate::jeweler::volume::{VolumeDeployment, VolumeId};
-use crate::quest::{QuestId, State, SyncQuest};
+use crate::quest::{Quest, QuestId, State, SyncQuest};
 use crate::vault::pouch::deployment::DeploymentId;
 use crate::{jeweler, relic};
 use async_trait::async_trait;
@@ -50,6 +50,38 @@ impl DockerDeployment {
 
     pub fn new(id: String, path: PathBuf) -> Self {
         Self { id, path }
+    }
+
+    pub fn default_network_name() -> &'static str {
+        "flecs"
+    }
+
+    pub fn default_cidr_subnet() -> relic::network::Ipv4Network {
+        Default::default()
+    }
+
+    pub fn default_gateway() -> Ipv4Addr {
+        Ipv4Addr::new(172, 21, 0, 1)
+    }
+
+    pub fn default_network_config() -> NetworkConfig {
+        NetworkConfig {
+            kind: NetworkKind::Bridge,
+            name: Self::default_network_name().to_string(),
+            cidr_subnet: Some(Self::default_cidr_subnet()),
+            gateway: Some(Self::default_gateway()),
+            parent_adapter: None,
+        }
+    }
+
+    pub async fn create_default_network(&self) -> crate::Result<jeweler::network::Network> {
+        let id = self
+            .create_network(
+                Quest::new_synced("Create default network".to_string()),
+                Self::default_network_config(),
+            )
+            .await?;
+        self.network(id).await
     }
 }
 
@@ -685,6 +717,24 @@ impl NetworkDeployment for DockerDeployment {
         relic::docker::network::create(docker_client, options).await
     }
 
+    async fn default_network(&self) -> anyhow::Result<jeweler::network::Network> {
+        let docker_client = self.client()?;
+        let default_network_name = Self::default_network_name();
+        let network = relic::docker::network::list(
+            docker_client.clone(),
+            Some(ListNetworksOptions {
+                filters: HashMap::from([("name", vec![default_network_name])]),
+            }),
+        )
+        .await?
+        .into_iter()
+        .find(|network| network.name.as_deref() == Some(default_network_name));
+        if let Some(network) = network {
+            return Ok(network);
+        };
+        self.create_default_network().await
+    }
+
     async fn delete_network(&self, id: NetworkId) -> anyhow::Result<()> {
         let docker_client = self.client()?;
         relic::docker::network::remove(docker_client, &id).await
@@ -881,7 +931,10 @@ impl jeweler::deployment::Deployment for DockerDeployment {
 #[cfg(test)]
 mod tests {
     use crate::jeweler::gem::deployment::docker::DockerDeployment;
+    use crate::jeweler::network::NetworkKind;
+    use crate::relic::network::Ipv4Network;
     use crate::vault::pouch::deployment::Deployment;
+    use std::net::Ipv4Addr;
     use std::path::PathBuf;
 
     const TEST_DEPLOYMENT_ID: &str = "some-deployment-id";
@@ -907,5 +960,39 @@ mod tests {
             }
             _ => panic!("Expected default deployment to be of type Docker"),
         }
+    }
+
+    #[test]
+    fn default_network_config() {
+        let config = DockerDeployment::default_network_config();
+        assert_eq!(config.name, DockerDeployment::default_network_name());
+        assert_eq!(
+            config.cidr_subnet,
+            Some(DockerDeployment::default_cidr_subnet())
+        );
+        assert_eq!(config.gateway, Some(DockerDeployment::default_gateway()));
+        assert_eq!(config.kind, NetworkKind::Bridge);
+        assert_eq!(config.parent_adapter, None);
+    }
+
+    #[test]
+    fn default_network_name() {
+        assert_eq!(DockerDeployment::default_network_name(), "flecs");
+    }
+
+    #[test]
+    fn default_network_gateway() {
+        assert_eq!(
+            DockerDeployment::default_gateway(),
+            Ipv4Addr::new(172, 21, 0, 1)
+        );
+    }
+
+    #[test]
+    fn default_network_cidr_subnet() {
+        assert_eq!(
+            DockerDeployment::default_cidr_subnet(),
+            Ipv4Network::try_new(Ipv4Addr::new(172, 21, 0, 0), 16).unwrap()
+        );
     }
 }

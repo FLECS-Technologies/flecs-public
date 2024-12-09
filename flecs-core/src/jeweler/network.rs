@@ -6,7 +6,7 @@ use std::net::Ipv4Addr;
 
 pub type NetworkId = String;
 pub type Network = bollard::models::Network;
-#[derive(Copy, Clone, Eq, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub enum NetworkKind {
     #[default]
     None,
@@ -50,7 +50,7 @@ impl Display for NetworkKind {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, PartialEq)]
 pub struct NetworkConfig {
     pub kind: NetworkKind,
     pub name: String,
@@ -62,6 +62,7 @@ pub struct NetworkConfig {
 #[async_trait]
 pub trait NetworkDeployment {
     async fn create_network(&self, quest: SyncQuest, config: NetworkConfig) -> Result<NetworkId>;
+    async fn default_network(&self) -> Result<Network>;
     async fn delete_network(&self, id: NetworkId) -> Result<()>;
     async fn network(&self, id: NetworkId) -> Result<Network>;
     async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;

@@ -84,12 +84,21 @@ pub struct Ipv4Network {
 }
 
 impl Ipv4Network {
-    fn try_new(address: Ipv4Addr, size: u8) -> crate::Result<Self> {
+    pub fn try_new(address: Ipv4Addr, size: u8) -> crate::Result<Self> {
         const ZERO: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 0);
         anyhow::ensure!(size <= 32, "Network size has to be 32 or less, not {size}");
         let mask = Ipv4Addr::from(0xffffffff >> size);
         anyhow::ensure!((address & mask) == ZERO, "Address part of network is not 0");
         Ok(Self { address, size })
+    }
+}
+
+impl Default for Ipv4Network {
+    fn default() -> Self {
+        Self {
+            address: Ipv4Addr::new(172, 21, 0, 0),
+            size: 16,
+        }
     }
 }
 
@@ -544,6 +553,17 @@ mod tests {
                 size: suffix,
             },
             Ipv4Network::from_str(&format!("{}/{}", ip, suffix)).unwrap()
+        )
+    }
+
+    #[test]
+    fn default_flecs_network() {
+        assert_eq!(
+            Ipv4Network::default(),
+            Ipv4Network {
+                address: Ipv4Addr::new(172, 21, 0, 0),
+                size: 16
+            }
         )
     }
 }
