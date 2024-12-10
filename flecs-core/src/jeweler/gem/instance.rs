@@ -18,6 +18,7 @@ use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
+use tokio::fs;
 use tracing::log::warn;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
@@ -284,6 +285,70 @@ impl Instance {
         }
     }
 
+    pub async fn create_volumes(
+        quest: SyncQuest,
+        deployment: Arc<dyn Deployment>,
+        volume_mounts: Vec<VolumeMount>,
+        instance_id: InstanceId,
+    ) -> crate::Result<HashMap<VolumeId, VolumeMount>> {
+        let mut results = Vec::new();
+        for mut volume_mount in volume_mounts {
+            volume_mount.name = format!("{}-{}", instance_id.to_docker_id(), volume_mount.name);
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!(
+                        "Create volume {} for instance {instance_id}",
+                        volume_mount.name
+                    ),
+                    |quest| {
+                        let deployment = deployment.clone();
+                        async move {
+                            match deployment
+                                .create_volume(quest, volume_mount.name.as_str())
+                                .await
+                            {
+                                Ok(id) => Ok((id, volume_mount)),
+                                Err(e) => Err(e),
+                            }
+                        }
+                    },
+                )
+                .await
+                .2;
+            results.push(result)
+        }
+        let results = join_all(results).await;
+        let result_count = results.len();
+        let volumes: HashMap<VolumeId, VolumeMount> = results
+            .into_iter()
+            .filter_map(|result| result.ok())
+            .collect();
+        if volumes.len() != result_count {
+            let volume_ids = volumes.keys().cloned().collect();
+            quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    "Delete all created volumes, as an error occurred".to_string(),
+                    |quest| {
+                        crate::jeweler::extension::delete_volumes(
+                            quest,
+                            deployment.clone(),
+                            volume_ids,
+                        )
+                    },
+                )
+                .await
+                .2
+                .await?;
+            anyhow::bail!("Could not create all volumes for instance {}", instance_id);
+        } else {
+            Ok(volumes)
+        }
+    }
+
     pub async fn create(
         quest: SyncQuest,
         deployment: Arc<dyn Deployment>,
@@ -293,25 +358,16 @@ impl Instance {
         let instance_id = InstanceId::new_random();
         let port_mapping = manifest.ports.clone();
         let environment_variables = manifest.environment_variables.clone();
-        // TODO: Create volume mounts
-        let volume_mounts: HashMap<VolumeId, VolumeMount> = HashMap::new();
-        let default_network = deployment.default_network().await?;
-        let config = InstanceConfig {
-            environment_variables,
-            port_mapping,
-            volume_mounts,
-            network_addresses: HashMap::from([(
-                default_network
-                    .id
-                    .ok_or_else(|| anyhow::anyhow!("Default network has no id"))?,
-                None,
-            )]),
-        };
         let config_path = crate::lore::base_path()
             .join("instances")
             .join(instance_id.to_string())
             .join("conf");
-        let create_configs_result = quest
+        let default_network_id = deployment
+            .default_network()
+            .await?
+            .id
+            .ok_or_else(|| anyhow::anyhow!("Default network has no id"))?;
+        quest
             .lock()
             .await
             .create_sub_quest(
@@ -323,16 +379,42 @@ impl Instance {
                     Self::create_config_files(
                         quest,
                         deployment.clone(),
-                        config_path,
+                        config_path.clone(),
                         manifest.config_files.clone(),
                         manifest.clone(),
                     )
                 },
             )
             .await
-            .2;
-        // TODO: Delete all volume_mounts if error occurs
-        create_configs_result.await?;
+            .2
+            .await?;
+        let volume_mounts = quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Create volumes for {instance_id}"), |quest| {
+                Self::create_volumes(
+                    quest,
+                    deployment.clone(),
+                    manifest.volume_mounts(),
+                    instance_id,
+                )
+            })
+            .await
+            .2
+            .await;
+        let volume_mounts = match volume_mounts {
+            Ok(volume_mounts) => volume_mounts,
+            Err(e) => {
+                fs::remove_dir_all(config_path).await?;
+                return Err(e);
+            }
+        };
+        let config = InstanceConfig {
+            environment_variables,
+            port_mapping,
+            volume_mounts,
+            network_addresses: HashMap::from([(default_network_id, None)]),
+        };
         Ok(Self {
             hostname: format!("flecs-{instance_id}"),
             id: instance_id,
@@ -1018,6 +1100,10 @@ pub mod tests {
                 ..Network::default()
             })
         });
+        deployment
+            .expect_create_volume()
+            .times(1)
+            .returning(|_, _| Ok("TestVolumeId".to_string()));
         let deployment: Arc<dyn Deployment> = Arc::new(deployment);
         let instance = Instance::create(
             Quest::new_synced("TestQuest".to_string()),
@@ -1037,7 +1123,16 @@ pub mod tests {
             &instance.config.network_addresses,
             &HashMap::from([("DefaultTestNetworkId".to_string(), None)])
         );
-        // TODO: Check volume_mounts
+        assert_eq!(
+            &instance.config.volume_mounts,
+            &HashMap::from([(
+                "TestVolumeId".to_string(),
+                VolumeMount {
+                    name: format!("flecs-{}-my-app-etc", instance.id),
+                    container_path: PathBuf::from("/etc/my-app")
+                }
+            )])
+        )
     }
 
     #[tokio::test]
@@ -1073,6 +1168,25 @@ pub mod tests {
             .expect_default_network()
             .times(1)
             .returning(|| Ok(Network::default()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        assert!(Instance::create(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            manifest.clone(),
+            "TestInstance".to_string(),
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn create_default_network_err() {
+        let manifest = Arc::new(create_test_manifest_full(None));
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_default_network()
+            .times(1)
+            .returning(|| Err(anyhow::anyhow!("TestError")));
         let deployment: Arc<dyn Deployment> = Arc::new(deployment);
         assert!(Instance::create(
             Quest::new_synced("TestQuest".to_string()),
@@ -1326,5 +1440,112 @@ pub mod tests {
             flecsd_axum_server::models::InstanceStatus::Unknown,
             InstanceStatus::Unknown.into()
         );
+    }
+
+    #[tokio::test]
+    async fn create_volumes_ok() {
+        let instance_id = InstanceId::new(0x1234);
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_create_volume()
+            .times(3)
+            .returning(|_, name| Ok(name.to_string()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let volumes = vec![
+            VolumeMount {
+                name: "Volume1".to_string(),
+                container_path: PathBuf::from("/Volume1"),
+            },
+            VolumeMount {
+                name: "Volume2".to_string(),
+                container_path: PathBuf::from("/Volume2"),
+            },
+            VolumeMount {
+                name: "Volume3".to_string(),
+                container_path: PathBuf::from("/Volume3"),
+            },
+        ];
+        let expected_volumes = HashMap::from([
+            (
+                format!("flecs-{instance_id}-Volume1"),
+                VolumeMount {
+                    name: format!("flecs-{instance_id}-Volume1"),
+                    container_path: PathBuf::from("/Volume1"),
+                },
+            ),
+            (
+                format!("flecs-{instance_id}-Volume2"),
+                VolumeMount {
+                    name: format!("flecs-{instance_id}-Volume2"),
+                    container_path: PathBuf::from("/Volume2"),
+                },
+            ),
+            (
+                format!("flecs-{instance_id}-Volume3"),
+                VolumeMount {
+                    name: format!("flecs-{instance_id}-Volume3"),
+                    container_path: PathBuf::from("/Volume3"),
+                },
+            ),
+        ]);
+        assert_eq!(
+            Instance::create_volumes(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                volumes,
+                instance_id,
+            )
+            .await
+            .unwrap(),
+            expected_volumes
+        );
+    }
+
+    #[tokio::test]
+    async fn create_volumes_err() {
+        let mut deployment = MockedDeployment::new();
+        let instance_id = InstanceId::new(0x1234);
+        deployment
+            .expect_create_volume()
+            .times(1)
+            .withf(move |_, name| name == format!("flecs-{instance_id}-Volume1"))
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_create_volume()
+            .times(2)
+            .returning(|_, name| Ok(name.to_string()));
+        deployment
+            .expect_delete_volume()
+            .times(1)
+            .withf(move |_, id| id == &format!("flecs-{instance_id}-Volume2"))
+            .returning(|_, _| Ok(()));
+        deployment
+            .expect_delete_volume()
+            .times(1)
+            .withf(move |_, id| id == &format!("flecs-{instance_id}-Volume3"))
+            .returning(|_, _| Ok(()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let volumes = vec![
+            VolumeMount {
+                name: "Volume1".to_string(),
+                container_path: PathBuf::from("/Volume1"),
+            },
+            VolumeMount {
+                name: "Volume2".to_string(),
+                container_path: PathBuf::from("/Volume2"),
+            },
+            VolumeMount {
+                name: "Volume3".to_string(),
+                container_path: PathBuf::from("/Volume3"),
+            },
+        ];
+        assert!(Instance::create_volumes(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            volumes,
+            instance_id,
+        )
+        .await
+        .is_err());
     }
 }

@@ -1,5 +1,6 @@
 pub mod app;
 pub mod deployment;
+pub mod extension;
 pub mod gem;
 pub mod instance;
 pub mod network;
