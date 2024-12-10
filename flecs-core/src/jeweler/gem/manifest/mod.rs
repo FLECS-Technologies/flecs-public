@@ -80,6 +80,17 @@ impl AppManifest {
             .as_ref()
             .map(|version| version.as_str())
     }
+
+    pub fn volume_mounts(&self) -> Vec<VolumeMount> {
+        self.mounts
+            .iter()
+            .filter_map(|mount| match mount {
+                Mount::Volume(volume_mount) => Some(volume_mount),
+                _ => None,
+            })
+            .cloned()
+            .collect()
+    }
 }
 
 impl TryFrom<flecs_app_manifest::AppManifestVersion> for AppManifest {
@@ -486,6 +497,19 @@ pub mod tests {
         let manifest = create_test_manifest_full(None);
 
         assert_eq!(manifest.minimum_flecs_version(), Some("3.0.0"))
+    }
+
+    #[test]
+    fn volume_mounts() {
+        let manifest = create_test_manifest_full(None);
+
+        assert_eq!(
+            manifest.volume_mounts(),
+            vec!(VolumeMount {
+                name: "my-app-etc".to_string(),
+                container_path: PathBuf::from("/etc/my-app"),
+            })
+        )
     }
 
     #[test]

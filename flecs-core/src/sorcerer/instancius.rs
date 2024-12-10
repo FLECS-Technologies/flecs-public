@@ -400,6 +400,10 @@ mod tests {
                 ..Network::default()
             })
         });
+        deployment
+            .expect_create_volume()
+            .times(1)
+            .returning(|_, id| Ok(format!("TestVolumeIdFor{id}")));
         let (vault, app_key) = create_test_vault(
             "create_instance_ok",
             Arc::new(deployment),
@@ -445,6 +449,10 @@ mod tests {
                 ..Network::default()
             })
         });
+        deployment
+            .expect_create_volume()
+            .times(2)
+            .returning(|_, id| Ok(format!("TestVolumeIdFor{id}")));
         let (vault, app_key) = create_test_vault(
             "create_multi_instance_ok",
             Arc::new(deployment),
@@ -499,6 +507,10 @@ mod tests {
                 ..Network::default()
             })
         });
+        deployment
+            .expect_create_volume()
+            .times(1)
+            .returning(|_, id| Ok(format!("TestVolumeIdFor{id}")));
         let (vault, app_key) = create_test_vault(
             "create_instance_single_instance_but_instance_present",
             Arc::new(deployment),
