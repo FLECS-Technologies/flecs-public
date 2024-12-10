@@ -9,8 +9,7 @@ use crate::vault::pouch::deployment::DeploymentId;
 use crate::{jeweler, relic};
 use async_trait::async_trait;
 use bollard::auth::DockerCredentials;
-use bollard::container::{Config, CreateContainerOptions, LogOutput, RemoveContainerOptions};
-use bollard::exec::{CreateExecOptions, StartExecOptions, StartExecResults};
+use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions};
 use bollard::image::RemoveImageOptions;
 use bollard::models::{
     ContainerInspectResponse, ContainerState, EndpointSettings, MountPointTypeEnum, Network, Volume,
@@ -21,7 +20,6 @@ use bollard::network::{
 use bollard::volume::CreateVolumeOptions;
 use bollard::{Docker, API_DEFAULT_VERSION};
 use futures_util::future::{join_all, BoxFuture};
-use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
@@ -826,50 +824,6 @@ impl InstanceDeployment for DockerDeployment {
         relic::docker::container::stop(client, &id.to_docker_id(), None).await?;
         self.delete_instance(id).await?;
         Ok(())
-    }
-
-    async fn ready_instance(&self, id: InstanceId) -> anyhow::Result<()> {
-        let docker_client = self.client()?;
-        let exec_options = CreateExecOptions {
-            attach_stderr: Some(true),
-            cmd: Some(vec!["touch", "/flecs-tmp/ready"]),
-            ..Default::default()
-        };
-        let mut errors = Vec::new();
-        match relic::docker::container::exec(
-            docker_client,
-            &id.to_docker_id(),
-            exec_options,
-            Some(StartExecOptions {
-                detach: false,
-                ..Default::default()
-            }),
-        )
-        .await?
-        {
-            StartExecResults::Attached { mut output, .. } => {
-                while let Some(output) = output.next().await {
-                    match output {
-                        Err(e) => errors.push(format!(
-                            "Error on container during readying container {}: {e}",
-                            id.to_docker_id()
-                        )),
-                        Ok(LogOutput::StdErr { message }) => errors.push(format!(
-                            "Error on container during readying container {}: {}",
-                            id.to_docker_id(),
-                            String::from_utf8_lossy(message.as_ref())
-                        )),
-                        _ => {}
-                    }
-                }
-            }
-            StartExecResults::Detached => {}
-        }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            anyhow::bail!(errors.join(", "))
-        }
     }
 
     async fn instance_status(&self, id: InstanceId) -> anyhow::Result<InstanceStatus> {

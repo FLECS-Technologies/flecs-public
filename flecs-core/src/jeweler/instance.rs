@@ -16,7 +16,6 @@ pub trait InstanceDeployment {
         id: Option<InstanceId>,
     ) -> Result<InstanceId>;
     async fn stop_instance(&self, id: InstanceId) -> Result<()>;
-    async fn ready_instance(&self, id: InstanceId) -> Result<()>;
     async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
     async fn copy_from_instance(
         &self,

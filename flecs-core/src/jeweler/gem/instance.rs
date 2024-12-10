@@ -458,11 +458,6 @@ impl Instance {
         Ok(())
     }
 
-    pub async fn ready(&mut self) -> anyhow::Result<()> {
-        // TODO: Check status, error handling
-        self.deployment.ready_instance(self.id).await
-    }
-
     pub async fn export(&self, _path: &Path) -> anyhow::Result<()> {
         // TODO: Export config
         // TODO: Export config files
