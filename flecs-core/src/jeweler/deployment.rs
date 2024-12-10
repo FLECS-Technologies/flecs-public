@@ -68,7 +68,6 @@ pub mod tests {
             async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
             async fn start_instance(&self, config: Config<String>, id: Option<InstanceId>) -> Result<InstanceId>;
             async fn stop_instance(&self, id: InstanceId) -> Result<()>;
-            async fn ready_instance(&self, id: InstanceId) -> Result<()>;
             async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
             async fn copy_from_instance(
                 &self,
