@@ -1,19 +1,17 @@
+mod config;
 use crate::jeweler::deployment::{Deployment, DeploymentId};
-use crate::jeweler::gem::manifest::{
-    AppManifest, ConfigFile, EnvironmentVariable, Mount, PortMapping, VolumeMount,
-};
-use crate::jeweler::network::NetworkId;
+use crate::jeweler::gem::manifest::{AppManifest, ConfigFile, Mount, VolumeMount};
 use crate::jeweler::volume::VolumeId;
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
 use crate::quest::SyncQuest;
 use crate::vault::pouch::AppKey;
 use bollard::container::Config;
 use bollard::models::ContainerStateStatusEnum;
+pub use config::*;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use std::net::IpAddr;
 use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -61,29 +59,6 @@ impl Display for InstanceId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:08x}", self.value)
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub struct MacAddress {
-    data: [u8; 8],
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub struct NetworkAddress {
-    ip_addr: IpAddr,
-    mac_address: MacAddress,
-}
-
-#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub struct InstanceConfig {
-    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    pub volume_mounts: HashMap<VolumeId, VolumeMount>,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub environment_variables: Vec<EnvironmentVariable>,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub port_mapping: Vec<PortMapping>,
-    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    pub network_addresses: HashMap<NetworkId, Option<NetworkAddress>>,
 }
 
 impl From<&Instance> for Config<String> {
@@ -625,7 +600,7 @@ pub mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::gem::manifest::tests::{create_test_manifest, create_test_manifest_full};
-    use crate::jeweler::gem::manifest::PortRange;
+    use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange};
     use crate::quest::Quest;
     use crate::tests::prepare_test_path;
     use bollard::secret::Network;
