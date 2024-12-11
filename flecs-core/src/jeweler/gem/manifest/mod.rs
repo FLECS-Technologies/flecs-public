@@ -44,8 +44,13 @@ impl AppManifest {
 
     pub fn capabilities(
         &self,
-    ) -> Vec<flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem> {
-        self.original.capabilities.clone().unwrap_or_default()
+    ) -> HashSet<flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem>
+    {
+        self.original
+            .capabilities
+            .clone()
+            .map(HashSet::from_iter)
+            .unwrap_or_default()
     }
 
     pub fn multi_instance(&self) -> bool {
@@ -438,11 +443,11 @@ pub mod tests {
 
         assert_eq!(
             manifest.capabilities(),
-            vec![
+            HashSet::from([
                 flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::Docker,
                 flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::NetAdmin,
                 flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::SysNice,
-            ]
+            ])
         )
     }
 
