@@ -75,12 +75,17 @@ fn bind_mounts_to_bollard_mounts(bind_mounts: &[BindMount]) -> Vec<bollard::mode
 
 impl From<&Instance> for Config<String> {
     fn from(instance: &Instance) -> Self {
-        let bind_mounts = instance.manifest.bind_mounts();
+        let mut bind_mounts = instance.manifest.bind_mounts();
+        let mut capabilities = instance.manifest.capabilities();
+        if capabilities.remove(&flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::Docker) {
+            bind_mounts.push(BindMount::default_docker_socket_bind_mount());
+        }
         let mut mounts = bind_mounts_to_bollard_mounts(bind_mounts.as_slice());
         mounts.extend(instance.config.generate_volume_mounts());
         let host_config = Some(HostConfig {
             port_bindings: Some(instance.config.generate_port_bindings()),
             mounts: Some(mounts),
+            cap_add: Some(capabilities.iter().map(ToString::to_string).collect()),
             ..HostConfig::default()
         });
         Config {
@@ -1364,11 +1369,17 @@ pub mod tests {
         let host_config = config.host_config.unwrap();
         assert_eq!(host_config.port_bindings.unwrap().len(), 1002);
         let mounts = host_config.mounts.unwrap();
-        assert_eq!(mounts.len(), 5);
+        assert_eq!(mounts.len(), 6);
         assert!(mounts.contains(&bollard::models::Mount {
             typ: Some(MountTypeEnum::BIND),
             source: Some("/etc/my-app".to_string()),
             target: Some("/etc/my-app".to_string()),
+            ..Default::default()
+        }));
+        assert!(mounts.contains(&bollard::models::Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some("/run/docker.sock".to_string()),
+            target: Some("/run/docker.sock".to_string()),
             ..Default::default()
         }));
         for i in 1..=4 {
@@ -1379,6 +1390,10 @@ pub mod tests {
                 ..Default::default()
             }));
         }
+        let caps = host_config.cap_add.unwrap();
+        assert_eq!(caps.len(), 2);
+        assert!(caps.contains(&"SYS_NICE".to_string()));
+        assert!(caps.contains(&"NET_ADMIN".to_string()));
     }
 
     #[test]
