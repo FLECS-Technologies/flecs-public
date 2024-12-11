@@ -6,7 +6,7 @@ use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
 use crate::quest::SyncQuest;
 use crate::vault::pouch::AppKey;
 use bollard::container::Config;
-use bollard::models::ContainerStateStatusEnum;
+use bollard::models::{ContainerStateStatusEnum, HostConfig};
 pub use config::*;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
@@ -62,10 +62,14 @@ impl Display for InstanceId {
 }
 
 impl From<&Instance> for Config<String> {
-    fn from(value: &Instance) -> Self {
-        // TODO: Add more info from instance config if available
+    fn from(instance: &Instance) -> Self {
+        let host_config = Some(HostConfig {
+            port_bindings: Some(instance.config.generate_port_bindings()),
+            ..HostConfig::default()
+        });
         Config {
-            image: Some(value.manifest.image_with_tag().to_string()),
+            image: Some(instance.manifest.image_with_tag().to_string()),
+            host_config,
             ..Default::default()
         }
     }
@@ -1340,6 +1344,10 @@ pub mod tests {
         assert_eq!(
             config.image,
             Some("flecs.azurecr.io/some.test.app:1.2.1".to_string())
+        );
+        assert_eq!(
+            config.host_config.unwrap().port_bindings.unwrap().len(),
+            1002
         );
     }
 
