@@ -8,6 +8,14 @@ use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
 use std::sync::Arc;
 
+pub async fn start_instance(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    instance_id: InstanceId,
+) -> Result<()> {
+    spell::instance::start_instance(quest, vault, instance_id).await
+}
+
 pub async fn get_instance(
     vault: Arc<Vault>,
     instance_id: InstanceId,
@@ -781,5 +789,39 @@ mod tests {
             .await
             .unwrap()
             .is_some());
+    }
+
+    #[tokio::test]
+    async fn start_instance_ok() {
+        let vault = spell::instance::tests::create_test_vault(
+            module_path!(),
+            "start_instance_ok",
+            Some(true),
+        )
+        .await;
+        start_instance(
+            Quest::new_synced("TestQuest".to_string()),
+            vault,
+            InstanceId::new(1),
+        )
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn start_instance_err() {
+        let vault = spell::instance::tests::create_test_vault(
+            module_path!(),
+            "start_instance_err",
+            Some(false),
+        )
+        .await;
+        assert!(start_instance(
+            Quest::new_synced("TestQuest".to_string()),
+            vault,
+            InstanceId::new(1),
+        )
+        .await
+        .is_err());
     }
 }
