@@ -91,6 +91,17 @@ impl AppManifest {
             .cloned()
             .collect()
     }
+
+    pub fn bind_mounts(&self) -> Vec<BindMount> {
+        self.mounts
+            .iter()
+            .filter_map(|mount| match mount {
+                Mount::Bind(bind_mount) => Some(bind_mount),
+                _ => None,
+            })
+            .cloned()
+            .collect()
+    }
 }
 
 impl TryFrom<flecs_app_manifest::AppManifestVersion> for AppManifest {
@@ -507,6 +518,19 @@ pub mod tests {
             manifest.volume_mounts(),
             vec!(VolumeMount {
                 name: "my-app-etc".to_string(),
+                container_path: PathBuf::from("/etc/my-app"),
+            })
+        )
+    }
+
+    #[test]
+    fn bind_mounts() {
+        let manifest = create_test_manifest_full(None);
+
+        assert_eq!(
+            manifest.bind_mounts(),
+            vec!(BindMount {
+                host_path: PathBuf::from("/etc/my-app"),
                 container_path: PathBuf::from("/etc/my-app"),
             })
         )

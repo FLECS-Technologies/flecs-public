@@ -1,7 +1,7 @@
 use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, VolumeMount};
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
-use bollard::models::PortBinding;
+use bollard::models::{MountTypeEnum, PortBinding};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -38,6 +38,18 @@ impl InstanceConfig {
             .collect();
         result
     }
+
+    pub fn generate_volume_mounts(&self) -> Vec<bollard::models::Mount> {
+        self.volume_mounts
+            .iter()
+            .map(|(id, volume_mount)| bollard::models::Mount {
+                typ: Some(MountTypeEnum::VOLUME),
+                source: Some(id.clone()),
+                target: Some(volume_mount.container_path.to_string_lossy().to_string()),
+                ..Default::default()
+            })
+            .collect()
+    }
 }
 
 fn new_port_bindings(host_port: u16, container_port: u16) -> (String, Option<Vec<PortBinding>>) {
@@ -69,6 +81,8 @@ fn port_mapping_to_port_bindings(
 mod tests {
     use super::*;
     use crate::jeweler::gem::manifest::PortRange;
+    use bollard::models::Mount;
+    use std::path::PathBuf;
 
     #[test]
     fn new_port_bindings_test() {
@@ -178,5 +192,47 @@ mod tests {
                 )
             ])
         )
+    }
+
+    #[test]
+    fn generate_volume_mounts_test() {
+        let config = InstanceConfig {
+            volume_mounts: HashMap::from([
+                (
+                    "VolumeId1".to_string(),
+                    VolumeMount {
+                        name: "Volume1".to_string(),
+                        container_path: PathBuf::from("/path/to/volume-1"),
+                    },
+                ),
+                (
+                    "VolumeId2".to_string(),
+                    VolumeMount {
+                        name: "Volume2".to_string(),
+                        container_path: PathBuf::from("/path/to/volume-2"),
+                    },
+                ),
+            ]),
+            ..InstanceConfig::default()
+        };
+        let resulting_mounts = config.generate_volume_mounts();
+        assert_eq!(resulting_mounts.len(), 2);
+        let expected_mounts = vec![
+            Mount {
+                typ: Some(MountTypeEnum::VOLUME),
+                source: Some("VolumeId1".to_string()),
+                target: Some("/path/to/volume-1".to_string()),
+                ..Mount::default()
+            },
+            Mount {
+                typ: Some(MountTypeEnum::VOLUME),
+                source: Some("VolumeId2".to_string()),
+                target: Some("/path/to/volume-2".to_string()),
+                ..Mount::default()
+            },
+        ];
+        for expected_mount in expected_mounts {
+            assert!(resulting_mounts.contains(&expected_mount))
+        }
     }
 }
