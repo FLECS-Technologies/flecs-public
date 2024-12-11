@@ -1,12 +1,12 @@
 mod config;
 use crate::jeweler::deployment::{Deployment, DeploymentId};
-use crate::jeweler::gem::manifest::{AppManifest, ConfigFile, Mount, VolumeMount};
+use crate::jeweler::gem::manifest::{AppManifest, BindMount, ConfigFile, Mount, VolumeMount};
 use crate::jeweler::volume::VolumeId;
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
 use crate::quest::SyncQuest;
 use crate::vault::pouch::AppKey;
 use bollard::container::Config;
-use bollard::models::{ContainerStateStatusEnum, HostConfig};
+use bollard::models::{ContainerStateStatusEnum, HostConfig, MountTypeEnum};
 pub use config::*;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
@@ -61,10 +61,26 @@ impl Display for InstanceId {
     }
 }
 
+fn bind_mounts_to_bollard_mounts(bind_mounts: &[BindMount]) -> Vec<bollard::models::Mount> {
+    bind_mounts
+        .iter()
+        .map(|bind_mount| bollard::models::Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some(bind_mount.host_path.to_string_lossy().to_string()),
+            target: Some(bind_mount.container_path.to_string_lossy().to_string()),
+            ..Default::default()
+        })
+        .collect()
+}
+
 impl From<&Instance> for Config<String> {
     fn from(instance: &Instance) -> Self {
+        let bind_mounts = instance.manifest.bind_mounts();
+        let mut mounts = bind_mounts_to_bollard_mounts(bind_mounts.as_slice());
+        mounts.extend(instance.config.generate_volume_mounts());
         let host_config = Some(HostConfig {
             port_bindings: Some(instance.config.generate_port_bindings()),
+            mounts: Some(mounts),
             ..HostConfig::default()
         });
         Config {
@@ -1345,10 +1361,24 @@ pub mod tests {
             config.image,
             Some("flecs.azurecr.io/some.test.app:1.2.1".to_string())
         );
-        assert_eq!(
-            config.host_config.unwrap().port_bindings.unwrap().len(),
-            1002
-        );
+        let host_config = config.host_config.unwrap();
+        assert_eq!(host_config.port_bindings.unwrap().len(), 1002);
+        let mounts = host_config.mounts.unwrap();
+        assert_eq!(mounts.len(), 5);
+        assert!(mounts.contains(&bollard::models::Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some("/etc/my-app".to_string()),
+            target: Some("/etc/my-app".to_string()),
+            ..Default::default()
+        }));
+        for i in 1..=4 {
+            assert!(mounts.contains(&bollard::models::Mount {
+                typ: Some(MountTypeEnum::VOLUME),
+                source: Some(format!("Instance#123Volume#{i}")),
+                target: Some(format!("/volume{i}")),
+                ..Default::default()
+            }));
+        }
     }
 
     #[test]
