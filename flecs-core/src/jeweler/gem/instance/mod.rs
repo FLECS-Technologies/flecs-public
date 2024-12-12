@@ -96,6 +96,7 @@ impl From<&Instance> for Config<String> {
         });
         Config {
             image: Some(instance.manifest.image_with_tag().to_string()),
+            hostname: Some(instance.hostname.clone()),
             host_config,
             cmd,
             ..Default::default()
@@ -728,7 +729,7 @@ pub mod tests {
             id: InstanceId::new(id),
             desired: InstanceStatus::Stopped,
             name: "TestInstance".to_string(),
-            hostname: format!("flecs-{id}"),
+            hostname: format!("flecs-{id:08x}"),
             config: InstanceConfig {
                 volume_mounts: HashMap::from([
                     (
@@ -1408,6 +1409,7 @@ pub mod tests {
                 "--launch-arg2=value".to_string(),
             ])
         );
+        assert_eq!(config.hostname, Some("flecs-0000007b".to_string()));
     }
 
     #[test]
