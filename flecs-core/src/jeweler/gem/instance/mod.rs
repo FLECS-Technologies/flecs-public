@@ -105,6 +105,14 @@ impl From<&Instance> for Config<String> {
                     .map(ToString::to_string)
                     .collect(),
             ),
+            labels: Some(
+                instance
+                    .manifest
+                    .labels
+                    .iter()
+                    .map(|label| (label.label.clone(), label.value.clone().unwrap_or_default()))
+                    .collect(),
+            ),
             host_config,
             cmd,
             ..Default::default()
@@ -1425,6 +1433,14 @@ pub mod tests {
                 "variable-2=".to_string(),
                 "variable-3".to_string()
             ])
+        );
+        assert_eq!(
+            config.labels,
+            Some(HashMap::from([
+                ("my.label-one".to_string(), "value-1".to_string()),
+                ("my.label-two".to_string(), String::new()),
+                ("my.label-three".to_string(), String::new()),
+            ]))
         );
     }
 
