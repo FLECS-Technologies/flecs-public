@@ -82,6 +82,12 @@ impl From<&Instance> for Config<String> {
         }
         let mut mounts = bind_mounts_to_bollard_mounts(bind_mounts.as_slice());
         mounts.extend(instance.config.generate_volume_mounts());
+        let arguments = instance.manifest.arguments();
+        let cmd = if arguments.is_empty() {
+            None
+        } else {
+            Some(arguments.clone())
+        };
         let host_config = Some(HostConfig {
             port_bindings: Some(instance.config.generate_port_bindings()),
             mounts: Some(mounts),
@@ -91,6 +97,7 @@ impl From<&Instance> for Config<String> {
         Config {
             image: Some(instance.manifest.image_with_tag().to_string()),
             host_config,
+            cmd,
             ..Default::default()
         }
     }
@@ -1394,6 +1401,13 @@ pub mod tests {
         assert_eq!(caps.len(), 2);
         assert!(caps.contains(&"SYS_NICE".to_string()));
         assert!(caps.contains(&"NET_ADMIN".to_string()));
+        assert_eq!(
+            config.cmd,
+            Some(vec![
+                "--launch-arg1".to_string(),
+                "--launch-arg2=value".to_string(),
+            ])
+        );
     }
 
     #[test]
