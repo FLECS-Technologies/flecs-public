@@ -97,6 +97,14 @@ impl From<&Instance> for Config<String> {
         Config {
             image: Some(instance.manifest.image_with_tag().to_string()),
             hostname: Some(instance.hostname.clone()),
+            env: Some(
+                instance
+                    .config
+                    .environment_variables
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect(),
+            ),
             host_config,
             cmd,
             ..Default::default()
@@ -1410,6 +1418,14 @@ pub mod tests {
             ])
         );
         assert_eq!(config.hostname, Some("flecs-0000007b".to_string()));
+        assert_eq!(
+            config.env,
+            Some(vec![
+                "variable-1=value1".to_string(),
+                "variable-2=".to_string(),
+                "variable-3".to_string()
+            ])
+        );
     }
 
     #[test]
