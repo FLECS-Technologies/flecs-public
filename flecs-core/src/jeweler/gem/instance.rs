@@ -102,7 +102,6 @@ pub enum InstanceStatus {
     NotCreated,
     Requested,
     ResourcesReady,
-    Created,
     Stopped,
     Running,
     Orphaned,
@@ -117,7 +116,6 @@ impl From<InstanceStatus> for flecsd_axum_server::models::InstanceStatus {
             InstanceStatus::ResourcesReady => {
                 flecsd_axum_server::models::InstanceStatus::ResourcesReady
             }
-            InstanceStatus::Created => flecsd_axum_server::models::InstanceStatus::Created,
             InstanceStatus::Stopped => flecsd_axum_server::models::InstanceStatus::Stopped,
             InstanceStatus::Running => flecsd_axum_server::models::InstanceStatus::Running,
             InstanceStatus::Orphaned => flecsd_axum_server::models::InstanceStatus::Orphaned,
@@ -130,14 +128,14 @@ impl From<ContainerStateStatusEnum> for InstanceStatus {
     fn from(value: ContainerStateStatusEnum) -> Self {
         // TBD
         match value {
-            ContainerStateStatusEnum::EMPTY => Self::Created,
-            ContainerStateStatusEnum::CREATED => Self::Created,
+            ContainerStateStatusEnum::EMPTY => Self::Stopped,
+            ContainerStateStatusEnum::CREATED => Self::Stopped,
             ContainerStateStatusEnum::RUNNING => Self::Running,
             ContainerStateStatusEnum::PAUSED => Self::Running,
             ContainerStateStatusEnum::RESTARTING => Self::Running,
             ContainerStateStatusEnum::REMOVING => Self::Running,
-            ContainerStateStatusEnum::EXITED => Self::Created,
-            ContainerStateStatusEnum::DEAD => Self::Created,
+            ContainerStateStatusEnum::EXITED => Self::Stopped,
+            ContainerStateStatusEnum::DEAD => Self::Stopped,
         }
     }
 }
@@ -422,7 +420,7 @@ impl Instance {
             name,
             manifest,
             config,
-            desired: InstanceStatus::Created,
+            desired: InstanceStatus::Stopped,
         })
     }
 
@@ -721,7 +719,7 @@ pub mod tests {
     ) -> Instance {
         Instance {
             id: InstanceId::new(id),
-            desired: InstanceStatus::Created,
+            desired: InstanceStatus::Stopped,
             name: "TestInstance".to_string(),
             hostname: format!("flecs-{id}"),
             config: InstanceConfig {
@@ -1114,7 +1112,7 @@ pub mod tests {
         .await
         .unwrap();
         assert_eq!(&instance.config.port_mapping, &manifest.ports);
-        assert_eq!(instance.desired, InstanceStatus::Created);
+        assert_eq!(instance.desired, InstanceStatus::Stopped);
         assert_eq!(
             &instance.config.environment_variables,
             &manifest.environment_variables
@@ -1374,11 +1372,11 @@ pub mod tests {
     fn instance_status_from_container_status() {
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::EMPTY),
-            InstanceStatus::Created
+            InstanceStatus::Stopped
         );
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::CREATED),
-            InstanceStatus::Created
+            InstanceStatus::Stopped
         );
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::RUNNING),
@@ -1398,11 +1396,11 @@ pub mod tests {
         );
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::EXITED),
-            InstanceStatus::Created
+            InstanceStatus::Stopped
         );
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::DEAD),
-            InstanceStatus::Created
+            InstanceStatus::Stopped
         );
     }
 
@@ -1419,10 +1417,6 @@ pub mod tests {
         assert_eq!(
             flecsd_axum_server::models::InstanceStatus::ResourcesReady,
             InstanceStatus::ResourcesReady.into()
-        );
-        assert_eq!(
-            flecsd_axum_server::models::InstanceStatus::Created,
-            InstanceStatus::Created.into()
         );
         assert_eq!(
             flecsd_axum_server::models::InstanceStatus::Stopped,
