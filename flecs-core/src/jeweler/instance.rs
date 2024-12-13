@@ -34,7 +34,7 @@ pub trait InstanceDeployment {
     ) -> Result<()>;
     // TODO: Maybe move function to enum InstanceStatus
     async fn is_instance_runnable(&self, id: InstanceId) -> Result<bool> {
-        Ok(self.instance_status(id).await? == InstanceStatus::Created)
+        Ok(self.instance_status(id).await? == InstanceStatus::Stopped)
     }
     // TODO: Maybe move function to enum InstanceStatus
     async fn is_instance_running(&self, id: InstanceId) -> Result<bool> {

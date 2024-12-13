@@ -829,7 +829,7 @@ impl InstanceDeployment for DockerDeployment {
     async fn instance_status(&self, id: InstanceId) -> anyhow::Result<InstanceStatus> {
         let docker_client = self.client()?;
         match relic::docker::container::inspect(docker_client, &id.to_docker_id()).await? {
-            None => Ok(InstanceStatus::Created),
+            None => Ok(InstanceStatus::Stopped),
             Some(ContainerInspectResponse {
                 state:
                     Some(ContainerState {
