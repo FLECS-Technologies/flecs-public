@@ -1,0 +1,22 @@
+diff --git a/flecsd_axum_server/src/models.rs b/flecsd_axum_server/src/models.rs
+index bf6f96c0..2766dd34 100644
+--- a/flecsd_axum_server/src/models.rs
++++ b/flecsd_axum_server/src/models.rs
+@@ -6129,7 +6129,7 @@ impl std::convert::TryFrom<HeaderValue>
+ #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+ pub struct Job {
+     #[serde(rename = "id")]
+-    #[validate(range(min = 1, max = 4294967295))]
++    #[validate(range(min = 1, max = 4294967295u32))]
+     pub id: u32,
+ 
+     #[serde(rename = "status")]
+@@ -7199,7 +7199,7 @@ pub struct SessionId {
+     pub id: Option<String>,
+ 
+     #[serde(rename = "timestamp")]
+-    #[validate(range(min = 0, max = 9223372036854775807))]
++    #[validate(range(min = 0, max = 9223372036854775807u64))]
+     #[serde(skip_serializing_if = "Option::is_none")]
+     pub timestamp: Option<u64>,
+ }
