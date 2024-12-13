@@ -589,7 +589,7 @@ dependencies = [
  "erased-serde",
  "flecs_app_manifest",
  "flecs_console_client",
- "flecsd-axum-server",
+ "flecsd_axum_server",
  "flecstract",
  "futures",
  "futures-util",
@@ -659,7 +659,7 @@ dependencies = [
  "cxx-build",
  "flecs-core",
  "flecs_console_client",
- "flecsd-axum-server",
+ "flecsd_axum_server",
  "http",
  "libc",
  "mockito",
@@ -672,7 +672,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "flecsd-axum-server"
+name = "flecsd_axum_server"
 version = "2.0.0"
 dependencies = [
  "async-trait",
