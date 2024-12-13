@@ -606,7 +606,6 @@ dependencies = [
  "futures-util",
  "glob",
  "http",
- "http-body-util",
  "hyper",
  "hyper-util",
  "libc",
@@ -624,7 +623,6 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.65",
  "tokio",
- "tokio-stream",
  "tokio-test",
  "tokio-util",
  "tower 0.4.13",
@@ -665,21 +663,13 @@ dependencies = [
 name = "flecs_core_cxx_bridge"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "cxx",
  "cxx-build",
  "flecs-core",
- "flecs_console_client",
- "flecsd_axum_server",
- "http",
- "libc",
- "mockito",
- "procfs",
- "rusb",
+ "flecsd-axum-server",
  "serde_json",
  "tokio",
  "tracing",
- "udev",
 ]
 
 [[package]]
@@ -1370,17 +1360,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "io-lifetimes"
-version = "1.0.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eae7b9aee968036d54dce06cebaefd919e4472e753296daccd6d344e3e2df0c2"
-dependencies = [
- "hermit-abi",
- "libc",
- "windows-sys 0.48.0",
-]
-
-[[package]]
 name = "ipnet"
 version = "2.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1431,16 +1410,6 @@ dependencies = [
  "bitflags",
  "libc",
  "redox_syscall",
-]
-
-[[package]]
-name = "libudev-sys"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c8469b4a23b962c1396b9b451dda50ef5b283e8dd309d69033475fa9b334324"
-dependencies = [
- "libc",
- "pkg-config",
 ]
 
 [[package]]
@@ -3042,18 +3011,6 @@ dependencies = [
  "serde_tokenstream",
  "syn 2.0.87",
  "typify-impl",
-]
-
-[[package]]
-name = "udev"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50051c6e22be28ee6f217d50014f3bc29e81c20dc66ff7ca0d5c5226e1dcc5a1"
-dependencies = [
- "io-lifetimes",
- "libc",
- "libudev-sys",
- "pkg-config",
 ]
 
 [[package]]
