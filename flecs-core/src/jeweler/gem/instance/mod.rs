@@ -6,11 +6,11 @@ use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
 use crate::quest::SyncQuest;
 use crate::vault::pouch::AppKey;
 use bollard::container::Config;
-use bollard::models::{ContainerStateStatusEnum, HostConfig, MountTypeEnum};
+use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
 pub use config::*;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
@@ -92,6 +92,7 @@ impl From<&Instance> for Config<String> {
             port_bindings: Some(instance.config.generate_port_bindings()),
             mounts: Some(mounts),
             cap_add: Some(capabilities.iter().map(ToString::to_string).collect()),
+            devices: Some(instance.generate_device_mappings()),
             ..HostConfig::default()
         });
         Config {
@@ -191,6 +192,19 @@ pub struct Instance {
 impl Instance {
     pub fn app_key(&self) -> AppKey {
         self.manifest.key.clone()
+    }
+
+    pub fn generate_device_mappings(&self) -> Vec<DeviceMapping> {
+        self.manifest
+            .devices
+            .iter()
+            .map(|device| DeviceMapping {
+                path_on_host: Some(device.path.to_string_lossy().to_string()),
+                path_in_container: Some(device.path.to_string_lossy().to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            })
+            .chain(self.config.generate_usb_device_mappings())
+            .collect()
     }
 
     pub async fn generate_info(&self) -> crate::Result<flecsd_axum_server::models::AppInstance> {
@@ -436,6 +450,7 @@ impl Instance {
             port_mapping,
             volume_mounts,
             network_addresses: HashMap::from([(default_network_id, None)]),
+            usb_devices: HashSet::new(),
         };
         Ok(Self {
             hostname: format!("flecs-{instance_id}"),
@@ -651,6 +666,8 @@ pub mod tests {
     use crate::jeweler::gem::manifest::tests::{create_test_manifest, create_test_manifest_full};
     use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange};
     use crate::quest::Quest;
+    use crate::relic::device::usb::tests::prepare_usb_device_test_path;
+    use crate::relic::device::usb::UsbDevice;
     use crate::tests::prepare_test_path;
     use bollard::secret::Network;
     use flecsd_axum_server::models::{
@@ -790,6 +807,22 @@ pub mod tests {
                     },
                 ],
                 network_addresses: HashMap::new(),
+                usb_devices: HashSet::from([
+                    UsbDevice {
+                        device: "TestDevice1".to_string(),
+                        port: "test_instance_dev_1".to_string(),
+                        vendor: "TestVendor1".to_string(),
+                        pid: 1,
+                        vid: 2,
+                    },
+                    UsbDevice {
+                        device: "TestDevice2".to_string(),
+                        port: "test_instance_dev_2".to_string(),
+                        vendor: "TestVendor2".to_string(),
+                        pid: 2,
+                        vid: 2,
+                    },
+                ]),
             },
             deployment,
             manifest,
@@ -1381,6 +1414,18 @@ pub mod tests {
 
     #[test]
     fn config_from_instance() {
+        let path = prepare_usb_device_test_path("test_instance_dev_1");
+        let bus_path = PathBuf::from("/tmp/flecs-tests/dev/bus/usb/456".to_string());
+        config::tests::prepare_path(&bus_path);
+        std::fs::write(bus_path.join("789"), b"test-dev-1").unwrap();
+        std::fs::write(path.join("devnum"), b"789").unwrap();
+        std::fs::write(path.join("busnum"), b"456").unwrap();
+        let path = prepare_usb_device_test_path("test_instance_dev_2");
+        let bus_path = PathBuf::from("/tmp/flecs-tests/dev/bus/usb/200".to_string());
+        config::tests::prepare_path(&bus_path);
+        std::fs::write(bus_path.join("300"), b"test-dev-2").unwrap();
+        std::fs::write(path.join("devnum"), b"300").unwrap();
+        std::fs::write(path.join("busnum"), b"200").unwrap();
         let deployment = MockedDeployment::new();
         let deployment = Arc::new(deployment);
         let manifest = Arc::new(create_test_manifest_full(Some(true)));
@@ -1442,6 +1487,36 @@ pub mod tests {
                 ("my.label-three".to_string(), String::new()),
             ]))
         );
+        let expected_device_mappings = vec![
+            DeviceMapping {
+                path_on_host: Some("/dev/dev1".to_string()),
+                path_in_container: Some("/dev/dev1".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+            DeviceMapping {
+                path_on_host: Some("/dev/usb/dev1".to_string()),
+                path_in_container: Some("/dev/usb/dev1".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+            DeviceMapping {
+                path_on_host: Some("/tmp/flecs-tests/dev/bus/usb/456/789".to_string()),
+                path_in_container: Some("/tmp/flecs-tests/dev/bus/usb/456/789".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+            DeviceMapping {
+                path_on_host: Some("/tmp/flecs-tests/dev/bus/usb/200/300".to_string()),
+                path_in_container: Some("/tmp/flecs-tests/dev/bus/usb/200/300".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+        ];
+        let resulting_device_mappings = host_config.devices.unwrap();
+        assert_eq!(
+            resulting_device_mappings.len(),
+            expected_device_mappings.len()
+        );
+        for expected_device_mapping in expected_device_mappings {
+            assert!(resulting_device_mappings.contains(&expected_device_mapping));
+        }
     }
 
     #[test]
