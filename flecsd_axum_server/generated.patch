@@ -20,3 +20,16 @@ index bf6f96c0..2766dd34 100644
      #[serde(skip_serializing_if = "Option::is_none")]
      pub timestamp: Option<u64>,
  }
+diff --git a/flecsd_axum_server/Cargo.toml b/flecsd_axum_server/Cargo.toml
+index 3386fdb0..220beeb4 100644
+--- a/flecsd_axum_server/Cargo.toml
++++ b/flecsd_axum_server/Cargo.toml
+@@ -41,7 +41,7 @@ tokio = { version = "1", default-features = false, features = [
+ ] }
+ tracing = { version = "0.1", features = ["attributes"] }
+ uuid = { version = "1", features = ["serde"] }
+-validator = { version = "0.18", features = ["derive"] }
++validator = { version = "0.19", features = ["derive"] }
+ 
+ [dev-dependencies]
+ tracing-subscriber = "0.3"
