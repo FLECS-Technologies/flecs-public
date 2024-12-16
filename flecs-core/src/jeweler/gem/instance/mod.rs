@@ -12,6 +12,7 @@ use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
+use std::mem::swap;
 use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -194,13 +195,18 @@ pub struct Instance {
     #[serde(serialize_with = "serialize_deployment_id", rename = "deployment_id")]
     deployment: Arc<dyn Deployment>,
     #[serde(serialize_with = "serialize_manifest_key", rename = "app_key")]
-    manifest: Arc<AppManifest>,
+    pub manifest: Arc<AppManifest>,
     desired: InstanceStatus,
 }
 
 impl Instance {
     pub fn app_key(&self) -> AppKey {
         self.manifest.key.clone()
+    }
+
+    pub fn replace_manifest(&mut self, mut manifest: Arc<AppManifest>) -> Arc<AppManifest> {
+        swap(&mut manifest, &mut self.manifest);
+        manifest
     }
 
     pub fn generate_device_mappings(&self) -> Vec<DeviceMapping> {
@@ -1701,5 +1707,19 @@ pub mod tests {
         )
         .await
         .is_err());
+    }
+
+    #[test]
+    fn replace_manifest() {
+        let mut instance = test_instance(
+            2,
+            Arc::new(MockedDeployment::new()),
+            create_test_manifest(None),
+        );
+        let manifest = create_test_manifest(Some("#2".to_string()));
+        assert_eq!(instance.manifest.revision(), None);
+        let old_manifest = instance.replace_manifest(manifest);
+        assert_eq!(old_manifest.revision(), None);
+        assert_eq!(instance.manifest.revision(), Some(&"#2".to_string()));
     }
 }

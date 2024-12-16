@@ -1,5 +1,9 @@
 pub use super::Result;
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::lore;
+use crate::quest::SyncQuest;
+use crate::vault::pouch::Pouch;
+use crate::vault::{GrabbedPouches, Vault};
 use anyhow::anyhow;
 use flecs_app_manifest::AppManifestVersion;
 use flecs_console_client::apis::configuration::Configuration;
@@ -46,9 +50,51 @@ pub async fn download_manifest(
     }
 }
 
+pub async fn replace_manifest(
+    _quest: SyncQuest,
+    vault: Arc<Vault>,
+    manifest: Arc<AppManifest>,
+) -> Result<Option<Arc<AppManifest>>> {
+    let GrabbedPouches {
+        manifest_pouch_mut: Some(ref mut manifests),
+        app_pouch_mut: Some(ref mut apps),
+        instance_pouch_mut: Some(ref mut instances),
+        ..
+    } = vault
+        .reservation()
+        .reserve_manifest_pouch_mut()
+        .reserve_app_pouch_mut()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await
+    else {
+        unreachable!("Reservation should never fail");
+    };
+    let old_manifest = manifests
+        .gems_mut()
+        .insert(manifest.key.clone(), manifest.clone());
+    if let Some(app) = apps.gems_mut().get_mut(&manifest.key) {
+        app.set_manifest(manifest.clone());
+    };
+    for instance in instances
+        .gems_mut()
+        .values_mut()
+        .filter(|instance| instance.app_key() == manifest.key)
+    {
+        instance.replace_manifest(manifest.clone());
+    }
+    Ok(old_manifest)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::jeweler::gem::app::App;
+    use crate::jeweler::gem::manifest::Label;
+    use crate::quest::Quest;
+    use crate::sorcerer::spell::instance::tests::create_test_vault;
+    use crate::vault::pouch::manifest::tests::create_test_manifest;
+    use crate::vault::pouch::AppKey;
     use flecs_app_manifest::generated::manifest_3_0_0::{
         FlecsAppManifest, FlecsAppManifestApp, FlecsAppManifestImage,
     };
@@ -162,6 +208,74 @@ mod tests {
             }
             x => {
                 panic!("Expected Error::UnexpectedResponse {{status: StatusCode::ACCEPTED, ..}}, got {:?}", x)
+            }
+        }
+    }
+    #[tokio::test]
+    async fn replace_manifest_test() {
+        let vault = create_test_vault(module_path!(), "replace_manifest_test", None).await;
+        let mut manifest = create_test_manifest("some.test.app-1", "1.2.3");
+        let labels = vec![Label {
+            label: "Replacing".to_string(),
+            value: None,
+        }];
+        manifest.labels = labels.clone();
+        let manifest = Arc::new(manifest);
+        let app_key_1 = AppKey {
+            name: "some.test.app-1".to_string(),
+            version: "1.2.3".to_string(),
+        };
+        let app_key_2 = AppKey {
+            name: "some.test.app-2".to_string(),
+            version: "1.2.4".to_string(),
+        };
+        {
+            let app_1 = App::new(app_key_1.clone(), Vec::new());
+            let app_2 = App::new(app_key_2.clone(), Vec::new());
+            let mut grab = vault.reservation().reserve_app_pouch_mut().grab().await;
+            let apps = grab.app_pouch_mut.as_mut().unwrap();
+            apps.gems_mut().insert(app_key_1.clone(), app_1);
+            apps.gems_mut().insert(app_key_2.clone(), app_2);
+        }
+        let old_manifest = replace_manifest(
+            Quest::new_synced("TestQuest".to_string()),
+            vault.clone(),
+            manifest.clone(),
+        )
+        .await
+        .unwrap();
+        assert_ne!(old_manifest.unwrap().labels, labels);
+        let GrabbedPouches {
+            manifest_pouch: Some(ref manifests),
+            app_pouch: Some(ref apps),
+            instance_pouch: Some(ref instances),
+            ..
+        } = vault
+            .reservation()
+            .reserve_manifest_pouch()
+            .reserve_app_pouch()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+        else {
+            unreachable!("Reservation should never fail");
+        };
+        assert!(apps.gems().get(&app_key_2).unwrap().manifest().is_none());
+        assert_eq!(
+            apps.gems()
+                .get(&app_key_1)
+                .unwrap()
+                .manifest()
+                .unwrap()
+                .labels,
+            labels
+        );
+        assert_eq!(manifests.gems().get(&app_key_1).unwrap().labels, labels);
+        for instance in instances.gems().values() {
+            if instance.app_key() == app_key_1 {
+                assert_eq!(instance.manifest.labels, labels);
+            } else {
+                assert_ne!(instance.manifest.labels, labels);
             }
         }
     }

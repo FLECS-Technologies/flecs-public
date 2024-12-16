@@ -102,7 +102,7 @@ pub async fn install_app_from_manifest(
         .create_sub_quest("Create app".to_string(), |_quest| {
             set_manifest_and_desired_or_create_app(
                 vault.clone(),
-                manifest,
+                manifest.clone(),
                 app_key.clone(),
                 AppStatus::Installed,
             )
@@ -110,15 +110,30 @@ pub async fn install_app_from_manifest(
         .await
         .2
         .await?;
-    quest
+    let result = quest
         .lock()
         .await
-        .create_sub_quest("Install app".to_string(), |quest| async {
-            install_existing_app(quest, vault, app_key, config).await
+        .create_sub_quest("Install app".to_string(), |quest| {
+            install_existing_app(quest, vault.clone(), app_key, config)
         })
         .await
         .2
-        .await
+        .await;
+    match result {
+        Err(e) => Err(e),
+        Ok(()) => {
+            quest
+                .lock()
+                .await
+                .create_sub_quest(format!("Replace manifest for {}", manifest.key), |quest| {
+                    spell::manifest::replace_manifest(quest, vault, manifest)
+                })
+                .await
+                .2
+                .await?;
+            Ok(())
+        }
+    }
 }
 
 pub async fn install_apps(
@@ -191,33 +206,7 @@ async fn download_manifest(
         spell::manifest::download_manifest(config, &session_id, &app_key.name, &app_key.version)
             .await?
             .try_into()?;
-    let manifest = Arc::new(manifest);
-    let GrabbedPouches {
-        manifest_pouch_mut: Some(ref mut manifests),
-        app_pouch_mut: Some(ref mut apps),
-        ..
-    } = vault
-        .reservation()
-        .reserve_manifest_pouch_mut()
-        .reserve_app_pouch_mut()
-        .grab()
-        .await
-    else {
-        unreachable!("Reservation should never fail");
-    };
-
-    if let Some(_previous_manifest) = manifests
-        .gems_mut()
-        .insert(app_key.clone(), manifest.clone())
-    {
-        println!("Previous manifest for {app_key}, was replaced.")
-    };
-
-    if let Some(app) = apps.gems_mut().get_mut(&app_key) {
-        app.set_manifest(manifest.clone());
-        println!("Previous manifest of {app_key}, was replaced.")
-    };
-    Ok(manifest)
+    Ok(Arc::new(manifest))
 }
 
 async fn set_manifest_and_desired_or_create_app(
@@ -784,82 +773,6 @@ pub mod tests {
                 .unwrap(),
             manifest
         );
-        assert_eq!(
-            vault
-                .reservation()
-                .reserve_manifest_pouch()
-                .grab()
-                .await
-                .manifest_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&test_key()),
-            Some(&manifest)
-        );
-        mock.assert();
-    }
-
-    #[tokio::test]
-    async fn test_manifest_download_replace() {
-        let mut app = App::new(test_key(), Vec::new());
-        let manifest = create_test_manifest(None);
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
-        app.set_manifest(manifest.clone());
-        {
-            let GrabbedPouches {
-                manifest_pouch_mut: Some(ref mut manifests),
-                app_pouch_mut: Some(ref mut apps),
-                ..
-            } = vault
-                .reservation()
-                .reserve_manifest_pouch_mut()
-                .reserve_app_pouch_mut()
-                .grab()
-                .await
-            else {
-                unreachable!("Reservation failed")
-            };
-            apps.gems_mut().insert(test_key(), app);
-            manifests.gems_mut().insert(test_key(), manifest.clone());
-        }
-        let manifest = create_test_manifest(Some("10".to_string()));
-        let (mut server, config) = crate::tests::create_test_server_and_config().await;
-        let mock = manifest_mock_ok(&mut server, manifest.clone()).await;
-        assert_eq!(
-            download_manifest(vault.clone(), test_key(), config,)
-                .await
-                .unwrap(),
-            manifest
-        );
-        assert_eq!(
-            vault
-                .reservation()
-                .reserve_app_pouch()
-                .grab()
-                .await
-                .app_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&test_key())
-                .unwrap()
-                .manifest(),
-            Some(manifest.clone())
-        );
-        assert_eq!(
-            vault
-                .reservation()
-                .reserve_manifest_pouch()
-                .grab()
-                .await
-                .manifest_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&test_key()),
-            Some(&manifest)
-        );
         mock.assert();
     }
 
@@ -947,8 +860,8 @@ pub mod tests {
         assert_eq!(
             quest.sub_quest_progress().await,
             Progress {
-                total: Some(3),
-                current: 3
+                total: Some(4),
+                current: 4
             }
         );
         manifest_mock.assert();
@@ -995,8 +908,8 @@ pub mod tests {
         assert_eq!(
             quest.sub_quest_progress().await,
             Progress {
-                total: Some(2),
-                current: 2
+                total: Some(3),
+                current: 3
             }
         );
         token_mock.assert();
