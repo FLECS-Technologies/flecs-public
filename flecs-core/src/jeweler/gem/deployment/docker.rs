@@ -809,8 +809,18 @@ impl InstanceDeployment for DockerDeployment {
     ) -> anyhow::Result<InstanceId> {
         let client = self.client()?;
         let id = id.unwrap_or_else(InstanceId::new_random);
+        let docker_id = id.to_docker_id();
+        relic::docker::container::remove(
+            client.clone(),
+            Some(RemoveContainerOptions {
+                force: true,
+                ..Default::default()
+            }),
+            &docker_id,
+        )
+        .await?;
         let options = Some(CreateContainerOptions {
-            name: id.to_docker_id(),
+            name: docker_id,
             platform: None,
         });
         let docker_id = relic::docker::container::create(client.clone(), options, config).await?;
