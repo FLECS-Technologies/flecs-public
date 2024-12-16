@@ -88,8 +88,16 @@ impl From<&Instance> for Config<String> {
         } else {
             Some(arguments.clone())
         };
+        let port_bindings = instance.config.generate_port_bindings();
+        let exposed_ports = Some(
+            port_bindings
+                .keys()
+                .cloned()
+                .map(|key| (key, HashMap::new()))
+                .collect(),
+        );
         let host_config = Some(HostConfig {
-            port_bindings: Some(instance.config.generate_port_bindings()),
+            port_bindings: Some(port_bindings),
             mounts: Some(mounts),
             cap_add: Some(capabilities.iter().map(ToString::to_string).collect()),
             devices: Some(instance.generate_device_mappings()),
@@ -116,6 +124,7 @@ impl From<&Instance> for Config<String> {
             ),
             host_config,
             cmd,
+            exposed_ports,
             ..Default::default()
         }
     }
