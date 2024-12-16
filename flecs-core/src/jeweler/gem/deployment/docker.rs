@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::{fs, join};
-use tracing::log::warn;
+use tracing::{debug, warn};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(tag = "type")]
@@ -814,7 +814,7 @@ impl InstanceDeployment for DockerDeployment {
             platform: None,
         });
         let docker_id = relic::docker::container::create(client.clone(), options, config).await?;
-        println!("Created container {}/{}", id, docker_id);
+        debug!("Created container {}/{}", id, docker_id);
         relic::docker::container::start(client, &id.to_docker_id()).await?;
         Ok(id)
     }
