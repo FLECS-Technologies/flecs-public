@@ -2,7 +2,7 @@ pub use super::{Error, Result};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::str::FromStr;
-use tracing::log::warn;
+use tracing::warn;
 #[derive(Debug, Eq, PartialEq, Clone, Serialize)]
 pub enum ConfigFileProperty {
     ReadOnly(bool),
