@@ -1255,4 +1255,52 @@ mod tests {
         mock.assert_async().await;
     }
 
+    #[tokio::test]
+    async fn remove_container_ok() {
+        let (mut mock_server, client) = create_test_server_and_config().await;
+        let body = serde_json::to_vec(&example_container_list()).unwrap();
+        let mock = mock_server
+            .mock("DELETE", "/containers/12345678")
+            .with_status(204)
+            .with_body(&body)
+            .create_async()
+            .await;
+        assert!(remove(client, None, "12345678").await.unwrap());
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn remove_container_err() {
+        let (mut mock_server, client) = create_test_server_and_config().await;
+        let body = serde_json::to_vec(&serde_json::json!({
+            "message": "Something went wrong."
+        }))
+        .unwrap();
+        let mock = mock_server
+            .mock("DELETE", "/containers/12345678")
+            .with_status(500)
+            .with_body(&body)
+            .create_async()
+            .await;
+        assert!(remove(client, None, "12345678").await.is_err());
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn remove_container_404() {
+        let (mut mock_server, client) = create_test_server_and_config().await;
+        let body = serde_json::to_vec(&serde_json::json!({
+            "message": "No such container: 12345678."
+        }))
+        .unwrap();
+        let mock = mock_server
+            .mock("DELETE", "/containers/12345678")
+            .with_status(404)
+            .with_body(&body)
+            .create_async()
+            .await;
+        assert!(!remove(client, None, "12345678").await.unwrap());
+        mock.assert_async().await;
+    }
+
 }
