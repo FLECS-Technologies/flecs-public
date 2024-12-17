@@ -2,6 +2,7 @@ pub use super::Result;
 use crate::jeweler::app::AppStatus;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::instance::Logs;
 use crate::quest::SyncQuest;
 use crate::sorcerer::spell;
 use crate::vault::pouch::{AppKey, Pouch};
@@ -230,6 +231,22 @@ pub async fn delete_instance(quest: SyncQuest, vault: Arc<Vault>, id: InstanceId
         .await
 }
 
+pub async fn get_instance_logs(vault: Arc<Vault>, id: InstanceId) -> Result<Logs> {
+    match vault
+        .reservation()
+        .reserve_instance_pouch()
+        .grab()
+        .await
+        .instance_pouch
+        .as_ref()
+        .expect("Reservations should never fail")
+        .gems()
+        .get(&id)
+    {
+        Some(instance) => instance.get_logs().await,
+        None => anyhow::bail!("Instance {id} not found"),
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -384,6 +401,37 @@ mod tests {
         for i in INSTANCE_COUNT..INSTANCE_COUNT + 10 {
             assert!(!does_instance_exist(vault.clone(), InstanceId::new(i)).await);
         }
+    }
+
+    #[tokio::test]
+    async fn instance_logs_ok() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_logs()
+            .times(1)
+            .returning(|_, _| {
+                Ok(Logs {
+                    stdout: "TestOutput".to_string(),
+                    stderr: "TestError".to_string(),
+                })
+            });
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = test_vault(deployment.clone(), 1, "instance_logs_ok").await;
+        let logs = get_instance_logs(vault, InstanceId::new(0)).await.unwrap();
+        assert_eq!(logs.stderr, "TestError");
+        assert_eq!(logs.stdout, "TestOutput");
+    }
+
+    #[tokio::test]
+    async fn instance_logs_err() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_logs()
+            .times(1)
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = test_vault(deployment.clone(), 1, "instance_logs_err").await;
+        assert!(get_instance_logs(vault, InstanceId::new(0)).await.is_err());
     }
 
     async fn create_test_vault(

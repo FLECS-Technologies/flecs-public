@@ -1,7 +1,7 @@
 use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
 use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
 use crate::jeweler::gem::manifest::{AppManifest, ConfigFile};
-use crate::jeweler::instance::InstanceDeployment;
+use crate::jeweler::instance::{InstanceDeployment, Logs};
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
 use crate::jeweler::volume::{VolumeDeployment, VolumeId};
 use crate::quest::{Quest, QuestId, State, SyncQuest};
@@ -967,6 +967,13 @@ impl InstanceDeployment for DockerDeployment {
             }) => Ok(state.into()),
             _ => Ok(InstanceStatus::Unknown),
         }
+    }
+
+    async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> anyhow::Result<Logs> {
+        let docker_client = self.client()?;
+        let (stdout, stderr) =
+            relic::docker::container::logs(docker_client, quest, &id.to_docker_id()).await?;
+        Ok(Logs { stderr, stdout })
     }
 
     async fn copy_from_instance(

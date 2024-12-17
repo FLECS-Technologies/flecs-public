@@ -632,9 +632,28 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdLogsGetPathParams,
+        path_params: InstancesInstanceIdLogsGetPathParams,
     ) -> Result<InstancesInstanceIdLogsGetResponse, String> {
-        todo!()
+        let instance_id =
+            InstanceId::from_str(path_params.instance_id.as_str()).map_err(|e| e.to_string())?;
+        if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
+        {
+            return Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance);
+        }
+        match crate::sorcerer::instancius::get_instance_logs(self.vault.clone(), instance_id).await
+        {
+            Err(e) => Ok(
+                InstancesInstanceIdLogsGetResponse::Status500_InternalServerError(AdditionalInfo {
+                    additional_info: e.to_string(),
+                }),
+            ),
+            Ok(logs) => Ok(InstancesInstanceIdLogsGetResponse::Status200_Success(
+                models::InstancesInstanceIdLogsGet200Response {
+                    stdout: logs.stdout,
+                    stderr: logs.stderr,
+                },
+            )),
+        }
     }
 
     async fn instances_instance_id_patch(
@@ -818,12 +837,13 @@ mod tests {
     use axum_extra::extract::CookieJar;
     use flecsd_axum_server::apis::apps::{Apps, AppsAppDeleteResponse};
     use flecsd_axum_server::apis::instances::{
-        Instances, InstancesCreatePostResponse, InstancesInstanceIdStartPostResponse,
-        InstancesInstanceIdStopPostResponse,
+        Instances, InstancesCreatePostResponse, InstancesInstanceIdLogsGetResponse,
+        InstancesInstanceIdStartPostResponse, InstancesInstanceIdStopPostResponse,
     };
     use flecsd_axum_server::models::{
         AppKey, AppsAppDeletePathParams, AppsAppDeleteQueryParams, InstancesCreatePostRequest,
-        InstancesInstanceIdStartPostPathParams, InstancesInstanceIdStopPostPathParams,
+        InstancesInstanceIdLogsGetPathParams, InstancesInstanceIdStartPostPathParams,
+        InstancesInstanceIdStopPostPathParams,
     };
     use http::Method;
     use std::collections::HashMap;
@@ -888,6 +908,27 @@ mod tests {
                     Host("host".to_string()),
                     CookieJar::default(),
                     InstancesInstanceIdStopPostPathParams {
+                        instance_id: "00001234".to_string(),
+                    },
+                )
+                .await
+        )
+    }
+
+    #[tokio::test]
+    async fn logs_404() {
+        let path = prepare_test_path(module_path!(), "logs_404");
+        let server = ServerImpl {
+            vault: Arc::new(Vault::new(VaultConfig { path })),
+        };
+        assert_eq!(
+            Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance),
+            server
+                .instances_instance_id_logs_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdLogsGetPathParams {
                         instance_id: "00001234".to_string(),
                     },
                 )
