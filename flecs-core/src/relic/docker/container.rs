@@ -1,7 +1,8 @@
 pub use super::{Error, Result};
 use crate::quest::{Progress, SyncQuest};
 use crate::relic::async_flecstract::{
-    archive_to_memory, extract_from_memory, extract_single_file_from_memory_as,
+    archive_single_file_to_memory, archive_to_memory, extract_from_memory,
+    extract_single_file_from_memory_as,
 };
 use crate::relic::docker::write_stream_to_memory;
 use async_compression::tokio::bufread::{GzipDecoder, GzipEncoder};
@@ -243,8 +244,9 @@ pub enum Data {
     File(File),
     InMemory(Vec<u8>),
 }
-
-/// # Example
+//TODO: Differentiate between copying single files and directories
+/// # Examples
+/// ## Copy a directory to a container
 /// ```no_run
 /// use bollard::Docker;
 /// use flecs_core::quest::Quest;
@@ -256,9 +258,29 @@ pub enum Data {
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
 ///     let quest = Quest::new_synced("Copy to container".to_string());
-///     let src = Path::new("/path/on/host");
-///     let dst = Path::new("/path/on/container");
-///     copy_to(docker_client, quest, src, dst, "my-container", false)
+///     let src = Path::new("/directory/on/host");
+///     let dst = Path::new("/directory/on/container");
+///     copy_to(docker_client, quest, src, dst, "my-container", false, false)
+///         .await
+///         .unwrap();
+/// }
+/// # )
+/// ```
+/// ## Copy a single file to a container
+/// ```no_run
+/// use bollard::Docker;
+/// use flecs_core::quest::Quest;
+/// use flecs_core::relic::docker::container::copy_to;
+/// use std::path::Path;
+/// use std::sync::Arc;
+///
+/// # tokio_test::block_on(
+/// async {
+///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let quest = Quest::new_synced("Copy to container".to_string());
+///     let src = Path::new("/file/on/host.txt");
+///     let dst = Path::new("/file/on/container.txt");
+///     copy_to(docker_client, quest, src, dst, "my-container", false, true)
 ///         .await
 ///         .unwrap();
 /// }
@@ -271,15 +293,44 @@ pub async fn copy_to(
     dst_path: &Path,
     container_name: &str,
     follow_symlinks: bool,
+    is_dst_file_path: bool,
 ) -> Result<()> {
     // TODO: Create subquests, use streamed/async archiving
-    let archive = archive_to_memory(src_path, follow_symlinks).await?;
+    let archive = if is_dst_file_path {
+        archive_single_file_to_memory(
+            src_path,
+            dst_path
+                .file_name()
+                .ok_or_else(|| {
+                    anyhow::anyhow!("Expected destination path '{dst_path:?}' to be a file")
+                })?
+                .to_string_lossy()
+                .to_string(),
+            true,
+        )
+        .await?
+    } else {
+        archive_to_memory(src_path, follow_symlinks).await?
+    };
+    let dst_path = if is_dst_file_path {
+        dst_path
+            .parent()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Expected destination path '{dst_path:?}' to have a parent directory"
+                )
+            })?
+            .to_string_lossy()
+            .to_string()
+    } else {
+        dst_path.to_string_lossy().to_string()
+    };
     let archive = Data::InMemory(archive);
     copy_archive_to(
         docker_client,
         quest,
         Some(UploadToContainerOptions {
-            path: dst_path.to_str().unwrap(),
+            path: dst_path.as_str(),
             no_overwrite_dir_non_dir: "false",
         }),
         archive,

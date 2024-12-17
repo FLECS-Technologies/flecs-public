@@ -36,6 +36,30 @@ pub mod tar {
         Ok(destination)
     }
 
+    pub fn archive_single_file_as<W, P, S>(
+        src: P,
+        mut destination: W,
+        new_file_name: S,
+        follow_symlinks: bool,
+    ) -> Result<W>
+    where
+        W: Write,
+        P: AsRef<Path>,
+        S: AsRef<str>,
+    {
+        let meta = std::fs::metadata(&src)?;
+        anyhow::ensure!(
+            !meta.is_dir(),
+            "Expected single file to archive but received directory {:?}",
+            src.as_ref()
+        );
+        let mut archive = tar::Builder::new(&mut destination);
+        archive.follow_symlinks(follow_symlinks);
+        archive.append_path_with_name(&src, new_file_name.as_ref())?;
+        archive.into_inner()?;
+        Ok(destination)
+    }
+
     pub fn extract<R, P>(src: R, dst: P) -> Result<()>
     where
         R: Read,

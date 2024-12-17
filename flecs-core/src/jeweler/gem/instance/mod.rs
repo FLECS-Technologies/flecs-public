@@ -409,10 +409,7 @@ impl Instance {
         let instance_id = InstanceId::new_random();
         let port_mapping = manifest.ports.clone();
         let environment_variables = manifest.environment_variables.clone();
-        let config_path = crate::lore::base_path()
-            .join("instances")
-            .join(instance_id.to_string())
-            .join("conf");
+        let config_path = crate::lore::instance_config_path(&instance_id.to_string());
         let default_network_id = deployment
             .default_network()
             .await?
@@ -485,7 +482,7 @@ impl Instance {
             _ => {
                 self.id = self
                     .deployment
-                    .start_instance((&*self).into(), Some(self.id))
+                    .start_instance((&*self).into(), Some(self.id), &self.manifest.config_files)
                     .await?
             }
         }
@@ -622,9 +619,15 @@ impl Instance {
             .await
     }
 
-    pub async fn copy_to(&self, quest: SyncQuest, src: &Path, dst: &Path) -> anyhow::Result<()> {
+    pub async fn copy_to(
+        &self,
+        quest: SyncQuest,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
         self.deployment
-            .copy_to_instance(quest, self.id, src, dst)
+            .copy_to_instance(quest, self.id, src, dst, is_dst_file_path)
             .await
     }
 

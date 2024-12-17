@@ -1,5 +1,5 @@
 pub use super::Result;
-use flecstract::tar::{archive, extract, extract_single_file_as};
+use flecstract::tar::{archive, archive_single_file_as, extract, extract_single_file_as};
 use std::path::Path;
 
 pub async fn archive_to_file(src: &Path, dst: &Path, follow_symlinks: bool) -> Result<()> {
@@ -19,6 +19,20 @@ pub async fn archive_to_memory(src: &Path, follow_symlinks: bool) -> Result<Vec<
     let src = src.to_path_buf();
     // Potentially long synchronously blocking calls should be wrapped with tokio::task::spawn_blocking
     tokio::task::spawn_blocking(move || archive(&src, data, follow_symlinks)).await?
+}
+
+pub async fn archive_single_file_to_memory(
+    src: &Path,
+    new_file_name: String,
+    follow_symlinks: bool,
+) -> Result<Vec<u8>> {
+    let data = Vec::new();
+    let src = src.to_path_buf();
+    // Potentially long synchronously blocking calls should be wrapped with tokio::task::spawn_blocking
+    tokio::task::spawn_blocking(move || {
+        archive_single_file_as(&src, data, new_file_name, follow_symlinks)
+    })
+    .await?
 }
 
 pub async fn extract_from_file(src: &Path, dst: &Path) -> Result<()> {
