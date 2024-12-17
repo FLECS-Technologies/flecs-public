@@ -1,9 +1,10 @@
 mod config;
 use crate::jeweler::deployment::{Deployment, DeploymentId};
 use crate::jeweler::gem::manifest::{AppManifest, BindMount, ConfigFile, Mount, VolumeMount};
+use crate::jeweler::instance::Logs;
 use crate::jeweler::volume::VolumeId;
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
-use crate::quest::SyncQuest;
+use crate::quest::{Quest, SyncQuest};
 use crate::vault::pouch::AppKey;
 use bollard::container::Config;
 use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
@@ -638,6 +639,15 @@ impl Instance {
 
     pub async fn is_running(&self) -> anyhow::Result<bool> {
         self.deployment.is_instance_running(self.id).await
+    }
+
+    pub async fn get_logs(&self) -> anyhow::Result<Logs> {
+        self.deployment
+            .instance_logs(
+                Quest::new_synced(format!("Get logs of instance {}", self.id)),
+                self.id,
+            )
+            .await
     }
 }
 
