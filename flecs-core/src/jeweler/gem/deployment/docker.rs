@@ -1,6 +1,6 @@
 use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
 use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
-use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::gem::manifest::{AppManifest, ConfigFile};
 use crate::jeweler::instance::InstanceDeployment;
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
 use crate::jeweler::volume::{VolumeDeployment, VolumeId};
@@ -80,6 +80,56 @@ impl DockerDeployment {
             )
             .await?;
         self.network(id).await
+    }
+
+    async fn copy_to_instance(
+        docker_client: Arc<Docker>,
+        quest: SyncQuest,
+        id: InstanceId,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
+        relic::docker::container::copy_to(
+            docker_client,
+            quest,
+            src,
+            dst,
+            &id.to_docker_id(),
+            true,
+            is_dst_file_path,
+        )
+        .await
+    }
+
+    async fn copy_config_to_instance(
+        client: Arc<Docker>,
+        id: InstanceId,
+        config_files: &[ConfigFile],
+    ) -> crate::Result<()> {
+        for config_file in config_files {
+            let src = crate::lore::instance_config_path(&id.to_string())
+                .join(&config_file.host_file_name);
+            if let Err(e) = Self::copy_to_instance(
+                client.clone(),
+                Quest::new_synced(format!(
+                    "Copy config {} to instance {}",
+                    config_file.host_file_name, id
+                )),
+                id,
+                &src,
+                &config_file.container_file_path,
+                true,
+            )
+            .await
+            {
+                anyhow::bail!(
+                    "Could not copy config file {src:?} of instance {id} to {:?}: {e}",
+                    config_file.container_file_path
+                )
+            }
+        }
+        Ok(())
     }
 }
 
@@ -806,6 +856,7 @@ impl InstanceDeployment for DockerDeployment {
         &self,
         config: Config<String>,
         id: Option<InstanceId>,
+        config_files: &[ConfigFile],
     ) -> anyhow::Result<InstanceId> {
         let client = self.client()?;
         let id = id.unwrap_or_else(InstanceId::new_random);
@@ -825,6 +876,18 @@ impl InstanceDeployment for DockerDeployment {
         });
         let docker_id = relic::docker::container::create(client.clone(), options, config).await?;
         debug!("Created container {}/{}", id, docker_id);
+        if let Err(e) = Self::copy_config_to_instance(client.clone(), id, config_files).await {
+            let _ = relic::docker::container::remove(
+                client.clone(),
+                Some(RemoveContainerOptions {
+                    force: true,
+                    ..Default::default()
+                }),
+                &docker_id,
+            )
+            .await;
+            return Err(e);
+        }
         relic::docker::container::start(client, &id.to_docker_id()).await?;
         Ok(id)
     }
@@ -878,10 +941,9 @@ impl InstanceDeployment for DockerDeployment {
         id: InstanceId,
         src: &Path,
         dst: &Path,
+        is_dst_file_path: bool,
     ) -> anyhow::Result<()> {
-        let docker_client = self.client()?;
-        relic::docker::container::copy_to(docker_client, quest, src, dst, &id.to_docker_id(), true)
-            .await
+        Self::copy_to_instance(self.client()?, quest, id, src, dst, is_dst_file_path).await
     }
 }
 

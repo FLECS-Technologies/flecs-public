@@ -1,5 +1,6 @@
 use super::Result;
 use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
+use crate::jeweler::gem::manifest::ConfigFile;
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
 // TODO: Use more generic struct as soon as the second type of deployment is implemented
@@ -14,6 +15,7 @@ pub trait InstanceDeployment {
         &self,
         config: Config<String>,
         id: Option<InstanceId>,
+        config_files: &[ConfigFile],
     ) -> Result<InstanceId>;
     async fn stop_instance(&self, id: InstanceId) -> Result<()>;
     async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
@@ -31,6 +33,7 @@ pub trait InstanceDeployment {
         id: InstanceId,
         src: &Path,
         dst: &Path,
+        is_dst_file_path: bool,
     ) -> Result<()>;
     // TODO: Maybe move function to enum InstanceStatus
     async fn is_instance_runnable(&self, id: InstanceId) -> Result<bool> {
