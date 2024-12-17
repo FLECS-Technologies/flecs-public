@@ -27,6 +27,7 @@ use tokio::fs::File;
 use tokio::io::{AsyncRead, AsyncWriteExt, BufReader, ReadBuf};
 use tokio::join;
 use tokio_util::codec;
+use tracing::{error, warn};
 
 /// # Example
 /// ```no_run
@@ -170,7 +171,7 @@ where
 {
     let response = docker_client.create_container(options, config).await?;
     for warning in response.warnings {
-        println!(
+        warn!(
             "Received warning during creation of container {}: {warning}",
             response.id
         )
@@ -785,7 +786,7 @@ pub async fn download_gzip_streamed(
                         }
                         Err(e) => {
                             if let Err(e) = tokio::fs::remove_file(&dst).await {
-                                eprintln!("Could not remove {dst:?}: {e}");
+                                error!("Could not remove {dst:?}: {e}");
                             }
                             anyhow::bail!(e);
                         }
