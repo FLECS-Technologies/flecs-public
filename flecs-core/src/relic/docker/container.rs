@@ -989,4 +989,54 @@ mod tests {
         mock.assert_async().await;
     }
 
+    #[tokio::test]
+    async fn create_container_ok() {
+        let (mut mock_server, client) = create_test_server_and_config().await;
+        let body = serde_json::to_vec(&serde_json::json!({
+            "Id": "12345678",
+            "Warnings": ["Warning1", "Warning2"]
+        }))
+        .unwrap();
+        let mock = mock_server
+            .mock("POST", "/containers/create")
+            .with_status(201)
+            .with_body(&body)
+            .create_async()
+            .await;
+        assert_eq!(
+            "12345678",
+            create(
+                client,
+                Option::<CreateContainerOptions<&str>>::None,
+                Config::<&str>::default(),
+            )
+            .await
+            .unwrap()
+        );
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_container_err() {
+        let (mut mock_server, client) = create_test_server_and_config().await;
+        let body = serde_json::to_vec(&serde_json::json!({
+            "message": "Something went wrong."
+        }))
+        .unwrap();
+        let mock = mock_server
+            .mock("POST", "/containers/create")
+            .with_status(500)
+            .with_body(&body)
+            .create_async()
+            .await;
+        assert!(create(
+            client,
+            Option::<CreateContainerOptions<&str>>::None,
+            Config::<&str>::default(),
+        )
+        .await
+        .is_err());
+        mock.assert_async().await;
+    }
+
 }
