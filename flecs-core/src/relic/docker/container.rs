@@ -951,4 +951,42 @@ mod tests {
         mock.assert_async().await;
     }
 
+    #[tokio::test]
+    async fn start_container_ok() {
+        let (mut mock_server, client) = create_test_server_and_config().await;
+        let container_name = "test_container";
+        let mock = mock_server
+            .mock(
+                "POST",
+                format!("/containers/{container_name}/start").as_str(),
+            )
+            .with_status(200)
+            .create_async()
+            .await;
+        start(client, container_name).await.unwrap();
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn start_container_err() {
+        let (mut mock_server, client) = create_test_server_and_config().await;
+        let container_name = "test_container";
+        let body = serde_json::to_vec(&serde_json::json!({
+            "message": "Something went wrong.",
+
+        }))
+        .unwrap();
+        let mock = mock_server
+            .mock(
+                "POST",
+                format!("/containers/{container_name}/start").as_str(),
+            )
+            .with_status(500)
+            .with_body(&body)
+            .create_async()
+            .await;
+        assert!(start(client, container_name).await.is_err());
+        mock.assert_async().await;
+    }
+
 }
