@@ -8,8 +8,8 @@ use crate::relic::docker::write_stream_to_memory;
 use async_compression::tokio::bufread::{GzipDecoder, GzipEncoder};
 use axum::body::Bytes;
 use bollard::container::{
-    Config, CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions,
-    RemoveContainerOptions, StopContainerOptions, UploadToContainerOptions,
+    Config, CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions, LogOutput,
+    LogsOptions, RemoveContainerOptions, StopContainerOptions, UploadToContainerOptions,
 };
 use bollard::exec::{CreateExecOptions, StartExecOptions, StartExecResults};
 use bollard::models::{ContainerInspectResponse, ContainerSummary};
@@ -834,4 +834,62 @@ pub async fn inspect(
         }) => Ok(None),
         Err(e) => Err(anyhow::anyhow!(e)),
     }
+}
+
+/// # Example
+/// ```no_run
+/// use bollard::Docker;
+/// use flecs_core::quest::Quest;
+/// use flecs_core::relic::docker::container::logs;
+/// use std::sync::Arc;
+///
+/// # tokio_test::block_on(
+/// async {
+///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
+///     let container_name = "beautiful_haibt";
+///
+///     println!(
+///         "{:?}",
+///         logs(
+///             docker_client,
+///             Quest::new_synced("Get logs".to_string()),
+///             container_name
+///         )
+///         .await
+///         .unwrap()
+///     );
+/// }
+/// # )
+/// ```
+pub async fn logs(
+    docker_client: Arc<Docker>,
+    quest: SyncQuest,
+    container: &str,
+) -> Result<(String, String)> {
+    let mut stream = docker_client.logs(
+        container,
+        Some(LogsOptions {
+            stderr: true,
+            stdout: true,
+            tail: "all",
+            ..LogsOptions::default()
+        }),
+    );
+
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    while let Some(data) = stream.next().await {
+        match data? {
+            LogOutput::StdErr { message } => {
+                stderr.push(String::from_utf8_lossy(&message).to_string());
+                quest.lock().await.add_progress(message.len() as u64);
+            }
+            LogOutput::StdOut { message } => {
+                stdout.push(String::from_utf8_lossy(&message).to_string());
+                quest.lock().await.add_progress(message.len() as u64);
+            }
+            _ => {}
+        }
+    }
+    Ok((stdout.join("\n"), stderr.join("\n")))
 }
