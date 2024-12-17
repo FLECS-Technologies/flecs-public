@@ -16,6 +16,15 @@ pub struct BindMount {
     pub container_path: PathBuf,
 }
 
+impl BindMount {
+    pub fn default_docker_socket_bind_mount() -> Self {
+        Self {
+            host_path: PathBuf::from("/run/docker.sock"),
+            container_path: PathBuf::from("/run/docker.sock"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Mount {
     Bind(BindMount),
@@ -172,5 +181,17 @@ mod tests {
     #[test]
     fn volume_mount_from_str_invalid_volume_name() {
         assert!(BindMount::from_str("MyVolume-:/some/container/path").is_err())
+    }
+
+    #[test]
+    fn default_docker_socket_bind_mount() {
+        assert_eq!(
+            BindMount::default_docker_socket_bind_mount().host_path,
+            PathBuf::from("/run/docker.sock")
+        );
+        assert_eq!(
+            BindMount::default_docker_socket_bind_mount().container_path,
+            PathBuf::from("/run/docker.sock")
+        );
     }
 }

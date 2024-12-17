@@ -1,5 +1,6 @@
 pub use super::{Error, Result};
 use serde::{Deserialize, Serialize};
+use std::ops::RangeInclusive;
 use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
@@ -19,6 +20,10 @@ impl PortRange {
             "The start of a port range can not be smaller than the end"
         );
         Ok(Self { start, end })
+    }
+
+    pub fn range(&self) -> RangeInclusive<u16> {
+        self.start..=self.end
     }
 }
 
@@ -285,5 +290,14 @@ mod tests {
                 container: "800-900".to_string(),
             }
         );
+    }
+
+    #[test]
+    fn port_range_range() {
+        let range = PortRange {
+            start: 100,
+            end: 200,
+        };
+        assert_eq!(range.range(), 100..=200)
     }
 }

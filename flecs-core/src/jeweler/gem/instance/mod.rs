@@ -1,25 +1,24 @@
+mod config;
 use crate::jeweler::deployment::{Deployment, DeploymentId};
-use crate::jeweler::gem::manifest::{
-    AppManifest, ConfigFile, EnvironmentVariable, Mount, PortMapping, VolumeMount,
-};
-use crate::jeweler::network::NetworkId;
+use crate::jeweler::gem::manifest::{AppManifest, BindMount, ConfigFile, Mount, VolumeMount};
 use crate::jeweler::volume::VolumeId;
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
 use crate::quest::SyncQuest;
 use crate::vault::pouch::AppKey;
 use bollard::container::Config;
-use bollard::models::ContainerStateStatusEnum;
+use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
+pub use config::*;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use std::net::IpAddr;
+use std::mem::swap;
 use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::fs;
-use tracing::log::warn;
+use tracing::warn;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -63,34 +62,70 @@ impl Display for InstanceId {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub struct MacAddress {
-    data: [u8; 8],
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub struct NetworkAddress {
-    ip_addr: IpAddr,
-    mac_address: MacAddress,
-}
-
-#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub struct InstanceConfig {
-    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    pub volume_mounts: HashMap<VolumeId, VolumeMount>,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub environment_variables: Vec<EnvironmentVariable>,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub port_mapping: Vec<PortMapping>,
-    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    pub network_addresses: HashMap<NetworkId, Option<NetworkAddress>>,
+fn bind_mounts_to_bollard_mounts(bind_mounts: &[BindMount]) -> Vec<bollard::models::Mount> {
+    bind_mounts
+        .iter()
+        .map(|bind_mount| bollard::models::Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some(bind_mount.host_path.to_string_lossy().to_string()),
+            target: Some(bind_mount.container_path.to_string_lossy().to_string()),
+            ..Default::default()
+        })
+        .collect()
 }
 
 impl From<&Instance> for Config<String> {
-    fn from(value: &Instance) -> Self {
-        // TODO: Add more info from instance config if available
+    fn from(instance: &Instance) -> Self {
+        let mut bind_mounts = instance.manifest.bind_mounts();
+        let mut capabilities = instance.manifest.capabilities();
+        if capabilities.remove(&flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::Docker) {
+            bind_mounts.push(BindMount::default_docker_socket_bind_mount());
+        }
+        let mut mounts = bind_mounts_to_bollard_mounts(bind_mounts.as_slice());
+        mounts.extend(instance.config.generate_volume_mounts());
+        let arguments = instance.manifest.arguments();
+        let cmd = if arguments.is_empty() {
+            None
+        } else {
+            Some(arguments.clone())
+        };
+        let port_bindings = instance.config.generate_port_bindings();
+        let exposed_ports = Some(
+            port_bindings
+                .keys()
+                .cloned()
+                .map(|key| (key, HashMap::new()))
+                .collect(),
+        );
+        let host_config = Some(HostConfig {
+            port_bindings: Some(port_bindings),
+            mounts: Some(mounts),
+            cap_add: Some(capabilities.iter().map(ToString::to_string).collect()),
+            devices: Some(instance.generate_device_mappings()),
+            ..HostConfig::default()
+        });
         Config {
-            image: Some(value.manifest.image_with_tag().to_string()),
+            image: Some(instance.manifest.image_with_tag().to_string()),
+            hostname: Some(instance.hostname.clone()),
+            env: Some(
+                instance
+                    .config
+                    .environment_variables
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect(),
+            ),
+            labels: Some(
+                instance
+                    .manifest
+                    .labels
+                    .iter()
+                    .map(|label| (label.label.clone(), label.value.clone().unwrap_or_default()))
+                    .collect(),
+            ),
+            host_config,
+            cmd,
+            exposed_ports,
             ..Default::default()
         }
     }
@@ -160,13 +195,31 @@ pub struct Instance {
     #[serde(serialize_with = "serialize_deployment_id", rename = "deployment_id")]
     deployment: Arc<dyn Deployment>,
     #[serde(serialize_with = "serialize_manifest_key", rename = "app_key")]
-    manifest: Arc<AppManifest>,
+    pub manifest: Arc<AppManifest>,
     desired: InstanceStatus,
 }
 
 impl Instance {
     pub fn app_key(&self) -> AppKey {
         self.manifest.key.clone()
+    }
+
+    pub fn replace_manifest(&mut self, mut manifest: Arc<AppManifest>) -> Arc<AppManifest> {
+        swap(&mut manifest, &mut self.manifest);
+        manifest
+    }
+
+    pub fn generate_device_mappings(&self) -> Vec<DeviceMapping> {
+        self.manifest
+            .devices
+            .iter()
+            .map(|device| DeviceMapping {
+                path_on_host: Some(device.path.to_string_lossy().to_string()),
+                path_in_container: Some(device.path.to_string_lossy().to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            })
+            .chain(self.config.generate_usb_device_mappings())
+            .collect()
     }
 
     pub async fn generate_info(&self) -> crate::Result<flecsd_axum_server::models::AppInstance> {
@@ -356,10 +409,7 @@ impl Instance {
         let instance_id = InstanceId::new_random();
         let port_mapping = manifest.ports.clone();
         let environment_variables = manifest.environment_variables.clone();
-        let config_path = crate::lore::base_path()
-            .join("instances")
-            .join(instance_id.to_string())
-            .join("conf");
+        let config_path = crate::lore::instance_config_path(&instance_id.to_string());
         let default_network_id = deployment
             .default_network()
             .await?
@@ -412,6 +462,7 @@ impl Instance {
             port_mapping,
             volume_mounts,
             network_addresses: HashMap::from([(default_network_id, None)]),
+            usb_devices: HashSet::new(),
         };
         Ok(Self {
             hostname: format!("flecs-{instance_id}"),
@@ -431,7 +482,7 @@ impl Instance {
             _ => {
                 self.id = self
                     .deployment
-                    .start_instance((&*self).into(), Some(self.id))
+                    .start_instance((&*self).into(), Some(self.id), &self.manifest.config_files)
                     .await?
             }
         }
@@ -568,9 +619,15 @@ impl Instance {
             .await
     }
 
-    pub async fn copy_to(&self, quest: SyncQuest, src: &Path, dst: &Path) -> anyhow::Result<()> {
+    pub async fn copy_to(
+        &self,
+        quest: SyncQuest,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
         self.deployment
-            .copy_to_instance(quest, self.id, src, dst)
+            .copy_to_instance(quest, self.id, src, dst, is_dst_file_path)
             .await
     }
 
@@ -625,8 +682,10 @@ pub mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::gem::manifest::tests::{create_test_manifest, create_test_manifest_full};
-    use crate::jeweler::gem::manifest::PortRange;
+    use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange};
     use crate::quest::Quest;
+    use crate::relic::device::usb::tests::prepare_usb_device_test_path;
+    use crate::relic::device::usb::UsbDevice;
     use crate::tests::prepare_test_path;
     use bollard::secret::Network;
     use flecsd_axum_server::models::{
@@ -721,7 +780,7 @@ pub mod tests {
             id: InstanceId::new(id),
             desired: InstanceStatus::Stopped,
             name: "TestInstance".to_string(),
-            hostname: format!("flecs-{id}"),
+            hostname: format!("flecs-{id:08x}"),
             config: InstanceConfig {
                 volume_mounts: HashMap::from([
                     (
@@ -766,6 +825,22 @@ pub mod tests {
                     },
                 ],
                 network_addresses: HashMap::new(),
+                usb_devices: HashSet::from([
+                    UsbDevice {
+                        device: "TestDevice1".to_string(),
+                        port: "test_instance_dev_1".to_string(),
+                        vendor: "TestVendor1".to_string(),
+                        pid: 1,
+                        vid: 2,
+                    },
+                    UsbDevice {
+                        device: "TestDevice2".to_string(),
+                        port: "test_instance_dev_2".to_string(),
+                        vendor: "TestVendor2".to_string(),
+                        pid: 2,
+                        vid: 2,
+                    },
+                ]),
             },
             deployment,
             manifest,
@@ -1357,6 +1432,18 @@ pub mod tests {
 
     #[test]
     fn config_from_instance() {
+        let path = prepare_usb_device_test_path("test_instance_dev_1");
+        let bus_path = PathBuf::from("/tmp/flecs-tests/dev/bus/usb/456".to_string());
+        config::tests::prepare_path(&bus_path);
+        std::fs::write(bus_path.join("789"), b"test-dev-1").unwrap();
+        std::fs::write(path.join("devnum"), b"789").unwrap();
+        std::fs::write(path.join("busnum"), b"456").unwrap();
+        let path = prepare_usb_device_test_path("test_instance_dev_2");
+        let bus_path = PathBuf::from("/tmp/flecs-tests/dev/bus/usb/200".to_string());
+        config::tests::prepare_path(&bus_path);
+        std::fs::write(bus_path.join("300"), b"test-dev-2").unwrap();
+        std::fs::write(path.join("devnum"), b"300").unwrap();
+        std::fs::write(path.join("busnum"), b"200").unwrap();
         let deployment = MockedDeployment::new();
         let deployment = Arc::new(deployment);
         let manifest = Arc::new(create_test_manifest_full(Some(true)));
@@ -1366,6 +1453,88 @@ pub mod tests {
             config.image,
             Some("flecs.azurecr.io/some.test.app:1.2.1".to_string())
         );
+        let host_config = config.host_config.unwrap();
+        assert_eq!(host_config.port_bindings.unwrap().len(), 1002);
+        let mounts = host_config.mounts.unwrap();
+        assert_eq!(mounts.len(), 6);
+        assert!(mounts.contains(&bollard::models::Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some("/etc/my-app".to_string()),
+            target: Some("/etc/my-app".to_string()),
+            ..Default::default()
+        }));
+        assert!(mounts.contains(&bollard::models::Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some("/run/docker.sock".to_string()),
+            target: Some("/run/docker.sock".to_string()),
+            ..Default::default()
+        }));
+        for i in 1..=4 {
+            assert!(mounts.contains(&bollard::models::Mount {
+                typ: Some(MountTypeEnum::VOLUME),
+                source: Some(format!("Instance#123Volume#{i}")),
+                target: Some(format!("/volume{i}")),
+                ..Default::default()
+            }));
+        }
+        let caps = host_config.cap_add.unwrap();
+        assert_eq!(caps.len(), 2);
+        assert!(caps.contains(&"SYS_NICE".to_string()));
+        assert!(caps.contains(&"NET_ADMIN".to_string()));
+        assert_eq!(
+            config.cmd,
+            Some(vec![
+                "--launch-arg1".to_string(),
+                "--launch-arg2=value".to_string(),
+            ])
+        );
+        assert_eq!(config.hostname, Some("flecs-0000007b".to_string()));
+        assert_eq!(
+            config.env,
+            Some(vec![
+                "variable-1=value1".to_string(),
+                "variable-2=".to_string(),
+                "variable-3".to_string()
+            ])
+        );
+        assert_eq!(
+            config.labels,
+            Some(HashMap::from([
+                ("my.label-one".to_string(), "value-1".to_string()),
+                ("my.label-two".to_string(), String::new()),
+                ("my.label-three".to_string(), String::new()),
+            ]))
+        );
+        let expected_device_mappings = vec![
+            DeviceMapping {
+                path_on_host: Some("/dev/dev1".to_string()),
+                path_in_container: Some("/dev/dev1".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+            DeviceMapping {
+                path_on_host: Some("/dev/usb/dev1".to_string()),
+                path_in_container: Some("/dev/usb/dev1".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+            DeviceMapping {
+                path_on_host: Some("/tmp/flecs-tests/dev/bus/usb/456/789".to_string()),
+                path_in_container: Some("/tmp/flecs-tests/dev/bus/usb/456/789".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+            DeviceMapping {
+                path_on_host: Some("/tmp/flecs-tests/dev/bus/usb/200/300".to_string()),
+                path_in_container: Some("/tmp/flecs-tests/dev/bus/usb/200/300".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+        ];
+        let resulting_device_mappings = host_config.devices.unwrap();
+        assert_eq!(
+            resulting_device_mappings.len(),
+            expected_device_mappings.len()
+        );
+        for expected_device_mapping in expected_device_mappings {
+            assert!(resulting_device_mappings.contains(&expected_device_mapping));
+        }
     }
 
     #[test]
@@ -1541,5 +1710,19 @@ pub mod tests {
         )
         .await
         .is_err());
+    }
+
+    #[test]
+    fn replace_manifest() {
+        let mut instance = test_instance(
+            2,
+            Arc::new(MockedDeployment::new()),
+            create_test_manifest(None),
+        );
+        let manifest = create_test_manifest(Some("#2".to_string()));
+        assert_eq!(instance.manifest.revision(), None);
+        let old_manifest = instance.replace_manifest(manifest);
+        assert_eq!(old_manifest.revision(), None);
+        assert_eq!(instance.manifest.revision(), Some(&"#2".to_string()));
     }
 }

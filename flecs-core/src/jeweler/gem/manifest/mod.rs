@@ -44,8 +44,13 @@ impl AppManifest {
 
     pub fn capabilities(
         &self,
-    ) -> Vec<flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem> {
-        self.original.capabilities.clone().unwrap_or_default()
+    ) -> HashSet<flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem>
+    {
+        self.original
+            .capabilities
+            .clone()
+            .map(HashSet::from_iter)
+            .unwrap_or_default()
     }
 
     pub fn multi_instance(&self) -> bool {
@@ -86,6 +91,17 @@ impl AppManifest {
             .iter()
             .filter_map(|mount| match mount {
                 Mount::Volume(volume_mount) => Some(volume_mount),
+                _ => None,
+            })
+            .cloned()
+            .collect()
+    }
+
+    pub fn bind_mounts(&self) -> Vec<BindMount> {
+        self.mounts
+            .iter()
+            .filter_map(|mount| match mount {
+                Mount::Bind(bind_mount) => Some(bind_mount),
                 _ => None,
             })
             .cloned()
@@ -427,11 +443,11 @@ pub mod tests {
 
         assert_eq!(
             manifest.capabilities(),
-            vec![
+            HashSet::from([
                 flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::Docker,
                 flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::NetAdmin,
                 flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::SysNice,
-            ]
+            ])
         )
     }
 
@@ -507,6 +523,19 @@ pub mod tests {
             manifest.volume_mounts(),
             vec!(VolumeMount {
                 name: "my-app-etc".to_string(),
+                container_path: PathBuf::from("/etc/my-app"),
+            })
+        )
+    }
+
+    #[test]
+    fn bind_mounts() {
+        let manifest = create_test_manifest_full(None);
+
+        assert_eq!(
+            manifest.bind_mounts(),
+            vec!(BindMount {
+                host_path: PathBuf::from("/etc/my-app"),
                 container_path: PathBuf::from("/etc/my-app"),
             })
         )

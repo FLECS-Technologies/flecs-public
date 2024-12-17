@@ -34,7 +34,7 @@ pub mod tests {
     use super::*;
     use crate::jeweler::app::{AppId, AppInfo, Token};
     use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
-    use crate::jeweler::gem::manifest::AppManifest;
+    use crate::jeweler::gem::manifest::{AppManifest, ConfigFile};
     use crate::jeweler::instance::Config;
     use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
     use crate::jeweler::volume::{Volume, VolumeId};
@@ -66,7 +66,12 @@ pub mod tests {
         #[async_trait]
         impl InstanceDeployment for edDeployment {
             async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
-            async fn start_instance(&self, config: Config<String>, id: Option<InstanceId>) -> Result<InstanceId>;
+            async fn start_instance(
+                &self,
+                config: Config<String>,
+                id: Option<InstanceId>,
+                config_files: &[ConfigFile],
+            ) -> Result<InstanceId>;
             async fn stop_instance(&self, id: InstanceId) -> Result<()>;
             async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
             async fn copy_from_instance(
@@ -83,6 +88,7 @@ pub mod tests {
                 id: InstanceId,
                 src: &Path,
                 dst: &Path,
+                is_dst_file_path: bool,
             ) -> Result<()>;
         }
         #[async_trait]

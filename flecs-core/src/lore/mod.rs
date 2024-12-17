@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub mod console_client_config {
     use crate::fsm::console_client::create_default_client_with_middleware;
@@ -71,6 +71,13 @@ pub mod quest {
 
 pub fn base_path() -> &'static Path {
     Path::new(BASE_PATH)
+}
+
+pub fn instance_config_path(instance_id: &impl AsRef<str>) -> PathBuf {
+    Path::new(BASE_PATH)
+        .join("instances")
+        .join(instance_id.as_ref())
+        .join("conf")
 }
 #[cfg(test)]
 pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/";
