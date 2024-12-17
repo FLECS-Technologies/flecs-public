@@ -16,6 +16,14 @@ pub async fn start_instance(
     spell::instance::start_instance(quest, vault, instance_id).await
 }
 
+pub async fn stop_instance(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    instance_id: InstanceId,
+) -> Result<()> {
+    spell::instance::stop_instance(quest, vault, instance_id).await
+}
+
 pub async fn get_instance(
     vault: Arc<Vault>,
     instance_id: InstanceId,
@@ -273,7 +281,7 @@ mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_| Ok(()));
+            .returning(|_, _| Ok(()));
         deployment
             .expect_delete_instance()
             .times(1)
@@ -310,6 +318,47 @@ mod tests {
             Quest::new_synced("TestQuest".to_string()),
             vault.clone(),
             instance_id,
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn stop_instance_test() {
+        const INSTANCE_COUNT: u32 = 4;
+        const INSTANCE_TO_STOP: u32 = 2;
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_stop_instance()
+            .times(2)
+            .returning(|_, _| Ok(()));
+        deployment
+            .expect_instance_status()
+            .returning(|_| Ok(InstanceStatus::Running));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = test_vault(deployment.clone(), INSTANCE_COUNT, "stop_instance_test").await;
+        let instance_id = InstanceId::new(INSTANCE_TO_STOP);
+        assert!(stop_instance(
+            Quest::new_synced("TestQuest".to_string()),
+            vault.clone(),
+            instance_id,
+        )
+        .await
+        .is_ok());
+        assert!(stop_instance(
+            Quest::new_synced("TestQuest".to_string()),
+            vault.clone(),
+            instance_id,
+        )
+        .await
+        .is_ok());
+        assert!(stop_instance(
+            Quest::new_synced("TestQuest".to_string()),
+            vault.clone(),
+            InstanceId::new(100),
         )
         .await
         .is_err());

@@ -38,6 +38,26 @@ pub async fn start_instance(
     instance.start().await
 }
 
+pub async fn stop_instance(
+    _quest: SyncQuest,
+    vault: Arc<Vault>,
+    instance_id: InstanceId,
+) -> Result<()> {
+    let mut grab = vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await;
+    let instance = grab
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Vault reservations should never fail")
+        .gems_mut()
+        .get_mut(&instance_id)
+        .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
+    instance.stop().await
+}
+
 pub async fn get_instances_info(
     quest: SyncQuest,
     vault: Arc<Vault>,
@@ -337,6 +357,18 @@ pub mod tests {
     async fn start_instance_not_found() {
         let vault = create_test_vault(module_path!(), "start_instance_not_found", Some(true)).await;
         assert!(start_instance(
+            Quest::new_synced("TestQuest".to_string()),
+            vault,
+            InstanceId::new(10),
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn stop_instance_not_found() {
+        let vault = create_test_vault(module_path!(), "stop_instance_not_found", Some(true)).await;
+        assert!(stop_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
             InstanceId::new(10),
