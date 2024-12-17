@@ -894,3 +894,61 @@ pub async fn logs(
     }
     Ok((stdout.join("\n"), stderr.join("\n")))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bollard::ClientVersion;
+
+    pub async fn create_test_server_and_config() -> (mockito::ServerGuard, Arc<Docker>) {
+        let server = mockito::Server::new_async().await;
+        let client = Docker::connect_with_http(
+            &server.url(),
+            2,
+            &ClientVersion {
+                major_version: 1,
+                minor_version: 46,
+            },
+        )
+        .unwrap();
+        (server, Arc::new(client))
+    }
+
+    #[tokio::test]
+    async fn stop_container_ok() {
+        let (mut mock_server, client) = create_test_server_and_config().await;
+        let container_name = "test_container";
+        let mock = mock_server
+            .mock(
+                "POST",
+                format!("/containers/{container_name}/stop").as_str(),
+            )
+            .with_status(200)
+            .create_async()
+            .await;
+        stop(client, container_name, None).await.unwrap();
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn stop_container_err() {
+        let (mut mock_server, client) = create_test_server_and_config().await;
+        let container_name = "test_container";
+        let body = serde_json::to_vec(&serde_json::json!({
+          "message": "Something went wrong."
+        }))
+        .unwrap();
+        let mock = mock_server
+            .mock(
+                "POST",
+                format!("/containers/{container_name}/stop").as_str(),
+            )
+            .with_status(500)
+            .with_body(&body)
+            .create_async()
+            .await;
+        assert!(stop(client, container_name, None).await.is_err());
+        mock.assert_async().await;
+    }
+
+}
