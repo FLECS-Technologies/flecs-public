@@ -72,7 +72,7 @@ pub mod tests {
                 id: Option<InstanceId>,
                 config_files: &[ConfigFile],
             ) -> Result<InstanceId>;
-            async fn stop_instance(&self, id: InstanceId) -> Result<()>;
+            async fn stop_instance(&self, id: InstanceId, config_files: &[ConfigFile]) -> Result<()>;
             async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
             async fn copy_from_instance(
                 &self,

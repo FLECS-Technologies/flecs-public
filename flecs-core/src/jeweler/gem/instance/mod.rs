@@ -541,11 +541,12 @@ impl Instance {
 
     pub async fn stop(&mut self) -> anyhow::Result<()> {
         // TODO: Disconnect networks
-        // TODO: Save config files
         self.desired = InstanceStatus::Stopped;
         match self.deployment.instance_status(self.id).await? {
             InstanceStatus::Running | InstanceStatus::Unknown | InstanceStatus::Orphaned => {
-                self.deployment.stop_instance(self.id).await
+                self.deployment
+                    .stop_instance(self.id, &self.manifest.config_files)
+                    .await
             }
             _ => Ok(()),
         }
@@ -906,7 +907,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
         deployment
             .expect_instance_status()
             .times(1)
@@ -922,7 +923,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_| Ok(()));
+            .returning(|_, _| Ok(()));
         deployment
             .expect_instance_status()
             .times(1)
@@ -951,7 +952,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_| Ok(()));
+            .returning(|_, _| Ok(()));
         deployment
             .expect_instance_status()
             .times(1)
@@ -978,7 +979,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_| Ok(()));
+            .returning(|_, _| Ok(()));
         deployment
             .expect_instance_status()
             .times(1)
@@ -1005,7 +1006,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
         deployment
             .expect_instance_status()
             .times(1)

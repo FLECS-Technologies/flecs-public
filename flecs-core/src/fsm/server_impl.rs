@@ -683,9 +683,29 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdStopPostPathParams,
+        path_params: InstancesInstanceIdStopPostPathParams,
     ) -> Result<InstancesInstanceIdStopPostResponse, String> {
-        todo!()
+        let instance_id =
+            InstanceId::from_str(path_params.instance_id.as_str()).map_err(|e| e.to_string())?;
+        if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
+        {
+            return Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance);
+        }
+        let quest_id = crate::lore::quest::default()
+            .await
+            .lock()
+            .await
+            .schedule_quest(format!("Stop instance {instance_id}"), |quest| {
+                crate::sorcerer::instancius::stop_instance(quest, self.vault.clone(), instance_id)
+            })
+            .await
+            .map_err(|e| e.to_string())?
+            .0;
+        Ok(InstancesInstanceIdStopPostResponse::Status202_Accepted(
+            JobMeta {
+                job_id: quest_id.0 as i32,
+            },
+        ))
     }
 }
 
@@ -799,10 +819,11 @@ mod tests {
     use flecsd_axum_server::apis::apps::{Apps, AppsAppDeleteResponse};
     use flecsd_axum_server::apis::instances::{
         Instances, InstancesCreatePostResponse, InstancesInstanceIdStartPostResponse,
+        InstancesInstanceIdStopPostResponse,
     };
     use flecsd_axum_server::models::{
         AppKey, AppsAppDeletePathParams, AppsAppDeleteQueryParams, InstancesCreatePostRequest,
-        InstancesInstanceIdStartPostPathParams,
+        InstancesInstanceIdStartPostPathParams, InstancesInstanceIdStopPostPathParams,
     };
     use http::Method;
     use std::collections::HashMap;
@@ -846,6 +867,27 @@ mod tests {
                     Host("host".to_string()),
                     CookieJar::default(),
                     InstancesInstanceIdStartPostPathParams {
+                        instance_id: "00001234".to_string(),
+                    },
+                )
+                .await
+        )
+    }
+
+    #[tokio::test]
+    async fn stop_404() {
+        let path = prepare_test_path(module_path!(), "stop_404");
+        let server = ServerImpl {
+            vault: Arc::new(Vault::new(VaultConfig { path })),
+        };
+        assert_eq!(
+            Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance),
+            server
+                .instances_instance_id_stop_post(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdStopPostPathParams {
                         instance_id: "00001234".to_string(),
                     },
                 )

@@ -102,6 +102,25 @@ impl DockerDeployment {
         .await
     }
 
+    async fn copy_from_instance(
+        docker_client: Arc<Docker>,
+        quest: SyncQuest,
+        id: InstanceId,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
+        relic::docker::container::copy_from(
+            quest,
+            docker_client,
+            src,
+            dst,
+            &id.to_docker_id(),
+            is_dst_file_path,
+        )
+        .await
+    }
+
     async fn copy_config_to_instance(
         client: Arc<Docker>,
         id: InstanceId,
@@ -125,6 +144,36 @@ impl DockerDeployment {
             {
                 anyhow::bail!(
                     "Could not copy config file {src:?} of instance {id} to {:?}: {e}",
+                    config_file.container_file_path
+                )
+            }
+        }
+        Ok(())
+    }
+
+    async fn copy_config_from_instance(
+        client: Arc<Docker>,
+        id: InstanceId,
+        config_files: &[ConfigFile],
+    ) -> crate::Result<()> {
+        for config_file in config_files {
+            let dst = crate::lore::instance_config_path(&id.to_string())
+                .join(&config_file.host_file_name);
+            if let Err(e) = Self::copy_from_instance(
+                client.clone(),
+                Quest::new_synced(format!(
+                    "Copy config {:?} from instance {}",
+                    config_file.container_file_path, id
+                )),
+                id,
+                &config_file.container_file_path,
+                &dst,
+                true,
+            )
+            .await
+            {
+                anyhow::bail!(
+                    "Could not copy config file {:?} of instance {id} to {dst:?}: {e}",
                     config_file.container_file_path
                 )
             }
@@ -892,9 +941,14 @@ impl InstanceDeployment for DockerDeployment {
         Ok(id)
     }
 
-    async fn stop_instance(&self, id: InstanceId) -> anyhow::Result<()> {
+    async fn stop_instance(
+        &self,
+        id: InstanceId,
+        config_files: &[ConfigFile],
+    ) -> anyhow::Result<()> {
         let client = self.client()?;
-        relic::docker::container::stop(client, &id.to_docker_id(), None).await?;
+        relic::docker::container::stop(client.clone(), &id.to_docker_id(), None).await?;
+        Self::copy_config_from_instance(client, id, config_files).await?;
         self.delete_instance(id).await?;
         Ok(())
     }
@@ -923,16 +977,7 @@ impl InstanceDeployment for DockerDeployment {
         dst: &Path,
         is_dst_file_path: bool,
     ) -> anyhow::Result<()> {
-        let docker_client = self.client()?;
-        relic::docker::container::copy_from(
-            quest,
-            docker_client,
-            src,
-            dst,
-            &id.to_docker_id(),
-            is_dst_file_path,
-        )
-        .await
+        Self::copy_from_instance(self.client()?, quest, id, src, dst, is_dst_file_path).await
     }
 
     async fn copy_to_instance(
