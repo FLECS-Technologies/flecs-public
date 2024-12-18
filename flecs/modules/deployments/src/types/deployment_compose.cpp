@@ -39,7 +39,12 @@ auto compose_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<
         }
     }
 
-    const auto project_name = app->key().name();
+    auto project_name = app->key().name();
+    std::replace_if(
+        project_name.begin(),
+        project_name.end(),
+        [](decltype(project_name)::reference c) { return c == '.'; },
+        '-');
     auto pull_process = process_t{};
     auto pull_attempts = 3;
     while (pull_attempts-- > 0) {
