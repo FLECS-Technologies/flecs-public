@@ -45,7 +45,15 @@ auto deployment_t::deployment_id() const noexcept //
 auto deployment_t::load(const fs::path& base_path) //
     -> result_t
 {
-    return do_load(base_path);
+    /* create empty deployment, if file does not exist */
+    using std::operator""s;
+    const auto deployment_json_path = base_path / "deployment" / (deployment_id().data() + ".json"s);
+    auto ec = std::error_code{};
+    if (!fs::exists(deployment_json_path, ec)) {
+        auto deployment_json = std::ofstream{deployment_json_path};
+    }
+
+    return do_load(std::move(deployment_json_path));
 }
 
 auto deployment_t::save(const fs::path& base_path) //
@@ -928,12 +936,12 @@ auto deployment_t::generate_instance_ip(std::string_view cidr_subnet, std::strin
     return to_string(instance_ip);
 }
 
-auto deployment_t::do_load(const fs::path& base_path) //
+auto deployment_t::do_load(fs::path json_file_path) //
     -> result_t
 {
     using std::operator""sv;
 
-    auto json_file = std::ifstream{base_path / "deployment" / deployment_id().data() += ".json"sv};
+    auto json_file = std::ifstream{json_file_path};
     if (!json_file.good()) {
         return {-1, "Could not open json"};
     }

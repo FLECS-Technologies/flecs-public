@@ -193,7 +193,7 @@ protected:
     std::map<std::string, network_t> _networks;
 
 private:
-    auto do_load(const fs::path& base_path) //
+    auto do_load(fs::path json_file_path) //
         -> result_t;
 
     auto do_save(const fs::path& base_path) //
