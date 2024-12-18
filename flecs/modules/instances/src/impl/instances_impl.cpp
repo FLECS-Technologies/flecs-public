@@ -368,7 +368,9 @@ auto instances_t::do_start(instances::id_t instance_id, bool once, jobs::progres
 {
     // Step 1: Verify instance does actually exist and is fully created
     auto instance = _parent->query(instance_id);
-
+    if (!instance) {
+        return {-1, "Instance does not exist"};
+    }
     const auto app = instance->app();
     if (!app) {
         return {-1, "Instance not connected to an App"};
