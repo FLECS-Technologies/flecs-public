@@ -1,4 +1,5 @@
 pub use super::{Error, Result};
+use crate::vault::pouch::instance::InstanceId;
 use futures_util::future::BoxFuture;
 use futures_util::StreamExt;
 use std::fmt::{Display, Formatter};
@@ -16,7 +17,6 @@ pub mod quest_master;
 #[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
 pub struct QuestId(pub u64);
 pub type SyncQuest = Arc<Mutex<Quest>>;
-pub type QuestResult<T> = (Arc<Mutex<Quest>>, JoinHandle<Result<T>>);
 
 fn get_quest_id() -> QuestId {
     static ID: OnceLock<AtomicU64> = OnceLock::new();
@@ -24,6 +24,13 @@ fn get_quest_id() -> QuestId {
         ID.get_or_init(|| AtomicU64::new(0))
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
     )
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum QuestResult {
+    None,
+    InstanceId(InstanceId),
+    ExportId(String),
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -90,6 +97,7 @@ pub struct Quest {
     sub_quests: Vec<SyncQuest>,
     pub progress: Option<Progress>,
     pub state: State,
+    pub result: QuestResult,
 }
 
 #[derive(Debug, Eq, PartialEq, Default, Clone)]
@@ -107,6 +115,7 @@ impl Quest {
             sub_quests: Vec::new(),
             progress: None,
             detail: None,
+            result: QuestResult::None,
         }
     }
 
