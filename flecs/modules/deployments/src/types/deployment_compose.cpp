@@ -48,6 +48,7 @@ auto compose_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<
     auto pull_process = process_t{};
     auto pull_attempts = 3;
     while (pull_attempts-- > 0) {
+        pull_process = process_t{};
         pull_process.stdin(compose_json.dump());
         const auto res = pull_process.spawnp("docker-compose", "-p", project_name, "-f", "-", "pull");
         if (res != 0) {
