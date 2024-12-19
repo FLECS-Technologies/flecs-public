@@ -18,7 +18,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: construction-worker
     container: flecspublic.azurecr.io/flecs-build:${{ inputs.flecs_build_ref }}
 
     steps:
