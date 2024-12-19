@@ -46,32 +46,7 @@ pub mod lore;
 ///     let mut quest_master = QuestMaster::new();
 ///     let n = 50;
 ///     let (_id, _quest) = quest_master
-///         .schedule_quest(format!("Print 2 * {n}"), |quest| async move {
-///             let _n = print_2n(quest, n).await;
-///             Ok(())
-///         })
-///         .await
-///         .unwrap();
-/// }
-/// # )
-/// ```
-/// If the signature of the function we want to call does not fit we need to wrap it in a closure
-/// that takes a [quest::SyncQuest] and returns [Result]<()>.
-/// ```
-/// use flecs_core::quest::quest_master::QuestMaster;
-/// use flecs_core::quest::SyncQuest;
-///
-/// async fn print_2n(quest: SyncQuest, n: u64) -> u64 {
-///     let result = 2 * n;
-///     println!("{result}");
-///     result
-/// }
-/// # tokio_test::block_on(
-/// async {
-///     let mut quest_master = QuestMaster::new();
-///     let n = 50;
-///     let (_id, _quest) = quest_master
-///         .schedule_quest(format!("Print 2 * {n}"), |quest| async move {
+///         .schedule_quest(format!("Print 2 * {n}"), move |quest| async move {
 ///             let _n = print_2n(quest, n).await;
 ///             Ok(())
 ///         })
@@ -89,7 +64,7 @@ pub mod lore;
 ///     let mut quest_master = QuestMaster::new();
 ///     let n = 50;
 ///     let (_id, _quest) = quest_master
-///         .schedule_quest(format!("Print 3 * {n}"), |quest| async move {
+///         .schedule_quest(format!("Print 3 * {n}"), move |quest| async move {
 ///             println!("{}", 3 * n);
 ///             Ok(())
 ///         })

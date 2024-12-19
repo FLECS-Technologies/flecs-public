@@ -1,6 +1,7 @@
 use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::Quest;
+use crate::quest::QuestResult;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
 use anyhow::Error;
@@ -116,12 +117,13 @@ impl Apps for ServerImpl {
                 {
                     return Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp);
                 }
+                let vault = self.vault.clone();
                 let (id, _) = crate::lore::quest::default()
                     .await
                     .lock()
                     .await
                     .schedule_quest(format!("Uninstall {key}"), |quest| {
-                        crate::sorcerer::appraiser::uninstall_app(quest, self.vault.clone(), key)
+                        crate::sorcerer::appraiser::uninstall_app(quest, vault, key)
                     })
                     .await
                     .map_err(|e| e.to_string())?;
@@ -176,12 +178,13 @@ impl Apps for ServerImpl {
     ) -> Result<AppsInstallPostResponse, String> {
         let app_key = body.app_key.into();
         let config = crate::lore::console_client_config::default().await;
+        let vault = self.vault.clone();
         match crate::lore::quest::default()
             .await
             .lock()
             .await
             .schedule_quest(format!("Install {}", app_key), |quest| {
-                crate::sorcerer::appraiser::install_app(quest, self.vault.clone(), app_key, config)
+                crate::sorcerer::appraiser::install_app(quest, vault, app_key, config)
             })
             .await
         {
@@ -217,6 +220,7 @@ impl Apps for ServerImpl {
             )),
             Ok(Ok(manifest)) => {
                 let config = crate::lore::console_client_config::default().await;
+                let vault = self.vault.clone();
                 match crate::lore::quest::default()
                     .await
                     .lock()
@@ -224,7 +228,7 @@ impl Apps for ServerImpl {
                     .schedule_quest(format!("Sideloading {}", manifest.key), |quest| {
                         crate::sorcerer::appraiser::install_app_from_manifest(
                             quest,
-                            self.vault.clone(),
+                            vault,
                             Arc::new(manifest),
                             config,
                         )
@@ -363,17 +367,13 @@ impl Device for ServerImpl {
             })
             .collect();
         let config = crate::lore::console_client_config::default().await;
+        let vault = self.vault.clone();
         match crate::lore::quest::default()
             .await
             .lock()
             .await
             .schedule_quest("Install apps via device onboarding".to_string(), |quest| {
-                crate::sorcerer::appraiser::install_apps(
-                    quest,
-                    self.vault.clone(),
-                    app_keys,
-                    config,
-                )
+                crate::sorcerer::appraiser::install_apps(quest, vault, app_keys, config)
             })
             .await
         {
@@ -415,24 +415,25 @@ impl Instances for ServerImpl {
                 },
             ));
         }
+        let vault = self.vault.clone();
+        let instance_name = body.instance_name;
         let (id, _quest) = crate::lore::quest::default()
             .await
             .lock()
             .await
-            .schedule_quest(format!("Create instance for {app_key}"), |quest| {
-                let vault = self.vault.clone();
-                let instance_name = body.instance_name;
-                async move {
-                    let _id = crate::sorcerer::instancius::create_instance(
+            .schedule_quest_with_result(
+                format!("Create instance for {app_key}"),
+                |quest| async move {
+                    let id = crate::sorcerer::instancius::create_instance(
                         quest,
                         vault,
                         app_key,
                         instance_name.unwrap_or_default(),
                     )
                     .await?;
-                    Ok(())
-                }
-            })
+                    Ok(QuestResult::InstanceId(id))
+                },
+            )
             .await
             .map_err(|e| e.to_string())?;
         Ok(InstancesCreatePostResponse::Status202_Accepted(
@@ -570,12 +571,13 @@ impl Instances for ServerImpl {
         {
             return Ok(InstancesInstanceIdDeleteResponse::Status404_NoInstanceWithThisInstance);
         }
+        let vault = self.vault.clone();
         let quest_id = crate::lore::quest::default()
             .await
             .lock()
             .await
-            .schedule_quest(format!("Delete instance {instance_id}"), |quest| {
-                crate::sorcerer::instancius::delete_instance(quest, self.vault.clone(), instance_id)
+            .schedule_quest(format!("Delete instance {instance_id}"), move |quest| {
+                crate::sorcerer::instancius::delete_instance(quest, vault, instance_id)
             })
             .await
             .map_err(|e| e.to_string())?
@@ -680,12 +682,13 @@ impl Instances for ServerImpl {
         {
             return Ok(InstancesInstanceIdStartPostResponse::Status404_NoInstanceWithThisInstance);
         }
+        let vault = self.vault.clone();
         let quest_id = crate::lore::quest::default()
             .await
             .lock()
             .await
-            .schedule_quest(format!("Start instance {instance_id}"), |quest| {
-                crate::sorcerer::instancius::start_instance(quest, self.vault.clone(), instance_id)
+            .schedule_quest(format!("Start instance {instance_id}"), move |quest| {
+                crate::sorcerer::instancius::start_instance(quest, vault, instance_id)
             })
             .await
             .map_err(|e| e.to_string())?
@@ -710,12 +713,13 @@ impl Instances for ServerImpl {
         {
             return Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance);
         }
+        let vault = self.vault.clone();
         let quest_id = crate::lore::quest::default()
             .await
             .lock()
             .await
-            .schedule_quest(format!("Stop instance {instance_id}"), |quest| {
-                crate::sorcerer::instancius::stop_instance(quest, self.vault.clone(), instance_id)
+            .schedule_quest(format!("Stop instance {instance_id}"), move |quest| {
+                crate::sorcerer::instancius::stop_instance(quest, vault, instance_id)
             })
             .await
             .map_err(|e| e.to_string())?

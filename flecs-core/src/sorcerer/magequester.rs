@@ -1,6 +1,6 @@
 use crate::lore;
 use crate::quest::quest_master::DeleteQuestError;
-use crate::quest::{QuestId, State, SyncQuest};
+use crate::quest::{QuestId, QuestResult, State, SyncQuest};
 use flecsd_axum_server::models;
 use futures::stream::StreamExt;
 
@@ -46,7 +46,11 @@ async fn job_from_quest(quest: SyncQuest) -> models::Job {
     } else {
         (0, 0)
     };
-
+    let message = match &quest.result {
+        QuestResult::None => String::new(),
+        QuestResult::InstanceId(id) => id.to_string(),
+        QuestResult::ExportId(id) => id.clone(),
+    };
     models::Job {
         id: quest.id.0 as u32,
         status: quest.state.into(),
@@ -69,7 +73,7 @@ async fn job_from_quest(quest: SyncQuest) -> models::Job {
                 State::Failed => -1,
                 _ => 0,
             },
-            message: String::new(),
+            message,
         },
     }
 }

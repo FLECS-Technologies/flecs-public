@@ -1,5 +1,5 @@
 pub use super::{Error, Result};
-use crate::quest::{finish_quest, Quest, QuestId, State, SyncQuest};
+use crate::quest::{finish_quest, Quest, QuestId, QuestResult, State, SyncQuest};
 use futures::future::BoxFuture;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -17,7 +17,7 @@ pub struct QuestMaster {
     quests: HashMap<QuestId, SyncQuest>,
     schedule_channel: Sender<(
         SyncQuest,
-        BoxFuture<'static, Result<()>>,
+        BoxFuture<'static, Result<QuestResult>>,
         std::time::Instant,
     )>,
 }
@@ -32,7 +32,7 @@ impl QuestMaster {
     pub fn new() -> Self {
         let (tx, mut rx) = channel::<(
             SyncQuest,
-            BoxFuture<'static, Result<()>>,
+            BoxFuture<'static, Result<QuestResult>>,
             std::time::Instant,
         )>(1000);
 
@@ -61,8 +61,11 @@ impl QuestMaster {
                                 std::time::Instant::now() - start
                             )
                         }
-                        Ok(_) => {
-                            let quest = quest.lock().await;
+                        Ok(result) => {
+                            let mut quest = quest.lock().await;
+                            if quest.result == QuestResult::None {
+                                quest.result = result;
+                            }
                             info!(
                                 "Quest '{}' with id {} succeeded after {:#?}.",
                                 quest.description,
@@ -110,14 +113,14 @@ impl QuestMaster {
         }
     }
 
-    pub async fn schedule_quest<F, Fut>(
+    pub async fn schedule_quest_with_result<F, Fut>(
         &mut self,
         description: String,
         f: F,
     ) -> Result<(QuestId, SyncQuest)>
     where
         F: FnOnce(SyncQuest) -> Fut,
-        Fut: Future<Output = Result<()>> + Send + 'static,
+        Fut: Future<Output = Result<QuestResult>> + Send + 'static,
     {
         let quest = Quest::new_synced(description.clone());
         let quest_id = quest.lock().await.id;
@@ -143,6 +146,22 @@ impl QuestMaster {
             ),
         }
     }
+
+    pub async fn schedule_quest<F, Fut>(
+        &mut self,
+        description: String,
+        f: F,
+    ) -> Result<(QuestId, SyncQuest)>
+    where
+        F: FnOnce(SyncQuest) -> Fut + Send + 'static,
+        Fut: Future<Output = Result<()>> + Send + 'static,
+    {
+        self.schedule_quest_with_result(description, |quest| async move {
+            f(quest).await?;
+            Ok(QuestResult::None)
+        })
+        .await
+    }
 }
 
 #[cfg(test)]
@@ -163,6 +182,7 @@ mod tests {
             sub_quests: vec![],
             progress: None,
             state: State::Ongoing,
+            result: QuestResult::None,
         }))
     }
     #[tokio::test]
@@ -236,6 +256,51 @@ mod tests {
         assert_eq!(rx.await.unwrap(), 1234);
         sleep(Duration::from_millis(10)).await;
         assert_eq!(quest.lock().await.state, State::Success);
+    }
+
+    #[tokio::test]
+    #[timeout(10000)]
+    async fn test_schedule_quest_with_result_success() {
+        let mut master = QuestMaster::default();
+        let (tx, rx) = tokio::sync::oneshot::channel::<u64>();
+
+        let (_, quest) = master
+            .schedule_quest_with_result("Test Quest Description".to_string(), |_| async move {
+                tx.send(1234).unwrap();
+                Ok(QuestResult::ExportId("TestExportId".to_string()))
+            })
+            .await
+            .unwrap();
+        assert_eq!(rx.await.unwrap(), 1234);
+        sleep(Duration::from_millis(10)).await;
+        assert_eq!(quest.lock().await.state, State::Success);
+        assert_eq!(
+            quest.lock().await.result,
+            QuestResult::ExportId("TestExportId".to_string())
+        );
+    }
+
+    #[tokio::test]
+    #[timeout(10000)]
+    async fn test_schedule_quest_with_result_success_no_overwrite() {
+        let mut master = QuestMaster::default();
+        let (tx, rx) = tokio::sync::oneshot::channel::<u64>();
+
+        let (_, quest) = master
+            .schedule_quest_with_result("Test Quest Description".to_string(), |quest| async move {
+                tx.send(1234).unwrap();
+                quest.lock().await.result = QuestResult::ExportId("RealExportId".to_string());
+                Ok(QuestResult::ExportId("FakeExportId".to_string()))
+            })
+            .await
+            .unwrap();
+        assert_eq!(rx.await.unwrap(), 1234);
+        sleep(Duration::from_millis(10)).await;
+        assert_eq!(quest.lock().await.state, State::Success);
+        assert_eq!(
+            quest.lock().await.result,
+            QuestResult::ExportId("RealExportId".to_string())
+        );
     }
 
     #[tokio::test]
