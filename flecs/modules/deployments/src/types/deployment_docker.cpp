@@ -543,6 +543,7 @@ auto docker_t::do_download_app(std::shared_ptr<apps::app_t> app, std::optional<T
     auto pull_process = process_t{};
     auto pull_attempts = 3;
     while (pull_attempts-- > 0) {
+        pull_process = process_t{};
         pull_process.spawnp("docker", "pull", app->manifest()->image_with_tag());
         pull_process.wait(true, true);
         if (pull_process.exit_code() == 0) {
