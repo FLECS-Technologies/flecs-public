@@ -746,6 +746,8 @@ name = "flecsdaemon"
 version = "0.1.0"
 dependencies = [
  "flecs-core",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
