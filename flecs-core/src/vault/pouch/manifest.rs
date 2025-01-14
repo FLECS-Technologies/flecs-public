@@ -6,6 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::{debug, warn};
 
 const MANIFEST_FILE_NAME: &str = "manifest.json";
 
@@ -73,13 +74,13 @@ impl ManifestPouch {
         for entry in glob::glob(path)?.flatten() {
             match Self::read_manifest(entry.as_path()) {
                 Err(e) => {
-                    eprintln!("Could not read manifest from {entry:?}: {e}");
+                    warn!("Could not read manifest from {entry:?}: {e}");
                 }
                 Ok(manifest) => {
                     self.existing_manifest_keys.insert(manifest.key.clone());
                     self.manifests
                         .insert(manifest.key.clone(), Arc::new(manifest));
-                    println!("Successful read manifest from {entry:?}");
+                    debug!("Successful read manifest from {entry:?}");
                 }
             }
         }
