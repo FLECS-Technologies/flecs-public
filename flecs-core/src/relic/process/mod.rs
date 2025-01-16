@@ -38,11 +38,11 @@ pub fn send_signal(pid: i32, signal: libc::c_int) -> crate::Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use ntest::timeout;
 
-    fn sleepy_child() -> std::process::Child {
+    pub fn sleepy_child() -> std::process::Child {
         std::process::Command::new("sleep")
             .arg("100d")
             .spawn()
