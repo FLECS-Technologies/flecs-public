@@ -5,4 +5,5 @@ pub use super::{Error, Result};
 /// Helper functions that provide async versions of [flecstract::tar::extract] and [flecstract::tar::archive]
 pub mod async_flecstract;
 pub mod docker;
+pub mod process;
 pub mod serde;
