@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::ffi::CStr;
 use std::fmt::{Display, Formatter};
 use std::mem::MaybeUninit;
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, TcpListener};
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -369,6 +369,11 @@ pub fn ip_to_network(
     }
 }
 
+pub fn get_random_free_port() -> crate::Result<u16> {
+    let bind = TcpListener::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0))?;
+    Ok(bind.local_addr()?.port())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -565,5 +570,11 @@ mod tests {
                 size: 16
             }
         )
+    }
+
+    #[test]
+    fn random_port_test() {
+        let random_port = get_random_free_port().unwrap();
+        TcpListener::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, random_port)).unwrap();
     }
 }
