@@ -170,7 +170,7 @@ impl Nginx {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::relic::process::tests::sleepy_child;
     use crate::tests::prepare_test_path;
@@ -178,7 +178,7 @@ mod tests {
     use std::os::unix::process::ExitStatusExt;
     use std::process::ExitStatus;
 
-    const NGINX_CONFIG_EXAMPLE: &[u8; 341] = b"user  www www;
+    pub const NGINX_CONFIG_EXAMPLE: &[u8; 341] = b"user  www www;
 
 worker_processes  2;
 

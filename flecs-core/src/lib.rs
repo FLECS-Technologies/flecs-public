@@ -1,4 +1,5 @@
 mod cellar;
+pub mod enchantment;
 mod flecs_rest;
 pub mod fsm;
 pub mod jeweler;
