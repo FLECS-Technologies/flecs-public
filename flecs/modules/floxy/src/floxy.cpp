@@ -21,7 +21,7 @@ namespace flecs {
 namespace module {
 
 floxy_t::floxy_t()
-    : _impl{new impl::floxy_t{this}}
+    : _impl{new impl::floxy_t{}}
 {}
 
 floxy_t::~floxy_t() = default;
@@ -40,15 +40,11 @@ auto floxy_t::do_init() //
             }
             return redirect_editor_request(instances::id_t(instance_id), port);
         });
-
-    _impl->do_init();
 }
 
 auto floxy_t::do_deinit() //
     -> void
-{
-    _impl->do_deinit();
-}
+{}
 
 auto floxy_t::load_instance_reverse_proxy_config(
     const std::string& ip_address,

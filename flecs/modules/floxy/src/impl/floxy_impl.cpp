@@ -15,11 +15,13 @@
 #include "flecs/modules/floxy/impl/floxy_impl.h"
 
 #include <netinet/in.h>
+#include <rust/cxx.h>
 #include <sys/socket.h>
 
 #include <fstream>
 #include <string>
 
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
 #include "flecs/common/app/manifest/manifest.h"
 #include "flecs/modules/apps/types/app.h"
 #include "flecs/modules/factory/factory.h"
@@ -31,233 +33,6 @@ namespace flecs {
 namespace module {
 namespace impl {
 
-namespace {
-auto get_random_free_port() //
-    -> std::optional<std::uint16_t>
-{
-    auto serv_addr = sockaddr_in{};
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        return {};
-    }
-    bzero((char*)&serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(0);
-    if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        return {};
-    }
-    socklen_t len = sizeof(serv_addr);
-    if (getsockname(sockfd, (struct sockaddr*)&serv_addr, &len) < 0) {
-        close(sockfd);
-        return {};
-    }
-    close(sockfd);
-    return ntohs(serv_addr.sin_port);
-}
-} // namespace
-
-floxy_t::floxy_t(flecs::module::floxy_t* parent)
-    : _parent{parent}
-{}
-
-auto floxy_t::do_init() //
-    -> void
-{
-    clear_server_configs();
-    auto nginx_process = process_t{};
-
-    nginx_process.arg("-c");
-    nginx_process.arg(get_main_config_path());
-    nginx_process.spawnp("nginx");
-    nginx_process.wait(true, true);
-    if (nginx_process.exit_code() != 0) {
-        std::cerr << "Failed to start floxy" << std::endl;
-    }
-}
-
-auto floxy_t::do_deinit() //
-    -> void
-{
-    auto nginx_process = process_t{};
-
-    nginx_process.arg("-c");
-    nginx_process.arg(get_main_config_path());
-    nginx_process.arg("-s");
-    nginx_process.arg("quit");
-
-    nginx_process.spawnp("nginx");
-    nginx_process.wait(true, true);
-    if (nginx_process.exit_code() != 0) {
-        std::cerr << "Failed to stop floxy" << std::endl;
-    }
-}
-
-auto floxy_t::clear_server_configs(const fs::path base_path) //
-    -> void
-{
-    const auto dir = base_path / "floxy" / "servers";
-    if (fs::exists(dir) && fs::is_directory(dir)) {
-        for (const auto& entry : fs::directory_iterator(dir)) {
-            try {
-                if ((entry.is_regular_file() || entry.is_symlink()) && entry.path().extension() == ".conf") {
-                    fs::remove(entry.path());
-                }
-            } catch (const fs::filesystem_error&) {
-            }
-        }
-    }
-}
-
-auto floxy_t::build_instance_config_path(
-    const std::string& app_name, const instances::id_t& instance_id, const fs::path base_path) //
-    -> fs::path
-{
-    const auto dir = base_path / "floxy" / "instances";
-    auto file_name = app_name + "-" + instance_id.hex() + ".conf";
-    return dir / file_name;
-}
-
-auto floxy_t::build_server_config_path(
-    const std::string& app_name,
-    const instances::id_t& instance_id,
-    std::uint16_t host_port,
-    const fs::path base_path) //
-    -> fs::path
-{
-    const auto dir = base_path / "floxy" / "servers";
-    auto file_name = app_name + "-" + instance_id.hex() + "_" + std::to_string(host_port) + ".conf";
-    return dir / file_name;
-}
-
-auto floxy_t::get_main_config_path() //
-    -> fs::path
-{
-    return "/etc/nginx/floxy.conf";
-}
-
-auto floxy_t::reload_floxy_config() //
-    -> result_t
-{
-    auto nginx_process = process_t{};
-
-    nginx_process.arg("-c");
-    nginx_process.arg(get_main_config_path());
-    nginx_process.arg("-s");
-    nginx_process.arg("reload");
-
-    nginx_process.spawnp("nginx");
-    nginx_process.wait(true, true);
-    if (nginx_process.exit_code() != 0) {
-        return {-1, "Failed to reload floxy config"};
-    }
-    return {0, {}};
-}
-
-auto floxy_t::create_instance_config(
-    const instances::id_t& instance_id, const std::string& instance_address, std::uint16_t dest_port) //
-    -> std::string
-{
-    auto location = "/v2/instances/" + instance_id.hex() + "/editor/" + std::to_string(dest_port);
-    auto upstream = instance_address + ":" + std::to_string(dest_port);
-    auto first = R"(
-location )";
-    auto second = R"( {
-   server_name_in_redirect on;
-   return 301 $request_uri/;
-
-   location ~ ^)";
-    auto third = R"(/(.*) {
-      set $upstream http://)";
-    auto fourth = R"(/$1;
-      proxy_pass $upstream;
-
-      proxy_http_version 1.1;
-
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
-
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }
-}
-)";
-    return first + location + second + location + third + upstream + fourth;
-}
-
-auto floxy_t::create_server_config(
-    const std::string& instance_address, std::uint16_t host_port, std::uint16_t dest_port) //
-    -> std::string
-{
-    auto upstream = instance_address + ":" + std::to_string(dest_port);
-    auto first = R"(
-server {
-   listen )";
-    auto second = R"(;
-   location / {
-      set $upstream http://)";
-    auto third = R"(;
-      proxy_pass $upstream;
-
-      proxy_http_version 1.1;
-
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
-
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }
-})";
-    return first + std::to_string(host_port) + second + upstream + third;
-}
-
-auto floxy_t::load_reverse_proxy_config(const std::string& content, const fs::path& file_path) //
-    -> result_t
-{
-    auto ec = std::error_code{};
-    fs::create_directories(file_path.parent_path(), ec);
-    if (ec) {
-        return {-1, "Could not create directory"};
-    }
-
-    // Reload only if config does not exist or is different
-    auto reload_necessary = true;
-    auto existing_config = std::ifstream{file_path, std::ios::in | std::ios::ate};
-    if (existing_config.is_open()) {
-        std::streamsize size = existing_config.tellg();
-        existing_config.seekg(0, std::ios::beg);
-        std::string existing_content(size, '\0');
-        existing_config.read(&existing_content[0], size);
-        existing_config.close();
-        reload_necessary = content != existing_content;
-    }
-
-    if (reload_necessary) {
-        auto config_file = std::ofstream{file_path, std::ios::out | std::ios::trunc};
-        if (!config_file.good()) {
-            auto message = std::string("Could not open ") + file_path.c_str() + " for writing";
-            return {-1, message};
-        }
-        config_file << content;
-        config_file.flush();
-        config_file.close();
-        return reload_floxy_config();
-    }
-    return {0, {}};
-}
-
 auto floxy_t::do_load_instance_reverse_proxy_config(
     const std::string& ip_address,
     const std::string& app_name,
@@ -266,33 +41,16 @@ auto floxy_t::do_load_instance_reverse_proxy_config(
     -> result_t
 {
     std::sort(dest_ports.begin(), dest_ports.end());
-    const auto config_path = build_instance_config_path(app_name, instance_id);
-    auto config = std::string{};
-    for (auto dest_port : dest_ports) {
-        config += create_instance_config(instance_id, ip_address, dest_port);
+    auto ports = rust::Vec<uint16_t>{};
+    for (auto port : dest_ports) {
+        ports.push_back(port);
     }
-
-    return load_reverse_proxy_config(config, config_path);
-}
-
-auto floxy_t::delete_reverse_proxy_config(const fs::path& file_path, bool reload) //
-    -> result_t
-{
-    if (!fs::remove(file_path)) {
-        auto message = std::string("Could not delete ") + file_path.c_str();
-        return {-1, message};
-    }
-    if (reload) {
-        return reload_floxy_config();
+    try {
+        load_instance_reverse_proxy_config(app_name.c_str(), instance_id.get(), ip_address.c_str(), ports);
+    }   catch (const rust::Error& e) {
+        return {-1, e.what()};
     }
     return {0, {}};
-}
-
-auto floxy_t::delete_server_config(
-    const std::string& app_name, const instances::id_t& instance_id, std::uint16_t host_port, bool reload) //
-    -> result_t
-{
-    return delete_reverse_proxy_config(build_server_config_path(app_name, instance_id, host_port), reload);
 }
 
 auto floxy_t::do_redirect_editor_request(instances::id_t instance_id, std::uint16_t port) //
@@ -327,7 +85,27 @@ auto floxy_t::do_redirect_editor_request(instances::id_t instance_id, std::uint1
     if (result != mapping.end()) {
         response.moved(":" + to_string(result->second));
     } else {
-        response = redirect_editor_request_to_free_port(instance, port);
+        std::optional<std::string> instance_ip;
+        for (const auto& network : instance->networks()) {
+            if (network.network_name == "flecs") {
+                instance_ip = network.ip_address;
+                break;
+            }
+        }
+        if (!instance_ip.has_value()) {
+            auto json = json_t{{"additionalInfo", "Instance not connected to network"}};
+            return crow::response{crow::status::INTERNAL_SERVER_ERROR, json.dump()};
+        }
+        auto host_port = 0;
+        try {
+            host_port = create_instance_editor_redirect_to_free_port(
+                instance->app_name().data(), instance_id.get(), instance_ip.value(), port);
+        } catch (const rust::Error& e) {
+            auto json = json_t{{"additionalInfo", e.what()}};
+            return crow::response{crow::status::INTERNAL_SERVER_ERROR, json.dump()};
+        }
+        instance->set_editor_port_mapping(host_port, port);
+        response.moved(":" + to_string(host_port));
     }
     return response;
 }
@@ -336,55 +114,32 @@ auto floxy_t::do_delete_reverse_proxy_configs(std::shared_ptr<instances::instanc
     -> result_t
 {
     auto app_name = instance->app()->key().name();
-    do_delete_server_proxy_configs(instance, false);
-    return delete_reverse_proxy_config(build_instance_config_path(app_name, instance->id()));
-}
-
-auto floxy_t::do_delete_server_proxy_configs(std::shared_ptr<instances::instance_t> instance, bool reload) //
-    -> result_t
-{
-    auto app_name = instance->app()->key().name();
-    for (auto [_, host_port] : instance->editor_port_mapping()) {
-        delete_server_config(app_name, instance->id(), host_port, false);
+    auto ports = rust::Vec<std::uint16_t>{};
+    for (auto host_port : instance->editor_port_mapping() | std::views::values) {
+        ports.push_back(host_port);
     }
-    if (reload) {
-        return reload_floxy_config();
+    try {
+        delete_reverse_proxy_configs(app_name.c_str(), instance->id().get(), ports);
+    } catch (const rust::Error& e) {
+        return {-1, e.what()};
     }
     return {0, {}};
 }
 
-auto floxy_t::redirect_editor_request_to_free_port(
-    std::shared_ptr<instances::instance_t> instance, std::uint16_t dest_port) //
-    -> crow::response
+auto floxy_t::do_delete_server_proxy_configs(std::shared_ptr<instances::instance_t> instance) //
+    -> result_t
 {
-    auto host_port = get_random_free_port();
-    if (!host_port.has_value()) {
-        auto json = json_t{{"additionalInfo", "No free port available"}};
-        return crow::response{crow::status::INTERNAL_SERVER_ERROR, json.dump()};
+    auto app_name = instance->app()->key().name();
+    auto ports = rust::Vec<std::uint16_t>{};
+    for (auto host_port : instance->editor_port_mapping() | std::views::values) {
+        ports.push_back(host_port);
     }
-    auto config_path =
-        build_server_config_path(instance->app()->key().name(), instance->id(), host_port.value());
-    std::optional<std::string> instance_ip;
-    for (const auto& network : instance->networks()) {
-        if (network.network_name == "flecs") {
-            instance_ip = network.ip_address;
-            break;
-        }
+    try {
+        delete_server_proxy_configs(app_name.c_str(), instance->id().get(), ports);
+    } catch (const rust::Error& e) {
+        return {-1, e.what()};
     }
-    if (!instance_ip.has_value()) {
-        auto json = json_t{{"additionalInfo", "Instance not connected to network"}};
-        return crow::response{crow::status::INTERNAL_SERVER_ERROR, json.dump()};
-    }
-    auto config_content = create_server_config(instance_ip.value(), host_port.value(), dest_port);
-    auto [res, message] = load_reverse_proxy_config(config_content, config_path);
-    if (res != 0) {
-        auto json = json_t{{"additionalInfo", "Could not load reverse proxy config: " + message}};
-        return crow::response{crow::status::INTERNAL_SERVER_ERROR, json.dump()};
-    }
-    instance->set_editor_port_mapping(host_port.value(), dest_port);
-    auto response = crow::response{};
-    response.moved(":" + to_string(host_port.value()));
-    return response;
+    return {0, {}};
 }
 
 } // namespace impl
