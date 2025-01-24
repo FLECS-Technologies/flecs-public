@@ -4,9 +4,11 @@ use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::instance::Logs;
 use crate::quest::SyncQuest;
+use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::spell;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
+use std::net::IpAddr;
 use std::sync::Arc;
 
 pub async fn start_instance(
@@ -149,15 +151,43 @@ pub async fn create_instance(
         .first()
         .ok_or_else(|| anyhow::anyhow!("No deployment present to create instance in"))?
         .clone();
+    let address = quest
+        .lock()
+        .await
+        .create_sub_quest(
+            format!(
+                "Reserve ip address in default network of deployment {}",
+                deployment.id()
+            ),
+            |quest| {
+                let (vault, deployment) = (vault.clone(), deployment.clone());
+                async move {
+                    let network = Ipv4NetworkAccess::try_from(deployment.default_network().await?)?;
+                    let address = spell::instance::make_ipv4_reservation(vault, network)
+                        .await
+                        .ok_or_else(|| anyhow::anyhow!("No free ip address in default network"))?;
+                    quest.lock().await.detail = Some(format!("Reserved {}", address));
+                    Ok(address)
+                }
+            },
+        )
+        .await
+        .2
+        .await?;
+    let address = IpAddr::V4(address);
     let instance = quest
         .lock()
         .await
         .create_sub_quest(format!("Create instance '{name}' for {app_key}"), |quest| {
-            spell::instance::create_instance(quest, deployment, manifest, name)
+            spell::instance::create_instance(quest, deployment, manifest, name, address)
         })
         .await
         .2
-        .await?;
+        .await;
+    if instance.is_err() {
+        spell::instance::clear_ip_reservation(vault.clone(), address).await;
+    }
+    let instance = instance?;
     let instance_id = instance.id;
     quest
         .lock()
@@ -168,16 +198,17 @@ pub async fn create_instance(
                 instance.name, instance_id
             ),
             |_quest| async move {
-                vault
+                let mut grab = vault
                     .reservation()
                     .reserve_instance_pouch_mut()
                     .grab()
-                    .await
+                    .await;
+                let pouch = grab
                     .instance_pouch_mut
                     .as_mut()
-                    .expect("Vault reservations should never fail")
-                    .gems_mut()
-                    .insert(instance_id, instance);
+                    .expect("Vault reservations should never fail");
+                pouch.gems_mut().insert(instance_id, instance);
+                pouch.clear_ip_address_reservation(address)
             },
         )
         .await
@@ -261,8 +292,9 @@ mod tests {
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
-    use bollard::models::Network;
+    use bollard::models::{Ipam, IpamConfig, Network};
     use std::collections::HashMap;
+    use std::net::Ipv4Addr;
     use std::sync::Arc;
 
     async fn test_vault(
@@ -499,9 +531,17 @@ mod tests {
             .expect_copy_from_app_image()
             .times(3)
             .returning(|_, _, _, _, _| Ok(()));
-        deployment.expect_default_network().times(1).returning(|| {
+        deployment.expect_default_network().times(2).returning(|| {
             Ok(Network {
                 id: Some("DefaultTestNetworkId".to_string()),
+                ipam: Some(Ipam {
+                    config: Some(vec![IpamConfig {
+                        subnet: Some("10.18.0.0/16".to_string()),
+                        gateway: Some("10.18.0.100".to_string()),
+                        ..IpamConfig::default()
+                    }]),
+                    ..Ipam::default()
+                }),
                 ..Network::default()
             })
         });
@@ -536,7 +576,78 @@ mod tests {
         };
         assert_eq!(instances.gems().len(), 1);
         assert!(instances.gems().contains_key(&instance_id));
+        assert_eq!(
+            instances
+                .gems()
+                .get(&instance_id)
+                .unwrap()
+                .config
+                .network_addresses,
+            HashMap::from([(
+                "DefaultTestNetworkId".to_string(),
+                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
+            )])
+        );
     }
+
+    #[tokio::test]
+    async fn create_instance_volume_err() {
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
+        deployment
+            .expect_app_info()
+            .returning(|_, _| Ok(AppInfo::default()));
+        deployment
+            .expect_copy_from_app_image()
+            .times(3)
+            .returning(|_, _, _, _, _| Ok(()));
+        deployment.expect_default_network().times(2).returning(|| {
+            Ok(Network {
+                id: Some("DefaultTestNetworkId".to_string()),
+                ipam: Some(Ipam {
+                    config: Some(vec![IpamConfig {
+                        subnet: Some("10.18.0.0/16".to_string()),
+                        gateway: Some("10.18.0.100".to_string()),
+                        ..IpamConfig::default()
+                    }]),
+                    ..Ipam::default()
+                }),
+                ..Network::default()
+            })
+        });
+        deployment
+            .expect_create_volume()
+            .times(1)
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        let (vault, app_key) = create_test_vault(
+            "create_instance_volume_err",
+            Arc::new(deployment),
+            true,
+            true,
+            false,
+            true,
+        )
+        .await;
+        assert!(create_instance(
+            Quest::new_synced("TestQuest".to_string()),
+            vault.clone(),
+            app_key,
+            "TestInstance".to_string(),
+        )
+        .await
+        .is_err());
+
+        let GrabbedPouches {
+            instance_pouch: Some(ref instances),
+            ..
+        } = vault.reservation().reserve_instance_pouch().grab().await
+        else {
+            unreachable!("Vault reservations should never fail")
+        };
+        assert!(instances.gems().is_empty());
+        assert!(instances.unavailable_ipv4_addresses().is_empty());
+    }
+
     #[tokio::test]
     async fn create_multi_instance_ok() {
         let mut deployment = MockedDeployment::new();
@@ -548,9 +659,17 @@ mod tests {
             .expect_copy_from_app_image()
             .times(6)
             .returning(|_, _, _, _, _| Ok(()));
-        deployment.expect_default_network().times(2).returning(|| {
+        deployment.expect_default_network().times(4).returning(|| {
             Ok(Network {
                 id: Some("DefaultTestNetworkId".to_string()),
+                ipam: Some(Ipam {
+                    config: Some(vec![IpamConfig {
+                        subnet: Some("10.18.0.0/16".to_string()),
+                        gateway: Some("10.18.0.100".to_string()),
+                        ..IpamConfig::default()
+                    }]),
+                    ..Ipam::default()
+                }),
                 ..Network::default()
             })
         });
@@ -594,6 +713,30 @@ mod tests {
         assert_eq!(instances.gems().len(), 2);
         assert!(instances.gems().contains_key(&instance_id_1));
         assert!(instances.gems().contains_key(&instance_id_2));
+        assert_eq!(
+            instances
+                .gems()
+                .get(&instance_id_1)
+                .unwrap()
+                .config
+                .network_addresses,
+            HashMap::from([(
+                "DefaultTestNetworkId".to_string(),
+                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
+            )])
+        );
+        assert_eq!(
+            instances
+                .gems()
+                .get(&instance_id_2)
+                .unwrap()
+                .config
+                .network_addresses,
+            HashMap::from([(
+                "DefaultTestNetworkId".to_string(),
+                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 3))
+            )])
+        );
     }
     #[tokio::test]
     async fn create_instance_single_instance_but_instance_present() {
@@ -606,9 +749,17 @@ mod tests {
             .expect_copy_from_app_image()
             .times(3)
             .returning(|_, _, _, _, _| Ok(()));
-        deployment.expect_default_network().times(1).returning(|| {
+        deployment.expect_default_network().times(2).returning(|| {
             Ok(Network {
                 id: Some("DefaultTestNetworkId".to_string()),
+                ipam: Some(Ipam {
+                    config: Some(vec![IpamConfig {
+                        subnet: Some("10.18.0.0/16".to_string()),
+                        gateway: Some("10.18.0.100".to_string()),
+                        ..IpamConfig::default()
+                    }]),
+                    ..Ipam::default()
+                }),
                 ..Network::default()
             })
         });
@@ -651,6 +802,18 @@ mod tests {
         };
         assert_eq!(instances.gems().len(), 1);
         assert!(instances.gems().contains_key(&instance_id));
+        assert_eq!(
+            instances
+                .gems()
+                .get(&instance_id)
+                .unwrap()
+                .config
+                .network_addresses,
+            HashMap::from([(
+                "DefaultTestNetworkId".to_string(),
+                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
+            )])
+        );
     }
     #[tokio::test]
     async fn create_instance_app_not_installed() {

@@ -14,17 +14,6 @@ const USB_DEVICE_PATH: &str = "/dev/bus/usb/";
 #[cfg(test)]
 const USB_DEVICE_PATH: &str = "/tmp/flecs-tests/dev/bus/usb/";
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub struct MacAddress {
-    data: [u8; 8],
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub struct NetworkAddress {
-    ip_addr: IpAddr,
-    mac_address: MacAddress,
-}
-
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct InstanceConfig {
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
@@ -34,7 +23,7 @@ pub struct InstanceConfig {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub port_mapping: Vec<PortMapping>,
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    pub network_addresses: HashMap<NetworkId, Option<NetworkAddress>>,
+    pub network_addresses: HashMap<NetworkId, IpAddr>,
     #[serde(skip_serializing_if = "HashSet::is_empty", default)]
     pub usb_devices: HashSet<UsbDevice>,
 }
@@ -73,6 +62,34 @@ impl InstanceConfig {
                 ..Default::default()
             })
             .collect()
+    }
+
+    pub fn generate_network_config(&self) -> bollard::container::NetworkingConfig<String> {
+        let endpoints_config = self
+            .network_addresses
+            .iter()
+            .map(|(id, address)| {
+                let endpoint_ipam_config = match address {
+                    IpAddr::V4(address) => bollard::models::EndpointIpamConfig {
+                        ipv4_address: Some(address.to_string()),
+                        ..Default::default()
+                    },
+                    IpAddr::V6(address) => bollard::models::EndpointIpamConfig {
+                        ipv6_address: Some(address.to_string()),
+                        ..Default::default()
+                    },
+                };
+                (
+                    id.clone(),
+                    bollard::models::EndpointSettings {
+                        ip_address: Some(address.to_string()),
+                        ipam_config: Some(endpoint_ipam_config),
+                        ..Default::default()
+                    },
+                )
+            })
+            .collect();
+        bollard::container::NetworkingConfig { endpoints_config }
     }
 }
 
@@ -139,6 +156,7 @@ pub(crate) mod tests {
     use crate::relic::device::usb::tests::prepare_usb_device_test_path;
     use bollard::models::Mount;
     use std::fs;
+    use std::net::{Ipv4Addr, Ipv6Addr};
     use std::path::{Path, PathBuf};
 
     #[test]
@@ -494,5 +512,155 @@ pub(crate) mod tests {
                     .to_string()
             ),
         }));
+    }
+
+    #[test]
+    fn generate_network_config_empty() {
+        let config = InstanceConfig {
+            network_addresses: HashMap::from([]),
+            ..InstanceConfig::default()
+        };
+        assert_eq!(
+            config.generate_network_config(),
+            bollard::container::NetworkingConfig {
+                endpoints_config: HashMap::from([]),
+            }
+        )
+    }
+
+    #[test]
+    fn generate_network_config_single_ipv4() {
+        let config = InstanceConfig {
+            network_addresses: HashMap::from([(
+                "test-network".to_string(),
+                IpAddr::V4(Ipv4Addr::new(160, 80, 40, 20)),
+            )]),
+            ..InstanceConfig::default()
+        };
+        assert_eq!(
+            config.generate_network_config(),
+            bollard::container::NetworkingConfig {
+                endpoints_config: HashMap::from([(
+                    "test-network".to_string(),
+                    bollard::models::EndpointSettings {
+                        ip_address: Some("160.80.40.20".to_string()),
+                        ipam_config: Some(bollard::models::EndpointIpamConfig {
+                            ipv4_address: Some("160.80.40.20".to_string()),
+                            ..Default::default()
+                        }),
+                        ..Default::default()
+                    }
+                )]),
+            }
+        )
+    }
+
+    #[test]
+    fn generate_network_config_single_ipv6() {
+        let config = InstanceConfig {
+            network_addresses: HashMap::from([(
+                "test-network".to_string(),
+                IpAddr::V6(Ipv6Addr::new(
+                    0xab, 0xcd, 0xef, 0x12, 0x34, 0x45, 0x67, 0x89,
+                )),
+            )]),
+            ..InstanceConfig::default()
+        };
+        assert_eq!(
+            config.generate_network_config(),
+            bollard::container::NetworkingConfig {
+                endpoints_config: HashMap::from([(
+                    "test-network".to_string(),
+                    bollard::models::EndpointSettings {
+                        ip_address: Some("ab:cd:ef:12:34:45:67:89".to_string()),
+                        ipam_config: Some(bollard::models::EndpointIpamConfig {
+                            ipv6_address: Some("ab:cd:ef:12:34:45:67:89".to_string()),
+                            ..Default::default()
+                        }),
+                        ..Default::default()
+                    }
+                )]),
+            }
+        )
+    }
+
+    #[test]
+    fn generate_network_config_multiple() {
+        let config = InstanceConfig {
+            network_addresses: HashMap::from([
+                (
+                    "test-network1".to_string(),
+                    IpAddr::V6(Ipv6Addr::new(
+                        0xab, 0xcd, 0xef, 0x12, 0x34, 0x45, 0x67, 0x89,
+                    )),
+                ),
+                (
+                    "test-network2".to_string(),
+                    IpAddr::V4(Ipv4Addr::new(160, 80, 40, 20)),
+                ),
+                (
+                    "test-network3".to_string(),
+                    IpAddr::V6(Ipv6Addr::new(
+                        0xab, 0xcd, 0xef, 0x12, 0x34, 0x45, 0x67, 0x11,
+                    )),
+                ),
+                (
+                    "test-network4".to_string(),
+                    IpAddr::V4(Ipv4Addr::new(160, 80, 40, 200)),
+                ),
+            ]),
+            ..InstanceConfig::default()
+        };
+        assert_eq!(
+            config.generate_network_config(),
+            bollard::container::NetworkingConfig {
+                endpoints_config: HashMap::from([
+                    (
+                        "test-network1".to_string(),
+                        bollard::models::EndpointSettings {
+                            ip_address: Some("ab:cd:ef:12:34:45:67:89".to_string()),
+                            ipam_config: Some(bollard::models::EndpointIpamConfig {
+                                ipv6_address: Some("ab:cd:ef:12:34:45:67:89".to_string()),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }
+                    ),
+                    (
+                        "test-network2".to_string(),
+                        bollard::models::EndpointSettings {
+                            ip_address: Some("160.80.40.20".to_string()),
+                            ipam_config: Some(bollard::models::EndpointIpamConfig {
+                                ipv4_address: Some("160.80.40.20".to_string()),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }
+                    ),
+                    (
+                        "test-network3".to_string(),
+                        bollard::models::EndpointSettings {
+                            ip_address: Some("ab:cd:ef:12:34:45:67:11".to_string()),
+                            ipam_config: Some(bollard::models::EndpointIpamConfig {
+                                ipv6_address: Some("ab:cd:ef:12:34:45:67:11".to_string()),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }
+                    ),
+                    (
+                        "test-network4".to_string(),
+                        bollard::models::EndpointSettings {
+                            ip_address: Some("160.80.40.200".to_string()),
+                            ipam_config: Some(bollard::models::EndpointIpamConfig {
+                                ipv4_address: Some("160.80.40.200".to_string()),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }
+                    ),
+                ]),
+            }
+        )
     }
 }
