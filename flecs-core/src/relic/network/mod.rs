@@ -9,6 +9,7 @@ use std::ffi::CStr;
 use std::fmt::{Display, Formatter};
 use std::mem::MaybeUninit;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, TcpListener};
+use std::ops::Range;
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -83,13 +84,64 @@ pub struct Ipv4Network {
     size: u8,
 }
 
+pub struct Ipv4Iterator {
+    current: u32,
+    max: u32,
+}
+
+impl Ipv4Iterator {
+    pub fn contains(&self, address: Ipv4Addr) -> bool {
+        (self.current..self.max).contains(&u32::from(address))
+    }
+}
+
+impl Iterator for Ipv4Iterator {
+    type Item = Ipv4Addr;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current >= self.max {
+            None
+        } else {
+            let next = Some(Ipv4Addr::from(self.current));
+            self.current += 1;
+            next
+        }
+    }
+}
+
+impl From<Range<u32>> for Ipv4Iterator {
+    fn from(value: Range<u32>) -> Self {
+        Self {
+            current: value.start,
+            max: value.end,
+        }
+    }
+}
+
+impl Ipv4Iterator {
+    fn new(start: Ipv4Addr, end_exclusive: Ipv4Addr) -> Self {
+        (start.into()..end_exclusive.into()).into()
+    }
+}
+
 impl Ipv4Network {
     pub fn try_new(address: Ipv4Addr, size: u8) -> crate::Result<Self> {
-        const ZERO: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 0);
         anyhow::ensure!(size <= 32, "Network size has to be 32 or less, not {size}");
         let mask = Ipv4Addr::from(0xffffffff >> size);
-        anyhow::ensure!((address & mask) == ZERO, "Address part of network is not 0");
+        anyhow::ensure!(
+            (address & mask) == Ipv4Addr::UNSPECIFIED,
+            "Address part of network is not 0"
+        );
         Ok(Self { address, size })
+    }
+
+    pub fn iter(&self) -> Ipv4Iterator {
+        let start = Ipv4Addr::from(u32::from(self.address) + 2_u32);
+        Ipv4Iterator::new(start, self.broadcast())
+    }
+
+    pub fn broadcast(&self) -> Ipv4Addr {
+        (u32::from(self.address) | 0xffffffff >> self.size).into()
     }
 }
 
@@ -562,6 +614,50 @@ mod tests {
     }
 
     #[test]
+    fn ipv4_network_broadcast() {
+        assert_eq!(
+            Ipv4Network {
+                address: Ipv4Addr::new(0b10100101, 0b11010100, 0b10100000, 0x00000000),
+                size: 20,
+            }
+            .broadcast(),
+            Ipv4Addr::new(0b10100101, 0b11010100, 0b10101111, 0b11111111)
+        );
+        assert_eq!(
+            Ipv4Network {
+                address: Ipv4Addr::new(0b10100101, 0b11010100, 0b10100000, 0x00000000),
+                size: 30,
+            }
+            .broadcast(),
+            Ipv4Addr::new(0b10100101, 0b11010100, 0b10100000, 0b00000011)
+        );
+        assert_eq!(
+            Ipv4Network {
+                address: Ipv4Addr::new(0xaa, 0xa0, 0x00, 0x00),
+                size: 12,
+            }
+            .broadcast(),
+            Ipv4Addr::new(0xaa, 0xaf, 0xff, 0xff)
+        );
+    }
+
+    #[test]
+    fn ipv4_network_iter() {
+        let base = Ipv4Addr::new(10, 40, 0b10101000, 0);
+        let size = 22;
+        let iter = Ipv4Network {
+            address: base,
+            size,
+        }
+        .iter();
+        assert_eq!(
+            iter.current,
+            u32::from(Ipv4Addr::new(10, 40, 0b10101000, 2))
+        );
+        assert_eq!(iter.max, u32::from(Ipv4Addr::new(10, 40, 0b10101011, 255)));
+    }
+
+    #[test]
     fn default_flecs_network() {
         assert_eq!(
             Ipv4Network::default(),
@@ -576,5 +672,65 @@ mod tests {
     fn random_port_test() {
         let random_port = get_random_free_port().unwrap();
         TcpListener::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, random_port)).unwrap();
+    }
+
+    #[test]
+    fn ipv4_iterator_new() {
+        let start = Ipv4Addr::new(10, 20, 30, 40);
+        let end = Ipv4Addr::new(10, 20, 30, 200);
+        let iterator = Ipv4Iterator::new(start, end);
+        assert_eq!(iterator.current, u32::from(start));
+        assert_eq!(iterator.max, u32::from(end));
+    }
+
+    #[test]
+    fn ipv4_iterator_from_range() {
+        let start = 200;
+        let end = 2000;
+        let iterator = Ipv4Iterator::from(start..end);
+        assert_eq!(iterator.current, start);
+        assert_eq!(iterator.max, end);
+    }
+
+    #[test]
+    fn ipv4_iterator_next() {
+        let start = 5;
+        let end = 10;
+        let mut iterator = Ipv4Iterator {
+            current: start,
+            max: end,
+        };
+        assert_eq!(iterator.next(), Some(Ipv4Addr::from(5)));
+        assert_eq!(iterator.next(), Some(Ipv4Addr::from(6)));
+        assert_eq!(iterator.next(), Some(Ipv4Addr::from(7)));
+        assert_eq!(iterator.next(), Some(Ipv4Addr::from(8)));
+        assert_eq!(iterator.next(), Some(Ipv4Addr::from(9)));
+        assert_eq!(iterator.next(), None);
+    }
+
+
+    #[test]
+    fn ipv4_iterator_contains() {
+        let mut iter = Ipv4Iterator {
+            current: 10,
+            max: 14,
+        };
+        assert!(!iter.contains(Ipv4Addr::from(8)));
+        assert!(!iter.contains(Ipv4Addr::from(9)));
+        assert!(iter.contains(Ipv4Addr::from(10)));
+        assert!(iter.contains(Ipv4Addr::from(11)));
+        assert!(iter.contains(Ipv4Addr::from(12)));
+        assert!(iter.contains(Ipv4Addr::from(13)));
+        assert!(!iter.contains(Ipv4Addr::from(14)));
+        assert!(!iter.contains(Ipv4Addr::from(15)));
+        iter.next();
+        assert!(!iter.contains(Ipv4Addr::from(8)));
+        assert!(!iter.contains(Ipv4Addr::from(9)));
+        assert!(!iter.contains(Ipv4Addr::from(10)));
+        assert!(iter.contains(Ipv4Addr::from(11)));
+        assert!(iter.contains(Ipv4Addr::from(12)));
+        assert!(iter.contains(Ipv4Addr::from(13)));
+        assert!(!iter.contains(Ipv4Addr::from(14)));
+        assert!(!iter.contains(Ipv4Addr::from(15)));
     }
 }
