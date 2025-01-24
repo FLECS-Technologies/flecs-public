@@ -943,7 +943,10 @@ location /v2/instances/12345678/editor/7799 {
 
     #[test]
     fn create_reverse_proxy_config_outside_base_path() {
-        let test_dir = prepare_test_path(module_path!(), "create_reverse_proxy_config_new_config");
+        let test_dir = prepare_test_path(
+            module_path!(),
+            "create_reverse_proxy_config_outside_base_path",
+        );
         let base_dir = test_dir.join("base");
         let config_dir = test_dir.join("config");
         let config_path = config_dir.join("test.conf");
