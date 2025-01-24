@@ -4,7 +4,7 @@ use libc::{
 };
 use procfs::net::RouteEntry;
 use procfs::ProcError;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CStr;
 use std::fmt::{Display, Formatter};
 use std::mem::MaybeUninit;
@@ -82,6 +82,61 @@ pub enum Network {
 pub struct Ipv4Network {
     address: Ipv4Addr,
     size: u8,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub struct Ipv4NetworkAccess {
+    network: Ipv4Network,
+    gateway: Ipv4Addr,
+}
+
+impl Ipv4NetworkAccess {
+    pub fn next_free_ipv4_address(
+        &self,
+        mut unavailable_addresses: HashSet<Ipv4Addr>,
+    ) -> Option<Ipv4Addr> {
+        unavailable_addresses.insert(self.gateway);
+        self.network
+            .iter()
+            .find(|address| !unavailable_addresses.contains(address))
+    }
+
+    pub fn try_new(network: Ipv4Network, gateway: Ipv4Addr) -> crate::Result<Self> {
+        anyhow::ensure!(
+            network.iter().contains(gateway),
+            "The gateway has to be part of the network."
+        );
+        Ok(Self { network, gateway })
+    }
+}
+
+impl TryFrom<bollard::models::Network> for Ipv4NetworkAccess {
+    type Error = crate::Error;
+
+    fn try_from(value: bollard::models::Network) -> std::result::Result<Self, Self::Error> {
+        let config = value
+            .ipam
+            .ok_or_else(|| anyhow::anyhow!("No ipam present"))?
+            .config
+            .ok_or_else(|| anyhow::anyhow!("No ipam config present"))?
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("No network in ipam config present"))?
+            .clone();
+        let network = Ipv4Network::from_str(
+            config
+                .subnet
+                .as_deref()
+                .ok_or_else(|| anyhow::anyhow!("No subnet in ipam network config present"))?,
+        )?;
+        Ok(Self {
+            network,
+            gateway: Ipv4Addr::from_str(
+                &config
+                    .gateway
+                    .ok_or_else(|| anyhow::anyhow!("No gateway in ipam network config present"))?,
+            )?,
+        })
+    }
 }
 
 pub struct Ipv4Iterator {
@@ -708,6 +763,235 @@ mod tests {
         assert_eq!(iterator.next(), None);
     }
 
+    #[test]
+    fn next_free_ipv4_address_all_available() {
+        let network = Ipv4NetworkAccess {
+            network: Ipv4Network {
+                address: Ipv4Addr::new(123, 123, 123, 0),
+                size: 24,
+            },
+            gateway: Ipv4Addr::new(123, 123, 123, 254),
+        };
+        assert_eq!(
+            network.next_free_ipv4_address(HashSet::default()),
+            Some(Ipv4Addr::new(123, 123, 123, 2))
+        );
+    }
+
+    #[test]
+    fn next_free_ipv4_address_skip_gateway() {
+        let network = Ipv4NetworkAccess {
+            network: Ipv4Network {
+                address: Ipv4Addr::new(123, 123, 123, 0),
+                size: 24,
+            },
+            gateway: Ipv4Addr::new(123, 123, 123, 2),
+        };
+        assert_eq!(
+            network.next_free_ipv4_address(HashSet::default()),
+            Some(Ipv4Addr::new(123, 123, 123, 3))
+        );
+    }
+
+    #[test]
+    fn next_free_ipv4_address_none_available() {
+        let network = Ipv4NetworkAccess {
+            network: Ipv4Network {
+                address: Ipv4Addr::new(123, 123, 123, 0),
+                size: 24,
+            },
+            gateway: Ipv4Addr::new(123, 123, 123, 2),
+        };
+        let unavailable_ips = (3..255).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
+        assert_eq!(network.next_free_ipv4_address(unavailable_ips), None);
+    }
+
+    #[test]
+    fn next_free_ipv4_address_2_available() {
+        let network = Ipv4NetworkAccess {
+            network: Ipv4Network {
+                address: Ipv4Addr::new(123, 123, 123, 0),
+                size: 24,
+            },
+            gateway: Ipv4Addr::new(123, 123, 123, 3),
+        };
+        let unavailable_ips = (4..255).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
+        assert_eq!(
+            network.next_free_ipv4_address(unavailable_ips),
+            Some(Ipv4Addr::new(123, 123, 123, 2)),
+        );
+    }
+
+    #[test]
+    fn next_free_ipv4_address_254_available() {
+        let network = Ipv4NetworkAccess {
+            network: Ipv4Network {
+                address: Ipv4Addr::new(123, 123, 123, 0),
+                size: 24,
+            },
+            gateway: Ipv4Addr::new(123, 123, 123, 2),
+        };
+        let unavailable_ips = (3..254).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
+        assert_eq!(
+            network.next_free_ipv4_address(unavailable_ips),
+            Some(Ipv4Addr::new(123, 123, 123, 254)),
+        );
+    }
+
+    #[test]
+    fn next_free_ipv4_address_100_available() {
+        let network = Ipv4NetworkAccess {
+            network: Ipv4Network {
+                address: Ipv4Addr::new(123, 123, 123, 0),
+                size: 24,
+            },
+            gateway: Ipv4Addr::new(123, 123, 123, 2),
+        };
+        let unavailable_ips = (3..100).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
+        assert_eq!(
+            network.next_free_ipv4_address(unavailable_ips),
+            Some(Ipv4Addr::new(123, 123, 123, 100)),
+        );
+    }
+
+    #[test]
+    fn try_ipv4_network_access_from_bollard_network_ok() {
+        let bollard_network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("10.18.100.0/22".to_string()),
+                    gateway: Some("10.18.100.10".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let expected_network = Ipv4NetworkAccess {
+            network: Ipv4Network {
+                address: Ipv4Addr::new(10, 18, 100, 0),
+                size: 22,
+            },
+            gateway: Ipv4Addr::new(10, 18, 100, 10),
+        };
+        assert_eq!(
+            Ipv4NetworkAccess::try_from(bollard_network).unwrap(),
+            expected_network
+        );
+    }
+
+    #[test]
+    fn try_ipv4_network_access_from_bollard_network_invalid_gateway() {
+        let bollard_network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("10.18.100.0/22".to_string()),
+                    gateway: Some("10.18.1000.10".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
+    }
+
+    #[test]
+    fn try_ipv4_network_access_from_bollard_network_no_gateway() {
+        let bollard_network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("10.18.100.0/22".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
+    }
+
+    #[test]
+    fn try_ipv4_network_access_from_bollard_network_no_subnet() {
+        let bollard_network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    gateway: Some("10.18.100.10".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
+    }
+
+    #[test]
+    fn try_ipv4_network_access_from_bollard_network_invalid_subnet() {
+        let bollard_network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("10.18.100.0/7".to_string()),
+                    gateway: Some("10.18.100.10".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
+    }
+
+    #[test]
+    fn try_ipv4_network_access_from_bollard_network_empty_ipam_configs() {
+        let bollard_network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
+    }
+
+    #[test]
+    fn try_ipv4_network_access_from_bollard_network_no_ipam_configs() {
+        let bollard_network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: None,
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
+    }
+
+    #[test]
+    fn try_ipv4_network_access_from_bollard_network_no_ipam() {
+        let bollard_network = bollard::models::Network {
+            ipam: None,
+            ..Default::default()
+        };
+        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
+    }
+
+    #[test]
+    fn try_new_ipv4_network_access_ok() {
+        Ipv4NetworkAccess::try_new(
+            Ipv4Network::try_new(Ipv4Addr::new(10, 20, 0, 0), 16).unwrap(),
+            Ipv4Addr::new(10, 20, 20, 100),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn try_new_ipv4_network_access_err() {
+        assert!(Ipv4NetworkAccess::try_new(
+            Ipv4Network::try_new(Ipv4Addr::new(10, 20, 0, 0), 16).unwrap(),
+            Ipv4Addr::new(10, 10, 20, 100),
+        )
+        .is_err());
+    }
 
     #[test]
     fn ipv4_iterator_contains() {
