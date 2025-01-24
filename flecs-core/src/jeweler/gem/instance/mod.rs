@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::mem::swap;
+use std::net::IpAddr;
 use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -127,6 +128,7 @@ impl From<&Instance> for Config<String> {
             host_config,
             cmd,
             exposed_ports,
+            networking_config: Some(instance.config.generate_network_config()),
             ..Default::default()
         }
     }
@@ -406,6 +408,7 @@ impl Instance {
         deployment: Arc<dyn Deployment>,
         manifest: Arc<AppManifest>,
         name: String,
+        address: IpAddr,
     ) -> anyhow::Result<Self> {
         let instance_id = InstanceId::new_random();
         let port_mapping = manifest.ports.clone();
@@ -462,7 +465,7 @@ impl Instance {
             environment_variables,
             port_mapping,
             volume_mounts,
-            network_addresses: HashMap::from([(default_network_id, None)]),
+            network_addresses: HashMap::from([(default_network_id, address)]),
             usb_devices: HashSet::new(),
         };
         Ok(Self {
@@ -705,6 +708,7 @@ pub mod tests {
     };
     use std::fs::File;
     use std::io::Write;
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
     use std::num::IntErrorKind;
     use std::path::PathBuf;
 
@@ -1189,11 +1193,13 @@ pub mod tests {
             .times(1)
             .returning(|_, _| Ok("TestVolumeId".to_string()));
         let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let address = IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123));
         let instance = Instance::create(
             Quest::new_synced("TestQuest".to_string()),
             deployment,
             manifest.clone(),
             "TestInstance".to_string(),
+            address,
         )
         .await
         .unwrap();
@@ -1205,7 +1211,7 @@ pub mod tests {
         );
         assert_eq!(
             &instance.config.network_addresses,
-            &HashMap::from([("DefaultTestNetworkId".to_string(), None)])
+            &HashMap::from([("DefaultTestNetworkId".to_string(), address)])
         );
         assert_eq!(
             &instance.config.volume_mounts,
@@ -1239,6 +1245,7 @@ pub mod tests {
             deployment,
             manifest.clone(),
             "TestInstance".to_string(),
+            IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
         )
         .await
         .is_err());
@@ -1258,6 +1265,7 @@ pub mod tests {
             deployment,
             manifest.clone(),
             "TestInstance".to_string(),
+            IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
         )
         .await
         .is_err());
@@ -1277,6 +1285,7 @@ pub mod tests {
             deployment,
             manifest.clone(),
             "TestInstance".to_string(),
+            IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
         )
         .await
         .is_err());
@@ -1458,8 +1467,18 @@ pub mod tests {
         let deployment = MockedDeployment::new();
         let deployment = Arc::new(deployment);
         let manifest = Arc::new(create_test_manifest_full(Some(true)));
-        let instance = &test_instance(123, deployment, manifest);
-        let config: Config<String> = instance.into();
+        let mut instance = test_instance(123, deployment, manifest);
+        instance.config.network_addresses.insert(
+            "Ipv4Network".to_string(),
+            IpAddr::V4(Ipv4Addr::new(20, 22, 24, 26)),
+        );
+        instance.config.network_addresses.insert(
+            "Ipv6Network".to_string(),
+            IpAddr::V6(Ipv6Addr::new(
+                0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+            )),
+        );
+        let config: Config<String> = (&instance).into();
         assert_eq!(
             config.image,
             Some("flecs.azurecr.io/some.test.app:1.2.1".to_string())
@@ -1546,6 +1565,35 @@ pub mod tests {
         for expected_device_mapping in expected_device_mappings {
             assert!(resulting_device_mappings.contains(&expected_device_mapping));
         }
+        assert_eq!(
+            config.networking_config,
+            Some(bollard::container::NetworkingConfig {
+                endpoints_config: HashMap::from([
+                    (
+                        "Ipv6Network".to_string(),
+                        bollard::models::EndpointSettings {
+                            ip_address: Some("11:22:33:44:55:66:77:88".to_string()),
+                            ipam_config: Some(bollard::models::EndpointIpamConfig {
+                                ipv6_address: Some("11:22:33:44:55:66:77:88".to_string()),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }
+                    ),
+                    (
+                        "Ipv4Network".to_string(),
+                        bollard::models::EndpointSettings {
+                            ip_address: Some("20.22.24.26".to_string()),
+                            ipam_config: Some(bollard::models::EndpointIpamConfig {
+                                ipv4_address: Some("20.22.24.26".to_string()),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }
+                    ),
+                ]),
+            })
+        )
     }
 
     #[test]

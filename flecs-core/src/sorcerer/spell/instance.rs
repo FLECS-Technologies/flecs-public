@@ -3,9 +3,11 @@ use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::{Instance, InstanceId};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
+use crate::relic::network::Ipv4NetworkAccess;
 use crate::vault::pouch::Pouch;
 use crate::vault::Vault;
 use futures_util::future::join_all;
+use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
 use tracing::error;
 
@@ -14,8 +16,9 @@ pub async fn create_instance(
     deployment: Arc<dyn Deployment>,
     manifest: Arc<AppManifest>,
     name: String,
+    address: IpAddr,
 ) -> Result<Instance> {
-    Instance::create(quest, deployment, manifest, name).await
+    Instance::create(quest, deployment, manifest, name, address).await
 }
 
 pub async fn start_instance(
@@ -133,6 +136,33 @@ pub async fn get_instance_detailed_info(
     }
 }
 
+pub async fn clear_ip_reservation(vault: Arc<Vault>, ip_addr: IpAddr) {
+    vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Vault reservations should never fail")
+        .clear_ip_address_reservation(ip_addr);
+}
+
+pub async fn make_ipv4_reservation(
+    vault: Arc<Vault>,
+    network: Ipv4NetworkAccess,
+) -> Option<Ipv4Addr> {
+    vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Vault reservations should never fail")
+        .reserve_free_ipv4_address(network)
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -141,6 +171,7 @@ pub mod tests {
         try_create_instance, InstanceDeserializable, InstanceStatus,
     };
     use crate::quest::Quest;
+    use crate::relic::network::Ipv4Network;
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::deployment::DeploymentId;
     use crate::vault::pouch::instance::tests::{
@@ -375,5 +406,67 @@ pub mod tests {
         )
         .await
         .is_err());
+    }
+
+    #[tokio::test]
+    async fn make_ip_reservation_test() {
+        let vault = create_test_vault(module_path!(), "make_ip_reservation_test", Some(true)).await;
+        let network = Ipv4NetworkAccess::try_new(
+            Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
+            Ipv4Addr::new(10, 18, 102, 2),
+        )
+        .unwrap();
+        assert_eq!(
+            make_ipv4_reservation(vault, network).await,
+            Some(Ipv4Addr::new(10, 18, 102, 3)),
+        );
+    }
+
+    #[tokio::test]
+    async fn clear_ip_reservation_test() {
+        let vault =
+            create_test_vault(module_path!(), "clear_ip_reservation_test", Some(true)).await;
+        let network = Ipv4NetworkAccess::try_new(
+            Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
+            Ipv4Addr::new(10, 18, 102, 2),
+        )
+        .unwrap();
+        assert_eq!(
+            vault
+                .reservation()
+                .reserve_instance_pouch_mut()
+                .grab()
+                .await
+                .instance_pouch_mut
+                .as_mut()
+                .unwrap()
+                .reserve_free_ipv4_address(network),
+            Some(Ipv4Addr::new(10, 18, 102, 3)),
+        );
+        assert_eq!(
+            vault
+                .reservation()
+                .reserve_instance_pouch_mut()
+                .grab()
+                .await
+                .instance_pouch_mut
+                .as_mut()
+                .unwrap()
+                .reserve_free_ipv4_address(network),
+            Some(Ipv4Addr::new(10, 18, 102, 4)),
+        );
+        clear_ip_reservation(vault.clone(), IpAddr::V4(Ipv4Addr::new(10, 18, 102, 3))).await;
+        assert_eq!(
+            vault
+                .reservation()
+                .reserve_instance_pouch_mut()
+                .grab()
+                .await
+                .instance_pouch_mut
+                .as_mut()
+                .unwrap()
+                .reserve_free_ipv4_address(network),
+            Some(Ipv4Addr::new(10, 18, 102, 3)),
+        );
     }
 }

@@ -2,11 +2,13 @@ use crate::jeweler;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::{try_create_instance, Instance, InstanceDeserializable};
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::relic::network::Ipv4NetworkAccess;
 use crate::vault::pouch::deployment::DeploymentId;
 use crate::vault::pouch::{AppKey, Pouch};
 pub use crate::Result;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::error;
@@ -17,6 +19,7 @@ pub type InstanceId = jeweler::gem::instance::InstanceId;
 pub struct InstancePouch {
     path: PathBuf,
     instances: HashMap<InstanceId, Instance>,
+    reserved_ip_addresses: HashSet<IpAddr>,
 }
 
 impl Pouch for InstancePouch {
@@ -112,6 +115,42 @@ impl InstancePouch {
             })
             .collect()
     }
+
+    pub fn unavailable_ipv4_addresses(&self) -> HashSet<Ipv4Addr> {
+        let instance_ips = self.instances.values().flat_map(|instance| {
+            instance
+                .config
+                .network_addresses
+                .values()
+                .filter_map(|ip_addr| match ip_addr {
+                    IpAddr::V4(address) => Some(address),
+                    _ => None,
+                })
+        });
+        self.reserved_ip_addresses
+            .iter()
+            .filter_map(|address| match address {
+                IpAddr::V4(address) => Some(address),
+                _ => None,
+            })
+            .chain(instance_ips)
+            .cloned()
+            .collect()
+    }
+
+    pub fn reserve_free_ipv4_address(&mut self, network: Ipv4NetworkAccess) -> Option<Ipv4Addr> {
+        match network.next_free_ipv4_address(self.unavailable_ipv4_addresses()) {
+            None => None,
+            Some(address) => {
+                self.reserved_ip_addresses.insert(IpAddr::V4(address));
+                Some(address)
+            }
+        }
+    }
+
+    pub fn clear_ip_address_reservation(&mut self, address: IpAddr) {
+        self.reserved_ip_addresses.remove(&address);
+    }
 }
 
 impl InstancePouch {
@@ -119,6 +158,7 @@ impl InstancePouch {
         Self {
             path: path.to_path_buf(),
             instances: HashMap::default(),
+            reserved_ip_addresses: HashSet::default(),
         }
     }
 }
@@ -128,9 +168,11 @@ pub mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::gem::instance::{InstanceConfig, InstanceStatus};
+    use crate::relic::network::{Ipv4Iterator, Ipv4Network};
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::manifest::tests::create_test_manifest;
     use serde_json::Value;
+    use std::net::Ipv6Addr;
 
     pub fn create_manifest_for_instance(
         instance: &InstanceDeserializable,
@@ -393,6 +435,7 @@ pub mod tests {
         let mut pouch = InstancePouch {
             path: path.clone(),
             instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            reserved_ip_addresses: HashSet::default(),
         };
         pouch.close().unwrap();
         let data = fs::read_to_string(path.join(INSTANCES_FILE_NAME)).unwrap();
@@ -415,6 +458,7 @@ pub mod tests {
         let mut pouch = InstancePouch {
             path: path.clone(),
             instances: HashMap::new(),
+            reserved_ip_addresses: HashSet::default(),
         };
         fs::write(
             path.join(INSTANCES_FILE_NAME),
@@ -422,6 +466,7 @@ pub mod tests {
         )
         .unwrap();
         pouch.open(&manifests, &deployments).unwrap();
+        assert!(pouch.reserved_ip_addresses.is_empty());
         assert_eq!(pouch.instances.len(), instances.len());
         for instance in instances {
             assert!(pouch.instances.contains_key(&instance.id));
@@ -436,6 +481,7 @@ pub mod tests {
         let mut pouch = InstancePouch {
             path: path.clone(),
             instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            reserved_ip_addresses: HashSet::default(),
         };
         for gem in gems {
             assert!(pouch.gems().contains_key(&gem.0));
@@ -450,6 +496,7 @@ pub mod tests {
         let pouch = InstancePouch {
             path: path.clone(),
             instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            reserved_ip_addresses: HashSet::default(),
         };
         assert_eq!(pouch.instances.len(), 6);
         let instance_ids_by_app_key = pouch.instance_ids_by_app_key(AppKey {
@@ -468,6 +515,7 @@ pub mod tests {
         let pouch = InstancePouch {
             path: path.clone(),
             instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            reserved_ip_addresses: HashSet::default(),
         };
         assert_eq!(pouch.instances.len(), 6);
         let instance_ids_by_app_name =
@@ -485,6 +533,7 @@ pub mod tests {
         let pouch = InstancePouch {
             path: path.clone(),
             instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            reserved_ip_addresses: HashSet::default(),
         };
         assert_eq!(pouch.instances.len(), 6);
         let instance_ids_by_app_version = pouch.instance_ids_by_app_version("1.2.4".to_string());
@@ -493,5 +542,234 @@ pub mod tests {
         assert!(instance_ids_by_app_version.contains(&InstanceId::new(3)));
         assert!(instance_ids_by_app_version.contains(&InstanceId::new(4)));
         assert!(instance_ids_by_app_version.contains(&InstanceId::new(5)));
+    }
+
+    #[test]
+    fn unavailable_ipv4_addresses_empty() {
+        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_empty");
+        let pouch = InstancePouch {
+            path: path.clone(),
+            instances: HashMap::default(),
+            reserved_ip_addresses: HashSet::default(),
+        };
+        assert!(pouch.unavailable_ipv4_addresses().is_empty());
+    }
+
+    #[test]
+    fn unavailable_ipv4_addresses_some_reserved() {
+        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_some_reserved");
+        let ipv4_addresses = [
+            Ipv4Addr::new(5, 10, 20, 40),
+            Ipv4Addr::new(1, 2, 3, 4),
+            Ipv4Addr::new(56, 84, 71, 93),
+        ];
+        let pouch = InstancePouch {
+            path: path.clone(),
+            instances: HashMap::default(),
+            reserved_ip_addresses: ipv4_addresses
+                .iter()
+                .map(|ipv4_address| (*ipv4_address).into())
+                .collect(),
+        };
+        assert_eq!(
+            pouch.unavailable_ipv4_addresses(),
+            HashSet::from(ipv4_addresses)
+        );
+    }
+
+    #[test]
+    fn unavailable_ipv4_addresses_some_instances() {
+        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_some_instances");
+        let (instances, manifests, deployments) = create_test_data();
+        let mut pouch = InstancePouch {
+            path: path.clone(),
+            instances: InstancePouch::create_instances(instances.clone(), &manifests, &deployments),
+            reserved_ip_addresses: HashSet::default(),
+        };
+        for instance in pouch.instances.values_mut() {
+            instance.config.network_addresses.insert(
+                format!("TestNetwork-{}", instance.id),
+                IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
+            );
+        }
+        pouch
+            .instances
+            .get_mut(&InstanceId::new(1))
+            .unwrap()
+            .config
+            .network_addresses
+            .insert(
+                "DoubleTestNetwork".to_string(),
+                IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40)),
+            );
+        let expected_ipv4_addresses = HashSet::from([
+            Ipv4Addr::new(1, 2, 3, 1),
+            Ipv4Addr::new(1, 2, 3, 2),
+            Ipv4Addr::new(1, 2, 3, 3),
+            Ipv4Addr::new(1, 2, 3, 4),
+            Ipv4Addr::new(1, 2, 3, 5),
+            Ipv4Addr::new(1, 2, 3, 6),
+            Ipv4Addr::new(10, 20, 30, 40),
+        ]);
+        assert_eq!(pouch.unavailable_ipv4_addresses(), expected_ipv4_addresses);
+    }
+
+    #[test]
+    fn unavailable_ipv4_addresses_some() {
+        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_some");
+        let (instances, manifests, deployments) = create_test_data();
+        let mut pouch = InstancePouch {
+            path: path.clone(),
+            instances: InstancePouch::create_instances(instances.clone(), &manifests, &deployments),
+            reserved_ip_addresses: HashSet::from([
+                IpAddr::V4(Ipv4Addr::new(5, 10, 20, 40)),
+                IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4)),
+                IpAddr::V4(Ipv4Addr::new(56, 84, 71, 93)),
+            ]),
+        };
+        let expected_ipv4_addresses = HashSet::from([
+            Ipv4Addr::new(5, 10, 20, 40),
+            Ipv4Addr::new(1, 2, 3, 4),
+            Ipv4Addr::new(56, 84, 71, 93),
+            Ipv4Addr::new(1, 2, 3, 1),
+            Ipv4Addr::new(1, 2, 3, 2),
+            Ipv4Addr::new(1, 2, 3, 3),
+            Ipv4Addr::new(1, 2, 3, 4),
+            Ipv4Addr::new(1, 2, 3, 5),
+            Ipv4Addr::new(1, 2, 3, 6),
+            Ipv4Addr::new(10, 20, 30, 40),
+        ]);
+        for instance in pouch.instances.values_mut() {
+            instance.config.network_addresses.insert(
+                format!("TestNetwork-{}", instance.id),
+                IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
+            );
+        }
+        pouch
+            .instances
+            .get_mut(&InstanceId::new(1))
+            .unwrap()
+            .config
+            .network_addresses
+            .insert(
+                "DoubleTestNetwork".to_string(),
+                IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40)),
+            );
+        assert_eq!(pouch.unavailable_ipv4_addresses(), expected_ipv4_addresses);
+    }
+
+    #[test]
+    fn unavailable_ipv4_addresses_ipv6_skipped() {
+        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_ipv6_skipped");
+        let (instances, manifests, deployments) = create_test_data();
+        let mut pouch = InstancePouch {
+            path: path.clone(),
+            instances: InstancePouch::create_instances(instances.clone(), &manifests, &deployments),
+            reserved_ip_addresses: HashSet::from([
+                IpAddr::V6(Ipv6Addr::new(
+                    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x81,
+                )),
+                IpAddr::V6(Ipv6Addr::new(
+                    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x82,
+                )),
+                IpAddr::V6(Ipv6Addr::new(
+                    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x83,
+                )),
+            ]),
+        };
+        for instance in pouch.instances.values_mut() {
+            instance.config.network_addresses.insert(
+                format!("TestNetwork-{}", instance.id),
+                IpAddr::V6(Ipv6Addr::new(1, 2, 3, 4, 5, 6, 7, instance.id.value as u16)),
+            );
+        }
+        pouch
+            .instances
+            .get_mut(&InstanceId::new(1))
+            .unwrap()
+            .config
+            .network_addresses
+            .insert(
+                "DoubleTestNetwork".to_string(),
+                IpAddr::V6(Ipv6Addr::new(
+                    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x84,
+                )),
+            );
+        assert!(pouch.unavailable_ipv4_addresses().is_empty());
+    }
+
+    #[test]
+    fn clear_ip_address_reservation_test() {
+        let path = prepare_test_path(module_path!(), "clear_ip_address_reservation_test");
+        let ip1 = IpAddr::V6(Ipv6Addr::new(
+            0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x81,
+        ));
+        let ip2 = IpAddr::V6(Ipv6Addr::new(
+            0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x82,
+        ));
+        let ip3 = IpAddr::V6(Ipv6Addr::new(
+            0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x83,
+        ));
+        let mut pouch = InstancePouch {
+            path: path.clone(),
+            instances: HashMap::default(),
+            reserved_ip_addresses: HashSet::from([ip1, ip2, ip3]),
+        };
+        pouch.clear_ip_address_reservation(ip1);
+        assert_eq!(pouch.reserved_ip_addresses, HashSet::from([ip2, ip3]));
+        pouch.clear_ip_address_reservation(ip3);
+        assert_eq!(pouch.reserved_ip_addresses, HashSet::from([ip2]));
+        pouch.clear_ip_address_reservation(ip2);
+        assert!(pouch.reserved_ip_addresses.is_empty());
+    }
+
+    #[test]
+    fn reserve_free_ipv4_address_some() {
+        let path = prepare_test_path(module_path!(), "reserve_free_ipv4_address_some");
+        let network = Ipv4NetworkAccess::try_new(
+            Ipv4Network::try_new(Ipv4Addr::new(20, 30, 40, 0), 24).unwrap(),
+            Ipv4Addr::new(20, 30, 40, 2),
+        )
+        .unwrap();
+        let (instances, manifests, deployments) = create_test_data();
+        let mut pouch = InstancePouch {
+            path: path.clone(),
+            instances: InstancePouch::create_instances(instances.clone(), &manifests, &deployments),
+            reserved_ip_addresses: HashSet::from([
+                IpAddr::V4(Ipv4Addr::new(20, 30, 40, 3)),
+                IpAddr::V4(Ipv4Addr::new(20, 30, 40, 4)),
+                IpAddr::V4(Ipv4Addr::new(20, 30, 40, 5)),
+            ]),
+        };
+        for (i, instance) in pouch.instances.values_mut().enumerate() {
+            instance.config.network_addresses.insert(
+                format!("TestNetwork-{}", instance.id),
+                IpAddr::V4(Ipv4Addr::new(20, 30, 40, (6 + i) as u8)),
+            );
+        }
+        assert_eq!(
+            pouch.reserve_free_ipv4_address(network),
+            Some(Ipv4Addr::new(20, 30, 40, 6 + pouch.instances.len() as u8))
+        )
+    }
+
+    #[test]
+    fn reserve_free_ipv4_address_none() {
+        let path = prepare_test_path(module_path!(), "reserve_free_ipv4_address_none");
+        let network = Ipv4NetworkAccess::try_new(
+            Ipv4Network::try_new(Ipv4Addr::new(20, 30, 40, 0), 24).unwrap(),
+            Ipv4Addr::new(20, 30, 40, 2),
+        )
+        .unwrap();
+        let mut pouch = InstancePouch {
+            path: path.clone(),
+            instances: HashMap::default(),
+            reserved_ip_addresses: Ipv4Iterator::from(
+                Ipv4Addr::new(20, 30, 40, 3).into()..Ipv4Addr::new(20, 30, 40, 255).into(),
+            )
+            .map(Into::into)
+            .collect(),
+        };
+        assert_eq!(pouch.reserve_free_ipv4_address(network), None)
     }
 }
