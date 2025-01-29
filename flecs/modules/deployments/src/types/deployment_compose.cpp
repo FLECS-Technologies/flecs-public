@@ -194,26 +194,25 @@ auto compose_t::do_start_instance(std::shared_ptr<instances::instance_t> instanc
     auto compose_json = app->manifest()->deployment().at("compose").at("yaml").dump();
 
     const auto project_name = std::string{"flecs-"} + instance->id().hex();
+    const auto workdir = "/var/lib/flecs/instances/" + instance->id().hex() + "/work";
+    auto ec = std::error_code{};
+    if (!fs::create_directories(workdir, ec)) {
+        return {-1, "Could not create working directory"};
+    }
 
-    /* Create containers */
+    /* Create and start containers */
     auto compose_process = process_t{};
     compose_process.stdin(compose_json);
     {
-        const auto res = compose_process.spawnp("docker-compose", "-p", project_name, "-f", "-", "create");
-        if (res < 0) {
-            return {res, {}};
-        }
-    }
-    compose_process.wait(false, true);
-    if (compose_process.exit_code() != 0) {
-        return {-1, compose_process.stderr()};
-    }
-
-    /* Start containers */
-    compose_process = process_t{};
-    compose_process.stdin(compose_json);
-    {
-        const auto res = compose_process.spawnp("docker-compose", "-p", project_name, "-f", "-", "start");
+        const auto res = compose_process.spawnp(
+            "docker-compose",
+            "-p",
+            project_name,
+            "--project-directory",
+            workdir,
+            "-f",
+            "-",
+            "up");
         if (res < 0) {
             return {res, {}};
         }
