@@ -95,8 +95,8 @@ mod tests {
     use crate::sorcerer::spell::instance::tests::create_test_vault;
     use crate::vault::pouch::manifest::tests::create_test_manifest;
     use crate::vault::pouch::AppKey;
-    use flecs_app_manifest::generated::manifest_3_0_0::{
-        FlecsAppManifest, FlecsAppManifestApp, FlecsAppManifestImage,
+    use flecs_app_manifest::generated::manifest_3_1_0::{
+        App as OtherApp, FlecsAppManifest, Image, Single, Version,
     };
     use std::str::FromStr;
 
@@ -108,31 +108,32 @@ mod tests {
     "statusText": "OK",
     "data": {
         "app": "tech.flecs.flunder",
-        "_schemaVersion": "3.0.0",
+        "_schemaVersion": "3.1.0",
         "version": "3.0.0",
         "image": "flecs.azurecr.io/tech.flecs.flunder"
     }
 }"#;
         const APP_NAME: &str = "tech.flecs.flunder";
         const APP_VERSION: &str = "3.0.0";
-        let expected_result = AppManifestVersion::V3_0_0(FlecsAppManifest {
-            app: FlecsAppManifestApp::from_str(APP_NAME).unwrap(),
-            args: vec![],
+        let expected_result = AppManifestVersion::V3_1_0(FlecsAppManifest::Single(Single {
+            app: OtherApp::from_str(APP_NAME).unwrap(),
+            args: None,
             capabilities: None,
-            conffiles: vec![],
-            devices: vec![],
-            editors: vec![],
-            env: vec![],
-            image: FlecsAppManifestImage::from_str("flecs.azurecr.io/tech.flecs.flunder").unwrap(),
+            conffiles: None,
+            devices: None,
+            editors: None,
+            env: None,
+            hostname: None,
+            image: Image::from_str("flecs.azurecr.io/tech.flecs.flunder").unwrap(),
             interactive: None,
-            labels: vec![],
+            labels: None,
             minimum_flecs_version: None,
             multi_instance: None,
-            ports: vec![],
+            ports: None,
             revision: None,
-            version: APP_VERSION.to_string(),
-            volumes: vec![],
-        });
+            version: Version::from_str(APP_VERSION).unwrap(),
+            volumes: None,
+        }));
         let path: String = format!(
             "/api/v2/manifests/{}/{}?max_manifest_version=3.0.0",
             APP_NAME, APP_VERSION

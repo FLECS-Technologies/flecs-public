@@ -1,4 +1,4 @@
-use schemars::schema::{RootSchema, Schema};
+use schemars::schema::{RootSchema, Schema, SchemaObject};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -11,6 +11,13 @@ fn download_app_manifest_schema(version: &str) -> Result<String, reqwest::Error>
     let content = reqwest::blocking::get(url)?.text()?;
     eprintln!("{}", content);
     Ok(content)
+}
+
+fn remove_schema_version(schema_object: &mut SchemaObject) {
+    if let Some(object_validation) = &mut schema_object.object {
+        object_validation.required.remove("_schemaVersion");
+        object_validation.properties.remove("_schemaVersion");
+    }
 }
 
 fn generate_code(version: &str) -> Result<(), Error> {
@@ -36,9 +43,11 @@ fn generate_code(version: &str) -> Result<(), Error> {
     // The Schema version in our rust code is encoded in the enum variant (see crate::AppManifestVersion)
     // Using serde to decide from the value _schemaVersion which variant should be built
     // consumes this field which results in an error later if it is required by the schema.
-    if let Some(object_validation) = &mut schema.schema.object {
-        object_validation.required.remove("_schemaVersion");
-        object_validation.properties.remove("_schemaVersion");
+    remove_schema_version(&mut schema.schema);
+    for schema in schema.definitions.values_mut() {
+        if let Schema::Object(schema) = schema {
+            remove_schema_version(schema)
+        }
     }
     let mut type_space = TypeSpace::new(
         TypeSpaceSettings::default()
@@ -71,7 +80,7 @@ mod tests;"#,
 }
 
 fn main() {
-    for version in ["2.0.0", "3.0.0"] {
+    for version in ["2.0.0", "3.0.0", "3.1.0"] {
         match generate_code(version) {
             Ok(()) => {}
             Err(Error(message, file_exists)) => {

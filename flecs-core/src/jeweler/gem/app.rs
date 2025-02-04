@@ -635,9 +635,13 @@ pub mod tests {
         );
         app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
         let mut manifest = create_test_manifest_raw(None);
-        manifest.multi_instance = Some(true);
+        if let flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(single) =
+            &mut manifest
+        {
+            single.multi_instance = Some(true.into());
+        }
         let manifest =
-            Arc::new(AppManifest::try_from(AppManifestVersion::V3_0_0(manifest)).unwrap());
+            Arc::new(AppManifest::try_from(AppManifestVersion::V3_1_0(manifest)).unwrap());
         app.set_manifest(manifest);
         let info = app.try_create_installed_info().await.unwrap();
         assert_eq!(
