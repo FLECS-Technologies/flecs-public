@@ -266,7 +266,7 @@ fn interactive() {
     let FlecsAppManifest::Single(manifest) = manifest else {
         panic!("Wrong manifest type");
     };
-    assert_eq!(manifest.interactive.unwrap().0, false)
+    assert!(!manifest.interactive.unwrap().0)
 }
 
 #[test]
@@ -309,7 +309,7 @@ fn multi_instance() {
     let FlecsAppManifest::Single(manifest) = manifest else {
         panic!("Wrong manifest type");
     };
-    assert_eq!(manifest.multi_instance.unwrap().0, false)
+    assert!(!manifest.multi_instance.unwrap().0)
 }
 
 #[test]

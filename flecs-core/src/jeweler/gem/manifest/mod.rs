@@ -70,7 +70,7 @@ impl AppManifest {
     }
 
     pub fn revision(&self) -> Option<&String> {
-        self.original.revision.as_ref().map(std::ops::Deref::deref)
+        self.original.revision.as_deref()
     }
 
     pub fn editors(&self) -> Vec<flecs_app_manifest::generated::manifest_3_1_0::EditorsItem> {
@@ -295,7 +295,7 @@ pub mod tests {
                         ]
                         .into(),
                     ),
-                    hostname: None,
+                    hostname: Some("TestHostName".parse().unwrap()),
                     image: FromStr::from_str("flecs.azurecr.io/some.test.app").unwrap(),
                     interactive: None,
                     labels: Some(
