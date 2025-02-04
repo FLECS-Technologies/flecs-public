@@ -92,13 +92,11 @@ impl FromStr for PortMapping {
     }
 }
 
-impl TryFrom<&flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestPortsItem>
-    for PortMapping
-{
+impl TryFrom<&flecs_app_manifest::generated::manifest_3_1_0::PortsItem> for PortMapping {
     type Error = Error;
 
     fn try_from(
-        value: &flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestPortsItem,
+        value: &flecs_app_manifest::generated::manifest_3_1_0::PortsItem,
     ) -> std::result::Result<Self, Self::Error> {
         Self::from_str(value.as_str())
     }
@@ -231,10 +229,8 @@ mod tests {
     #[test]
     fn try_port_mapping_from_ports_item_ok() {
         let item =
-            flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestPortsItem::from_str(
-                "50-60:150-160",
-            )
-            .unwrap();
+            flecs_app_manifest::generated::manifest_3_1_0::PortsItem::from_str("50-60:150-160")
+                .unwrap();
         assert_eq!(
             PortMapping::Range {
                 from: PortRange { start: 50, end: 60 },
@@ -250,10 +246,8 @@ mod tests {
     #[test]
     fn try_port_mapping_from_ports_item_err() {
         let item =
-            flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestPortsItem::from_str(
-                "50-60:150-260",
-            )
-            .unwrap();
+            flecs_app_manifest::generated::manifest_3_1_0::PortsItem::from_str("50-60:150-260")
+                .unwrap();
         assert!(PortMapping::try_from(&item).is_err())
     }
 

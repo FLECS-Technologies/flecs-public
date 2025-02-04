@@ -80,7 +80,9 @@ impl From<&Instance> for Config<String> {
     fn from(instance: &Instance) -> Self {
         let mut bind_mounts = instance.manifest.bind_mounts();
         let mut capabilities = instance.manifest.capabilities();
-        if capabilities.remove(&flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::Docker) {
+        if capabilities
+            .remove(&flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::Docker)
+        {
             bind_mounts.push(BindMount::default_docker_socket_bind_mount());
         }
         let mut mounts = bind_mounts_to_bollard_mounts(bind_mounts.as_slice());

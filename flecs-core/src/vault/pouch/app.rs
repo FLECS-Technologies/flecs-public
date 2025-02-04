@@ -111,19 +111,27 @@ mod tests {
     }
 
     fn create_test_manifests() -> HashMap<AppKey, Arc<AppManifest>> {
-        let manifest: flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifest =
-            flecs_app_manifest::generated::manifest_3_0_0::builder::FlecsAppManifest::default()
+        let manifest: flecs_app_manifest::generated::manifest_3_1_0::Single =
+            flecs_app_manifest::generated::manifest_3_1_0::builder::Single::default()
                 .app("test-app-1")
                 .image("test-image")
-                .version("1.2.3")
+                .version("1.2.3".to_string())
                 .try_into()
                 .unwrap();
         HashMap::from([(
             AppKey {
                 name: manifest.app.to_string(),
-                version: manifest.version.clone(),
+                version: manifest.version.to_string(),
             },
-            Arc::new(AppManifestVersion::V3_0_0(manifest).try_into().unwrap()),
+            Arc::new(
+                AppManifestVersion::V3_1_0(
+                    flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(
+                        manifest,
+                    ),
+                )
+                .try_into()
+                .unwrap(),
+            ),
         )])
     }
 

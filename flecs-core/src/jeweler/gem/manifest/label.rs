@@ -33,11 +33,11 @@ impl FromStr for Label {
     }
 }
 
-impl TryFrom<&flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestLabelsItem> for Label {
+impl TryFrom<&flecs_app_manifest::generated::manifest_3_1_0::LabelsItem> for Label {
     type Error = Error;
 
     fn try_from(
-        value: &flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestLabelsItem,
+        value: &flecs_app_manifest::generated::manifest_3_1_0::LabelsItem,
     ) -> Result<Self, Self::Error> {
         Self::from_str(value.as_str())
     }
@@ -88,10 +88,8 @@ mod tests {
     #[test]
     fn try_label_from_labels_item() {
         let item =
-            flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestLabelsItem::from_str(
-                "myLabel=value",
-            )
-            .unwrap();
+            flecs_app_manifest::generated::manifest_3_1_0::LabelsItem::from_str("myLabel=value")
+                .unwrap();
         assert_eq!(
             Label {
                 label: "myLabel".to_string(),

@@ -15,7 +15,7 @@ pub use mount::*;
 pub use port::*;
 use serde::Serialize;
 use std::collections::HashSet;
-use std::str::FromStr;
+use std::ops::Deref;
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize)]
 pub struct AppManifest {
@@ -38,37 +38,46 @@ pub struct AppManifest {
 }
 
 impl AppManifest {
-    pub fn arguments(&self) -> &Vec<String> {
-        &self.original.args
+    pub fn arguments(&self) -> Vec<String> {
+        match &self.original.args {
+            None => Vec::new(),
+            Some(args) => args.deref().clone(),
+        }
     }
 
     pub fn capabilities(
         &self,
-    ) -> HashSet<flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem>
-    {
+    ) -> HashSet<flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem> {
         self.original
             .capabilities
-            .clone()
-            .map(HashSet::from_iter)
+            .as_ref()
+            .map(|capabilities| HashSet::from_iter(capabilities.deref().iter().cloned()))
             .unwrap_or_default()
     }
 
     pub fn multi_instance(&self) -> bool {
-        self.original.multi_instance.unwrap_or_default()
+        match self.original.multi_instance.as_ref() {
+            None => false,
+            Some(multi_instance) => multi_instance.0,
+        }
     }
 
     pub fn interactive(&self) -> bool {
-        self.original.interactive.unwrap_or_default()
+        match self.original.interactive.as_ref() {
+            None => false,
+            Some(interactive) => interactive.0,
+        }
     }
 
     pub fn revision(&self) -> Option<&String> {
-        self.original.revision.as_ref()
+        self.original.revision.as_ref().map(std::ops::Deref::deref)
     }
 
-    pub fn editors(
-        &self,
-    ) -> &Vec<flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestEditorsItem> {
-        &self.original.editors
+    pub fn editors(&self) -> Vec<flecs_app_manifest::generated::manifest_3_1_0::EditorsItem> {
+        match &self.original.editors {
+            None => Vec::new(),
+            Some(editors) => editors.0.clone(),
+        }
     }
 
     pub fn image(&self) -> &str {
@@ -107,6 +116,10 @@ impl AppManifest {
             .cloned()
             .collect()
     }
+
+    pub fn hostname(&self) -> Option<String> {
+        self.original.hostname.as_ref().map(ToString::to_string)
+    }
 }
 
 impl TryFrom<flecs_app_manifest::AppManifestVersion> for AppManifest {
@@ -117,53 +130,51 @@ impl TryFrom<flecs_app_manifest::AppManifestVersion> for AppManifest {
     }
 }
 
+fn try_from_option<'s, S, D, E>(source: Option<&'s Vec<S>>) -> Result<Vec<D>, E>
+where
+    D: TryFrom<&'s S, Error = E>,
+{
+    match source {
+        None => Ok(Vec::new()),
+        Some(source) => source
+            .iter()
+            .map(D::try_from)
+            .collect::<Result<Vec<_>, _>>(),
+    }
+}
+
 impl TryFrom<flecs_app_manifest::AppManifest> for AppManifest {
     type Error = Error;
 
     fn try_from(value: flecs_app_manifest::AppManifest) -> Result<Self, Self::Error> {
         let mut environment_variable_names: HashSet<String> = HashSet::new();
         let mut environment_variables: Vec<EnvironmentVariable> = Vec::new();
-        for environment in value.env.iter() {
-            let env = EnvironmentVariable::from_str(environment.as_str())?;
-            if !environment_variable_names.insert(env.name.clone()) {
-                anyhow::bail!(
-                    "Duplicate environment variable with name '{}' detected",
-                    env.name,
-                )
+        match &value.env {
+            Some(env) => {
+                for environment in env.deref() {
+                    let env = EnvironmentVariable::try_from(environment)?;
+                    if !environment_variable_names.insert(env.name.clone()) {
+                        anyhow::bail!(
+                            "Duplicate environment variable with name '{}' detected",
+                            env.name,
+                        )
+                    }
+                    environment_variables.push(env);
+                }
             }
-            environment_variables.push(env);
+            None => {}
         }
         Ok(Self {
             key: AppKey {
                 name: value.app.to_string(),
-                version: value.version.clone(),
+                version: value.version.to_string(),
             },
-            config_files: value
-                .conffiles
-                .iter()
-                .map(TryInto::try_into)
-                .collect::<Result<Vec<ConfigFile>, _>>()?,
-            mounts: value
-                .volumes
-                .iter()
-                .map(TryInto::try_into)
-                .collect::<Result<Vec<Mount>, _>>()?,
+            config_files: try_from_option(value.conffiles.as_deref())?,
+            mounts: try_from_option(value.volumes.as_deref())?,
             environment_variables,
-            devices: value
-                .devices
-                .iter()
-                .map(TryInto::try_into)
-                .collect::<Result<Vec<Device>, _>>()?,
-            labels: value
-                .labels
-                .iter()
-                .map(TryInto::try_into)
-                .collect::<Result<Vec<Label>, _>>()?,
-            ports: value
-                .ports
-                .iter()
-                .map(TryInto::try_into)
-                .collect::<Result<Vec<PortMapping>, _>>()?,
+            devices: try_from_option(value.devices.as_deref())?,
+            labels: try_from_option(value.labels.as_deref())?,
+            ports: try_from_option(value.ports.as_deref())?,
             original: value,
         })
     }
@@ -173,6 +184,7 @@ impl TryFrom<flecs_app_manifest::AppManifest> for AppManifest {
 pub mod tests {
     use super::*;
     use std::path::PathBuf;
+    use std::str::FromStr;
     use std::sync::Arc;
 
     pub fn create_test_manifest_numbered(
@@ -181,7 +193,7 @@ pub mod tests {
         revision: Option<String>,
     ) -> Arc<AppManifest> {
         Arc::new(
-            AppManifest::try_from(flecs_app_manifest::AppManifestVersion::V3_0_0(
+            AppManifest::try_from(flecs_app_manifest::AppManifestVersion::V3_1_0(
                 create_test_manifest_numbered_raw(name_number, version_number, revision),
             ))
             .unwrap(),
@@ -192,25 +204,28 @@ pub mod tests {
         name_number: u8,
         version_number: u8,
         revision: Option<String>,
-    ) -> flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifest {
-        flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifest {
-            app: FromStr::from_str(&format!("some.test.app-{name_number}")).unwrap(),
-            args: vec![],
-            capabilities: None,
-            conffiles: vec![],
-            devices: vec![],
-            editors: vec![],
-            env: vec![],
-            image: FromStr::from_str("flecs.azurecr.io/io.anyviz.cloudadapter").unwrap(),
-            interactive: None,
-            labels: vec![],
-            minimum_flecs_version: None,
-            multi_instance: None,
-            ports: vec![],
-            revision,
-            version: FromStr::from_str(&format!("1.2.{version_number}")).unwrap(),
-            volumes: vec![],
-        }
+    ) -> flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest {
+        flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(
+            flecs_app_manifest::generated::manifest_3_1_0::Single {
+                app: FromStr::from_str(&format!("some.test.app-{name_number}")).unwrap(),
+                args: None,
+                capabilities: None,
+                conffiles: None,
+                devices: None,
+                editors: None,
+                env: None,
+                hostname: None,
+                image: FromStr::from_str("flecs.azurecr.io/io.anyviz.cloudadapter").unwrap(),
+                interactive: None,
+                labels: None,
+                minimum_flecs_version: None,
+                multi_instance: None,
+                ports: None,
+                revision: revision.map(From::from),
+                version: FromStr::from_str(&format!("1.2.{version_number}")).unwrap(),
+                volumes: None,
+            },
+        )
     }
 
     pub fn create_test_manifest(revision: Option<String>) -> Arc<AppManifest> {
@@ -219,70 +234,100 @@ pub mod tests {
 
     pub fn create_test_manifest_raw(
         revision: Option<String>,
-    ) -> flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifest {
+    ) -> flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest {
         create_test_manifest_numbered_raw(0, 0, revision)
     }
 
     pub fn create_test_manifest_full(multi_instance: Option<bool>) -> AppManifest {
-        AppManifest::try_from(flecs_app_manifest::AppManifestVersion::V3_0_0(
-            flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifest {
-                app: FromStr::from_str("some.test.app").unwrap(),
-                args: vec![
-                    "--launch-arg1".to_string(),
-                    "--launch-arg2=value".to_string(),
-                ],
-                capabilities: Some(vec![
-                    flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::Docker,
-                    flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::NetAdmin,
-                    flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::SysNice,
-                ]),
-                conffiles: vec![
-                    FromStr::from_str("default.conf:/etc/my-app/default.conf").unwrap(),
-                    FromStr::from_str("default.conf:/etc/my-app/default.conf:rw").unwrap(),
-                    FromStr::from_str("default.conf:/etc/my-app/default.conf:ro").unwrap(),
-                ],
-                devices: vec![
-                    FromStr::from_str("/dev/dev1").unwrap(),
-                    FromStr::from_str("/dev/usb/dev1").unwrap(),
-                ],
-                editors: vec![
-                    flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestEditorsItem {
-                        name: "Editor#1".to_string(),
-                        port: std::num::NonZeroU16::new(123).unwrap(),
-                        supports_reverse_proxy: false,
-                    },
-                    flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestEditorsItem {
-                        name: "Editor#2".to_string(),
-                        port: std::num::NonZeroU16::new(789).unwrap(),
-                        supports_reverse_proxy: true,
-                    },
-                ],
-                env: vec![
-                    FromStr::from_str("ENV_VAR_1=value-1").unwrap(),
-                    FromStr::from_str("ENV_VAR_2=value-2").unwrap(),
-                ],
-                image: FromStr::from_str("flecs.azurecr.io/some.test.app").unwrap(),
-                interactive: None,
-                labels: vec![
-                    FromStr::from_str("my.label-one=value-1").unwrap(),
-                    FromStr::from_str("my.label-two=").unwrap(),
-                    FromStr::from_str("my.label-three").unwrap(),
-                ],
-                minimum_flecs_version: Some(FromStr::from_str("3.0.0").unwrap()),
-                multi_instance,
-                ports: vec![
-                    FromStr::from_str("8001:8001").unwrap(),
-                    FromStr::from_str("5000").unwrap(),
-                    FromStr::from_str("5001-5008:6001-6008").unwrap(),
-                    FromStr::from_str("6001-6008").unwrap(),
-                ],
-                revision: Some("5".to_string()),
-                version: FromStr::from_str("1.2.1").unwrap(),
-                volumes: vec![
-                    FromStr::from_str("my-app-etc:/etc/my-app").unwrap(),
-                    FromStr::from_str("/etc/my-app:/etc/my-app").unwrap(),
-                ],
-            },
+        AppManifest::try_from(flecs_app_manifest::AppManifestVersion::V3_1_0(
+            flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(
+                flecs_app_manifest::generated::manifest_3_1_0::Single {
+                    app: FromStr::from_str("some.test.app").unwrap(),
+                    args: Some(
+                        vec![
+                            "--launch-arg1".to_string(),
+                            "--launch-arg2=value".to_string(),
+                        ]
+                        .into(),
+                    ),
+                    capabilities: Some(
+                        vec![
+                    flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::Docker,
+                    flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::NetAdmin,
+                    flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::SysNice,
+                ]
+                        .into(),
+                    ),
+                    conffiles: Some(
+                        vec![
+                            FromStr::from_str("default.conf:/etc/my-app/default.conf").unwrap(),
+                            FromStr::from_str("default.conf:/etc/my-app/default.conf:rw").unwrap(),
+                            FromStr::from_str("default.conf:/etc/my-app/default.conf:ro").unwrap(),
+                        ]
+                        .into(),
+                    ),
+                    devices: Some(
+                        vec![
+                            FromStr::from_str("/dev/dev1").unwrap(),
+                            FromStr::from_str("/dev/usb/dev1").unwrap(),
+                        ]
+                        .into(),
+                    ),
+                    editors: Some(
+                        vec![
+                            flecs_app_manifest::generated::manifest_3_1_0::EditorsItem {
+                                name: "Editor#1".to_string(),
+                                port: std::num::NonZeroU16::new(123).unwrap(),
+                                supports_reverse_proxy: false,
+                            },
+                            flecs_app_manifest::generated::manifest_3_1_0::EditorsItem {
+                                name: "Editor#2".to_string(),
+                                port: std::num::NonZeroU16::new(789).unwrap(),
+                                supports_reverse_proxy: true,
+                            },
+                        ]
+                        .into(),
+                    ),
+                    env: Some(
+                        vec![
+                            FromStr::from_str("ENV_VAR_1=value-1").unwrap(),
+                            FromStr::from_str("ENV_VAR_2=value-2").unwrap(),
+                        ]
+                        .into(),
+                    ),
+                    hostname: None,
+                    image: FromStr::from_str("flecs.azurecr.io/some.test.app").unwrap(),
+                    interactive: None,
+                    labels: Some(
+                        vec![
+                            FromStr::from_str("my.label-one=value-1").unwrap(),
+                            FromStr::from_str("my.label-two=").unwrap(),
+                            FromStr::from_str("my.label-three").unwrap(),
+                        ]
+                        .into(),
+                    ),
+                    minimum_flecs_version: Some(FromStr::from_str("3.0.0").unwrap()),
+                    multi_instance: multi_instance.map(|b| b.into()),
+                    ports: Some(
+                        vec![
+                            FromStr::from_str("8001:8001").unwrap(),
+                            FromStr::from_str("5000").unwrap(),
+                            FromStr::from_str("5001-5008:6001-6008").unwrap(),
+                            FromStr::from_str("6001-6008").unwrap(),
+                        ]
+                        .into(),
+                    ),
+                    revision: Some(FromStr::from_str("5").unwrap()),
+                    version: FromStr::from_str("1.2.1").unwrap(),
+                    volumes: Some(
+                        vec![
+                            FromStr::from_str("my-app-etc:/etc/my-app").unwrap(),
+                            FromStr::from_str("/etc/my-app:/etc/my-app").unwrap(),
+                        ]
+                        .into(),
+                    ),
+                },
+            ),
         ))
         .unwrap()
     }
@@ -430,7 +475,7 @@ pub mod tests {
 
         assert_eq!(
             manifest.arguments(),
-            &vec![
+            vec![
                 "--launch-arg1".to_string(),
                 "--launch-arg2=value".to_string(),
             ]
@@ -444,9 +489,9 @@ pub mod tests {
         assert_eq!(
             manifest.capabilities(),
             HashSet::from([
-                flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::Docker,
-                flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::NetAdmin,
-                flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestCapabilitiesItem::SysNice,
+                flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::Docker,
+                flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::NetAdmin,
+                flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::SysNice,
             ])
         )
     }
@@ -476,19 +521,19 @@ pub mod tests {
     fn editors() {
         let manifest = create_test_manifest_full(None);
         let editors = vec![
-            flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestEditorsItem {
+            flecs_app_manifest::generated::manifest_3_1_0::EditorsItem {
                 name: "Editor#1".to_string(),
                 port: std::num::NonZeroU16::new(123).unwrap(),
                 supports_reverse_proxy: false,
             },
-            flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifestEditorsItem {
+            flecs_app_manifest::generated::manifest_3_1_0::EditorsItem {
                 name: "Editor#2".to_string(),
                 port: std::num::NonZeroU16::new(789).unwrap(),
                 supports_reverse_proxy: true,
             },
         ];
 
-        assert_eq!(manifest.editors(), &editors)
+        assert_eq!(manifest.editors(), editors)
     }
 
     #[test]
@@ -544,28 +589,34 @@ pub mod tests {
     #[test]
     fn try_from_duplicate_environment_err() {
         assert!(
-            AppManifest::try_from(flecs_app_manifest::AppManifestVersion::V3_0_0(
-                flecs_app_manifest::generated::manifest_3_0_0::FlecsAppManifest {
-                    app: FromStr::from_str("some.test.app").unwrap(),
-                    args: Vec::new(),
-                    capabilities: None,
-                    conffiles: Vec::new(),
-                    devices: Vec::new(),
-                    editors: Vec::new(),
-                    env: vec![
-                        FromStr::from_str("ENV_VAR_1=value-1").unwrap(),
-                        FromStr::from_str("ENV_VAR_1=value-2").unwrap(),
-                    ],
-                    image: FromStr::from_str("flecs.azurecr.io/some.test.app").unwrap(),
-                    interactive: None,
-                    labels: Vec::new(),
-                    minimum_flecs_version: None,
-                    multi_instance: None,
-                    ports: Vec::new(),
-                    revision: None,
-                    version: FromStr::from_str("1.2.1").unwrap(),
-                    volumes: Vec::new(),
-                },
+            AppManifest::try_from(flecs_app_manifest::AppManifestVersion::V3_1_0(
+                flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(
+                    flecs_app_manifest::generated::manifest_3_1_0::Single {
+                        app: FromStr::from_str("some.test.app").unwrap(),
+                        args: None,
+                        capabilities: None,
+                        conffiles: None,
+                        devices: None,
+                        editors: None,
+                        env: Some(
+                            vec![
+                                FromStr::from_str("ENV_VAR_1=value-1").unwrap(),
+                                FromStr::from_str("ENV_VAR_1=value-2").unwrap(),
+                            ]
+                            .into()
+                        ),
+                        hostname: None,
+                        image: FromStr::from_str("flecs.azurecr.io/some.test.app").unwrap(),
+                        interactive: None,
+                        labels: None,
+                        minimum_flecs_version: None,
+                        multi_instance: None,
+                        ports: None,
+                        revision: None,
+                        version: FromStr::from_str("1.2.1").unwrap(),
+                        volumes: None,
+                    },
+                )
             ))
             .is_err()
         )
