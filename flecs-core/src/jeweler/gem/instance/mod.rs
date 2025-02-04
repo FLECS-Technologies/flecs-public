@@ -256,8 +256,13 @@ impl Instance {
                     .collect::<Vec<_>>()
                     .into(),
                 hostname: self.hostname.clone(),
-                // TODO: ip_address
-                ip_address: "TODO".to_string(),
+                ip_address: self
+                    .config
+                    .network_addresses
+                    .values()
+                    .next()
+                    .map(ToString::to_string)
+                    .unwrap_or_default(),
                 ports: self.manifest.ports.iter().map(Into::into).collect(),
                 volumes: self
                     .manifest
@@ -1362,7 +1367,13 @@ pub mod tests {
             id: instance_id,
             manifest,
             deployment,
-            config: Default::default(),
+            config: InstanceConfig {
+                network_addresses: HashMap::from([(
+                    "TestNetwork".to_string(),
+                    IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+                )]),
+                ..Default::default()
+            },
             desired: InstanceStatus::Running,
         };
         let expected_info = flecsd_axum_server::models::InstancesInstanceIdGet200Response {
@@ -1389,7 +1400,7 @@ pub mod tests {
                 },
             ]),
             hostname: "flecs-00000123".to_string(),
-            ip_address: "TODO".to_string(),
+            ip_address: "123.123.123.123".to_string(),
             ports: vec![
                 InstanceDetailPort {
                     host: "8001".to_string(),
