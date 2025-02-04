@@ -108,6 +108,18 @@ impl From<&Instance> for Config<String> {
             devices: Some(instance.generate_device_mappings()),
             ..HostConfig::default()
         });
+        let mut network_config = instance.config.generate_network_config();
+        if let Some(hostname) = instance.manifest.hostname() {
+            for endpoint in network_config.endpoints_config.values_mut() {
+                let alias = hostname.clone();
+                match &mut endpoint.aliases {
+                    Some(aliases) => {
+                        aliases.push(alias);
+                    }
+                    None => endpoint.aliases = Some(vec![alias]),
+                }
+            }
+        }
         Config {
             image: Some(instance.manifest.image_with_tag().to_string()),
             hostname: Some(instance.hostname.clone()),
@@ -130,7 +142,7 @@ impl From<&Instance> for Config<String> {
             host_config,
             cmd,
             exposed_ports,
-            networking_config: Some(instance.config.generate_network_config()),
+            networking_config: Some(network_config),
             ..Default::default()
         }
     }
@@ -1590,6 +1602,7 @@ pub mod tests {
                                 ipv6_address: Some("11:22:33:44:55:66:77:88".to_string()),
                                 ..Default::default()
                             }),
+                            aliases: Some(vec!["TestHostName".to_string()]),
                             ..Default::default()
                         }
                     ),
@@ -1601,6 +1614,7 @@ pub mod tests {
                                 ipv4_address: Some("20.22.24.26".to_string()),
                                 ..Default::default()
                             }),
+                            aliases: Some(vec!["TestHostName".to_string()]),
                             ..Default::default()
                         }
                     ),
