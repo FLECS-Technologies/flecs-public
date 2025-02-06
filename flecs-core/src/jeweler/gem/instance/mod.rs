@@ -1,4 +1,4 @@
-mod config;
+pub mod config;
 use crate::jeweler::deployment::{Deployment, DeploymentId};
 use crate::jeweler::gem::manifest::{AppManifest, BindMount, ConfigFile, Mount, VolumeMount};
 use crate::jeweler::instance::Logs;
@@ -430,7 +430,7 @@ impl Instance {
         address: IpAddr,
     ) -> anyhow::Result<Self> {
         let instance_id = InstanceId::new_random();
-        let port_mapping = manifest.ports.clone();
+        let tcp_port_mapping = manifest.ports.clone();
         let environment_variables = manifest.environment_variables.clone();
         let config_path = crate::lore::instance_config_path(&instance_id.to_string());
         let default_network_id = deployment
@@ -482,7 +482,11 @@ impl Instance {
         };
         let config = InstanceConfig {
             environment_variables,
-            port_mapping,
+            port_mapping: InstancePortMapping {
+                tcp: tcp_port_mapping,
+                udp: vec![],
+                sctp: vec![],
+            },
             volume_mounts,
             network_addresses: HashMap::from([(default_network_id, address)]),
             usb_devices: HashSet::new(),
@@ -851,13 +855,29 @@ pub mod tests {
                     EnvironmentVariable::from_str("variable-2=").unwrap(),
                     EnvironmentVariable::from_str("variable-3").unwrap(),
                 ],
-                port_mapping: vec![
-                    PortMapping::Single(1002, 2002),
-                    PortMapping::Range {
-                        from: PortRange::try_new(8000, 9000).unwrap(),
-                        to: PortRange::try_new(9500, 10500).unwrap(),
-                    },
-                ],
+                port_mapping: InstancePortMapping {
+                    tcp: vec![
+                        PortMapping::Single(1002, 2002),
+                        PortMapping::Range {
+                            from: PortRange::try_new(8000, 9000).unwrap(),
+                            to: PortRange::try_new(9500, 10500).unwrap(),
+                        },
+                    ],
+                    udp: vec![
+                        PortMapping::Single(1004, 2004),
+                        PortMapping::Range {
+                            from: PortRange::try_new(9000, 10000).unwrap(),
+                            to: PortRange::try_new(10500, 11500).unwrap(),
+                        },
+                    ],
+                    sctp: vec![
+                        PortMapping::Single(1003, 2003),
+                        PortMapping::Range {
+                            from: PortRange::try_new(10000, 11000).unwrap(),
+                            to: PortRange::try_new(11500, 12500).unwrap(),
+                        },
+                    ],
+                },
                 network_addresses: HashMap::new(),
                 usb_devices: HashSet::from([
                     UsbDevice {
@@ -1222,7 +1242,7 @@ pub mod tests {
         )
         .await
         .unwrap();
-        assert_eq!(&instance.config.port_mapping, &manifest.ports);
+        assert_eq!(&instance.config.port_mapping.tcp, &manifest.ports);
         assert_eq!(instance.desired, InstanceStatus::Stopped);
         assert_eq!(
             &instance.config.environment_variables,
@@ -1509,7 +1529,7 @@ pub mod tests {
             Some("flecs.azurecr.io/some.test.app:1.2.1".to_string())
         );
         let host_config = config.host_config.unwrap();
-        assert_eq!(host_config.port_bindings.unwrap().len(), 1002);
+        assert_eq!(host_config.port_bindings.unwrap().len(), 3006);
         let mounts = host_config.mounts.unwrap();
         assert_eq!(mounts.len(), 6);
         assert!(mounts.contains(&bollard::models::Mount {
