@@ -15,25 +15,63 @@ const USB_DEVICE_PATH: &str = "/dev/bus/usb/";
 const USB_DEVICE_PATH: &str = "/tmp/flecs-tests/dev/bus/usb/";
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub struct InstancePortMapping {
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub tcp: Vec<PortMapping>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub udp: Vec<PortMapping>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub sctp: Vec<PortMapping>,
+}
+
+impl InstancePortMapping {
+    pub fn is_empty(&self) -> bool {
+        self.tcp.is_empty() && self.udp.is_empty() && self.sctp.is_empty()
+    }
+
+    pub fn clear(&mut self) {
+        self.tcp.clear();
+        self.udp.clear();
+        self.sctp.clear();
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct InstanceConfig {
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub volume_mounts: HashMap<VolumeId, VolumeMount>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub environment_variables: Vec<EnvironmentVariable>,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub port_mapping: Vec<PortMapping>,
+    #[serde(skip_serializing_if = "InstancePortMapping::is_empty", default)]
+    pub port_mapping: InstancePortMapping,
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub network_addresses: HashMap<NetworkId, IpAddr>,
     #[serde(skip_serializing_if = "HashSet::is_empty", default)]
     pub usb_devices: HashSet<UsbDevice>,
 }
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
+enum TransportProtocol {
+    Tcp,
+    Udp,
+    Sctp,
+}
+
 impl InstanceConfig {
     pub fn generate_port_bindings(&self) -> HashMap<String, Option<Vec<PortBinding>>> {
         let result = self
             .port_mapping
+            .tcp
             .iter()
-            .flat_map(|port_mapping| port_mapping_to_port_bindings(port_mapping).into_iter())
+            .flat_map(|port_mapping| {
+                port_mapping_to_port_bindings(port_mapping, TransportProtocol::Tcp).into_iter()
+            })
+            .chain(self.port_mapping.udp.iter().flat_map(|port_mapping| {
+                port_mapping_to_port_bindings(port_mapping, TransportProtocol::Udp).into_iter()
+            }))
+            .chain(self.port_mapping.sctp.iter().flat_map(|port_mapping| {
+                port_mapping_to_port_bindings(port_mapping, TransportProtocol::Sctp).into_iter()
+            }))
             .collect();
         result
     }
@@ -93,9 +131,20 @@ impl InstanceConfig {
     }
 }
 
-fn new_port_bindings(host_port: u16, container_port: u16) -> (String, Option<Vec<PortBinding>>) {
+fn new_port_bindings(
+    host_port: u16,
+    container_port: u16,
+    transport_protocol: TransportProtocol,
+) -> (String, Option<Vec<PortBinding>>) {
     (
-        format!("{}/tcp", container_port),
+        format!(
+            "{container_port}/{}",
+            match transport_protocol {
+                TransportProtocol::Tcp => "tcp",
+                TransportProtocol::Udp => "udp",
+                TransportProtocol::Sctp => "sctp",
+            }
+        ),
         Some(vec![PortBinding {
             host_port: Some(host_port.to_string()),
             host_ip: None,
@@ -105,15 +154,16 @@ fn new_port_bindings(host_port: u16, container_port: u16) -> (String, Option<Vec
 
 fn port_mapping_to_port_bindings(
     port_mapping: &PortMapping,
+    transport_protocol: TransportProtocol,
 ) -> HashMap<String, Option<Vec<PortBinding>>> {
     match port_mapping {
         PortMapping::Single(host, container) => {
-            HashMap::from([new_port_bindings(*host, *container)])
+            HashMap::from([new_port_bindings(*host, *container, transport_protocol)])
         }
         PortMapping::Range { from, to } => HashMap::from_iter(
             from.range()
                 .zip(to.range())
-                .map(|(host, container)| new_port_bindings(host, container)),
+                .map(|(host, container)| new_port_bindings(host, container, transport_protocol)),
         ),
     }
 }
@@ -162,7 +212,7 @@ pub(crate) mod tests {
     #[test]
     fn new_port_bindings_test() {
         assert_eq!(
-            new_port_bindings(10, 20),
+            new_port_bindings(10, 20, TransportProtocol::Tcp),
             (
                 "20/tcp".to_string(),
                 Some(vec![PortBinding {
@@ -170,14 +220,34 @@ pub(crate) mod tests {
                     host_ip: None,
                 }])
             )
-        )
+        );
+        assert_eq!(
+            new_port_bindings(10, 20, TransportProtocol::Udp),
+            (
+                "20/udp".to_string(),
+                Some(vec![PortBinding {
+                    host_port: Some(10.to_string()),
+                    host_ip: None,
+                }])
+            )
+        );
+        assert_eq!(
+            new_port_bindings(10, 20, TransportProtocol::Sctp),
+            (
+                "20/sctp".to_string(),
+                Some(vec![PortBinding {
+                    host_port: Some(10.to_string()),
+                    host_ip: None,
+                }])
+            )
+        );
     }
 
     #[test]
     fn port_mapping_to_port_bindings_single() {
         let port_mapping = PortMapping::Single(60, 600);
         assert_eq!(
-            port_mapping_to_port_bindings(&port_mapping),
+            port_mapping_to_port_bindings(&port_mapping, TransportProtocol::Tcp),
             HashMap::from([(
                 "600/tcp".to_string(),
                 Some(vec![PortBinding {
@@ -185,7 +255,27 @@ pub(crate) mod tests {
                     host_ip: None,
                 }])
             )])
-        )
+        );
+        assert_eq!(
+            port_mapping_to_port_bindings(&port_mapping, TransportProtocol::Udp),
+            HashMap::from([(
+                "600/udp".to_string(),
+                Some(vec![PortBinding {
+                    host_port: Some(60.to_string()),
+                    host_ip: None,
+                }])
+            )])
+        );
+        assert_eq!(
+            port_mapping_to_port_bindings(&port_mapping, TransportProtocol::Sctp),
+            HashMap::from([(
+                "600/sctp".to_string(),
+                Some(vec![PortBinding {
+                    host_port: Some(60.to_string()),
+                    host_ip: None,
+                }])
+            )])
+        );
     }
 
     #[test]
@@ -195,7 +285,7 @@ pub(crate) mod tests {
             to: PortRange::try_new(40, 42).unwrap(),
         };
         assert_eq!(
-            port_mapping_to_port_bindings(&port_mapping),
+            port_mapping_to_port_bindings(&port_mapping, TransportProtocol::Tcp),
             HashMap::from([
                 (
                     "40/tcp".to_string(),
@@ -219,19 +309,87 @@ pub(crate) mod tests {
                     }])
                 ),
             ])
-        )
+        );
+        assert_eq!(
+            port_mapping_to_port_bindings(&port_mapping, TransportProtocol::Udp),
+            HashMap::from([
+                (
+                    "40/udp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(100.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "41/udp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(101.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "42/udp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(102.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+            ])
+        );
+        assert_eq!(
+            port_mapping_to_port_bindings(&port_mapping, TransportProtocol::Sctp),
+            HashMap::from([
+                (
+                    "40/sctp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(100.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "41/sctp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(101.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "42/sctp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(102.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+            ])
+        );
     }
 
     #[test]
     fn generate_port_bindings_test() {
         let config = InstanceConfig {
-            port_mapping: vec![
-                PortMapping::Range {
-                    from: PortRange::try_new(100, 102).unwrap(),
-                    to: PortRange::try_new(40, 42).unwrap(),
-                },
-                PortMapping::Single(60, 600),
-            ],
+            port_mapping: InstancePortMapping {
+                tcp: vec![
+                    PortMapping::Range {
+                        from: PortRange::try_new(100, 102).unwrap(),
+                        to: PortRange::try_new(40, 42).unwrap(),
+                    },
+                    PortMapping::Single(60, 600),
+                ],
+                udp: vec![
+                    PortMapping::Range {
+                        from: PortRange::try_new(100, 102).unwrap(),
+                        to: PortRange::try_new(40, 42).unwrap(),
+                    },
+                    PortMapping::Single(60, 600),
+                ],
+                sctp: vec![
+                    PortMapping::Range {
+                        from: PortRange::try_new(100, 102).unwrap(),
+                        to: PortRange::try_new(40, 42).unwrap(),
+                    },
+                    PortMapping::Single(60, 600),
+                ],
+            },
             ..InstanceConfig::default()
         };
         assert_eq!(
@@ -264,7 +422,63 @@ pub(crate) mod tests {
                         host_port: Some(60.to_string()),
                         host_ip: None,
                     }])
-                )
+                ),
+                (
+                    "40/udp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(100.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "41/udp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(101.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "42/udp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(102.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "600/udp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(60.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "40/sctp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(100.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "41/sctp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(101.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "42/sctp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(102.to_string()),
+                        host_ip: None,
+                    }])
+                ),
+                (
+                    "600/sctp".to_string(),
+                    Some(vec![PortBinding {
+                        host_port: Some(60.to_string()),
+                        host_ip: None,
+                    }])
+                ),
             ])
         )
     }
