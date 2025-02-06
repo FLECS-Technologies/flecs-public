@@ -28,11 +28,19 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigEnvironmentGetResponse,
     InstancesInstanceIdConfigEnvironmentPutResponse, InstancesInstanceIdConfigGetResponse,
     InstancesInstanceIdConfigPortsDeleteResponse, InstancesInstanceIdConfigPortsGetResponse,
-    InstancesInstanceIdConfigPortsPutResponse, InstancesInstanceIdConfigPostResponse,
-    InstancesInstanceIdDeleteResponse, InstancesInstanceIdEditorPortGetResponse,
-    InstancesInstanceIdGetResponse, InstancesInstanceIdLogsGetResponse,
-    InstancesInstanceIdPatchResponse, InstancesInstanceIdStartPostResponse,
-    InstancesInstanceIdStopPostResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolGetResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortDeleteResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortGetResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortPutResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndDeleteResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndGetResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndPutResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolPutResponse,
+    InstancesInstanceIdConfigPostResponse, InstancesInstanceIdDeleteResponse,
+    InstancesInstanceIdEditorPortGetResponse, InstancesInstanceIdGetResponse,
+    InstancesInstanceIdLogsGetResponse, InstancesInstanceIdPatchResponse,
+    InstancesInstanceIdStartPostResponse, InstancesInstanceIdStopPostResponse,
 };
 use flecsd_axum_server::apis::jobs::{
     Jobs, JobsGetResponse, JobsJobIdDeleteResponse, JobsJobIdGetResponse,
@@ -45,18 +53,29 @@ use flecsd_axum_server::models::{
     AdditionalInfo, AppsAppDeletePathParams, AppsAppDeleteQueryParams, AppsAppGetPathParams,
     AppsAppGetQueryParams, AppsInstallPostRequest, AppsSideloadPostRequest, AuthResponseData,
     DeviceLicenseActivationStatusGet200Response, DeviceLicenseInfoGet200Response, Dosschema,
-    FlunderBrowseGetQueryParams, InstanceConfig, InstanceEnvironment, InstancePorts,
+    FlunderBrowseGetQueryParams, InstanceConfig, InstanceEnvironment, InstancePortMapping,
     InstancesCreatePostRequest, InstancesGetQueryParams,
     InstancesInstanceIdConfigEnvironmentDeletePathParams,
     InstancesInstanceIdConfigEnvironmentGetPathParams,
     InstancesInstanceIdConfigEnvironmentPutPathParams, InstancesInstanceIdConfigGetPathParams,
     InstancesInstanceIdConfigPortsDeletePathParams, InstancesInstanceIdConfigPortsGetPathParams,
-    InstancesInstanceIdConfigPortsPutPathParams, InstancesInstanceIdConfigPostPathParams,
-    InstancesInstanceIdDeletePathParams, InstancesInstanceIdEditorPortGetPathParams,
-    InstancesInstanceIdGetPathParams, InstancesInstanceIdLogsGetPathParams,
-    InstancesInstanceIdPatchPathParams, InstancesInstanceIdPatchRequest,
-    InstancesInstanceIdStartPostPathParams, InstancesInstanceIdStopPostPathParams, JobMeta,
-    JobsJobIdDeletePathParams, JobsJobIdGetPathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolGetPathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortDeletePathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortGetPathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortPutPathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortPutRequest,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndDeletePathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndGetPathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndPutPathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndPutRequest,
+    InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
+    InstancesInstanceIdConfigPostPathParams, InstancesInstanceIdDeletePathParams,
+    InstancesInstanceIdEditorPortGetPathParams, InstancesInstanceIdGetPathParams,
+    InstancesInstanceIdLogsGetPathParams, InstancesInstanceIdPatchPathParams,
+    InstancesInstanceIdPatchRequest, InstancesInstanceIdStartPostPathParams,
+    InstancesInstanceIdStopPostPathParams, JobMeta, JobsJobIdDeletePathParams,
+    JobsJobIdGetPathParams,
 };
 use http::Method;
 use std::str::FromStr;
@@ -543,14 +562,105 @@ impl Instances for ServerImpl {
         todo!()
     }
 
-    async fn instances_instance_id_config_ports_put(
+    async fn instances_instance_id_config_ports_transport_protocol_delete(
         &self,
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsPutPathParams,
-        _body: InstancePorts,
-    ) -> Result<InstancesInstanceIdConfigPortsPutResponse, ()> {
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_delete(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortDeleteResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortPutPathParams,
+        _body: InstancesInstanceIdConfigPortsTransportProtocolHostPortPutRequest,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortPutResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_start_host_port_end_delete(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndDeletePathParams,
+    ) -> Result<
+        InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndDeleteResponse,
+        (),
+    > {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_start_host_port_end_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndGetPathParams,
+    ) -> Result<
+        InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndGetResponse,
+        (),
+    > {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_start_host_port_end_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndPutPathParams,
+        _body: InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndPutRequest,
+    ) -> Result<
+        InstancesInstanceIdConfigPortsTransportProtocolHostPortStartHostPortEndPutResponse,
+        (),
+    > {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
+        _body: Vec<InstancePortMapping>,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolPutResponse, ()> {
         todo!()
     }
 
