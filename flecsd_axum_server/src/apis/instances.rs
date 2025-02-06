@@ -204,7 +204,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         body: models::InstancesCreatePostRequest,
-    ) -> Result<InstancesCreatePostResponse, String>;
+    ) -> Result<InstancesCreatePostResponse, ()>;
 
     /// Query all instances of one or all Apps.
     ///
@@ -215,7 +215,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         query_params: models::InstancesGetQueryParams,
-    ) -> Result<InstancesGetResponse, String>;
+    ) -> Result<InstancesGetResponse, ()>;
 
     /// Delete environment of an instance.
     ///
@@ -226,7 +226,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigEnvironmentDeletePathParams,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentDeleteResponse, String>;
+    ) -> Result<InstancesInstanceIdConfigEnvironmentDeleteResponse, ()>;
 
     /// Retrieve environment of an instance.
     ///
@@ -237,7 +237,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigEnvironmentGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentGetResponse, String>;
+    ) -> Result<InstancesInstanceIdConfigEnvironmentGetResponse, ()>;
 
     /// Modify or create environment of an instance.
     ///
@@ -249,7 +249,7 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigEnvironmentPutPathParams,
         body: models::InstanceEnvironment,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentPutResponse, String>;
+    ) -> Result<InstancesInstanceIdConfigEnvironmentPutResponse, ()>;
 
     /// Get configuration of an Instance.
     ///
@@ -260,7 +260,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigGetResponse, String>;
+    ) -> Result<InstancesInstanceIdConfigGetResponse, ()>;
 
     /// Delete exposed ports of an instance.
     ///
@@ -271,7 +271,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigPortsDeletePathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsDeleteResponse, String>;
+    ) -> Result<InstancesInstanceIdConfigPortsDeleteResponse, ()>;
 
     /// Retrieve exposed ports of an instance.
     ///
@@ -282,7 +282,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigPortsGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsGetResponse, String>;
+    ) -> Result<InstancesInstanceIdConfigPortsGetResponse, ()>;
 
     /// Modify or create exposed ports of an instance.
     ///
@@ -294,7 +294,7 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigPortsPutPathParams,
         body: models::InstancePorts,
-    ) -> Result<InstancesInstanceIdConfigPortsPutResponse, String>;
+    ) -> Result<InstancesInstanceIdConfigPortsPutResponse, ()>;
 
     /// Update configuration of an Instance.
     ///
@@ -306,7 +306,7 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigPostPathParams,
         body: models::InstanceConfig,
-    ) -> Result<InstancesInstanceIdConfigPostResponse, String>;
+    ) -> Result<InstancesInstanceIdConfigPostResponse, ()>;
 
     /// Delete a single instance.
     ///
@@ -317,7 +317,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdDeletePathParams,
-    ) -> Result<InstancesInstanceIdDeleteResponse, String>;
+    ) -> Result<InstancesInstanceIdDeleteResponse, ()>;
 
     /// Access an editor of an app.
     ///
@@ -328,7 +328,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdEditorPortGetPathParams,
-    ) -> Result<InstancesInstanceIdEditorPortGetResponse, String>;
+    ) -> Result<InstancesInstanceIdEditorPortGetResponse, ()>;
 
     /// Obtain details of an App instance.
     ///
@@ -339,7 +339,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdGetPathParams,
-    ) -> Result<InstancesInstanceIdGetResponse, String>;
+    ) -> Result<InstancesInstanceIdGetResponse, ()>;
 
     /// Retrieve logs of an Instance.
     ///
@@ -350,7 +350,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdLogsGetPathParams,
-    ) -> Result<InstancesInstanceIdLogsGetResponse, String>;
+    ) -> Result<InstancesInstanceIdLogsGetResponse, ()>;
 
     /// Update or downgrade Instance to another App version.
     ///
@@ -362,7 +362,7 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdPatchPathParams,
         body: models::InstancesInstanceIdPatchRequest,
-    ) -> Result<InstancesInstanceIdPatchResponse, String>;
+    ) -> Result<InstancesInstanceIdPatchResponse, ()>;
 
     /// Start an App instance.
     ///
@@ -373,7 +373,7 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdStartPostPathParams,
-    ) -> Result<InstancesInstanceIdStartPostResponse, String>;
+    ) -> Result<InstancesInstanceIdStartPostResponse, ()>;
 
     /// Stop an App instance.
     ///
@@ -384,5 +384,5 @@ pub trait Instances {
         host: Host,
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdStopPostPathParams,
-    ) -> Result<InstancesInstanceIdStopPostResponse, String>;
+    ) -> Result<InstancesInstanceIdStopPostResponse, ()>;
 }

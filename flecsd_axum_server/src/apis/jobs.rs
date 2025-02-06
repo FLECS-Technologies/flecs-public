@@ -49,7 +49,7 @@ pub trait Jobs {
         method: Method,
         host: Host,
         cookies: CookieJar,
-    ) -> Result<JobsGetResponse, String>;
+    ) -> Result<JobsGetResponse, ()>;
 
     /// Cancel job or remove failed/successful/cancelled job from journal.
     ///
@@ -60,7 +60,7 @@ pub trait Jobs {
         host: Host,
         cookies: CookieJar,
         path_params: models::JobsJobIdDeletePathParams,
-    ) -> Result<JobsJobIdDeleteResponse, String>;
+    ) -> Result<JobsJobIdDeleteResponse, ()>;
 
     /// Retrieve information for specific job_id.
     ///
@@ -71,5 +71,5 @@ pub trait Jobs {
         host: Host,
         cookies: CookieJar,
         path_params: models::JobsJobIdGetPathParams,
-    ) -> Result<JobsJobIdGetResponse, String>;
+    ) -> Result<JobsJobIdGetResponse, ()>;
 }

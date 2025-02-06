@@ -122,7 +122,7 @@ pub struct InstancesInstanceIdEditorPortGetPathParams {
                           regex(path = *RE_INSTANCESINSTANCEIDEDITORPORTGETPATHPARAMS_INSTANCE_ID),
                     )]
     pub instance_id: String,
-    #[validate(range(min = 1, max = 65535))]
+    #[validate(range(min = 1i32, max = 65535i32))]
     pub port: i32,
 }
 
@@ -194,7 +194,6 @@ pub struct JobsJobIdGetPathParams {
 }
 
 /// Additional info
-
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct AdditionalInfo {
@@ -339,7 +338,7 @@ pub struct AppEditor {
     pub name: String,
 
     #[serde(rename = "port")]
-    #[validate(range(min = 1, max = 65535))]
+    #[validate(range(min = 1u16, max = 65535u16))]
     pub port: u16,
 
     #[serde(rename = "supportsReverseProxy")]
@@ -509,7 +508,6 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AppEditor> {
 }
 
 /// Instance of an App
-
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct AppInstance {
@@ -1715,7 +1713,6 @@ impl std::convert::TryFrom<HeaderValue>
 }
 
 /// Device Onboarding Service Manifest
-
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct Dosschema {
@@ -3965,7 +3962,6 @@ impl std::ops::DerefMut for InstanceDetailIpAddress {
 }
 
 /// Bind mounts of an instance
-
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstanceDetailMounts {
@@ -6129,7 +6125,7 @@ impl std::convert::TryFrom<HeaderValue>
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct Job {
     #[serde(rename = "id")]
-    #[validate(range(min = 1, max = 4294967295u32))]
+    #[validate(range(min = 1u32, max = 4294967295u32))]
     pub id: u32,
 
     #[serde(rename = "status")]
@@ -6383,7 +6379,6 @@ impl std::ops::DerefMut for JobId {
 }
 
 /// Job metadata for accepted requests
-
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct JobMeta {
@@ -6961,7 +6956,7 @@ pub struct Jwt {
     pub token: String,
 
     #[serde(rename = "token_expires")]
-    #[validate(range(min = 0))]
+    #[validate(range(min = 0u32))]
     pub token_expires: u32,
 }
 
@@ -7199,7 +7194,7 @@ pub struct SessionId {
     pub id: Option<String>,
 
     #[serde(rename = "timestamp")]
-    #[validate(range(min = 0, max = 9223372036854775807u64))]
+    #[validate(range(min = 0u64, max = 9223372036854775807u64))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<u64>,
 }
@@ -8054,7 +8049,7 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<SystemVersio
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct User {
     #[serde(rename = "ID")]
-    #[validate(range(min = 0))]
+    #[validate(range(min = 0u32))]
     pub id: u32,
 
     #[serde(rename = "user_email")]

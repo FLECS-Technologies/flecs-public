@@ -57,7 +57,7 @@ pub trait Device {
         method: Method,
         host: Host,
         cookies: CookieJar,
-    ) -> Result<DeviceLicenseActivationPostResponse, String>;
+    ) -> Result<DeviceLicenseActivationPostResponse, ()>;
 
     /// Check if device is activated.
     ///
@@ -67,7 +67,7 @@ pub trait Device {
         method: Method,
         host: Host,
         cookies: CookieJar,
-    ) -> Result<DeviceLicenseActivationStatusGetResponse, String>;
+    ) -> Result<DeviceLicenseActivationStatusGetResponse, ()>;
 
     /// Get information about license.
     ///
@@ -77,7 +77,7 @@ pub trait Device {
         method: Method,
         host: Host,
         cookies: CookieJar,
-    ) -> Result<DeviceLicenseInfoGetResponse, String>;
+    ) -> Result<DeviceLicenseInfoGetResponse, ()>;
 
     /// DeviceOnboardingPost - POST /v2/device/onboarding
     async fn device_onboarding_post(
@@ -86,5 +86,5 @@ pub trait Device {
         host: Host,
         cookies: CookieJar,
         body: models::Dosschema,
-    ) -> Result<DeviceOnboardingPostResponse, String>;
+    ) -> Result<DeviceOnboardingPostResponse, ()>;
 }

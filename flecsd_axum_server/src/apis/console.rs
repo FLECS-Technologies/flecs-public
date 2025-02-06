@@ -37,7 +37,7 @@ pub trait Console {
         method: Method,
         host: Host,
         cookies: CookieJar,
-    ) -> Result<ConsoleAuthenticationDeleteResponse, String>;
+    ) -> Result<ConsoleAuthenticationDeleteResponse, ()>;
 
     /// Set the authentication information.
     ///
@@ -48,5 +48,5 @@ pub trait Console {
         host: Host,
         cookies: CookieJar,
         body: models::AuthResponseData,
-    ) -> Result<ConsoleAuthenticationPutResponse, String>;
+    ) -> Result<ConsoleAuthenticationPutResponse, ()>;
 }

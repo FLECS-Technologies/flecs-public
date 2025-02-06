@@ -19,7 +19,7 @@ conversion = [
 
 [dependencies]
 async-trait = "0.1"
-axum = { version = "0.7" }
+axum = "0.7"
 axum-extra = { version = "0.9", features = ["cookie", "multipart"] }
 base64 = "0.22"
 bytes = "1"

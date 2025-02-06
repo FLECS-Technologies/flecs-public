@@ -2284,7 +2284,7 @@ where
                                                     {
                                                       let mut response_headers = response.headers_mut().unwrap();
                                                       response_headers.insert(
-                                                          HeaderName::from_static(""),
+                                                          HeaderName::from_static("location"),
                                                           location
                                                       );
                                                     }

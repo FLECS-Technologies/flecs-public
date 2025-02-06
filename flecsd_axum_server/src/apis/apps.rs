@@ -71,7 +71,7 @@ pub trait Apps {
         cookies: CookieJar,
         path_params: models::AppsAppDeletePathParams,
         query_params: models::AppsAppDeleteQueryParams,
-    ) -> Result<AppsAppDeleteResponse, String>;
+    ) -> Result<AppsAppDeleteResponse, ()>;
 
     /// Query all versions or specific versions of an App.
     ///
@@ -83,7 +83,7 @@ pub trait Apps {
         cookies: CookieJar,
         path_params: models::AppsAppGetPathParams,
         query_params: models::AppsAppGetQueryParams,
-    ) -> Result<AppsAppGetResponse, String>;
+    ) -> Result<AppsAppGetResponse, ()>;
 
     /// Query installed Apps.
     ///
@@ -93,7 +93,7 @@ pub trait Apps {
         method: Method,
         host: Host,
         cookies: CookieJar,
-    ) -> Result<AppsGetResponse, String>;
+    ) -> Result<AppsGetResponse, ()>;
 
     /// Install an App from the FLECS marketplace.
     ///
@@ -104,7 +104,7 @@ pub trait Apps {
         host: Host,
         cookies: CookieJar,
         body: models::AppsInstallPostRequest,
-    ) -> Result<AppsInstallPostResponse, String>;
+    ) -> Result<AppsInstallPostResponse, ()>;
 
     /// Sideload an App from its manifest.
     ///
@@ -115,5 +115,5 @@ pub trait Apps {
         host: Host,
         cookies: CookieJar,
         body: models::AppsSideloadPostRequest,
-    ) -> Result<AppsSideloadPostResponse, String>;
+    ) -> Result<AppsSideloadPostResponse, ()>;
 }
