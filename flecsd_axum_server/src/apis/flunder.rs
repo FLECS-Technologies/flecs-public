@@ -30,5 +30,5 @@ pub trait Flunder {
         host: Host,
         cookies: CookieJar,
         query_params: models::FlunderBrowseGetQueryParams,
-    ) -> Result<FlunderBrowseGetResponse, String>;
+    ) -> Result<FlunderBrowseGetResponse, ()>;
 }

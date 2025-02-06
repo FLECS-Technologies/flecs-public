@@ -43,7 +43,7 @@ pub trait System {
         method: Method,
         host: Host,
         cookies: CookieJar,
-    ) -> Result<SystemInfoGetResponse, String>;
+    ) -> Result<SystemInfoGetResponse, ()>;
 
     /// Check daemon availability and connectivity.
     ///
@@ -53,7 +53,7 @@ pub trait System {
         method: Method,
         host: Host,
         cookies: CookieJar,
-    ) -> Result<SystemPingGetResponse, String>;
+    ) -> Result<SystemPingGetResponse, ()>;
 
     /// Get FLECS core and API version.
     ///
@@ -63,5 +63,5 @@ pub trait System {
         method: Method,
         host: Host,
         cookies: CookieJar,
-    ) -> Result<SystemVersionGetResponse, String>;
+    ) -> Result<SystemVersionGetResponse, ()>;
 }

@@ -96,7 +96,7 @@ impl Apps for ServerImpl {
         _cookies: CookieJar,
         path_params: AppsAppDeletePathParams,
         query_params: AppsAppDeleteQueryParams,
-    ) -> Result<AppsAppDeleteResponse, String> {
+    ) -> Result<AppsAppDeleteResponse, ()> {
         match query_params.version {
             Some(app_version) => {
                 let key = AppKey {
@@ -126,12 +126,14 @@ impl Apps for ServerImpl {
                         crate::sorcerer::appraiser::uninstall_app(quest, vault, key)
                     })
                     .await
-                    .map_err(|e| e.to_string())?;
+                    // TODO: Add 500 Response to API
+                    .map_err(|_| ())?;
                 Ok(AppsAppDeleteResponse::Status202_Accepted(JobMeta {
                     job_id: id.0 as i32,
                 }))
             }
-            None => Err("Missing query parameter 'version'".to_string()),
+            // TODO: Add 400 Response to API
+            None => Err(()),
         }
     }
 
@@ -142,14 +144,15 @@ impl Apps for ServerImpl {
         _cookies: CookieJar,
         path_params: AppsAppGetPathParams,
         query_params: AppsAppGetQueryParams,
-    ) -> Result<AppsAppGetResponse, String> {
+    ) -> Result<AppsAppGetResponse, ()> {
         let apps = crate::sorcerer::appraiser::get_app(
             self.vault.clone(),
             path_params.app,
             query_params.version,
         )
         .await
-        .map_err(|e| e.to_string())?;
+        // TODO: Add 500 Response to API
+        .map_err(|_| ())?;
         if apps.is_empty() {
             Ok(AppsAppGetResponse::Status404_NoSuchAppOrApp)
         } else {
@@ -162,10 +165,11 @@ impl Apps for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-    ) -> Result<AppsGetResponse, String> {
+    ) -> Result<AppsGetResponse, ()> {
         let apps = crate::sorcerer::appraiser::get_apps(self.vault.clone())
             .await
-            .map_err(|e| e.to_string())?;
+            // TODO: Add 500 Response to API
+            .map_err(|_| ())?;
         Ok(AppsGetResponse::Status200_Success(apps))
     }
 
@@ -175,7 +179,7 @@ impl Apps for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         body: AppsInstallPostRequest,
-    ) -> Result<AppsInstallPostResponse, String> {
+    ) -> Result<AppsInstallPostResponse, ()> {
         let app_key = body.app_key.into();
         let config = crate::lore::console_client_config::default().await;
         let vault = self.vault.clone();
@@ -205,7 +209,7 @@ impl Apps for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         body: AppsSideloadPostRequest,
-    ) -> Result<AppsSideloadPostResponse, String> {
+    ) -> Result<AppsSideloadPostResponse, ()> {
         match serde_json::from_str::<AppManifestVersion>(&body.manifest).map(AppManifest::try_from)
         {
             Err(e) => Ok(AppsSideloadPostResponse::Status400_MalformedRequest(
@@ -238,7 +242,8 @@ impl Apps for ServerImpl {
                     Ok((id, _)) => Ok(AppsSideloadPostResponse::Status202_Accepted(JobMeta {
                         job_id: id.0 as i32,
                     })),
-                    Err(e) => Err(e.to_string()),
+                    // TODO: Add 500 Response to API
+                    Err(_) => Err(()),
                 }
             }
         }
@@ -252,7 +257,7 @@ impl Console for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-    ) -> Result<ConsoleAuthenticationDeleteResponse, String> {
+    ) -> Result<ConsoleAuthenticationDeleteResponse, ()> {
         crate::sorcerer::authmancer::delete_authentication(&self.vault).await;
         Ok(ConsoleAuthenticationDeleteResponse::Status204_NoContent)
     }
@@ -263,7 +268,7 @@ impl Console for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         body: AuthResponseData,
-    ) -> Result<ConsoleAuthenticationPutResponse, String> {
+    ) -> Result<ConsoleAuthenticationPutResponse, ()> {
         crate::sorcerer::authmancer::store_authentication(body, &self.vault).await;
         Ok(ConsoleAuthenticationPutResponse::Status204_NoContent)
     }
@@ -276,7 +281,7 @@ impl Device for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-    ) -> Result<DeviceLicenseActivationPostResponse, String> {
+    ) -> Result<DeviceLicenseActivationPostResponse, ()> {
         match crate::sorcerer::licenso::activate_license(
             &self.vault,
             crate::lore::console_client_config::default().await,
@@ -297,7 +302,7 @@ impl Device for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-    ) -> Result<DeviceLicenseActivationStatusGetResponse, String> {
+    ) -> Result<DeviceLicenseActivationStatusGetResponse, ()> {
         match crate::sorcerer::licenso::validate_license(
             &self.vault,
             crate::lore::console_client_config::default().await,
@@ -320,7 +325,7 @@ impl Device for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-    ) -> Result<DeviceLicenseInfoGetResponse, String> {
+    ) -> Result<DeviceLicenseInfoGetResponse, ()> {
         let secrets = self.vault.get_secrets().await;
         Ok(DeviceLicenseInfoGetResponse::Status200_Success(
             DeviceLicenseInfoGet200Response {
@@ -340,7 +345,7 @@ impl Device for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         body: Dosschema,
-    ) -> Result<DeviceOnboardingPostResponse, String> {
+    ) -> Result<DeviceOnboardingPostResponse, ()> {
         if body.apps.is_empty() {
             return Ok(DeviceOnboardingPostResponse::Status400_MalformedRequest(
                 AdditionalInfo {
@@ -380,7 +385,8 @@ impl Device for ServerImpl {
             Ok((id, _)) => Ok(DeviceOnboardingPostResponse::Status202_Accepted(JobMeta {
                 job_id: id.0 as i32,
             })),
-            Err(e) => Err(e.to_string()),
+            // TODO: Add 500 Response to API
+            Err(_) => Err(()),
         }
     }
 }
@@ -393,7 +399,7 @@ impl Flunder for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         _query_params: FlunderBrowseGetQueryParams,
-    ) -> Result<FlunderBrowseGetResponse, String> {
+    ) -> Result<FlunderBrowseGetResponse, ()> {
         todo!()
     }
 }
@@ -406,7 +412,7 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         body: InstancesCreatePostRequest,
-    ) -> Result<InstancesCreatePostResponse, String> {
+    ) -> Result<InstancesCreatePostResponse, ()> {
         let app_key: AppKey = body.app_key.into();
         if !crate::sorcerer::appraiser::does_app_exist(self.vault.clone(), app_key.clone()).await {
             return Ok(InstancesCreatePostResponse::Status400_MalformedRequest(
@@ -435,7 +441,8 @@ impl Instances for ServerImpl {
                 },
             )
             .await
-            .map_err(|e| e.to_string())?;
+            // TODO: Add 500 Response to API
+            .map_err(|_| ())?;
         Ok(InstancesCreatePostResponse::Status202_Accepted(
             JobMeta::new(id.0 as i32),
         ))
@@ -447,7 +454,7 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         query_params: InstancesGetQueryParams,
-    ) -> Result<InstancesGetResponse, String> {
+    ) -> Result<InstancesGetResponse, ()> {
         let instances = match query_params {
             InstancesGetQueryParams {
                 version: None,
@@ -481,7 +488,7 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdConfigEnvironmentDeletePathParams,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentDeleteResponse, String> {
+    ) -> Result<InstancesInstanceIdConfigEnvironmentDeleteResponse, ()> {
         todo!()
     }
 
@@ -491,7 +498,7 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdConfigEnvironmentGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentGetResponse, String> {
+    ) -> Result<InstancesInstanceIdConfigEnvironmentGetResponse, ()> {
         todo!()
     }
 
@@ -502,7 +509,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdConfigEnvironmentPutPathParams,
         _body: InstanceEnvironment,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentPutResponse, String> {
+    ) -> Result<InstancesInstanceIdConfigEnvironmentPutResponse, ()> {
         todo!()
     }
 
@@ -512,7 +519,7 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdConfigGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigGetResponse, String> {
+    ) -> Result<InstancesInstanceIdConfigGetResponse, ()> {
         todo!()
     }
 
@@ -522,7 +529,7 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdConfigPortsDeletePathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsDeleteResponse, String> {
+    ) -> Result<InstancesInstanceIdConfigPortsDeleteResponse, ()> {
         todo!()
     }
 
@@ -532,7 +539,7 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdConfigPortsGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsGetResponse, String> {
+    ) -> Result<InstancesInstanceIdConfigPortsGetResponse, ()> {
         todo!()
     }
 
@@ -543,7 +550,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdConfigPortsPutPathParams,
         _body: InstancePorts,
-    ) -> Result<InstancesInstanceIdConfigPortsPutResponse, String> {
+    ) -> Result<InstancesInstanceIdConfigPortsPutResponse, ()> {
         todo!()
     }
 
@@ -554,7 +561,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdConfigPostPathParams,
         _body: InstanceConfig,
-    ) -> Result<InstancesInstanceIdConfigPostResponse, String> {
+    ) -> Result<InstancesInstanceIdConfigPostResponse, ()> {
         todo!()
     }
 
@@ -564,9 +571,9 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         path_params: InstancesInstanceIdDeletePathParams,
-    ) -> Result<InstancesInstanceIdDeleteResponse, String> {
-        let instance_id =
-            InstanceId::from_str(path_params.instance_id.as_str()).map_err(|e| e.to_string())?;
+    ) -> Result<InstancesInstanceIdDeleteResponse, ()> {
+        // TODO: Add 400 Response to API
+        let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
         if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
         {
             return Ok(InstancesInstanceIdDeleteResponse::Status404_NoInstanceWithThisInstance);
@@ -580,7 +587,8 @@ impl Instances for ServerImpl {
                 crate::sorcerer::instancius::delete_instance(quest, vault, instance_id)
             })
             .await
-            .map_err(|e| e.to_string())?
+            // TODO: Add 500 Response to API
+            .map_err(|_| ())?
             .0;
         Ok(InstancesInstanceIdDeleteResponse::Status202_Accepted(
             JobMeta {
@@ -595,7 +603,7 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdEditorPortGetPathParams,
-    ) -> Result<InstancesInstanceIdEditorPortGetResponse, String> {
+    ) -> Result<InstancesInstanceIdEditorPortGetResponse, ()> {
         todo!()
     }
 
@@ -605,7 +613,7 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         path_params: InstancesInstanceIdGetPathParams,
-    ) -> Result<InstancesInstanceIdGetResponse, String> {
+    ) -> Result<InstancesInstanceIdGetResponse, ()> {
         let instance_id = match InstanceId::from_str(path_params.instance_id.as_str()) {
             Err(e) => {
                 return Ok(
@@ -635,9 +643,9 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         path_params: InstancesInstanceIdLogsGetPathParams,
-    ) -> Result<InstancesInstanceIdLogsGetResponse, String> {
-        let instance_id =
-            InstanceId::from_str(path_params.instance_id.as_str()).map_err(|e| e.to_string())?;
+    ) -> Result<InstancesInstanceIdLogsGetResponse, ()> {
+        // TODO: Add 400 Response to API
+        let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
         if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
         {
             return Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance);
@@ -665,7 +673,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdPatchPathParams,
         _body: InstancesInstanceIdPatchRequest,
-    ) -> Result<InstancesInstanceIdPatchResponse, String> {
+    ) -> Result<InstancesInstanceIdPatchResponse, ()> {
         todo!()
     }
 
@@ -675,9 +683,9 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         path_params: InstancesInstanceIdStartPostPathParams,
-    ) -> Result<InstancesInstanceIdStartPostResponse, String> {
-        let instance_id =
-            InstanceId::from_str(path_params.instance_id.as_str()).map_err(|e| e.to_string())?;
+    ) -> Result<InstancesInstanceIdStartPostResponse, ()> {
+        // TODO: Add 400 Response to API
+        let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
         if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
         {
             return Ok(InstancesInstanceIdStartPostResponse::Status404_NoInstanceWithThisInstance);
@@ -691,7 +699,8 @@ impl Instances for ServerImpl {
                 crate::sorcerer::instancius::start_instance(quest, vault, instance_id)
             })
             .await
-            .map_err(|e| e.to_string())?
+            // TODO: Add 500 Response to API
+            .map_err(|_| ())?
             .0;
         Ok(InstancesInstanceIdStartPostResponse::Status202_Accepted(
             JobMeta {
@@ -706,9 +715,9 @@ impl Instances for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         path_params: InstancesInstanceIdStopPostPathParams,
-    ) -> Result<InstancesInstanceIdStopPostResponse, String> {
-        let instance_id =
-            InstanceId::from_str(path_params.instance_id.as_str()).map_err(|e| e.to_string())?;
+    ) -> Result<InstancesInstanceIdStopPostResponse, ()> {
+        // TODO: Add 400 Response to API
+        let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
         if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
         {
             return Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance);
@@ -722,7 +731,8 @@ impl Instances for ServerImpl {
                 crate::sorcerer::instancius::stop_instance(quest, vault, instance_id)
             })
             .await
-            .map_err(|e| e.to_string())?
+            // TODO: Add 500 Response to API
+            .map_err(|_| ())?
             .0;
         Ok(InstancesInstanceIdStopPostResponse::Status202_Accepted(
             JobMeta {
@@ -739,7 +749,7 @@ impl Jobs for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-    ) -> Result<JobsGetResponse, String> {
+    ) -> Result<JobsGetResponse, ()> {
         Ok(JobsGetResponse::Status200_Success(
             crate::sorcerer::magequester::get_jobs().await,
         ))
@@ -751,7 +761,7 @@ impl Jobs for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         path_params: JobsJobIdDeletePathParams,
-    ) -> Result<JobsJobIdDeleteResponse, String> {
+    ) -> Result<JobsJobIdDeleteResponse, ()> {
         match crate::sorcerer::magequester::delete_job(path_params.job_id as u64).await {
             Ok(_) => Ok(JobsJobIdDeleteResponse::Status200_Success),
             Err(crate::quest::quest_master::DeleteQuestError::StillRunning) => {
@@ -772,7 +782,7 @@ impl Jobs for ServerImpl {
         _host: Host,
         _cookies: CookieJar,
         path_params: JobsJobIdGetPathParams,
-    ) -> Result<JobsJobIdGetResponse, String> {
+    ) -> Result<JobsJobIdGetResponse, ()> {
         match crate::sorcerer::magequester::get_job(path_params.job_id as u64).await {
             Some(job) => Ok(JobsJobIdGetResponse::Status200_Success(job)),
             None => Ok(JobsJobIdGetResponse::Status404_NotFound),
@@ -787,12 +797,10 @@ impl System for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-    ) -> Result<SystemInfoGetResponse, String> {
+    ) -> Result<SystemInfoGetResponse, ()> {
         Ok(SystemInfoGetResponse::Status200_Sucess(
             crate::relic::system::info::try_create_system_info().map_err(|e| {
-                let e = e.to_string();
                 error!("Could not create SystemInfo: {e}");
-                e
             })?,
         ))
     }
@@ -802,7 +810,7 @@ impl System for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-    ) -> Result<SystemPingGetResponse, String> {
+    ) -> Result<SystemPingGetResponse, ()> {
         Ok(SystemPingGetResponse::Status200_Success(ok()))
     }
 
@@ -811,7 +819,7 @@ impl System for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-    ) -> Result<SystemVersionGetResponse, String> {
+    ) -> Result<SystemVersionGetResponse, ()> {
         Ok(SystemVersionGetResponse::Status200_Success(
             models::SystemVersionGet200Response {
                 api: crate::lore::API_VERSION.to_string(),
