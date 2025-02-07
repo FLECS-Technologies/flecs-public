@@ -414,9 +414,11 @@ pub use anyhow::Result;
 #[cfg(test)]
 mod tests {
     use flecs_console_client::apis::configuration::Configuration;
+    use std::collections::HashSet;
     use std::fs;
     use std::path::{Path, PathBuf};
-    use std::sync::Arc;
+    use std::sync::OnceLock;
+    use std::sync::{Arc, Mutex};
 
     pub async fn create_test_server_and_config() -> (mockito::ServerGuard, Arc<Configuration>) {
         let server = mockito::Server::new_async().await;
@@ -428,9 +430,25 @@ mod tests {
     }
     const TEST_PATH: &str = "/tmp/flecs-tests/";
 
+    fn validate_test_path_unique(test_path: PathBuf) {
+        static TEST_PATHS: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
+
+        assert!(
+            TEST_PATHS
+                .get_or_init(Default::default)
+                .lock()
+                .unwrap()
+                .insert(test_path.clone()),
+            "Test path is not unique: {:?}",
+            test_path
+        )
+    }
+
     pub fn prepare_test_path(module_path: &str, test_name: &str) -> PathBuf {
         let module_path = module_path.replace(':', "_");
         let path = Path::new(TEST_PATH).join(module_path).join(test_name);
+        // Using the same directory in multiple tests creates unpredictable test outcomes (i.e. some tests fail sometimes)
+        validate_test_path_unique(path.clone());
         println!("Preparing {:?}", path);
         let _ = fs::remove_dir_all(&path);
         assert!(!path.try_exists().unwrap());
