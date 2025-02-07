@@ -1,6 +1,6 @@
 pub use super::Result;
 use crate::jeweler::deployment::Deployment;
-use crate::jeweler::gem::instance::{Instance, InstanceId};
+use crate::jeweler::gem::instance::{Instance, InstanceConfig, InstanceId};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
 use crate::relic::network::Ipv4NetworkAccess;
@@ -163,6 +163,52 @@ pub async fn make_ipv4_reservation(
         .reserve_free_ipv4_address(network)
 }
 
+pub async fn modify_instance_config_with<F, T>(
+    vault: Arc<Vault>,
+    instance_id: InstanceId,
+    with: F,
+) -> Option<T>
+where
+    F: FnOnce(&mut InstanceConfig) -> T,
+{
+    Some(with(
+        &mut vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await
+            .instance_pouch_mut
+            .as_mut()
+            .expect("Reservations should never fail")
+            .gems_mut()
+            .get_mut(&instance_id)?
+            .config,
+    ))
+}
+
+pub async fn get_instance_config_part_with<F, T>(
+    vault: Arc<Vault>,
+    instance_id: InstanceId,
+    with: F,
+) -> Option<T>
+where
+    F: FnOnce(&InstanceConfig) -> T,
+{
+    Some(with(
+        &vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .expect("Reservations should never fail")
+            .gems()
+            .get(&instance_id)?
+            .config,
+    ))
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -170,6 +216,7 @@ pub mod tests {
     use crate::jeweler::gem::instance::{
         try_create_instance, InstanceDeserializable, InstanceStatus,
     };
+    use crate::jeweler::gem::manifest::EnvironmentVariable;
     use crate::quest::Quest;
     use crate::relic::network::Ipv4Network;
     use crate::tests::prepare_test_path;
@@ -467,6 +514,89 @@ pub mod tests {
                 .unwrap()
                 .reserve_free_ipv4_address(network),
             Some(Ipv4Addr::new(10, 18, 102, 3)),
+        );
+    }
+
+    #[tokio::test]
+    async fn modify_instance_config_with_none() {
+        let vault =
+            create_test_vault(module_path!(), "modify_instance_config_with_none", None).await;
+        assert!(
+            modify_instance_config_with(vault, InstanceId::new(10000), |_| true)
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn modify_instance_config_with_some() {
+        let vault =
+            create_test_vault(module_path!(), "modify_instance_config_with_some", None).await;
+        let test_env_var = EnvironmentVariable {
+            name: "TestVar".to_string(),
+            value: None,
+        };
+        assert_eq!(
+            modify_instance_config_with(vault.clone(), InstanceId::new(1), |config| {
+                config.environment_variables.push(test_env_var.clone());
+                "test_value"
+            })
+            .await,
+            Some("test_value")
+        );
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        assert_eq!(
+            grab.instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(1))
+                .unwrap()
+                .config
+                .environment_variables,
+            vec![test_env_var]
+        )
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_part_with_none() {
+        let vault =
+            create_test_vault(module_path!(), "get_instance_config_part_with_none", None).await;
+        assert!(
+            get_instance_config_part_with(vault, InstanceId::new(10000), |_| true)
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_part_with_some() {
+        let vault =
+            create_test_vault(module_path!(), "get_instance_config_part_with_some", None).await;
+        let test_env_var = EnvironmentVariable {
+            name: "TestVar".to_string(),
+            value: None,
+        };
+        vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await
+            .instance_pouch_mut
+            .as_mut()
+            .unwrap()
+            .gems_mut()
+            .get_mut(&InstanceId::new(1))
+            .unwrap()
+            .config
+            .environment_variables
+            .push(test_env_var.clone());
+        assert_eq!(
+            get_instance_config_part_with(vault.clone(), InstanceId::new(1), |config| {
+                config.environment_variables.clone()
+            })
+            .await,
+            Some(vec![test_env_var])
         );
     }
 }

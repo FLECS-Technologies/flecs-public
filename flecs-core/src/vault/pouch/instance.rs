@@ -167,7 +167,9 @@ impl InstancePouch {
 pub mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::gem::instance::{InstanceConfig, InstanceStatus};
+    use crate::jeweler::gem::instance::{InstanceConfig, InstancePortMapping, InstanceStatus};
+    use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange, VolumeMount};
+    use crate::relic::device::usb::UsbDevice;
     use crate::relic::network::{Ipv4Iterator, Ipv4Network};
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::manifest::tests::create_test_manifest;
@@ -198,6 +200,109 @@ pub mod tests {
             instance.deployment_id.clone(),
             Arc::new(deployment) as Arc<dyn Deployment>,
         )
+    }
+
+    pub fn test_config() -> InstanceConfig {
+        InstanceConfig {
+            volume_mounts: HashMap::from([(
+                "test-volume#1".to_string(),
+                VolumeMount {
+                    name: "test-volume#1".to_string(),
+                    container_path: PathBuf::from("/test/path"),
+                },
+            )]),
+            environment_variables: vec![
+                EnvironmentVariable {
+                    name: "VAR_1".to_string(),
+                    value: None,
+                },
+                EnvironmentVariable {
+                    name: "VAR_2".to_string(),
+                    value: Some("value".to_string()),
+                },
+            ],
+            port_mapping: InstancePortMapping {
+                tcp: vec![PortMapping::Single(80, 8080)],
+                udp: vec![PortMapping::Range {
+                    from: PortRange::new(50..=100),
+                    to: PortRange::new(150..=200),
+                }],
+                sctp: vec![],
+            },
+            network_addresses: HashMap::from([
+                (
+                    "Network1".to_string(),
+                    IpAddr::V4(Ipv4Addr::new(50, 60, 70, 80)),
+                ),
+                (
+                    "Network2".to_string(),
+                    IpAddr::V6(Ipv6Addr::new(
+                        0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90,
+                    )),
+                ),
+            ]),
+            usb_devices: HashSet::from([UsbDevice {
+                vid: 10,
+                pid: 20,
+                port: "test_port".to_string(),
+                device: "test_dev".to_string(),
+                vendor: "test_vendor".to_string(),
+            }]),
+        }
+    }
+
+    fn create_test_config_json() -> Value {
+        serde_json::json!({
+            "volume_mounts": {
+                "test-volume#1": {
+                    "name": "test-volume#1",
+                    "container_path": "/test/path",
+                }
+            },
+            "environment_variables": [
+                {
+                    "name": "VAR_1",
+                },
+                {
+                    "name": "VAR_2",
+                    "value": "value",
+                }
+            ],
+            "port_mapping": {
+                "tcp": [
+                    {
+                        "Single": [80, 8080],
+                    }
+                ],
+                "udp": [
+                    {
+                        "Range": {
+                            "from": {
+                                "start": 50,
+                                "end": 100
+                            },
+                            "to": {
+                                "start": 150,
+                                "end": 200
+                            }
+                        }
+                    }
+                ]
+            },
+            "network_addresses": {
+                "Network2": "ab:cd:ef:12:34:56:78:90",
+                "Network1": "50.60.70.80"
+            },
+            "usb_devices": [
+                {
+                    "vid": 10,
+                    "pid": 20,
+                    "port": "test_port",
+                    "device": "test_dev",
+                    "vendor": "test_vendor"
+                }
+            ]
+        })
     }
 
     pub fn create_test_instances_deserializable() -> Vec<InstanceDeserializable> {
@@ -263,7 +368,7 @@ pub mod tests {
                 deployment_id: "test-deployment-4".to_string(),
             },
             InstanceDeserializable {
-                config: InstanceConfig::default(),
+                config: test_config(),
                 name: "test-instance-6".to_string(),
                 hostname: format!("flecs-{}", InstanceId::new(6)),
                 id: InstanceId::new(6),
@@ -368,7 +473,7 @@ pub mod tests {
                     "version": "1.2.6"
                 },
                 "deployment_id": "test-deployment-4",
-                "config": {}
+                "config": create_test_config_json()
             }
         ])
     }
@@ -610,6 +715,7 @@ pub mod tests {
             Ipv4Addr::new(1, 2, 3, 5),
             Ipv4Addr::new(1, 2, 3, 6),
             Ipv4Addr::new(10, 20, 30, 40),
+            Ipv4Addr::new(50, 60, 70, 80),
         ]);
         assert_eq!(pouch.unavailable_ipv4_addresses(), expected_ipv4_addresses);
     }
@@ -638,6 +744,7 @@ pub mod tests {
             Ipv4Addr::new(1, 2, 3, 5),
             Ipv4Addr::new(1, 2, 3, 6),
             Ipv4Addr::new(10, 20, 30, 40),
+            Ipv4Addr::new(50, 60, 70, 80),
         ]);
         for instance in pouch.instances.values_mut() {
             instance.config.network_addresses.insert(
@@ -695,7 +802,10 @@ pub mod tests {
                     0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x84,
                 )),
             );
-        assert!(pouch.unavailable_ipv4_addresses().is_empty());
+        assert_eq!(
+            pouch.unavailable_ipv4_addresses(),
+            HashSet::from([Ipv4Addr::new(50, 60, 70, 80),])
+        );
     }
 
     #[test]
