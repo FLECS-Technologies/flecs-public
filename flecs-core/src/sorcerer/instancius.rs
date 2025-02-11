@@ -1,9 +1,10 @@
 pub use super::Result;
+use crate::forge::vec::VecExtension;
 use crate::jeweler::app::AppStatus;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem;
 use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
-use crate::jeweler::gem::manifest::{PortMapping, PortRange};
+use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange};
 use crate::jeweler::instance::Logs;
 use crate::quest::SyncQuest;
 use crate::relic::network::Ipv4NetworkAccess;
@@ -371,6 +372,89 @@ pub async fn delete_instance_config_port_mappings(vault: Arc<Vault>, id: Instanc
     })
     .await
     .is_some()
+}
+
+pub async fn get_instance_config_environment_variable_value(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    variable_name: String,
+) -> Option<Option<Option<String>>> {
+    spell::instance::get_instance_config_part_with(vault, id, |config| {
+        config
+            .environment_variables
+            .iter()
+            .find(|env| env.name == variable_name)
+            .map(|env| env.value.clone())
+    })
+    .await
+}
+
+pub async fn put_instance_config_environment_variable_value(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    mut environment_variable: EnvironmentVariable,
+) -> Option<Option<String>> {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        for existing_environment_variable in config.environment_variables.iter_mut() {
+            if existing_environment_variable.name == environment_variable.name {
+                std::mem::swap(
+                    &mut existing_environment_variable.value,
+                    &mut environment_variable.value,
+                );
+                return environment_variable.value;
+            }
+        }
+        config.environment_variables.push(environment_variable);
+        None
+    })
+    .await
+}
+
+pub async fn delete_instance_config_environment_variable_value(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    variable_name: String,
+) -> Option<Option<EnvironmentVariable>> {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        config
+            .environment_variables
+            .extract_first_element_with(|env| env.name == variable_name)
+    })
+    .await
+}
+
+pub async fn get_instance_config_environment(
+    vault: Arc<Vault>,
+    id: InstanceId,
+) -> Option<Vec<EnvironmentVariable>> {
+    spell::instance::get_instance_config_part_with(vault, id, |config| {
+        config.environment_variables.clone()
+    })
+    .await
+}
+
+pub async fn put_instance_config_environment(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    mut environment: Vec<EnvironmentVariable>,
+) -> Option<Vec<EnvironmentVariable>> {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        std::mem::swap(&mut config.environment_variables, &mut environment);
+        environment
+    })
+    .await
+}
+
+pub async fn delete_instance_config_environment(
+    vault: Arc<Vault>,
+    id: InstanceId,
+) -> Option<Vec<EnvironmentVariable>> {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        let mut environment = Vec::default();
+        std::mem::swap(&mut config.environment_variables, &mut environment);
+        environment
+    })
+    .await
 }
 
 pub async fn delete_instance(quest: SyncQuest, vault: Arc<Vault>, id: InstanceId) -> Result<()> {
@@ -1839,5 +1923,415 @@ pub mod tests {
             .config
             .port_mapping
             .is_empty())
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_variable_value_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_variable_value_none",
+            None,
+        )
+        .await;
+        assert!(get_instance_config_environment_variable_value(
+            vault,
+            InstanceId::new(200),
+            "".to_string()
+        )
+        .await
+        .is_none());
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_variable_value_some_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_variable_value_some_none",
+            None,
+        )
+        .await;
+        assert!(matches!(
+            get_instance_config_environment_variable_value(
+                vault,
+                InstanceId::new(6),
+                "VAR_3".to_string()
+            )
+            .await,
+            Some(None)
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_variable_value_some_some() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_variable_value_some_some",
+            None,
+        )
+        .await;
+        assert_eq!(
+            get_instance_config_environment_variable_value(
+                vault.clone(),
+                InstanceId::new(6),
+                "VAR_2".to_string()
+            )
+            .await,
+            Some(Some(Some("value".to_string())))
+        );
+        assert_eq!(
+            get_instance_config_environment_variable_value(
+                vault,
+                InstanceId::new(6),
+                "VAR_1".to_string()
+            )
+            .await,
+            Some(Some(None))
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_variable_value_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_variable_value_none",
+            None,
+        )
+        .await;
+        assert!(put_instance_config_environment_variable_value(
+            vault.clone(),
+            InstanceId::new(600),
+            EnvironmentVariable {
+                name: "VAR_3".to_string(),
+                value: None
+            }
+        )
+        .await
+        .is_none());
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_variable_value_some_new() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_variable_value_some_new",
+            None,
+        )
+        .await;
+        let new_environment_variable = EnvironmentVariable {
+            name: "VAR_3".to_string(),
+            value: Some("test-value".to_string()),
+        };
+        assert!(matches!(
+            put_instance_config_environment_variable_value(
+                vault.clone(),
+                InstanceId::new(6),
+                new_environment_variable.clone(),
+            )
+            .await,
+            Some(None)
+        ));
+        assert_eq!(
+            vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .environment_variables
+                .get(2)
+                .cloned(),
+            Some(new_environment_variable),
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_variable_value_some_replace() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_variable_value_some_replace",
+            None,
+        )
+        .await;
+        let new_environment_variable = EnvironmentVariable {
+            name: "VAR_2".to_string(),
+            value: Some("test-value".to_string()),
+        };
+        assert_eq!(
+            put_instance_config_environment_variable_value(
+                vault.clone(),
+                InstanceId::new(6),
+                new_environment_variable.clone(),
+            )
+            .await,
+            Some(Some("value".to_string()))
+        );
+        assert_eq!(
+            vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .environment_variables
+                .get(1)
+                .cloned(),
+            Some(new_environment_variable),
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_variable_value_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_variable_value_none",
+            None,
+        )
+        .await;
+        assert!(delete_instance_config_environment_variable_value(
+            vault,
+            InstanceId::new(200),
+            "".to_string()
+        )
+        .await
+        .is_none());
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_variable_value_some_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_variable_value_some_none",
+            None,
+        )
+        .await;
+        assert!(matches!(
+            delete_instance_config_environment_variable_value(
+                vault,
+                InstanceId::new(6),
+                "VAR_3".to_string()
+            )
+            .await,
+            Some(None)
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_variable_value_some_some() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_variable_value_some_some",
+            None,
+        )
+        .await;
+        let expected_environment_variable = EnvironmentVariable {
+            name: "VAR_2".to_string(),
+            value: Some("value".to_string()),
+        };
+        assert_eq!(
+            delete_instance_config_environment_variable_value(
+                vault.clone(),
+                InstanceId::new(6),
+                "VAR_2".to_string()
+            )
+            .await,
+            Some(Some(expected_environment_variable))
+        );
+        let expected_environment_variable = EnvironmentVariable {
+            name: "VAR_1".to_string(),
+            value: None,
+        };
+        assert_eq!(
+            delete_instance_config_environment_variable_value(
+                vault.clone(),
+                InstanceId::new(6),
+                "VAR_1".to_string()
+            )
+            .await,
+            Some(Some(expected_environment_variable))
+        );
+        assert!(vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .environment_variables
+            .is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_none() {
+        let vault =
+            spell_test_vault(module_path!(), "get_instance_config_environment_none", None).await;
+        assert!(
+            get_instance_config_environment(vault.clone(), InstanceId::new(80))
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_some() {
+        let vault =
+            spell_test_vault(module_path!(), "get_instance_config_environment_some", None).await;
+        let result = get_instance_config_environment(vault.clone(), InstanceId::new(6)).await;
+        assert_eq!(
+            result,
+            Some(
+                vault
+                    .reservation()
+                    .reserve_instance_pouch()
+                    .grab()
+                    .await
+                    .instance_pouch
+                    .as_ref()
+                    .unwrap()
+                    .gems()
+                    .get(&InstanceId::new(6))
+                    .unwrap()
+                    .config
+                    .environment_variables
+                    .clone()
+            )
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_none() {
+        let vault =
+            spell_test_vault(module_path!(), "put_instance_config_environment_none", None).await;
+        assert!(
+            put_instance_config_environment(vault.clone(), InstanceId::new(80), Vec::new())
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_some() {
+        let vault =
+            spell_test_vault(module_path!(), "put_instance_config_environment_some", None).await;
+        let new_environment = vec![EnvironmentVariable {
+            name: "Test".to_string(),
+            value: None,
+        }];
+        let expected_result = Some(
+            vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .environment_variables
+                .clone(),
+        );
+        assert_eq!(
+            put_instance_config_environment(
+                vault.clone(),
+                InstanceId::new(6),
+                new_environment.clone()
+            )
+            .await,
+            expected_result
+        );
+        assert_eq!(
+            vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .environment_variables,
+            new_environment
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_none",
+            None,
+        )
+        .await;
+        assert!(
+            delete_instance_config_environment(vault.clone(), InstanceId::new(80))
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_some() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_some",
+            None,
+        )
+        .await;
+        let expected_result = Some(
+            vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .environment_variables
+                .clone(),
+        );
+        assert_eq!(
+            delete_instance_config_environment(vault.clone(), InstanceId::new(6)).await,
+            expected_result
+        );
+        assert!(vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .environment_variables
+            .is_empty());
     }
 }
