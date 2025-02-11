@@ -1,4 +1,5 @@
-use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, VolumeMount};
+use crate::forge::vec::VecExtension;
+use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange, VolumeMount};
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
 use crate::relic::device::usb::UsbDevice;
@@ -34,6 +35,145 @@ impl InstancePortMapping {
         self.udp.clear();
         self.sctp.clear();
     }
+
+    /// Returns Ok(true) if an element was updated, Ok(false) if an element was added
+    fn update_port_mapping_vec(
+        existing_port_mappings: &mut Vec<PortMapping>,
+        port_mapping: PortMapping,
+    ) -> anyhow::Result<bool> {
+        for existing_port_mapping in existing_port_mappings.iter_mut() {
+            if port_mapping.are_host_ports_equal(existing_port_mapping) {
+                *existing_port_mapping = port_mapping;
+                return Ok(true);
+            }
+            if port_mapping.do_host_ports_overlap(existing_port_mapping) {
+                return Err(anyhow::anyhow!("New port mapping {port_mapping} overlaps with existing port mapping {existing_port_mapping}"));
+            }
+        }
+        existing_port_mappings.push(port_mapping);
+        Ok(false)
+    }
+
+    fn delete_port_mapping_vec(
+        existing_port_mappings: &mut Vec<PortMapping>,
+        host_port: u16,
+    ) -> Option<PortMapping> {
+        existing_port_mappings.extract_first_element_with(|mapping| {
+            mapping.are_host_ports_equal(&PortMapping::Single(host_port, 0))
+        })
+    }
+
+    fn get_port_mapping_vec(
+        existing_port_mappings: &[PortMapping],
+        host_port: u16,
+    ) -> Option<PortMapping> {
+        existing_port_mappings
+            .iter()
+            .find(|mapping| mapping.are_host_ports_equal(&PortMapping::Single(host_port, 0)))
+            .cloned()
+    }
+
+    fn get_port_mapping_range_vec(
+        existing_port_mappings: &[PortMapping],
+        host_ports: PortRange,
+    ) -> Option<PortMapping> {
+        existing_port_mappings
+            .iter()
+            .find(|mapping| {
+                mapping.are_host_ports_equal(&PortMapping::Range {
+                    from: host_ports,
+                    to: host_ports,
+                })
+            })
+            .cloned()
+    }
+
+    fn delete_port_mapping_range_vec(
+        existing_port_mappings: &mut Vec<PortMapping>,
+        host_ports: PortRange,
+    ) -> Option<PortMapping> {
+        existing_port_mappings.extract_first_element_with(|mapping| {
+            mapping.are_host_ports_equal(&PortMapping::Range {
+                from: host_ports,
+                to: host_ports,
+            })
+        })
+    }
+
+    pub fn update_port_mapping(
+        &mut self,
+        mapping: PortMapping,
+        protocol: TransportProtocol,
+    ) -> anyhow::Result<bool> {
+        Self::update_port_mapping_vec(
+            match protocol {
+                TransportProtocol::Tcp => &mut self.tcp,
+                TransportProtocol::Udp => &mut self.udp,
+                TransportProtocol::Sctp => &mut self.sctp,
+            },
+            mapping,
+        )
+    }
+
+    pub fn delete_port_mapping(
+        &mut self,
+        host_port: u16,
+        protocol: TransportProtocol,
+    ) -> Option<PortMapping> {
+        Self::delete_port_mapping_vec(
+            match protocol {
+                TransportProtocol::Tcp => &mut self.tcp,
+                TransportProtocol::Udp => &mut self.udp,
+                TransportProtocol::Sctp => &mut self.sctp,
+            },
+            host_port,
+        )
+    }
+
+    pub fn get_port_mapping(
+        &self,
+        host_port: u16,
+        protocol: TransportProtocol,
+    ) -> Option<PortMapping> {
+        Self::get_port_mapping_vec(
+            match protocol {
+                TransportProtocol::Tcp => &self.tcp,
+                TransportProtocol::Udp => &self.udp,
+                TransportProtocol::Sctp => &self.sctp,
+            },
+            host_port,
+        )
+    }
+
+    pub fn get_port_mapping_range(
+        &self,
+        host_port_range: PortRange,
+        protocol: TransportProtocol,
+    ) -> Option<PortMapping> {
+        Self::get_port_mapping_range_vec(
+            match protocol {
+                TransportProtocol::Tcp => &self.tcp,
+                TransportProtocol::Udp => &self.udp,
+                TransportProtocol::Sctp => &self.sctp,
+            },
+            host_port_range,
+        )
+    }
+
+    pub fn delete_port_mapping_range(
+        &mut self,
+        host_ports: PortRange,
+        protocol: TransportProtocol,
+    ) -> Option<PortMapping> {
+        Self::delete_port_mapping_range_vec(
+            match protocol {
+                TransportProtocol::Tcp => &mut self.tcp,
+                TransportProtocol::Udp => &mut self.udp,
+                TransportProtocol::Sctp => &mut self.sctp,
+            },
+            host_ports,
+        )
+    }
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -51,7 +191,7 @@ pub struct InstanceConfig {
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
-enum TransportProtocol {
+pub enum TransportProtocol {
     Tcp,
     Udp,
     Sctp,
@@ -876,5 +1016,447 @@ pub(crate) mod tests {
                 ]),
             }
         )
+    }
+
+    #[test]
+    fn instance_port_mapping_clear() {
+        let mut instance_port_mapping = InstancePortMapping {
+            tcp: vec![PortMapping::Single(1, 2), PortMapping::Single(3, 4)],
+            sctp: vec![PortMapping::Single(1, 2)],
+            udp: vec![PortMapping::Single(1, 2)],
+        };
+        instance_port_mapping.clear();
+        assert!(instance_port_mapping.tcp.is_empty());
+        assert!(instance_port_mapping.sctp.is_empty());
+        assert!(instance_port_mapping.udp.is_empty());
+    }
+
+    #[test]
+    fn instance_port_mapping_is_empty_true() {
+        assert!(InstancePortMapping {
+            tcp: vec![],
+            sctp: vec![],
+            udp: vec![],
+        }
+        .is_empty());
+    }
+
+    #[test]
+    fn instance_port_mapping_is_empty_false() {
+        assert!(!InstancePortMapping {
+            tcp: vec![PortMapping::Single(1, 2)],
+            sctp: vec![],
+            udp: vec![],
+        }
+        .is_empty());
+        assert!(!InstancePortMapping {
+            tcp: vec![],
+            sctp: vec![PortMapping::Single(1, 2)],
+            udp: vec![],
+        }
+        .is_empty());
+        assert!(!InstancePortMapping {
+            tcp: vec![],
+            sctp: vec![],
+            udp: vec![PortMapping::Single(1, 2)],
+        }
+        .is_empty());
+    }
+
+    #[test]
+    fn instance_port_mapping_update_port_mapping_vec_replace() {
+        let mut vec = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Single(10, 20),
+            PortMapping::Single(100, 20),
+        ];
+        assert!(matches!(
+            InstancePortMapping::update_port_mapping_vec(&mut vec, PortMapping::Single(10, 100)),
+            Ok(true)
+        ));
+        assert_eq!(
+            vec,
+            vec![
+                PortMapping::Single(1, 2),
+                PortMapping::Single(10, 100),
+                PortMapping::Single(100, 20),
+            ]
+        );
+    }
+
+    #[test]
+    fn instance_port_mapping_update_port_mapping_vec_add() {
+        let mut vec = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Single(10, 20),
+            PortMapping::Single(100, 20),
+        ];
+        assert!(matches!(
+            InstancePortMapping::update_port_mapping_vec(&mut vec, PortMapping::Single(20, 100)),
+            Ok(false)
+        ));
+        assert_eq!(
+            vec,
+            vec![
+                PortMapping::Single(1, 2),
+                PortMapping::Single(10, 20),
+                PortMapping::Single(100, 20),
+                PortMapping::Single(20, 100),
+            ]
+        );
+    }
+
+    #[test]
+    fn instance_port_mapping_update_port_mapping_vec_overlap() {
+        let original = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            },
+            PortMapping::Single(100, 20),
+        ];
+        let mut vec = original.clone();
+        assert!(InstancePortMapping::update_port_mapping_vec(
+            &mut vec,
+            PortMapping::Single(60, 100)
+        )
+        .is_err());
+        assert_eq!(vec, original);
+    }
+
+    #[test]
+    fn instance_port_mapping_delete_port_mapping_vec_some() {
+        let mut vec = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            },
+            PortMapping::Single(100, 20),
+        ];
+        assert_eq!(
+            InstancePortMapping::delete_port_mapping_vec(&mut vec, 100),
+            Some(PortMapping::Single(100, 20))
+        );
+        assert_eq!(
+            vec,
+            vec![
+                PortMapping::Single(1, 2),
+                PortMapping::Range {
+                    from: PortRange::new(50..=70),
+                    to: PortRange::new(100..=120),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn instance_port_mapping_delete_port_mapping_vec_none() {
+        let original = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            },
+            PortMapping::Single(100, 20),
+        ];
+        let mut vec = original.clone();
+        assert!(InstancePortMapping::delete_port_mapping_vec(&mut vec, 30).is_none());
+        assert_eq!(vec, original);
+    }
+
+    #[test]
+    fn instance_port_mapping_get_port_mapping_vec_some() {
+        let vec = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            },
+            PortMapping::Single(100, 20),
+        ];
+        assert_eq!(
+            InstancePortMapping::get_port_mapping_vec(&vec, 100),
+            Some(PortMapping::Single(100, 20))
+        );
+    }
+
+    #[test]
+    fn instance_port_mapping_get_port_mapping_vec_none() {
+        let vec = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            },
+            PortMapping::Single(100, 20),
+        ];
+        assert!(InstancePortMapping::get_port_mapping_vec(&vec, 30).is_none());
+    }
+
+    #[test]
+    fn instance_port_mapping_get_port_mapping_range_vec_some() {
+        let vec = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            },
+            PortMapping::Single(100, 20),
+        ];
+        assert_eq!(
+            InstancePortMapping::get_port_mapping_range_vec(&vec, PortRange::new(50..=70)),
+            Some(PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            })
+        );
+    }
+
+    #[test]
+    fn instance_port_mapping_get_port_mapping_range_vec_none() {
+        let vec = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            },
+            PortMapping::Single(100, 20),
+        ];
+        assert!(
+            InstancePortMapping::get_port_mapping_range_vec(&vec, PortRange::new(50..=80))
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn instance_port_mapping_delete_port_mapping_range_vec_some() {
+        let mut vec = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            },
+            PortMapping::Single(100, 20),
+        ];
+        assert_eq!(
+            InstancePortMapping::delete_port_mapping_range_vec(&mut vec, PortRange::new(50..=70)),
+            Some(PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            })
+        );
+        assert_eq!(
+            vec,
+            vec![PortMapping::Single(1, 2), PortMapping::Single(100, 20)]
+        )
+    }
+
+    #[test]
+    fn instance_port_mapping_delete_port_mapping_range_vec_none() {
+        let original = vec![
+            PortMapping::Single(1, 2),
+            PortMapping::Range {
+                from: PortRange::new(50..=70),
+                to: PortRange::new(100..=120),
+            },
+            PortMapping::Single(100, 20),
+        ];
+        let mut vec = original.clone();
+        assert!(InstancePortMapping::delete_port_mapping_range_vec(
+            &mut vec,
+            PortRange::new(50..=80)
+        )
+        .is_none());
+        assert_eq!(vec, original);
+    }
+
+    #[test]
+    fn instance_port_mapping_update_port_mapping() {
+        let mut instance_port_mapping = InstancePortMapping::default();
+        assert!(!instance_port_mapping
+            .update_port_mapping(PortMapping::Single(20, 30), TransportProtocol::Tcp)
+            .unwrap());
+        assert_eq!(instance_port_mapping.tcp, vec![PortMapping::Single(20, 30)]);
+        assert!(instance_port_mapping.udp.is_empty());
+        assert!(instance_port_mapping.sctp.is_empty());
+        assert!(!instance_port_mapping
+            .update_port_mapping(PortMapping::Single(40, 50), TransportProtocol::Udp)
+            .unwrap());
+        assert_eq!(instance_port_mapping.tcp, vec![PortMapping::Single(20, 30)]);
+        assert_eq!(instance_port_mapping.udp, vec![PortMapping::Single(40, 50)]);
+        assert!(instance_port_mapping.sctp.is_empty());
+        assert!(!instance_port_mapping
+            .update_port_mapping(PortMapping::Single(99, 77), TransportProtocol::Sctp)
+            .unwrap());
+        assert_eq!(instance_port_mapping.tcp, vec![PortMapping::Single(20, 30)]);
+        assert_eq!(instance_port_mapping.udp, vec![PortMapping::Single(40, 50)]);
+        assert_eq!(
+            instance_port_mapping.sctp,
+            vec![PortMapping::Single(99, 77)]
+        );
+    }
+
+    #[test]
+    fn instance_port_mapping_delete_port_mapping() {
+        let mut instance_port_mapping = InstancePortMapping {
+            tcp: vec![PortMapping::Single(3, 50)],
+            udp: vec![PortMapping::Single(4, 50)],
+            sctp: vec![PortMapping::Single(5, 50)],
+        };
+        assert_eq!(
+            instance_port_mapping.delete_port_mapping(3, TransportProtocol::Tcp),
+            Some(PortMapping::Single(3, 50))
+        );
+        assert!(instance_port_mapping.tcp.is_empty());
+        assert_eq!(instance_port_mapping.udp, vec![PortMapping::Single(4, 50)]);
+        assert_eq!(instance_port_mapping.sctp, vec![PortMapping::Single(5, 50)]);
+        assert_eq!(
+            instance_port_mapping.delete_port_mapping(4, TransportProtocol::Udp),
+            Some(PortMapping::Single(4, 50))
+        );
+        assert!(instance_port_mapping.tcp.is_empty());
+        assert!(instance_port_mapping.udp.is_empty());
+        assert_eq!(instance_port_mapping.sctp, vec![PortMapping::Single(5, 50)]);
+        assert_eq!(
+            instance_port_mapping.delete_port_mapping(5, TransportProtocol::Sctp),
+            Some(PortMapping::Single(5, 50))
+        );
+        assert!(instance_port_mapping.tcp.is_empty());
+        assert!(instance_port_mapping.udp.is_empty());
+        assert!(instance_port_mapping.sctp.is_empty());
+    }
+
+    #[test]
+    fn instance_port_mapping_get_port_mapping() {
+        let instance_port_mapping = InstancePortMapping {
+            tcp: vec![PortMapping::Single(3, 50)],
+            udp: vec![PortMapping::Single(4, 50)],
+            sctp: vec![PortMapping::Single(5, 50)],
+        };
+        assert_eq!(
+            instance_port_mapping.get_port_mapping(3, TransportProtocol::Tcp),
+            Some(PortMapping::Single(3, 50))
+        );
+        assert_eq!(
+            instance_port_mapping.get_port_mapping(4, TransportProtocol::Udp),
+            Some(PortMapping::Single(4, 50))
+        );
+        assert_eq!(
+            instance_port_mapping.get_port_mapping(5, TransportProtocol::Sctp),
+            Some(PortMapping::Single(5, 50))
+        );
+    }
+
+    #[test]
+    fn instance_port_mapping_get_port_mapping_range() {
+        let instance_port_mapping = InstancePortMapping {
+            tcp: vec![PortMapping::Range {
+                from: PortRange::new(5..=7),
+                to: PortRange::new(7..=9),
+            }],
+            udp: vec![PortMapping::Range {
+                from: PortRange::new(2..=3),
+                to: PortRange::new(4..=5),
+            }],
+            sctp: vec![PortMapping::Range {
+                from: PortRange::new(10..=15),
+                to: PortRange::new(20..=25),
+            }],
+        };
+        assert_eq!(
+            instance_port_mapping
+                .get_port_mapping_range(PortRange::new(5..=7), TransportProtocol::Tcp),
+            Some(PortMapping::Range {
+                from: PortRange::new(5..=7),
+                to: PortRange::new(7..=9),
+            })
+        );
+        assert_eq!(
+            instance_port_mapping
+                .get_port_mapping_range(PortRange::new(2..=3), TransportProtocol::Udp),
+            Some(PortMapping::Range {
+                from: PortRange::new(2..=3),
+                to: PortRange::new(4..=5),
+            })
+        );
+        assert_eq!(
+            instance_port_mapping
+                .get_port_mapping_range(PortRange::new(10..=15), TransportProtocol::Sctp),
+            Some(PortMapping::Range {
+                from: PortRange::new(10..=15),
+                to: PortRange::new(20..=25),
+            })
+        );
+    }
+
+    #[test]
+    fn instance_port_mapping_delete_port_mapping_range() {
+        let mut instance_port_mapping = InstancePortMapping {
+            tcp: vec![PortMapping::Range {
+                from: PortRange::new(5..=7),
+                to: PortRange::new(7..=9),
+            }],
+            udp: vec![PortMapping::Range {
+                from: PortRange::new(2..=3),
+                to: PortRange::new(4..=5),
+            }],
+            sctp: vec![PortMapping::Range {
+                from: PortRange::new(10..=15),
+                to: PortRange::new(20..=25),
+            }],
+        };
+        assert_eq!(
+            instance_port_mapping
+                .delete_port_mapping_range(PortRange::new(5..=7), TransportProtocol::Tcp),
+            Some(PortMapping::Range {
+                from: PortRange::new(5..=7),
+                to: PortRange::new(7..=9),
+            })
+        );
+        assert!(instance_port_mapping.tcp.is_empty());
+        assert_eq!(
+            instance_port_mapping.udp,
+            vec![PortMapping::Range {
+                from: PortRange::new(2..=3),
+                to: PortRange::new(4..=5),
+            }]
+        );
+        assert_eq!(
+            instance_port_mapping.sctp,
+            vec![PortMapping::Range {
+                from: PortRange::new(10..=15),
+                to: PortRange::new(20..=25),
+            }]
+        );
+        assert_eq!(
+            instance_port_mapping
+                .delete_port_mapping_range(PortRange::new(2..=3), TransportProtocol::Udp),
+            Some(PortMapping::Range {
+                from: PortRange::new(2..=3),
+                to: PortRange::new(4..=5),
+            })
+        );
+        assert!(instance_port_mapping.tcp.is_empty());
+        assert!(instance_port_mapping.udp.is_empty());
+        assert_eq!(
+            instance_port_mapping.sctp,
+            vec![PortMapping::Range {
+                from: PortRange::new(10..=15),
+                to: PortRange::new(20..=25),
+            }]
+        );
+        assert_eq!(
+            instance_port_mapping
+                .delete_port_mapping_range(PortRange::new(10..=15), TransportProtocol::Sctp),
+            Some(PortMapping::Range {
+                from: PortRange::new(10..=15),
+                to: PortRange::new(20..=25),
+            })
+        );
+        assert!(instance_port_mapping.tcp.is_empty());
+        assert!(instance_port_mapping.udp.is_empty());
+        assert!(instance_port_mapping.sctp.is_empty());
     }
 }

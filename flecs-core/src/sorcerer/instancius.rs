@@ -1,7 +1,9 @@
 pub use super::Result;
 use crate::jeweler::app::AppStatus;
 use crate::jeweler::deployment::Deployment;
-use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem;
+use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
+use crate::jeweler::gem::manifest::{PortMapping, PortRange};
 use crate::jeweler::instance::Logs;
 use crate::quest::SyncQuest;
 use crate::relic::network::Ipv4NetworkAccess;
@@ -230,6 +232,147 @@ pub async fn does_instance_exist(vault: Arc<Vault>, id: InstanceId) -> bool {
         .contains_key(&id)
 }
 
+pub async fn get_instance_config(
+    vault: Arc<Vault>,
+    id: InstanceId,
+) -> Option<gem::instance::config::InstanceConfig> {
+    spell::instance::get_instance_config_part_with(vault, id, |config| config.clone()).await
+}
+
+pub async fn get_instance_config_port_mapping(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    host_port: u16,
+    transport_protocol: TransportProtocol,
+) -> Option<Option<PortMapping>> {
+    get_instance_config_port_mapping_range(
+        vault,
+        id,
+        PortRange::new(host_port..=host_port),
+        transport_protocol,
+    )
+    .await
+}
+
+pub async fn get_instance_config_port_mappings(
+    vault: Arc<Vault>,
+    id: InstanceId,
+) -> Option<gem::instance::config::InstancePortMapping> {
+    spell::instance::get_instance_config_part_with(vault, id, |config| config.port_mapping.clone())
+        .await
+}
+
+pub async fn get_instance_config_protocol_port_mappings(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    transport_protocol: TransportProtocol,
+) -> Option<Vec<PortMapping>> {
+    spell::instance::get_instance_config_part_with(vault, id, |config| match transport_protocol {
+        TransportProtocol::Tcp => config.port_mapping.tcp.clone(),
+        TransportProtocol::Udp => config.port_mapping.udp.clone(),
+        TransportProtocol::Sctp => config.port_mapping.sctp.clone(),
+    })
+    .await
+}
+
+pub async fn delete_instance_config_protocol_port_mappings(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    transport_protocol: TransportProtocol,
+) -> Option<Vec<PortMapping>> {
+    spell::instance::modify_instance_config_with(vault, id, |config| match transport_protocol {
+        TransportProtocol::Tcp => std::mem::take(&mut config.port_mapping.tcp),
+        TransportProtocol::Udp => std::mem::take(&mut config.port_mapping.udp),
+        TransportProtocol::Sctp => std::mem::take(&mut config.port_mapping.sctp),
+    })
+    .await
+}
+
+pub async fn delete_instance_config_port_mapping(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    host_port: u16,
+    transport_protocol: TransportProtocol,
+) -> Option<bool> {
+    delete_instance_config_port_mapping_range(
+        vault,
+        id,
+        PortRange::new(host_port..=host_port),
+        transport_protocol,
+    )
+    .await
+}
+
+pub async fn delete_instance_config_port_mapping_range(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    host_port_range: PortRange,
+    transport_protocol: TransportProtocol,
+) -> Option<bool> {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        config
+            .port_mapping
+            .delete_port_mapping_range(host_port_range, transport_protocol)
+            .is_some()
+    })
+    .await
+}
+
+pub async fn get_instance_config_port_mapping_range(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    host_port_range: PortRange,
+    transport_protocol: TransportProtocol,
+) -> Option<Option<PortMapping>> {
+    spell::instance::get_instance_config_part_with(vault, id, |config| {
+        config
+            .port_mapping
+            .get_port_mapping_range(host_port_range, transport_protocol)
+    })
+    .await
+}
+
+pub async fn put_instance_config_port_mapping(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    port_mapping: PortMapping,
+    transport_protocol: TransportProtocol,
+) -> Result<Option<bool>> {
+    match spell::instance::modify_instance_config_with(vault, id, |config| {
+        config
+            .port_mapping
+            .update_port_mapping(port_mapping, transport_protocol)
+    })
+    .await
+    {
+        None => Ok(None),
+        Some(result) => Ok(Some(result?)),
+    }
+}
+
+pub async fn put_instance_config_protocol_port_mappings(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    port_mapping: Vec<PortMapping>,
+    transport_protocol: TransportProtocol,
+) -> bool {
+    spell::instance::modify_instance_config_with(vault, id, |config| match transport_protocol {
+        TransportProtocol::Tcp => config.port_mapping.tcp = port_mapping,
+        TransportProtocol::Udp => config.port_mapping.udp = port_mapping,
+        TransportProtocol::Sctp => config.port_mapping.sctp = port_mapping,
+    })
+    .await
+    .is_some()
+}
+
+pub async fn delete_instance_config_port_mappings(vault: Arc<Vault>, id: InstanceId) -> bool {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        config.port_mapping.clear();
+    })
+    .await
+    .is_some()
+}
+
 pub async fn delete_instance(quest: SyncQuest, vault: Arc<Vault>, id: InstanceId) -> Result<()> {
     quest
         .lock()
@@ -279,7 +422,7 @@ pub async fn get_instance_logs(vault: Arc<Vault>, id: InstanceId) -> Result<Logs
     }
 }
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::jeweler::app::AppInfo;
     use crate::jeweler::deployment::tests::MockedDeployment;
@@ -290,9 +433,11 @@ mod tests {
     use crate::jeweler::gem::manifest::tests::{create_test_manifest, create_test_manifest_full};
     use crate::quest::Quest;
     use crate::tests::prepare_test_path;
+    use crate::vault;
     use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
     use bollard::models::{Ipam, IpamConfig, Network};
+    pub use spell::instance::tests::create_test_vault as spell_test_vault;
     use std::collections::HashMap;
     use std::net::Ipv4Addr;
     use std::sync::Arc;
@@ -943,12 +1088,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_all_instances_ok() {
-        let vault = spell::instance::tests::create_test_vault(
-            module_path!(),
-            "get_all_instances",
-            Some(true),
-        )
-        .await;
+        let vault = spell_test_vault(module_path!(), "get_all_instances", Some(true)).await;
         let instances_infos =
             get_all_instances(Quest::new_synced("TestQuest".to_string()), vault).await;
         assert_eq!(instances_infos.len(), 6);
@@ -956,12 +1096,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_all() {
-        let vault = spell::instance::tests::create_test_vault(
-            module_path!(),
-            "get_instances_filtered_all",
-            Some(true),
-        )
-        .await;
+        let vault =
+            spell_test_vault(module_path!(), "get_instances_filtered_all", Some(true)).await;
         let instances_infos = get_instances_filtered(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -974,12 +1110,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_name() {
-        let vault = spell::instance::tests::create_test_vault(
-            module_path!(),
-            "get_instances_filtered_name",
-            Some(true),
-        )
-        .await;
+        let vault =
+            spell_test_vault(module_path!(), "get_instances_filtered_name", Some(true)).await;
         let instances_infos = get_instances_filtered(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -992,12 +1124,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_version() {
-        let vault = spell::instance::tests::create_test_vault(
-            module_path!(),
-            "get_instances_filtered_version",
-            Some(true),
-        )
-        .await;
+        let vault =
+            spell_test_vault(module_path!(), "get_instances_filtered_version", Some(true)).await;
         let instances_infos = get_instances_filtered(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1010,12 +1138,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_key() {
-        let vault = spell::instance::tests::create_test_vault(
-            module_path!(),
-            "get_instances_filtered_key",
-            Some(true),
-        )
-        .await;
+        let vault =
+            spell_test_vault(module_path!(), "get_instances_filtered_key", Some(true)).await;
         let instances_infos = get_instances_filtered(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1028,23 +1152,13 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_ok() {
-        let vault = spell::instance::tests::create_test_vault(
-            module_path!(),
-            "get_instance_ok",
-            Some(true),
-        )
-        .await;
+        let vault = spell_test_vault(module_path!(), "get_instance_ok", Some(true)).await;
         assert!(get_instance(vault, 1.into()).await.unwrap().is_some());
     }
 
     #[tokio::test]
     async fn get_instance_detailed_ok() {
-        let vault = spell::instance::tests::create_test_vault(
-            module_path!(),
-            "get_instance_detailed_ok",
-            Some(true),
-        )
-        .await;
+        let vault = spell_test_vault(module_path!(), "get_instance_detailed_ok", Some(true)).await;
         assert!(get_instance_detailed(vault, 1.into())
             .await
             .unwrap()
@@ -1053,12 +1167,7 @@ mod tests {
 
     #[tokio::test]
     async fn start_instance_ok() {
-        let vault = spell::instance::tests::create_test_vault(
-            module_path!(),
-            "start_instance_ok",
-            Some(true),
-        )
-        .await;
+        let vault = spell_test_vault(module_path!(), "start_instance_ok", Some(true)).await;
         start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1070,12 +1179,7 @@ mod tests {
 
     #[tokio::test]
     async fn start_instance_err() {
-        let vault = spell::instance::tests::create_test_vault(
-            module_path!(),
-            "start_instance_err",
-            Some(false),
-        )
-        .await;
+        let vault = spell_test_vault(module_path!(), "start_instance_err", Some(false)).await;
         assert!(start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1083,5 +1187,657 @@ mod tests {
         )
         .await
         .is_err());
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_some() {
+        let vault = spell_test_vault(module_path!(), "get_instance_config_some", None).await;
+        let expected_config = vault::pouch::instance::tests::test_config();
+        assert_eq!(
+            get_instance_config(vault, InstanceId::new(6)).await,
+            Some(expected_config)
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_none() {
+        let vault = spell_test_vault(module_path!(), "get_instance_config_none", None).await;
+        assert!(get_instance_config(vault, InstanceId::new(80))
+            .await
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_port_mapping_some_some() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_port_mapping_some_some",
+            None,
+        )
+        .await;
+        let expected_port_mapping = vault::pouch::instance::tests::test_config()
+            .port_mapping
+            .tcp[0]
+            .clone();
+        assert_eq!(
+            get_instance_config_port_mapping(vault, InstanceId::new(6), 80, TransportProtocol::Tcp)
+                .await,
+            Some(Some(expected_port_mapping))
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_port_mapping_some_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_port_mapping_some_none",
+            None,
+        )
+        .await;
+        assert_eq!(
+            get_instance_config_port_mapping(vault, InstanceId::new(6), 1, TransportProtocol::Sctp)
+                .await,
+            Some(None)
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_port_mapping_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_port_mapping_none",
+            None,
+        )
+        .await;
+        assert!(get_instance_config_port_mapping(
+            vault,
+            InstanceId::new(9),
+            1,
+            TransportProtocol::Udp
+        )
+        .await
+        .is_none());
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_port_mappings_some() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_port_mappings_some",
+            None,
+        )
+        .await;
+        let expected_port_mappings = vault::pouch::instance::tests::test_config().port_mapping;
+        assert_eq!(
+            get_instance_config_port_mappings(vault, InstanceId::new(6)).await,
+            Some(expected_port_mappings)
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_port_mappings_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_port_mappings_none",
+            None,
+        )
+        .await;
+        assert!(
+            get_instance_config_port_mappings(vault, InstanceId::new(20))
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_protocol_port_mappings_some() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_protocol_port_mappings_some",
+            None,
+        )
+        .await;
+        let expected_port_mappings = vault::pouch::instance::tests::test_config().port_mapping;
+        assert_eq!(
+            get_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(6),
+                TransportProtocol::Tcp
+            )
+            .await,
+            Some(expected_port_mappings.tcp)
+        );
+        assert_eq!(
+            get_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(6),
+                TransportProtocol::Udp
+            )
+            .await,
+            Some(expected_port_mappings.udp)
+        );
+        assert_eq!(
+            get_instance_config_protocol_port_mappings(
+                vault,
+                InstanceId::new(6),
+                TransportProtocol::Sctp
+            )
+            .await,
+            Some(expected_port_mappings.sctp)
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_protocol_port_mappings_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_protocol_port_mappings_none",
+            None,
+        )
+        .await;
+        assert!(get_instance_config_protocol_port_mappings(
+            vault.clone(),
+            InstanceId::new(10),
+            TransportProtocol::Tcp
+        )
+        .await
+        .is_none());
+        assert!(get_instance_config_protocol_port_mappings(
+            vault.clone(),
+            InstanceId::new(11),
+            TransportProtocol::Udp
+        )
+        .await
+        .is_none());
+        assert!(get_instance_config_protocol_port_mappings(
+            vault.clone(),
+            InstanceId::new(12),
+            TransportProtocol::Sctp
+        )
+        .await
+        .is_none());
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_protocol_port_mappings_some() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_protocol_port_mappings_some",
+            None,
+        )
+        .await;
+        let expected_port_mappings = vault::pouch::instance::tests::test_config().port_mapping;
+        assert_eq!(
+            delete_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(6),
+                TransportProtocol::Sctp
+            )
+            .await,
+            Some(expected_port_mappings.sctp)
+        );
+        let port_mappings = vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .clone();
+        assert!(port_mappings.sctp.is_empty());
+        assert!(!port_mappings.udp.is_empty());
+        assert!(!port_mappings.tcp.is_empty());
+        assert_eq!(
+            delete_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(6),
+                TransportProtocol::Tcp
+            )
+            .await,
+            Some(expected_port_mappings.tcp)
+        );
+        let port_mappings = vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .clone();
+        assert!(port_mappings.sctp.is_empty());
+        assert!(!port_mappings.udp.is_empty());
+        assert!(port_mappings.tcp.is_empty());
+        assert_eq!(
+            delete_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(6),
+                TransportProtocol::Udp
+            )
+            .await,
+            Some(expected_port_mappings.udp)
+        );
+        let port_mappings = vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .clone();
+        assert!(port_mappings.sctp.is_empty());
+        assert!(port_mappings.udp.is_empty());
+        assert!(port_mappings.tcp.is_empty());
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_protocol_port_mappings_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_protocol_port_mappings_none",
+            None,
+        )
+        .await;
+        assert!(delete_instance_config_protocol_port_mappings(
+            vault.clone(),
+            InstanceId::new(10),
+            TransportProtocol::Tcp
+        )
+        .await
+        .is_none());
+        assert!(delete_instance_config_protocol_port_mappings(
+            vault.clone(),
+            InstanceId::new(11),
+            TransportProtocol::Udp
+        )
+        .await
+        .is_none());
+        assert!(delete_instance_config_protocol_port_mappings(
+            vault.clone(),
+            InstanceId::new(12),
+            TransportProtocol::Sctp
+        )
+        .await
+        .is_none());
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_port_mapping_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_port_mapping_none",
+            None,
+        )
+        .await;
+        assert!(delete_instance_config_port_mapping(
+            vault.clone(),
+            InstanceId::new(12),
+            10,
+            TransportProtocol::Sctp
+        )
+        .await
+        .is_none());
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_port_mapping_true() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_port_mapping_true",
+            None,
+        )
+        .await;
+        assert_eq!(
+            delete_instance_config_port_mapping(
+                vault.clone(),
+                InstanceId::new(6),
+                80,
+                TransportProtocol::Tcp
+            )
+            .await,
+            Some(true)
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_port_mapping_false() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_port_mapping_false",
+            None,
+        )
+        .await;
+        assert_eq!(
+            delete_instance_config_port_mapping(
+                vault.clone(),
+                InstanceId::new(6),
+                80,
+                TransportProtocol::Udp
+            )
+            .await,
+            Some(false)
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_port_mapping_range_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_port_mapping_range_none",
+            None,
+        )
+        .await;
+        assert!(delete_instance_config_port_mapping_range(
+            vault.clone(),
+            InstanceId::new(12),
+            PortRange::new(20..=30),
+            TransportProtocol::Sctp
+        )
+        .await
+        .is_none());
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_port_mapping_range_true() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_port_mapping_range_true",
+            None,
+        )
+        .await;
+        assert_eq!(
+            delete_instance_config_port_mapping_range(
+                vault.clone(),
+                InstanceId::new(6),
+                PortRange::new(50..=100),
+                TransportProtocol::Udp
+            )
+            .await,
+            Some(true)
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_port_mapping_range_false() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_port_mapping_range_false",
+            None,
+        )
+        .await;
+        assert_eq!(
+            delete_instance_config_port_mapping_range(
+                vault.clone(),
+                InstanceId::new(6),
+                PortRange::new(50..=60),
+                TransportProtocol::Udp
+            )
+            .await,
+            Some(false)
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_port_mapping_range_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_port_mapping_range_none",
+            None,
+        )
+        .await;
+        assert!(get_instance_config_port_mapping_range(
+            vault.clone(),
+            InstanceId::new(12),
+            PortRange::new(20..=30),
+            TransportProtocol::Sctp
+        )
+        .await
+        .is_none());
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_port_mapping_range_some_some() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_port_mapping_range_some_some",
+            None,
+        )
+        .await;
+        assert_eq!(
+            get_instance_config_port_mapping_range(
+                vault.clone(),
+                InstanceId::new(6),
+                PortRange::new(50..=100),
+                TransportProtocol::Udp
+            )
+            .await,
+            Some(Some(PortMapping::Range {
+                from: PortRange::new(50..=100),
+                to: PortRange::new(150..=200)
+            }))
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_port_mapping_range_some_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_config_port_mapping_range_some_none",
+            None,
+        )
+        .await;
+        assert_eq!(
+            get_instance_config_port_mapping_range(
+                vault.clone(),
+                InstanceId::new(6),
+                PortRange::new(50..=60),
+                TransportProtocol::Udp
+            )
+            .await,
+            Some(None)
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_port_mapping_ok_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_config_port_mapping_ok_none",
+            None,
+        )
+        .await;
+        assert!(matches!(
+            put_instance_config_port_mapping(
+                vault.clone(),
+                InstanceId::new(9),
+                PortMapping::Single(1, 2),
+                TransportProtocol::Udp
+            )
+            .await,
+            Ok(None)
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_port_mapping_ok_some_true() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_config_port_mapping_ok_some_true",
+            None,
+        )
+        .await;
+        assert!(matches!(
+            put_instance_config_port_mapping(
+                vault.clone(),
+                InstanceId::new(6),
+                PortMapping::Single(80, 2),
+                TransportProtocol::Tcp
+            )
+            .await,
+            Ok(Some(true))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_port_mapping_ok_some_false() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_config_port_mapping_ok_some_false",
+            None,
+        )
+        .await;
+        assert!(matches!(
+            put_instance_config_port_mapping(
+                vault.clone(),
+                InstanceId::new(6),
+                PortMapping::Single(99, 2),
+                TransportProtocol::Sctp
+            )
+            .await,
+            Ok(Some(false))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_port_mapping_err() {
+        let vault =
+            spell_test_vault(module_path!(), "put_instance_config_port_mapping_err", None).await;
+        assert!(put_instance_config_port_mapping(
+            vault.clone(),
+            InstanceId::new(6),
+            PortMapping::Single(60, 2),
+            TransportProtocol::Udp
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_protocol_port_mappings_true() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_config_protocol_port_mappings_true",
+            None,
+        )
+        .await;
+        let mappings = vec![PortMapping::Single(60, 2)];
+        assert!(
+            put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(2),
+                mappings.clone(),
+                TransportProtocol::Tcp
+            )
+            .await
+        );
+        assert!(
+            put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(2),
+                mappings.clone(),
+                TransportProtocol::Udp
+            )
+            .await
+        );
+        assert!(
+            put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(2),
+                mappings.clone(),
+                TransportProtocol::Sctp
+            )
+            .await
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_protocol_port_mappings_false() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_config_protocol_port_mappings_false",
+            None,
+        )
+        .await;
+        let mappings = vec![PortMapping::Single(60, 2)];
+        assert!(
+            !put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(9),
+                mappings.clone(),
+                TransportProtocol::Tcp
+            )
+            .await
+        );
+        assert!(
+            !put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(9),
+                mappings.clone(),
+                TransportProtocol::Udp
+            )
+            .await
+        );
+        assert!(
+            !put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                InstanceId::new(9),
+                mappings.clone(),
+                TransportProtocol::Sctp
+            )
+            .await
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_port_mappings_false() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_port_mappings_false",
+            None,
+        )
+        .await;
+        assert!(!delete_instance_config_port_mappings(vault, InstanceId::new(9)).await)
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_port_mappings_true() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_config_port_mappings_true",
+            None,
+        )
+        .await;
+        assert!(delete_instance_config_port_mappings(vault.clone(), InstanceId::new(6)).await);
+        assert!(vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .is_empty())
     }
 }
