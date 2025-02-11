@@ -15,8 +15,9 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse as DeleteEnvironmentVariableResponse,
     InstancesInstanceIdConfigEnvironmentVariableNameGetResponse as GetEnvironmentVariableResponse,
     InstancesInstanceIdConfigEnvironmentVariableNamePutResponse as PutEnvironmentVariableResponse,
-    InstancesInstanceIdConfigGetResponse, InstancesInstanceIdConfigLabelsGetResponse,
-    InstancesInstanceIdConfigLabelsLabelNameGetResponse,
+    InstancesInstanceIdConfigGetResponse,
+    InstancesInstanceIdConfigLabelsGetResponse as GetLabelsResponse,
+    InstancesInstanceIdConfigLabelsLabelNameGetResponse as GetLabelResponse,
     InstancesInstanceIdConfigPortsDeleteResponse as DeletePortsResponse,
     InstancesInstanceIdConfigPortsGetResponse as GetPortsResponse,
     InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse as DeleteProtocolPortsResponse,
@@ -41,8 +42,9 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdConfigEnvironmentVariableNameGet200Response as PutEnvironmentVariableRequest,
     InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams as GetEnvironmentVariableParams,
     InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams as PutEnvironmentVariableParams,
-    InstancesInstanceIdConfigGetPathParams, InstancesInstanceIdConfigLabelsGetPathParams,
-    InstancesInstanceIdConfigLabelsLabelNameGetPathParams,
+    InstancesInstanceIdConfigGetPathParams,
+    InstancesInstanceIdConfigLabelsGetPathParams as GetLabelsParams,
+    InstancesInstanceIdConfigLabelsLabelNameGetPathParams as GetLabelParams,
     InstancesInstanceIdConfigPortsDeletePathParams as DeletePortsParams,
     InstancesInstanceIdConfigPortsGetPathParams as GetPortsParams,
     InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams as DeleteProtocolPortsParams,
@@ -336,8 +338,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigLabelsGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigLabelsGetResponse, ()> {
+        _path_params: GetLabelsParams,
+    ) -> Result<GetLabelsResponse, ()> {
         todo!()
     }
 
@@ -346,8 +348,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigLabelsLabelNameGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigLabelsLabelNameGetResponse, ()> {
+        _path_params: GetLabelParams,
+    ) -> Result<GetLabelResponse, ()> {
         todo!()
     }
 
