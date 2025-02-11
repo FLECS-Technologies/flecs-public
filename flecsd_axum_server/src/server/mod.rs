@@ -53,83 +53,87 @@ where
 {
     // build our application with a route
     Router::new()
-        .route("/v2/apps", get(apps_get::<I, A>))
-        .route(
-            "/v2/apps/:app",
-            delete(apps_app_delete::<I, A>).get(apps_app_get::<I, A>),
+        .route("/v2/apps",
+            get(apps_get::<I, A>)
         )
-        .route("/v2/apps/install", post(apps_install_post::<I, A>))
-        .route("/v2/apps/sideload", post(apps_sideload_post::<I, A>))
-        .route(
-            "/v2/console/authentication",
-            delete(console_authentication_delete::<I, A>).put(console_authentication_put::<I, A>),
+        .route("/v2/apps/:app",
+            delete(apps_app_delete::<I, A>).get(apps_app_get::<I, A>)
         )
-        .route(
-            "/v2/device/license/activation",
-            post(device_license_activation_post::<I, A>),
+        .route("/v2/apps/install",
+            post(apps_install_post::<I, A>)
         )
-        .route(
-            "/v2/device/license/activation/status",
-            get(device_license_activation_status_get::<I, A>),
+        .route("/v2/apps/sideload",
+            post(apps_sideload_post::<I, A>)
         )
-        .route(
-            "/v2/device/license/info",
-            get(device_license_info_get::<I, A>),
+        .route("/v2/console/authentication",
+            delete(console_authentication_delete::<I, A>).put(console_authentication_put::<I, A>)
         )
-        .route(
-            "/v2/device/onboarding",
-            post(device_onboarding_post::<I, A>),
+        .route("/v2/device/license/activation",
+            post(device_license_activation_post::<I, A>)
         )
-        .route("/v2/flunder/browse", get(flunder_browse_get::<I, A>))
-        .route("/v2/instances", get(instances_get::<I, A>))
-        .route(
-            "/v2/instances/:instance_id",
-            delete(instances_instance_id_delete::<I, A>)
-                .get(instances_instance_id_get::<I, A>)
-                .patch(instances_instance_id_patch::<I, A>),
+        .route("/v2/device/license/activation/status",
+            get(device_license_activation_status_get::<I, A>)
         )
-        .route(
-            "/v2/instances/:instance_id/config",
-            get(instances_instance_id_config_get::<I, A>)
-                .post(instances_instance_id_config_post::<I, A>),
+        .route("/v2/device/license/info",
+            get(device_license_info_get::<I, A>)
         )
-        .route(
-            "/v2/instances/:instance_id/config/environment",
-            delete(instances_instance_id_config_environment_delete::<I, A>)
-                .get(instances_instance_id_config_environment_get::<I, A>)
-                .put(instances_instance_id_config_environment_put::<I, A>),
+        .route("/v2/device/onboarding",
+            post(device_onboarding_post::<I, A>)
         )
-        .route(
-            "/v2/instances/:instance_id/config/ports",
-            delete(instances_instance_id_config_ports_delete::<I, A>)
-                .get(instances_instance_id_config_ports_get::<I, A>)
-                .put(instances_instance_id_config_ports_put::<I, A>),
+        .route("/v2/flunder/browse",
+            get(flunder_browse_get::<I, A>)
         )
-        .route(
-            "/v2/instances/:instance_id/editor/:port",
-            get(instances_instance_id_editor_port_get::<I, A>),
+        .route("/v2/instances",
+            get(instances_get::<I, A>)
         )
-        .route(
-            "/v2/instances/:instance_id/logs",
-            get(instances_instance_id_logs_get::<I, A>),
+        .route("/v2/instances/:instance_id",
+            delete(instances_instance_id_delete::<I, A>).get(instances_instance_id_get::<I, A>).patch(instances_instance_id_patch::<I, A>)
         )
-        .route(
-            "/v2/instances/:instance_id/start",
-            post(instances_instance_id_start_post::<I, A>),
+        .route("/v2/instances/:instance_id/config",
+            get(instances_instance_id_config_get::<I, A>).post(instances_instance_id_config_post::<I, A>)
         )
-        .route(
-            "/v2/instances/:instance_id/stop",
-            post(instances_instance_id_stop_post::<I, A>),
+        .route("/v2/instances/:instance_id/config/environment",
+            delete(instances_instance_id_config_environment_delete::<I, A>).get(instances_instance_id_config_environment_get::<I, A>).put(instances_instance_id_config_environment_put::<I, A>)
         )
-        .route("/v2/instances/create", post(instances_create_post::<I, A>))
-        .route("/v2/jobs", get(jobs_get::<I, A>))
-        .route(
-            "/v2/jobs/:job_id",
-            delete(jobs_job_id_delete::<I, A>).get(jobs_job_id_get::<I, A>),
+        .route("/v2/instances/:instance_id/config/ports",
+            delete(instances_instance_id_config_ports_delete::<I, A>).get(instances_instance_id_config_ports_get::<I, A>)
         )
-        .route("/v2/system/info", get(system_info_get::<I, A>))
-        .route("/v2/system/ping", get(system_ping_get::<I, A>))
-        .route("/v2/system/version", get(system_version_get::<I, A>))
+        .route("/v2/instances/:instance_id/config/ports/:transport_protocol",
+            delete(instances_instance_id_config_ports_transport_protocol_delete::<I, A>).get(instances_instance_id_config_ports_transport_protocol_get::<I, A>).put(instances_instance_id_config_ports_transport_protocol_put::<I, A>)
+        )
+        .route("/v2/instances/:instance_id/config/ports/:transport_protocol/:host_port_range",
+            delete(instances_instance_id_config_ports_transport_protocol_host_port_range_delete::<I, A>).get(instances_instance_id_config_ports_transport_protocol_host_port_range_get::<I, A>).put(instances_instance_id_config_ports_transport_protocol_host_port_range_put::<I, A>)
+        )
+        .route("/v2/instances/:instance_id/editor/:port",
+            get(instances_instance_id_editor_port_get::<I, A>)
+        )
+        .route("/v2/instances/:instance_id/logs",
+            get(instances_instance_id_logs_get::<I, A>)
+        )
+        .route("/v2/instances/:instance_id/start",
+            post(instances_instance_id_start_post::<I, A>)
+        )
+        .route("/v2/instances/:instance_id/stop",
+            post(instances_instance_id_stop_post::<I, A>)
+        )
+        .route("/v2/instances/create",
+            post(instances_create_post::<I, A>)
+        )
+        .route("/v2/jobs",
+            get(jobs_get::<I, A>)
+        )
+        .route("/v2/jobs/:job_id",
+            delete(jobs_job_id_delete::<I, A>).get(jobs_job_id_get::<I, A>)
+        )
+        .route("/v2/system/info",
+            get(system_info_get::<I, A>)
+        )
+        .route("/v2/system/ping",
+            get(system_ping_get::<I, A>)
+        )
+        .route("/v2/system/version",
+            get(system_version_get::<I, A>)
+        )
         .with_state(api_impl)
 }
 
@@ -1836,6 +1840,24 @@ where
                                                   let mut response = response.status(200);
                                                   response.body(Body::empty())
                                                 },
+                                                apis::instances::InstancesInstanceIdConfigPortsDeleteResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
                                                 apis::instances::InstancesInstanceIdConfigPortsDeleteResponse::Status404_NoInstanceWithThisInstance
                                                 => {
                                                   let mut response = response.status(404);
@@ -1917,6 +1939,24 @@ where
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
                                                 },
+                                                apis::instances::InstancesInstanceIdConfigPortsGetResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
                                                 apis::instances::InstancesInstanceIdConfigPortsGetResponse::Status404_NoInstanceWithThisInstance
                                                 => {
                                                   let mut response = response.status(404);
@@ -1936,39 +1976,27 @@ where
     })
 }
 
-#[derive(validator::Validate)]
-#[allow(dead_code)]
-struct InstancesInstanceIdConfigPortsPutBodyValidator<'a> {
-    #[validate(nested)]
-    body: &'a models::InstancePorts,
-}
-
 #[tracing::instrument(skip_all)]
-fn instances_instance_id_config_ports_put_validation(
-    path_params: models::InstancesInstanceIdConfigPortsPutPathParams,
-    body: models::InstancePorts,
+fn instances_instance_id_config_ports_transport_protocol_delete_validation(
+    path_params: models::InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,
 ) -> std::result::Result<
-    (
-        models::InstancesInstanceIdConfigPortsPutPathParams,
-        models::InstancePorts,
-    ),
+    (models::InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,),
     ValidationErrors,
 > {
     path_params.validate()?;
-    let b = InstancesInstanceIdConfigPortsPutBodyValidator { body: &body };
-    b.validate()?;
 
-    Ok((path_params, body))
+    Ok((path_params,))
 }
-/// InstancesInstanceIdConfigPortsPut - PUT /v2/instances/{instance_id}/config/ports
+/// InstancesInstanceIdConfigPortsTransportProtocolDelete - DELETE /v2/instances/{instance_id}/config/ports/{transport_protocol}
 #[tracing::instrument(skip_all)]
-async fn instances_instance_id_config_ports_put<I, A>(
+async fn instances_instance_id_config_ports_transport_protocol_delete<I, A>(
     method: Method,
     host: Host,
     cookies: CookieJar,
-    Path(path_params): Path<models::InstancesInstanceIdConfigPortsPutPathParams>,
+    Path(path_params): Path<
+        models::InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,
+    >,
     State(api_impl): State<I>,
-    Json(body): Json<models::InstancePorts>,
 ) -> Result<Response, StatusCode>
 where
     I: AsRef<A> + Send + Sync,
@@ -1976,12 +2004,12 @@ where
 {
     #[allow(clippy::redundant_closure)]
     let validation = tokio::task::spawn_blocking(move || {
-        instances_instance_id_config_ports_put_validation(path_params, body)
+        instances_instance_id_config_ports_transport_protocol_delete_validation(path_params)
     })
     .await
     .unwrap();
 
-    let Ok((path_params, body)) = validation else {
+    let Ok((path_params,)) = validation else {
         return Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .body(Body::from(validation.unwrap_err().to_string()))
@@ -1990,24 +2018,24 @@ where
 
     let result = api_impl
         .as_ref()
-        .instances_instance_id_config_ports_put(method, host, cookies, path_params, body)
+        .instances_instance_id_config_ports_transport_protocol_delete(
+            method,
+            host,
+            cookies,
+            path_params,
+        )
         .await;
 
     let mut response = Response::builder();
 
     let resp = match result {
                                             Ok(rsp) => match rsp {
-                                                apis::instances::InstancesInstanceIdConfigPortsPutResponse::Status200_ExposedPortsForInstanceWithThisInstanceIdIsSet
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse::Status200_RemovedAllPublishedPortsOfInstanceWithThisInstance
                                                 => {
                                                   let mut response = response.status(200);
                                                   response.body(Body::empty())
                                                 },
-                                                apis::instances::InstancesInstanceIdConfigPortsPutResponse::Status201_ExposedPortsForInstanceWithThisInstanceIdWasCreated
-                                                => {
-                                                  let mut response = response.status(201);
-                                                  response.body(Body::empty())
-                                                },
-                                                apis::instances::InstancesInstanceIdConfigPortsPutResponse::Status400_MalformedRequest
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse::Status400_MalformedRequest
                                                     (body)
                                                 => {
                                                   let mut response = response.status(400);
@@ -2025,10 +2053,636 @@ where
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
                                                 },
-                                                apis::instances::InstancesInstanceIdConfigPortsPutResponse::Status404_NoInstanceWithThisInstance
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse::Status404_ResourceNotFound
+                                                    (body)
                                                 => {
                                                   let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_ports_transport_protocol_get_validation(
+    path_params: models::InstancesInstanceIdConfigPortsTransportProtocolGetPathParams,
+) -> std::result::Result<
+    (models::InstancesInstanceIdConfigPortsTransportProtocolGetPathParams,),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigPortsTransportProtocolGet - GET /v2/instances/{instance_id}/config/ports/{transport_protocol}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_ports_transport_protocol_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigPortsTransportProtocolGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_ports_transport_protocol_get_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_ports_transport_protocol_get(
+            method,
+            host,
+            cookies,
+            path_params,
+        )
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolGetResponse::Status200_PublishedPortsForInstanceWithThisInstance
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolGetResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolGetResponse::Status404_ResourceNotFound
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_ports_transport_protocol_host_port_range_delete_validation(
+    path_params: models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams,
+) -> std::result::Result<
+    (models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams,),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDelete - DELETE /v2/instances/{instance_id}/config/ports/{transport_protocol}/{host_port_range}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_ports_transport_protocol_host_port_range_delete<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<
+        models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams,
+    >,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_ports_transport_protocol_host_port_range_delete_validation(
+            path_params,
+        )
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+            method,
+            host,
+            cookies,
+            path_params,
+        )
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse::Status200_Success
+                                                => {
+                                                  let mut response = response.status(200);
                                                   response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse::Status404_ResourceNotFound
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_ports_transport_protocol_host_port_range_get_validation(
+    path_params: models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams,
+) -> std::result::Result<
+    (models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams,),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGet - GET /v2/instances/{instance_id}/config/ports/{transport_protocol}/{host_port_range}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_ports_transport_protocol_host_port_range_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<
+        models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams,
+    >,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_ports_transport_protocol_host_port_range_get_validation(
+            path_params,
+        )
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+            method,
+            host,
+            cookies,
+            path_params,
+        )
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse::Status200_Success
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse::Status404_ResourceNotFound
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[derive(validator::Validate)]
+#[allow(dead_code)]
+struct InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutBodyValidator<'a> {
+    #[validate(nested)]
+    body: &'a models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest,
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_ports_transport_protocol_host_port_range_put_validation(
+    path_params: models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams,
+    body: models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest,
+) -> std::result::Result<
+    (
+        models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams,
+        models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest,
+    ),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+    let b = InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutBodyValidator {
+        body: &body,
+    };
+    b.validate()?;
+
+    Ok((path_params, body))
+}
+/// InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePut - PUT /v2/instances/{instance_id}/config/ports/{transport_protocol}/{host_port_range}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_ports_transport_protocol_host_port_range_put<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<
+        models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams,
+    >,
+    State(api_impl): State<I>,
+    Json(body): Json<
+        models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest,
+    >,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_ports_transport_protocol_host_port_range_put_validation(
+            path_params,
+            body,
+        )
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params, body)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+            method,
+            host,
+            cookies,
+            path_params,
+            body,
+        )
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse::Status200_TheSpecifiedPortMappingWasSet
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse::Status201_TheSpecifiedPortMappingWasCreated
+                                                => {
+                                                  let mut response = response.status(201);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse::Status404_ResourceNotFound
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[derive(validator::Validate)]
+#[allow(dead_code)]
+struct InstancesInstanceIdConfigPortsTransportProtocolPutBodyValidator<'a> {
+    #[validate(nested)]
+    body: &'a Vec<models::InstancePortMapping>,
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_ports_transport_protocol_put_validation(
+    path_params: models::InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
+    body: Vec<models::InstancePortMapping>,
+) -> std::result::Result<
+    (
+        models::InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
+        Vec<models::InstancePortMapping>,
+    ),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+    let b = InstancesInstanceIdConfigPortsTransportProtocolPutBodyValidator { body: &body };
+    b.validate()?;
+
+    Ok((path_params, body))
+}
+/// InstancesInstanceIdConfigPortsTransportProtocolPut - PUT /v2/instances/{instance_id}/config/ports/{transport_protocol}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_ports_transport_protocol_put<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigPortsTransportProtocolPutPathParams>,
+    State(api_impl): State<I>,
+    Json(body): Json<Vec<models::InstancePortMapping>>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_ports_transport_protocol_put_validation(path_params, body)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params, body)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_ports_transport_protocol_put(
+            method,
+            host,
+            cookies,
+            path_params,
+            body,
+        )
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolPutResponse::Status200_PublishedPortsOfInstanceWithThisInstance
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolPutResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigPortsTransportProtocolPutResponse::Status404_ResourceNotFound
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
                                                 },
                                             },
                                             Err(_) => {

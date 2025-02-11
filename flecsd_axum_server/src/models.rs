@@ -81,19 +81,132 @@ pub struct InstancesInstanceIdConfigGetPathParams {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigPortsDeletePathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
     pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigPortsGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSGETPATHPARAMS_INSTANCE_ID),
+                    )]
     pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstancesInstanceIdConfigPortsPutPathParams {
+pub struct InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
     pub instance_id: String,
+    pub transport_protocol: models::TransportProtocol,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigPortsTransportProtocolGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    pub transport_protocol: models::TransportProtocol,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    pub transport_protocol: models::TransportProtocol,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEDELETEPATHPARAMS_HOST_PORT_RANGE),
+                    )]
+    pub host_port_range: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEDELETEPATHPARAMS_HOST_PORT_RANGE: regex::Regex = regex::Regex::new(r"^[0-9]+(?:-[0-9]+)?$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    pub transport_protocol: models::TransportProtocol,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEGETPATHPARAMS_HOST_PORT_RANGE),
+                    )]
+    pub host_port_range: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEGETPATHPARAMS_HOST_PORT_RANGE: regex::Regex = regex::Regex::new(r"^[0-9]+(?:-[0-9]+)?$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEPUTPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    pub transport_protocol: models::TransportProtocol,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEPUTPATHPARAMS_HOST_PORT_RANGE),
+                    )]
+    pub host_port_range: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEPUTPATHPARAMS_HOST_PORT_RANGE: regex::Regex = regex::Regex::new(r"^[0-9]+(?:-[0-9]+)?$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigPortsTransportProtocolPutPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLPUTPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    pub transport_protocol: models::TransportProtocol,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -5137,119 +5250,383 @@ impl std::ops::DerefMut for InstanceName {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstancePortMapping(String);
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+#[allow(non_camel_case_types)]
+pub enum InstancePortMapping {
+    InstancePortMappingRange(Box<models::InstancePortMappingRange>),
+    InstancePortMappingSingle(Box<models::InstancePortMappingSingle>),
+}
 
 impl validator::Validate for InstancePortMapping {
     fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
-        std::result::Result::Ok(())
+        match self {
+            Self::InstancePortMappingRange(x) => x.validate(),
+            Self::InstancePortMappingSingle(x) => x.validate(),
+        }
     }
 }
 
-impl std::convert::From<String> for InstancePortMapping {
-    fn from(x: String) -> Self {
-        InstancePortMapping(x)
+impl From<models::InstancePortMappingRange> for InstancePortMapping {
+    fn from(value: models::InstancePortMappingRange) -> Self {
+        Self::InstancePortMappingRange(Box::new(value))
+    }
+}
+impl From<models::InstancePortMappingSingle> for InstancePortMapping {
+    fn from(value: models::InstancePortMappingSingle) -> Self {
+        Self::InstancePortMappingSingle(Box::new(value))
     }
 }
 
-impl std::fmt::Display for InstancePortMapping {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.0)
-    }
-}
-
+/// Converts Query Parameters representation (style=form, explode=false) to a InstancePortMapping value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
 impl std::str::FromStr for InstancePortMapping {
-    type Err = std::string::ParseError;
-    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
-        std::result::Result::Ok(InstancePortMapping(x.to_string()))
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        serde_json::from_str(s)
     }
 }
 
-impl std::convert::From<InstancePortMapping> for String {
-    fn from(x: InstancePortMapping) -> Self {
-        x.0
-    }
-}
-
-impl std::ops::Deref for InstancePortMapping {
-    type Target = String;
-    fn deref(&self) -> &String {
-        &self.0
-    }
-}
-
-impl std::ops::DerefMut for InstancePortMapping {
-    fn deref_mut(&mut self) -> &mut String {
-        &mut self.0
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstancePorts(Vec<String>);
+pub struct InstancePortMappingRange {
+    #[serde(rename = "host_ports")]
+    pub host_ports: models::PortRange,
 
-impl validator::Validate for InstancePorts {
-    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
-        std::result::Result::Ok(())
+    #[serde(rename = "container_ports")]
+    pub container_ports: models::PortRange,
+}
+
+impl InstancePortMappingRange {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(
+        host_ports: models::PortRange,
+        container_ports: models::PortRange,
+    ) -> InstancePortMappingRange {
+        InstancePortMappingRange {
+            host_ports,
+            container_ports,
+        }
     }
 }
 
-impl std::convert::From<Vec<String>> for InstancePorts {
-    fn from(x: Vec<String>) -> Self {
-        InstancePorts(x)
+/// Converts the InstancePortMappingRange value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstancePortMappingRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping host_ports in query parameter serialization
+
+            // Skipping container_ports in query parameter serialization
+
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
     }
 }
 
-impl std::convert::From<InstancePorts> for Vec<String> {
-    fn from(x: InstancePorts) -> Self {
-        x.0
+/// Converts Query Parameters representation (style=form, explode=false) to a InstancePortMappingRange value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstancePortMappingRange {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub host_ports: Vec<models::PortRange>,
+            pub container_ports: Vec<models::PortRange>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing InstancePortMappingRange".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "host_ports" => intermediate_rep.host_ports.push(
+                        <models::PortRange as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "container_ports" => intermediate_rep.container_ports.push(
+                        <models::PortRange as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing InstancePortMappingRange".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstancePortMappingRange {
+            host_ports: intermediate_rep
+                .host_ports
+                .into_iter()
+                .next()
+                .ok_or_else(|| "host_ports missing in InstancePortMappingRange".to_string())?,
+            container_ports: intermediate_rep
+                .container_ports
+                .into_iter()
+                .next()
+                .ok_or_else(|| "container_ports missing in InstancePortMappingRange".to_string())?,
+        })
     }
 }
 
-impl std::iter::FromIterator<String> for InstancePorts {
-    fn from_iter<U: IntoIterator<Item = String>>(u: U) -> Self {
-        InstancePorts(Vec::<String>::from_iter(u))
+// Methods for converting between header::IntoHeaderValue<InstancePortMappingRange> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<InstancePortMappingRange>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstancePortMappingRange>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for InstancePortMappingRange - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
     }
 }
 
-impl std::iter::IntoIterator for InstancePorts {
-    type Item = String;
-    type IntoIter = std::vec::IntoIter<String>;
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstancePortMappingRange> {
+    type Error = String;
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <InstancePortMappingRange as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into InstancePortMappingRange - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
     }
 }
 
-impl<'a> std::iter::IntoIterator for &'a InstancePorts {
-    type Item = &'a String;
-    type IntoIter = std::slice::Iter<'a, String>;
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancePortMappingSingle {
+    #[serde(rename = "host_port")]
+    #[validate(range(min = 1u16, max = 65535u16))]
+    pub host_port: u16,
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.iter()
+    #[serde(rename = "container_port")]
+    #[validate(range(min = 1u16, max = 65535u16))]
+    pub container_port: u16,
+}
+
+impl InstancePortMappingSingle {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(host_port: u16, container_port: u16) -> InstancePortMappingSingle {
+        InstancePortMappingSingle {
+            host_port,
+            container_port,
+        }
     }
 }
 
-impl<'a> std::iter::IntoIterator for &'a mut InstancePorts {
-    type Item = &'a mut String;
-    type IntoIter = std::slice::IterMut<'a, String>;
+/// Converts the InstancePortMappingSingle value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstancePortMappingSingle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("host_port".to_string()),
+            Some(self.host_port.to_string()),
+            Some("container_port".to_string()),
+            Some(self.container_port.to_string()),
+        ];
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.iter_mut()
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
     }
 }
 
-impl std::ops::Deref for InstancePorts {
-    type Target = Vec<String>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
+/// Converts Query Parameters representation (style=form, explode=false) to a InstancePortMappingSingle value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstancePortMappingSingle {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub host_port: Vec<u16>,
+            pub container_port: Vec<u16>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing InstancePortMappingSingle".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "host_port" => intermediate_rep.host_port.push(
+                        <u16 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "container_port" => intermediate_rep.container_port.push(
+                        <u16 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing InstancePortMappingSingle".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstancePortMappingSingle {
+            host_port: intermediate_rep
+                .host_port
+                .into_iter()
+                .next()
+                .ok_or_else(|| "host_port missing in InstancePortMappingSingle".to_string())?,
+            container_port: intermediate_rep
+                .container_port
+                .into_iter()
+                .next()
+                .ok_or_else(|| "container_port missing in InstancePortMappingSingle".to_string())?,
+        })
     }
 }
 
-impl std::ops::DerefMut for InstancePorts {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+// Methods for converting between header::IntoHeaderValue<InstancePortMappingSingle> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<InstancePortMappingSingle>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstancePortMappingSingle>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for InstancePortMappingSingle - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstancePortMappingSingle> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <InstancePortMappingSingle as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into InstancePortMappingSingle - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancePorts {
+    #[serde(rename = "tcp")]
+    pub tcp: Vec<models::InstancePortMapping>,
+
+    #[serde(rename = "udp")]
+    pub udp: Vec<models::InstancePortMapping>,
+
+    #[serde(rename = "sctp")]
+    pub sctp: Vec<models::InstancePortMapping>,
+}
+
+impl InstancePorts {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(
+        tcp: Vec<models::InstancePortMapping>,
+        udp: Vec<models::InstancePortMapping>,
+        sctp: Vec<models::InstancePortMapping>,
+    ) -> InstancePorts {
+        InstancePorts { tcp, udp, sctp }
     }
 }
 
@@ -5258,13 +5635,19 @@ impl std::ops::DerefMut for InstancePorts {
 /// Should be implemented in a serde serializer
 impl std::fmt::Display for InstancePorts {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping tcp in query parameter serialization
+
+            // Skipping udp in query parameter serialization
+
+            // Skipping sctp in query parameter serialization
+
+        ];
+
         write!(
             f,
             "{}",
-            self.iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<_>>()
-                .join(",")
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
         )
     }
 }
@@ -5273,14 +5656,85 @@ impl std::fmt::Display for InstancePorts {
 /// as specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde deserializer
 impl std::str::FromStr for InstancePorts {
-    type Err = <String as std::str::FromStr>::Err;
+    type Err = String;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let mut items = vec![];
-        for item in s.split(',') {
-            items.push(item.parse()?);
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub tcp: Vec<Vec<models::InstancePortMapping>>,
+            pub udp: Vec<Vec<models::InstancePortMapping>>,
+            pub sctp: Vec<Vec<models::InstancePortMapping>>,
         }
-        std::result::Result::Ok(InstancePorts(items))
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing InstancePorts".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    "tcp" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in InstancePorts"
+                                .to_string(),
+                        )
+                    }
+                    "udp" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in InstancePorts"
+                                .to_string(),
+                        )
+                    }
+                    "sctp" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in InstancePorts"
+                                .to_string(),
+                        )
+                    }
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing InstancePorts".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstancePorts {
+            tcp: intermediate_rep
+                .tcp
+                .into_iter()
+                .next()
+                .ok_or_else(|| "tcp missing in InstancePorts".to_string())?,
+            udp: intermediate_rep
+                .udp
+                .into_iter()
+                .next()
+                .ok_or_else(|| "udp missing in InstancePorts".to_string())?,
+            sctp: intermediate_rep
+                .sctp
+                .into_iter()
+                .next()
+                .ok_or_else(|| "sctp missing in InstancePorts".to_string())?,
+        })
     }
 }
 
@@ -5541,6 +5995,49 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstancesCre
                 hdr_value, e
             )),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+#[allow(non_camel_case_types)]
+pub enum InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest {
+    PortRange(Box<models::PortRange>),
+    I32(Box<i32>),
+}
+
+impl validator::Validate
+    for InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest
+{
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        match self {
+            Self::PortRange(x) => x.validate(),
+            Self::I32(_) => std::result::Result::Ok(()),
+        }
+    }
+}
+
+impl From<models::PortRange>
+    for InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest
+{
+    fn from(value: models::PortRange) -> Self {
+        Self::PortRange(Box::new(value))
+    }
+}
+impl From<i32> for InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest {
+    fn from(value: i32) -> Self {
+        Self::I32(Box::new(value))
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        serde_json::from_str(s)
     }
 }
 
@@ -7148,6 +7645,143 @@ impl std::ops::DerefMut for LicenseKey {
     }
 }
 
+/// Additional info
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct OptionalAdditionalInfo {
+    #[serde(rename = "additionalInfo")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_info: Option<String>,
+}
+
+impl OptionalAdditionalInfo {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new() -> OptionalAdditionalInfo {
+        OptionalAdditionalInfo {
+            additional_info: None,
+        }
+    }
+}
+
+/// Converts the OptionalAdditionalInfo value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for OptionalAdditionalInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> =
+            vec![self.additional_info.as_ref().map(|additional_info| {
+                ["additionalInfo".to_string(), additional_info.to_string()].join(",")
+            })];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a OptionalAdditionalInfo value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for OptionalAdditionalInfo {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub additional_info: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing OptionalAdditionalInfo".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "additionalInfo" => intermediate_rep.additional_info.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing OptionalAdditionalInfo".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(OptionalAdditionalInfo {
+            additional_info: intermediate_rep.additional_info.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<OptionalAdditionalInfo> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<OptionalAdditionalInfo>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<OptionalAdditionalInfo>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for OptionalAdditionalInfo - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<OptionalAdditionalInfo> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <OptionalAdditionalInfo as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into OptionalAdditionalInfo - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct Port(i32);
@@ -7180,6 +7814,208 @@ impl std::ops::Deref for Port {
 impl std::ops::DerefMut for Port {
     fn deref_mut(&mut self) -> &mut i32 {
         &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct PortPathParameter(String);
+
+impl validator::Validate for PortPathParameter {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for PortPathParameter {
+    fn from(x: String) -> Self {
+        PortPathParameter(x)
+    }
+}
+
+impl std::fmt::Display for PortPathParameter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for PortPathParameter {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(PortPathParameter(x.to_string()))
+    }
+}
+
+impl std::convert::From<PortPathParameter> for String {
+    fn from(x: PortPathParameter) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for PortPathParameter {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for PortPathParameter {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct PortRange {
+    #[serde(rename = "start")]
+    #[validate(range(min = 1u16, max = 65535u16))]
+    pub start: u16,
+
+    #[serde(rename = "end")]
+    #[validate(range(min = 1u16, max = 65535u16))]
+    pub end: u16,
+}
+
+impl PortRange {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(start: u16, end: u16) -> PortRange {
+        PortRange { start, end }
+    }
+}
+
+/// Converts the PortRange value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for PortRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("start".to_string()),
+            Some(self.start.to_string()),
+            Some("end".to_string()),
+            Some(self.end.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a PortRange value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for PortRange {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub start: Vec<u16>,
+            pub end: Vec<u16>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing PortRange".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "start" => intermediate_rep.start.push(
+                        <u16 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "end" => intermediate_rep.end.push(
+                        <u16 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing PortRange".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(PortRange {
+            start: intermediate_rep
+                .start
+                .into_iter()
+                .next()
+                .ok_or_else(|| "start missing in PortRange".to_string())?,
+            end: intermediate_rep
+                .end
+                .into_iter()
+                .next()
+                .ok_or_else(|| "end missing in PortRange".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<PortRange> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<PortRange>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<PortRange>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for PortRange - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<PortRange> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <PortRange as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into PortRange - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
     }
 }
 
@@ -8041,6 +8877,47 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<SystemVersio
                 "Unable to convert header: {:?} to string: {}",
                 hdr_value, e
             )),
+        }
+    }
+}
+
+/// Enumeration of values.
+/// Since this enum's variants do not hold data, we can easily define them as `#[repr(C)]`
+/// which helps with FFI.
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[cfg_attr(feature = "conversion", derive(frunk_enum_derive::LabelledGenericEnum))]
+pub enum TransportProtocol {
+    #[serde(rename = "tcp")]
+    Tcp,
+    #[serde(rename = "udp")]
+    Udp,
+    #[serde(rename = "sctp")]
+    Sctp,
+}
+
+impl std::fmt::Display for TransportProtocol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            TransportProtocol::Tcp => write!(f, "tcp"),
+            TransportProtocol::Udp => write!(f, "udp"),
+            TransportProtocol::Sctp => write!(f, "sctp"),
+        }
+    }
+}
+
+impl std::str::FromStr for TransportProtocol {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "tcp" => std::result::Result::Ok(TransportProtocol::Tcp),
+            "udp" => std::result::Result::Ok(TransportProtocol::Udp),
+            "sctp" => std::result::Result::Ok(TransportProtocol::Sctp),
+            _ => std::result::Result::Err(format!("Value not valid: {}", s)),
         }
     }
 }

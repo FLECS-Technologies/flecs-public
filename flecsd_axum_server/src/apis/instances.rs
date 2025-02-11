@@ -75,6 +75,8 @@ pub enum InstancesInstanceIdConfigGetResponse {
 pub enum InstancesInstanceIdConfigPortsDeleteResponse {
     /// Exposed ports of instance with this instance_id was deleted
     Status200_ExposedPortsOfInstanceWithThisInstance,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
     /// No instance with this instance_id found
     Status404_NoInstanceWithThisInstance,
 }
@@ -85,6 +87,8 @@ pub enum InstancesInstanceIdConfigPortsDeleteResponse {
 pub enum InstancesInstanceIdConfigPortsGetResponse {
     /// Success
     Status200_Success(models::InstancePorts),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
     /// No instance with this instance_id found
     Status404_NoInstanceWithThisInstance,
 }
@@ -92,15 +96,75 @@ pub enum InstancesInstanceIdConfigPortsGetResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
-pub enum InstancesInstanceIdConfigPortsPutResponse {
-    /// Exposed ports for instance with this instance id is set
-    Status200_ExposedPortsForInstanceWithThisInstanceIdIsSet,
-    /// Exposed ports for instance with this instance id was created
-    Status201_ExposedPortsForInstanceWithThisInstanceIdWasCreated,
+pub enum InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse {
+    /// Removed all published ports of instance with this instance_id for the given transport_protocol
+    Status200_RemovedAllPublishedPortsOfInstanceWithThisInstance,
     /// Malformed request
     Status400_MalformedRequest(models::AdditionalInfo),
-    /// No instance with this instance_id found
-    Status404_NoInstanceWithThisInstance,
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigPortsTransportProtocolGetResponse {
+    /// Published ports for instance with this instance_id for the given transport_protocol
+    Status200_PublishedPortsForInstanceWithThisInstance(Vec<models::InstancePortMapping>),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse {
+    /// Success
+    Status200_Success,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse {
+    /// Success
+    Status200_Success(models::InstancePortMapping),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse {
+    /// The specified port mapping was set, the previous mapping of the host port range was overwritten
+    Status200_TheSpecifiedPortMappingWasSet,
+    /// The specified port mapping was created
+    Status201_TheSpecifiedPortMappingWasCreated,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigPortsTransportProtocolPutResponse {
+    /// Published ports of instance with this instance_id for the given transport_protocol was set
+    Status200_PublishedPortsOfInstanceWithThisInstance,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -284,17 +348,73 @@ pub trait Instances {
         path_params: models::InstancesInstanceIdConfigPortsGetPathParams,
     ) -> Result<InstancesInstanceIdConfigPortsGetResponse, ()>;
 
-    /// Modify or create exposed ports of an instance.
+    /// Remove all published ports of an instance for the given transport_protocol.
     ///
-    /// InstancesInstanceIdConfigPortsPut - PUT /v2/instances/{instance_id}/config/ports
-    async fn instances_instance_id_config_ports_put(
+    /// InstancesInstanceIdConfigPortsTransportProtocolDelete - DELETE /v2/instances/{instance_id}/config/ports/{transport_protocol}
+    async fn instances_instance_id_config_ports_transport_protocol_delete(
         &self,
         method: Method,
         host: Host,
         cookies: CookieJar,
-        path_params: models::InstancesInstanceIdConfigPortsPutPathParams,
-        body: models::InstancePorts,
-    ) -> Result<InstancesInstanceIdConfigPortsPutResponse, ()>;
+        path_params: models::InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse, ()>;
+
+    /// Get published ports of an instance for the given transport_protocol.
+    ///
+    /// InstancesInstanceIdConfigPortsTransportProtocolGet - GET /v2/instances/{instance_id}/config/ports/{transport_protocol}
+    async fn instances_instance_id_config_ports_transport_protocol_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigPortsTransportProtocolGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolGetResponse, ()>;
+
+    /// Remove instance port range that is mapped to the given host port range.
+    ///
+    /// InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDelete - DELETE /v2/instances/{instance_id}/config/ports/{transport_protocol}/{host_port_range}
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse, ()>;
+
+    /// Retrieve instance port range that is mapped to the given host port range.
+    ///
+    /// InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGet - GET /v2/instances/{instance_id}/config/ports/{transport_protocol}/{host_port_range}
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse, ()>;
+
+    /// Set instance port range that is mapped to the given host port range.
+    ///
+    /// InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePut - PUT /v2/instances/{instance_id}/config/ports/{transport_protocol}/{host_port_range}
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams,
+        body: models::InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse, ()>;
+
+    /// Update or create published ports of an instance for the given transport protocol.
+    ///
+    /// InstancesInstanceIdConfigPortsTransportProtocolPut - PUT /v2/instances/{instance_id}/config/ports/{transport_protocol}
+    async fn instances_instance_id_config_ports_transport_protocol_put(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
+        body: Vec<models::InstancePortMapping>,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolPutResponse, ()>;
 
     /// Update configuration of an Instance.
     ///
