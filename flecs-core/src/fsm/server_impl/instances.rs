@@ -11,24 +11,37 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigEnvironmentGetResponse,
     InstancesInstanceIdConfigEnvironmentPutResponse, InstancesInstanceIdConfigGetResponse,
     InstancesInstanceIdConfigPortsDeleteResponse, InstancesInstanceIdConfigPortsGetResponse,
-    InstancesInstanceIdConfigPortsPutResponse, InstancesInstanceIdConfigPostResponse,
-    InstancesInstanceIdDeleteResponse, InstancesInstanceIdEditorPortGetResponse,
-    InstancesInstanceIdGetResponse, InstancesInstanceIdLogsGetResponse,
-    InstancesInstanceIdPatchResponse, InstancesInstanceIdStartPostResponse,
-    InstancesInstanceIdStopPostResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolGetResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolPutResponse,
+    InstancesInstanceIdConfigPostResponse, InstancesInstanceIdDeleteResponse,
+    InstancesInstanceIdEditorPortGetResponse, InstancesInstanceIdGetResponse,
+    InstancesInstanceIdLogsGetResponse, InstancesInstanceIdPatchResponse,
+    InstancesInstanceIdStartPostResponse, InstancesInstanceIdStopPostResponse,
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
-    AdditionalInfo, InstanceConfig, InstanceEnvironment, InstancePorts, InstancesCreatePostRequest,
-    InstancesGetQueryParams, InstancesInstanceIdConfigEnvironmentDeletePathParams,
+    AdditionalInfo, InstanceConfig, InstanceEnvironment, InstancePortMapping,
+    InstancesCreatePostRequest, InstancesGetQueryParams,
+    InstancesInstanceIdConfigEnvironmentDeletePathParams,
     InstancesInstanceIdConfigEnvironmentGetPathParams,
     InstancesInstanceIdConfigEnvironmentPutPathParams, InstancesInstanceIdConfigGetPathParams,
     InstancesInstanceIdConfigPortsDeletePathParams, InstancesInstanceIdConfigPortsGetPathParams,
-    InstancesInstanceIdConfigPortsPutPathParams, InstancesInstanceIdConfigPostPathParams,
-    InstancesInstanceIdDeletePathParams, InstancesInstanceIdEditorPortGetPathParams,
-    InstancesInstanceIdGetPathParams, InstancesInstanceIdLogsGetPathParams,
-    InstancesInstanceIdPatchPathParams, InstancesInstanceIdPatchRequest,
-    InstancesInstanceIdStartPostPathParams, InstancesInstanceIdStopPostPathParams, JobMeta,
+    InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolGetPathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest,
+    InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
+    InstancesInstanceIdConfigPostPathParams, InstancesInstanceIdDeletePathParams,
+    InstancesInstanceIdEditorPortGetPathParams, InstancesInstanceIdGetPathParams,
+    InstancesInstanceIdLogsGetPathParams, InstancesInstanceIdPatchPathParams,
+    InstancesInstanceIdPatchRequest, InstancesInstanceIdStartPostPathParams,
+    InstancesInstanceIdStopPostPathParams, JobMeta,
 };
 use http::Method;
 use std::str::FromStr;
@@ -172,14 +185,66 @@ impl Instances for ServerImpl {
         todo!()
     }
 
-    async fn instances_instance_id_config_ports_put(
+    async fn instances_instance_id_config_ports_transport_protocol_delete(
         &self,
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsPutPathParams,
-        _body: InstancePorts,
-    ) -> Result<InstancesInstanceIdConfigPortsPutResponse, ()> {
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse, ()>
+    {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams,
+        _body: InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_ports_transport_protocol_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
+        _body: Vec<InstancePortMapping>,
+    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolPutResponse, ()> {
         todo!()
     }
 

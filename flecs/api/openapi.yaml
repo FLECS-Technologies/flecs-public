@@ -25,6 +25,12 @@ components:
       properties:
         additionalInfo:
           type: string
+    optionalAdditionalInfo:
+      type: object
+      description: Additional info
+      properties:
+        additionalInfo:
+          type: string
     id:
       type: string
       pattern: "^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
@@ -32,6 +38,13 @@ components:
       type: integer
       minimum: 1
       maximum: 65535
+    port_path_parameter:
+      type: string
+      pattern: "^[0-9]+(?:-[0-9]+)?$"
+      example: "8000-8080"
+    transport_protocol:
+      type: string
+      enum: [ "tcp", "udp", "sctp" ]
     sessionId:
       type: object
       properties:
@@ -368,18 +381,58 @@ components:
       type: string
       pattern: "^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*=.+$"
     instance_ports:
-      type: array
-      items:
-        $ref: "#/components/schemas/instance_port_mapping"
-      example: [
-        "8001:8001",
-        "5000",
-        "5001-5008:6001-6008",
-        "6001-6008"
-      ]
+      type: object
+      properties:
+        tcp:
+          type: array
+          items:
+            $ref: "#/components/schemas/instance_port_mapping"
+        udp:
+          type: array
+          items:
+            $ref: "#/components/schemas/instance_port_mapping"
+        sctp:
+          type: array
+          items:
+            $ref: "#/components/schemas/instance_port_mapping"
+      required:
+        - tcp
+        - udp
+        - sctp
+    port_range:
+      type: object
+      properties:
+        start:
+          $ref: "#/components/schemas/port"
+        end:
+          $ref: "#/components/schemas/port"
+      required:
+        - start
+        - end
+    instance_port_mapping_single:
+      type: object
+      properties:
+        host_port:
+          $ref: "#/components/schemas/port"
+        container_port:
+          $ref: "#/components/schemas/port"
+      required:
+        - host_port
+        - container_port
+    instance_port_mapping_range:
+      type: object
+      properties:
+        host_ports:
+          $ref: "#/components/schemas/port_range"
+        container_ports:
+          $ref: "#/components/schemas/port_range"
+      required:
+        - host_ports
+        - container_ports
     instance_port_mapping:
-      type: string
-      pattern: "(?=\\d|:)^(?:([6][5][5][3][0-5]|[6][5][5][0-2][0-9]|[6][5][0-4][0-9]{2}|[6][0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})(?:$|[:-](?=\\d))|:)?(?:(?<=-)([6][5][5][3][0-5]|[6][5][5][0-2][0-9]|[6][5][0-4][0-9]{2}|[6][0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})(?:$|:(?=\\d)))?(?:(?<=:)([6][5][5][3][0-5]|[6][5][5][0-2][0-9]|[6][5][0-4][0-9]{2}|[6][0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})(?:$|-(?=\\d)))?(?:(?<=-)([6][5][5][3][0-5]|[6][5][5][0-2][0-9]|[6][5][0-4][0-9]{2}|[6][0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}))?$"
+      oneOf:
+        - $ref: "#/components/schemas/instance_port_mapping_range"
+        - $ref: "#/components/schemas/instance_port_mapping_single"
     # Job related schemas
     job_id:
       type: integer
@@ -535,6 +588,10 @@ components:
       description: Forbidden
     response_404:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/optionalAdditionalInfo"
     response_500:
       description: Internal server error
       content:
@@ -1000,6 +1057,177 @@ paths:
           description: Environment of instance with this instance_id was deleted
         "404":
           description: No instance with this instance_id found
+  /instances/{instance_id}/config/ports/{transport_protocol}:
+    get:
+      tags: [ "Instances" ]
+      summary: Get published ports of an instance for the given transport_protocol
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: transport_protocol
+          in: path
+          schema:
+            $ref: "#/components/schemas/transport_protocol"
+          required: true
+      responses:
+        "200":
+          description: Published ports for instance with this instance_id for the given transport_protocol
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/instance_port_mapping"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+    put:
+      tags: [ "Instances" ]
+      summary: Update or create published ports of an instance for the given transport protocol
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: transport_protocol
+          in: path
+          schema:
+            $ref: "#/components/schemas/transport_protocol"
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/instance_port_mapping"
+      responses:
+        "200":
+          description: Published ports of instance with this instance_id for the given transport_protocol was set
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+    delete:
+      tags: [ "Instances" ]
+      summary: Remove all published ports of an instance for the given transport_protocol
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: transport_protocol
+          in: path
+          schema:
+            $ref: "#/components/schemas/transport_protocol"
+          required: true
+      responses:
+        "200":
+          description: Removed all published ports of instance with this instance_id for the given transport_protocol
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+  /instances/{instance_id}/config/ports/{transport_protocol}/{host_port_range}:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve instance port range that is mapped to the given host port range
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: transport_protocol
+          in: path
+          schema:
+            $ref: "#/components/schemas/transport_protocol"
+          required: true
+        - name: host_port_range
+          in: path
+          schema:
+            $ref: "#/components/schemas/port_path_parameter"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/instance_port_mapping"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+    put:
+      tags: [ "Instances" ]
+      summary: Set instance port range that is mapped to the given host port range
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: transport_protocol
+          in: path
+          schema:
+            $ref: "#/components/schemas/transport_protocol"
+          required: true
+        - name: host_port_range
+          in: path
+          schema:
+            $ref: "#/components/schemas/port_path_parameter"
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/port_range"
+                - $ref: "#/components/schemas/port"
+      responses:
+        "200":
+          description: The specified port mapping was set, the previous mapping of the host port range was overwritten
+        "201":
+          description: The specified port mapping was created
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+    delete:
+      tags: [ "Instances" ]
+      summary: Remove instance port range that is mapped to the given host port range
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: transport_protocol
+          in: path
+          schema:
+            $ref: "#/components/schemas/transport_protocol"
+          required: true
+        - name: host_port_range
+          in: path
+          schema:
+            $ref: "#/components/schemas/port_path_parameter"
+          required: true
+      responses:
+        "200":
+          description: Success
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
   /instances/{instance_id}/config/ports:
     get:
       tags: [ "Instances" ]
@@ -1008,7 +1236,7 @@ paths:
         - name: instance_id
           in: path
           schema:
-            type: string
+            $ref: "#/components/schemas/instance_id"
           required: true
       responses:
         "200":
@@ -1017,28 +1245,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/instance_ports"
-        "404":
-          description: No instance with this instance_id found
-    put:
-      tags: [ "Instances" ]
-      summary: Modify or create exposed ports of an instance
-      parameters:
-        - name: instance_id
-          in: path
-          schema:
-            type: string
-          required: true
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/instance_ports"
-      responses:
-        "200":
-          description: Exposed ports for instance with this instance id is set
-        "201":
-          description: Exposed ports for instance with this instance id was created
         "400":
           $ref: "#/components/responses/response_400"
         "404":
@@ -1050,11 +1256,13 @@ paths:
         - name: instance_id
           in: path
           schema:
-            type: string
+            $ref: "#/components/schemas/instance_id"
           required: true
       responses:
         "200":
           description: Exposed ports of instance with this instance_id was deleted
+        "400":
+          $ref: "#/components/responses/response_400"
         "404":
           description: No instance with this instance_id found
   /instances/{instance_id}/editor/{port}:
