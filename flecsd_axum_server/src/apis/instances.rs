@@ -114,6 +114,30 @@ pub enum InstancesInstanceIdConfigGetResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigLabelsGetResponse {
+    /// Success
+    Status200_Success(Vec<models::InstanceLabel>),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// No instance with this instance_id found
+    Status404_NoInstanceWithThisInstance,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigLabelsLabelNameGetResponse {
+    /// Success
+    Status200_Success(models::InstancesInstanceIdConfigLabelsLabelNameGet200Response),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdConfigPortsDeleteResponse {
     /// Exposed ports of instance with this instance_id was deleted
     Status200_ExposedPortsOfInstanceWithThisInstance,
@@ -401,6 +425,28 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigGetPathParams,
     ) -> Result<InstancesInstanceIdConfigGetResponse, ()>;
+
+    /// Retrieve labels of an instance.
+    ///
+    /// InstancesInstanceIdConfigLabelsGet - GET /v2/instances/{instance_id}/config/labels
+    async fn instances_instance_id_config_labels_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigLabelsGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigLabelsGetResponse, ()>;
+
+    /// Retrieve value of a specific label of an instance.
+    ///
+    /// InstancesInstanceIdConfigLabelsLabelNameGet - GET /v2/instances/{instance_id}/config/labels/{label_name}
+    async fn instances_instance_id_config_labels_label_name_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigLabelsLabelNameGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigLabelsLabelNameGetResponse, ()>;
 
     /// Delete exposed ports of an instance.
     ///

@@ -15,7 +15,8 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse as DeleteEnvironmentVariableResponse,
     InstancesInstanceIdConfigEnvironmentVariableNameGetResponse as GetEnvironmentVariableResponse,
     InstancesInstanceIdConfigEnvironmentVariableNamePutResponse as PutEnvironmentVariableResponse,
-    InstancesInstanceIdConfigGetResponse,
+    InstancesInstanceIdConfigGetResponse, InstancesInstanceIdConfigLabelsGetResponse,
+    InstancesInstanceIdConfigLabelsLabelNameGetResponse,
     InstancesInstanceIdConfigPortsDeleteResponse as DeletePortsResponse,
     InstancesInstanceIdConfigPortsGetResponse as GetPortsResponse,
     InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse as DeleteProtocolPortsResponse,
@@ -40,7 +41,8 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdConfigEnvironmentVariableNameGet200Response as PutEnvironmentVariableRequest,
     InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams as GetEnvironmentVariableParams,
     InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams as PutEnvironmentVariableParams,
-    InstancesInstanceIdConfigGetPathParams,
+    InstancesInstanceIdConfigGetPathParams, InstancesInstanceIdConfigLabelsGetPathParams,
+    InstancesInstanceIdConfigLabelsLabelNameGetPathParams,
     InstancesInstanceIdConfigPortsDeletePathParams as DeletePortsParams,
     InstancesInstanceIdConfigPortsGetPathParams as GetPortsParams,
     InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams as DeleteProtocolPortsParams,
@@ -326,6 +328,26 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         _path_params: InstancesInstanceIdConfigGetPathParams,
     ) -> Result<InstancesInstanceIdConfigGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_labels_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigLabelsGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigLabelsGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_labels_label_name_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigLabelsLabelNameGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigLabelsLabelNameGetResponse, ()> {
         todo!()
     }
 

@@ -161,6 +161,39 @@ pub struct InstancesInstanceIdConfigGetPathParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigLabelsGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGLABELSGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGLABELSGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigLabelsLabelNameGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGLABELSLABELNAMEGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGLABELSLABELNAMEGETPATHPARAMS_LABEL_NAME),
+                    )]
+    pub label_name: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGLABELSLABELNAMEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGLABELSLABELNAMEGETPATHPARAMS_LABEL_NAME: regex::Regex = regex::Regex::new(r"^[a-z](?:(?:[\\-\\.]?[a-zA-Z0-9])*[\\-\\.]?[a-z])?$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigPortsDeletePathParams {
     #[validate(
                           regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSDELETEPATHPARAMS_INSTANCE_ID),
@@ -5487,6 +5520,259 @@ impl std::ops::DerefMut for InstanceId {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstanceLabel {
+    #[serde(rename = "name")]
+    #[validate(
+            regex(path = *RE_INSTANCELABEL_NAME),
+        )]
+    pub name: String,
+
+    #[serde(rename = "value")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCELABEL_NAME: regex::Regex = regex::Regex::new(r"^[a-z](?:(?:[\\-\\.]?[a-zA-Z0-9])*[\\-\\.]?[a-z])?$").unwrap();
+}
+
+impl InstanceLabel {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String) -> InstanceLabel {
+        InstanceLabel { name, value: None }
+    }
+}
+
+/// Converts the InstanceLabel value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstanceLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            self.value
+                .as_ref()
+                .map(|value| ["value".to_string(), value.to_string()].join(",")),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstanceLabel value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstanceLabel {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub value: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing InstanceLabel".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "value" => intermediate_rep.value.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing InstanceLabel".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstanceLabel {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in InstanceLabel".to_string())?,
+            value: intermediate_rep.value.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstanceLabel> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<InstanceLabel>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstanceLabel>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for InstanceLabel - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceLabel> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <InstanceLabel as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into InstanceLabel - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstanceLabelName(String);
+
+impl validator::Validate for InstanceLabelName {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for InstanceLabelName {
+    fn from(x: String) -> Self {
+        InstanceLabelName(x)
+    }
+}
+
+impl std::fmt::Display for InstanceLabelName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for InstanceLabelName {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(InstanceLabelName(x.to_string()))
+    }
+}
+
+impl std::convert::From<InstanceLabelName> for String {
+    fn from(x: InstanceLabelName) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for InstanceLabelName {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for InstanceLabelName {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstanceLabelValue(String);
+
+impl validator::Validate for InstanceLabelValue {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for InstanceLabelValue {
+    fn from(x: String) -> Self {
+        InstanceLabelValue(x)
+    }
+}
+
+impl std::fmt::Display for InstanceLabelValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for InstanceLabelValue {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(InstanceLabelValue(x.to_string()))
+    }
+}
+
+impl std::convert::From<InstanceLabelValue> for String {
+    fn from(x: InstanceLabelValue) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for InstanceLabelValue {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for InstanceLabelValue {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
 /// Instance name
 #[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
@@ -6403,6 +6689,131 @@ impl std::convert::TryFrom<HeaderValue>
                         std::result::Result::Ok(value) => std::result::Result::Ok(header::IntoHeaderValue(value)),
                         std::result::Result::Err(err) => std::result::Result::Err(
                             format!("Unable to convert header value '{}' into InstancesInstanceIdConfigEnvironmentVariableNameGet200Response - {}",
+                                value, err))
+                    }
+             },
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Unable to convert header: {:?} to string: {}",
+                     hdr_value, e))
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigLabelsLabelNameGet200Response {
+    #[serde(rename = "value")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+impl InstancesInstanceIdConfigLabelsLabelNameGet200Response {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new() -> InstancesInstanceIdConfigLabelsLabelNameGet200Response {
+        InstancesInstanceIdConfigLabelsLabelNameGet200Response { value: None }
+    }
+}
+
+/// Converts the InstancesInstanceIdConfigLabelsLabelNameGet200Response value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstancesInstanceIdConfigLabelsLabelNameGet200Response {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![self
+            .value
+            .as_ref()
+            .map(|value| ["value".to_string(), value.to_string()].join(","))];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstancesInstanceIdConfigLabelsLabelNameGet200Response value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstancesInstanceIdConfigLabelsLabelNameGet200Response {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub value: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => return std::result::Result::Err("Missing value while parsing InstancesInstanceIdConfigLabelsLabelNameGet200Response".to_string())
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "value" => intermediate_rep.value.push(<String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
+                    _ => return std::result::Result::Err("Unexpected key while parsing InstancesInstanceIdConfigLabelsLabelNameGet200Response".to_string())
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstancesInstanceIdConfigLabelsLabelNameGet200Response {
+            value: intermediate_rep.value.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstancesInstanceIdConfigLabelsLabelNameGet200Response> and HeaderValue
+
+#[cfg(feature = "server")]
+impl
+    std::convert::TryFrom<
+        header::IntoHeaderValue<InstancesInstanceIdConfigLabelsLabelNameGet200Response>,
+    > for HeaderValue
+{
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstancesInstanceIdConfigLabelsLabelNameGet200Response>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+             std::result::Result::Ok(value) => std::result::Result::Ok(value),
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Invalid header value for InstancesInstanceIdConfigLabelsLabelNameGet200Response - value: {} is invalid {}",
+                     hdr_value, e))
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue>
+    for header::IntoHeaderValue<InstancesInstanceIdConfigLabelsLabelNameGet200Response>
+{
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+             std::result::Result::Ok(value) => {
+                    match <InstancesInstanceIdConfigLabelsLabelNameGet200Response as std::str::FromStr>::from_str(value) {
+                        std::result::Result::Ok(value) => std::result::Result::Ok(header::IntoHeaderValue(value)),
+                        std::result::Result::Err(err) => std::result::Result::Err(
+                            format!("Unable to convert header value '{}' into InstancesInstanceIdConfigLabelsLabelNameGet200Response - {}",
                                 value, err))
                     }
              },
