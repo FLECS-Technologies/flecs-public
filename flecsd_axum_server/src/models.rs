@@ -57,19 +57,100 @@ pub struct InstancesGetQueryParams {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigEnvironmentDeletePathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
     pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigEnvironmentGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTGETPATHPARAMS_INSTANCE_ID),
+                    )]
     pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigEnvironmentPutPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTPUTPATHPARAMS_INSTANCE_ID),
+                    )]
     pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigEnvironmentVariableNameDeletePathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEDELETEPATHPARAMS_VARIABLE_NAME),
+                    )]
+    pub variable_name: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEDELETEPATHPARAMS_VARIABLE_NAME: regex::Regex = regex::Regex::new(r"^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEGETPATHPARAMS_VARIABLE_NAME),
+                    )]
+    pub variable_name: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEGETPATHPARAMS_VARIABLE_NAME: regex::Regex = regex::Regex::new(r"^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEPUTPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEPUTPATHPARAMS_VARIABLE_NAME),
+                    )]
+    pub variable_name: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEPUTPATHPARAMS_VARIABLE_NAME: regex::Regex = regex::Regex::new(r"^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -4963,7 +5044,7 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceEdit
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstanceEnvironment(Vec<String>);
+pub struct InstanceEnvironment(Vec<InstanceEnvironmentVariable>);
 
 impl validator::Validate for InstanceEnvironment {
     fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
@@ -4971,27 +5052,27 @@ impl validator::Validate for InstanceEnvironment {
     }
 }
 
-impl std::convert::From<Vec<String>> for InstanceEnvironment {
-    fn from(x: Vec<String>) -> Self {
+impl std::convert::From<Vec<InstanceEnvironmentVariable>> for InstanceEnvironment {
+    fn from(x: Vec<InstanceEnvironmentVariable>) -> Self {
         InstanceEnvironment(x)
     }
 }
 
-impl std::convert::From<InstanceEnvironment> for Vec<String> {
+impl std::convert::From<InstanceEnvironment> for Vec<InstanceEnvironmentVariable> {
     fn from(x: InstanceEnvironment) -> Self {
         x.0
     }
 }
 
-impl std::iter::FromIterator<String> for InstanceEnvironment {
-    fn from_iter<U: IntoIterator<Item = String>>(u: U) -> Self {
-        InstanceEnvironment(Vec::<String>::from_iter(u))
+impl std::iter::FromIterator<InstanceEnvironmentVariable> for InstanceEnvironment {
+    fn from_iter<U: IntoIterator<Item = InstanceEnvironmentVariable>>(u: U) -> Self {
+        InstanceEnvironment(Vec::<InstanceEnvironmentVariable>::from_iter(u))
     }
 }
 
 impl std::iter::IntoIterator for InstanceEnvironment {
-    type Item = String;
-    type IntoIter = std::vec::IntoIter<String>;
+    type Item = InstanceEnvironmentVariable;
+    type IntoIter = std::vec::IntoIter<InstanceEnvironmentVariable>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
@@ -4999,8 +5080,8 @@ impl std::iter::IntoIterator for InstanceEnvironment {
 }
 
 impl<'a> std::iter::IntoIterator for &'a InstanceEnvironment {
-    type Item = &'a String;
-    type IntoIter = std::slice::Iter<'a, String>;
+    type Item = &'a InstanceEnvironmentVariable;
+    type IntoIter = std::slice::Iter<'a, InstanceEnvironmentVariable>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -5008,8 +5089,8 @@ impl<'a> std::iter::IntoIterator for &'a InstanceEnvironment {
 }
 
 impl<'a> std::iter::IntoIterator for &'a mut InstanceEnvironment {
-    type Item = &'a mut String;
-    type IntoIter = std::slice::IterMut<'a, String>;
+    type Item = &'a mut InstanceEnvironmentVariable;
+    type IntoIter = std::slice::IterMut<'a, InstanceEnvironmentVariable>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter_mut()
@@ -5017,7 +5098,7 @@ impl<'a> std::iter::IntoIterator for &'a mut InstanceEnvironment {
 }
 
 impl std::ops::Deref for InstanceEnvironment {
-    type Target = Vec<String>;
+    type Target = Vec<InstanceEnvironmentVariable>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -5049,7 +5130,7 @@ impl std::fmt::Display for InstanceEnvironment {
 /// as specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde deserializer
 impl std::str::FromStr for InstanceEnvironment {
-    type Err = <String as std::str::FromStr>::Err;
+    type Err = <InstanceEnvironmentVariable as std::str::FromStr>::Err;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let mut items = vec![];
@@ -5105,49 +5186,254 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceEnvi
     }
 }
 
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstanceEnvironmentVariable {
+    #[serde(rename = "name")]
+    #[validate(
+            regex(path = *RE_INSTANCEENVIRONMENTVARIABLE_NAME),
+        )]
+    pub name: String,
+
+    #[serde(rename = "value")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCEENVIRONMENTVARIABLE_NAME: regex::Regex = regex::Regex::new(r"^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
+}
+
+impl InstanceEnvironmentVariable {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String) -> InstanceEnvironmentVariable {
+        InstanceEnvironmentVariable { name, value: None }
+    }
+}
+
+/// Converts the InstanceEnvironmentVariable value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstanceEnvironmentVariable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            self.value
+                .as_ref()
+                .map(|value| ["value".to_string(), value.to_string()].join(",")),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstanceEnvironmentVariable value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstanceEnvironmentVariable {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub value: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing InstanceEnvironmentVariable".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "value" => intermediate_rep.value.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing InstanceEnvironmentVariable".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstanceEnvironmentVariable {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in InstanceEnvironmentVariable".to_string())?,
+            value: intermediate_rep.value.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstanceEnvironmentVariable> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<InstanceEnvironmentVariable>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstanceEnvironmentVariable>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for InstanceEnvironmentVariable - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceEnvironmentVariable> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <InstanceEnvironmentVariable as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into InstanceEnvironmentVariable - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstanceEnvironmentVariable(String);
+pub struct InstanceEnvironmentVariableName(String);
 
-impl validator::Validate for InstanceEnvironmentVariable {
+impl validator::Validate for InstanceEnvironmentVariableName {
     fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
         std::result::Result::Ok(())
     }
 }
 
-impl std::convert::From<String> for InstanceEnvironmentVariable {
+impl std::convert::From<String> for InstanceEnvironmentVariableName {
     fn from(x: String) -> Self {
-        InstanceEnvironmentVariable(x)
+        InstanceEnvironmentVariableName(x)
     }
 }
 
-impl std::fmt::Display for InstanceEnvironmentVariable {
+impl std::fmt::Display for InstanceEnvironmentVariableName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.0)
     }
 }
 
-impl std::str::FromStr for InstanceEnvironmentVariable {
+impl std::str::FromStr for InstanceEnvironmentVariableName {
     type Err = std::string::ParseError;
     fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
-        std::result::Result::Ok(InstanceEnvironmentVariable(x.to_string()))
+        std::result::Result::Ok(InstanceEnvironmentVariableName(x.to_string()))
     }
 }
 
-impl std::convert::From<InstanceEnvironmentVariable> for String {
-    fn from(x: InstanceEnvironmentVariable) -> Self {
+impl std::convert::From<InstanceEnvironmentVariableName> for String {
+    fn from(x: InstanceEnvironmentVariableName) -> Self {
         x.0
     }
 }
 
-impl std::ops::Deref for InstanceEnvironmentVariable {
+impl std::ops::Deref for InstanceEnvironmentVariableName {
     type Target = String;
     fn deref(&self) -> &String {
         &self.0
     }
 }
 
-impl std::ops::DerefMut for InstanceEnvironmentVariable {
+impl std::ops::DerefMut for InstanceEnvironmentVariableName {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstanceEnvironmentVariableValue(String);
+
+impl validator::Validate for InstanceEnvironmentVariableValue {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for InstanceEnvironmentVariableValue {
+    fn from(x: String) -> Self {
+        InstanceEnvironmentVariableValue(x)
+    }
+}
+
+impl std::fmt::Display for InstanceEnvironmentVariableValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for InstanceEnvironmentVariableValue {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(InstanceEnvironmentVariableValue(x.to_string()))
+    }
+}
+
+impl std::convert::From<InstanceEnvironmentVariableValue> for String {
+    fn from(x: InstanceEnvironmentVariableValue) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for InstanceEnvironmentVariableValue {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for InstanceEnvironmentVariableValue {
     fn deref_mut(&mut self) -> &mut String {
         &mut self.0
     }
@@ -5994,6 +6280,135 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstancesCre
                 "Unable to convert header: {:?} to string: {}",
                 hdr_value, e
             )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+    #[serde(rename = "value")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+impl InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new() -> InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+        InstancesInstanceIdConfigEnvironmentVariableNameGet200Response { value: None }
+    }
+}
+
+/// Converts the InstancesInstanceIdConfigEnvironmentVariableNameGet200Response value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![self
+            .value
+            .as_ref()
+            .map(|value| ["value".to_string(), value.to_string()].join(","))];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstancesInstanceIdConfigEnvironmentVariableNameGet200Response value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub value: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => return std::result::Result::Err("Missing value while parsing InstancesInstanceIdConfigEnvironmentVariableNameGet200Response".to_string())
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "value" => intermediate_rep.value.push(<String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
+                    _ => return std::result::Result::Err("Unexpected key while parsing InstancesInstanceIdConfigEnvironmentVariableNameGet200Response".to_string())
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(
+            InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+                value: intermediate_rep.value.into_iter().next(),
+            },
+        )
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstancesInstanceIdConfigEnvironmentVariableNameGet200Response> and HeaderValue
+
+#[cfg(feature = "server")]
+impl
+    std::convert::TryFrom<
+        header::IntoHeaderValue<InstancesInstanceIdConfigEnvironmentVariableNameGet200Response>,
+    > for HeaderValue
+{
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<
+            InstancesInstanceIdConfigEnvironmentVariableNameGet200Response,
+        >,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+             std::result::Result::Ok(value) => std::result::Result::Ok(value),
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Invalid header value for InstancesInstanceIdConfigEnvironmentVariableNameGet200Response - value: {} is invalid {}",
+                     hdr_value, e))
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue>
+    for header::IntoHeaderValue<InstancesInstanceIdConfigEnvironmentVariableNameGet200Response>
+{
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+             std::result::Result::Ok(value) => {
+                    match <InstancesInstanceIdConfigEnvironmentVariableNameGet200Response as std::str::FromStr>::from_str(value) {
+                        std::result::Result::Ok(value) => std::result::Result::Ok(header::IntoHeaderValue(value)),
+                        std::result::Result::Err(err) => std::result::Result::Err(
+                            format!("Unable to convert header value '{}' into InstancesInstanceIdConfigEnvironmentVariableNameGet200Response - {}",
+                                value, err))
+                    }
+             },
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Unable to convert header: {:?} to string: {}",
+                     hdr_value, e))
         }
     }
 }

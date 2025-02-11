@@ -11,7 +11,11 @@ use flecsd_axum_server::apis::instances::{
     Instances, InstancesCreatePostResponse, InstancesGetResponse,
     InstancesInstanceIdConfigEnvironmentDeleteResponse,
     InstancesInstanceIdConfigEnvironmentGetResponse,
-    InstancesInstanceIdConfigEnvironmentPutResponse, InstancesInstanceIdConfigGetResponse,
+    InstancesInstanceIdConfigEnvironmentPutResponse,
+    InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse,
+    InstancesInstanceIdConfigEnvironmentVariableNameGetResponse,
+    InstancesInstanceIdConfigEnvironmentVariableNamePutResponse,
+    InstancesInstanceIdConfigGetResponse,
     InstancesInstanceIdConfigPortsDeleteResponse as DeletePortsResponse,
     InstancesInstanceIdConfigPortsGetResponse as GetPortsResponse,
     InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse as DeleteProtocolPortsResponse,
@@ -30,7 +34,12 @@ use flecsd_axum_server::models::{
     AdditionalInfo, InstanceConfig, InstanceEnvironment, InstancesCreatePostRequest,
     InstancesGetQueryParams, InstancesInstanceIdConfigEnvironmentDeletePathParams,
     InstancesInstanceIdConfigEnvironmentGetPathParams,
-    InstancesInstanceIdConfigEnvironmentPutPathParams, InstancesInstanceIdConfigGetPathParams,
+    InstancesInstanceIdConfigEnvironmentPutPathParams,
+    InstancesInstanceIdConfigEnvironmentVariableNameDeletePathParams,
+    InstancesInstanceIdConfigEnvironmentVariableNameGet200Response,
+    InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams,
+    InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams,
+    InstancesInstanceIdConfigGetPathParams,
     InstancesInstanceIdConfigPortsDeletePathParams as DeletePortsParams,
     InstancesInstanceIdConfigPortsGetPathParams as GetPortsParams,
     InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams as DeleteProtocolPortsParams,
@@ -155,6 +164,37 @@ impl Instances for ServerImpl {
         _path_params: InstancesInstanceIdConfigEnvironmentPutPathParams,
         _body: InstanceEnvironment,
     ) -> Result<InstancesInstanceIdConfigEnvironmentPutResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_environment_variable_name_delete(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigEnvironmentVariableNameDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_environment_variable_name_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNameGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_environment_variable_name_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams,
+        _body: InstancesInstanceIdConfigEnvironmentVariableNameGet200Response,
+    ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNamePutResponse, ()> {
         todo!()
     }
 

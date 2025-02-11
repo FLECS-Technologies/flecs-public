@@ -377,9 +377,20 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/instance_environment_variable"
-    instance_environment_variable:
+    instance_environment_variable_value:
       type: string
-      pattern: "^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*=.+$"
+    instance_environment_variable_name:
+      type: string
+      pattern: "^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$"
+    instance_environment_variable:
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/instance_environment_variable_name"
+        value:
+          $ref: "#/components/schemas/instance_environment_variable_value"
+      required:
+        - name
     instance_ports:
       type: object
       properties:
@@ -1008,7 +1019,7 @@ paths:
         - name: instance_id
           in: path
           schema:
-            type: string
+            $ref: "#/components/schemas/instance_id"
           required: true
       responses:
         "200":
@@ -1017,6 +1028,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/instance_environment"
+        "400":
+          $ref: "#/components/responses/response_400"
         "404":
           description: No instance with this instance_id found
     put:
@@ -1026,7 +1039,7 @@ paths:
         - name: instance_id
           in: path
           schema:
-            type: string
+            $ref: "#/components/schemas/instance_id"
           required: true
       requestBody:
         required: true
@@ -1050,13 +1063,95 @@ paths:
         - name: instance_id
           in: path
           schema:
-            type: string
+            $ref: "#/components/schemas/instance_id"
           required: true
       responses:
         "200":
           description: Environment of instance with this instance_id was deleted
+        "400":
+          $ref: "#/components/responses/response_400"
         "404":
           description: No instance with this instance_id found
+  /instances/{instance_id}/config/environment/{variable_name}:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve the value of an environment variable
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: variable_name
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_environment_variable_name"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                properties:
+                  value:
+                    $ref: "#/components/schemas/instance_environment_variable_value"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+    put:
+      tags: [ "Instances" ]
+      summary: Set the value of an environment variable of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: variable_name
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_environment_variable_name"
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                value:
+                  $ref: "#/components/schemas/instance_environment_variable_value"
+      responses:
+        "200":
+          description: Environment for instance with this instance id is set
+        "201":
+          description: Environment for instance with this instance id was created
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: No instance with this instance_id found
+    delete:
+      tags: [ "Instances" ]
+      summary: Remove an environment variable of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: variable_name
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_environment_variable_name"
+          required: true
+      responses:
+        "200":
+          description: Environment variable of instance with this instance_id was deleted
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
   /instances/{instance_id}/config/ports/{transport_protocol}:
     get:
       tags: [ "Instances" ]
