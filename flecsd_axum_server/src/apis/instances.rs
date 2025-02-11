@@ -31,6 +31,8 @@ pub enum InstancesGetResponse {
 pub enum InstancesInstanceIdConfigEnvironmentDeleteResponse {
     /// Environment of instance with this instance_id was deleted
     Status200_EnvironmentOfInstanceWithThisInstance,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
     /// No instance with this instance_id found
     Status404_NoInstanceWithThisInstance,
 }
@@ -41,6 +43,8 @@ pub enum InstancesInstanceIdConfigEnvironmentDeleteResponse {
 pub enum InstancesInstanceIdConfigEnvironmentGetResponse {
     /// Success
     Status200_Success(models::InstanceEnvironment),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
     /// No instance with this instance_id found
     Status404_NoInstanceWithThisInstance,
 }
@@ -49,6 +53,44 @@ pub enum InstancesInstanceIdConfigEnvironmentGetResponse {
 #[must_use]
 #[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdConfigEnvironmentPutResponse {
+    /// Environment for instance with this instance id is set
+    Status200_EnvironmentForInstanceWithThisInstanceIdIsSet,
+    /// Environment for instance with this instance id was created
+    Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// No instance with this instance_id found
+    Status404_NoInstanceWithThisInstance,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse {
+    /// Environment variable of instance with this instance_id was deleted
+    Status200_EnvironmentVariableOfInstanceWithThisInstance,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigEnvironmentVariableNameGetResponse {
+    /// Success
+    Status200_Success(models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigEnvironmentVariableNamePutResponse {
     /// Environment for instance with this instance id is set
     Status200_EnvironmentForInstanceWithThisInstanceIdIsSet,
     /// Environment for instance with this instance id was created
@@ -314,6 +356,40 @@ pub trait Instances {
         path_params: models::InstancesInstanceIdConfigEnvironmentPutPathParams,
         body: models::InstanceEnvironment,
     ) -> Result<InstancesInstanceIdConfigEnvironmentPutResponse, ()>;
+
+    /// Remove an environment variable of an instance.
+    ///
+    /// InstancesInstanceIdConfigEnvironmentVariableNameDelete - DELETE /v2/instances/{instance_id}/config/environment/{variable_name}
+    async fn instances_instance_id_config_environment_variable_name_delete(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigEnvironmentVariableNameDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse, ()>;
+
+    /// Retrieve the value of an environment variable.
+    ///
+    /// InstancesInstanceIdConfigEnvironmentVariableNameGet - GET /v2/instances/{instance_id}/config/environment/{variable_name}
+    async fn instances_instance_id_config_environment_variable_name_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNameGetResponse, ()>;
+
+    /// Set the value of an environment variable of an instance.
+    ///
+    /// InstancesInstanceIdConfigEnvironmentVariableNamePut - PUT /v2/instances/{instance_id}/config/environment/{variable_name}
+    async fn instances_instance_id_config_environment_variable_name_put(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams,
+        body: models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response,
+    ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNamePutResponse, ()>;
 
     /// Get configuration of an Instance.
     ///
