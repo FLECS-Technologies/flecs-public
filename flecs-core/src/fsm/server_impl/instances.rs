@@ -1,6 +1,6 @@
 use crate::fsm::server_impl::{invalid_instance_id_additional_info, ServerImpl};
 use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
-use crate::jeweler::gem::manifest::{PortMapping, PortRange};
+use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange};
 use crate::quest::{Quest, QuestResult};
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
@@ -57,6 +57,7 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdStopPostPathParams, JobMeta, OptionalAdditionalInfo,
 };
 use http::Method;
+use std::collections::HashSet;
 use std::str::FromStr;
 
 #[async_trait]
@@ -142,9 +143,24 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: DeleteEnvironmentParams,
+        path_params: DeleteEnvironmentParams,
     ) -> Result<DeleteEnvironmentResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(DeleteEnvironmentResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        match crate::sorcerer::instancius::delete_instance_config_environment(
+            self.vault.clone(),
+            instance_id,
+        )
+        .await
+        {
+            None => Ok(DeleteEnvironmentResponse::Status404_NoInstanceWithThisInstance),
+            Some(_) => {
+                Ok(DeleteEnvironmentResponse::Status200_EnvironmentOfInstanceWithThisInstance)
+            }
+        }
     }
 
     async fn instances_instance_id_config_environment_get(
@@ -152,9 +168,29 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: GetEnvironmentParams,
+        path_params: GetEnvironmentParams,
     ) -> Result<GetEnvironmentResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(GetEnvironmentResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        match crate::sorcerer::instancius::get_instance_config_environment(
+            self.vault.clone(),
+            instance_id,
+        )
+        .await
+        {
+            None => Ok(GetEnvironmentResponse::Status404_NoInstanceWithThisInstance),
+            Some(environment) => Ok(GetEnvironmentResponse::Status200_Success(
+                InstanceEnvironment::from(
+                    environment
+                        .into_iter()
+                        .map(models::InstanceEnvironmentVariable::from)
+                        .collect::<Vec<models::InstanceEnvironmentVariable>>(),
+                ),
+            )),
+        }
     }
 
     async fn instances_instance_id_config_environment_put(
@@ -162,10 +198,27 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: PutEnvironmentParams,
-        _body: InstanceEnvironment,
+        path_params: PutEnvironmentParams,
+        body: InstanceEnvironment,
     ) -> Result<PutEnvironmentResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(PutEnvironmentResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        let environment: Vec<_> = body.into_iter().map(EnvironmentVariable::from).collect();
+        if let Err(errors) = validate_environment_variables(&environment) {
+            return Ok(PutEnvironmentResponse::Status400_MalformedRequest(
+                AdditionalInfo {
+                    additional_info: errors.join("\n"),
+                },
+            ));
+        };
+        match crate::sorcerer::instancius::put_instance_config_environment(self.vault.clone(), instance_id, environment).await {
+            None => Ok(PutEnvironmentResponse::Status404_NoInstanceWithThisInstance),
+            Some(previous_environment) if previous_environment.is_empty() => Ok(PutEnvironmentResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated),
+            Some(_) => Ok(PutEnvironmentResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet),
+        }
     }
 
     async fn instances_instance_id_config_environment_variable_name_delete(
@@ -173,9 +226,31 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: DeleteEnvironmentVariableParams,
+        path_params: DeleteEnvironmentVariableParams,
     ) -> Result<DeleteEnvironmentVariableResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(
+                DeleteEnvironmentVariableResponse::Status400_MalformedRequest(
+                    invalid_instance_id_additional_info(&path_params.instance_id),
+                ),
+            );
+        };
+        match crate::sorcerer::instancius::delete_instance_config_environment_variable_value(
+            self.vault.clone(), instance_id, path_params.variable_name.clone())
+            .await
+        {
+            None => Ok(DeleteEnvironmentVariableResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!("No instance with id {instance_id}"))
+                })),
+            Some(None) => Ok(DeleteEnvironmentVariableResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!("No environment variable with name {}", path_params.variable_name))
+                })),
+            Some(Some(_)) => {
+                Ok(DeleteEnvironmentVariableResponse::Status200_EnvironmentVariableOfInstanceWithThisInstance)
+            }
+        }
     }
 
     async fn instances_instance_id_config_environment_variable_name_get(
@@ -183,9 +258,37 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: GetEnvironmentVariableParams,
+        path_params: GetEnvironmentVariableParams,
     ) -> Result<GetEnvironmentVariableResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(GetEnvironmentVariableResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        match crate::sorcerer::instancius::get_instance_config_environment_variable_value(
+            self.vault.clone(),
+            instance_id,
+            path_params.variable_name.clone(),
+        )
+        .await
+        {
+            None => Ok(GetEnvironmentVariableResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!("No instance with id {instance_id}")),
+                },
+            )),
+            Some(None) => Ok(GetEnvironmentVariableResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!(
+                        "No environment variable with name {}",
+                        path_params.variable_name
+                    )),
+                },
+            )),
+            Some(Some(value)) => Ok(GetEnvironmentVariableResponse::Status200_Success(
+                models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response { value },
+            )),
+        }
     }
 
     async fn instances_instance_id_config_environment_variable_name_put(
@@ -193,10 +296,27 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: PutEnvironmentVariableParams,
-        _body: PutEnvironmentVariableRequest,
+        path_params: PutEnvironmentVariableParams,
+        body: PutEnvironmentVariableRequest,
     ) -> Result<PutEnvironmentVariableResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(PutEnvironmentVariableResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        match crate::sorcerer::instancius::put_instance_config_environment_variable_value(
+            self.vault.clone(),
+            instance_id,
+            EnvironmentVariable {
+                name: path_params.variable_name,
+                value: body.value,
+            },
+        )
+            .await {
+            None => Ok(PutEnvironmentVariableResponse::Status404_NoInstanceWithThisInstance),
+            Some(None) => Ok(PutEnvironmentVariableResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated),
+            Some(Some(_)) => Ok(PutEnvironmentVariableResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet),
+        }
     }
 
     async fn instances_instance_id_config_get(
@@ -850,6 +970,44 @@ fn parse_host_port_path_parameter(path_parameter: &str) -> Result<PortRange, Add
                 integers seperated by dash ({e1})"
             ),
         }),
+    }
+}
+
+fn validate_environment_variables(
+    environment_variables: &[EnvironmentVariable],
+) -> Result<(), Vec<String>> {
+    let mut set = HashSet::new();
+    let mut errors = Vec::new();
+    for environment_variable in environment_variables {
+        if !set.insert(environment_variable.name.as_str()) {
+            errors.push(format!(
+                "Duplicate environment variable name: {}",
+                environment_variable.name
+            ));
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+impl From<EnvironmentVariable> for models::InstanceEnvironmentVariable {
+    fn from(value: EnvironmentVariable) -> Self {
+        Self {
+            name: value.name,
+            value: value.value,
+        }
+    }
+}
+
+impl From<models::InstanceEnvironmentVariable> for EnvironmentVariable {
+    fn from(value: models::InstanceEnvironmentVariable) -> Self {
+        Self {
+            name: value.name,
+            value: value.value,
+        }
     }
 }
 
@@ -2858,5 +3016,908 @@ mod tests {
         .err()
         .unwrap();
         assert_eq!(errors.len(), 8, "{errors:?}");
+    }
+
+    #[test]
+    fn validate_environment_variables_empty() {
+        assert!(validate_environment_variables(&[]).is_ok());
+    }
+
+    #[test]
+    fn validate_environment_variables_ok() {
+        assert!(validate_environment_variables(&[
+            EnvironmentVariable {
+                name: "Variable1".to_string(),
+                value: None,
+            },
+            EnvironmentVariable {
+                name: "Variable2".to_string(),
+                value: Some("Value".to_string()),
+            },
+            EnvironmentVariable {
+                name: "TEST_VAR".to_string(),
+                value: None,
+            }
+        ])
+        .is_ok());
+    }
+
+    #[test]
+    fn validate_environment_variables_err_single() {
+        let errors = validate_environment_variables(&[
+            EnvironmentVariable {
+                name: "Variable1".to_string(),
+                value: None,
+            },
+            EnvironmentVariable {
+                name: "TEST_VAR".to_string(),
+                value: Some("Value".to_string()),
+            },
+            EnvironmentVariable {
+                name: "Variable2".to_string(),
+                value: Some("Value".to_string()),
+            },
+            EnvironmentVariable {
+                name: "TEST_VAR".to_string(),
+                value: None,
+            },
+        ])
+        .err()
+        .unwrap();
+        assert_eq!(errors.len(), 1, "{errors:?}");
+    }
+
+    #[test]
+    fn validate_environment_variables_err_multiple() {
+        let errors = validate_environment_variables(&[
+            EnvironmentVariable {
+                name: "Variable1".to_string(),
+                value: None,
+            },
+            EnvironmentVariable {
+                name: "TEST_VAR".to_string(),
+                value: None,
+            },
+            EnvironmentVariable {
+                name: "TEST_VAR".to_string(),
+                value: Some("Value".to_string()),
+            },
+            EnvironmentVariable {
+                name: "Variable2".to_string(),
+                value: Some("Value".to_string()),
+            },
+            EnvironmentVariable {
+                name: "TEST_VAR".to_string(),
+                value: None,
+            },
+            EnvironmentVariable {
+                name: "Variable1".to_string(),
+                value: Some("Value".to_string()),
+            },
+        ])
+        .err()
+        .unwrap();
+        assert_eq!(errors.len(), 3, "{errors:?}");
+    }
+
+    #[test]
+    fn from_environment_variable() {
+        let name = "TEST_VAR".to_string();
+        let value = Some("test-value".to_string());
+        assert_eq!(
+            models::InstanceEnvironmentVariable::from(EnvironmentVariable {
+                name: name.clone(),
+                value: value.clone()
+            }),
+            models::InstanceEnvironmentVariable { name, value }
+        );
+    }
+
+    #[test]
+    fn from_instance_environment_variable() {
+        let name = "TEST_VAR".to_string();
+        let value = Some("test-value".to_string());
+        assert_eq!(
+            EnvironmentVariable::from(models::InstanceEnvironmentVariable {
+                name: name.clone(),
+                value: value.clone()
+            }),
+            EnvironmentVariable { name, value }
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_variable_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_variable_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_variable_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetEnvironmentVariableParams {
+                        instance_id: "invalid instance id".to_string(),
+                        variable_name: "variable_name".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetEnvironmentVariableResponse::Status400_MalformedRequest(
+                _
+            ))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_variable_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_variable_404_instance",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_variable_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetEnvironmentVariableParams {
+                        instance_id: "99887766".to_string(),
+                        variable_name: "variable_name".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetEnvironmentVariableResponse::Status404_ResourceNotFound(
+                _
+            ))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_variable_404_variable() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_variable_404_variable",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_variable_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetEnvironmentVariableParams {
+                        instance_id: "00000006".to_string(),
+                        variable_name: "variable_name".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetEnvironmentVariableResponse::Status404_ResourceNotFound(
+                _
+            ))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_variable_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_variable_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_environment_variable_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetEnvironmentVariableParams {
+                        instance_id: "00000006".to_string(),
+                        variable_name: "VAR_1".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetEnvironmentVariableResponse::Status200_Success(
+                models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+                    value: None
+                }
+            ))
+        );
+        assert_eq!(
+            server
+                .instances_instance_id_config_environment_variable_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetEnvironmentVariableParams {
+                        instance_id: "00000006".to_string(),
+                        variable_name: "VAR_2".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetEnvironmentVariableResponse::Status200_Success(
+                models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+                    value: Some("value".to_string())
+                }
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_variable_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_variable_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_variable_name_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteEnvironmentVariableParams {
+                        instance_id: "invalid instance id".to_string(),
+                        variable_name: "variable_name".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeleteEnvironmentVariableResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_variable_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_variable_404_instance",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_variable_name_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteEnvironmentVariableParams {
+                        instance_id: "99887766".to_string(),
+                        variable_name: "variable_name".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeleteEnvironmentVariableResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_variable_404_variable() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_variable_404_variable",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_variable_name_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteEnvironmentVariableParams {
+                        instance_id: "00000006".to_string(),
+                        variable_name: "variable_name".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeleteEnvironmentVariableResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_variable_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_variable_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_environment_variable_name_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteEnvironmentVariableParams {
+                        instance_id: "00000006".to_string(),
+                        variable_name: "VAR_1".to_string(),
+                    },
+                )
+                .await,
+            Ok(
+                DeleteEnvironmentVariableResponse::Status200_EnvironmentVariableOfInstanceWithThisInstance
+            )
+        );
+        assert_eq!(
+            server
+                .instances_instance_id_config_environment_variable_name_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteEnvironmentVariableParams {
+                        instance_id: "00000006".to_string(),
+                        variable_name: "VAR_2".to_string(),
+                    },
+                )
+                .await,
+            Ok(
+                DeleteEnvironmentVariableResponse::Status200_EnvironmentVariableOfInstanceWithThisInstance
+            )
+        );
+        assert!(server
+            .vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .environment_variables
+            .is_empty());
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_variable_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_variable_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_variable_name_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutEnvironmentVariableParams {
+                        instance_id: "invalid instance id".to_string(),
+                        variable_name: "VAR_3".to_string(),
+                    },
+                    models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+                        value: Some("new value".to_string())
+                    }
+                )
+                .await,
+            Ok(PutEnvironmentVariableResponse::Status400_MalformedRequest(
+                _
+            ))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_variable_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_variable_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_environment_variable_name_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutEnvironmentVariableParams {
+                        instance_id: "12341234".to_string(),
+                        variable_name: "VAR_3".to_string(),
+                    },
+                    models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+                        value: Some("new value".to_string())
+                    }
+                )
+                .await,
+            Ok(PutEnvironmentVariableResponse::Status404_NoInstanceWithThisInstance)
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_variable_201() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_variable_201",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_environment_variable_name_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutEnvironmentVariableParams {
+                        instance_id: "00000006".to_string(),
+                        variable_name: "VAR_3".to_string(),
+                    },
+                    models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+                        value: Some("new value".to_string())
+                    }
+                )
+                .await,
+            Ok(
+                PutEnvironmentVariableResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated
+            )
+        );
+        assert_eq!(
+            server
+                .vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .environment_variables
+                .get(2),
+            Some(&EnvironmentVariable {
+                name: "VAR_3".to_string(),
+                value: Some("new value".to_string())
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_variable_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_variable_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_environment_variable_name_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutEnvironmentVariableParams {
+                        instance_id: "00000006".to_string(),
+                        variable_name: "VAR_2".to_string(),
+                    },
+                    models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
+                        value: Some("new value".to_string())
+                    }
+                )
+                .await,
+            Ok(
+                PutEnvironmentVariableResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet
+            )
+        );
+        assert_eq!(
+            server
+                .vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .environment_variables
+                .get(1),
+            Some(&EnvironmentVariable {
+                name: "VAR_2".to_string(),
+                value: Some("new value".to_string())
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteEnvironmentParams {
+                        instance_id: "invalid instance id".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeleteEnvironmentResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteEnvironmentParams {
+                        instance_id: "12341234".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeleteEnvironmentResponse::Status404_NoInstanceWithThisInstance)
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_environment_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteEnvironmentParams {
+                        instance_id: "00000006".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeleteEnvironmentResponse::Status200_EnvironmentOfInstanceWithThisInstance)
+        ));
+        assert!(server
+            .vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .environment_variables
+            .is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetEnvironmentParams {
+                        instance_id: "invalid instance id".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetEnvironmentResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetEnvironmentParams {
+                        instance_id: "12341234".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetEnvironmentResponse::Status404_NoInstanceWithThisInstance)
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_environment_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_environment_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_environment_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetEnvironmentParams {
+                        instance_id: "00000006".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetEnvironmentResponse::Status200_Success(
+                models::InstanceEnvironment::from(vec![
+                    models::InstanceEnvironmentVariable {
+                        name: "VAR_1".to_string(),
+                        value: None,
+                    },
+                    models::InstanceEnvironmentVariable {
+                        name: "VAR_2".to_string(),
+                        value: Some("value".to_string()),
+                    }
+                ])
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_400_instance_id() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_400_instance_id",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutEnvironmentParams {
+                        instance_id: "invalid instance id".to_string(),
+                    },
+                    InstanceEnvironment::from(vec![]),
+                )
+                .await,
+            Ok(PutEnvironmentResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_400_duplicate_variable_name() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_400_duplicate_variable_name",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutEnvironmentParams {
+                        instance_id: "00000001".to_string(),
+                    },
+                    InstanceEnvironment::from(vec![
+                        models::InstanceEnvironmentVariable {
+                            name: "VAR_1".to_string(),
+                            value: None,
+                        },
+                        models::InstanceEnvironmentVariable {
+                            name: "VAR_1".to_string(),
+                            value: Some("value".to_string()),
+                        }
+                    ]),
+                )
+                .await,
+            Ok(PutEnvironmentResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutEnvironmentParams {
+                        instance_id: "78907890".to_string(),
+                    },
+                    InstanceEnvironment::from(vec![]),
+                )
+                .await,
+            Ok(PutEnvironmentResponse::Status404_NoInstanceWithThisInstance)
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_201() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_201",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutEnvironmentParams {
+                        instance_id: "00000001".to_string(),
+                    },
+                    InstanceEnvironment::from(vec![
+                        models::InstanceEnvironmentVariable {
+                            name: "VAR_1".to_string(),
+                            value: None,
+                        },
+                        models::InstanceEnvironmentVariable {
+                            name: "VAR_2".to_string(),
+                            value: Some("value".to_string()),
+                        }
+                    ]),
+                )
+                .await,
+            Ok(PutEnvironmentResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated)
+        ));
+        assert_eq!(
+            server
+                .vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(1))
+                .unwrap()
+                .config
+                .environment_variables,
+            vec![
+                EnvironmentVariable {
+                    name: "VAR_1".to_string(),
+                    value: None,
+                },
+                EnvironmentVariable {
+                    name: "VAR_2".to_string(),
+                    value: Some("value".to_string()),
+                }
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_environment_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_environment_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_environment_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutEnvironmentParams {
+                        instance_id: "00000006".to_string(),
+                    },
+                    InstanceEnvironment::from(vec![
+                        models::InstanceEnvironmentVariable {
+                            name: "VAR_10".to_string(),
+                            value: None,
+                        },
+                        models::InstanceEnvironmentVariable {
+                            name: "VAR_20".to_string(),
+                            value: Some("value".to_string()),
+                        }
+                    ]),
+                )
+                .await,
+            Ok(PutEnvironmentResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet)
+        ));
+        assert_eq!(
+            server
+                .vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .environment_variables,
+            vec![
+                EnvironmentVariable {
+                    name: "VAR_10".to_string(),
+                    value: None,
+                },
+                EnvironmentVariable {
+                    name: "VAR_20".to_string(),
+                    value: Some("value".to_string()),
+                }
+            ]
+        );
     }
 }
