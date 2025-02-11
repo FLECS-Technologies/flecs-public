@@ -4,7 +4,7 @@ use crate::jeweler::app::AppStatus;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem;
 use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
-use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange};
+use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::jeweler::instance::Logs;
 use crate::quest::SyncQuest;
 use crate::relic::network::Ipv4NetworkAccess;
@@ -505,6 +505,48 @@ pub async fn get_instance_logs(vault: Arc<Vault>, id: InstanceId) -> Result<Logs
         None => anyhow::bail!("Instance {id} not found"),
     }
 }
+
+pub async fn get_instance_labels(vault: Arc<Vault>, id: InstanceId) -> Option<Vec<Label>> {
+    let labels = vault
+        .reservation()
+        .reserve_instance_pouch()
+        .grab()
+        .await
+        .instance_pouch
+        .as_ref()
+        .expect("Reservations should never fail")
+        .gems()
+        .get(&id)?
+        .manifest
+        .labels
+        .clone();
+    Some(labels)
+}
+
+pub async fn get_instance_label_value(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    label_name: String,
+) -> Option<Option<Option<String>>> {
+    Some(
+        vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .expect("Reservations should never fail")
+            .gems()
+            .get(&id)?
+            .manifest
+            .labels
+            .iter()
+            .find(|label| label.label == label_name)
+            .map(|label| label.value.clone()),
+    )
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -2333,5 +2375,71 @@ pub mod tests {
             .config
             .environment_variables
             .is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_instance_labels_none() {
+        let vault = spell_test_vault(module_path!(), "get_instance_labels_none", None).await;
+        assert!(get_instance_labels(vault, InstanceId::new(80))
+            .await
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn get_instance_labels_some() {
+        let vault = spell_test_vault(module_path!(), "get_instance_labels_some", None).await;
+        assert_eq!(
+            get_instance_labels(vault, InstanceId::new(1)).await,
+            Some(vec![
+                Label {
+                    label: "tech.flecs".to_string(),
+                    value: None,
+                },
+                Label {
+                    label: "tech.flecs.some-label".to_string(),
+                    value: Some("Some custom label value".to_string()),
+                }
+            ])
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_label_value_none() {
+        let vault = spell_test_vault(module_path!(), "get_instance_label_value_none", None).await;
+        assert!(
+            get_instance_label_value(vault, InstanceId::new(80), "label".to_string())
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_label_value_some_none() {
+        let vault =
+            spell_test_vault(module_path!(), "get_instance_label_value_some_none", None).await;
+        assert!(matches!(
+            get_instance_label_value(vault, InstanceId::new(1), "label".to_string()).await,
+            Some(None)
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_label_value_some_some() {
+        let vault =
+            spell_test_vault(module_path!(), "get_instance_label_value_some_some", None).await;
+        assert_eq!(
+            get_instance_label_value(vault.clone(), InstanceId::new(1), "tech.flecs".to_string())
+                .await,
+            Some(Some(None))
+        );
+        assert_eq!(
+            get_instance_label_value(
+                vault,
+                InstanceId::new(1),
+                "tech.flecs.some-label".to_string()
+            )
+            .await,
+            Some(Some(Some("Some custom label value".to_string())))
+        );
     }
 }

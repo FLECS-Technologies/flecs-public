@@ -1,6 +1,6 @@
 use crate::fsm::server_impl::{invalid_instance_id_additional_info, ServerImpl};
 use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
-use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange};
+use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::quest::{Quest, QuestResult};
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
@@ -338,9 +338,24 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: GetLabelsParams,
+        path_params: GetLabelsParams,
     ) -> Result<GetLabelsResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(GetLabelsResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        match crate::sorcerer::instancius::get_instance_labels(self.vault.clone(), instance_id)
+            .await
+        {
+            None => Ok(GetLabelsResponse::Status404_NoInstanceWithThisInstance),
+            Some(labels) => Ok(GetLabelsResponse::Status200_Success(
+                labels
+                    .into_iter()
+                    .map(models::InstanceLabel::from)
+                    .collect(),
+            )),
+        }
     }
 
     async fn instances_instance_id_config_labels_label_name_get(
@@ -348,9 +363,37 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: GetLabelParams,
+        path_params: GetLabelParams,
     ) -> Result<GetLabelResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(GetLabelResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        match crate::sorcerer::instancius::get_instance_label_value(
+            self.vault.clone(),
+            instance_id,
+            path_params.label_name.clone(),
+        )
+        .await
+        {
+            None => Ok(GetLabelResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!("No instance with id {}", instance_id)),
+                },
+            )),
+            Some(None) => Ok(GetLabelResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!(
+                        "No environment label with name {}",
+                        path_params.label_name
+                    )),
+                },
+            )),
+            Some(Some(value)) => Ok(GetLabelResponse::Status200_Success(
+                models::InstancesInstanceIdConfigLabelsLabelNameGet200Response { value },
+            )),
+        }
     }
 
     async fn instances_instance_id_config_ports_delete(
@@ -1030,6 +1073,15 @@ impl From<models::InstanceEnvironmentVariable> for EnvironmentVariable {
     fn from(value: models::InstanceEnvironmentVariable) -> Self {
         Self {
             name: value.name,
+            value: value.value,
+        }
+    }
+}
+
+impl From<Label> for models::InstanceLabel {
+    fn from(value: Label) -> Self {
+        Self {
+            name: value.label,
             value: value.value,
         }
     }
@@ -3942,6 +3994,221 @@ mod tests {
                     value: Some("value".to_string()),
                 }
             ]
+        );
+    }
+
+    #[test]
+    fn from_label() {
+        assert_eq!(
+            models::InstanceLabel::from(Label {
+                label: "org.some".to_string(),
+                value: Some("value".to_string()),
+            }),
+            models::InstanceLabel {
+                name: "org.some".to_string(),
+                value: Some("value".to_string()),
+            }
+        )
+    }
+
+    #[tokio::test]
+    async fn get_instance_labels_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_labels_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_labels_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetLabelsParams {
+                        instance_id: "invalid instance id".to_string(),
+                    }
+                )
+                .await,
+            Ok(GetLabelsResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_labels_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_labels_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_labels_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetLabelsParams {
+                        instance_id: "66229933".to_string(),
+                    }
+                )
+                .await,
+            Ok(GetLabelsResponse::Status404_NoInstanceWithThisInstance)
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_labels_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_labels_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_labels_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetLabelsParams {
+                        instance_id: "00000001".to_string(),
+                    }
+                )
+                .await,
+            Ok(GetLabelsResponse::Status200_Success(vec![
+                models::InstanceLabel {
+                    name: "tech.flecs".to_string(),
+                    value: None,
+                },
+                models::InstanceLabel {
+                    name: "tech.flecs.some-label".to_string(),
+                    value: Some("Some custom label value".to_string()),
+                }
+            ]))
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_label_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_label_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_labels_label_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetLabelParams {
+                        instance_id: "invalid instance".to_string(),
+                        label_name: "flecs.tech".to_string(),
+                    }
+                )
+                .await,
+            Ok(GetLabelResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_label_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_label_404_instance",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_labels_label_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetLabelParams {
+                        instance_id: "12345678".to_string(),
+                        label_name: "flecs.tech".to_string(),
+                    }
+                )
+                .await,
+            Ok(GetLabelResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_label_404_label() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_label_404_label",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_labels_label_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetLabelParams {
+                        instance_id: "00000002".to_string(),
+                        label_name: "not.existing.label".to_string(),
+                    }
+                )
+                .await,
+            Ok(GetLabelResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_label_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_label_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_labels_label_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetLabelParams {
+                        instance_id: "00000002".to_string(),
+                        label_name: "tech.flecs".to_string(),
+                    }
+                )
+                .await,
+            Ok(GetLabelResponse::Status200_Success(
+                models::InstancesInstanceIdConfigLabelsLabelNameGet200Response { value: None }
+            ))
+        );
+        assert_eq!(
+            server
+                .instances_instance_id_config_labels_label_name_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetLabelParams {
+                        instance_id: "00000002".to_string(),
+                        label_name: "tech.flecs.some-label".to_string(),
+                    }
+                )
+                .await,
+            Ok(GetLabelResponse::Status200_Success(
+                models::InstancesInstanceIdConfigLabelsLabelNameGet200Response {
+                    value: Some("Some custom label value".to_string())
+                }
+            ))
         );
     }
 }
