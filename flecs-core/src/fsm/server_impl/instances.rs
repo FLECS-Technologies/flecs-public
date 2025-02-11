@@ -10,13 +10,14 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigEnvironmentDeleteResponse,
     InstancesInstanceIdConfigEnvironmentGetResponse,
     InstancesInstanceIdConfigEnvironmentPutResponse, InstancesInstanceIdConfigGetResponse,
-    InstancesInstanceIdConfigPortsDeleteResponse, InstancesInstanceIdConfigPortsGetResponse,
-    InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse,
-    InstancesInstanceIdConfigPortsTransportProtocolGetResponse,
-    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse,
-    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse,
-    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse,
-    InstancesInstanceIdConfigPortsTransportProtocolPutResponse,
+    InstancesInstanceIdConfigPortsDeleteResponse as DeletePortsResponse,
+    InstancesInstanceIdConfigPortsGetResponse as GetPortsResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse as DeleteProtocolPortsResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolGetResponse as GetProtocolPortsResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse as DeletePortRangeResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse as GetPortRangeResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse as PutPortRangeResponse,
+    InstancesInstanceIdConfigPortsTransportProtocolPutResponse as PutProtocolPortsResponse,
     InstancesInstanceIdConfigPostResponse, InstancesInstanceIdDeleteResponse,
     InstancesInstanceIdEditorPortGetResponse, InstancesInstanceIdGetResponse,
     InstancesInstanceIdLogsGetResponse, InstancesInstanceIdPatchResponse,
@@ -29,14 +30,15 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdConfigEnvironmentDeletePathParams,
     InstancesInstanceIdConfigEnvironmentGetPathParams,
     InstancesInstanceIdConfigEnvironmentPutPathParams, InstancesInstanceIdConfigGetPathParams,
-    InstancesInstanceIdConfigPortsDeletePathParams, InstancesInstanceIdConfigPortsGetPathParams,
-    InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,
-    InstancesInstanceIdConfigPortsTransportProtocolGetPathParams,
-    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams,
-    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams,
-    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams,
-    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest,
-    InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
+    InstancesInstanceIdConfigPortsDeletePathParams as DeletePortsParams,
+    InstancesInstanceIdConfigPortsGetPathParams as GetPortsParams,
+    InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams as DeleteProtocolPortsParams,
+    InstancesInstanceIdConfigPortsTransportProtocolGetPathParams as GetProtocolPortsParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams as DeletePortRangeParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams as GetPortRangeParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams as PutPortRangeParams,
+    InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest as PutPortRangeRequest,
+    InstancesInstanceIdConfigPortsTransportProtocolPutPathParams as PutProtocolPortsParams,
     InstancesInstanceIdConfigPostPathParams, InstancesInstanceIdDeletePathParams,
     InstancesInstanceIdEditorPortGetPathParams, InstancesInstanceIdGetPathParams,
     InstancesInstanceIdLogsGetPathParams, InstancesInstanceIdPatchPathParams,
@@ -170,8 +172,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsDeletePathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsDeleteResponse, ()> {
+        _path_params: DeletePortsParams,
+    ) -> Result<DeletePortsResponse, ()> {
         todo!()
     }
 
@@ -180,8 +182,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsGetResponse, ()> {
+        _path_params: GetPortsParams,
+    ) -> Result<GetPortsResponse, ()> {
         todo!()
     }
 
@@ -190,8 +192,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse, ()> {
+        _path_params: DeleteProtocolPortsParams,
+    ) -> Result<DeleteProtocolPortsResponse, ()> {
         todo!()
     }
 
@@ -200,8 +202,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsTransportProtocolGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolGetResponse, ()> {
+        _path_params: GetProtocolPortsParams,
+    ) -> Result<GetProtocolPortsResponse, ()> {
         todo!()
     }
 
@@ -210,9 +212,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeleteResponse, ()>
-    {
+        _path_params: DeletePortRangeParams,
+    ) -> Result<DeletePortRangeResponse, ()> {
         todo!()
     }
 
@@ -221,8 +222,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse, ()> {
+        _path_params: GetPortRangeParams,
+    ) -> Result<GetPortRangeResponse, ()> {
         todo!()
     }
 
@@ -231,9 +232,9 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams,
-        _body: InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest,
-    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse, ()> {
+        _path_params: PutPortRangeParams,
+        _body: PutPortRangeRequest,
+    ) -> Result<PutPortRangeResponse, ()> {
         todo!()
     }
 
@@ -242,9 +243,9 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
+        _path_params: PutProtocolPortsParams,
         _body: Vec<InstancePortMapping>,
-    ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolPutResponse, ()> {
+    ) -> Result<PutProtocolPortsResponse, ()> {
         todo!()
     }
 
