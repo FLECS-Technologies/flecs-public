@@ -1,12 +1,19 @@
 pub use super::{Error, Result};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use std::ops::RangeInclusive;
 use std::str::FromStr;
 
-#[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub struct PortRange {
     start: u16,
     end: u16,
+}
+
+impl Display for PortRange {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}-{}", self.start, self.end)
+    }
 }
 
 impl PortRange {
@@ -22,8 +29,29 @@ impl PortRange {
         Ok(Self { start, end })
     }
 
+    pub fn new(range: RangeInclusive<u16>) -> Self {
+        Self {
+            start: *range.start(),
+            end: *range.end(),
+        }
+    }
+
     pub fn range(&self) -> RangeInclusive<u16> {
         self.start..=self.end
+    }
+
+    pub fn contains(&self, port: u16) -> bool {
+        self.range().contains(&port)
+    }
+
+    pub fn overlaps(&self, range: &PortRange) -> bool {
+        self.start <= range.end && range.start <= self.end
+    }
+}
+
+impl From<RangeInclusive<u16>> for PortRange {
+    fn from(range: RangeInclusive<u16>) -> Self {
+        Self::new(range)
     }
 }
 
@@ -47,6 +75,62 @@ impl FromStr for PortRange {
 pub enum PortMapping {
     Single(u16, u16),
     Range { from: PortRange, to: PortRange },
+}
+
+impl Display for PortMapping {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Single(host_port, container_port) => write!(f, "{host_port}:{container_port}"),
+            Self::Range { from, to } => write!(f, "{from}:{to}"),
+        }
+    }
+}
+
+impl PortMapping {
+    pub fn do_host_ports_overlap(&self, other: &PortMapping) -> bool {
+        match (self, other) {
+            (PortMapping::Single(host_port, _), PortMapping::Single(other_host_port, _)) => {
+                host_port == other_host_port
+            }
+            (PortMapping::Single(host_port, _), PortMapping::Range { from, .. })
+            | (PortMapping::Range { from, .. }, PortMapping::Single(host_port, _)) => {
+                from.contains(*host_port)
+            }
+            (
+                PortMapping::Range { from, .. },
+                PortMapping::Range {
+                    from: other_from, ..
+                },
+            ) => from.overlaps(other_from),
+        }
+    }
+
+    pub fn are_host_ports_equal(&self, other: &PortMapping) -> bool {
+        match (self, other) {
+            (PortMapping::Single(host_port, _), PortMapping::Single(other_host_port, _)) => {
+                host_port == other_host_port
+            }
+            (PortMapping::Single(host_port, _), PortMapping::Range { from, .. })
+            | (PortMapping::Range { from, .. }, PortMapping::Single(host_port, _)) => {
+                *host_port == from.start && *host_port == from.end
+            }
+            (
+                PortMapping::Range { from, .. },
+                PortMapping::Range {
+                    from: other_from, ..
+                },
+            ) => from == other_from,
+        }
+    }
+
+    pub fn normalize(self) -> Self {
+        match self {
+            Self::Range { from, to } if from.range().len() == 1 => {
+                Self::Single(from.start, to.start)
+            }
+            x => x,
+        }
+    }
 }
 
 impl From<&PortMapping> for flecsd_axum_server::models::InstanceDetailPort {
@@ -287,11 +371,211 @@ mod tests {
     }
 
     #[test]
+    fn port_range_new() {
+        let range = PortRange::new(100..=200);
+        assert_eq!(
+            range,
+            PortRange {
+                start: 100,
+                end: 200,
+            }
+        )
+    }
+
+    #[test]
+    fn port_range_from_range() {
+        let range = PortRange::from(100..=200);
+        assert_eq!(
+            range,
+            PortRange {
+                start: 100,
+                end: 200,
+            }
+        )
+    }
+
+    #[test]
     fn port_range_range() {
         let range = PortRange {
             start: 100,
             end: 200,
         };
         assert_eq!(range.range(), 100..=200)
+    }
+
+    #[test]
+    fn port_range_contains() {
+        let range = PortRange::new(100..=200);
+        assert!(!range.contains(1));
+        assert!(!range.contains(99));
+        assert!(range.contains(100));
+        assert!(range.contains(150));
+        assert!(range.contains(200));
+        assert!(!range.contains(201));
+        assert!(!range.contains(2000));
+    }
+
+    #[test]
+    fn port_range_overlaps() {
+        let range = PortRange::new(100..=200);
+        assert!(!range.overlaps(&PortRange::new(10..=20)));
+        assert!(!range.overlaps(&PortRange::new(40..=99)));
+        assert!(range.overlaps(&PortRange::new(50..=100)));
+        assert!(range.overlaps(&PortRange::new(100..=120)));
+        assert!(range.overlaps(&PortRange::new(101..=120)));
+        assert!(range.overlaps(&PortRange::new(150..=160)));
+        assert!(range.overlaps(&PortRange::new(160..=199)));
+        assert!(range.overlaps(&PortRange::new(170..=200)));
+        assert!(range.overlaps(&PortRange::new(180..=201)));
+        assert!(range.overlaps(&PortRange::new(199..=220)));
+        assert!(range.overlaps(&PortRange::new(200..=250)));
+        assert!(!range.overlaps(&PortRange::new(201..=260)));
+        assert!(!range.overlaps(&PortRange::new(2000..=3000)));
+        assert!(range.overlaps(&PortRange::new(10..=1000)));
+    }
+
+    #[test]
+    fn port_range_display() {
+        let range = PortRange::new(1000..=2000);
+        assert_eq!(format!("{}", range), "1000-2000");
+    }
+
+    #[test]
+    fn port_mapping_display() {
+        assert_eq!(format!("{}", PortMapping::Single(10, 100)), "10:100");
+        assert_eq!(
+            format!(
+                "{}",
+                PortMapping::Range {
+                    from: PortRange::new(10..=100),
+                    to: PortRange::new(400..=490),
+                }
+            ),
+            "10-100:400-490"
+        );
+    }
+
+    #[test]
+    fn port_mapping_host_overlap_single_single() {
+        let one = PortMapping::Single(10, 100);
+        let two = PortMapping::Single(10, 200);
+        assert!(one.do_host_ports_overlap(&two));
+        assert!(two.do_host_ports_overlap(&one));
+        let one = PortMapping::Single(25, 100);
+        let two = PortMapping::Single(30, 200);
+        assert!(!one.do_host_ports_overlap(&two));
+        assert!(!two.do_host_ports_overlap(&one));
+    }
+
+    #[test]
+    fn port_mapping_host_overlap_range_range() {
+        let one = PortMapping::Range {
+            from: PortRange::new(10..=100),
+            to: PortRange::new(400..=490),
+        };
+        let two = PortMapping::Range {
+            from: PortRange::new(50..=100),
+            to: PortRange::new(400..=450),
+        };
+        assert!(one.do_host_ports_overlap(&two));
+        assert!(two.do_host_ports_overlap(&one));
+        let one = PortMapping::Range {
+            from: PortRange::new(100..=1000),
+            to: PortRange::new(1100..=2000),
+        };
+        let two = PortMapping::Range {
+            from: PortRange::new(50..=99),
+            to: PortRange::new(400..=449),
+        };
+        assert!(!one.do_host_ports_overlap(&two));
+        assert!(!two.do_host_ports_overlap(&one));
+    }
+
+    #[test]
+    fn port_mapping_host_overlap_range_single() {
+        let one = PortMapping::Range {
+            from: PortRange::new(10..=100),
+            to: PortRange::new(400..=490),
+        };
+        let two = PortMapping::Single(10, 200);
+        assert!(one.do_host_ports_overlap(&two));
+        assert!(two.do_host_ports_overlap(&one));
+        let one = PortMapping::Range {
+            from: PortRange::new(10..=100),
+            to: PortRange::new(400..=490),
+        };
+        let two = PortMapping::Single(7, 200);
+        assert!(!one.do_host_ports_overlap(&two));
+        assert!(!two.do_host_ports_overlap(&one));
+    }
+
+    #[test]
+    fn port_mapping_host_equal_single_single() {
+        let one = PortMapping::Single(10, 60);
+        let two = PortMapping::Single(10, 70);
+        assert!(one.are_host_ports_equal(&two));
+        assert!(two.are_host_ports_equal(&one));
+        let one = PortMapping::Single(10, 200);
+        let two = PortMapping::Single(50, 200);
+        assert!(!one.are_host_ports_equal(&two));
+        assert!(!two.are_host_ports_equal(&one));
+    }
+
+    #[test]
+    fn port_mapping_host_equal_range_range() {
+        let one = PortMapping::Range {
+            from: PortRange::new(100..=200),
+            to: PortRange::new(400..=500),
+        };
+        let two = PortMapping::Range {
+            from: PortRange::new(100..=200),
+            to: PortRange::new(700..=800),
+        };
+        assert!(one.are_host_ports_equal(&two));
+        assert!(two.are_host_ports_equal(&one));
+        let one = PortMapping::Range {
+            from: PortRange::new(10..=20),
+            to: PortRange::new(80..=90),
+        };
+        let two = PortMapping::Range {
+            from: PortRange::new(15..=25),
+            to: PortRange::new(80..=90),
+        };
+        assert!(!one.are_host_ports_equal(&two));
+        assert!(!two.are_host_ports_equal(&one));
+    }
+
+    #[test]
+    fn port_mapping_host_equal_range_single() {
+        let one = PortMapping::Range {
+            from: PortRange::new(10..=10),
+            to: PortRange::new(20..=20),
+        };
+        let two = PortMapping::Single(10, 200);
+        assert!(one.are_host_ports_equal(&two));
+        assert!(two.are_host_ports_equal(&one));
+        let one = PortMapping::Range {
+            from: PortRange::new(10..=100),
+            to: PortRange::new(400..=490),
+        };
+        let two = PortMapping::Single(10, 200);
+        assert!(!one.are_host_ports_equal(&two));
+        assert!(!two.are_host_ports_equal(&one));
+    }
+
+    #[test]
+    fn port_mapping_normalize() {
+        let mapping = PortMapping::Range {
+            from: PortRange::new(10..=20),
+            to: PortRange::new(30..=40),
+        };
+        assert_eq!(mapping.clone().normalize(), mapping);
+        let mapping = PortMapping::Single(10, 60);
+        assert_eq!(mapping.clone().normalize(), mapping);
+        let mapping = PortMapping::Range {
+            from: PortRange::new(10..=10),
+            to: PortRange::new(20..=20),
+        };
+        assert_eq!(mapping.normalize(), PortMapping::Single(10, 20));
     }
 }

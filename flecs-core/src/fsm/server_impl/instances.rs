@@ -1,7 +1,9 @@
-use crate::fsm::server_impl::ServerImpl;
-use crate::jeweler::gem::instance::InstanceId;
+use crate::fsm::server_impl::{invalid_instance_id_additional_info, ServerImpl};
+use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
+use crate::jeweler::gem::manifest::{PortMapping, PortRange};
 use crate::quest::{Quest, QuestResult};
 use crate::vault::pouch::AppKey;
+use anyhow::Error;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -25,9 +27,8 @@ use flecsd_axum_server::apis::instances::{
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
-    AdditionalInfo, InstanceConfig, InstanceEnvironment, InstancePortMapping,
-    InstancesCreatePostRequest, InstancesGetQueryParams,
-    InstancesInstanceIdConfigEnvironmentDeletePathParams,
+    AdditionalInfo, InstanceConfig, InstanceEnvironment, InstancesCreatePostRequest,
+    InstancesGetQueryParams, InstancesInstanceIdConfigEnvironmentDeletePathParams,
     InstancesInstanceIdConfigEnvironmentGetPathParams,
     InstancesInstanceIdConfigEnvironmentPutPathParams, InstancesInstanceIdConfigGetPathParams,
     InstancesInstanceIdConfigPortsDeletePathParams as DeletePortsParams,
@@ -43,7 +44,7 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdEditorPortGetPathParams, InstancesInstanceIdGetPathParams,
     InstancesInstanceIdLogsGetPathParams, InstancesInstanceIdPatchPathParams,
     InstancesInstanceIdPatchRequest, InstancesInstanceIdStartPostPathParams,
-    InstancesInstanceIdStopPostPathParams, JobMeta,
+    InstancesInstanceIdStopPostPathParams, JobMeta, OptionalAdditionalInfo,
 };
 use http::Method;
 use std::str::FromStr;
@@ -172,9 +173,23 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: DeletePortsParams,
+        path_params: DeletePortsParams,
     ) -> Result<DeletePortsResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(DeletePortsResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        if crate::sorcerer::instancius::delete_instance_config_port_mappings(
+            self.vault.clone(),
+            instance_id,
+        )
+        .await
+        {
+            Ok(DeletePortsResponse::Status200_ExposedPortsOfInstanceWithThisInstance)
+        } else {
+            Ok(DeletePortsResponse::Status404_NoInstanceWithThisInstance)
+        }
     }
 
     async fn instances_instance_id_config_ports_get(
@@ -182,9 +197,26 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: GetPortsParams,
+        path_params: GetPortsParams,
     ) -> Result<GetPortsResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(GetPortsResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        match crate::sorcerer::instancius::get_instance_config_port_mappings(
+            self.vault.clone(),
+            instance_id,
+        )
+        .await
+        {
+            None => Ok(GetPortsResponse::Status404_NoInstanceWithThisInstance),
+            Some(mapping) => Ok(GetPortsResponse::Status200_Success(models::InstancePorts {
+                tcp: port_mappings_to_instance_ports(&mapping.tcp),
+                udp: port_mappings_to_instance_ports(&mapping.udp),
+                sctp: port_mappings_to_instance_ports(&mapping.sctp),
+            })),
+        }
     }
 
     async fn instances_instance_id_config_ports_transport_protocol_delete(
@@ -192,9 +224,25 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: DeleteProtocolPortsParams,
+        path_params: DeleteProtocolPortsParams,
     ) -> Result<DeleteProtocolPortsResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(DeleteProtocolPortsResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        match crate::sorcerer::instancius::delete_instance_config_protocol_port_mappings(
+            self.vault.clone(),
+            instance_id,
+            path_params.transport_protocol.into(),
+        )
+        .await
+        {
+            Some(_) => Ok(DeleteProtocolPortsResponse::Status200_RemovedAllPublishedPortsOfInstanceWithThisInstance),
+            None => Ok(DeleteProtocolPortsResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo::new(),
+            ))
+        }
     }
 
     async fn instances_instance_id_config_ports_transport_protocol_get(
@@ -202,9 +250,31 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: GetProtocolPortsParams,
+        path_params: GetProtocolPortsParams,
     ) -> Result<GetProtocolPortsResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(GetProtocolPortsResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        if let Some(port_mapping) =
+            crate::sorcerer::instancius::get_instance_config_protocol_port_mappings(
+                self.vault.clone(),
+                instance_id,
+                path_params.transport_protocol.into(),
+            )
+            .await
+        {
+            Ok(
+                GetProtocolPortsResponse::Status200_PublishedPortsForInstanceWithThisInstance(
+                    port_mappings_to_instance_ports(&port_mapping),
+                ),
+            )
+        } else {
+            Ok(GetProtocolPortsResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo::new(),
+            ))
+        }
     }
 
     async fn instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -212,9 +282,40 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: DeletePortRangeParams,
+        path_params: DeletePortRangeParams,
     ) -> Result<DeletePortRangeResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(DeletePortRangeResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        let host_port_range = match parse_host_port_path_parameter(&path_params.host_port_range) {
+            Ok(host_port_range) => host_port_range,
+            Err(e) => return Ok(DeletePortRangeResponse::Status400_MalformedRequest(e)),
+        };
+        match crate::sorcerer::instancius::delete_instance_config_port_mapping_range(
+            self.vault.clone(),
+            instance_id,
+            host_port_range,
+            path_params.transport_protocol.into(),
+        )
+        .await
+        {
+            None => Ok(DeletePortRangeResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!("Instance {instance_id} does not exist")),
+                },
+            )),
+            Some(false) => Ok(DeletePortRangeResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!(
+                        "Host port range ({}) is not mapped to {instance_id}",
+                        host_port_range
+                    )),
+                },
+            )),
+            Some(true) => Ok(DeletePortRangeResponse::Status200_Success),
+        }
     }
 
     async fn instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -222,9 +323,59 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: GetPortRangeParams,
+        path_params: GetPortRangeParams,
     ) -> Result<GetPortRangeResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(GetPortRangeResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        let host_port_range = match parse_host_port_path_parameter(&path_params.host_port_range) {
+            Ok(host_port_range) => host_port_range,
+            Err(e) => return Ok(GetPortRangeResponse::Status400_MalformedRequest(e)),
+        };
+        match crate::sorcerer::instancius::get_instance_config_port_mapping_range(
+            self.vault.clone(),
+            instance_id,
+            host_port_range,
+            path_params.transport_protocol.into(),
+        )
+        .await
+        {
+            None => Ok(GetPortRangeResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!("Instance {instance_id} does not exist")),
+                },
+            )),
+            Some(None) => Ok(GetPortRangeResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!(
+                        "Host port range ({}) is not mapped to {instance_id}",
+                        host_port_range
+                    )),
+                },
+            )),
+            Some(Some(PortMapping::Single(host_port, container_port))) => {
+                Ok(GetPortRangeResponse::Status200_Success(
+                    models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                        models::InstancePortMappingSingle {
+                            host_port,
+                            container_port,
+                        },
+                    )),
+                ))
+            }
+            Some(Some(PortMapping::Range { from, to })) => {
+                Ok(GetPortRangeResponse::Status200_Success(
+                    models::InstancePortMapping::InstancePortMappingRange(Box::new(
+                        models::InstancePortMappingRange {
+                            host_ports: from.into(),
+                            container_ports: to.into(),
+                        },
+                    )),
+                ))
+            }
+        }
     }
 
     async fn instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -232,10 +383,59 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: PutPortRangeParams,
-        _body: PutPortRangeRequest,
+        path_params: PutPortRangeParams,
+        body: PutPortRangeRequest,
     ) -> Result<PutPortRangeResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(PutPortRangeResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        let host_port_range = match parse_host_port_path_parameter(&path_params.host_port_range) {
+            Ok(host_port_range) => host_port_range,
+            Err(e) => return Ok(PutPortRangeResponse::Status400_MalformedRequest(e)),
+        };
+        let container_port_range = match PortRange::try_from(body.clone()) {
+            Err(e) => {
+                return Ok(PutPortRangeResponse::Status400_MalformedRequest(
+                    AdditionalInfo::new(format!("Invalid container port range: {e}")),
+                ))
+            }
+            Ok(host_port_range) => host_port_range,
+        };
+        if container_port_range.range().len() != host_port_range.range().len() {
+            return Ok(PutPortRangeResponse::Status400_MalformedRequest(
+                AdditionalInfo::new(format!(
+                    "The size of the container port range ({container_port_range}) \
+                        and host port range ({host_port_range}) has to be equal",
+                )),
+            ));
+        }
+        match crate::sorcerer::instancius::put_instance_config_port_mapping(
+            self.vault.clone(),
+            instance_id,
+            PortMapping::Range {
+                from: host_port_range,
+                to: container_port_range,
+            }
+            .normalize(),
+            path_params.transport_protocol.into(),
+        )
+        .await
+        {
+            Err(e) => Ok(PutPortRangeResponse::Status400_MalformedRequest(
+                AdditionalInfo::new(e.to_string()),
+            )),
+            Ok(None) => Ok(PutPortRangeResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo {
+                    additional_info: Some(format!("Instance {instance_id} does not exist")),
+                },
+            )),
+            Ok(Some(false)) => {
+                Ok(PutPortRangeResponse::Status201_TheSpecifiedPortMappingWasCreated)
+            }
+            Ok(Some(true)) => Ok(PutPortRangeResponse::Status200_TheSpecifiedPortMappingWasSet),
+        }
     }
 
     async fn instances_instance_id_config_ports_transport_protocol_put(
@@ -243,10 +443,46 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: PutProtocolPortsParams,
-        _body: Vec<InstancePortMapping>,
+        path_params: PutProtocolPortsParams,
+        body: Vec<models::InstancePortMapping>,
     ) -> Result<PutProtocolPortsResponse, ()> {
-        todo!()
+        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
+            return Ok(PutProtocolPortsResponse::Status400_MalformedRequest(
+                invalid_instance_id_additional_info(&path_params.instance_id),
+            ));
+        };
+        let port_mapping = match body
+            .into_iter()
+            .map(PortMapping::try_from)
+            .collect::<Result<Vec<_>, _>>()
+        {
+            Err(e) => {
+                return Ok(PutProtocolPortsResponse::Status400_MalformedRequest(
+                    AdditionalInfo::new(format!("Invalid port mapping: {e}")),
+                ))
+            }
+            Ok(port_mapping) => port_mapping,
+        };
+        if let Err(errors) = validate_port_mappings(&port_mapping) {
+            return Ok(PutProtocolPortsResponse::Status400_MalformedRequest(
+                AdditionalInfo::new(format!("Invalid port mapping: {}", errors.join("\n"))),
+            ));
+        }
+        let instance_found =
+            crate::sorcerer::instancius::put_instance_config_protocol_port_mappings(
+                self.vault.clone(),
+                instance_id,
+                port_mapping,
+                path_params.transport_protocol.into(),
+            )
+            .await;
+        if instance_found {
+            Ok(PutProtocolPortsResponse::Status200_PublishedPortsOfInstanceWithThisInstance)
+        } else {
+            Ok(PutProtocolPortsResponse::Status404_ResourceNotFound(
+                OptionalAdditionalInfo::new(),
+            ))
+        }
     }
 
     async fn instances_instance_id_config_post(
@@ -437,6 +673,145 @@ impl Instances for ServerImpl {
     }
 }
 
+impl TryFrom<models::PortRange> for PortRange {
+    type Error = Error;
+
+    fn try_from(value: models::PortRange) -> Result<Self, Self::Error> {
+        Self::try_new(value.start, value.end)
+    }
+}
+
+impl From<PortRange> for models::PortRange {
+    fn from(value: PortRange) -> Self {
+        Self {
+            start: *value.range().start(),
+            end: *value.range().end(),
+        }
+    }
+}
+
+impl TryFrom<models::InstancePortMapping> for PortMapping {
+    type Error = Error;
+
+    fn try_from(value: models::InstancePortMapping) -> Result<Self, Self::Error> {
+        match value {
+            models::InstancePortMapping::InstancePortMappingRange(mapping) => Ok(Self::Range {
+                from: PortRange::try_from(mapping.host_ports)?,
+                to: PortRange::try_from(mapping.container_ports)?,
+            }),
+            models::InstancePortMapping::InstancePortMappingSingle(mapping) => {
+                Ok(Self::Single(mapping.host_port, mapping.container_port))
+            }
+        }
+    }
+}
+
+impl TryFrom<PutPortRangeRequest> for PortRange {
+    type Error = Error;
+
+    fn try_from(value: PutPortRangeRequest) -> Result<Self, Self::Error> {
+        match value {
+            PutPortRangeRequest::PortRange(range) => Self::try_from(*range),
+            PutPortRangeRequest::I32(port) => {
+                let port = u16::try_from(*port)?;
+                Ok(Self::new(port..=port))
+            }
+        }
+    }
+}
+
+impl From<&PortMapping> for models::InstancePortMapping {
+    fn from(value: &PortMapping) -> Self {
+        match value {
+            PortMapping::Single(host, container) => {
+                models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                    models::InstancePortMappingSingle {
+                        host_port: *host,
+                        container_port: *container,
+                    },
+                ))
+            }
+            PortMapping::Range { from, to } => {
+                models::InstancePortMapping::InstancePortMappingRange(Box::new(
+                    models::InstancePortMappingRange {
+                        host_ports: models::PortRange {
+                            start: *from.range().start(),
+                            end: *from.range().end(),
+                        },
+                        container_ports: models::PortRange {
+                            start: *to.range().start(),
+                            end: *to.range().end(),
+                        },
+                    },
+                ))
+            }
+        }
+    }
+}
+
+fn port_mappings_to_instance_ports(
+    port_mappings: &[PortMapping],
+) -> Vec<models::InstancePortMapping> {
+    port_mappings
+        .iter()
+        .map(models::InstancePortMapping::from)
+        .collect()
+}
+
+impl From<models::TransportProtocol> for TransportProtocol {
+    fn from(value: models::TransportProtocol) -> Self {
+        match value {
+            models::TransportProtocol::Tcp => TransportProtocol::Tcp,
+            models::TransportProtocol::Udp => TransportProtocol::Udp,
+            models::TransportProtocol::Sctp => TransportProtocol::Sctp,
+        }
+    }
+}
+
+fn validate_port_mappings(port_mappings: &[PortMapping]) -> Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+    for port_mapping in port_mappings {
+        if let PortMapping::Range { from, to } = port_mapping {
+            if from.range().len() != to.range().len() {
+                errors.push(
+                    format!("The size of the container port range ({to}) and host port range ({from}) has to be equal")
+                )
+            }
+        }
+    }
+    for (i, one) in port_mappings.iter().enumerate() {
+        for (j, two) in port_mappings.iter().enumerate() {
+            if i != j && one.do_host_ports_overlap(two) {
+                errors.push(format!(
+                    "Host ports of mapping {one} overlaps with host ports of mapping {two}"
+                ))
+            }
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+fn parse_host_port_path_parameter(path_parameter: &str) -> Result<PortRange, AdditionalInfo> {
+    match (
+        PortRange::from_str(path_parameter),
+        u16::from_str(path_parameter),
+    ) {
+        (Ok(host_port_range), _) => Ok(host_port_range),
+        (_, Ok(host_port)) => Ok(PortRange::new(host_port..=host_port)),
+        (Err(e1), Err(e2)) => Err(AdditionalInfo {
+            additional_info: format!(
+                "Could not parse path parameter for host port range ({path_parameter}), expected \
+                either one non-zero unsigned 16 bit integer ({e2}) or two non-zero unsigned 16 bit \
+                integers seperated by dash ({e1})"
+            ),
+        }),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -588,5 +963,1859 @@ mod tests {
                 .await,
             Ok(InstancesCreatePostResponse::Status202_Accepted(_))
         ))
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortsParams {
+                        instance_id: "invalid_instance_id".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortsResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortsParams {
+                        instance_id: "12341234".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortsResponse::Status404_NoInstanceWithThisInstance)
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortsParams {
+                        instance_id: "00000006".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortsResponse::Status200_ExposedPortsOfInstanceWithThisInstance)
+        ));
+        assert!(server
+            .vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .is_empty())
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortsParams {
+                        instance_id: "invalid_instance_id".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortsResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortsParams {
+                        instance_id: "12341234".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortsResponse::Status404_NoInstanceWithThisInstance)
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortsParams {
+                        instance_id: "00000006".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortsResponse::Status200_Success(models::InstancePorts {
+                tcp: vec![models::InstancePortMapping::InstancePortMappingSingle(
+                    Box::new(models::InstancePortMappingSingle {
+                        host_port: 80,
+                        container_port: 8080,
+                    })
+                )],
+                udp: vec![models::InstancePortMapping::InstancePortMappingRange(
+                    Box::new(models::InstancePortMappingRange {
+                        host_ports: models::PortRange {
+                            start: 50,
+                            end: 100,
+                        },
+                        container_ports: models::PortRange {
+                            start: 150,
+                            end: 200,
+                        },
+                    })
+                )],
+                sctp: vec![],
+            }))
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteProtocolPortsParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp
+                    },
+                )
+                .await,
+            Ok(DeleteProtocolPortsResponse::Status200_RemovedAllPublishedPortsOfInstanceWithThisInstance)
+        );
+        let port_mappings = server
+            .vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .clone();
+        assert!(port_mappings.tcp.is_empty());
+        assert!(!port_mappings.udp.is_empty());
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteProtocolPortsParams {
+                        instance_id: "blablaa".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp
+                    },
+                )
+                .await,
+            Ok(DeleteProtocolPortsResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeleteProtocolPortsParams {
+                        instance_id: "aaaaaaaa".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp
+                    },
+                )
+                .await,
+            Ok(DeleteProtocolPortsResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetProtocolPortsParams {
+                        instance_id: "invalid instance id".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp
+                    },
+                )
+                .await,
+            Ok(GetProtocolPortsResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetProtocolPortsParams {
+                        instance_id: "abcdabcd".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp
+                    },
+                )
+                .await,
+            Ok(GetProtocolPortsResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetProtocolPortsParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp
+                    },
+                )
+                .await,
+            Ok(
+                GetProtocolPortsResponse::Status200_PublishedPortsForInstanceWithThisInstance(
+                    vec![models::InstancePortMapping::InstancePortMappingSingle(
+                        Box::new(models::InstancePortMappingSingle {
+                            host_port: 80,
+                            container_port: 8080
+                        })
+                    )]
+                )
+            )
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_host_port_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_host_port_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortRangeParams {
+                        instance_id: "invalid instance id".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "80".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_host_port_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_host_port_404_instance",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortRangeParams {
+                        instance_id: "ffffffff".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "80".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_host_port_404_host() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_host_port_404_host",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "90".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_host_port_200_host() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_host_port_200_host",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "80".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortRangeResponse::Status200_Success)
+        );
+        assert!(server
+            .vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .tcp
+            .is_empty())
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_host_port_400() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_host_port_400",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "invalid instance id".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "90".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_host_port_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_host_port_404_instance",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "ffffffff".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "80".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_host_port_404_host() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_host_port_404_host",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "90".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_host_port_200_single() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_host_port_200_single",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "80".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status200_Success(
+                models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                    models::InstancePortMappingSingle {
+                        host_port: 80,
+                        container_port: 8080,
+                    }
+                ))
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_host_port_400_instance_id() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_host_port_400_instance_id",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "invalid instance id".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "80".to_string(),
+                    },
+                    PutPortRangeRequest::I32(Box::new(20)),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_host_port_400_overlap() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_host_port_400_overlap",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "80".to_string(),
+                    },
+                    PutPortRangeRequest::I32(Box::new(20)),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_host_port_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_host_port_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "ffffffff".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "80".to_string(),
+                    },
+                    PutPortRangeRequest::I32(Box::new(20)),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_host_port_201() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_host_port_201",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "70".to_string(),
+                    },
+                    PutPortRangeRequest::I32(Box::new(20)),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status201_TheSpecifiedPortMappingWasCreated)
+        ));
+        assert!(server
+            .vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .tcp
+            .contains(&PortMapping::Single(70, 20)))
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_host_port_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_host_port_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "80".to_string(),
+                    },
+                    PutPortRangeRequest::I32(Box::new(20)),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status200_TheSpecifiedPortMappingWasSet)
+        ));
+        let resulting_port_mapping = server
+            .vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .tcp
+            .clone();
+        assert_eq!(resulting_port_mapping, vec![PortMapping::Single(80, 20)])
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_range_400_range() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_range_400_range",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "20-1".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_range_400_instance_id() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_range_400_instance_id",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortRangeParams {
+                        instance_id: "invalid instance id".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "20-70".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_range_404_range() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_range_404_range",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "20-70".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_range_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_range_404_instance",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortRangeParams {
+                        instance_id: "aabbccdd".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "50-100".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_ports_transport_protocol_range_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "delete_instance_config_ports_transport_protocol_range_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    DeletePortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "50-100".to_string(),
+                    },
+                )
+                .await,
+            Ok(DeletePortRangeResponse::Status200_Success)
+        );
+        assert!(server
+            .vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .udp
+            .is_empty())
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_range_400_instance_id() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_range_400_instance_id",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "invalid instance id".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "70-100".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_range_400_range() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_range_400_range",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "70-4".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_range_404_range() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_range_404_range",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "70-100".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_range_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_range_404_instance",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "12345678".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "50-100".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_range_200_range() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_range_200_range",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "50-100".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status200_Success(
+                models::InstancePortMapping::InstancePortMappingRange(Box::new(
+                    models::InstancePortMappingRange {
+                        host_ports: models::PortRange {
+                            start: 50,
+                            end: 100,
+                        },
+                        container_ports: models::PortRange {
+                            start: 150,
+                            end: 200,
+                        },
+                    }
+                ))
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_ports_transport_protocol_range_200_single() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "get_instance_config_ports_transport_protocol_range_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    GetPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "80-80".to_string(),
+                    },
+                )
+                .await,
+            Ok(GetPortRangeResponse::Status200_Success(
+                models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                    models::InstancePortMappingSingle {
+                        host_port: 80,
+                        container_port: 8080,
+                    }
+                ))
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_range_400_instance_id() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_range_400_instance_id",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "invalid instance id".to_string(),
+                        transport_protocol: models::TransportProtocol::Sctp,
+                        host_port_range: "70-90".to_string(),
+                    },
+                    PutPortRangeRequest::PortRange(Box::new(models::PortRange {
+                        start: 200,
+                        end: 220,
+                    })),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_range_400_host_range() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_range_400_host_range",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Sctp,
+                        host_port_range: "70-50".to_string(),
+                    },
+                    PutPortRangeRequest::PortRange(Box::new(models::PortRange {
+                        start: 200,
+                        end: 220,
+                    })),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_range_400_container_range() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_range_400_container_range",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Sctp,
+                        host_port_range: "70-90".to_string(),
+                    },
+                    PutPortRangeRequest::PortRange(Box::new(models::PortRange {
+                        start: 200,
+                        end: 180,
+                    })),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_range_400_range_mismatch() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_range_400_range_mismatch",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Sctp,
+                        host_port_range: "70-90".to_string(),
+                    },
+                    PutPortRangeRequest::PortRange(Box::new(models::PortRange {
+                        start: 200,
+                        end: 400,
+                    }))
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_range_400_overlap() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_range_400_overlap",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Tcp,
+                        host_port_range: "70-90".to_string(),
+                    },
+                    PutPortRangeRequest::PortRange(Box::new(models::PortRange {
+                        start: 200,
+                        end: 220,
+                    })),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_range_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_range_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "ffeeddcc".to_string(),
+                        transport_protocol: models::TransportProtocol::Sctp,
+                        host_port_range: "1000-1100".to_string(),
+                    },
+                    PutPortRangeRequest::PortRange(Box::new(models::PortRange {
+                        start: 200,
+                        end: 300,
+                    }))
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_range_201() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_range_201",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Sctp,
+                        host_port_range: "1000-1100".to_string(),
+                    },
+                    PutPortRangeRequest::PortRange(Box::new(models::PortRange {
+                        start: 200,
+                        end: 300,
+                    })),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status201_TheSpecifiedPortMappingWasCreated)
+        );
+        assert!(server
+            .vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .port_mapping
+            .sctp
+            .contains(&PortMapping::Range {
+                from: PortRange::new(1000..=1100),
+                to: PortRange::new(200..=300),
+            }));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_range_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_range_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutPortRangeParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                        host_port_range: "50-100".to_string(),
+                    },
+                    PutPortRangeRequest::PortRange(Box::new(models::PortRange {
+                        start: 200,
+                        end: 250,
+                    })),
+                )
+                .await,
+            Ok(PutPortRangeResponse::Status200_TheSpecifiedPortMappingWasSet)
+        );
+        assert_eq!(
+            server
+                .vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .port_mapping
+                .udp,
+            vec![PortMapping::Range {
+                from: PortRange::new(50..=100),
+                to: PortRange::new(200..=250),
+            }]
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_400_instance_id() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_400_instance_id",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutProtocolPortsParams {
+                        instance_id: "invalid instance id".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                    },
+                    vec![models::InstancePortMapping::InstancePortMappingRange(
+                        Box::new(models::InstancePortMappingRange {
+                            host_ports: models::PortRange {
+                                start: 2000,
+                                end: 3000,
+                            },
+                            container_ports: models::PortRange {
+                                start: 6000,
+                                end: 7000,
+                            },
+                        },)
+                    )],
+                )
+                .await,
+            Ok(PutProtocolPortsResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_400_overlap() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_400_overlap",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        let port_mappings = vec![
+            models::InstancePortMapping::InstancePortMappingRange(Box::new(
+                models::InstancePortMappingRange {
+                    host_ports: models::PortRange {
+                        start: 2000,
+                        end: 3000,
+                    },
+                    container_ports: models::PortRange {
+                        start: 6000,
+                        end: 7000,
+                    },
+                },
+            )),
+            models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                models::InstancePortMappingSingle {
+                    host_port: 2500,
+                    container_port: 10000,
+                },
+            )),
+        ];
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutProtocolPortsParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Sctp,
+                    },
+                    port_mappings,
+                )
+                .await,
+            Ok(PutProtocolPortsResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_400_port_mapping() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_400_port_mapping",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutProtocolPortsParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                    },
+                    vec![models::InstancePortMapping::InstancePortMappingRange(
+                        Box::new(models::InstancePortMappingRange {
+                            host_ports: models::PortRange {
+                                start: 2000,
+                                end: 1000,
+                            },
+                            container_ports: models::PortRange {
+                                start: 6000,
+                                end: 7000,
+                            },
+                        },)
+                    )],
+                )
+                .await,
+            Ok(PutProtocolPortsResponse::Status400_MalformedRequest(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_404",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutProtocolPortsParams {
+                        instance_id: "77778888".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                    },
+                    vec![],
+                )
+                .await,
+            Ok(PutProtocolPortsResponse::Status404_ResourceNotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_config_ports_transport_protocol_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "put_instance_config_ports_transport_protocol_200",
+            None,
+        )
+        .await;
+        let server = ServerImpl { vault };
+        let port_mappings = vec![
+            models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                models::InstancePortMappingSingle {
+                    host_port: 100,
+                    container_port: 20,
+                },
+            )),
+            models::InstancePortMapping::InstancePortMappingRange(Box::new(
+                models::InstancePortMappingRange {
+                    host_ports: models::PortRange {
+                        start: 2000,
+                        end: 3000,
+                    },
+                    container_ports: models::PortRange {
+                        start: 6000,
+                        end: 7000,
+                    },
+                },
+            )),
+            models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                models::InstancePortMappingSingle {
+                    host_port: 60,
+                    container_port: 70,
+                },
+            )),
+        ];
+        assert_eq!(
+            server
+                .instances_instance_id_config_ports_transport_protocol_put(
+                    Default::default(),
+                    Host("host".to_string()),
+                    Default::default(),
+                    PutProtocolPortsParams {
+                        instance_id: "00000006".to_string(),
+                        transport_protocol: models::TransportProtocol::Udp,
+                    },
+                    port_mappings
+                )
+                .await,
+            Ok(PutProtocolPortsResponse::Status200_PublishedPortsOfInstanceWithThisInstance)
+        );
+        assert_eq!(
+            server
+                .vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .port_mapping
+                .udp,
+            vec![
+                PortMapping::Single(100, 20),
+                PortMapping::Range {
+                    from: PortRange::new(2000..=3000),
+                    to: PortRange::new(6000..=7000),
+                },
+                PortMapping::Single(60, 70)
+            ]
+        );
+    }
+
+    #[test]
+    fn try_from_port_range_ok() {
+        assert_eq!(
+            PortRange::try_from(models::PortRange { start: 10, end: 20 }).unwrap(),
+            PortRange::new(10..=20)
+        );
+    }
+
+    #[test]
+    fn try_from_port_range_err() {
+        assert!(PortRange::try_from(models::PortRange { start: 10, end: 6 }).is_err());
+    }
+
+    #[test]
+    fn from_port_range_test() {
+        assert_eq!(
+            models::PortRange::from(PortRange::new(9..=20)),
+            models::PortRange { start: 9, end: 20 }
+        )
+    }
+
+    #[test]
+    fn try_from_instance_port_mapping_range_ok() {
+        let instance_port_mapping = models::InstancePortMapping::InstancePortMappingRange(
+            Box::new(models::InstancePortMappingRange {
+                host_ports: models::PortRange { start: 7, end: 10 },
+                container_ports: models::PortRange { start: 17, end: 20 },
+            }),
+        );
+        let expected_mapping = PortMapping::Range {
+            from: PortRange::new(7..=10),
+            to: PortRange::new(17..=20),
+        };
+        assert_eq!(
+            PortMapping::try_from(instance_port_mapping).unwrap(),
+            expected_mapping
+        );
+    }
+
+    #[test]
+    fn try_from_instance_port_mapping_range_host_err() {
+        let instance_port_mapping = models::InstancePortMapping::InstancePortMappingRange(
+            Box::new(models::InstancePortMappingRange {
+                host_ports: models::PortRange { start: 70, end: 20 },
+                container_ports: models::PortRange { start: 17, end: 20 },
+            }),
+        );
+        assert!(PortMapping::try_from(instance_port_mapping).is_err(),);
+    }
+
+    #[test]
+    fn try_from_instance_port_mapping_range_container_err() {
+        let instance_port_mapping = models::InstancePortMapping::InstancePortMappingRange(
+            Box::new(models::InstancePortMappingRange {
+                host_ports: models::PortRange { start: 70, end: 80 },
+                container_ports: models::PortRange { start: 60, end: 40 },
+            }),
+        );
+        assert!(PortMapping::try_from(instance_port_mapping).is_err(),);
+    }
+
+    #[test]
+    fn try_from_instance_port_mapping_single_ok() {
+        let instance_port_mapping = models::InstancePortMapping::InstancePortMappingSingle(
+            Box::new(models::InstancePortMappingSingle {
+                host_port: 10,
+                container_port: 17,
+            }),
+        );
+        let expected_mapping = PortMapping::Single(10, 17);
+        assert_eq!(
+            PortMapping::try_from(instance_port_mapping).unwrap(),
+            expected_mapping
+        );
+    }
+
+    #[test]
+    fn from_port_mapping_range() {
+        let port_mapping = PortMapping::Range {
+            from: PortRange::new(6..=9),
+            to: PortRange::new(11..=14),
+        };
+        assert_eq!(
+            models::InstancePortMapping::from(&port_mapping),
+            models::InstancePortMapping::InstancePortMappingRange(Box::new(
+                models::InstancePortMappingRange {
+                    host_ports: models::PortRange { start: 6, end: 9 },
+                    container_ports: models::PortRange { start: 11, end: 14 },
+                }
+            ))
+        )
+    }
+
+    #[test]
+    fn from_port_mapping_single() {
+        let port_mapping = PortMapping::Single(100, 1000);
+        assert_eq!(
+            models::InstancePortMapping::from(&port_mapping),
+            models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                models::InstancePortMappingSingle {
+                    host_port: 100,
+                    container_port: 1000,
+                }
+            ))
+        )
+    }
+
+    #[test]
+    fn port_mappings_to_instance_ports_test() {
+        let port_mappings = [
+            PortMapping::Single(100, 1000),
+            PortMapping::Single(6, 110),
+            PortMapping::Range {
+                from: PortRange::new(10..=20),
+                to: PortRange::new(20..=30),
+            },
+        ];
+        assert_eq!(port_mappings_to_instance_ports(&[]), vec![]);
+        assert_eq!(
+            port_mappings_to_instance_ports(&port_mappings),
+            vec![
+                models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                    models::InstancePortMappingSingle {
+                        host_port: 100,
+                        container_port: 1000,
+                    }
+                )),
+                models::InstancePortMapping::InstancePortMappingSingle(Box::new(
+                    models::InstancePortMappingSingle {
+                        host_port: 6,
+                        container_port: 110,
+                    }
+                )),
+                models::InstancePortMapping::InstancePortMappingRange(Box::new(
+                    models::InstancePortMappingRange {
+                        host_ports: models::PortRange { start: 10, end: 20 },
+                        container_ports: models::PortRange { start: 20, end: 30 },
+                    }
+                ))
+            ]
+        );
+    }
+
+    #[test]
+    fn invalid_instance_id_info() {
+        assert_eq!(
+            invalid_instance_id_additional_info("test_instance_id"),
+            AdditionalInfo {
+                additional_info: "Invalid instance_id: test_instance_id".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn transport_protocol_from() {
+        assert_eq!(
+            TransportProtocol::from(models::TransportProtocol::Tcp),
+            TransportProtocol::Tcp
+        );
+        assert_eq!(
+            TransportProtocol::from(models::TransportProtocol::Udp),
+            TransportProtocol::Udp
+        );
+        assert_eq!(
+            TransportProtocol::from(models::TransportProtocol::Sctp),
+            TransportProtocol::Sctp
+        );
+    }
+
+    #[test]
+    fn validate_port_mappings_empty() {
+        assert!(validate_port_mappings(&[]).is_ok());
+    }
+
+    #[test]
+    fn validate_port_mappings_ok() {
+        assert!(validate_port_mappings(&[PortMapping::Single(10, 20)]).is_ok());
+        assert!(validate_port_mappings(&[PortMapping::Range {
+            from: PortRange::new(10..=20),
+            to: PortRange::new(70..=80)
+        }])
+        .is_ok());
+        assert!(validate_port_mappings(&[
+            PortMapping::Range {
+                from: PortRange::new(600..=700),
+                to: PortRange::new(800..=900)
+            },
+            PortMapping::Range {
+                from: PortRange::new(10..=20),
+                to: PortRange::new(70..=80)
+            },
+            PortMapping::Single(1, 20),
+        ])
+        .is_ok());
+    }
+
+    #[test]
+    fn validate_port_mappings_err_invalid_range() {
+        let errors = validate_port_mappings(&[PortMapping::Range {
+            from: PortRange::new(10..=20),
+            to: PortRange::new(30..=80),
+        }])
+        .err()
+        .unwrap();
+        assert_eq!(errors.len(), 1, "{errors:?}");
+    }
+
+    #[test]
+    fn validate_port_mappings_err_multiple_invalid_range() {
+        let errors = validate_port_mappings(&[
+            PortMapping::Range {
+                from: PortRange::new(10..=20),
+                to: PortRange::new(30..=80),
+            },
+            PortMapping::Range {
+                from: PortRange::new(70..=700),
+                to: PortRange::new(30..=80),
+            },
+            PortMapping::Single(1000, 2000),
+        ])
+        .err()
+        .unwrap();
+        assert_eq!(errors.len(), 2, "{errors:?}");
+    }
+
+    #[test]
+    fn validate_port_mappings_err_overlap() {
+        let errors = validate_port_mappings(&[
+            PortMapping::Range {
+                from: PortRange::new(10..=20),
+                to: PortRange::new(30..=40),
+            },
+            PortMapping::Single(15, 50),
+        ])
+        .err()
+        .unwrap();
+        assert_eq!(errors.len(), 2, "{errors:?}");
+    }
+
+    #[test]
+    fn validate_port_mappings_err_multiple_overlap() {
+        let errors = validate_port_mappings(&[
+            PortMapping::Range {
+                from: PortRange::new(10..=20),
+                to: PortRange::new(30..=40),
+            },
+            PortMapping::Range {
+                from: PortRange::new(12..=17),
+                to: PortRange::new(60..=65),
+            },
+            PortMapping::Single(15, 50),
+        ])
+        .err()
+        .unwrap();
+        assert_eq!(errors.len(), 6, "{errors:?}");
+    }
+
+    #[test]
+    fn validate_port_mappings_err_multiple() {
+        let errors = validate_port_mappings(&[
+            PortMapping::Range {
+                from: PortRange::new(10..=20),
+                to: PortRange::new(30..=80),
+            },
+            PortMapping::Range {
+                from: PortRange::new(12..=17),
+                to: PortRange::new(60..=90),
+            },
+            PortMapping::Single(15, 50),
+        ])
+        .err()
+        .unwrap();
+        assert_eq!(errors.len(), 8, "{errors:?}");
     }
 }

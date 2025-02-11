@@ -60,3 +60,24 @@ fn console_session_id_to_core_session_id(
         timestamp: session_id.timestamp,
     }
 }
+
+fn invalid_instance_id_additional_info(instance_id: &str) -> AdditionalInfo {
+    AdditionalInfo {
+        additional_info: format!("Invalid instance_id: {}", instance_id),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invalid_instance_id_info() {
+        assert_eq!(
+            invalid_instance_id_additional_info("test_instance_id"),
+            AdditionalInfo {
+                additional_info: "Invalid instance_id: test_instance_id".to_string()
+            }
+        );
+    }
+}

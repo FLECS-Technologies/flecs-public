@@ -7,6 +7,7 @@ use std::str::FromStr;
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct EnvironmentVariable {
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
 }
 
