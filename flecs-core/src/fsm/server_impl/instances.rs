@@ -9,12 +9,12 @@ use axum::extract::Host;
 use axum_extra::extract::CookieJar;
 use flecsd_axum_server::apis::instances::{
     Instances, InstancesCreatePostResponse, InstancesGetResponse,
-    InstancesInstanceIdConfigEnvironmentDeleteResponse,
-    InstancesInstanceIdConfigEnvironmentGetResponse,
-    InstancesInstanceIdConfigEnvironmentPutResponse,
-    InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse,
-    InstancesInstanceIdConfigEnvironmentVariableNameGetResponse,
-    InstancesInstanceIdConfigEnvironmentVariableNamePutResponse,
+    InstancesInstanceIdConfigEnvironmentDeleteResponse as DeleteEnvironmentResponse,
+    InstancesInstanceIdConfigEnvironmentGetResponse as GetEnvironmentResponse,
+    InstancesInstanceIdConfigEnvironmentPutResponse as PutEnvironmentResponse,
+    InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse as DeleteEnvironmentVariableResponse,
+    InstancesInstanceIdConfigEnvironmentVariableNameGetResponse as GetEnvironmentVariableResponse,
+    InstancesInstanceIdConfigEnvironmentVariableNamePutResponse as PutEnvironmentVariableResponse,
     InstancesInstanceIdConfigGetResponse,
     InstancesInstanceIdConfigPortsDeleteResponse as DeletePortsResponse,
     InstancesInstanceIdConfigPortsGetResponse as GetPortsResponse,
@@ -32,13 +32,14 @@ use flecsd_axum_server::apis::instances::{
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
     AdditionalInfo, InstanceConfig, InstanceEnvironment, InstancesCreatePostRequest,
-    InstancesGetQueryParams, InstancesInstanceIdConfigEnvironmentDeletePathParams,
-    InstancesInstanceIdConfigEnvironmentGetPathParams,
-    InstancesInstanceIdConfigEnvironmentPutPathParams,
-    InstancesInstanceIdConfigEnvironmentVariableNameDeletePathParams,
-    InstancesInstanceIdConfigEnvironmentVariableNameGet200Response,
-    InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams,
-    InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams,
+    InstancesGetQueryParams,
+    InstancesInstanceIdConfigEnvironmentDeletePathParams as DeleteEnvironmentParams,
+    InstancesInstanceIdConfigEnvironmentGetPathParams as GetEnvironmentParams,
+    InstancesInstanceIdConfigEnvironmentPutPathParams as PutEnvironmentParams,
+    InstancesInstanceIdConfigEnvironmentVariableNameDeletePathParams as DeleteEnvironmentVariableParams,
+    InstancesInstanceIdConfigEnvironmentVariableNameGet200Response as PutEnvironmentVariableRequest,
+    InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams as GetEnvironmentVariableParams,
+    InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams as PutEnvironmentVariableParams,
     InstancesInstanceIdConfigGetPathParams,
     InstancesInstanceIdConfigPortsDeletePathParams as DeletePortsParams,
     InstancesInstanceIdConfigPortsGetPathParams as GetPortsParams,
@@ -141,8 +142,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEnvironmentDeletePathParams,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentDeleteResponse, ()> {
+        _path_params: DeleteEnvironmentParams,
+    ) -> Result<DeleteEnvironmentResponse, ()> {
         todo!()
     }
 
@@ -151,8 +152,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEnvironmentGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentGetResponse, ()> {
+        _path_params: GetEnvironmentParams,
+    ) -> Result<GetEnvironmentResponse, ()> {
         todo!()
     }
 
@@ -161,9 +162,9 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEnvironmentPutPathParams,
+        _path_params: PutEnvironmentParams,
         _body: InstanceEnvironment,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentPutResponse, ()> {
+    ) -> Result<PutEnvironmentResponse, ()> {
         todo!()
     }
 
@@ -172,8 +173,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEnvironmentVariableNameDeletePathParams,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse, ()> {
+        _path_params: DeleteEnvironmentVariableParams,
+    ) -> Result<DeleteEnvironmentVariableResponse, ()> {
         todo!()
     }
 
@@ -182,8 +183,8 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNameGetResponse, ()> {
+        _path_params: GetEnvironmentVariableParams,
+    ) -> Result<GetEnvironmentVariableResponse, ()> {
         todo!()
     }
 
@@ -192,9 +193,9 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams,
-        _body: InstancesInstanceIdConfigEnvironmentVariableNameGet200Response,
-    ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNamePutResponse, ()> {
+        _path_params: PutEnvironmentVariableParams,
+        _body: PutEnvironmentVariableRequest,
+    ) -> Result<PutEnvironmentVariableResponse, ()> {
         todo!()
     }
 
