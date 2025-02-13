@@ -371,39 +371,25 @@ impl App {
                 .2;
             uninstall_results.push(uninstall_result);
         }
-
+        let mut errors = Vec::new();
         for (deployment_id, result) in deployment_ids
             .into_iter()
             .zip(join_all(uninstall_results).await)
         {
             match result {
-                Err(e) => error!(
-                    "Failed to uninstall {} from deployment {}: {e}",
-                    self.key, deployment_id
-                ),
+                Err(e) => errors.push(format!("from deployment {deployment_id}: {e}")),
                 Ok(None) => {}
                 Ok(Some((e, app_data))) => {
-                    error!(
-                        "Failed to uninstall {} from deployment {}: {e}",
-                        self.key, deployment_id
-                    );
+                    errors.push(format!("from deployment {deployment_id}: {e}"));
                     self.deployments.insert(deployment_id, app_data);
                 }
             }
         }
-        if self.deployments.is_empty() {
+        if errors.is_empty() {
             Ok(())
         } else {
             Err((
-                anyhow::anyhow!(
-                    "Failed to uninstall {}, from deployments {}",
-                    self.key,
-                    self.deployments
-                        .keys()
-                        .map(Clone::clone)
-                        .collect::<Vec<String>>()
-                        .join(",")
-                ),
+                anyhow::anyhow!("Failed to uninstall {}, {}", self.key, errors.join(", ")),
                 self,
             ))
         }
