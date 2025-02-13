@@ -9,12 +9,45 @@ use crate::vault::{GrabbedPouches, Vault};
 use flecs_console_client::apis::configuration::Configuration;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::future::join_all;
+use futures_util::TryFutureExt;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use tracing::error;
 
 pub async fn uninstall_app(quest: SyncQuest, vault: Arc<Vault>, app_key: AppKey) -> Result<()> {
-    spell::app::uninstall_app(quest, vault, app_key).await
+    let instances_to_delete =
+        spell::instance::get_instance_ids_by_app_key(vault.clone(), app_key.clone()).await;
+    let delete_instances_result = quest
+        .lock()
+        .await
+        .create_sub_quest(format!("Remove instances of {app_key}"), |quest| {
+            spell::instance::delete_instances(quest, vault.clone(), instances_to_delete).map_err(
+                |errors| {
+                    anyhow::anyhow!(errors
+                        .into_iter()
+                        .map(|(error, id)| format!("Failed to delete instance {id}: {error}"))
+                        .collect::<Vec<String>>()
+                        .join(","))
+                },
+            )
+        })
+        .await
+        .2;
+    match (
+        delete_instances_result.await,
+        spell::app::uninstall_app(quest, vault, app_key).await,
+    ) {
+        (Ok(_), Ok(_)) => Ok(()),
+        (Err(e1), Err(e2)) => Err(anyhow::anyhow!(
+            "Could not uninstall app ({e2}), could not remove all instances ({e1})"
+        )),
+        (Err(e), Ok(_)) => Err(anyhow::anyhow!(
+            "App was uninstalled, but not all instances could be removed: {e}"
+        )),
+        (Ok(()), Err(e)) => Err(anyhow::anyhow!(
+            "Instances were removed but app could not be uninstalled: {e}"
+        )),
+    }
 }
 
 // TODO: Unit test

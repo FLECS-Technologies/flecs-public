@@ -136,6 +136,21 @@ pub async fn get_instance_detailed_info(
     }
 }
 
+pub async fn get_instance_ids_by_app_key(vault: Arc<Vault>, key: AppKey) -> Vec<InstanceId> {
+    vault
+        .reservation()
+        .reserve_instance_pouch()
+        .grab()
+        .await
+        .instance_pouch
+        .as_ref()
+        .expect("Vault reservations should never fail")
+        .instance_ids_by_app_key(AppKey {
+            name: key.name,
+            version: key.version,
+        })
+}
+
 pub async fn delete_instances(
     quest: SyncQuest,
     vault: Arc<Vault>,
