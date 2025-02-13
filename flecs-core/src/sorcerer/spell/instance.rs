@@ -1,10 +1,10 @@
-pub use super::Result;
+pub use super::{Error, Result};
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::{Instance, InstanceConfig, InstanceId};
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::quest::SyncQuest;
+use crate::quest::{State, SyncQuest};
 use crate::relic::network::Ipv4NetworkAccess;
-use crate::vault::pouch::Pouch;
+use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
 use futures_util::future::join_all;
 use std::net::{IpAddr, Ipv4Addr};
@@ -133,6 +133,68 @@ pub async fn get_instance_detailed_info(
     {
         None => Ok(None),
         Some(instance) => Ok(Some(instance.generate_detailed_info().await?)),
+    }
+}
+
+pub async fn delete_instances(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    instance_ids: Vec<InstanceId>,
+) -> Result<(), Vec<(Error, InstanceId)>> {
+    if instance_ids.is_empty() {
+        let mut quest = quest.lock().await;
+        quest.state = State::Skipped;
+        quest.detail = Some("No instances to remove".to_string());
+    }
+    let mut results = Vec::new();
+    for instance_id in instance_ids.iter() {
+        let result = quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Delete instance {instance_id}"), |quest| {
+                delete_instance(quest, vault.clone(), *instance_id)
+            })
+            .await
+            .2;
+        results.push(result);
+    }
+    let errors: Vec<_> = join_all(results)
+        .await
+        .into_iter()
+        .zip(instance_ids)
+        .filter_map(|(result, id)| match result {
+            Err(e) => Some((e, id)),
+            _ => None,
+        })
+        .collect();
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+pub async fn delete_instance(quest: SyncQuest, vault: Arc<Vault>, id: InstanceId) -> Result<()> {
+    let mut grab = vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await;
+    let instances = grab
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Reservations should never fail")
+        .gems_mut();
+    match instances.remove(&id) {
+        Some(instance) => {
+            if let Err((e, instance)) = instance.stop_and_delete(quest).await {
+                instances.insert(id, instance);
+                Err(e)
+            } else {
+                Ok(())
+            }
+        }
+        None => anyhow::bail!("Instance {id} not found"),
     }
 }
 

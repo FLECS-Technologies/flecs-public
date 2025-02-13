@@ -458,35 +458,7 @@ pub async fn delete_instance_config_environment(
 }
 
 pub async fn delete_instance(quest: SyncQuest, vault: Arc<Vault>, id: InstanceId) -> Result<()> {
-    quest
-        .lock()
-        .await
-        .create_sub_quest(format!("Delete instance {id}"), |quest| async move {
-            let mut grab = vault
-                .reservation()
-                .reserve_instance_pouch_mut()
-                .grab()
-                .await;
-            let instances = grab
-                .instance_pouch_mut
-                .as_mut()
-                .expect("Reservations should never fail")
-                .gems_mut();
-            match instances.remove(&id) {
-                Some(instance) => {
-                    if let Err((e, instance)) = instance.stop_and_delete(quest).await {
-                        instances.insert(id, instance);
-                        Err(e)
-                    } else {
-                        Ok(())
-                    }
-                }
-                None => anyhow::bail!("Instance {id} not found"),
-            }
-        })
-        .await
-        .2
-        .await
+    spell::instance::delete_instance(quest, vault, id).await
 }
 
 pub async fn get_instance_logs(vault: Arc<Vault>, id: InstanceId) -> Result<Logs> {
