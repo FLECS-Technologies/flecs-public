@@ -1,4 +1,4 @@
-use crate::fsm::server_impl::{invalid_instance_id_additional_info, ServerImpl};
+use crate::fsm::server_impl::ServerImpl;
 use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::quest::{Quest, QuestResult};
@@ -149,11 +149,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: DeleteEnvironmentParams,
     ) -> Result<DeleteEnvironmentResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(DeleteEnvironmentResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         match crate::sorcerer::instancius::delete_instance_config_environment(
             self.vault.clone(),
             instance_id,
@@ -174,11 +170,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: GetEnvironmentParams,
     ) -> Result<GetEnvironmentResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(GetEnvironmentResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         match crate::sorcerer::instancius::get_instance_config_environment(
             self.vault.clone(),
             instance_id,
@@ -205,11 +197,7 @@ impl Instances for ServerImpl {
         path_params: PutEnvironmentParams,
         body: InstanceEnvironment,
     ) -> Result<PutEnvironmentResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(PutEnvironmentResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         let environment: Vec<_> = body.into_iter().map(EnvironmentVariable::from).collect();
         if let Err(errors) = validate_environment_variables(&environment) {
             return Ok(PutEnvironmentResponse::Status400_MalformedRequest(
@@ -232,13 +220,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: DeleteEnvironmentVariableParams,
     ) -> Result<DeleteEnvironmentVariableResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(
-                DeleteEnvironmentVariableResponse::Status400_MalformedRequest(
-                    invalid_instance_id_additional_info(&path_params.instance_id),
-                ),
-            );
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         match crate::sorcerer::instancius::delete_instance_config_environment_variable_value(
             self.vault.clone(), instance_id, path_params.variable_name.clone())
             .await
@@ -264,11 +246,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: GetEnvironmentVariableParams,
     ) -> Result<GetEnvironmentVariableResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(GetEnvironmentVariableResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         match crate::sorcerer::instancius::get_instance_config_environment_variable_value(
             self.vault.clone(),
             instance_id,
@@ -303,11 +281,7 @@ impl Instances for ServerImpl {
         path_params: PutEnvironmentVariableParams,
         body: PutEnvironmentVariableRequest,
     ) -> Result<PutEnvironmentVariableResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(PutEnvironmentVariableResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         match crate::sorcerer::instancius::put_instance_config_environment_variable_value(
             self.vault.clone(),
             instance_id,
@@ -340,11 +314,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: GetLabelsParams,
     ) -> Result<GetLabelsResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(GetLabelsResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         match crate::sorcerer::instancius::get_instance_labels(self.vault.clone(), instance_id)
             .await
         {
@@ -365,11 +335,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: GetLabelParams,
     ) -> Result<GetLabelResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(GetLabelResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         match crate::sorcerer::instancius::get_instance_label_value(
             self.vault.clone(),
             instance_id,
@@ -403,11 +369,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: DeletePortsParams,
     ) -> Result<DeletePortsResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(DeletePortsResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         if crate::sorcerer::instancius::delete_instance_config_port_mappings(
             self.vault.clone(),
             instance_id,
@@ -427,11 +389,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: GetPortsParams,
     ) -> Result<GetPortsResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(GetPortsResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         match crate::sorcerer::instancius::get_instance_config_port_mappings(
             self.vault.clone(),
             instance_id,
@@ -454,11 +412,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: DeleteProtocolPortsParams,
     ) -> Result<DeleteProtocolPortsResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(DeleteProtocolPortsResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         match crate::sorcerer::instancius::delete_instance_config_protocol_port_mappings(
             self.vault.clone(),
             instance_id,
@@ -480,11 +434,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: GetProtocolPortsParams,
     ) -> Result<GetProtocolPortsResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(GetProtocolPortsResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         if let Some(port_mapping) =
             crate::sorcerer::instancius::get_instance_config_protocol_port_mappings(
                 self.vault.clone(),
@@ -512,11 +462,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: DeletePortRangeParams,
     ) -> Result<DeletePortRangeResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(DeletePortRangeResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         let host_port_range = match parse_host_port_path_parameter(&path_params.host_port_range) {
             Ok(host_port_range) => host_port_range,
             Err(e) => return Ok(DeletePortRangeResponse::Status400_MalformedRequest(e)),
@@ -553,11 +499,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: GetPortRangeParams,
     ) -> Result<GetPortRangeResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(GetPortRangeResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         let host_port_range = match parse_host_port_path_parameter(&path_params.host_port_range) {
             Ok(host_port_range) => host_port_range,
             Err(e) => return Ok(GetPortRangeResponse::Status400_MalformedRequest(e)),
@@ -614,11 +556,7 @@ impl Instances for ServerImpl {
         path_params: PutPortRangeParams,
         body: PutPortRangeRequest,
     ) -> Result<PutPortRangeResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(PutPortRangeResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         let host_port_range = match parse_host_port_path_parameter(&path_params.host_port_range) {
             Ok(host_port_range) => host_port_range,
             Err(e) => return Ok(PutPortRangeResponse::Status400_MalformedRequest(e)),
@@ -674,11 +612,7 @@ impl Instances for ServerImpl {
         path_params: PutProtocolPortsParams,
         body: Vec<models::InstancePortMapping>,
     ) -> Result<PutProtocolPortsResponse, ()> {
-        let Ok(instance_id) = InstanceId::from_str(&path_params.instance_id) else {
-            return Ok(PutProtocolPortsResponse::Status400_MalformedRequest(
-                invalid_instance_id_additional_info(&path_params.instance_id),
-            ));
-        };
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         let port_mapping = match body
             .into_iter()
             .map(PortMapping::try_from)
@@ -731,8 +665,7 @@ impl Instances for ServerImpl {
         _cookies: CookieJar,
         path_params: InstancesInstanceIdDeletePathParams,
     ) -> Result<InstancesInstanceIdDeleteResponse, ()> {
-        // TODO: Add 400 Response to API
-        let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
         {
             return Ok(InstancesInstanceIdDeleteResponse::Status404_NoInstanceWithThisInstance);
@@ -1241,30 +1174,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_instance_config_ports_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "delete_instance_config_ports_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_delete(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    DeletePortsParams {
-                        instance_id: "invalid_instance_id".to_string(),
-                    },
-                )
-                .await,
-            Ok(DeletePortsResponse::Status400_MalformedRequest(_))
-        ));
-    }
-
-    #[tokio::test]
     async fn delete_instance_config_ports_404() {
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(
             module_path!(),
@@ -1325,30 +1234,6 @@ mod tests {
             .config
             .port_mapping
             .is_empty())
-    }
-
-    #[tokio::test]
-    async fn get_instance_config_ports_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "get_instance_config_ports_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_get(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    GetPortsParams {
-                        instance_id: "invalid_instance_id".to_string(),
-                    },
-                )
-                .await,
-            Ok(GetPortsResponse::Status400_MalformedRequest(_))
-        ));
     }
 
     #[tokio::test]
@@ -1462,31 +1347,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_instance_config_ports_transport_protocol_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_transport_protocol_delete(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    DeleteProtocolPortsParams {
-                        instance_id: "blablaa".to_string(),
-                        transport_protocol: models::TransportProtocol::Tcp
-                    },
-                )
-                .await,
-            Ok(DeleteProtocolPortsResponse::Status400_MalformedRequest(_))
-        ));
-    }
-
-    #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_404() {
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(
             module_path!(),
@@ -1508,31 +1368,6 @@ mod tests {
                 )
                 .await,
             Ok(DeleteProtocolPortsResponse::Status404_ResourceNotFound(_))
-        ));
-    }
-
-    #[tokio::test]
-    async fn get_instance_config_ports_transport_protocol_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_transport_protocol_get(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    GetProtocolPortsParams {
-                        instance_id: "invalid instance id".to_string(),
-                        transport_protocol: models::TransportProtocol::Tcp
-                    },
-                )
-                .await,
-            Ok(GetProtocolPortsResponse::Status400_MalformedRequest(_))
         ));
     }
 
@@ -1593,32 +1428,6 @@ mod tests {
                 )
             )
         );
-    }
-
-    #[tokio::test]
-    async fn delete_instance_config_ports_transport_protocol_host_port_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_host_port_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    DeletePortRangeParams {
-                        instance_id: "invalid instance id".to_string(),
-                        transport_protocol: models::TransportProtocol::Tcp,
-                        host_port_range: "80".to_string(),
-                    },
-                )
-                .await,
-            Ok(DeletePortRangeResponse::Status400_MalformedRequest(_))
-        ));
     }
 
     #[tokio::test]
@@ -1716,32 +1525,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_config_ports_transport_protocol_host_port_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_host_port_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    GetPortRangeParams {
-                        instance_id: "invalid instance id".to_string(),
-                        transport_protocol: models::TransportProtocol::Tcp,
-                        host_port_range: "90".to_string(),
-                    },
-                )
-                .await,
-            Ok(GetPortRangeResponse::Status400_MalformedRequest(_))
-        ));
-    }
-
-    #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_host_port_404_instance() {
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(
             module_path!(),
@@ -1824,33 +1607,6 @@ mod tests {
                 ))
             ))
         );
-    }
-
-    #[tokio::test]
-    async fn put_instance_config_ports_transport_protocol_host_port_400_instance_id() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_host_port_400_instance_id",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    PutPortRangeParams {
-                        instance_id: "invalid instance id".to_string(),
-                        transport_protocol: models::TransportProtocol::Tcp,
-                        host_port_range: "80".to_string(),
-                    },
-                    PutPortRangeRequest::I32(Box::new(20)),
-                )
-                .await,
-            Ok(PutPortRangeResponse::Status400_MalformedRequest(_))
-        ));
     }
 
     #[tokio::test]
@@ -2021,32 +1777,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_instance_config_ports_transport_protocol_range_400_instance_id() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_range_400_instance_id",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    DeletePortRangeParams {
-                        instance_id: "invalid instance id".to_string(),
-                        transport_protocol: models::TransportProtocol::Udp,
-                        host_port_range: "20-70".to_string(),
-                    },
-                )
-                .await,
-            Ok(DeletePortRangeResponse::Status400_MalformedRequest(_))
-        ));
-    }
-
-    #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_range_404_range() {
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(
             module_path!(),
@@ -2138,32 +1868,6 @@ mod tests {
             .port_mapping
             .udp
             .is_empty())
-    }
-
-    #[tokio::test]
-    async fn get_instance_config_ports_transport_protocol_range_400_instance_id() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_range_400_instance_id",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    GetPortRangeParams {
-                        instance_id: "invalid instance id".to_string(),
-                        transport_protocol: models::TransportProtocol::Udp,
-                        host_port_range: "70-100".to_string(),
-                    },
-                )
-                .await,
-            Ok(GetPortRangeResponse::Status400_MalformedRequest(_))
-        ));
     }
 
     #[tokio::test]
@@ -2314,36 +2018,6 @@ mod tests {
                 ))
             ))
         );
-    }
-
-    #[tokio::test]
-    async fn put_instance_config_ports_transport_protocol_range_400_instance_id() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_range_400_instance_id",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    PutPortRangeParams {
-                        instance_id: "invalid instance id".to_string(),
-                        transport_protocol: models::TransportProtocol::Sctp,
-                        host_port_range: "70-90".to_string(),
-                    },
-                    PutPortRangeRequest::PortRange(Box::new(models::PortRange {
-                        start: 200,
-                        end: 220,
-                    })),
-                )
-                .await,
-            Ok(PutPortRangeResponse::Status400_MalformedRequest(_))
-        ));
     }
 
     #[tokio::test]
@@ -2594,43 +2268,6 @@ mod tests {
                 to: PortRange::new(200..=250),
             }]
         );
-    }
-
-    #[tokio::test]
-    async fn put_instance_config_ports_transport_protocol_400_instance_id() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_400_instance_id",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_ports_transport_protocol_put(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    PutProtocolPortsParams {
-                        instance_id: "invalid instance id".to_string(),
-                        transport_protocol: models::TransportProtocol::Udp,
-                    },
-                    vec![models::InstancePortMapping::InstancePortMappingRange(
-                        Box::new(models::InstancePortMappingRange {
-                            host_ports: models::PortRange {
-                                start: 2000,
-                                end: 3000,
-                            },
-                            container_ports: models::PortRange {
-                                start: 6000,
-                                end: 7000,
-                            },
-                        },)
-                    )],
-                )
-                .await,
-            Ok(PutProtocolPortsResponse::Status400_MalformedRequest(_))
-        ));
     }
 
     #[tokio::test]
@@ -2963,16 +2600,6 @@ mod tests {
     }
 
     #[test]
-    fn invalid_instance_id_info() {
-        assert_eq!(
-            invalid_instance_id_additional_info("test_instance_id"),
-            AdditionalInfo {
-                additional_info: "Invalid instance_id: test_instance_id".to_string()
-            }
-        );
-    }
-
-    #[test]
     fn transport_protocol_from() {
         assert_eq!(
             TransportProtocol::from(models::TransportProtocol::Tcp),
@@ -3203,33 +2830,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_config_environment_variable_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "get_instance_config_environment_variable_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_environment_variable_name_get(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    GetEnvironmentVariableParams {
-                        instance_id: "invalid instance id".to_string(),
-                        variable_name: "variable_name".to_string(),
-                    },
-                )
-                .await,
-            Ok(GetEnvironmentVariableResponse::Status400_MalformedRequest(
-                _
-            ))
-        ));
-    }
-
-    #[tokio::test]
     async fn get_instance_config_environment_variable_404_instance() {
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(
             module_path!(),
@@ -3328,31 +2928,6 @@ mod tests {
                 }
             ))
         );
-    }
-
-    #[tokio::test]
-    async fn delete_instance_config_environment_variable_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "delete_instance_config_environment_variable_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_environment_variable_name_delete(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    DeleteEnvironmentVariableParams {
-                        instance_id: "invalid instance id".to_string(),
-                        variable_name: "variable_name".to_string(),
-                    },
-                )
-                .await,
-            Ok(DeleteEnvironmentVariableResponse::Status400_MalformedRequest(_))
-        ));
     }
 
     #[tokio::test]
@@ -3461,36 +3036,6 @@ mod tests {
             .config
             .environment_variables
             .is_empty());
-    }
-
-    #[tokio::test]
-    async fn put_instance_config_environment_variable_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "put_instance_config_environment_variable_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_environment_variable_name_put(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    PutEnvironmentVariableParams {
-                        instance_id: "invalid instance id".to_string(),
-                        variable_name: "VAR_3".to_string(),
-                    },
-                    models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response {
-                        value: Some("new value".to_string())
-                    }
-                )
-                .await,
-            Ok(PutEnvironmentVariableResponse::Status400_MalformedRequest(
-                _
-            ))
-        ));
     }
 
     #[tokio::test]
@@ -3624,30 +3169,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_instance_config_environment_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "delete_instance_config_environment_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_environment_delete(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    DeleteEnvironmentParams {
-                        instance_id: "invalid instance id".to_string(),
-                    },
-                )
-                .await,
-            Ok(DeleteEnvironmentResponse::Status400_MalformedRequest(_))
-        ));
-    }
-
-    #[tokio::test]
     async fn delete_instance_config_environment_404() {
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(
             module_path!(),
@@ -3711,30 +3232,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_config_environment_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "get_instance_config_environment_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_environment_get(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    GetEnvironmentParams {
-                        instance_id: "invalid instance id".to_string(),
-                    },
-                )
-                .await,
-            Ok(GetEnvironmentResponse::Status400_MalformedRequest(_))
-        ));
-    }
-
-    #[tokio::test]
     async fn get_instance_config_environment_404() {
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(
             module_path!(),
@@ -3791,31 +3288,6 @@ mod tests {
                 ])
             ))
         );
-    }
-
-    #[tokio::test]
-    async fn put_instance_config_environment_400_instance_id() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "put_instance_config_environment_400_instance_id",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_environment_put(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    PutEnvironmentParams {
-                        instance_id: "invalid instance id".to_string(),
-                    },
-                    InstanceEnvironment::from(vec![]),
-                )
-                .await,
-            Ok(PutEnvironmentResponse::Status400_MalformedRequest(_))
-        ));
     }
 
     #[tokio::test]
@@ -4012,30 +3484,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_labels_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "get_instance_labels_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_labels_get(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    GetLabelsParams {
-                        instance_id: "invalid instance id".to_string(),
-                    }
-                )
-                .await,
-            Ok(GetLabelsResponse::Status400_MalformedRequest(_))
-        ));
-    }
-
-    #[tokio::test]
     async fn get_instance_labels_404() {
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(
             module_path!(),
@@ -4090,31 +3538,6 @@ mod tests {
                 }
             ]))
         );
-    }
-
-    #[tokio::test]
-    async fn get_instance_label_400() {
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
-            module_path!(),
-            "get_instance_label_400",
-            None,
-        )
-        .await;
-        let server = ServerImpl { vault };
-        assert!(matches!(
-            server
-                .instances_instance_id_config_labels_label_name_get(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    GetLabelParams {
-                        instance_id: "invalid instance".to_string(),
-                        label_name: "flecs.tech".to_string(),
-                    }
-                )
-                .await,
-            Ok(GetLabelResponse::Status400_MalformedRequest(_))
-        ));
     }
 
     #[tokio::test]
