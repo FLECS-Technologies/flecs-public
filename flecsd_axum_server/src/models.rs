@@ -56,6 +56,92 @@ pub struct InstancesGetQueryParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigDevicesUsbDeletePathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigDevicesUsbGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigDevicesUsbPortDeletePathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTDELETEPATHPARAMS_PORT),
+                    )]
+    pub port: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTDELETEPATHPARAMS_PORT: regex::Regex = regex::Regex::new("^usb[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*(?:\\.[1-9][0-9]*)*$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigDevicesUsbPortGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTGETPATHPARAMS_PORT),
+                    )]
+    pub port: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTGETPATHPARAMS_PORT: regex::Regex = regex::Regex::new("^usb[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*(?:\\.[1-9][0-9]*)*$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigDevicesUsbPortPutPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTPUTPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTPUTPATHPARAMS_PORT),
+                    )]
+    pub port: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGDEVICESUSBPORTPUTPATHPARAMS_PORT: regex::Regex = regex::Regex::new("^usb[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*(?:\\.[1-9][0-9]*)*$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigEnvironmentDeletePathParams {
     #[validate(
                           regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTDELETEPATHPARAMS_INSTANCE_ID),
@@ -418,6 +504,19 @@ pub struct JobsJobIdDeletePathParams {
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct JobsJobIdGetPathParams {
     pub job_id: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct SystemDevicesUsbPortGetPathParams {
+    #[validate(
+                          regex(path = *RE_SYSTEMDEVICESUSBPORTGETPATHPARAMS_PORT),
+                    )]
+    pub port: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_SYSTEMDEVICESUSBPORTGETPATHPARAMS_PORT: regex::Regex = regex::Regex::new("^usb[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*(?:\\.[1-9][0-9]*)*$").unwrap();
 }
 
 /// Additional info
@@ -1935,6 +2034,142 @@ impl std::convert::TryFrom<HeaderValue>
              std::result::Result::Err(e) => std::result::Result::Err(
                  format!("Unable to convert header: {:?} to string: {}",
                      hdr_value, e))
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Devices {
+    #[serde(rename = "usb")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub usb: Option<Vec<models::UsbDevice>>,
+}
+
+impl Devices {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new() -> Devices {
+        Devices { usb: None }
+    }
+}
+
+/// Converts the Devices value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for Devices {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping usb in query parameter serialization
+
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a Devices value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for Devices {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub usb: Vec<Vec<models::UsbDevice>>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing Devices".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    "usb" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in Devices"
+                                .to_string(),
+                        )
+                    }
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing Devices".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(Devices {
+            usb: intermediate_rep.usb.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<Devices> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<Devices>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<Devices>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for Devices - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Devices> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <Devices as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into Devices - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
         }
     }
 }
@@ -3554,47 +3789,46 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceConf
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstanceConfigUsbDevice {
-    #[serde(rename = "device")]
-    pub device: String,
-
-    #[serde(rename = "pid")]
-    pub pid: i32,
-
     #[serde(rename = "port")]
+    #[validate(
+            regex(path = *RE_INSTANCECONFIGUSBDEVICE_PORT),
+        )]
     pub port: String,
 
+    #[serde(rename = "name")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+
+    #[serde(rename = "pid")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pid: Option<i32>,
+
     #[serde(rename = "vendor")]
-    pub vendor: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vendor: Option<String>,
 
     #[serde(rename = "vid")]
-    pub vid: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vid: Option<i32>,
 
-    #[serde(rename = "active")]
-    pub active: bool,
+    #[serde(rename = "device_connected")]
+    pub device_connected: bool,
+}
 
-    #[serde(rename = "connected")]
-    pub connected: bool,
+lazy_static::lazy_static! {
+    static ref RE_INSTANCECONFIGUSBDEVICE_PORT: regex::Regex = regex::Regex::new("^usb[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*(?:\\.[1-9][0-9]*)*$").unwrap();
 }
 
 impl InstanceConfigUsbDevice {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(
-        device: String,
-        pid: i32,
-        port: String,
-        vendor: String,
-        vid: i32,
-        active: bool,
-        connected: bool,
-    ) -> InstanceConfigUsbDevice {
+    pub fn new(port: String, device_connected: bool) -> InstanceConfigUsbDevice {
         InstanceConfigUsbDevice {
-            device,
-            pid,
             port,
-            vendor,
-            vid,
-            active,
-            connected,
+            name: None,
+            pid: None,
+            vendor: None,
+            vid: None,
+            device_connected,
         }
     }
 }
@@ -3605,20 +3839,22 @@ impl InstanceConfigUsbDevice {
 impl std::fmt::Display for InstanceConfigUsbDevice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
-            Some("device".to_string()),
-            Some(self.device.to_string()),
-            Some("pid".to_string()),
-            Some(self.pid.to_string()),
             Some("port".to_string()),
             Some(self.port.to_string()),
-            Some("vendor".to_string()),
-            Some(self.vendor.to_string()),
-            Some("vid".to_string()),
-            Some(self.vid.to_string()),
-            Some("active".to_string()),
-            Some(self.active.to_string()),
-            Some("connected".to_string()),
-            Some(self.connected.to_string()),
+            self.name
+                .as_ref()
+                .map(|name| ["name".to_string(), name.to_string()].join(",")),
+            self.pid
+                .as_ref()
+                .map(|pid| ["pid".to_string(), pid.to_string()].join(",")),
+            self.vendor
+                .as_ref()
+                .map(|vendor| ["vendor".to_string(), vendor.to_string()].join(",")),
+            self.vid
+                .as_ref()
+                .map(|vid| ["vid".to_string(), vid.to_string()].join(",")),
+            Some("device_connected".to_string()),
+            Some(self.device_connected.to_string()),
         ];
 
         write!(
@@ -3640,13 +3876,12 @@ impl std::str::FromStr for InstanceConfigUsbDevice {
         #[derive(Default)]
         #[allow(dead_code)]
         struct IntermediateRep {
-            pub device: Vec<String>,
-            pub pid: Vec<i32>,
             pub port: Vec<String>,
+            pub name: Vec<String>,
+            pub pid: Vec<i32>,
             pub vendor: Vec<String>,
             pub vid: Vec<i32>,
-            pub active: Vec<bool>,
-            pub connected: Vec<bool>,
+            pub device_connected: Vec<bool>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -3669,16 +3904,16 @@ impl std::str::FromStr for InstanceConfigUsbDevice {
                 #[allow(clippy::match_single_binding)]
                 match key {
                     #[allow(clippy::redundant_clone)]
-                    "device" => intermediate_rep.device.push(
+                    "port" => intermediate_rep.port.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
                     "pid" => intermediate_rep.pid.push(
                         <i32 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
-                    ),
-                    #[allow(clippy::redundant_clone)]
-                    "port" => intermediate_rep.port.push(
-                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
                     "vendor" => intermediate_rep.vendor.push(
@@ -3689,11 +3924,7 @@ impl std::str::FromStr for InstanceConfigUsbDevice {
                         <i32 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "active" => intermediate_rep.active.push(
-                        <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
-                    ),
-                    #[allow(clippy::redundant_clone)]
-                    "connected" => intermediate_rep.connected.push(
+                    "device_connected" => intermediate_rep.device_connected.push(
                         <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     _ => {
@@ -3710,41 +3941,20 @@ impl std::str::FromStr for InstanceConfigUsbDevice {
 
         // Use the intermediate representation to return the struct
         std::result::Result::Ok(InstanceConfigUsbDevice {
-            device: intermediate_rep
-                .device
-                .into_iter()
-                .next()
-                .ok_or_else(|| "device missing in InstanceConfigUsbDevice".to_string())?,
-            pid: intermediate_rep
-                .pid
-                .into_iter()
-                .next()
-                .ok_or_else(|| "pid missing in InstanceConfigUsbDevice".to_string())?,
             port: intermediate_rep
                 .port
                 .into_iter()
                 .next()
                 .ok_or_else(|| "port missing in InstanceConfigUsbDevice".to_string())?,
-            vendor: intermediate_rep
-                .vendor
+            name: intermediate_rep.name.into_iter().next(),
+            pid: intermediate_rep.pid.into_iter().next(),
+            vendor: intermediate_rep.vendor.into_iter().next(),
+            vid: intermediate_rep.vid.into_iter().next(),
+            device_connected: intermediate_rep
+                .device_connected
                 .into_iter()
                 .next()
-                .ok_or_else(|| "vendor missing in InstanceConfigUsbDevice".to_string())?,
-            vid: intermediate_rep
-                .vid
-                .into_iter()
-                .next()
-                .ok_or_else(|| "vid missing in InstanceConfigUsbDevice".to_string())?,
-            active: intermediate_rep
-                .active
-                .into_iter()
-                .next()
-                .ok_or_else(|| "active missing in InstanceConfigUsbDevice".to_string())?,
-            connected: intermediate_rep
-                .connected
-                .into_iter()
-                .next()
-                .ok_or_else(|| "connected missing in InstanceConfigUsbDevice".to_string())?,
+                .ok_or_else(|| "device_connected missing in InstanceConfigUsbDevice".to_string())?,
         })
     }
 }
@@ -9745,6 +9955,264 @@ impl std::str::FromStr for TransportProtocol {
             "sctp" => std::result::Result::Ok(TransportProtocol::Sctp),
             _ => std::result::Result::Err(format!("Value not valid: {}", s)),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct UsbDevice {
+    #[serde(rename = "name")]
+    pub name: String,
+
+    #[serde(rename = "pid")]
+    pub pid: i32,
+
+    #[serde(rename = "port")]
+    #[validate(
+            regex(path = *RE_USBDEVICE_PORT),
+        )]
+    pub port: String,
+
+    #[serde(rename = "vendor")]
+    pub vendor: String,
+
+    #[serde(rename = "vid")]
+    pub vid: i32,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_USBDEVICE_PORT: regex::Regex = regex::Regex::new("^usb[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*(?:\\.[1-9][0-9]*)*$").unwrap();
+}
+
+impl UsbDevice {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String, pid: i32, port: String, vendor: String, vid: i32) -> UsbDevice {
+        UsbDevice {
+            name,
+            pid,
+            port,
+            vendor,
+            vid,
+        }
+    }
+}
+
+/// Converts the UsbDevice value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for UsbDevice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            Some("pid".to_string()),
+            Some(self.pid.to_string()),
+            Some("port".to_string()),
+            Some(self.port.to_string()),
+            Some("vendor".to_string()),
+            Some(self.vendor.to_string()),
+            Some("vid".to_string()),
+            Some(self.vid.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a UsbDevice value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for UsbDevice {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub pid: Vec<i32>,
+            pub port: Vec<String>,
+            pub vendor: Vec<String>,
+            pub vid: Vec<i32>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing UsbDevice".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "pid" => intermediate_rep.pid.push(
+                        <i32 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "port" => intermediate_rep.port.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "vendor" => intermediate_rep.vendor.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "vid" => intermediate_rep.vid.push(
+                        <i32 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing UsbDevice".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(UsbDevice {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in UsbDevice".to_string())?,
+            pid: intermediate_rep
+                .pid
+                .into_iter()
+                .next()
+                .ok_or_else(|| "pid missing in UsbDevice".to_string())?,
+            port: intermediate_rep
+                .port
+                .into_iter()
+                .next()
+                .ok_or_else(|| "port missing in UsbDevice".to_string())?,
+            vendor: intermediate_rep
+                .vendor
+                .into_iter()
+                .next()
+                .ok_or_else(|| "vendor missing in UsbDevice".to_string())?,
+            vid: intermediate_rep
+                .vid
+                .into_iter()
+                .next()
+                .ok_or_else(|| "vid missing in UsbDevice".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<UsbDevice> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<UsbDevice>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<UsbDevice>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for UsbDevice - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<UsbDevice> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <UsbDevice as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into UsbDevice - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct UsbPort(String);
+
+impl validator::Validate for UsbPort {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for UsbPort {
+    fn from(x: String) -> Self {
+        UsbPort(x)
+    }
+}
+
+impl std::fmt::Display for UsbPort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for UsbPort {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(UsbPort(x.to_string()))
+    }
+}
+
+impl std::convert::From<UsbPort> for String {
+    fn from(x: UsbPort) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for UsbPort {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for UsbPort {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
     }
 }
 

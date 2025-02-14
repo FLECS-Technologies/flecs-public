@@ -9,6 +9,11 @@ use axum::extract::Host;
 use axum_extra::extract::CookieJar;
 use flecsd_axum_server::apis::instances::{
     Instances, InstancesCreatePostResponse, InstancesGetResponse,
+    InstancesInstanceIdConfigDevicesUsbDeleteResponse,
+    InstancesInstanceIdConfigDevicesUsbGetResponse,
+    InstancesInstanceIdConfigDevicesUsbPortDeleteResponse,
+    InstancesInstanceIdConfigDevicesUsbPortGetResponse,
+    InstancesInstanceIdConfigDevicesUsbPortPutResponse,
     InstancesInstanceIdConfigEnvironmentDeleteResponse as DeleteEnvironmentResponse,
     InstancesInstanceIdConfigEnvironmentGetResponse as GetEnvironmentResponse,
     InstancesInstanceIdConfigEnvironmentPutResponse as PutEnvironmentResponse,
@@ -34,7 +39,11 @@ use flecsd_axum_server::apis::instances::{
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
     AdditionalInfo, InstanceConfig, InstanceEnvironment, InstancesCreatePostRequest,
-    InstancesGetQueryParams,
+    InstancesGetQueryParams, InstancesInstanceIdConfigDevicesUsbDeletePathParams,
+    InstancesInstanceIdConfigDevicesUsbGetPathParams,
+    InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
+    InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
+    InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
     InstancesInstanceIdConfigEnvironmentDeletePathParams as DeleteEnvironmentParams,
     InstancesInstanceIdConfigEnvironmentGetPathParams as GetEnvironmentParams,
     InstancesInstanceIdConfigEnvironmentPutPathParams as PutEnvironmentParams,
@@ -140,6 +149,56 @@ impl Instances for ServerImpl {
             }
         };
         Ok(InstancesGetResponse::Status200_Success(instances))
+    }
+
+    async fn instances_instance_id_config_devices_usb_delete(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigDevicesUsbDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbDeleteResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_devices_usb_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigDevicesUsbGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_devices_usb_port_delete(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbPortDeleteResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_devices_usb_port_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbPortGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_devices_usb_port_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbPortPutResponse, ()> {
+        todo!()
     }
 
     async fn instances_instance_id_config_environment_delete(
