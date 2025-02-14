@@ -28,6 +28,74 @@ pub enum InstancesGetResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigDevicesUsbDeleteResponse {
+    /// Success
+    Status200_Success,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// No instance with this instance_id found
+    Status404_NoInstanceWithThisInstance,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigDevicesUsbGetResponse {
+    /// Success
+    Status200_Success(Vec<models::InstanceConfigUsbDevice>),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// No instance with this instance_id found
+    Status404_NoInstanceWithThisInstance,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigDevicesUsbPortDeleteResponse {
+    /// Success
+    Status200_Success,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigDevicesUsbPortGetResponse {
+    /// Success
+    Status200_Success(models::InstanceConfigUsbDevice),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigDevicesUsbPortPutResponse {
+    /// Already passed through
+    Status200_AlreadyPassedThrough,
+    /// Usb device was passed through
+    Status201_UsbDeviceWasPassedThrough,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdConfigEnvironmentDeleteResponse {
     /// Environment of instance with this instance_id was deleted
     Status200_EnvironmentOfInstanceWithThisInstance,
@@ -346,6 +414,61 @@ pub trait Instances {
         cookies: CookieJar,
         query_params: models::InstancesGetQueryParams,
     ) -> Result<InstancesGetResponse, ()>;
+
+    /// Remove all passed through usb devices of an instance.
+    ///
+    /// InstancesInstanceIdConfigDevicesUsbDelete - DELETE /v2/instances/{instance_id}/config/devices/usb
+    async fn instances_instance_id_config_devices_usb_delete(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigDevicesUsbDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbDeleteResponse, ()>;
+
+    /// Retrieve passed through usb devices of an instance.
+    ///
+    /// InstancesInstanceIdConfigDevicesUsbGet - GET /v2/instances/{instance_id}/config/devices/usb
+    async fn instances_instance_id_config_devices_usb_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigDevicesUsbGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbGetResponse, ()>;
+
+    /// Delete passed through usb device of the instance with the given port.
+    ///
+    /// InstancesInstanceIdConfigDevicesUsbPortDelete - DELETE /v2/instances/{instance_id}/config/devices/usb/{port}
+    async fn instances_instance_id_config_devices_usb_port_delete(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbPortDeleteResponse, ()>;
+
+    /// Retrieve passed through usb device of the instance with the given port.
+    ///
+    /// InstancesInstanceIdConfigDevicesUsbPortGet - GET /v2/instances/{instance_id}/config/devices/usb/{port}
+    async fn instances_instance_id_config_devices_usb_port_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbPortGetResponse, ()>;
+
+    /// Pass through usb device with the given port to the instance.
+    ///
+    /// InstancesInstanceIdConfigDevicesUsbPortPut - PUT /v2/instances/{instance_id}/config/devices/usb/{port}
+    async fn instances_instance_id_config_devices_usb_port_put(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
+    ) -> Result<InstancesInstanceIdConfigDevicesUsbPortPutResponse, ()>;
 
     /// Delete environment of an instance.
     ///

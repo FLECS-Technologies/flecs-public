@@ -307,31 +307,53 @@ components:
         path:
           type: string
           example: "/var/app"
+    usb_port:
+      type: string
+      pattern: "^usb[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*(?:\\.[1-9][0-9]*)*$"
     instance_config_usb_device:
       type: object
-      required:
-        - device
-        - pid
-        - port
-        - vendor
-        - vid
-        - active
-        - connected
       properties:
-        device:
+        port:
+          $ref: "#/components/schemas/usb_port"
+        name:
           type: string
         pid:
           type: integer
-        port:
-          type: string
         vendor:
           type: string
         vid:
           type: integer
-        active:
+        device_connected:
           type: boolean
-        connected:
-          type: boolean
+      required:
+        - port
+        - device_connected
+    usb_device:
+      type: object
+      required:
+        - name
+        - pid
+        - port
+        - vendor
+        - vid
+      properties:
+        name:
+          type: string
+        pid:
+          type: integer
+        port:
+          $ref: "#/components/schemas/usb_port"
+        vendor:
+          type: string
+        vid:
+          type: integer
+    devices:
+      type: object
+      properties:
+        usb:
+          type: array
+          items:
+            $ref: "#/components/schemas/usb_device"
     instance_config_network_adapter:
       type: object
       required:
@@ -1025,6 +1047,121 @@ paths:
           description: No instance with this instance_id found
         "500":
           $ref: "#/components/responses/response_500"
+  /instances/{instance_id}/config/devices/usb:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve passed through usb devices of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/instance_config_usb_device"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: No instance with this instance_id found
+        "500":
+          $ref: "#/components/responses/response_500"
+    delete:
+      tags: [ "Instances" ]
+      summary: Remove all passed through usb devices of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+      responses:
+        "200":
+          description: Success
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: No instance with this instance_id found
+  /instances/{instance_id}/config/devices/usb/{port}:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve passed through usb device of the instance with the given port
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: port
+          in: path
+          schema:
+            $ref: "#/components/schemas/usb_port"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/instance_config_usb_device"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+        "500":
+          $ref: "#/components/responses/response_500"
+    delete:
+      tags: [ "Instances" ]
+      summary: Delete passed through usb device of the instance with the given port
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: port
+          in: path
+          schema:
+            $ref: "#/components/schemas/usb_port"
+          required: true
+      responses:
+        "200":
+          description: Success
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+    put:
+      tags: [ "Instances" ]
+      summary: Pass through usb device with the given port to the instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: port
+          in: path
+          schema:
+            $ref: "#/components/schemas/usb_port"
+          required: true
+      responses:
+        "200":
+          description: Already passed through
+        "201":
+          description: Usb device was passed through
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+        "500":
+          $ref: "#/components/responses/response_500"
   /instances/{instance_id}/config/environment:
     get:
       tags: [ "Instances" ]
@@ -1608,6 +1745,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/system_info"
+  /system/devices:
+    get:
+      tags: [ "System" ]
+      summary: Get devices of system
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/devices"
+        "500":
+          $ref: "#/components/responses/response_500"
+  /system/devices/usb:
+    get:
+      tags: [ "System" ]
+      summary: Get usb devices of system
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/usb_device"
+        "500":
+          $ref: "#/components/responses/response_500"
+  /system/devices/usb/{port}:
+    get:
+      tags: [ "System" ]
+      summary: Get usb device of system
+      parameters:
+        - name: port
+          in: path
+          schema:
+            $ref: "#/components/schemas/usb_port"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/usb_device"
+        "404":
+          description: Device not found
+        "500":
+          $ref: "#/components/responses/response_500"
   # Device related paths
   /device/license/activation:
     post:
