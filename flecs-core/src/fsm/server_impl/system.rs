@@ -3,14 +3,44 @@ use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
 use flecsd_axum_server::apis::system::{
-    System, SystemInfoGetResponse, SystemPingGetResponse, SystemVersionGetResponse,
+    System, SystemDevicesGetResponse, SystemDevicesUsbGetResponse, SystemDevicesUsbPortGetResponse,
+    SystemInfoGetResponse, SystemPingGetResponse, SystemVersionGetResponse,
 };
 use flecsd_axum_server::models;
+use flecsd_axum_server::models::SystemDevicesUsbPortGetPathParams;
 use http::Method;
 use tracing::error;
 
 #[async_trait]
 impl System for ServerImpl {
+    async fn system_devices_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+    ) -> Result<SystemDevicesGetResponse, ()> {
+        todo!()
+    }
+
+    async fn system_devices_usb_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+    ) -> Result<SystemDevicesUsbGetResponse, ()> {
+        todo!()
+    }
+
+    async fn system_devices_usb_port_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: SystemDevicesUsbPortGetPathParams,
+    ) -> Result<SystemDevicesUsbPortGetResponse, ()> {
+        todo!()
+    }
+
     async fn system_info_get(
         &self,
         _method: Method,
