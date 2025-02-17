@@ -17,6 +17,8 @@ pub enum Error {
     Rusb(#[from] rusb::Error),
     #[error("{0}")]
     Io(#[from] std::io::Error),
+    #[error("{0}")]
+    Parse(#[from] core::num::ParseIntError),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
@@ -58,56 +60,57 @@ impl<T: rusb::UsbContext> TryFrom<Device<T>> for UsbDevice {
         Ok(UsbDevice {
             pid,
             vid,
-            vendor: get_vendor(vid, &port).unwrap_or_else(|| format!("Unknown vendor {vid}")),
+            vendor: get_vendor(vid, &port).unwrap_or_else(|_| format!("Unknown vendor {vid}")),
             device: get_device_name(vid, pid, &port)
-                .unwrap_or_else(|| format!("Unknown device {pid}")),
+                .unwrap_or_else(|_| format!("Unknown device {pid}")),
             port,
         })
     }
 }
 
-fn get_vendor(vid: u16, port: &str) -> Option<String> {
-    usb_ids::Vendor::from_id(vid)
-        .map(|v| v.name().to_string())
-        .or_else(|| get_manufacturer(port))
+fn get_vendor(vid: u16, port: &str) -> Result<String> {
+    match usb_ids::Vendor::from_id(vid) {
+        Some(vendor) => Ok(vendor.name().to_string()),
+        None => get_manufacturer(port),
+    }
 }
 
-fn get_device_name(vid: u16, pid: u16, port: &str) -> Option<String> {
-    usb_ids::Device::from_vid_pid(vid, pid)
-        .map(|device| device.name().to_string())
-        .or_else(|| get_product(port))
+fn get_device_name(vid: u16, pid: u16, port: &str) -> Result<String> {
+    match usb_ids::Device::from_vid_pid(vid, pid) {
+        Some(device) => Ok(device.name().to_string()),
+        None => get_product(port),
+    }
 }
 
-fn get_product(port: &str) -> Option<String> {
+fn get_product(port: &str) -> Result<String> {
     get_usb_value("product", port)
 }
 
-fn get_manufacturer(port: &str) -> Option<String> {
+fn get_manufacturer(port: &str) -> Result<String> {
     get_usb_value("manufacturer", port)
 }
 
-fn get_bus_num(port: &str) -> Option<u16> {
+fn get_bus_num(port: &str) -> Result<u16> {
     let bus_num = get_usb_value("busnum", port)?;
-    u16::from_str(&bus_num).ok()
+    Ok(u16::from_str(&bus_num)?)
 }
 
-fn get_dev_num(port: &str) -> Option<u16> {
+fn get_dev_num(port: &str) -> Result<u16> {
     let dev_num = get_usb_value("devnum", port)?;
-    u16::from_str(&dev_num).ok()
+    Ok(u16::from_str(&dev_num)?)
 }
 
-fn get_usb_value(value_name: &str, port: &str) -> Option<String> {
-    fs::read_to_string(format!("{USB_DEVICE_PATH}{port}/{value_name}"))
-        .ok()
-        .map(|content| content.trim_end().to_string())
+fn get_usb_value(value_name: &str, port: &str) -> Result<String> {
+    let path = format!("{USB_DEVICE_PATH}{port}/{value_name}");
+    Ok(fs::read_to_string(path)?.trim_end().to_string())
 }
 
 impl UsbDevice {
-    pub fn get_bus_num(&self) -> Option<u16> {
+    pub fn get_bus_num(&self) -> Result<u16> {
         get_bus_num(&self.port)
     }
 
-    pub fn get_dev_num(&self) -> Option<u16> {
+    pub fn get_dev_num(&self) -> Result<u16> {
         get_dev_num(&self.port)
     }
 }
@@ -132,15 +135,15 @@ pub mod tests {
         let path = prepare_usb_device_test_path("get_product_ok");
         fs::write(path.join("product"), b"Test Product 9000").unwrap();
         assert_eq!(
-            get_product("get_product_ok"),
-            Some("Test Product 9000".to_string())
+            get_product("get_product_ok").unwrap(),
+            "Test Product 9000".to_string()
         );
     }
 
     #[test]
-    fn get_product_none() {
-        prepare_usb_device_test_path("get_product_none");
-        assert_eq!(get_product("get_product_none"), None);
+    fn get_product_err() {
+        prepare_usb_device_test_path("get_product_err");
+        assert!(get_product("get_product_err").is_err());
     }
 
     #[test]
@@ -148,58 +151,58 @@ pub mod tests {
         let path = prepare_usb_device_test_path("get_manufacturer_ok");
         fs::write(path.join("manufacturer"), b"Test Manufacturer Inc").unwrap();
         assert_eq!(
-            get_manufacturer("get_manufacturer_ok"),
-            Some("Test Manufacturer Inc".to_string())
+            get_manufacturer("get_manufacturer_ok").unwrap(),
+            "Test Manufacturer Inc".to_string()
         );
     }
 
     #[test]
-    fn get_manufacturer_none() {
-        prepare_usb_device_test_path("get_manufacturer_none");
-        assert_eq!(get_manufacturer("get_manufacturer_none"), None);
+    fn get_manufacturer_err() {
+        prepare_usb_device_test_path("get_manufacturer_err");
+        assert!(get_manufacturer("get_manufacturer_err").is_err());
     }
 
     #[test]
     fn get_bus_num_ok() {
         let path = prepare_usb_device_test_path("get_bus_num_ok");
         fs::write(path.join("busnum"), b"123").unwrap();
-        assert_eq!(get_bus_num("get_bus_num_ok"), Some(123));
+        assert!(matches!(get_bus_num("get_bus_num_ok"), Ok(123)));
         fs::write(path.join("busnum"), b"123\n").unwrap();
-        assert_eq!(get_bus_num("get_bus_num_ok"), Some(123));
+        assert!(matches!(get_bus_num("get_bus_num_ok"), Ok(123)));
     }
 
     #[test]
-    fn get_bus_num_none() {
-        prepare_usb_device_test_path("get_bus_num_none");
-        assert_eq!(get_product("get_bus_num_none"), None);
+    fn get_bus_num_err_none() {
+        prepare_usb_device_test_path("get_bus_num_err_none");
+        assert!(get_product("get_bus_num_err_none").is_err());
     }
 
     #[test]
-    fn get_bus_num_err() {
-        let path = prepare_usb_device_test_path("get_bus_num_err");
+    fn get_bus_num_err_parse() {
+        let path = prepare_usb_device_test_path("get_bus_num_err_parse");
         fs::write(path.join("busnum"), b"invalid number").unwrap();
-        assert_eq!(get_product("get_bus_num_err"), None);
+        assert!(get_product("get_bus_num_err_parse").is_err());
     }
 
     #[test]
     fn get_dev_num_ok() {
         let path = prepare_usb_device_test_path("get_dev_num_ok");
         fs::write(path.join("devnum"), b"123").unwrap();
-        assert_eq!(get_dev_num("get_dev_num_ok"), Some(123));
+        assert!(matches!(get_dev_num("get_dev_num_ok"), Ok(123)));
         fs::write(path.join("devnum"), b"123\n").unwrap();
-        assert_eq!(get_dev_num("get_dev_num_ok"), Some(123));
+        assert!(matches!(get_dev_num("get_dev_num_ok"), Ok(123)));
     }
 
     #[test]
-    fn get_dev_num_none() {
-        prepare_usb_device_test_path("get_dev_num_none");
-        assert_eq!(get_product("get_dev_num_none"), None);
+    fn get_dev_num_err_none() {
+        prepare_usb_device_test_path("get_dev_num_err_none");
+        assert!(get_product("get_dev_num_err_none").is_err());
     }
 
     #[test]
-    fn get_dev_num_err() {
-        let path = prepare_usb_device_test_path("get_dev_num_err");
+    fn get_dev_num_err_parse() {
+        let path = prepare_usb_device_test_path("get_dev_num_err_parse");
         fs::write(path.join("devnum"), b"invalid number").unwrap();
-        assert_eq!(get_product("get_dev_num_err"), None);
+        assert!(get_product("get_dev_num_err_parse").is_err());
     }
 }

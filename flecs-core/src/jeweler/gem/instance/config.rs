@@ -310,19 +310,19 @@ fn port_mapping_to_port_bindings(
 
 fn try_usb_device_to_device_mapping(usb_device: &UsbDevice) -> crate::Result<DeviceMapping> {
     match (usb_device.get_bus_num(), usb_device.get_dev_num()) {
-        (None, None) => Err(anyhow::anyhow!(
-            "Could not get bus and dev num for {}",
+        (Err(e1), Err(e2)) => Err(anyhow::anyhow!(
+            "Could not get bus and dev num for {} (bus: {e1}, dev: {e2})",
             usb_device.device
         )),
-        (None, _) => Err(anyhow::anyhow!(
-            "Could not get bus num for {}",
+        (Err(e), _) => Err(anyhow::anyhow!(
+            "Could not get bus num for {}: {e}",
             usb_device.device
         )),
-        (_, None) => Err(anyhow::anyhow!(
-            "Could not get dev num for {}",
+        (_, Err(e)) => Err(anyhow::anyhow!(
+            "Could not get dev num for {}: {e}",
             usb_device.device
         )),
-        (Some(bus_num), Some(dev_num)) => {
+        (Ok(bus_num), Ok(dev_num)) => {
             let path = PathBuf::from(format!("{USB_DEVICE_PATH}{bus_num:03}/{dev_num:03}"));
             anyhow::ensure!(
                 path.try_exists()?,
