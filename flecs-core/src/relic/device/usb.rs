@@ -97,7 +97,9 @@ fn get_dev_num(port: &str) -> Option<u16> {
 }
 
 fn get_usb_value(value_name: &str, port: &str) -> Option<String> {
-    fs::read_to_string(format!("{USB_DEVICE_PATH}{port}/{value_name}")).ok()
+    fs::read_to_string(format!("{USB_DEVICE_PATH}{port}/{value_name}"))
+        .ok()
+        .map(|content| content.trim_end().to_string())
 }
 
 impl UsbDevice {
@@ -162,6 +164,8 @@ pub mod tests {
         let path = prepare_usb_device_test_path("get_bus_num_ok");
         fs::write(path.join("busnum"), b"123").unwrap();
         assert_eq!(get_bus_num("get_bus_num_ok"), Some(123));
+        fs::write(path.join("busnum"), b"123\n").unwrap();
+        assert_eq!(get_bus_num("get_bus_num_ok"), Some(123));
     }
 
     #[test]
@@ -181,6 +185,8 @@ pub mod tests {
     fn get_dev_num_ok() {
         let path = prepare_usb_device_test_path("get_dev_num_ok");
         fs::write(path.join("devnum"), b"123").unwrap();
+        assert_eq!(get_dev_num("get_dev_num_ok"), Some(123));
+        fs::write(path.join("devnum"), b"123\n").unwrap();
         assert_eq!(get_dev_num("get_dev_num_ok"), Some(123));
     }
 
