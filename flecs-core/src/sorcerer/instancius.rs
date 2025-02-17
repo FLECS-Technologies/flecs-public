@@ -3,14 +3,16 @@ use crate::forge::vec::VecExtension;
 use crate::jeweler::app::AppStatus;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem;
-use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
+use crate::jeweler::gem::instance::{InstanceId, TransportProtocol, UsbPathConfig};
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::jeweler::instance::Logs;
 use crate::quest::SyncQuest;
+use crate::relic::device::usb::UsbDevice;
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::spell;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
 
@@ -238,6 +240,104 @@ pub async fn get_instance_config(
     id: InstanceId,
 ) -> Option<gem::instance::config::InstanceConfig> {
     spell::instance::get_instance_config_part_with(vault, id, |config| config.clone()).await
+}
+
+pub async fn get_instance_usb_devices(
+    vault: Arc<Vault>,
+    id: InstanceId,
+) -> Result<Option<Vec<(UsbPathConfig, Option<UsbDevice>)>>> {
+    let Some(mapped_devices) =
+        spell::instance::get_instance_config_part_with(vault, id, |config| {
+            config.usb_devices.clone()
+        })
+        .await
+    else {
+        return Ok(None);
+    };
+    let existing_devices = crate::relic::device::usb::read_usb_devices()?;
+    Ok(Some(
+        mapped_devices
+            .into_iter()
+            .map(|(port, device)| {
+                let existing_device = existing_devices.get(&port).cloned();
+                (device, existing_device)
+            })
+            .collect(),
+    ))
+}
+
+pub async fn delete_instance_usb_devices(
+    vault: Arc<Vault>,
+    id: InstanceId,
+) -> Option<HashMap<String, UsbPathConfig>> {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        std::mem::take(&mut config.usb_devices)
+    })
+    .await
+}
+
+pub async fn delete_instance_usb_device(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    port: String,
+) -> Option<Option<UsbPathConfig>> {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        config.usb_devices.remove(&port)
+    })
+    .await
+}
+
+pub async fn get_instance_usb_device(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    port: String,
+) -> Result<Option<Option<(UsbPathConfig, Option<UsbDevice>)>>> {
+    let Some(mapped_device) = spell::instance::get_instance_config_part_with(vault, id, |config| {
+        config.usb_devices.get(&port).cloned()
+    })
+    .await
+    else {
+        return Ok(None);
+    };
+    match mapped_device {
+        None => Ok(Some(None)),
+        Some(device) => Ok(Some(Some((
+            device,
+            crate::relic::device::usb::read_usb_devices()?.remove(&port),
+        )))),
+    }
+}
+
+pub enum PutInstanceUsbDeviceResult {
+    DeviceNotFound,
+    InstanceNotFound,
+    DeviceMappingCreated,
+    DeviceMappingUpdated(UsbPathConfig),
+}
+
+pub async fn put_instance_usb_device(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    port: String,
+    alias: Option<String>,
+) -> Result<PutInstanceUsbDeviceResult> {
+    let Some(usb_device) = crate::relic::device::usb::read_usb_devices()?.remove(&port) else {
+        return Ok(PutInstanceUsbDeviceResult::DeviceNotFound);
+    };
+    let result = spell::instance::modify_instance_config_with(vault, id, |config| {
+        let mut usb_config = UsbPathConfig::try_from(usb_device)?;
+        usb_config.alias = alias;
+        Ok(config.usb_devices.insert(port, usb_config))
+    })
+    .await;
+    match result {
+        None => Ok(PutInstanceUsbDeviceResult::InstanceNotFound),
+        Some(Ok(Some(previous_mapping))) => Ok(PutInstanceUsbDeviceResult::DeviceMappingUpdated(
+            previous_mapping,
+        )),
+        Some(Ok(None)) => Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated),
+        Some(Err(e)) => Err(e),
+    }
 }
 
 pub async fn get_instance_config_port_mapping(

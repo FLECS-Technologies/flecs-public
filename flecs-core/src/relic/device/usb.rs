@@ -1,6 +1,6 @@
 use rusb::Device;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::fs;
 use std::str::FromStr;
 use thiserror::Error;
@@ -31,11 +31,12 @@ pub struct UsbDevice {
 }
 
 type Result<T> = std::result::Result<T, Error>;
-
-pub fn read_usb_devices() -> Result<HashSet<UsbDevice>> {
+type UsbPort = String;
+pub fn read_usb_devices() -> Result<HashMap<UsbPort, UsbDevice>> {
     let devices = rusb::devices()?
         .iter()
-        .flat_map(|device| device.try_into())
+        .flat_map(UsbDevice::try_from)
+        .map(|device| (device.port.clone(), device))
         .collect();
     Ok(devices)
 }

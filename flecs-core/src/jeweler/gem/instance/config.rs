@@ -5,7 +5,7 @@ use crate::jeweler::volume::VolumeId;
 use crate::relic::device::usb::UsbDevice;
 use bollard::models::{DeviceMapping, MountTypeEnum, PortBinding};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::PathBuf;
 use tracing::warn;
@@ -176,6 +176,28 @@ impl InstancePortMapping {
     }
 }
 
+#[derive(Debug, Default, Hash, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub struct UsbPathConfig {
+    pub port: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub alias: Option<String>,
+    pub bus_num: u16,
+    pub dev_num: u16,
+}
+
+impl TryFrom<UsbDevice> for UsbPathConfig {
+    type Error = crate::Error;
+
+    fn try_from(value: UsbDevice) -> Result<Self, Self::Error> {
+        Ok(Self {
+            dev_num: value.get_dev_num()?,
+            bus_num: value.get_bus_num()?,
+            alias: None,
+            port: value.port,
+        })
+    }
+}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct InstanceConfig {
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
@@ -186,8 +208,8 @@ pub struct InstanceConfig {
     pub port_mapping: InstancePortMapping,
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub network_addresses: HashMap<NetworkId, IpAddr>,
-    #[serde(skip_serializing_if = "HashSet::is_empty", default)]
-    pub usb_devices: HashSet<UsbDevice>,
+    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
+    pub usb_devices: HashMap<String, UsbPathConfig>,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -218,11 +240,11 @@ impl InstanceConfig {
 
     pub fn generate_usb_device_mappings(&self) -> Vec<DeviceMapping> {
         let mut device_mappings = Vec::new();
-        for usb_device in self.usb_devices.iter() {
-            match try_usb_device_to_device_mapping(usb_device) {
+        for (_, usb_device) in self.usb_devices.iter() {
+            match DeviceMapping::try_from(usb_device) {
                 Err(e) => warn!(
                     "Could not generate device mapping for usb device {}: {e}",
-                    usb_device.device
+                    usb_device.port
                 ),
                 Ok(mapping) => device_mappings.push(mapping),
             }
@@ -308,34 +330,25 @@ fn port_mapping_to_port_bindings(
     }
 }
 
-fn try_usb_device_to_device_mapping(usb_device: &UsbDevice) -> crate::Result<DeviceMapping> {
-    match (usb_device.get_bus_num(), usb_device.get_dev_num()) {
-        (Err(e1), Err(e2)) => Err(anyhow::anyhow!(
-            "Could not get bus and dev num for {} (bus: {e1}, dev: {e2})",
-            usb_device.device
-        )),
-        (Err(e), _) => Err(anyhow::anyhow!(
-            "Could not get bus num for {}: {e}",
-            usb_device.device
-        )),
-        (_, Err(e)) => Err(anyhow::anyhow!(
-            "Could not get dev num for {}: {e}",
-            usb_device.device
-        )),
-        (Ok(bus_num), Ok(dev_num)) => {
-            let path = PathBuf::from(format!("{USB_DEVICE_PATH}{bus_num:03}/{dev_num:03}"));
-            anyhow::ensure!(
-                path.try_exists()?,
-                "Path {:?} for device {} does not exist",
-                path,
-                usb_device.device
-            );
-            Ok(DeviceMapping {
-                path_in_container: Some(path.to_string_lossy().to_string()),
-                path_on_host: Some(path.to_string_lossy().to_string()),
-                cgroup_permissions: Some("rwm".to_string()),
-            })
-        }
+impl TryFrom<&UsbPathConfig> for DeviceMapping {
+    type Error = crate::Error;
+
+    fn try_from(value: &UsbPathConfig) -> Result<Self, Self::Error> {
+        let path = PathBuf::from(format!(
+            "{USB_DEVICE_PATH}{:03}/{:03}",
+            value.bus_num, value.dev_num
+        ));
+        anyhow::ensure!(
+            path.try_exists()?,
+            "Path {:?} for device {} does not exist",
+            path,
+            value.port
+        );
+        Ok(DeviceMapping {
+            path_in_container: Some(path.to_string_lossy().to_string()),
+            path_on_host: Some(path.to_string_lossy().to_string()),
+            cgroup_permissions: Some("rwm".to_string()),
+        })
     }
 }
 
@@ -673,27 +686,19 @@ pub(crate) mod tests {
         assert!(path.try_exists().unwrap());
     }
 
-    fn test_usb_device(port: &str) -> UsbDevice {
-        UsbDevice {
-            vid: 0,
-            pid: 0,
-            port: port.to_string(),
-            device: "".to_string(),
-            vendor: "".to_string(),
-        }
-    }
-
     #[test]
-    fn try_usb_device_to_device_mapping_ok() {
-        let path = prepare_usb_device_test_path("try_usb_device_to_device_mapping_ok");
+    fn try_usb_path_config_to_device_mapping_ok() {
         let bus_path = PathBuf::from(format!("{USB_DEVICE_PATH}010"));
         prepare_path(&bus_path);
         fs::write(bus_path.join("020"), b"test-dev").unwrap();
-        fs::write(path.join("devnum"), b"20").unwrap();
-        fs::write(path.join("busnum"), b"10").unwrap();
-        let usb_device = test_usb_device("try_usb_device_to_device_mapping_ok");
+        let usb_path_config = UsbPathConfig {
+            port: "try_usb_path_config_to_device_mapping_ok".to_string(),
+            alias: None,
+            bus_num: 10,
+            dev_num: 20,
+        };
         assert_eq!(
-            try_usb_device_to_device_mapping(&usb_device).unwrap(),
+            DeviceMapping::try_from(&usb_path_config).unwrap(),
             DeviceMapping {
                 cgroup_permissions: Some("rwm".to_string()),
                 path_on_host: Some(
@@ -711,65 +716,61 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn try_usb_device_to_device_mapping_device_does_not_exist() {
-        let path =
-            prepare_usb_device_test_path("try_usb_device_to_device_mapping_device_does_not_exist");
-        let bus_path = PathBuf::from(format!("{USB_DEVICE_PATH}080"));
+    fn try_usb_path_config_to_device_mapping_err() {
+        let bus_path = PathBuf::from(format!("{USB_DEVICE_PATH}020"));
         prepare_path(&bus_path);
-        fs::write(path.join("devnum"), b"81").unwrap();
-        fs::write(path.join("busnum"), b"80").unwrap();
-        let usb_device = test_usb_device("try_usb_device_to_device_mapping_device_does_not_exist");
-        assert!(try_usb_device_to_device_mapping(&usb_device).is_err())
-    }
-
-    #[test]
-    fn try_usb_device_to_device_mapping_no_bus_num() {
-        let path = prepare_usb_device_test_path("try_usb_device_to_device_mapping_no_bus_num");
-        fs::write(path.join("devnum"), b"40").unwrap();
-        let usb_device = test_usb_device("try_usb_device_to_device_mapping_no_bus_num");
-        assert!(try_usb_device_to_device_mapping(&usb_device).is_err())
-    }
-
-    #[test]
-    fn try_usb_device_to_device_mapping_no_dev_num() {
-        let path = prepare_usb_device_test_path("try_usb_device_to_device_mapping_no_dev_num");
-        fs::write(path.join("busnum"), b"70").unwrap();
-        let usb_device = test_usb_device("try_usb_device_to_device_mapping_no_dev_num");
-        assert!(try_usb_device_to_device_mapping(&usb_device).is_err())
-    }
-
-    #[test]
-    fn try_usb_device_to_device_mapping_no_num() {
-        prepare_usb_device_test_path("try_usb_device_to_device_mapping_no_num");
-        let usb_device = test_usb_device("try_usb_device_to_device_mapping_no_num");
-        assert!(try_usb_device_to_device_mapping(&usb_device).is_err())
+        let usb_path_config = UsbPathConfig {
+            port: "try_usb_path_config_to_device_mapping_err".to_string(),
+            alias: None,
+            bus_num: 20,
+            dev_num: 20,
+        };
+        assert!(DeviceMapping::try_from(&usb_path_config).is_err())
     }
 
     #[test]
     fn generate_usb_device_mappings_ok() {
-        let path = prepare_usb_device_test_path("generate_usb_device_mappings_ok_1");
+        prepare_usb_device_test_path("generate_usb_device_mappings_ok_1");
         let bus_path = PathBuf::from(format!("{USB_DEVICE_PATH}111"));
         prepare_path(&bus_path);
         fs::write(bus_path.join("999"), b"test-dev-1").unwrap();
-        fs::write(path.join("devnum"), b"999").unwrap();
-        fs::write(path.join("busnum"), b"111").unwrap();
-        let path = prepare_usb_device_test_path("generate_usb_device_mappings_ok_2");
+        prepare_usb_device_test_path("generate_usb_device_mappings_ok_2");
         let bus_path = PathBuf::from(format!("{USB_DEVICE_PATH}222"));
         prepare_path(&bus_path);
         fs::write(bus_path.join("888"), b"test-dev-2").unwrap();
-        fs::write(path.join("devnum"), b"888").unwrap();
-        fs::write(path.join("busnum"), b"222").unwrap();
-        let path = prepare_usb_device_test_path("generate_usb_device_mappings_ok_3");
+        prepare_usb_device_test_path("generate_usb_device_mappings_ok_3");
         let bus_path = PathBuf::from(format!("{USB_DEVICE_PATH}333"));
         prepare_path(&bus_path);
         fs::write(bus_path.join("777"), b"test-dev-3").unwrap();
-        fs::write(path.join("devnum"), b"777").unwrap();
-        fs::write(path.join("busnum"), b"333").unwrap();
         let device_mappings = InstanceConfig {
-            usb_devices: HashSet::from([
-                test_usb_device("generate_usb_device_mappings_ok_1"),
-                test_usb_device("generate_usb_device_mappings_ok_2"),
-                test_usb_device("generate_usb_device_mappings_ok_3"),
+            usb_devices: HashMap::from([
+                (
+                    "generate_usb_device_mappings_ok_1".to_string(),
+                    UsbPathConfig {
+                        port: "generate_usb_device_mappings_ok_1".to_string(),
+                        alias: None,
+                        bus_num: 111,
+                        dev_num: 999,
+                    },
+                ),
+                (
+                    "generate_usb_device_mappings_ok_2".to_string(),
+                    UsbPathConfig {
+                        port: "generate_usb_device_mappings_ok_2".to_string(),
+                        alias: None,
+                        bus_num: 222,
+                        dev_num: 888,
+                    },
+                ),
+                (
+                    "generate_usb_device_mappings_ok_3".to_string(),
+                    UsbPathConfig {
+                        port: "generate_usb_device_mappings_ok_3".to_string(),
+                        alias: None,
+                        bus_num: 333,
+                        dev_num: 777,
+                    },
+                ),
             ]),
             ..InstanceConfig::default()
         }
@@ -818,23 +819,43 @@ pub(crate) mod tests {
 
     #[test]
     fn generate_usb_device_mappings_partly_ok() {
-        let path = prepare_usb_device_test_path("generate_usb_device_mappings_partly_ok_1");
+        prepare_usb_device_test_path("generate_usb_device_mappings_partly_ok_1");
         let bus_path = PathBuf::from(format!("{USB_DEVICE_PATH}121"));
         prepare_path(&bus_path);
         fs::write(bus_path.join("919"), b"test-dev-1").unwrap();
-        fs::write(path.join("devnum"), b"919").unwrap();
-        fs::write(path.join("busnum"), b"121").unwrap();
-        let path = prepare_usb_device_test_path("generate_usb_device_mappings_partly_ok_3");
+        prepare_usb_device_test_path("generate_usb_device_mappings_partly_ok_3");
         let bus_path = PathBuf::from(format!("{USB_DEVICE_PATH}343"));
         prepare_path(&bus_path);
         fs::write(bus_path.join("747"), b"test-dev-3").unwrap();
-        fs::write(path.join("devnum"), b"747").unwrap();
-        fs::write(path.join("busnum"), b"343").unwrap();
         let device_mappings = InstanceConfig {
-            usb_devices: HashSet::from([
-                test_usb_device("generate_usb_device_mappings_partly_ok_1"),
-                test_usb_device("generate_usb_device_mappings_partly_ok_2"),
-                test_usb_device("generate_usb_device_mappings_partly_ok_3"),
+            usb_devices: HashMap::from([
+                (
+                    "generate_usb_device_mappings_partly_ok_1".to_string(),
+                    UsbPathConfig {
+                        port: "generate_usb_device_mappings_partly_ok_1".to_string(),
+                        alias: None,
+                        bus_num: 121,
+                        dev_num: 919,
+                    },
+                ),
+                (
+                    "generate_usb_device_mappings_partly_ok_2".to_string(),
+                    UsbPathConfig {
+                        port: "generate_usb_device_mappings_partly_ok_2".to_string(),
+                        alias: None,
+                        bus_num: 123,
+                        dev_num: 456,
+                    },
+                ),
+                (
+                    "generate_usb_device_mappings_partly_ok_3".to_string(),
+                    UsbPathConfig {
+                        port: "generate_usb_device_mappings_partly_ok_3".to_string(),
+                        alias: None,
+                        bus_num: 343,
+                        dev_num: 747,
+                    },
+                ),
             ]),
             ..InstanceConfig::default()
         }
@@ -866,6 +887,59 @@ pub(crate) mod tests {
                     .to_string()
             ),
         }));
+    }
+
+    #[test]
+    fn usb_path_config_from_usb_device_ok() {
+        let path = prepare_usb_device_test_path("usb_path_config_from_usb_device_ok");
+        fs::write(path.join("devnum"), b"919").unwrap();
+        fs::write(path.join("busnum"), b"121").unwrap();
+        let usb_device = UsbDevice {
+            device: String::default(),
+            vendor: String::default(),
+            port: "usb_path_config_from_usb_device_ok".to_string(),
+            pid: 0,
+            vid: 0,
+        };
+        assert_eq!(
+            UsbPathConfig::try_from(usb_device).unwrap(),
+            UsbPathConfig {
+                alias: None,
+                dev_num: 919,
+                bus_num: 121,
+                port: "usb_path_config_from_usb_device_ok".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn usb_path_config_from_usb_device_err_devnum() {
+        let path = prepare_usb_device_test_path("usb_path_config_from_usb_device_err_devnum");
+        fs::write(path.join("devnum"), b"aaa").unwrap();
+        fs::write(path.join("busnum"), b"121").unwrap();
+        let usb_device = UsbDevice {
+            device: String::default(),
+            vendor: String::default(),
+            port: "usb_path_config_from_usb_device_err_devnum".to_string(),
+            pid: 0,
+            vid: 0,
+        };
+        assert!(UsbPathConfig::try_from(usb_device).is_err());
+    }
+
+    #[test]
+    fn usb_path_config_from_usb_device_err_busnum() {
+        let path = prepare_usb_device_test_path("usb_path_config_from_usb_device_err_busnum");
+        fs::write(path.join("devnum"), b"100").unwrap();
+        fs::write(path.join("busnum"), b"xxx").unwrap();
+        let usb_device = UsbDevice {
+            device: String::default(),
+            vendor: String::default(),
+            port: "usb_path_config_from_usb_device_err_busnum".to_string(),
+            pid: 0,
+            vid: 0,
+        };
+        assert!(UsbPathConfig::try_from(usb_device).is_err());
     }
 
     #[test]

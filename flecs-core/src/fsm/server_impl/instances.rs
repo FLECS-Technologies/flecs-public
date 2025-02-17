@@ -1,7 +1,9 @@
 use crate::fsm::server_impl::ServerImpl;
-use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
+use crate::jeweler::gem::instance::{InstanceId, TransportProtocol, UsbPathConfig};
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::quest::{Quest, QuestResult};
+use crate::relic::device::usb::UsbDevice;
+use crate::sorcerer::instancius::PutInstanceUsbDeviceResult;
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
 use async_trait::async_trait;
@@ -156,9 +158,15 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbDeletePathParams,
+        path_params: InstancesInstanceIdConfigDevicesUsbDeletePathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbDeleteResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::delete_instance_usb_devices(self.vault.clone(), instance_id)
+            .await
+        {
+            Some(_) => Ok(InstancesInstanceIdConfigDevicesUsbDeleteResponse::Status200_Success),
+            None => Ok(InstancesInstanceIdConfigDevicesUsbDeleteResponse::Status404_NoInstanceWithThisInstance),
+        }
     }
 
     async fn instances_instance_id_config_devices_usb_get(
@@ -166,9 +174,26 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbGetPathParams,
+        path_params: InstancesInstanceIdConfigDevicesUsbGetPathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbGetResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::get_instance_usb_devices(self.vault.clone(), instance_id)
+            .await
+        {
+            Err(e) => Ok(
+                InstancesInstanceIdConfigDevicesUsbGetResponse::Status500_InternalServerError(
+                    AdditionalInfo {
+                        additional_info: e.to_string(),
+                    },
+                ),
+            ),
+            Ok(None) => Ok(InstancesInstanceIdConfigDevicesUsbGetResponse::Status404_NoInstanceWithThisInstance),
+            Ok(Some(usb_devices)) => {
+                Ok(InstancesInstanceIdConfigDevicesUsbGetResponse::Status200_Success(
+                    usb_devices.into_iter().map(instance_config_usb_device_from).collect(),
+                ))
+            }
+        }
     }
 
     async fn instances_instance_id_config_devices_usb_port_delete(
@@ -176,9 +201,37 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
+        path_params: InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortDeleteResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::delete_instance_usb_device(
+            self.vault.clone(),
+            instance_id,
+            path_params.port.clone(),
+        )
+        .await
+        {
+            Some(Some(_)) => {
+                Ok(InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status200_Success)
+            }
+            Some(None) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status404_ResourceNotFound(
+                    OptionalAdditionalInfo {
+                        additional_info: Some(format!("No instance with id {instance_id}")),
+                    },
+                ),
+            ),
+            None => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status404_ResourceNotFound(
+                    OptionalAdditionalInfo {
+                        additional_info: Some(format!(
+                            "Usb port '{}' not mapped to instance {instance_id}",
+                            path_params.port
+                        )),
+                    },
+                ),
+            ),
+        }
     }
 
     async fn instances_instance_id_config_devices_usb_port_get(
@@ -186,9 +239,44 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
+        path_params: InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortGetResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::get_instance_usb_device(
+            self.vault.clone(),
+            instance_id,
+            path_params.port.clone(),
+        )
+        .await
+        {
+            Ok(Some(Some(device))) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status200_Success(
+                    instance_config_usb_device_from(device),
+                ),
+            ),
+            Ok(Some(None)) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status404_ResourceNotFound(
+                    OptionalAdditionalInfo {
+                        additional_info: Some(format!("No instance with id {instance_id}")),
+                    },
+                ),
+            ),
+            Ok(None) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status404_ResourceNotFound(
+                    OptionalAdditionalInfo {
+                        additional_info: Some(format!(
+                            "Usb port '{}' not mapped to instance {instance_id}",
+                            path_params.port
+                        )),
+                    },
+                ),
+            ),
+            Err(e) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status500_InternalServerError(
+                    AdditionalInfo::new(e.to_string()),
+                ),
+            ),
+        }
     }
 
     async fn instances_instance_id_config_devices_usb_port_put(
@@ -196,10 +284,40 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
-        _body: Option<models::InstancesInstanceIdConfigDevicesUsbPortPutRequest>,
+        path_params: InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
+        body: Option<models::InstancesInstanceIdConfigDevicesUsbPortPutRequest>,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortPutResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::put_instance_usb_device(
+            self.vault.clone(),
+            instance_id,
+            path_params.port.clone(),
+            body.and_then(|body| body.alias),
+        )
+        .await
+        {
+            Ok(PutInstanceUsbDeviceResult::InstanceNotFound) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status404_ResourceNotFound(OptionalAdditionalInfo{
+                    additional_info: Some(format!("No instance with id {instance_id}")),
+                }),
+            ),
+            Ok(PutInstanceUsbDeviceResult::DeviceNotFound) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status404_ResourceNotFound(OptionalAdditionalInfo{
+                    additional_info: Some(format!("No usb device with port {}", path_params.port)),
+                }),
+            ),
+            Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status201_UsbDeviceWasPassedThrough,
+            ),
+            Ok(PutInstanceUsbDeviceResult::DeviceMappingUpdated(_)) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status200_AlreadyPassedThrough,
+            ),
+            Err(e) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status500_InternalServerError(
+                    AdditionalInfo::new(e.to_string()),
+                ),
+            ),
+        }
     }
 
     async fn instances_instance_id_config_environment_delete(
@@ -1077,6 +1195,31 @@ impl From<Label> for models::InstanceLabel {
             name: value.label,
             value: value.value,
         }
+    }
+}
+
+fn instance_config_usb_device_from(
+    (config, device): (UsbPathConfig, Option<UsbDevice>),
+) -> models::InstanceConfigUsbDevice {
+    match device {
+        Some(device) => models::InstanceConfigUsbDevice {
+            port: config.port,
+            device_connected: true,
+            pid: Some(device.pid as i32),
+            name: Some(device.device),
+            vendor: Some(device.vendor),
+            vid: Some(device.vid as i32),
+            alias: config.alias,
+        },
+        None => models::InstanceConfigUsbDevice {
+            port: config.port,
+            device_connected: false,
+            name: None,
+            vid: None,
+            pid: None,
+            alias: config.alias,
+            vendor: None,
+        },
     }
 }
 
@@ -3693,5 +3836,56 @@ mod tests {
                 }
             ))
         );
+    }
+
+    #[test]
+    fn instance_config_usb_device_from_some() {
+        let usb_path_config = UsbPathConfig {
+            dev_num: 20,
+            alias: Some("Alias".to_string()),
+            port: "usb12".to_string(),
+            bus_num: 10,
+        };
+        let usb_device = UsbDevice {
+            device: "test-dev".to_string(),
+            vid: 12,
+            pid: 24,
+            port: "usb12".to_string(),
+            vendor: "Vendor".to_string(),
+        };
+        assert_eq!(
+            instance_config_usb_device_from((usb_path_config, Some(usb_device))),
+            models::InstanceConfigUsbDevice {
+                port: "usb12".to_string(),
+                device_connected: true,
+                pid: Some(24),
+                vendor: Some("Vendor".to_string()),
+                vid: Some(12),
+                alias: Some("Alias".to_string()),
+                name: Some("test-dev".to_string()),
+            }
+        )
+    }
+
+    #[test]
+    fn instance_config_usb_device_from_none() {
+        let usb_path_config = UsbPathConfig {
+            dev_num: 20,
+            alias: Some("Alias".to_string()),
+            port: "usb12".to_string(),
+            bus_num: 10,
+        };
+        assert_eq!(
+            instance_config_usb_device_from((usb_path_config, None)),
+            models::InstanceConfigUsbDevice {
+                port: "usb12".to_string(),
+                device_connected: false,
+                pid: None,
+                vendor: None,
+                vid: None,
+                alias: Some("Alias".to_string()),
+                name: None,
+            }
+        )
     }
 }

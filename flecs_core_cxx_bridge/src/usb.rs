@@ -15,5 +15,8 @@ impl From<usb::UsbDevice> for ffi::UsbDevice {
 }
 
 pub fn read_usb_devices() -> Result<Vec<ffi::UsbDevice>> {
-    Ok(usb::read_usb_devices().map(|set| set.into_iter().map(|dev| dev.into()).collect())?)
+    Ok(usb::read_usb_devices()?
+        .into_values()
+        .map(ffi::UsbDevice::from)
+        .collect())
 }
