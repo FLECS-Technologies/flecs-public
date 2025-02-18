@@ -4,6 +4,7 @@ mod device;
 mod instances;
 mod jobs;
 mod system;
+use crate::enchantment::Enchantments;
 use crate::vault::Vault;
 use anyhow::Error;
 use axum::async_trait;
@@ -29,12 +30,22 @@ fn ok() -> AdditionalInfo {
 
 pub struct ServerImpl {
     vault: Arc<Vault>,
+    enchantments: Enchantments,
 }
 
 impl ServerImpl {
-    pub async fn default() -> Self {
+    pub async fn new(enchantments: Enchantments) -> Self {
         Self {
             vault: crate::lore::vault::default().await,
+            enchantments,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn test_instance(vault: Arc<Vault>, test_path: std::path::PathBuf) -> Self {
+        Self {
+            vault,
+            enchantments: Enchantments::test_instance(test_path.join("enchantments")),
         }
     }
 }

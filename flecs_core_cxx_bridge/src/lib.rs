@@ -7,6 +7,7 @@ mod usb;
 
 pub use crate::manifest::download_manifest;
 use flecs_core::enchantment::floxy::Floxy;
+use flecs_core::enchantment::Enchantments;
 pub use floxy::{
     create_instance_editor_redirect_to_free_port, delete_reverse_proxy_configs,
     delete_server_proxy_configs, load_instance_reverse_proxy_config,
@@ -118,7 +119,7 @@ mod ffi {
 struct Server {
     runtime: Runtime,
     handle: Option<JoinHandle<()>>,
-    floxy: Floxy,
+    floxy: Arc<Floxy>,
 }
 
 fn get_server() -> Arc<Mutex<Server>> {
@@ -128,11 +129,13 @@ fn get_server() -> Arc<Mutex<Server>> {
             Arc::new(Mutex::new(Server {
                 runtime: Runtime::new().unwrap(),
                 handle: None,
-                floxy: Floxy::from_config(
-                    PathBuf::from("/var/lib/flecs/floxy"),
-                    PathBuf::from("/etc/nginx/floxy.conf"),
-                )
-                .unwrap(),
+                floxy: Arc::new(
+                    Floxy::from_config(
+                        PathBuf::from("/var/lib/flecs/floxy"),
+                        PathBuf::from("/etc/nginx/floxy.conf"),
+                    )
+                    .unwrap(),
+                ),
             }))
         })
         .clone()
@@ -149,11 +152,15 @@ pub fn start_server() {
         Err(e) => error!("Failed to start floxy {}: {}", server.floxy, e),
     }
     info!("Spawning rust server");
+    let floxy = server.floxy.clone();
     server.handle = Some(server.runtime.spawn(async {
         info!("Starting rust server");
-        flecs_core::fsm::server(PathBuf::from("/run/flecs/flecsd-rs.sock"))
-            .await
-            .unwrap();
+        flecs_core::fsm::server(
+            PathBuf::from("/run/flecs/flecsd-rs.sock"),
+            Enchantments { floxy },
+        )
+        .await
+        .unwrap();
     }));
 }
 

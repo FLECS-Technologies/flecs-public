@@ -194,9 +194,9 @@ mod tests {
     #[tokio::test]
     async fn uninstall_no_version() {
         let path = prepare_test_path(module_path!(), "uninstall_no_version");
-        let server = ServerImpl {
-            vault: Arc::new(Vault::new(VaultConfig { path })),
-        };
+        let vault =
+            crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
+        let server = ServerImpl::test_instance(vault, path);
         assert!(server
             .apps_app_delete(
                 Method::default(),
@@ -214,9 +214,9 @@ mod tests {
     #[tokio::test]
     async fn uninstall_404() {
         let path = prepare_test_path(module_path!(), "uninstall_404");
-        let server = ServerImpl {
-            vault: Arc::new(Vault::new(VaultConfig { path })),
-        };
+        let vault =
+            crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
+        let server = ServerImpl::test_instance(vault, path);
         assert_eq!(
             Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp),
             server
