@@ -93,6 +93,7 @@ mod tests {
     use crate::jeweler::gem::manifest::Label;
     use crate::quest::Quest;
     use crate::sorcerer::spell::instance::tests::create_test_vault;
+    use crate::tests::prepare_test_path;
     use crate::vault::pouch::manifest::tests::create_test_manifest;
     use crate::vault::pouch::AppKey;
     use flecs_app_manifest::generated::manifest_3_1_0::{
@@ -215,7 +216,11 @@ mod tests {
     }
     #[tokio::test]
     async fn replace_manifest_test() {
-        let vault = create_test_vault(module_path!(), "replace_manifest_test", None).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "replace_manifest_test"),
+            None,
+        )
+        .await;
         let mut manifest = create_test_manifest("some.test.app-1", "1.2.3");
         let labels = vec![Label {
             label: "Replacing".to_string(),

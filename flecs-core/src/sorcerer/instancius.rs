@@ -1301,7 +1301,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_all_instances_ok() {
-        let vault = spell_test_vault(module_path!(), "get_all_instances", Some(true)).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_all_instances"),
+            Some(true),
+        )
+        .await;
         let instances_infos =
             get_all_instances(Quest::new_synced("TestQuest".to_string()), vault).await;
         assert_eq!(instances_infos.len(), 6);
@@ -1309,8 +1313,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_all() {
-        let vault =
-            spell_test_vault(module_path!(), "get_instances_filtered_all", Some(true)).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instances_filtered_all"),
+            Some(true),
+        )
+        .await;
         let instances_infos = get_instances_filtered(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1323,8 +1330,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_name() {
-        let vault =
-            spell_test_vault(module_path!(), "get_instances_filtered_name", Some(true)).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instances_filtered_name"),
+            Some(true),
+        )
+        .await;
         let instances_infos = get_instances_filtered(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1337,8 +1347,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_version() {
-        let vault =
-            spell_test_vault(module_path!(), "get_instances_filtered_version", Some(true)).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instances_filtered_version"),
+            Some(true),
+        )
+        .await;
         let instances_infos = get_instances_filtered(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1351,8 +1364,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_key() {
-        let vault =
-            spell_test_vault(module_path!(), "get_instances_filtered_key", Some(true)).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instances_filtered_key"),
+            Some(true),
+        )
+        .await;
         let instances_infos = get_instances_filtered(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1365,13 +1381,21 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_ok() {
-        let vault = spell_test_vault(module_path!(), "get_instance_ok", Some(true)).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_ok"),
+            Some(true),
+        )
+        .await;
         assert!(get_instance(vault, 1.into()).await.unwrap().is_some());
     }
 
     #[tokio::test]
     async fn get_instance_detailed_ok() {
-        let vault = spell_test_vault(module_path!(), "get_instance_detailed_ok", Some(true)).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_detailed_ok"),
+            Some(true),
+        )
+        .await;
         assert!(get_instance_detailed(vault, 1.into())
             .await
             .unwrap()
@@ -1380,7 +1404,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_ok() {
-        let vault = spell_test_vault(module_path!(), "start_instance_ok", Some(true)).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "start_instance_ok"),
+            Some(true),
+        )
+        .await;
         start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1392,7 +1420,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_err() {
-        let vault = spell_test_vault(module_path!(), "start_instance_err", Some(false)).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "start_instance_err"),
+            Some(false),
+        )
+        .await;
         assert!(start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1404,7 +1436,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_config_some() {
-        let vault = spell_test_vault(module_path!(), "get_instance_config_some", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_config_some"),
+            None,
+        )
+        .await;
         let expected_config = vault::pouch::instance::tests::test_config();
         assert_eq!(
             get_instance_config(vault, InstanceId::new(6)).await,
@@ -1414,7 +1450,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_config_none() {
-        let vault = spell_test_vault(module_path!(), "get_instance_config_none", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_config_none"),
+            None,
+        )
+        .await;
         assert!(get_instance_config(vault, InstanceId::new(80))
             .await
             .is_none());
@@ -1423,8 +1463,7 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mapping_some_some() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_port_mapping_some_some",
+            prepare_test_path(module_path!(), "get_instance_config_port_mapping_some_some"),
             None,
         )
         .await;
@@ -1442,8 +1481,7 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mapping_some_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_port_mapping_some_none",
+            prepare_test_path(module_path!(), "get_instance_config_port_mapping_some_none"),
             None,
         )
         .await;
@@ -1457,8 +1495,7 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mapping_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_port_mapping_none",
+            prepare_test_path(module_path!(), "get_instance_config_port_mapping_none"),
             None,
         )
         .await;
@@ -1475,8 +1512,7 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mappings_some() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_port_mappings_some",
+            prepare_test_path(module_path!(), "get_instance_config_port_mappings_some"),
             None,
         )
         .await;
@@ -1490,8 +1526,7 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mappings_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_port_mappings_none",
+            prepare_test_path(module_path!(), "get_instance_config_port_mappings_none"),
             None,
         )
         .await;
@@ -1505,8 +1540,10 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_protocol_port_mappings_some() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_protocol_port_mappings_some",
+            prepare_test_path(
+                module_path!(),
+                "get_instance_config_protocol_port_mappings_some",
+            ),
             None,
         )
         .await;
@@ -1543,8 +1580,10 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_protocol_port_mappings_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_protocol_port_mappings_none",
+            prepare_test_path(
+                module_path!(),
+                "get_instance_config_protocol_port_mappings_none",
+            ),
             None,
         )
         .await;
@@ -1574,8 +1613,10 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_protocol_port_mappings_some() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_protocol_port_mappings_some",
+            prepare_test_path(
+                module_path!(),
+                "delete_instance_config_protocol_port_mappings_some",
+            ),
             None,
         )
         .await;
@@ -1663,8 +1704,10 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_protocol_port_mappings_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_protocol_port_mappings_none",
+            prepare_test_path(
+                module_path!(),
+                "delete_instance_config_protocol_port_mappings_none",
+            ),
             None,
         )
         .await;
@@ -1694,8 +1737,7 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_port_mapping_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_port_mapping_none",
+            prepare_test_path(module_path!(), "delete_instance_config_port_mapping_none"),
             None,
         )
         .await;
@@ -1712,8 +1754,7 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_port_mapping_true() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_port_mapping_true",
+            prepare_test_path(module_path!(), "delete_instance_config_port_mapping_true"),
             None,
         )
         .await;
@@ -1732,8 +1773,7 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_port_mapping_false() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_port_mapping_false",
+            prepare_test_path(module_path!(), "delete_instance_config_port_mapping_false"),
             None,
         )
         .await;
@@ -1752,8 +1792,10 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_port_mapping_range_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_port_mapping_range_none",
+            prepare_test_path(
+                module_path!(),
+                "delete_instance_config_port_mapping_range_none",
+            ),
             None,
         )
         .await;
@@ -1770,8 +1812,10 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_port_mapping_range_true() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_port_mapping_range_true",
+            prepare_test_path(
+                module_path!(),
+                "delete_instance_config_port_mapping_range_true",
+            ),
             None,
         )
         .await;
@@ -1790,8 +1834,10 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_port_mapping_range_false() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_port_mapping_range_false",
+            prepare_test_path(
+                module_path!(),
+                "delete_instance_config_port_mapping_range_false",
+            ),
             None,
         )
         .await;
@@ -1810,8 +1856,10 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mapping_range_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_port_mapping_range_none",
+            prepare_test_path(
+                module_path!(),
+                "get_instance_config_port_mapping_range_none",
+            ),
             None,
         )
         .await;
@@ -1828,8 +1876,10 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mapping_range_some_some() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_port_mapping_range_some_some",
+            prepare_test_path(
+                module_path!(),
+                "get_instance_config_port_mapping_range_some_some",
+            ),
             None,
         )
         .await;
@@ -1851,8 +1901,10 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mapping_range_some_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_port_mapping_range_some_none",
+            prepare_test_path(
+                module_path!(),
+                "get_instance_config_port_mapping_range_some_none",
+            ),
             None,
         )
         .await;
@@ -1871,8 +1923,7 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_port_mapping_ok_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "put_instance_config_port_mapping_ok_none",
+            prepare_test_path(module_path!(), "put_instance_config_port_mapping_ok_none"),
             None,
         )
         .await;
@@ -1891,8 +1942,10 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_port_mapping_ok_some_true() {
         let vault = spell_test_vault(
-            module_path!(),
-            "put_instance_config_port_mapping_ok_some_true",
+            prepare_test_path(
+                module_path!(),
+                "put_instance_config_port_mapping_ok_some_true",
+            ),
             None,
         )
         .await;
@@ -1911,8 +1964,10 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_port_mapping_ok_some_false() {
         let vault = spell_test_vault(
-            module_path!(),
-            "put_instance_config_port_mapping_ok_some_false",
+            prepare_test_path(
+                module_path!(),
+                "put_instance_config_port_mapping_ok_some_false",
+            ),
             None,
         )
         .await;
@@ -1930,8 +1985,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn put_instance_config_port_mapping_err() {
-        let vault =
-            spell_test_vault(module_path!(), "put_instance_config_port_mapping_err", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "put_instance_config_port_mapping_err"),
+            None,
+        )
+        .await;
         assert!(put_instance_config_port_mapping(
             vault.clone(),
             InstanceId::new(6),
@@ -1945,8 +2003,10 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_protocol_port_mappings_true() {
         let vault = spell_test_vault(
-            module_path!(),
-            "put_instance_config_protocol_port_mappings_true",
+            prepare_test_path(
+                module_path!(),
+                "put_instance_config_protocol_port_mappings_true",
+            ),
             None,
         )
         .await;
@@ -1983,8 +2043,10 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_protocol_port_mappings_false() {
         let vault = spell_test_vault(
-            module_path!(),
-            "put_instance_config_protocol_port_mappings_false",
+            prepare_test_path(
+                module_path!(),
+                "put_instance_config_protocol_port_mappings_false",
+            ),
             None,
         )
         .await;
@@ -2021,8 +2083,7 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_port_mappings_false() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_port_mappings_false",
+            prepare_test_path(module_path!(), "delete_instance_config_port_mappings_false"),
             None,
         )
         .await;
@@ -2032,8 +2093,7 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_port_mappings_true() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_port_mappings_true",
+            prepare_test_path(module_path!(), "delete_instance_config_port_mappings_true"),
             None,
         )
         .await;
@@ -2057,8 +2117,10 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_environment_variable_value_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_environment_variable_value_none",
+            prepare_test_path(
+                module_path!(),
+                "get_instance_config_environment_variable_value_none",
+            ),
             None,
         )
         .await;
@@ -2074,8 +2136,10 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_environment_variable_value_some_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_environment_variable_value_some_none",
+            prepare_test_path(
+                module_path!(),
+                "get_instance_config_environment_variable_value_some_none",
+            ),
             None,
         )
         .await;
@@ -2093,8 +2157,10 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_environment_variable_value_some_some() {
         let vault = spell_test_vault(
-            module_path!(),
-            "get_instance_config_environment_variable_value_some_some",
+            prepare_test_path(
+                module_path!(),
+                "get_instance_config_environment_variable_value_some_some",
+            ),
             None,
         )
         .await;
@@ -2121,8 +2187,10 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_environment_variable_value_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "put_instance_config_environment_variable_value_none",
+            prepare_test_path(
+                module_path!(),
+                "put_instance_config_environment_variable_value_none",
+            ),
             None,
         )
         .await;
@@ -2141,8 +2209,10 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_environment_variable_value_some_new() {
         let vault = spell_test_vault(
-            module_path!(),
-            "put_instance_config_environment_variable_value_some_new",
+            prepare_test_path(
+                module_path!(),
+                "put_instance_config_environment_variable_value_some_new",
+            ),
             None,
         )
         .await;
@@ -2182,8 +2252,10 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_environment_variable_value_some_replace() {
         let vault = spell_test_vault(
-            module_path!(),
-            "put_instance_config_environment_variable_value_some_replace",
+            prepare_test_path(
+                module_path!(),
+                "put_instance_config_environment_variable_value_some_replace",
+            ),
             None,
         )
         .await;
@@ -2223,8 +2295,10 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_environment_variable_value_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_environment_variable_value_none",
+            prepare_test_path(
+                module_path!(),
+                "delete_instance_config_environment_variable_value_none",
+            ),
             None,
         )
         .await;
@@ -2240,8 +2314,10 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_environment_variable_value_some_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_environment_variable_value_some_none",
+            prepare_test_path(
+                module_path!(),
+                "delete_instance_config_environment_variable_value_some_none",
+            ),
             None,
         )
         .await;
@@ -2259,8 +2335,10 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_environment_variable_value_some_some() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_environment_variable_value_some_some",
+            prepare_test_path(
+                module_path!(),
+                "delete_instance_config_environment_variable_value_some_some",
+            ),
             None,
         )
         .await;
@@ -2308,8 +2386,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_config_environment_none() {
-        let vault =
-            spell_test_vault(module_path!(), "get_instance_config_environment_none", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_config_environment_none"),
+            None,
+        )
+        .await;
         assert!(
             get_instance_config_environment(vault.clone(), InstanceId::new(80))
                 .await
@@ -2319,8 +2400,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_config_environment_some() {
-        let vault =
-            spell_test_vault(module_path!(), "get_instance_config_environment_some", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_config_environment_some"),
+            None,
+        )
+        .await;
         let result = get_instance_config_environment(vault.clone(), InstanceId::new(6)).await;
         assert_eq!(
             result,
@@ -2345,8 +2429,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn put_instance_config_environment_none() {
-        let vault =
-            spell_test_vault(module_path!(), "put_instance_config_environment_none", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "put_instance_config_environment_none"),
+            None,
+        )
+        .await;
         assert!(
             put_instance_config_environment(vault.clone(), InstanceId::new(80), Vec::new())
                 .await
@@ -2356,8 +2443,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn put_instance_config_environment_some() {
-        let vault =
-            spell_test_vault(module_path!(), "put_instance_config_environment_some", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "put_instance_config_environment_some"),
+            None,
+        )
+        .await;
         let new_environment = vec![EnvironmentVariable {
             name: "Test".to_string(),
             value: None,
@@ -2408,8 +2498,7 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_environment_none() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_environment_none",
+            prepare_test_path(module_path!(), "delete_instance_config_environment_none"),
             None,
         )
         .await;
@@ -2423,8 +2512,7 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_environment_some() {
         let vault = spell_test_vault(
-            module_path!(),
-            "delete_instance_config_environment_some",
+            prepare_test_path(module_path!(), "delete_instance_config_environment_some"),
             None,
         )
         .await;
@@ -2466,7 +2554,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_labels_none() {
-        let vault = spell_test_vault(module_path!(), "get_instance_labels_none", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_labels_none"),
+            None,
+        )
+        .await;
         assert!(get_instance_labels(vault, InstanceId::new(80))
             .await
             .is_none());
@@ -2474,7 +2566,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_labels_some() {
-        let vault = spell_test_vault(module_path!(), "get_instance_labels_some", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_labels_some"),
+            None,
+        )
+        .await;
         assert_eq!(
             get_instance_labels(vault, InstanceId::new(1)).await,
             Some(vec![
@@ -2492,7 +2588,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_label_value_none() {
-        let vault = spell_test_vault(module_path!(), "get_instance_label_value_none", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_label_value_none"),
+            None,
+        )
+        .await;
         assert!(
             get_instance_label_value(vault, InstanceId::new(80), "label".to_string())
                 .await
@@ -2502,8 +2602,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_label_value_some_none() {
-        let vault =
-            spell_test_vault(module_path!(), "get_instance_label_value_some_none", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_label_value_some_none"),
+            None,
+        )
+        .await;
         assert!(matches!(
             get_instance_label_value(vault, InstanceId::new(1), "label".to_string()).await,
             Some(None)
@@ -2512,8 +2615,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_label_value_some_some() {
-        let vault =
-            spell_test_vault(module_path!(), "get_instance_label_value_some_some", None).await;
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "get_instance_label_value_some_some"),
+            None,
+        )
+        .await;
         assert_eq!(
             get_instance_label_value(vault.clone(), InstanceId::new(1), "tech.flecs".to_string())
                 .await,

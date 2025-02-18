@@ -1,5 +1,6 @@
 pub mod console_client;
 mod server_impl;
+use crate::enchantment::Enchantments;
 use crate::relic::device::usb::UsbDeviceReaderImpl;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use axum::{
@@ -26,7 +27,7 @@ use tower_http::trace::DefaultOnResponse;
 use tracing::{error, info, info_span, Span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-pub struct StartupError(String);
+pub struct StartupError(pub String);
 
 impl<T> From<T> for StartupError
 where
@@ -69,8 +70,10 @@ pub fn init_tracing() {
     info!("Tracing initialized");
 }
 
-async fn create_service() -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
-    let server = server_impl::ServerImpl::new(UsbDeviceReaderImpl::new()).await;
+async fn create_service(
+    enchantments: Enchantments,
+) -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
+    let server = server_impl::ServerImpl::new(enchantments).await;
     let app = flecsd_axum_server::server::new(Arc::new(server)).layer(
         tower_http::trace::TraceLayer::new_for_http()
             .make_span_with(|request: &Request<_>| {
@@ -137,10 +140,10 @@ async fn serve(
     }
 }
 
-pub async fn server(socket_path: PathBuf) -> Result<()> {
+pub async fn server(socket_path: PathBuf, enchantments: Enchantments) -> Result<()> {
     serve(
         create_unix_socket(socket_path).await?,
-        create_service().await,
+        create_service(enchantments).await,
     )
     .await;
     Ok(())
