@@ -297,6 +297,14 @@ server {{
 }}"
         )
     }
+
+    #[cfg(test)]
+    pub fn test_instance(test_path: PathBuf) -> Self {
+        Self {
+            base_path: test_path,
+            nginx: Nginx::default(),
+        }
+    }
 }
 
 #[cfg(test)]

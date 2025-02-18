@@ -304,6 +304,7 @@ pub mod tests {
     use crate::vault::pouch::AppKey;
     use crate::vault::{GrabbedPouches, VaultConfig};
     use std::collections::HashMap;
+    use std::path::PathBuf;
 
     fn create_deployment_for_instance(
         instance: &InstanceDeserializable,
@@ -334,11 +335,9 @@ pub mod tests {
     }
 
     pub async fn create_test_vault(
-        module: &str,
-        test_name: &str,
+        path: PathBuf,
         instance_status_return: Option<bool>,
     ) -> Arc<Vault> {
-        let path = prepare_test_path(module, test_name);
         let vault = Arc::new(Vault::new(VaultConfig { path }));
         let instances = create_test_instances_deserializable();
         let manifests = instances
@@ -379,8 +378,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_details_ok() {
-        let vault =
-            create_test_vault(module_path!(), "get_instance_info_details_ok", Some(true)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instance_info_details_ok"),
+            Some(true),
+        )
+        .await;
         assert!(get_instance_detailed_info(vault, InstanceId::new(1))
             .await
             .unwrap()
@@ -389,8 +391,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_details_not_found() {
-        let vault =
-            create_test_vault(module_path!(), "get_instance_info_details_not_found", None).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instance_info_details_not_found"),
+            None,
+        )
+        .await;
         assert!(get_instance_detailed_info(vault, InstanceId::new(100))
             .await
             .unwrap()
@@ -399,8 +404,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_details_err() {
-        let vault =
-            create_test_vault(module_path!(), "get_instance_info_details_err", Some(false)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instance_info_details_err"),
+            Some(false),
+        )
+        .await;
         assert!(get_instance_detailed_info(vault, InstanceId::new(1))
             .await
             .is_err());
@@ -408,7 +416,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_ok() {
-        let vault = create_test_vault(module_path!(), "get_instance_info_ok", Some(true)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instance_info_ok"),
+            Some(true),
+        )
+        .await;
         assert!(get_instance_info(vault, InstanceId::new(1))
             .await
             .unwrap()
@@ -417,7 +429,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_not_found() {
-        let vault = create_test_vault(module_path!(), "get_instance_info_not_found", None).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instance_info_not_found"),
+            None,
+        )
+        .await;
         assert!(get_instance_info(vault, InstanceId::new(100))
             .await
             .unwrap()
@@ -426,13 +442,21 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_err() {
-        let vault = create_test_vault(module_path!(), "get_instance_info_err", Some(false)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instance_info_err"),
+            Some(false),
+        )
+        .await;
         assert!(get_instance_info(vault, InstanceId::new(1)).await.is_err());
     }
 
     #[tokio::test]
     async fn get_instances_info_ok() {
-        let vault = create_test_vault(module_path!(), "get_instances_info_ok", Some(true)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instances_info_ok"),
+            Some(true),
+        )
+        .await;
         let instance_ids: Vec<InstanceId> = (1..=6).map(Into::into).collect();
         let instance_infos = get_instances_info(
             Quest::new_synced("TestQuest".to_string()),
@@ -451,8 +475,7 @@ pub mod tests {
     #[tokio::test]
     async fn get_instances_info_part_not_found() {
         let vault = create_test_vault(
-            module_path!(),
-            "get_instances_info_part_not_found",
+            prepare_test_path(module_path!(), "get_instances_info_part_not_found"),
             Some(true),
         )
         .await;
@@ -473,7 +496,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_info_err() {
-        let vault = create_test_vault(module_path!(), "get_instances_info_err", Some(false)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instances_info_err"),
+            Some(false),
+        )
+        .await;
         let instance_ids: Vec<InstanceId> = (4..=9).map(Into::into).collect();
         let instance_infos = get_instances_info(
             Quest::new_synced("TestQuest".to_string()),
@@ -486,7 +513,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_ok() {
-        let vault = create_test_vault(module_path!(), "start_instance_ok", Some(true)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "start_instance_ok"),
+            Some(true),
+        )
+        .await;
         start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -498,7 +529,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_err() {
-        let vault = create_test_vault(module_path!(), "start_instance_err", Some(false)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "start_instance_err"),
+            Some(false),
+        )
+        .await;
         assert!(start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -510,7 +545,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_not_found() {
-        let vault = create_test_vault(module_path!(), "start_instance_not_found", Some(true)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "start_instance_not_found"),
+            Some(true),
+        )
+        .await;
         assert!(start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -522,7 +561,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn stop_instance_not_found() {
-        let vault = create_test_vault(module_path!(), "stop_instance_not_found", Some(true)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "stop_instance_not_found"),
+            Some(true),
+        )
+        .await;
         assert!(stop_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -534,7 +577,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn make_ip_reservation_test() {
-        let vault = create_test_vault(module_path!(), "make_ip_reservation_test", Some(true)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "make_ip_reservation_test"),
+            Some(true),
+        )
+        .await;
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
             Ipv4Addr::new(10, 18, 102, 2),
@@ -548,8 +595,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn clear_ip_reservation_test() {
-        let vault =
-            create_test_vault(module_path!(), "clear_ip_reservation_test", Some(true)).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "clear_ip_reservation_test"),
+            Some(true),
+        )
+        .await;
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
             Ipv4Addr::new(10, 18, 102, 2),
@@ -596,8 +646,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn modify_instance_config_with_none() {
-        let vault =
-            create_test_vault(module_path!(), "modify_instance_config_with_none", None).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "modify_instance_config_with_none"),
+            None,
+        )
+        .await;
         assert!(
             modify_instance_config_with(vault, InstanceId::new(10000), |_| true)
                 .await
@@ -607,8 +660,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn modify_instance_config_with_some() {
-        let vault =
-            create_test_vault(module_path!(), "modify_instance_config_with_some", None).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "modify_instance_config_with_some"),
+            None,
+        )
+        .await;
         let test_env_var = EnvironmentVariable {
             name: "TestVar".to_string(),
             value: None,
@@ -637,8 +693,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_config_part_with_none() {
-        let vault =
-            create_test_vault(module_path!(), "get_instance_config_part_with_none", None).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instance_config_part_with_none"),
+            None,
+        )
+        .await;
         assert!(
             get_instance_config_part_with(vault, InstanceId::new(10000), |_| true)
                 .await
@@ -648,8 +707,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_config_part_with_some() {
-        let vault =
-            create_test_vault(module_path!(), "get_instance_config_part_with_some", None).await;
+        let vault = create_test_vault(
+            prepare_test_path(module_path!(), "get_instance_config_part_with_some"),
+            None,
+        )
+        .await;
         let test_env_var = EnvironmentVariable {
             name: "TestVar".to_string(),
             value: None,
