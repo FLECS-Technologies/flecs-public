@@ -64,7 +64,7 @@ pub struct InstancesInstanceIdConfigEnvironmentDeletePathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -77,7 +77,7 @@ pub struct InstancesInstanceIdConfigEnvironmentGetPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -90,7 +90,7 @@ pub struct InstancesInstanceIdConfigEnvironmentPutPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -107,10 +107,10 @@ pub struct InstancesInstanceIdConfigEnvironmentVariableNameDeletePathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEDELETEPATHPARAMS_VARIABLE_NAME: regex::Regex = regex::Regex::new(r"^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEDELETEPATHPARAMS_VARIABLE_NAME: regex::Regex = regex::Regex::new("^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -127,10 +127,10 @@ pub struct InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEGETPATHPARAMS_VARIABLE_NAME: regex::Regex = regex::Regex::new(r"^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEGETPATHPARAMS_VARIABLE_NAME: regex::Regex = regex::Regex::new("^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -147,10 +147,10 @@ pub struct InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEPUTPATHPARAMS_VARIABLE_NAME: regex::Regex = regex::Regex::new(r"^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTVARIABLENAMEPUTPATHPARAMS_VARIABLE_NAME: regex::Regex = regex::Regex::new("^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -169,7 +169,7 @@ pub struct InstancesInstanceIdConfigLabelsGetPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGLABELSGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGLABELSGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -186,10 +186,10 @@ pub struct InstancesInstanceIdConfigLabelsLabelNameGetPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGLABELSLABELNAMEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGLABELSLABELNAMEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGLABELSLABELNAMEGETPATHPARAMS_LABEL_NAME: regex::Regex = regex::Regex::new(r"^[a-z](?:(?:[\\-\\.]?[a-zA-Z0-9])*[\\-\\.]?[a-z])?$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGLABELSLABELNAMEGETPATHPARAMS_LABEL_NAME: regex::Regex = regex::Regex::new("^[a-z](?:(?:[\\-\\.]?[a-zA-Z0-9])*[\\-\\.]?[a-z])?$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -202,7 +202,7 @@ pub struct InstancesInstanceIdConfigPortsDeletePathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -215,7 +215,7 @@ pub struct InstancesInstanceIdConfigPortsGetPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -229,7 +229,7 @@ pub struct InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -243,7 +243,7 @@ pub struct InstancesInstanceIdConfigPortsTransportProtocolGetPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -261,10 +261,10 @@ pub struct InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeDeletePat
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEDELETEPATHPARAMS_HOST_PORT_RANGE: regex::Regex = regex::Regex::new(r"^[0-9]+(?:-[0-9]+)?$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEDELETEPATHPARAMS_HOST_PORT_RANGE: regex::Regex = regex::Regex::new("^[0-9]+(?:-[0-9]+)?$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -282,10 +282,10 @@ pub struct InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetPathPa
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEGETPATHPARAMS_HOST_PORT_RANGE: regex::Regex = regex::Regex::new(r"^[0-9]+(?:-[0-9]+)?$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEGETPATHPARAMS_HOST_PORT_RANGE: regex::Regex = regex::Regex::new("^[0-9]+(?:-[0-9]+)?$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -303,10 +303,10 @@ pub struct InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathPa
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEPUTPATHPARAMS_HOST_PORT_RANGE: regex::Regex = regex::Regex::new(r"^[0-9]+(?:-[0-9]+)?$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLHOSTPORTRANGEPUTPATHPARAMS_HOST_PORT_RANGE: regex::Regex = regex::Regex::new("^[0-9]+(?:-[0-9]+)?$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -320,7 +320,7 @@ pub struct InstancesInstanceIdConfigPortsTransportProtocolPutPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDCONFIGPORTSTRANSPORTPROTOCOLPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -339,7 +339,7 @@ pub struct InstancesInstanceIdDeletePathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -354,7 +354,7 @@ pub struct InstancesInstanceIdEditorPortGetPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDEDITORPORTGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDEDITORPORTGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -367,7 +367,7 @@ pub struct InstancesInstanceIdGetPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -386,7 +386,7 @@ pub struct InstancesInstanceIdPatchPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDPATCHPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDPATCHPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -399,7 +399,7 @@ pub struct InstancesInstanceIdStartPostPathParams {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDSTARTPOSTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDSTARTPOSTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -763,7 +763,7 @@ pub struct AppInstance {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_APPINSTANCE_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_APPINSTANCE_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 impl AppInstance {
@@ -5234,7 +5234,7 @@ pub struct InstanceEnvironmentVariable {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCEENVIRONMENTVARIABLE_NAME: regex::Regex = regex::Regex::new(r"^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
+    static ref RE_INSTANCEENVIRONMENTVARIABLE_NAME: regex::Regex = regex::Regex::new("^[a-zA-Z]+(?:[a-zA-Z0-9_\\-\\.])*$").unwrap();
 }
 
 impl InstanceEnvironmentVariable {
@@ -5535,7 +5535,7 @@ pub struct InstanceLabel {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCELABEL_NAME: regex::Regex = regex::Regex::new(r"^[a-z](?:(?:[\\-\\.]?[a-zA-Z0-9])*[\\-\\.]?[a-z])?$").unwrap();
+    static ref RE_INSTANCELABEL_NAME: regex::Regex = regex::Regex::new("^[a-z](?:(?:[\\-\\.]?[a-zA-Z0-9])*[\\-\\.]?[a-z])?$").unwrap();
 }
 
 impl InstanceLabel {
@@ -6914,7 +6914,7 @@ pub struct InstancesInstanceIdGet200Response {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDGET200RESPONSE_INSTANCE_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDGET200RESPONSE_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 impl InstancesInstanceIdGet200Response {
@@ -8862,7 +8862,7 @@ pub struct SessionId {
 }
 
 lazy_static::lazy_static! {
-    static ref RE_SESSIONID_ID: regex::Regex = regex::Regex::new(r"^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$").unwrap();
+    static ref RE_SESSIONID_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$").unwrap();
 }
 
 impl SessionId {
