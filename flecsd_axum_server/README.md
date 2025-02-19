@@ -12,7 +12,7 @@ server, you can easily generate a server stub.
 To see how to make this your own, look here: [README]((https://openapi-generator.tech))
 
 - API version: 2.0.0
-- Build date: 2025-02-11T12:50:03.690743284Z[Etc/UTC]
+- Build date: 2025-02-19T08:05:56.922249422Z[Etc/UTC]
 - Generator version: 7.11.0
 
 
@@ -34,6 +34,11 @@ The generated library has a few optional features that can be activated through 
     * This defaults to disabled and creates extra derives on models to allow "transmogrification" between objects of structurally similar types.
 
 See https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section for how to use features in your `Cargo.toml`.
+
+## Code generation
+
+Look at [GENERATE](GENERATE.md) for instructions on how to generate the code for this specific project.
+
 
 ### Example
 
