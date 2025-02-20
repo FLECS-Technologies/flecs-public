@@ -1,7 +1,9 @@
 use crate::fsm::server_impl::ServerImpl;
-use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
+use crate::jeweler::gem::instance::{InstanceId, TransportProtocol, UsbPathConfig};
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::quest::{Quest, QuestResult};
+use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+use crate::sorcerer::instancius::{GetInstanceUsbDeviceResult, PutInstanceUsbDeviceResult};
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
 use async_trait::async_trait;
@@ -74,7 +76,7 @@ use std::collections::HashSet;
 use std::str::FromStr;
 
 #[async_trait]
-impl Instances for ServerImpl {
+impl<T: UsbDeviceReader + Send + Sync> Instances for ServerImpl<T> {
     async fn instances_create_post(
         &self,
         _method: Method,
@@ -156,9 +158,15 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbDeletePathParams,
+        path_params: InstancesInstanceIdConfigDevicesUsbDeletePathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbDeleteResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::delete_instance_usb_devices(self.vault.clone(), instance_id)
+            .await
+        {
+            Some(_) => Ok(InstancesInstanceIdConfigDevicesUsbDeleteResponse::Status200_Success),
+            None => Ok(InstancesInstanceIdConfigDevicesUsbDeleteResponse::Status404_NoInstanceWithThisInstance),
+        }
     }
 
     async fn instances_instance_id_config_devices_usb_get(
@@ -166,9 +174,26 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbGetPathParams,
+        path_params: InstancesInstanceIdConfigDevicesUsbGetPathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbGetResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::get_instance_usb_devices(self.vault.clone(), instance_id, &self.usb_reader)
+            .await
+        {
+            Err(e) => Ok(
+                InstancesInstanceIdConfigDevicesUsbGetResponse::Status500_InternalServerError(
+                    AdditionalInfo {
+                        additional_info: e.to_string(),
+                    },
+                ),
+            ),
+            Ok(None) => Ok(InstancesInstanceIdConfigDevicesUsbGetResponse::Status404_NoInstanceWithThisInstance),
+            Ok(Some(usb_devices)) => {
+                Ok(InstancesInstanceIdConfigDevicesUsbGetResponse::Status200_Success(
+                    usb_devices.into_iter().map(instance_config_usb_device_from).collect(),
+                ))
+            }
+        }
     }
 
     async fn instances_instance_id_config_devices_usb_port_delete(
@@ -176,9 +201,37 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
+        path_params: InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortDeleteResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::delete_instance_usb_device(
+            self.vault.clone(),
+            instance_id,
+            path_params.port.clone(),
+        )
+        .await
+        {
+            Some(Some(_)) => {
+                Ok(InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status200_Success)
+            }
+            Some(None) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status404_ResourceNotFound(
+                    OptionalAdditionalInfo {
+                        additional_info: Some(format!("No instance with id {instance_id}")),
+                    },
+                ),
+            ),
+            None => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status404_ResourceNotFound(
+                    OptionalAdditionalInfo {
+                        additional_info: Some(format!(
+                            "Usb port '{}' not mapped to instance {instance_id}",
+                            path_params.port
+                        )),
+                    },
+                ),
+            ),
+        }
     }
 
     async fn instances_instance_id_config_devices_usb_port_get(
@@ -186,9 +239,60 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
+        path_params: InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortGetResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::get_instance_usb_device(
+            self.vault.clone(),
+            instance_id,
+            path_params.port.clone(),
+            &self.usb_reader,
+        )
+        .await
+        {
+            Ok(GetInstanceUsbDeviceResult::DeviceActive(config, device)) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status200_Success(
+                    instance_config_usb_device_from((config, Some(device))),
+                ),
+            ),
+            Ok(GetInstanceUsbDeviceResult::DeviceInactive(config)) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status200_Success(
+                    instance_config_usb_device_from((config, None)),
+                ),
+            ),
+            Ok(GetInstanceUsbDeviceResult::InstanceNotFound) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status404_ResourceNotFound(
+                    OptionalAdditionalInfo {
+                        additional_info: Some(format!("No instance with id {instance_id}")),
+                    },
+                ),
+            ),
+            Ok(GetInstanceUsbDeviceResult::DeviceNotMapped) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status404_ResourceNotFound(
+                    OptionalAdditionalInfo {
+                        additional_info: Some(format!(
+                            "Usb port '{}' not mapped to instance {instance_id}",
+                            path_params.port
+                        )),
+                    },
+                ),
+            ),
+            Ok(GetInstanceUsbDeviceResult::UnknownDevice) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status404_ResourceNotFound(
+                    OptionalAdditionalInfo {
+                        additional_info: Some(format!(
+                            "Usb port '{}' not mapped to instance {instance_id} and not corresponding to any known device",
+                            path_params.port
+                        )),
+                    },
+                ),
+            ),
+            Err(e) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status500_InternalServerError(
+                    AdditionalInfo::new(e.to_string()),
+                ),
+            ),
+        }
     }
 
     async fn instances_instance_id_config_devices_usb_port_put(
@@ -196,9 +300,39 @@ impl Instances for ServerImpl {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
+        path_params: InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortPutResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        match crate::sorcerer::instancius::put_instance_usb_device(
+            self.vault.clone(),
+            instance_id,
+            path_params.port.clone(),
+            &self.usb_reader,
+        )
+        .await
+        {
+            Ok(PutInstanceUsbDeviceResult::InstanceNotFound) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status404_ResourceNotFound(OptionalAdditionalInfo{
+                    additional_info: Some(format!("No instance with id {instance_id}")),
+                }),
+            ),
+            Ok(PutInstanceUsbDeviceResult::DeviceNotFound) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status404_ResourceNotFound(OptionalAdditionalInfo{
+                    additional_info: Some(format!("No usb device with port {}", path_params.port)),
+                }),
+            ),
+            Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status201_UsbDeviceWasPassedThrough,
+            ),
+            Ok(PutInstanceUsbDeviceResult::DeviceMappingUpdated(_)) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status200_AlreadyPassedThrough,
+            ),
+            Err(e) => Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status500_InternalServerError(
+                    AdditionalInfo::new(e.to_string()),
+                ),
+            ),
+        }
     }
 
     async fn instances_instance_id_config_environment_delete(
@@ -1079,18 +1213,42 @@ impl From<Label> for models::InstanceLabel {
     }
 }
 
+fn instance_config_usb_device_from(
+    (config, device): (UsbPathConfig, Option<UsbDevice>),
+) -> models::InstanceConfigUsbDevice {
+    match device {
+        Some(device) => models::InstanceConfigUsbDevice {
+            port: config.port,
+            device_connected: true,
+            pid: Some(device.pid as i32),
+            name: Some(device.device),
+            vendor: Some(device.vendor),
+            vid: Some(device.vid as i32),
+        },
+        None => models::InstanceConfigUsbDevice {
+            port: config.port,
+            device_connected: false,
+            name: None,
+            vid: None,
+            pid: None,
+            vendor: None,
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::fsm::server_impl::ServerImpl;
     use crate::jeweler::gem::app::{try_create_app, AppDeserializable};
+    use crate::relic::device::usb::MockUsbDeviceReader;
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
     use axum::extract::Host;
     use axum_extra::extract::CookieJar;
     use flecsd_axum_server::apis::instances::{
-        Instances, InstancesInstanceIdLogsGetResponse, InstancesInstanceIdStartPostResponse,
+        InstancesInstanceIdLogsGetResponse, InstancesInstanceIdStartPostResponse,
         InstancesInstanceIdStopPostResponse,
     };
     use flecsd_axum_server::models::{
@@ -1099,6 +1257,7 @@ mod tests {
     };
     use http::Method;
     use std::collections::HashMap;
+    use std::io::ErrorKind;
     use std::sync::Arc;
 
     #[tokio::test]
@@ -1106,6 +1265,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "start_404");
         let server = ServerImpl {
             vault: Arc::new(Vault::new(VaultConfig { path })),
+            usb_reader: MockUsbDeviceReader::new(),
         };
         assert_eq!(
             Ok(InstancesInstanceIdStartPostResponse::Status404_NoInstanceWithThisInstance),
@@ -1127,6 +1287,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "stop_404");
         let server = ServerImpl {
             vault: Arc::new(Vault::new(VaultConfig { path })),
+            usb_reader: MockUsbDeviceReader::new(),
         };
         assert_eq!(
             Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance),
@@ -1148,6 +1309,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "logs_404");
         let server = ServerImpl {
             vault: Arc::new(Vault::new(VaultConfig { path })),
+            usb_reader: MockUsbDeviceReader::new(),
         };
         assert_eq!(
             Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance),
@@ -1169,6 +1331,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "create_instance_no_app");
         let server = ServerImpl {
             vault: Arc::new(Vault::new(VaultConfig { path })),
+            usb_reader: MockUsbDeviceReader::new(),
         };
         assert!(matches!(
             server
@@ -1212,7 +1375,10 @@ mod tests {
             .unwrap()
             .gems_mut()
             .insert(test_key.into(), app);
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_create_post(
@@ -1240,7 +1406,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_delete(
@@ -1264,7 +1433,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_delete(
@@ -1303,7 +1475,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_get(
@@ -1327,7 +1502,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_get(
@@ -1371,7 +1549,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_delete(
@@ -1413,7 +1594,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_delete(
@@ -1438,7 +1622,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_get(
@@ -1463,7 +1650,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_get(
@@ -1497,7 +1687,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1523,7 +1716,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1549,7 +1745,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1591,7 +1790,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1617,7 +1819,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1643,7 +1848,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1676,7 +1884,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -1703,7 +1914,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -1730,7 +1944,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -1773,7 +1990,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -1817,7 +2037,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1843,7 +2066,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1869,7 +2095,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1895,7 +2124,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1937,7 +2169,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1963,7 +2198,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1989,7 +2227,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -2015,7 +2256,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -2054,7 +2298,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -2087,7 +2334,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2117,7 +2367,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2147,7 +2400,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2177,7 +2433,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2207,7 +2466,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2237,7 +2499,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2286,7 +2551,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2337,7 +2605,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         let port_mappings = vec![
             models::InstancePortMapping::InstancePortMappingRange(Box::new(
                 models::InstancePortMappingRange {
@@ -2383,7 +2654,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_put(
@@ -2420,7 +2694,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_put(
@@ -2446,7 +2723,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         let port_mappings = vec![
             models::InstancePortMapping::InstancePortMappingSingle(Box::new(
                 models::InstancePortMappingSingle {
@@ -2896,7 +3176,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_variable_name_get(
@@ -2923,7 +3206,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_variable_name_get(
@@ -2950,7 +3236,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_get(
@@ -2997,7 +3286,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_variable_name_delete(
@@ -3022,7 +3314,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_variable_name_delete(
@@ -3047,7 +3342,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_delete(
@@ -3105,7 +3403,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_put(
@@ -3133,7 +3434,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_put(
@@ -3184,7 +3488,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_put(
@@ -3235,7 +3542,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_delete(
@@ -3259,7 +3569,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_delete(
@@ -3298,7 +3611,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_get(
@@ -3322,7 +3638,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_environment_get(
@@ -3357,7 +3676,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_put(
@@ -3391,7 +3713,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_put(
@@ -3416,7 +3741,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_put(
@@ -3476,7 +3804,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_put(
@@ -3550,7 +3881,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_labels_get(
@@ -3574,7 +3908,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_labels_get(
@@ -3607,7 +3944,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_labels_label_name_get(
@@ -3632,7 +3972,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert!(matches!(
             server
                 .instances_instance_id_config_labels_label_name_get(
@@ -3657,7 +4000,10 @@ mod tests {
             None,
         )
         .await;
-        let server = ServerImpl { vault };
+        let server = ServerImpl {
+            vault,
+            usb_reader: MockUsbDeviceReader::new(),
+        };
         assert_eq!(
             server
                 .instances_instance_id_config_labels_label_name_get(
@@ -3692,5 +4038,696 @@ mod tests {
                 }
             ))
         );
+    }
+
+    #[test]
+    fn instance_config_usb_device_from_some() {
+        let usb_path_config = UsbPathConfig {
+            dev_num: 20,
+            port: "usb12".to_string(),
+            bus_num: 10,
+        };
+        let usb_device = UsbDevice {
+            device: "test-dev".to_string(),
+            vid: 12,
+            pid: 24,
+            port: "usb12".to_string(),
+            vendor: "Vendor".to_string(),
+        };
+        assert_eq!(
+            instance_config_usb_device_from((usb_path_config, Some(usb_device))),
+            models::InstanceConfigUsbDevice {
+                port: "usb12".to_string(),
+                device_connected: true,
+                pid: Some(24),
+                vendor: Some("Vendor".to_string()),
+                vid: Some(12),
+                name: Some("test-dev".to_string()),
+            }
+        )
+    }
+
+    #[test]
+    fn instance_config_usb_device_from_none() {
+        let usb_path_config = UsbPathConfig {
+            dev_num: 20,
+            port: "usb12".to_string(),
+            bus_num: 10,
+        };
+        assert_eq!(
+            instance_config_usb_device_from((usb_path_config, None)),
+            models::InstanceConfigUsbDevice {
+                port: "usb12".to_string(),
+                device_connected: false,
+                pid: None,
+                vendor: None,
+                vid: None,
+                name: None,
+            }
+        )
+    }
+
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_delete_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_delete_200",
+            None,
+        )
+        .await;
+        let usb_reader = MockUsbDeviceReader::new();
+        let server = ServerImpl { vault, usb_reader };
+        assert_eq!(
+            server
+                .instances_instance_id_config_devices_usb_delete(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbDeletePathParams {
+                        instance_id: "00000002".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbDeleteResponse::Status200_Success)
+        )
+    }
+
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_delete_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_delete_404",
+            None,
+        )
+        .await;
+        let usb_reader = MockUsbDeviceReader::new();
+        let server = ServerImpl { vault, usb_reader };
+        assert_eq!(
+            server
+                .instances_instance_id_config_devices_usb_delete(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbDeletePathParams {
+                        instance_id: "aabbccdd".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbDeleteResponse::Status404_NoInstanceWithThisInstance)
+        )
+    }
+
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_get_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_get_200",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::from([])));
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbGetPathParams {
+                        instance_id: "00000006".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbGetResponse::Status200_Success(_))
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_get_404() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_get_404",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .return_once(|| Ok(HashMap::from([])));
+        let server = ServerImpl { vault, usb_reader };
+        assert_eq!(
+            server
+                .instances_instance_id_config_devices_usb_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbGetPathParams {
+                        instance_id: "1234abcd".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbGetResponse::Status404_NoInstanceWithThisInstance)
+        )
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_get_500() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_get_500",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader.expect_read_usb_devices().times(1).returning(|| {
+            Err(crate::relic::device::usb::Error::Io(std::io::Error::new(
+                ErrorKind::Other,
+                "test error",
+            )))
+        });
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbGetPathParams {
+                        instance_id: "0000006".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbGetResponse::Status500_InternalServerError(_))
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_delete_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_delete_200",
+            None,
+        )
+        .await;
+        let usb_reader = MockUsbDeviceReader::new();
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_delete(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortDeletePathParams {
+                        instance_id: "00000006".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status200_Success)
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_delete_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_delete_404_instance",
+            None,
+        )
+        .await;
+        let usb_reader = MockUsbDeviceReader::new();
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_delete(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortDeletePathParams {
+                        instance_id: "abcddcba".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(
+                InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status404_ResourceNotFound(
+                    _
+                )
+            )
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_delete_404_port() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_delete_404_port",
+            None,
+        )
+        .await;
+        let usb_reader = MockUsbDeviceReader::new();
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_delete(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortDeletePathParams {
+                        instance_id: "00000006".to_string(),
+                        port: "unknown port".to_string(),
+                    }
+                )
+                .await,
+            Ok(
+                InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status404_ResourceNotFound(
+                    _
+                )
+            )
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_get_200_inactive() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_get_200_inactive",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::from([])));
+        let server = ServerImpl { vault, usb_reader };
+        assert_eq!(
+            server
+                .instances_instance_id_config_devices_usb_port_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortGetPathParams {
+                        instance_id: "00000006".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status200_Success(
+                    models::InstanceConfigUsbDevice {
+                        port: "test_port".to_string(),
+                        name: None,
+                        pid: None,
+                        vendor: None,
+                        vid: None,
+                        device_connected: false,
+                    }
+                )
+            )
+        )
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_get_200_active() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_get_200_active",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| {
+                Ok(HashMap::from([(
+                    "test_port".to_string(),
+                    UsbDevice {
+                        vid: 10,
+                        pid: 20,
+                        port: "test_port".to_string(),
+                        device: "test-dev".to_string(),
+                        vendor: "test-vendor".to_string(),
+                    },
+                )]))
+            });
+        let server = ServerImpl { vault, usb_reader };
+        assert_eq!(
+            server
+                .instances_instance_id_config_devices_usb_port_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortGetPathParams {
+                        instance_id: "00000006".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status200_Success(
+                    models::InstanceConfigUsbDevice {
+                        port: "test_port".to_string(),
+                        name: Some("test-dev".to_string()),
+                        pid: Some(20),
+                        vendor: Some("test-vendor".to_string()),
+                        vid: Some(10),
+                        device_connected: true,
+                    }
+                )
+            )
+        )
+    }
+
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_get_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_get_404_instance",
+            None,
+        )
+        .await;
+        let usb_reader = MockUsbDeviceReader::new();
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortGetPathParams {
+                        instance_id: "aaabbbcc".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status404_ResourceNotFound(_))
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_get_404_port() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_get_404_port",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| {
+                Ok(HashMap::from([(
+                    "test_port".to_string(),
+                    UsbDevice {
+                        vid: 10,
+                        pid: 20,
+                        port: "test_port".to_string(),
+                        device: "test-dev".to_string(),
+                        vendor: "test-vendor".to_string(),
+                    },
+                )]))
+            });
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortGetPathParams {
+                        instance_id: "00000002".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status404_ResourceNotFound(_))
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_get_404_unknown() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_get_404_unknown",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::from([])));
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortGetPathParams {
+                        instance_id: "00000002".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status404_ResourceNotFound(_))
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_get_500() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_get_500",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader.expect_read_usb_devices().times(1).returning(|| {
+            Err(crate::relic::device::usb::Error::Io(std::io::Error::new(
+                ErrorKind::Other,
+                "test error",
+            )))
+        });
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_get(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortGetPathParams {
+                        instance_id: "00000006".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(
+                InstancesInstanceIdConfigDevicesUsbPortGetResponse::Status500_InternalServerError(
+                    _
+                )
+            )
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_put_404_instance() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_put_404_instance",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| {
+                Ok(HashMap::from([(
+                    "test_port".to_string(),
+                    UsbDevice {
+                        vid: 10,
+                        pid: 20,
+                        port: "test_port".to_string(),
+                        device: "test-dev".to_string(),
+                        vendor: "test-vendor".to_string(),
+                    },
+                )]))
+            });
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_put(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortPutPathParams {
+                        instance_id: "aaabbbcc".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status404_ResourceNotFound(_))
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_put_404_device() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_put_404_device",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::from([])));
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_put(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortPutPathParams {
+                        instance_id: "00000003".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status404_ResourceNotFound(_))
+        ))
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_put_201() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_put_201",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| {
+                Ok(HashMap::from([(
+                    "test_port".to_string(),
+                    UsbDevice {
+                        vid: 10,
+                        pid: 20,
+                        port: "test_port".to_string(),
+                        device: "test-dev".to_string(),
+                        vendor: "test-vendor".to_string(),
+                    },
+                )]))
+            });
+        usb_reader
+            .expect_get_usb_value()
+            .withf(|value_name, _| value_name == "devnum")
+            .times(1)
+            .returning(|_, _| Ok("919".to_string()));
+        usb_reader
+            .expect_get_usb_value()
+            .withf(|value_name, _| value_name == "busnum")
+            .times(1)
+            .returning(|_, _| Ok("121".to_string()));
+        let server = ServerImpl { vault, usb_reader };
+        assert_eq!(
+            server
+                .instances_instance_id_config_devices_usb_port_put(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortPutPathParams {
+                        instance_id: "00000003".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status201_UsbDeviceWasPassedThrough)
+        )
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_put_200() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_put_200",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| {
+                Ok(HashMap::from([(
+                    "test_port".to_string(),
+                    UsbDevice {
+                        vid: 10,
+                        pid: 20,
+                        port: "test_port".to_string(),
+                        device: "test-dev".to_string(),
+                        vendor: "test-vendor".to_string(),
+                    },
+                )]))
+            });
+        usb_reader
+            .expect_get_usb_value()
+            .withf(|value_name, _| value_name == "devnum")
+            .times(1)
+            .returning(|_, _| Ok("919".to_string()));
+        usb_reader
+            .expect_get_usb_value()
+            .withf(|value_name, _| value_name == "busnum")
+            .times(1)
+            .returning(|_, _| Ok("121".to_string()));
+        let server = ServerImpl { vault, usb_reader };
+        assert_eq!(
+            server
+                .instances_instance_id_config_devices_usb_port_put(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortPutPathParams {
+                        instance_id: "00000006".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status200_AlreadyPassedThrough)
+        )
+    }
+    #[tokio::test]
+    async fn instances_instance_id_config_devices_usb_port_put_500() {
+        let vault = crate::sorcerer::instancius::tests::spell_test_vault(
+            module_path!(),
+            "instances_instance_id_config_devices_usb_port_put_500",
+            None,
+        )
+        .await;
+        let mut usb_reader = MockUsbDeviceReader::new();
+        usb_reader.expect_read_usb_devices().times(1).returning(|| {
+            Err(crate::relic::device::usb::Error::Io(std::io::Error::new(
+                ErrorKind::Other,
+                "test error",
+            )))
+        });
+        let server = ServerImpl { vault, usb_reader };
+        assert!(matches!(
+            server
+                .instances_instance_id_config_devices_usb_port_put(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    InstancesInstanceIdConfigDevicesUsbPortPutPathParams {
+                        instance_id: "00000006".to_string(),
+                        port: "test_port".to_string(),
+                    }
+                )
+                .await,
+            Ok(
+                InstancesInstanceIdConfigDevicesUsbPortPutResponse::Status500_InternalServerError(
+                    _
+                )
+            )
+        ))
     }
 }

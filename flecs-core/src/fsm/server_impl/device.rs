@@ -1,6 +1,7 @@
 use crate::fsm::server_impl::{
     additional_info_from_error, console_session_id_to_core_session_id, ok, ServerImpl,
 };
+use crate::relic::device::usb::UsbDeviceReader;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -16,7 +17,7 @@ use http::Method;
 use tracing::warn;
 
 #[async_trait]
-impl Device for ServerImpl {
+impl<T: UsbDeviceReader + Sync> Device for ServerImpl<T> {
     async fn device_license_activation_post(
         &self,
         _method: Method,
