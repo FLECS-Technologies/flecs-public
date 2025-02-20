@@ -3,14 +3,16 @@ use crate::forge::vec::VecExtension;
 use crate::jeweler::app::AppStatus;
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem;
-use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
+use crate::jeweler::gem::instance::{InstanceId, TransportProtocol, UsbPathConfig};
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::jeweler::instance::Logs;
 use crate::quest::SyncQuest;
+use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::spell;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
 
@@ -238,6 +240,118 @@ pub async fn get_instance_config(
     id: InstanceId,
 ) -> Option<gem::instance::config::InstanceConfig> {
     spell::instance::get_instance_config_part_with(vault, id, |config| config.clone()).await
+}
+
+pub async fn get_instance_usb_devices(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    usb_reader: &impl UsbDeviceReader,
+) -> Result<Option<Vec<(UsbPathConfig, Option<UsbDevice>)>>> {
+    let Some(mapped_devices) =
+        spell::instance::get_instance_config_part_with(vault, id, |config| {
+            config.usb_devices.clone()
+        })
+        .await
+    else {
+        return Ok(None);
+    };
+    let existing_devices = usb_reader.read_usb_devices()?;
+    Ok(Some(
+        mapped_devices
+            .into_iter()
+            .map(|(port, device)| {
+                let existing_device = existing_devices.get(&port).cloned();
+                (device, existing_device)
+            })
+            .collect(),
+    ))
+}
+
+pub async fn delete_instance_usb_devices(
+    vault: Arc<Vault>,
+    id: InstanceId,
+) -> Option<HashMap<String, UsbPathConfig>> {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        std::mem::take(&mut config.usb_devices)
+    })
+    .await
+}
+
+pub async fn delete_instance_usb_device(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    port: String,
+) -> Option<Option<UsbPathConfig>> {
+    spell::instance::modify_instance_config_with(vault, id, |config| {
+        config.usb_devices.remove(&port)
+    })
+    .await
+}
+
+#[derive(Eq, PartialEq, Debug)]
+pub enum GetInstanceUsbDeviceResult {
+    UnknownDevice,
+    DeviceNotMapped,
+    InstanceNotFound,
+    DeviceInactive(UsbPathConfig),
+    DeviceActive(UsbPathConfig, UsbDevice),
+}
+
+pub async fn get_instance_usb_device(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    port: String,
+    usb_reader: &impl UsbDeviceReader,
+) -> Result<GetInstanceUsbDeviceResult> {
+    let Some(mapped_device) = spell::instance::get_instance_config_part_with(vault, id, |config| {
+        config.usb_devices.get(&port).cloned()
+    })
+    .await
+    else {
+        return Ok(GetInstanceUsbDeviceResult::InstanceNotFound);
+    };
+    match (mapped_device, usb_reader.read_usb_devices()?.remove(&port)) {
+        (Some(config), Some(usb_device)) => {
+            Ok(GetInstanceUsbDeviceResult::DeviceActive(config, usb_device))
+        }
+        (Some(config), None) => Ok(GetInstanceUsbDeviceResult::DeviceInactive(config)),
+        (None, Some(_)) => Ok(GetInstanceUsbDeviceResult::DeviceNotMapped),
+        (None, None) => Ok(GetInstanceUsbDeviceResult::UnknownDevice),
+    }
+}
+
+#[derive(Eq, PartialEq, Debug)]
+pub enum PutInstanceUsbDeviceResult {
+    DeviceNotFound,
+    InstanceNotFound,
+    DeviceMappingCreated,
+    DeviceMappingUpdated(UsbPathConfig),
+}
+
+pub async fn put_instance_usb_device(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    port: String,
+    usb_reader: &impl UsbDeviceReader,
+) -> Result<PutInstanceUsbDeviceResult> {
+    let Some(usb_device) = usb_reader.read_usb_devices()?.remove(&port) else {
+        return Ok(PutInstanceUsbDeviceResult::DeviceNotFound);
+    };
+    let usb_reader: &dyn UsbDeviceReader = usb_reader;
+    let result = spell::instance::modify_instance_config_with(vault, id, |config| {
+        Ok(config
+            .usb_devices
+            .insert(port, UsbPathConfig::try_from((&usb_device, usb_reader))?))
+    })
+    .await;
+    match result {
+        None => Ok(PutInstanceUsbDeviceResult::InstanceNotFound),
+        Some(Ok(Some(previous_mapping))) => Ok(PutInstanceUsbDeviceResult::DeviceMappingUpdated(
+            previous_mapping,
+        )),
+        Some(Ok(None)) => Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated),
+        Some(Err(e)) => Err(e),
+    }
 }
 
 pub async fn get_instance_config_port_mapping(
@@ -530,6 +644,7 @@ pub mod tests {
     use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
     use crate::jeweler::gem::manifest::tests::{create_test_manifest, create_test_manifest_full};
     use crate::quest::Quest;
+    use crate::relic::device::usb::{Error, MockUsbDeviceReader};
     use crate::tests::prepare_test_path;
     use crate::vault;
     use crate::vault::pouch::Pouch;
@@ -537,6 +652,7 @@ pub mod tests {
     use bollard::models::{Ipam, IpamConfig, Network};
     pub use spell::instance::tests::create_test_vault as spell_test_vault;
     use std::collections::HashMap;
+    use std::io::ErrorKind;
     use std::net::Ipv4Addr;
     use std::sync::Arc;
 
@@ -2412,6 +2528,605 @@ pub mod tests {
             )
             .await,
             Some(Some(Some("Some custom label value".to_string())))
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_devices_err() {
+        let vault = spell_test_vault(module_path!(), "get_instance_usb_devices_err", None).await;
+        let mut mock_reader = MockUsbDeviceReader::new();
+        mock_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .returning(|| {
+                Err(Error::Io(std::io::Error::new(
+                    ErrorKind::Other,
+                    "test error",
+                )))
+            });
+        assert!(
+            get_instance_usb_devices(vault, InstanceId::new(1), &mock_reader)
+                .await
+                .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_devices_ok_none() {
+        let vault =
+            spell_test_vault(module_path!(), "get_instance_usb_devices_ok_none", None).await;
+        assert!(matches!(
+            get_instance_usb_devices(vault, InstanceId::new(20), &MockUsbDeviceReader::new()).await,
+            Ok(None)
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_devices_ok_inactive() {
+        let vault =
+            spell_test_vault(module_path!(), "get_instance_usb_devices_ok_inactive", None).await;
+        let mut mock_reader = MockUsbDeviceReader::new();
+        mock_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .returning(|| Ok(HashMap::default()));
+        assert_eq!(
+            get_instance_usb_devices(vault, InstanceId::new(6), &mock_reader)
+                .await
+                .unwrap()
+                .unwrap(),
+            vec![(
+                UsbPathConfig {
+                    port: "test_port".to_string(),
+                    bus_num: 10,
+                    dev_num: 20,
+                },
+                None
+            )]
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_devices_ok_active() {
+        let vault =
+            spell_test_vault(module_path!(), "get_instance_usb_devices_ok_active", None).await;
+        let mut mock_reader = MockUsbDeviceReader::new();
+        let expected_device = UsbDevice {
+            vid: 10,
+            pid: 100,
+            port: "test_port".to_string(),
+            device: "test-dev".to_string(),
+            vendor: "test-vendor".to_string(),
+        };
+        let expected_result = vec![(
+            UsbPathConfig {
+                port: "test_port".to_string(),
+                bus_num: 10,
+                dev_num: 20,
+            },
+            Some(expected_device.clone()),
+        )];
+        mock_reader
+            .expect_read_usb_devices()
+            .times(1)
+            .returning(move || {
+                Ok(HashMap::from([(
+                    "test_port".to_string(),
+                    expected_device.clone(),
+                )]))
+            });
+        assert_eq!(
+            get_instance_usb_devices(vault, InstanceId::new(6), &mock_reader)
+                .await
+                .unwrap()
+                .unwrap(),
+            expected_result
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_usb_devices_none() {
+        let vault =
+            spell_test_vault(module_path!(), "delete_instance_usb_devices_none", None).await;
+        assert!(delete_instance_usb_devices(vault, InstanceId::new(20))
+            .await
+            .is_none(),);
+    }
+
+    #[tokio::test]
+    async fn delete_instance_usb_devices_some_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_usb_devices_some_none",
+            None,
+        )
+        .await;
+        assert!(matches!(
+            delete_instance_usb_device(vault, InstanceId::new(1), "test_port".to_string()).await,
+            Some(None)
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_usb_devices_some() {
+        let vault =
+            spell_test_vault(module_path!(), "delete_instance_usb_devices_some", None).await;
+        assert_eq!(
+            delete_instance_usb_devices(vault.clone(), InstanceId::new(6)).await,
+            Some(HashMap::from([(
+                "test_port".to_string(),
+                UsbPathConfig {
+                    port: "test_port".to_string(),
+                    bus_num: 10,
+                    dev_num: 20,
+                }
+            )]))
+        );
+        assert!(vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .usb_devices
+            .is_empty());
+    }
+
+    #[tokio::test]
+    async fn delete_instance_usb_device_none() {
+        let vault = spell_test_vault(module_path!(), "delete_instance_usb_device_none", None).await;
+        assert!(
+            delete_instance_usb_device(vault, InstanceId::new(20), "test_port".to_string())
+                .await
+                .is_none(),
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_usb_device_some_none() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "delete_instance_usb_device_some_empty",
+            None,
+        )
+        .await;
+        assert!(matches!(
+            delete_instance_usb_device(vault, InstanceId::new(6), "unknown_port".to_string()).await,
+            Some(None)
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_usb_device_some() {
+        let vault = spell_test_vault(module_path!(), "delete_instance_usb_device_some", None).await;
+        assert_eq!(
+            delete_instance_usb_device(vault.clone(), InstanceId::new(6), "test_port".to_string())
+                .await,
+            Some(Some(UsbPathConfig {
+                port: "test_port".to_string(),
+                bus_num: 10,
+                dev_num: 20,
+            }))
+        );
+        assert!(vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&InstanceId::new(6))
+            .unwrap()
+            .config
+            .usb_devices
+            .is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_device_ok_instance_not_found() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_usb_device_ok_instance_not_found",
+            None,
+        )
+        .await;
+        let reader = MockUsbDeviceReader::new();
+        assert!(matches!(
+            get_instance_usb_device(vault, InstanceId::new(20), "test_port".to_string(), &reader)
+                .await,
+            Ok(GetInstanceUsbDeviceResult::InstanceNotFound),
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_device_ok_device_not_mapped() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_usb_device_ok_device_not_mapped",
+            None,
+        )
+        .await;
+        let mut reader = MockUsbDeviceReader::new();
+        let expected_device = UsbDevice {
+            vid: 10,
+            pid: 100,
+            port: "unmapped_port".to_string(),
+            device: "test-dev".to_string(),
+            vendor: "test-vendor".to_string(),
+        };
+        let returned_device = expected_device.clone();
+        reader.expect_read_usb_devices().times(1).return_once(|| {
+            Ok(HashMap::from([(
+                "unmapped_port".to_string(),
+                returned_device,
+            )]))
+        });
+        assert!(matches!(
+            get_instance_usb_device(
+                vault,
+                InstanceId::new(6),
+                "unmapped_port".to_string(),
+                &reader
+            )
+            .await,
+            Ok(GetInstanceUsbDeviceResult::DeviceNotMapped)
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_device_ok_unknown_device() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "get_instance_usb_device_ok_unknown_device",
+            None,
+        )
+        .await;
+        let mut reader = MockUsbDeviceReader::new();
+        reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::default()));
+        assert!(matches!(
+            get_instance_usb_device(
+                vault,
+                InstanceId::new(6),
+                "unknown_port".to_string(),
+                &reader
+            )
+            .await,
+            Ok(GetInstanceUsbDeviceResult::UnknownDevice)
+        ));
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_device_ok_inactive() {
+        let vault =
+            spell_test_vault(module_path!(), "get_instance_usb_device_ok_inactive", None).await;
+        let mut reader = MockUsbDeviceReader::new();
+        reader
+            .expect_read_usb_devices()
+            .times(1)
+            .returning(|| Ok(HashMap::default()));
+        assert_eq!(
+            get_instance_usb_device(vault, InstanceId::new(6), "test_port".to_string(), &reader)
+                .await
+                .unwrap(),
+            GetInstanceUsbDeviceResult::DeviceInactive(UsbPathConfig {
+                port: "test_port".to_string(),
+                bus_num: 10,
+                dev_num: 20,
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_device_ok_active() {
+        let vault =
+            spell_test_vault(module_path!(), "get_instance_usb_device_ok_active", None).await;
+        let mut reader = MockUsbDeviceReader::new();
+        let expected_device = UsbDevice {
+            vid: 10,
+            pid: 100,
+            port: "test_port".to_string(),
+            device: "test-dev".to_string(),
+            vendor: "test-vendor".to_string(),
+        };
+        let returned_device = expected_device.clone();
+        reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::from([("test_port".to_string(), returned_device)])));
+        assert_eq!(
+            get_instance_usb_device(vault, InstanceId::new(6), "test_port".to_string(), &reader)
+                .await
+                .unwrap(),
+            GetInstanceUsbDeviceResult::DeviceActive(
+                UsbPathConfig {
+                    port: "test_port".to_string(),
+                    bus_num: 10,
+                    dev_num: 20,
+                },
+                expected_device
+            )
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_usb_device_err() {
+        let vault = spell_test_vault(module_path!(), "get_instance_usb_device_err", None).await;
+        let mut reader = MockUsbDeviceReader::new();
+        reader.expect_read_usb_devices().times(1).return_once(|| {
+            Err(Error::Io(std::io::Error::new(
+                ErrorKind::Other,
+                "test error",
+            )))
+        });
+        assert!(get_instance_usb_device(
+            vault,
+            InstanceId::new(6),
+            "test_port".to_string(),
+            &reader
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn put_instance_usb_device_err_devices() {
+        let vault =
+            spell_test_vault(module_path!(), "put_instance_usb_device_err_devices", None).await;
+        let mut reader = MockUsbDeviceReader::new();
+        reader.expect_read_usb_devices().times(1).return_once(|| {
+            Err(Error::Io(std::io::Error::new(
+                ErrorKind::Other,
+                "test error",
+            )))
+        });
+        assert!(put_instance_usb_device(
+            vault,
+            InstanceId::new(20),
+            "test_port".to_string(),
+            &reader
+        )
+        .await
+        .is_err(),);
+    }
+
+    #[tokio::test]
+    async fn put_instance_usb_device_err_devnum() {
+        let vault =
+            spell_test_vault(module_path!(), "put_instance_usb_device_err_devnum", None).await;
+        let mut reader = MockUsbDeviceReader::new();
+        let device = UsbDevice {
+            vid: 10,
+            pid: 100,
+            port: "test_port".to_string(),
+            device: "test-dev".to_string(),
+            vendor: "test-vendor".to_string(),
+        };
+        reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::from([(device.port.clone(), device)])));
+        reader
+            .expect_get_usb_value()
+            .times(1)
+            .withf(|value_name, port| value_name == "devnum" && port == "test_port")
+            .returning(|_, _| {
+                Err(Error::Io(std::io::Error::new(
+                    ErrorKind::Other,
+                    "test error",
+                )))
+            });
+        reader
+            .expect_get_usb_value()
+            .withf(|value_name, port| value_name == "busnum" && port == "test_port")
+            .returning(|_, _| Ok("10".to_string()));
+        assert!(put_instance_usb_device(
+            vault.clone(),
+            InstanceId::new(3),
+            "test_port".to_string(),
+            &reader
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn put_instance_usb_device_ok_instance_not_found() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_usb_device_ok_instance_not_found",
+            None,
+        )
+        .await;
+        let device = UsbDevice {
+            vid: 10,
+            pid: 100,
+            port: "test_port".to_string(),
+            device: "test-dev".to_string(),
+            vendor: "test-vendor".to_string(),
+        };
+        let mut reader = MockUsbDeviceReader::new();
+        reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::from([(device.port.clone(), device)])));
+        assert!(matches!(
+            put_instance_usb_device(vault, InstanceId::new(20), "test_port".to_string(), &reader)
+                .await,
+            Ok(PutInstanceUsbDeviceResult::InstanceNotFound),
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_usb_device_ok_device_not_found() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_usb_device_ok_device_not_found",
+            None,
+        )
+        .await;
+        let mut reader = MockUsbDeviceReader::new();
+        reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::default()));
+        assert!(matches!(
+            put_instance_usb_device(
+                vault,
+                InstanceId::new(6),
+                "unmapped_port".to_string(),
+                &reader
+            )
+            .await,
+            Ok(PutInstanceUsbDeviceResult::DeviceNotFound)
+        ));
+    }
+
+    #[tokio::test]
+    async fn put_instance_usb_device_ok_mapping_created() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_usb_device_ok_mapping_created",
+            None,
+        )
+        .await;
+        let mut reader = MockUsbDeviceReader::new();
+        let device = UsbDevice {
+            vid: 10,
+            pid: 100,
+            port: "test_port".to_string(),
+            device: "test-dev".to_string(),
+            vendor: "test-vendor".to_string(),
+        };
+        reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::from([(device.port.clone(), device)])));
+        reader
+            .expect_get_usb_value()
+            .times(1)
+            .withf(|value_name, port| value_name == "devnum" && port == "test_port")
+            .returning(|_, _| Ok("120".to_string()));
+        reader
+            .expect_get_usb_value()
+            .times(1)
+            .withf(|value_name, port| value_name == "busnum" && port == "test_port")
+            .returning(|_, _| Ok("10".to_string()));
+        assert!(matches!(
+            put_instance_usb_device(
+                vault.clone(),
+                InstanceId::new(3),
+                "test_port".to_string(),
+                &reader
+            )
+            .await,
+            Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated)
+        ));
+
+        assert_eq!(
+            vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(3))
+                .unwrap()
+                .config
+                .usb_devices
+                .clone(),
+            HashMap::from([(
+                "test_port".to_string(),
+                UsbPathConfig {
+                    port: "test_port".to_string(),
+                    bus_num: 10,
+                    dev_num: 120
+                }
+            )])
+        );
+    }
+
+    #[tokio::test]
+    async fn put_instance_usb_device_ok_mapping_updated() {
+        let vault = spell_test_vault(
+            module_path!(),
+            "put_instance_usb_device_ok_mapping_updated",
+            None,
+        )
+        .await;
+        let mut reader = MockUsbDeviceReader::new();
+        let device = UsbDevice {
+            vid: 10,
+            pid: 100,
+            port: "test_port".to_string(),
+            device: "test-dev".to_string(),
+            vendor: "test-vendor".to_string(),
+        };
+        reader
+            .expect_read_usb_devices()
+            .times(1)
+            .return_once(|| Ok(HashMap::from([(device.port.clone(), device)])));
+        reader
+            .expect_get_usb_value()
+            .times(1)
+            .withf(|value_name, port| value_name == "devnum" && port == "test_port")
+            .returning(|_, _| Ok("200".to_string()));
+        reader
+            .expect_get_usb_value()
+            .times(1)
+            .withf(|value_name, port| value_name == "busnum" && port == "test_port")
+            .returning(|_, _| Ok("99".to_string()));
+        assert_eq!(
+            put_instance_usb_device(
+                vault.clone(),
+                InstanceId::new(6),
+                "test_port".to_string(),
+                &reader
+            )
+            .await
+            .unwrap(),
+            PutInstanceUsbDeviceResult::DeviceMappingUpdated(UsbPathConfig {
+                port: "test_port".to_string(),
+                bus_num: 10,
+                dev_num: 20
+            })
+        );
+        assert_eq!(
+            vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&InstanceId::new(6))
+                .unwrap()
+                .config
+                .usb_devices
+                .clone(),
+            HashMap::from([(
+                "test_port".to_string(),
+                UsbPathConfig {
+                    port: "test_port".to_string(),
+                    bus_num: 99,
+                    dev_num: 200
+                }
+            )])
         );
     }
 }

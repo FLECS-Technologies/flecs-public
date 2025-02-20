@@ -1,5 +1,6 @@
 use crate::fsm::server_impl::ServerImpl;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::relic::device::usb::UsbDeviceReader;
 use crate::vault::pouch::{AppKey, Pouch};
 use async_trait::async_trait;
 use axum::extract::Host;
@@ -17,7 +18,7 @@ use http::Method;
 use std::sync::Arc;
 
 #[async_trait]
-impl Apps for ServerImpl {
+impl<T: UsbDeviceReader + Sync> Apps for ServerImpl<T> {
     async fn apps_app_delete(
         &self,
         _method: Method,
@@ -182,6 +183,7 @@ impl Apps for ServerImpl {
 #[cfg(test)]
 mod tests {
     use crate::fsm::server_impl::ServerImpl;
+    use crate::relic::device::usb::MockUsbDeviceReader;
     use crate::tests::prepare_test_path;
     use crate::vault::{Vault, VaultConfig};
     use axum::extract::Host;
@@ -196,6 +198,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "uninstall_no_version");
         let server = ServerImpl {
             vault: Arc::new(Vault::new(VaultConfig { path })),
+            usb_reader: MockUsbDeviceReader::new(),
         };
         assert!(server
             .apps_app_delete(
@@ -216,6 +219,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "uninstall_404");
         let server = ServerImpl {
             vault: Arc::new(Vault::new(VaultConfig { path })),
+            usb_reader: MockUsbDeviceReader::new(),
         };
         assert_eq!(
             Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp),

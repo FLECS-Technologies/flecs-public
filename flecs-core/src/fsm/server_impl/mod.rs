@@ -4,6 +4,7 @@ mod device;
 mod instances;
 mod jobs;
 mod system;
+use crate::relic::device::usb::UsbDeviceReader;
 use crate::vault::Vault;
 use anyhow::Error;
 use axum::async_trait;
@@ -27,20 +28,22 @@ fn ok() -> AdditionalInfo {
     }
 }
 
-pub struct ServerImpl {
+pub struct ServerImpl<T: UsbDeviceReader> {
     vault: Arc<Vault>,
+    usb_reader: T,
 }
 
-impl ServerImpl {
-    pub async fn default() -> Self {
+impl<T: UsbDeviceReader> ServerImpl<T> {
+    pub async fn new(usb_reader: T) -> Self {
         Self {
             vault: crate::lore::vault::default().await,
+            usb_reader,
         }
     }
 }
 
 #[async_trait]
-impl Flunder for ServerImpl {
+impl<T: UsbDeviceReader + Sync> Flunder for ServerImpl<T> {
     async fn flunder_browse_get(
         &self,
         _method: Method,

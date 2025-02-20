@@ -11,7 +11,7 @@ use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, Mount
 pub use config::*;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::mem::swap;
 use std::net::IpAddr;
@@ -489,7 +489,7 @@ impl Instance {
             },
             volume_mounts,
             network_addresses: HashMap::from([(default_network_id, address)]),
-            usb_devices: HashSet::new(),
+            usb_devices: HashMap::new(),
         };
         Ok(Self {
             hostname: format!("flecs-{instance_id}"),
@@ -722,7 +722,6 @@ pub mod tests {
     use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange};
     use crate::quest::Quest;
     use crate::relic::device::usb::tests::prepare_usb_device_test_path;
-    use crate::relic::device::usb::UsbDevice;
     use crate::tests::prepare_test_path;
     use bollard::secret::Network;
     use flecsd_axum_server::models::{
@@ -879,21 +878,23 @@ pub mod tests {
                     ],
                 },
                 network_addresses: HashMap::new(),
-                usb_devices: HashSet::from([
-                    UsbDevice {
-                        device: "TestDevice1".to_string(),
-                        port: "test_instance_dev_1".to_string(),
-                        vendor: "TestVendor1".to_string(),
-                        pid: 1,
-                        vid: 2,
-                    },
-                    UsbDevice {
-                        device: "TestDevice2".to_string(),
-                        port: "test_instance_dev_2".to_string(),
-                        vendor: "TestVendor2".to_string(),
-                        pid: 2,
-                        vid: 2,
-                    },
+                usb_devices: HashMap::from([
+                    (
+                        "test_instance_dev_1".to_string(),
+                        UsbPathConfig {
+                            port: "test_instance_dev_1".to_string(),
+                            bus_num: 456,
+                            dev_num: 789,
+                        },
+                    ),
+                    (
+                        "test_instance_dev_2".to_string(),
+                        UsbPathConfig {
+                            port: "test_instance_dev_2".to_string(),
+                            bus_num: 200,
+                            dev_num: 300,
+                        },
+                    ),
                 ]),
             },
             deployment,
@@ -1497,18 +1498,14 @@ pub mod tests {
 
     #[test]
     fn config_from_instance() {
-        let path = prepare_usb_device_test_path("test_instance_dev_1");
+        prepare_usb_device_test_path("test_instance_dev_1");
         let bus_path = PathBuf::from("/tmp/flecs-tests/dev/bus/usb/456".to_string());
         config::tests::prepare_path(&bus_path);
         std::fs::write(bus_path.join("789"), b"test-dev-1").unwrap();
-        std::fs::write(path.join("devnum"), b"789").unwrap();
-        std::fs::write(path.join("busnum"), b"456").unwrap();
-        let path = prepare_usb_device_test_path("test_instance_dev_2");
+        prepare_usb_device_test_path("test_instance_dev_2");
         let bus_path = PathBuf::from("/tmp/flecs-tests/dev/bus/usb/200".to_string());
         config::tests::prepare_path(&bus_path);
         std::fs::write(bus_path.join("300"), b"test-dev-2").unwrap();
-        std::fs::write(path.join("devnum"), b"300").unwrap();
-        std::fs::write(path.join("busnum"), b"200").unwrap();
         let deployment = MockedDeployment::new();
         let deployment = Arc::new(deployment);
         let manifest = Arc::new(create_test_manifest_full(Some(true)));

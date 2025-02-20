@@ -167,9 +167,10 @@ impl InstancePouch {
 pub mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::gem::instance::{InstanceConfig, InstancePortMapping, InstanceStatus};
+    use crate::jeweler::gem::instance::{
+        InstanceConfig, InstancePortMapping, InstanceStatus, UsbPathConfig,
+    };
     use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange, VolumeMount};
-    use crate::relic::device::usb::UsbDevice;
     use crate::relic::network::{Ipv4Iterator, Ipv4Network};
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::manifest::tests::create_test_manifest;
@@ -241,13 +242,14 @@ pub mod tests {
                     )),
                 ),
             ]),
-            usb_devices: HashSet::from([UsbDevice {
-                vid: 10,
-                pid: 20,
-                port: "test_port".to_string(),
-                device: "test_dev".to_string(),
-                vendor: "test_vendor".to_string(),
-            }]),
+            usb_devices: HashMap::from([(
+                "test_port".to_string(),
+                UsbPathConfig {
+                    bus_num: 10,
+                    dev_num: 20,
+                    port: "test_port".to_string(),
+                },
+            )]),
         }
     }
 
@@ -293,15 +295,13 @@ pub mod tests {
                 "Network2": "ab:cd:ef:12:34:56:78:90",
                 "Network1": "50.60.70.80"
             },
-            "usb_devices": [
-                {
-                    "vid": 10,
-                    "pid": 20,
-                    "port": "test_port",
-                    "device": "test_dev",
-                    "vendor": "test_vendor"
+            "usb_devices": {
+                "test_port": {
+                    "bus_num": 10,
+                    "dev_num": 20,
+                    "port": "test_port"
                 }
-            ]
+            }
         })
     }
 
