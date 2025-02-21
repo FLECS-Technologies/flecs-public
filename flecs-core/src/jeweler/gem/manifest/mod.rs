@@ -120,6 +120,10 @@ impl AppManifest {
     pub fn hostname(&self) -> Option<String> {
         self.original.hostname.as_ref().map(ToString::to_string)
     }
+
+    pub fn schema(&self) -> Option<&String> {
+        self.original.schema.as_deref()
+    }
 }
 
 impl TryFrom<flecs_app_manifest::AppManifestVersion> for AppManifest {
@@ -222,6 +226,7 @@ pub mod tests {
                 multi_instance: None,
                 ports: None,
                 revision: revision.map(From::from),
+                schema: None,
                 version: FromStr::from_str(&format!("1.2.{version_number}")).unwrap(),
                 volumes: None,
             },
@@ -318,6 +323,7 @@ pub mod tests {
                         .into(),
                     ),
                     revision: Some(FromStr::from_str("5").unwrap()),
+                    schema: Some(FromStr::from_str("/path/to/manifest/schema.json").unwrap()),
                     version: FromStr::from_str("1.2.1").unwrap(),
                     volumes: Some(
                         vec![
@@ -587,6 +593,16 @@ pub mod tests {
     }
 
     #[test]
+    fn schema() {
+        let manifest = create_test_manifest_full(None);
+
+        assert_eq!(
+            manifest.schema(),
+            Some(&"/path/to/manifest/schema.json".to_string())
+        )
+    }
+
+    #[test]
     fn try_from_duplicate_environment_err() {
         assert!(
             AppManifest::try_from(flecs_app_manifest::AppManifestVersion::V3_1_0(
@@ -613,6 +629,7 @@ pub mod tests {
                         multi_instance: None,
                         ports: None,
                         revision: None,
+                        schema: None,
                         version: FromStr::from_str("1.2.1").unwrap(),
                         volumes: None,
                     },

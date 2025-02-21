@@ -131,6 +131,7 @@ mod tests {
             multi_instance: None,
             ports: None,
             revision: None,
+            schema: None,
             version: Version::from_str(APP_VERSION).unwrap(),
             volumes: None,
         }));

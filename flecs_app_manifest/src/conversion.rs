@@ -80,6 +80,7 @@ impl TryFrom<&manifest_3_0_0::FlecsAppManifest> for manifest_3_1_0::Single {
             multi_instance: manifest.multi_instance.map(MultiInstance::from),
             ports,
             revision: manifest.revision.clone().map(Revision::from),
+            schema: None,
             version: manifest.version.clone().into(),
             volumes,
         })
@@ -322,6 +323,7 @@ impl TryFrom<&manifest_2_0_0::FlecsAppManifest> for manifest_3_1_0::Single {
             multi_instance: manifest.multi_instance.map(MultiInstance::from),
             ports,
             revision: manifest.revision.clone().map(Revision::from),
+            schema: None,
             version: manifest.version.clone().into(),
             volumes,
         })
@@ -894,6 +896,7 @@ mod tests {
                 .into(),
             ),
             revision: Some("34".to_string().into()),
+            schema: None,
             version: "6.8.8-bunny".to_string().into(),
             volumes: Some(
                 vec![
@@ -1043,6 +1046,7 @@ mod tests {
                 .into(),
             ),
             revision: Some("34".to_string().into()),
+            schema: None,
             version: "6.8.8-bunny".to_string().into(),
             volumes: Some(
                 vec![
