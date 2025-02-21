@@ -1,3 +1,4 @@
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::ServerImpl;
 use async_trait::async_trait;
 use axum::extract::Host;
@@ -9,7 +10,7 @@ use flecsd_axum_server::models::AuthResponseData;
 use http::Method;
 
 #[async_trait]
-impl Console for ServerImpl {
+impl<F: Floxy> Console for ServerImpl<F> {
     async fn console_authentication_delete(
         &self,
         _method: Method,

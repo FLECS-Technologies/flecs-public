@@ -1,3 +1,4 @@
+use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::fsm::server_impl::ServerImpl;
 use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
@@ -62,10 +63,11 @@ use flecsd_axum_server::models::{
 };
 use http::Method;
 use std::collections::HashSet;
+use std::num::NonZeroU16;
 use std::str::FromStr;
 
 #[async_trait]
-impl Instances for ServerImpl {
+impl<F: Floxy + 'static> Instances for ServerImpl<F> {
     async fn instances_create_post(
         &self,
         _method: Method,
@@ -671,12 +673,13 @@ impl Instances for ServerImpl {
             return Ok(InstancesInstanceIdDeleteResponse::Status404_NoInstanceWithThisInstance);
         }
         let vault = self.vault.clone();
+        let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
         let quest_id = crate::lore::quest::default()
             .await
             .lock()
             .await
             .schedule_quest(format!("Delete instance {instance_id}"), move |quest| {
-                crate::sorcerer::instancius::delete_instance(quest, vault, instance_id)
+                crate::sorcerer::instancius::delete_instance(quest, vault, floxy, instance_id)
             })
             .await
             // TODO: Add 500 Response to API
@@ -692,11 +695,20 @@ impl Instances for ServerImpl {
     async fn instances_instance_id_editor_port_get(
         &self,
         _method: Method,
-        _host: Host,
+        host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdEditorPortGetPathParams,
+        path_params: InstancesInstanceIdEditorPortGetPathParams,
     ) -> Result<InstancesInstanceIdEditorPortGetResponse, ()> {
-        todo!()
+        let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+        let port = NonZeroU16::new(path_params.port as u16).unwrap();
+        super::route_impl::instances::instance_id::editor::port::get(
+            self.vault.clone(),
+            self.enchantments.floxy.clone(),
+            host,
+            instance_id,
+            port,
+        )
+        .await
     }
 
     async fn instances_instance_id_get(
@@ -783,12 +795,13 @@ impl Instances for ServerImpl {
             return Ok(InstancesInstanceIdStartPostResponse::Status404_NoInstanceWithThisInstance);
         }
         let vault = self.vault.clone();
+        let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
         let quest_id = crate::lore::quest::default()
             .await
             .lock()
             .await
             .schedule_quest(format!("Start instance {instance_id}"), move |quest| {
-                crate::sorcerer::instancius::start_instance(quest, vault, instance_id)
+                crate::sorcerer::instancius::start_instance(quest, vault, floxy, instance_id)
             })
             .await
             // TODO: Add 500 Response to API
@@ -1050,7 +1063,7 @@ mod tests {
             vault: Arc::new(Vault::new(VaultConfig {
                 path: path.join("vault"),
             })),
-            enchantments: Enchantments::test_instance(path.join("enchantments")),
+            enchantments: Enchantments::test_instance(),
         };
         assert_eq!(
             Ok(InstancesInstanceIdStartPostResponse::Status404_NoInstanceWithThisInstance),
@@ -1074,7 +1087,7 @@ mod tests {
             vault: Arc::new(Vault::new(VaultConfig {
                 path: path.join("vault"),
             })),
-            enchantments: Enchantments::test_instance(path.join("enchantments")),
+            enchantments: Enchantments::test_instance(),
         };
         assert_eq!(
             Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance),
@@ -1098,7 +1111,7 @@ mod tests {
             vault: Arc::new(Vault::new(VaultConfig {
                 path: path.join("vault"),
             })),
-            enchantments: Enchantments::test_instance(path.join("enchantments")),
+            enchantments: Enchantments::test_instance(),
         };
         assert_eq!(
             Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance),
@@ -1122,7 +1135,7 @@ mod tests {
             vault: Arc::new(Vault::new(VaultConfig {
                 path: path.join("vault"),
             })),
-            enchantments: Enchantments::test_instance(path.join("enchantments")),
+            enchantments: Enchantments::test_instance(),
         };
         assert!(matches!(
             server
@@ -1170,7 +1183,7 @@ mod tests {
             .insert(test_key.into(), app);
         let server = ServerImpl {
             vault,
-            enchantments: Enchantments::test_instance(path.join("enchantments")),
+            enchantments: Enchantments::test_instance(),
         };
         assert!(matches!(
             server
@@ -1196,7 +1209,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "delete_instance_config_ports_404");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_delete(
@@ -1217,7 +1230,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "delete_instance_config_ports_200");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_delete(
@@ -1253,7 +1266,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "get_instance_config_ports_404");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_get(
@@ -1274,7 +1287,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "get_instance_config_ports_200");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_get(
@@ -1318,7 +1331,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_delete(
@@ -1360,7 +1373,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_delete(
@@ -1385,7 +1398,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_get(
@@ -1410,7 +1423,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_get(
@@ -1444,7 +1457,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1470,7 +1483,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1496,7 +1509,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1538,7 +1551,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1564,7 +1577,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1590,7 +1603,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1623,7 +1636,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -1650,7 +1663,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -1677,7 +1690,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -1720,7 +1733,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -1764,7 +1777,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1790,7 +1803,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1816,7 +1829,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1842,7 +1855,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_delete(
@@ -1884,7 +1897,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1910,7 +1923,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1936,7 +1949,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -1962,7 +1975,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -2001,7 +2014,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_get(
@@ -2034,7 +2047,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2064,7 +2077,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2094,7 +2107,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2124,7 +2137,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2154,7 +2167,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2184,7 +2197,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2233,7 +2246,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_ports_transport_protocol_host_port_range_put(
@@ -2284,7 +2297,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         let port_mappings = vec![
             models::InstancePortMapping::InstancePortMappingRange(Box::new(
                 models::InstancePortMappingRange {
@@ -2330,7 +2343,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_put(
@@ -2367,7 +2380,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_ports_transport_protocol_put(
@@ -2393,7 +2406,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         let port_mappings = vec![
             models::InstancePortMapping::InstancePortMappingSingle(Box::new(
                 models::InstancePortMappingSingle {
@@ -2843,7 +2856,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_variable_name_get(
@@ -2870,7 +2883,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_variable_name_get(
@@ -2897,7 +2910,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_get(
@@ -2944,7 +2957,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_variable_name_delete(
@@ -2969,7 +2982,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_variable_name_delete(
@@ -2994,7 +3007,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_delete(
@@ -3052,7 +3065,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_put(
@@ -3080,7 +3093,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_put(
@@ -3131,7 +3144,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_environment_variable_name_put(
@@ -3179,7 +3192,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "delete_instance_config_environment_404");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_delete(
@@ -3200,7 +3213,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "delete_instance_config_environment_200");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_delete(
@@ -3236,7 +3249,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "get_instance_config_environment_404");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_get(
@@ -3257,7 +3270,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "get_instance_config_environment_200");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_environment_get(
@@ -3292,7 +3305,7 @@ mod tests {
         );
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_put(
@@ -3323,7 +3336,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "put_instance_config_environment_404");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_put(
@@ -3345,7 +3358,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "put_instance_config_environment_201");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_put(
@@ -3402,7 +3415,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "put_instance_config_environment_200");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_environment_put(
@@ -3473,7 +3486,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "get_instance_labels_404");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_labels_get(
@@ -3494,7 +3507,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "get_instance_labels_200");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_labels_get(
@@ -3524,7 +3537,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "get_instance_label_404_instance");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_labels_label_name_get(
@@ -3546,7 +3559,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "get_instance_label_404_label");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(matches!(
             server
                 .instances_instance_id_config_labels_label_name_get(
@@ -3568,7 +3581,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "get_instance_label_200");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             server
                 .instances_instance_id_config_labels_label_name_get(

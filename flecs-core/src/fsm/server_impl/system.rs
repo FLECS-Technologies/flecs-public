@@ -1,3 +1,4 @@
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::{ok, ServerImpl};
 use async_trait::async_trait;
 use axum::extract::Host;
@@ -10,7 +11,7 @@ use http::Method;
 use tracing::error;
 
 #[async_trait]
-impl System for ServerImpl {
+impl<F: Floxy> System for ServerImpl<F> {
     async fn system_info_get(
         &self,
         _method: Method,

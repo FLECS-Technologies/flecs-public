@@ -1,3 +1,4 @@
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::ServerImpl;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::vault::pouch::{AppKey, Pouch};
@@ -17,7 +18,7 @@ use http::Method;
 use std::sync::Arc;
 
 #[async_trait]
-impl Apps for ServerImpl {
+impl<F: Floxy> Apps for ServerImpl<F> {
     async fn apps_app_delete(
         &self,
         _method: Method,
@@ -183,20 +184,18 @@ impl Apps for ServerImpl {
 mod tests {
     use crate::fsm::server_impl::ServerImpl;
     use crate::tests::prepare_test_path;
-    use crate::vault::{Vault, VaultConfig};
     use axum::extract::Host;
     use axum_extra::extract::CookieJar;
     use flecsd_axum_server::apis::apps::{Apps, AppsAppDeleteResponse};
     use flecsd_axum_server::models::{AppsAppDeletePathParams, AppsAppDeleteQueryParams};
     use http::Method;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn uninstall_no_version() {
         let path = prepare_test_path(module_path!(), "uninstall_no_version");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert!(server
             .apps_app_delete(
                 Method::default(),
@@ -216,7 +215,7 @@ mod tests {
         let path = prepare_test_path(module_path!(), "uninstall_404");
         let vault =
             crate::sorcerer::instancius::tests::spell_test_vault(path.join("vault"), None).await;
-        let server = ServerImpl::test_instance(vault, path);
+        let server = ServerImpl::test_instance(vault);
         assert_eq!(
             Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp),
             server

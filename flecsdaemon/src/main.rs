@@ -1,4 +1,4 @@
-use flecs_core::enchantment::floxy::Floxy;
+use flecs_core::enchantment::floxy::{Floxy, FloxyImpl};
 use flecs_core::enchantment::Enchantments;
 use flecs_core::fsm::StartupError;
 use std::path::PathBuf;
@@ -14,7 +14,7 @@ async fn main() -> flecs_core::fsm::Result<()> {
     info!("Starting enchantments");
     let enchantments = Enchantments {
         floxy: Arc::new(
-            Floxy::from_config(
+            FloxyImpl::from_config(
                 PathBuf::from("/var/lib/flecs/floxy"),
                 PathBuf::from("/etc/nginx/floxy.conf"),
             )

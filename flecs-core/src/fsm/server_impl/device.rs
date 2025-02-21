@@ -1,3 +1,4 @@
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::{
     additional_info_from_error, console_session_id_to_core_session_id, ok, ServerImpl,
 };
@@ -16,7 +17,7 @@ use http::Method;
 use tracing::warn;
 
 #[async_trait]
-impl Device for ServerImpl {
+impl<F: Floxy> Device for ServerImpl<F> {
     async fn device_license_activation_post(
         &self,
         _method: Method,

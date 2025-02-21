@@ -3,7 +3,9 @@ mod console;
 mod device;
 mod instances;
 mod jobs;
+mod route_impl;
 mod system;
+use crate::enchantment::floxy::Floxy;
 use crate::enchantment::Enchantments;
 use crate::vault::Vault;
 use anyhow::Error;
@@ -28,30 +30,32 @@ fn ok() -> AdditionalInfo {
     }
 }
 
-pub struct ServerImpl {
+pub struct ServerImpl<F: Floxy> {
     vault: Arc<Vault>,
-    enchantments: Enchantments,
+    enchantments: Enchantments<F>,
 }
 
-impl ServerImpl {
-    pub async fn new(enchantments: Enchantments) -> Self {
+impl<F: Floxy> ServerImpl<F> {
+    pub async fn new(enchantments: Enchantments<F>) -> Self {
         Self {
             vault: crate::lore::vault::default().await,
             enchantments,
         }
     }
+}
 
+#[cfg(test)]
+impl ServerImpl<crate::enchantment::floxy::MockFloxy> {
     #[cfg(test)]
-    pub fn test_instance(vault: Arc<Vault>, test_path: std::path::PathBuf) -> Self {
+    pub fn test_instance(vault: Arc<Vault>) -> Self {
         Self {
             vault,
-            enchantments: Enchantments::test_instance(test_path.join("enchantments")),
+            enchantments: Enchantments::test_instance(),
         }
     }
 }
-
 #[async_trait]
-impl Flunder for ServerImpl {
+impl<F: Floxy> Flunder for ServerImpl<F> {
     async fn flunder_browse_get(
         &self,
         _method: Method,

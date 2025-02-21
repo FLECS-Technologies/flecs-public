@@ -139,7 +139,12 @@ pub mod tests {
                    "name": "editor 2",
                    "port": 5678,
                    "supportsReverseProxy": true
-                }
+                },
+                {
+                   "name": "editor 3",
+                   "port": 3000,
+                   "supportsReverseProxy": false
+                },
             ],
             "args": [
                 "--launch-arg1",

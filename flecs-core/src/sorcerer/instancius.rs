@@ -1,4 +1,5 @@
 pub use super::Result;
+use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::forge::vec::VecExtension;
 use crate::jeweler::app::AppStatus;
 use crate::jeweler::deployment::Deployment;
@@ -12,14 +13,16 @@ use crate::sorcerer::spell;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
 use std::net::IpAddr;
+use std::num::NonZeroU16;
 use std::sync::Arc;
 
-pub async fn start_instance(
+pub async fn start_instance<F: Floxy>(
     quest: SyncQuest,
     vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
     instance_id: InstanceId,
 ) -> Result<()> {
-    spell::instance::start_instance(quest, vault, instance_id).await
+    spell::instance::start_instance(quest, vault, floxy, instance_id).await
 }
 
 pub async fn stop_instance(
@@ -457,7 +460,12 @@ pub async fn delete_instance_config_environment(
     .await
 }
 
-pub async fn delete_instance(quest: SyncQuest, vault: Arc<Vault>, id: InstanceId) -> Result<()> {
+pub async fn delete_instance<F: Floxy + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+    id: InstanceId,
+) -> Result<()> {
     quest
         .lock()
         .await
@@ -474,7 +482,8 @@ pub async fn delete_instance(quest: SyncQuest, vault: Arc<Vault>, id: InstanceId
                 .gems_mut();
             match instances.remove(&id) {
                 Some(instance) => {
-                    if let Err((e, instance)) = instance.stop_and_delete(quest).await {
+                    if let Err((e, instance)) = instance.stop_and_delete(quest, floxy.clone()).await
+                    {
                         instances.insert(id, instance);
                         Err(e)
                     } else {
@@ -547,9 +556,74 @@ pub async fn get_instance_label_value(
     )
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum RedirectEditorRequestResult {
+    InstanceNotFound,
+    UnknownPort,
+    EditorSupportsReverseProxy,
+    InstanceNotRunning,
+    InstanceNotConnectedToNetwork,
+    Redirected(u16),
+}
+
+pub async fn redirect_editor_request<F: Floxy>(
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+    instance_id: InstanceId,
+    port: NonZeroU16,
+) -> Result<RedirectEditorRequestResult> {
+    let mut grab = vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await;
+    let Some(instance) = grab
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Reservations should never fail")
+        .gems_mut()
+        .get_mut(&instance_id)
+    else {
+        return Ok(RedirectEditorRequestResult::InstanceNotFound);
+    };
+    match instance
+        .manifest
+        .editors()
+        .iter()
+        .find(|editor| editor.port == port)
+    {
+        None => return Ok(RedirectEditorRequestResult::UnknownPort),
+        Some(editor) if editor.supports_reverse_proxy => {
+            return Ok(RedirectEditorRequestResult::EditorSupportsReverseProxy);
+        }
+        _ => {}
+    }
+    if let Some(host_port) = instance.config.mapped_editor_ports.get(&port.get()) {
+        return Ok(RedirectEditorRequestResult::Redirected(*host_port));
+    }
+    if !instance.is_running().await? {
+        return Ok(RedirectEditorRequestResult::InstanceNotRunning);
+    }
+    let Some(network_address) = instance.get_default_network_address().await? else {
+        return Ok(RedirectEditorRequestResult::InstanceNotConnectedToNetwork);
+    };
+    let host_port = floxy.add_instance_editor_redirect_to_free_port(
+        &instance.app_key().name,
+        instance_id,
+        network_address,
+        port.get(),
+    )?;
+    instance
+        .config
+        .mapped_editor_ports
+        .insert(port.get(), host_port);
+    Ok(RedirectEditorRequestResult::Redirected(host_port))
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::app::AppInfo;
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::deployment::Deployment;
@@ -615,11 +689,13 @@ pub mod tests {
             .times(4)
             .returning(|_, _| Ok(()));
         let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         let vault = test_vault(deployment.clone(), INSTANCE_COUNT, "delete_instance_test").await;
         let instance_id = InstanceId::new(INSTANCE_TO_DELETE);
         assert!(delete_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault.clone(),
+            floxy.clone(),
             instance_id,
         )
         .await
@@ -637,6 +713,7 @@ pub mod tests {
         assert!(delete_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault.clone(),
+            floxy,
             instance_id,
         )
         .await
@@ -1317,14 +1394,13 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_ok() {
-        let vault = spell_test_vault(
-            prepare_test_path(module_path!(), "start_instance_ok"),
-            Some(true),
-        )
-        .await;
+        let path = prepare_test_path(module_path!(), "start_instance_ok");
+        let vault = spell_test_vault(path.join("vault"), Some(true)).await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
+            floxy,
             InstanceId::new(1),
         )
         .await
@@ -1333,14 +1409,13 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_err() {
-        let vault = spell_test_vault(
-            prepare_test_path(module_path!(), "start_instance_err"),
-            Some(false),
-        )
-        .await;
+        let path = prepare_test_path(module_path!(), "start_instance_err");
+        let vault = spell_test_vault(path.join("vault"), Some(false)).await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         assert!(start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
+            floxy,
             InstanceId::new(1),
         )
         .await
@@ -2547,5 +2622,182 @@ pub mod tests {
             .await,
             Some(Some(Some("Some custom label value".to_string())))
         );
+    }
+
+    #[tokio::test]
+    async fn redirect_editor_request_instance_not_found() {
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "redirect_editor_request_instance_not_found"),
+            None,
+        )
+        .await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        assert!(matches!(
+            redirect_editor_request(
+                vault,
+                floxy,
+                InstanceId::new(80),
+                NonZeroU16::new(100).unwrap()
+            )
+            .await,
+            Ok(RedirectEditorRequestResult::InstanceNotFound)
+        ));
+    }
+
+    #[tokio::test]
+    async fn redirect_editor_request_unknown_port() {
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "redirect_editor_request_unknown_port"),
+            None,
+        )
+        .await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        assert!(matches!(
+            redirect_editor_request(
+                vault,
+                floxy,
+                InstanceId::new(1),
+                NonZeroU16::new(60).unwrap()
+            )
+            .await,
+            Ok(RedirectEditorRequestResult::UnknownPort)
+        ));
+    }
+
+    #[tokio::test]
+    async fn redirect_editor_request_no_reverse_proxy_support() {
+        let vault = spell_test_vault(
+            prepare_test_path(
+                module_path!(),
+                "redirect_editor_request_no_reverse_proxy_support",
+            ),
+            Some(true),
+        )
+        .await;
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_add_instance_editor_redirect_to_free_port()
+            .times(1)
+            .returning(|_, _, _, _| Ok((false, 125)));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        assert_eq!(
+            redirect_editor_request(
+                vault,
+                floxy,
+                InstanceId::new(6),
+                NonZeroU16::new(1234).unwrap()
+            )
+            .await
+            .unwrap(),
+            RedirectEditorRequestResult::Redirected(125)
+        );
+    }
+
+    #[tokio::test]
+    async fn redirect_editor_request_reverse_proxy_support() {
+        let vault = spell_test_vault(
+            prepare_test_path(
+                module_path!(),
+                "redirect_editor_request_reverse_proxy_support",
+            ),
+            Some(true),
+        )
+        .await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        assert_eq!(
+            redirect_editor_request(
+                vault,
+                floxy,
+                InstanceId::new(6),
+                NonZeroU16::new(5678).unwrap()
+            )
+            .await
+            .unwrap(),
+            RedirectEditorRequestResult::EditorSupportsReverseProxy
+        );
+    }
+
+    #[tokio::test]
+    async fn redirect_editor_request_instance_stopped() {
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "redirect_editor_request_instance_stopped"),
+            None,
+        )
+        .await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        assert_eq!(
+            redirect_editor_request(
+                vault,
+                floxy,
+                InstanceId::new(6),
+                NonZeroU16::new(1234).unwrap()
+            )
+            .await
+            .unwrap(),
+            RedirectEditorRequestResult::InstanceNotRunning
+        );
+    }
+
+    #[tokio::test]
+    async fn redirect_editor_request_not_connected_to_network() {
+        let vault = spell_test_vault(
+            prepare_test_path(
+                module_path!(),
+                "redirect_editor_request_not_connected_to_network",
+            ),
+            Some(true),
+        )
+        .await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        assert_eq!(
+            redirect_editor_request(
+                vault,
+                floxy,
+                InstanceId::new(1),
+                NonZeroU16::new(1234).unwrap()
+            )
+            .await
+            .unwrap(),
+            RedirectEditorRequestResult::InstanceNotConnectedToNetwork
+        );
+    }
+
+    #[tokio::test]
+    async fn redirect_editor_request_existing_redirect() {
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "redirect_editor_request_existing_redirect"),
+            Some(true),
+        )
+        .await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        assert_eq!(
+            redirect_editor_request(
+                vault,
+                floxy,
+                InstanceId::new(6),
+                NonZeroU16::new(3000).unwrap()
+            )
+            .await
+            .unwrap(),
+            RedirectEditorRequestResult::Redirected(4000)
+        );
+    }
+
+    #[tokio::test]
+    async fn redirect_editor_request_err() {
+        let vault = spell_test_vault(
+            prepare_test_path(module_path!(), "redirect_editor_request_err"),
+            Some(false),
+        )
+        .await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        assert!(redirect_editor_request(
+            vault,
+            floxy,
+            InstanceId::new(6),
+            NonZeroU16::new(1234).unwrap()
+        )
+        .await
+        .is_err());
     }
 }

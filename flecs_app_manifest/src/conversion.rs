@@ -82,6 +82,7 @@ impl TryFrom<&manifest_3_0_0::FlecsAppManifest> for manifest_3_1_0::Single {
             revision: manifest.revision.clone().map(Revision::from),
             version: manifest.version.clone().into(),
             volumes,
+            schema: None,
         })
     }
 }
@@ -324,6 +325,7 @@ impl TryFrom<&manifest_2_0_0::FlecsAppManifest> for manifest_3_1_0::Single {
             revision: manifest.revision.clone().map(Revision::from),
             version: manifest.version.clone().into(),
             volumes,
+            schema: None,
         })
     }
 }
@@ -902,6 +904,7 @@ mod tests {
                 ]
                 .into(),
             ),
+            schema: None,
         };
 
         assert_eq!(
@@ -1051,6 +1054,7 @@ mod tests {
                 ]
                 .into(),
             ),
+            schema: None,
         };
 
         assert_eq!(

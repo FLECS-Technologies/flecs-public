@@ -1,4 +1,5 @@
 pub mod config;
+use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::{Deployment, DeploymentId};
 use crate::jeweler::gem::manifest::{AppManifest, BindMount, ConfigFile, Mount, VolumeMount};
 use crate::jeweler::instance::Logs;
@@ -224,6 +225,13 @@ impl Instance {
     pub fn replace_manifest(&mut self, mut manifest: Arc<AppManifest>) -> Arc<AppManifest> {
         swap(&mut manifest, &mut self.manifest);
         manifest
+    }
+
+    pub async fn get_default_network_address(&self) -> crate::Result<Option<IpAddr>> {
+        match self.deployment.default_network().await?.id {
+            None => anyhow::bail!("Default network has no id"),
+            Some(network_id) => Ok(self.config.network_addresses.get(&network_id).cloned()),
+        }
     }
 
     pub fn generate_device_mappings(&self) -> Vec<DeviceMapping> {
@@ -490,6 +498,7 @@ impl Instance {
             volume_mounts,
             network_addresses: HashMap::from([(default_network_id, address)]),
             usb_devices: HashSet::new(),
+            mapped_editor_ports: Default::default(),
         };
         Ok(Self {
             hostname: format!("flecs-{instance_id}"),
@@ -502,23 +511,68 @@ impl Instance {
         })
     }
 
-    pub async fn start(&mut self) -> anyhow::Result<()> {
+    pub async fn start<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
         self.desired = InstanceStatus::Running;
-        match self.deployment.instance_status(self.id).await? {
-            InstanceStatus::Running => {}
-            _ => {
-                self.id = self
-                    .deployment
-                    .start_instance((&*self).into(), Some(self.id), &self.manifest.config_files)
-                    .await?
+        if self.is_running().await? {
+            return Ok(());
+        }
+        self.load_reverse_proxy_config(floxy).await?;
+        self.id = self
+            .deployment
+            .start_instance((&*self).into(), Some(self.id), &self.manifest.config_files)
+            .await?;
+        Ok(())
+    }
+
+    async fn load_reverse_proxy_config<F: Floxy>(
+        &self,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<()> {
+        let editor_ports: Vec<_> = self
+            .manifest
+            .editors()
+            .iter()
+            .filter_map(|editor| {
+                if editor.supports_reverse_proxy {
+                    Some(editor.port.get())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        // TODO: Unit test empty editor ports
+        if !editor_ports.is_empty() {
+            // TODO: Unit test no network address
+            if let Some(instance_ip) = self.get_default_network_address().await? {
+                floxy.add_instance_reverse_proxy_config(
+                    &self.app_key().name,
+                    self.id,
+                    instance_ip,
+                    &editor_ports,
+                )?;
             }
         }
         Ok(())
     }
 
-    pub async fn stop_and_delete(
+    fn delete_reverse_proxy_config<F: Floxy>(
+        &self,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<bool> {
+        let editor_ports: Vec<_> = self.config.mapped_editor_ports.keys().cloned().collect();
+        if !editor_ports.is_empty() {
+            // TODO: Unit test
+            floxy.delete_server_proxy_configs(&self.app_key().name, self.id, &editor_ports)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    pub async fn stop_and_delete<F: Floxy + 'static>(
         mut self,
         quest: SyncQuest,
+        floxy: Arc<FloxyOperation<F>>,
     ) -> anyhow::Result<(), (anyhow::Error, Self)> {
         let result = quest
             .lock()
@@ -553,7 +607,7 @@ impl Instance {
                             instance.id,
                             instance.app_key()
                         ),
-                        |quest| async move { instance.delete(quest).await },
+                        |quest| async move { instance.delete(quest, floxy.clone()).await },
                     )
                     .await
                     .2
@@ -579,8 +633,11 @@ impl Instance {
         }
     }
 
-    pub async fn delete(mut self, quest: SyncQuest) -> anyhow::Result<(), (anyhow::Error, Self)> {
-        // TODO: Delete floxy config
+    pub async fn delete<F: Floxy>(
+        mut self,
+        quest: SyncQuest,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<(), (anyhow::Error, Self)> {
         self.desired = InstanceStatus::NotCreated;
         let mut volume_ids = Vec::new();
         let mut delete_results = Vec::new();
@@ -597,6 +654,9 @@ impl Instance {
                 .2;
             volume_ids.push(volume_id.clone());
             delete_results.push(result);
+        }
+        if let Err(e) = self.delete_reverse_proxy_config(floxy) {
+            warn!("Instance {}: {e}", self.id);
         }
         for (id, result) in volume_ids.into_iter().zip(join_all(delete_results).await) {
             if let Err(e) = result {
@@ -717,6 +777,7 @@ pub fn try_create_instance(
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::gem::manifest::tests::{create_test_manifest, create_test_manifest_full};
     use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange};
@@ -895,6 +956,7 @@ pub mod tests {
                         vid: 2,
                     },
                 ]),
+                mapped_editor_ports: Default::default(),
             },
             deployment,
             manifest,
@@ -903,6 +965,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn delete_ok() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_delete_instance()
@@ -913,13 +980,18 @@ pub mod tests {
             .times(4)
             .returning(|_, _| Ok(()));
         test_instance(1, Arc::new(deployment), create_test_manifest(None))
-            .delete(Quest::new_synced("TestQuest".to_string()))
+            .delete(Quest::new_synced("TestQuest".to_string()), floxy)
             .await
             .unwrap();
     }
 
     #[tokio::test]
     async fn delete_volume_err() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_delete_instance()
@@ -930,13 +1002,18 @@ pub mod tests {
             .times(4)
             .returning(|_, _| Err(anyhow::anyhow!("TestError")));
         test_instance(2, Arc::new(deployment), create_test_manifest(None))
-            .delete(Quest::new_synced("TestQuest".to_string()))
+            .delete(Quest::new_synced("TestQuest".to_string()), floxy)
             .await
             .unwrap();
     }
 
     #[tokio::test]
     async fn delete_err() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_delete_instance()
@@ -947,7 +1024,7 @@ pub mod tests {
             .times(4)
             .returning(|_, _| Ok(()));
         let (_error, instance) = test_instance(3, Arc::new(deployment), create_test_manifest(None))
-            .delete(Quest::new_synced("TestQuest".to_string()))
+            .delete(Quest::new_synced("TestQuest".to_string()), floxy)
             .await
             .err()
             .unwrap();
@@ -1001,6 +1078,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn stop_and_delete_ok() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_stop_instance()
@@ -1020,7 +1102,7 @@ pub mod tests {
             .returning(|_, _| Ok(()));
         assert!(
             test_instance(7, Arc::new(deployment), create_test_manifest(None))
-                .stop_and_delete(Quest::new_synced("TestQuest".to_string()))
+                .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
                 .await
                 .is_ok()
         );
@@ -1028,6 +1110,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn stop_and_delete_delete_err() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_stop_instance()
@@ -1046,7 +1133,7 @@ pub mod tests {
             .times(4)
             .returning(|_, _| Ok(()));
         let (_error, instance) = test_instance(8, Arc::new(deployment), create_test_manifest(None))
-            .stop_and_delete(Quest::new_synced("TestQuest".to_string()))
+            .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
             .await
             .err()
             .unwrap();
@@ -1055,6 +1142,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn stop_and_delete_stop_err() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_stop_instance()
@@ -1067,7 +1159,7 @@ pub mod tests {
         deployment.expect_delete_instance().times(0);
         deployment.expect_delete_volume().times(0);
         let (_error, instance) = test_instance(9, Arc::new(deployment), create_test_manifest(None))
-            .stop_and_delete(Quest::new_synced("TestQuest".to_string()))
+            .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
             .await
             .err()
             .unwrap();
@@ -1830,5 +1922,85 @@ pub mod tests {
         let old_manifest = instance.replace_manifest(manifest);
         assert_eq!(old_manifest.revision(), None);
         assert_eq!(instance.manifest.revision(), Some(&"#2".to_string()));
+    }
+
+    #[tokio::test]
+    async fn instance_start_ok_already_running() {
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .once()
+            .withf(|id| id.value == 2)
+            .returning(|_| Ok(InstanceStatus::Running));
+        let mut instance = test_instance(2, Arc::new(deployment), create_test_manifest(None));
+        instance.start(floxy).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn instance_start_ok() {
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .once()
+            .withf(|id| id.value == 2)
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        deployment
+            .expect_start_instance()
+            .once()
+            .withf(|_, id, _| id == &Some(InstanceId::new(2)))
+            .returning(|_, _, _| Ok(InstanceId::new(2)));
+        let mut instance = test_instance(2, Arc::new(deployment), create_test_manifest(None));
+        instance.start(floxy).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn instance_load_reverse_proxy_config_ok() {
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_default_network().returning(|| {
+            Ok(bollard::models::Network {
+                name: Some("flecs".to_string()),
+                id: Some("flecs".to_string()),
+                ..Default::default()
+            })
+        });
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_add_instance_reverse_proxy_config()
+            .once()
+            .withf(|app, id, ip, ports| {
+                app == "some.test.app"
+                    && id == &InstanceId::new(2)
+                    && ip == &IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20))
+                    && ports == [789]
+            })
+            .returning(|_, _, _, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut instance = test_instance(
+            2,
+            Arc::new(deployment),
+            Arc::new(create_test_manifest_full(None)),
+        );
+        instance.config.network_addresses.insert(
+            "flecs".to_string(),
+            IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20)),
+        );
+        instance.load_reverse_proxy_config(floxy).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn instance_load_reverse_proxy_config_err() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_default_network()
+            .returning(|| Err(anyhow::anyhow!("TestError")));
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let instance = test_instance(
+            2,
+            Arc::new(deployment),
+            Arc::new(create_test_manifest_full(None)),
+        );
+        assert!(instance.load_reverse_proxy_config(floxy).await.is_err());
     }
 }

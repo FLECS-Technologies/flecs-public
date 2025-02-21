@@ -224,6 +224,7 @@ pub mod tests {
                 revision: revision.map(From::from),
                 version: FromStr::from_str(&format!("1.2.{version_number}")).unwrap(),
                 volumes: None,
+                schema: None,
             },
         )
     }
@@ -326,6 +327,7 @@ pub mod tests {
                         ]
                         .into(),
                     ),
+                    schema: None,
                 },
             ),
         ))
@@ -615,6 +617,7 @@ pub mod tests {
                         revision: None,
                         version: FromStr::from_str("1.2.1").unwrap(),
                         volumes: None,
+                        schema: None,
                     },
                 )
             ))

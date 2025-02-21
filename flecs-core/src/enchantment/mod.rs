@@ -1,16 +1,20 @@
+use crate::enchantment::floxy::Floxy;
+use std::fmt::Display;
 use std::sync::Arc;
 
 pub mod floxy;
 
-pub struct Enchantments {
-    pub floxy: Arc<floxy::Floxy>,
+pub trait Enchantment: Send + Sync + Display {}
+
+pub struct Enchantments<F: Floxy> {
+    pub floxy: Arc<F>,
 }
 
-impl Enchantments {
-    #[cfg(test)]
-    pub fn test_instance(test_path: std::path::PathBuf) -> Enchantments {
+#[cfg(test)]
+impl Enchantments<floxy::MockFloxy> {
+    pub fn test_instance() -> Enchantments<floxy::MockFloxy> {
         Self {
-            floxy: Arc::new(floxy::Floxy::test_instance(test_path.join("floxy"))),
+            floxy: Arc::new(floxy::MockFloxy::new()),
         }
     }
 }

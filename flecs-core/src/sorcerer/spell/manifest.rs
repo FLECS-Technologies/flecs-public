@@ -134,6 +134,7 @@ mod tests {
             revision: None,
             version: Version::from_str(APP_VERSION).unwrap(),
             volumes: None,
+            schema: None,
         }));
         let path: String = format!(
             "/api/v2/manifests/{}/{}?max_manifest_version=3.0.0",

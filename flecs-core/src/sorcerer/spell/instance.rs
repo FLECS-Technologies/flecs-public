@@ -1,4 +1,5 @@
 pub use super::Result;
+use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::{Instance, InstanceConfig, InstanceId};
 use crate::jeweler::gem::manifest::AppManifest;
@@ -21,9 +22,10 @@ pub async fn create_instance(
     Instance::create(quest, deployment, manifest, name, address).await
 }
 
-pub async fn start_instance(
+pub async fn start_instance<F: Floxy>(
     _quest: SyncQuest,
     vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
     instance_id: InstanceId,
 ) -> Result<()> {
     let mut grab = vault
@@ -38,7 +40,7 @@ pub async fn start_instance(
         .gems_mut()
         .get_mut(&instance_id)
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
-    instance.start().await
+    instance.start(floxy).await
 }
 
 pub async fn stop_instance(
@@ -212,6 +214,7 @@ where
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::gem::instance::{
         try_create_instance, InstanceDeserializable, InstanceStatus,
@@ -246,8 +249,19 @@ pub mod tests {
                     .expect_instance_status()
                     .returning(|_| Err(anyhow::anyhow!("TestError")));
             }
-            _ => {}
+            _ => {
+                deployment
+                    .expect_instance_status()
+                    .returning(|_| Ok(InstanceStatus::Stopped));
+            }
         }
+        deployment.expect_default_network().returning(|| {
+            Ok(bollard::models::Network {
+                name: Some("flecs".to_string()),
+                id: Some("flecs".to_string()),
+                ..Default::default()
+            })
+        });
         deployment
             .expect_id()
             .returning(move || deployment_id.clone());
@@ -436,14 +450,13 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_ok() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "start_instance_ok"),
-            Some(true),
-        )
-        .await;
+        let path = prepare_test_path(module_path!(), "start_instance_ok");
+        let vault = create_test_vault(path.join("vault"), Some(true)).await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
+            floxy,
             InstanceId::new(1),
         )
         .await
@@ -452,14 +465,13 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_err() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "start_instance_err"),
-            Some(false),
-        )
-        .await;
+        let path = prepare_test_path(module_path!(), "start_instance_err");
+        let vault = create_test_vault(path.join("vault"), Some(false)).await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         assert!(start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
+            floxy,
             InstanceId::new(1),
         )
         .await
@@ -468,14 +480,13 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_not_found() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "start_instance_not_found"),
-            Some(true),
-        )
-        .await;
+        let path = prepare_test_path(module_path!(), "start_instance_not_found");
+        let vault = create_test_vault(path.join("vault"), Some(true)).await;
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         assert!(start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
+            floxy,
             InstanceId::new(10),
         )
         .await
