@@ -1499,13 +1499,7 @@ pub mod tests {
     #[test]
     fn config_from_instance() {
         prepare_usb_device_test_path("test_instance_dev_1");
-        let bus_path = PathBuf::from("/tmp/flecs-tests/dev/bus/usb/456".to_string());
-        config::tests::prepare_path(&bus_path);
-        std::fs::write(bus_path.join("789"), b"test-dev-1").unwrap();
         prepare_usb_device_test_path("test_instance_dev_2");
-        let bus_path = PathBuf::from("/tmp/flecs-tests/dev/bus/usb/200".to_string());
-        config::tests::prepare_path(&bus_path);
-        std::fs::write(bus_path.join("300"), b"test-dev-2").unwrap();
         let deployment = MockedDeployment::new();
         let deployment = Arc::new(deployment);
         let manifest = Arc::new(create_test_manifest_full(Some(true)));
@@ -1589,13 +1583,13 @@ pub mod tests {
                 cgroup_permissions: Some("rwm".to_string()),
             },
             DeviceMapping {
-                path_on_host: Some("/tmp/flecs-tests/dev/bus/usb/456/789".to_string()),
-                path_in_container: Some("/tmp/flecs-tests/dev/bus/usb/456/789".to_string()),
+                path_on_host: Some("/dev/bus/usb/456/789".to_string()),
+                path_in_container: Some("/dev/bus/usb/456/789".to_string()),
                 cgroup_permissions: Some("rwm".to_string()),
             },
             DeviceMapping {
-                path_on_host: Some("/tmp/flecs-tests/dev/bus/usb/200/300".to_string()),
-                path_in_container: Some("/tmp/flecs-tests/dev/bus/usb/200/300".to_string()),
+                path_on_host: Some("/dev/bus/usb/200/300".to_string()),
+                path_in_container: Some("/dev/bus/usb/200/300".to_string()),
                 cgroup_permissions: Some("rwm".to_string()),
             },
         ];
@@ -1605,7 +1599,10 @@ pub mod tests {
             expected_device_mappings.len()
         );
         for expected_device_mapping in expected_device_mappings {
-            assert!(resulting_device_mappings.contains(&expected_device_mapping));
+            assert!(
+                resulting_device_mappings.contains(&expected_device_mapping),
+                "{resulting_device_mappings:#?} does not contain {expected_device_mapping:#?}"
+            );
         }
         assert_eq!(
             config.networking_config,
