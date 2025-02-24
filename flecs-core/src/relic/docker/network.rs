@@ -36,11 +36,17 @@ pub async fn inspect<T>(
     docker_client: Arc<Docker>,
     network: &str,
     options: Option<InspectNetworkOptions<T>>,
-) -> Result<Network>
+) -> Result<Option<Network>>
 where
     T: Into<String> + serde::ser::Serialize,
 {
-    Ok(docker_client.inspect_network(network, options).await?)
+    match docker_client.inspect_network(network, options).await {
+        Ok(network) => Ok(Some(network)),
+        Err(bollard::errors::Error::DockerResponseServerError {
+            status_code: 404, ..
+        }) => Ok(None),
+        Err(e) => Err(anyhow::anyhow!(e)),
+    }
 }
 
 /// # Example

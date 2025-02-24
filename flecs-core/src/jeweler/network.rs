@@ -64,7 +64,7 @@ pub trait NetworkDeployment {
     async fn create_network(&self, quest: SyncQuest, config: NetworkConfig) -> Result<NetworkId>;
     async fn default_network(&self) -> Result<Network>;
     async fn delete_network(&self, id: NetworkId) -> Result<()>;
-    async fn network(&self, id: NetworkId) -> Result<Network>;
+    async fn network(&self, id: NetworkId) -> Result<Option<Network>>;
     async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;
     async fn connect_network(
         &self,
