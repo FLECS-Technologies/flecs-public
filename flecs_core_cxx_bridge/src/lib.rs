@@ -6,7 +6,7 @@ mod token;
 mod usb;
 
 pub use crate::manifest::download_manifest;
-use flecs_core::enchantment::floxy::Floxy;
+use flecs_core::enchantment::floxy::{Floxy, FloxyImpl};
 use flecs_core::enchantment::Enchantments;
 pub use floxy::{
     create_instance_editor_redirect_to_free_port, delete_reverse_proxy_configs,
@@ -106,7 +106,7 @@ mod ffi {
         ) -> Result<u16>;
         fn delete_reverse_proxy_configs(app: &str, instance_id: u32, ports: Vec<u16>)
             -> Result<()>;
-        fn delete_server_proxy_configs(app: &str, instance_id: u32, ports: Vec<u16>) -> Result<()>;
+        fn delete_server_proxy_configs(app: &str, instance_id: u32, ports: Vec<u16>);
         fn load_instance_reverse_proxy_config(
             app: &str,
             instance_id: u32,
@@ -119,7 +119,7 @@ mod ffi {
 struct Server {
     runtime: Runtime,
     handle: Option<JoinHandle<()>>,
-    floxy: Arc<Floxy>,
+    floxy: Arc<FloxyImpl>,
 }
 
 fn get_server() -> Arc<Mutex<Server>> {
@@ -130,7 +130,7 @@ fn get_server() -> Arc<Mutex<Server>> {
                 runtime: Runtime::new().unwrap(),
                 handle: None,
                 floxy: Arc::new(
-                    Floxy::from_config(
+                    FloxyImpl::from_config(
                         PathBuf::from("/var/lib/flecs/floxy"),
                         PathBuf::from("/etc/nginx/floxy.conf"),
                     )

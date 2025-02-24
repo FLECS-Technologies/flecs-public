@@ -3,7 +3,9 @@ mod console;
 mod device;
 mod instances;
 mod jobs;
+mod route_impl;
 mod system;
+use crate::enchantment::floxy::Floxy;
 use crate::enchantment::Enchantments;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::vault::Vault;
@@ -29,32 +31,40 @@ fn ok() -> AdditionalInfo {
     }
 }
 
-pub struct ServerImpl<T: UsbDeviceReader> {
+pub struct ServerImpl<F: Floxy, T: UsbDeviceReader> {
     vault: Arc<Vault>,
-    enchantments: Enchantments,
+    enchantments: Enchantments<F>,
     usb_reader: T,
 }
 
-impl<T: UsbDeviceReader> ServerImpl<T> {
-    pub async fn new(usb_reader: T) -> Self {
+impl<F: Floxy, T: UsbDeviceReader> ServerImpl<F, T> {
+    pub async fn new(enchantments: Enchantments<F>, usb_reader: T) -> Self {
         Self {
             vault: crate::lore::vault::default().await,
             enchantments,
             usb_reader,
         }
     }
+}
 
+#[cfg(test)]
+impl
+    ServerImpl<crate::enchantment::floxy::MockFloxy, crate::relic::device::usb::MockUsbDeviceReader>
+{
     #[cfg(test)]
-    pub fn test_instance(vault: Arc<Vault>, test_path: std::path::PathBuf) -> Self {
+    pub fn test_instance(
+        vault: Arc<Vault>,
+        usb_reader: crate::relic::device::usb::MockUsbDeviceReader,
+    ) -> Self {
         Self {
             vault,
-            enchantments: Enchantments::test_instance(test_path.join("enchantments")),
+            enchantments: Enchantments::test_instance(),
+            usb_reader,
         }
     }
 }
-
 #[async_trait]
-impl<T: UsbDeviceReader + Sync> Flunder for ServerImpl<T> {
+impl<F: Floxy, T: UsbDeviceReader + Sync> Flunder for ServerImpl<F, T> {
     async fn flunder_browse_get(
         &self,
         _method: Method,

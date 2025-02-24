@@ -1,3 +1,4 @@
+use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::fsm::server_impl::ServerImpl;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::relic::device::usb::UsbDeviceReader;
@@ -18,7 +19,7 @@ use http::Method;
 use std::sync::Arc;
 
 #[async_trait]
-impl<T: UsbDeviceReader + Sync> Apps for ServerImpl<T> {
+impl<F: Floxy + 'static, T: UsbDeviceReader + Sync> Apps for ServerImpl<F, T> {
     async fn apps_app_delete(
         &self,
         _method: Method,
@@ -48,12 +49,13 @@ impl<T: UsbDeviceReader + Sync> Apps for ServerImpl<T> {
                     return Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp);
                 }
                 let vault = self.vault.clone();
+                let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
                 let (id, _) = crate::lore::quest::default()
                     .await
                     .lock()
                     .await
                     .schedule_quest(format!("Uninstall {key}"), |quest| {
-                        crate::sorcerer::appraiser::uninstall_app(quest, vault, key)
+                        crate::sorcerer::appraiser::uninstall_app(quest, vault, floxy, key)
                     })
                     .await
                     // TODO: Add 500 Response to API
@@ -196,10 +198,10 @@ mod tests {
     #[tokio::test]
     async fn uninstall_no_version() {
         let path = prepare_test_path(module_path!(), "uninstall_no_version");
-        let server = ServerImpl {
-            vault: Arc::new(Vault::new(VaultConfig { path })),
-            usb_reader: MockUsbDeviceReader::new(),
-        };
+        let server = ServerImpl::test_instance(
+            Arc::new(Vault::new(VaultConfig { path })),
+            MockUsbDeviceReader::new(),
+        );
         assert!(server
             .apps_app_delete(
                 Method::default(),
@@ -217,10 +219,10 @@ mod tests {
     #[tokio::test]
     async fn uninstall_404() {
         let path = prepare_test_path(module_path!(), "uninstall_404");
-        let server = ServerImpl {
-            vault: Arc::new(Vault::new(VaultConfig { path })),
-            usb_reader: MockUsbDeviceReader::new(),
-        };
+        let server = ServerImpl::test_instance(
+            Arc::new(Vault::new(VaultConfig { path })),
+            MockUsbDeviceReader::new(),
+        );
         assert_eq!(
             Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp),
             server
