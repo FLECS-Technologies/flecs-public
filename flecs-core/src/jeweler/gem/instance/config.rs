@@ -179,10 +179,10 @@ pub struct UsbPathConfig {
     pub dev_num: u16,
 }
 
-impl TryFrom<(&UsbDevice, &dyn UsbDeviceReader)> for UsbPathConfig {
+impl<T: UsbDeviceReader> TryFrom<(&UsbDevice, &T)> for UsbPathConfig {
     type Error = crate::Error;
 
-    fn try_from((device, reader): (&UsbDevice, &dyn UsbDeviceReader)) -> Result<Self, Self::Error> {
+    fn try_from((device, reader): (&UsbDevice, &T)) -> Result<Self, Self::Error> {
         Ok(Self {
             dev_num: reader.get_dev_num(&device.port)?,
             bus_num: reader.get_bus_num(&device.port)?,
@@ -775,9 +775,8 @@ pub(crate) mod tests {
             pid: 0,
             vid: 0,
         };
-        let reader: &dyn UsbDeviceReader = &reader;
         assert_eq!(
-            UsbPathConfig::try_from((&usb_device, reader)).unwrap(),
+            UsbPathConfig::try_from((&usb_device, &reader)).unwrap(),
             UsbPathConfig {
                 dev_num: 919,
                 bus_num: 121,
@@ -805,8 +804,7 @@ pub(crate) mod tests {
             pid: 0,
             vid: 0,
         };
-        let reader: &dyn UsbDeviceReader = &reader;
-        assert!(UsbPathConfig::try_from((&usb_device, reader)).is_err());
+        assert!(UsbPathConfig::try_from((&usb_device, &reader)).is_err());
     }
 
     #[test]
@@ -829,8 +827,7 @@ pub(crate) mod tests {
             pid: 0,
             vid: 0,
         };
-        let reader: &dyn UsbDeviceReader = &reader;
-        assert!(UsbPathConfig::try_from((&usb_device, reader)).is_err());
+        assert!(UsbPathConfig::try_from((&usb_device, &reader)).is_err());
     }
 
     #[test]
