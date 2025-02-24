@@ -1,3 +1,4 @@
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::ServerImpl;
 use crate::relic::device::usb::UsbDeviceReader;
 use async_trait::async_trait;
@@ -10,7 +11,7 @@ use flecsd_axum_server::models::AuthResponseData;
 use http::Method;
 
 #[async_trait]
-impl<T: UsbDeviceReader + Sync> Console for ServerImpl<T> {
+impl<F: Floxy, T: UsbDeviceReader + Sync> Console for ServerImpl<F, T> {
     async fn console_authentication_delete(
         &self,
         _method: Method,

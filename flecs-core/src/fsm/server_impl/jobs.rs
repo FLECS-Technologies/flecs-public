@@ -1,3 +1,4 @@
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::ServerImpl;
 use crate::relic::device::usb::UsbDeviceReader;
 use async_trait::async_trait;
@@ -10,7 +11,7 @@ use flecsd_axum_server::models::{JobsJobIdDeletePathParams, JobsJobIdGetPathPara
 use http::Method;
 
 #[async_trait]
-impl<T: UsbDeviceReader + Sync> Jobs for ServerImpl<T> {
+impl<F: Floxy, T: UsbDeviceReader + Sync> Jobs for ServerImpl<F, T> {
     async fn jobs_get(
         &self,
         _method: Method,

@@ -1,4 +1,5 @@
 pub use super::Result;
+use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::app::{AppStatus, Token};
 use crate::jeweler::gem::app::App;
 use crate::jeweler::gem::manifest::AppManifest;
@@ -14,22 +15,26 @@ use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use tracing::error;
 
-pub async fn uninstall_app(quest: SyncQuest, vault: Arc<Vault>, app_key: AppKey) -> Result<()> {
+pub async fn uninstall_app<F: Floxy + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+    app_key: AppKey,
+) -> Result<()> {
     let instances_to_delete =
         spell::instance::get_instance_ids_by_app_key(vault.clone(), app_key.clone()).await;
     let delete_instances_result = quest
         .lock()
         .await
         .create_sub_quest(format!("Remove instances of {app_key}"), |quest| {
-            spell::instance::delete_instances(quest, vault.clone(), instances_to_delete).map_err(
-                |errors| {
+            spell::instance::delete_instances(quest, vault.clone(), floxy, instances_to_delete)
+                .map_err(|errors| {
                     anyhow::anyhow!(errors
                         .into_iter()
                         .map(|(error, id)| format!("Failed to delete instance {id}: {error}"))
                         .collect::<Vec<String>>()
                         .join(","))
-                },
-            )
+                })
         })
         .await
         .2;

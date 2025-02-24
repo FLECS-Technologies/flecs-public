@@ -203,6 +203,8 @@ pub struct InstanceConfig {
     pub network_addresses: HashMap<NetworkId, IpAddr>,
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub usb_devices: HashMap<String, UsbPathConfig>,
+    #[serde(skip)]
+    pub mapped_editor_ports: HashMap<u16, u16>,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]

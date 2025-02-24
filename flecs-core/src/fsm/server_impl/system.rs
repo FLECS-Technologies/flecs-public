@@ -1,3 +1,4 @@
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::{ok, ServerImpl};
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use async_trait::async_trait;
@@ -13,7 +14,7 @@ use http::Method;
 use tracing::error;
 
 #[async_trait]
-impl<T: UsbDeviceReader + Sync> System for ServerImpl<T> {
+impl<F: Floxy, T: UsbDeviceReader + Sync> System for ServerImpl<F, T> {
     async fn system_devices_get(
         &self,
         _method: Method,
@@ -112,7 +113,7 @@ impl<T: UsbDeviceReader + Sync> System for ServerImpl<T> {
     }
 }
 
-impl<T: UsbDeviceReader> ServerImpl<T> {
+impl<F: Floxy, T: UsbDeviceReader> ServerImpl<F, T> {
     fn get_usb_devices(&self) -> Result<Vec<models::UsbDevice>, crate::Error> {
         Ok(self
             .usb_reader
@@ -242,7 +243,7 @@ mod tests {
     async fn get_usb_devices_err() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_error();
-        let server = ServerImpl { vault, usb_reader };
+        let server = ServerImpl::test_instance(vault, usb_reader);
         assert!(server.get_usb_devices().is_err());
     }
 
@@ -250,7 +251,7 @@ mod tests {
     async fn get_usb_devices_ok() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl { vault, usb_reader };
+        let server = ServerImpl::test_instance(vault, usb_reader);
         let expected_devices = create_expected_usb_devices();
         let result_devices = server.get_usb_devices().unwrap();
         assert_eq!(expected_devices.len(), result_devices.len());
@@ -263,7 +264,7 @@ mod tests {
     async fn system_devices_get_200() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl { vault, usb_reader };
+        let server = ServerImpl::test_instance(vault, usb_reader);
         let expected_devices = create_expected_usb_devices();
         let Ok(SystemDevicesGetResponse::Status200_Success(models::Devices {
             usb: Some(result_devices),
@@ -287,7 +288,7 @@ mod tests {
     async fn system_devices_get_500() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_error();
-        let server = ServerImpl { vault, usb_reader };
+        let server = ServerImpl::test_instance(vault, usb_reader);
         assert!(matches!(
             server
                 .system_devices_get(
@@ -304,7 +305,7 @@ mod tests {
     async fn system_devices_usb_get_200() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl { vault, usb_reader };
+        let server = ServerImpl::test_instance(vault, usb_reader);
         let expected_devices = create_expected_usb_devices();
         let Ok(SystemDevicesUsbGetResponse::Status200_Success(result_devices)) = server
             .system_devices_usb_get(
@@ -326,7 +327,7 @@ mod tests {
     async fn system_devices_usb_get_500() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_error();
-        let server = ServerImpl { vault, usb_reader };
+        let server = ServerImpl::test_instance(vault, usb_reader);
         assert!(matches!(
             server
                 .system_devices_usb_get(
@@ -345,7 +346,7 @@ mod tests {
     async fn system_devices_usb_port_get_200() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl { vault, usb_reader };
+        let server = ServerImpl::test_instance(vault, usb_reader);
         assert_eq!(
             server
                 .system_devices_usb_port_get(
@@ -367,7 +368,7 @@ mod tests {
     async fn system_devices_usb_port_get_404() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl { vault, usb_reader };
+        let server = ServerImpl::test_instance(vault, usb_reader);
         assert_eq!(
             server
                 .system_devices_usb_port_get(
@@ -387,7 +388,7 @@ mod tests {
     async fn system_devices_usb_port_get_500() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_error();
-        let server = ServerImpl { vault, usb_reader };
+        let server = ServerImpl::test_instance(vault, usb_reader);
         assert!(matches!(
             server
                 .system_devices_usb_port_get(

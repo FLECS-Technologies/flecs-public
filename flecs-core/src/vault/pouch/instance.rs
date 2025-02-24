@@ -232,7 +232,7 @@ pub mod tests {
             },
             network_addresses: HashMap::from([
                 (
-                    "Network1".to_string(),
+                    "flecs".to_string(),
                     IpAddr::V4(Ipv4Addr::new(50, 60, 70, 80)),
                 ),
                 (
@@ -250,6 +250,7 @@ pub mod tests {
                     port: "test_port".to_string(),
                 },
             )]),
+            mapped_editor_ports: HashMap::from([(3000, 4000)]),
         }
     }
 
@@ -293,7 +294,7 @@ pub mod tests {
             },
             "network_addresses": {
                 "Network2": "ab:cd:ef:12:34:56:78:90",
-                "Network1": "50.60.70.80"
+                "flecs": "50.60.70.80"
             },
             "usb_devices": {
                 "test_port": {
@@ -483,9 +484,12 @@ pub mod tests {
         let path = prepare_test_path(module_path!(), "read_instances_ok").join(INSTANCES_FILE_NAME);
         let json = create_test_json();
         let instance_pouch = InstancePouch::new(path.parent().unwrap());
+        let mut expected_instances = create_test_instances_deserializable();
+        // mapped ports should not be serialized / deserialized
+        expected_instances[5].config.mapped_editor_ports.clear();
         fs::write(path, serde_json::to_string_pretty(&json).unwrap()).unwrap();
         let instances = instance_pouch.read_instances().unwrap();
-        assert_eq!(instances, create_test_instances_deserializable());
+        assert_eq!(instances, expected_instances);
     }
 
     #[test]
@@ -549,10 +553,10 @@ pub mod tests {
         let result_json = serde_json::from_str::<Value>(data.as_str()).unwrap();
         let result_json = result_json.as_array().unwrap();
         for json in test_json {
-            result_json
-                .iter()
-                .find(|result| *result == json)
-                .unwrap_or_else(|| panic!("Expected to find {json:#?}"));
+            assert!(
+                result_json.iter().any(|result| result == json),
+                "Expected to find {json:#?} in {result_json:#?}"
+            );
         }
     }
 
