@@ -5,5 +5,6 @@ pub mod licenso;
 pub mod magequester;
 pub mod manifesto;
 mod spell;
+pub mod systemus;
 
 pub use super::{Error, Result};
