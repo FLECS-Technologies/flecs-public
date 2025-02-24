@@ -79,7 +79,9 @@ impl DockerDeployment {
                 Self::default_network_config(),
             )
             .await?;
-        self.network(id).await
+        self.network(id.clone())
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Failed to get default network {id} after creation"))
     }
 
     async fn copy_to_instance(
@@ -837,7 +839,7 @@ impl NetworkDeployment for DockerDeployment {
         relic::docker::network::remove(docker_client, &id).await
     }
 
-    async fn network(&self, id: NetworkId) -> anyhow::Result<Network> {
+    async fn network(&self, id: NetworkId) -> anyhow::Result<Option<Network>> {
         let docker_client = self.client()?;
         relic::docker::network::inspect::<&str>(docker_client, &id, None).await
     }
