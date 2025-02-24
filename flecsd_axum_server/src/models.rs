@@ -519,6 +519,12 @@ lazy_static::lazy_static! {
     static ref RE_SYSTEMDEVICESUSBPORTGETPATHPARAMS_PORT: regex::Regex = regex::Regex::new("^usb[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*(?:\\.[1-9][0-9]*)*$").unwrap();
 }
 
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct SystemNetworksNetworkIdDhcpIpv4PostPathParams {
+    pub network_id: String,
+}
+
 /// Additional info
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
@@ -9761,6 +9767,138 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<SystemKernel
                 "Unable to convert header: {:?} to string: {}",
                 hdr_value, e
             )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct SystemNetworksNetworkIdDhcpIpv4Post200Response {
+    #[serde(rename = "ipv4_address")]
+    pub ipv4_address: String,
+}
+
+impl SystemNetworksNetworkIdDhcpIpv4Post200Response {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(ipv4_address: String) -> SystemNetworksNetworkIdDhcpIpv4Post200Response {
+        SystemNetworksNetworkIdDhcpIpv4Post200Response { ipv4_address }
+    }
+}
+
+/// Converts the SystemNetworksNetworkIdDhcpIpv4Post200Response value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for SystemNetworksNetworkIdDhcpIpv4Post200Response {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("ipv4_address".to_string()),
+            Some(self.ipv4_address.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a SystemNetworksNetworkIdDhcpIpv4Post200Response value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for SystemNetworksNetworkIdDhcpIpv4Post200Response {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub ipv4_address: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => return std::result::Result::Err(
+                    "Missing value while parsing SystemNetworksNetworkIdDhcpIpv4Post200Response"
+                        .to_string(),
+                ),
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "ipv4_address" => intermediate_rep.ipv4_address.push(<String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
+                    _ => return std::result::Result::Err("Unexpected key while parsing SystemNetworksNetworkIdDhcpIpv4Post200Response".to_string())
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(SystemNetworksNetworkIdDhcpIpv4Post200Response {
+            ipv4_address: intermediate_rep
+                .ipv4_address
+                .into_iter()
+                .next()
+                .ok_or_else(|| {
+                    "ipv4_address missing in SystemNetworksNetworkIdDhcpIpv4Post200Response"
+                        .to_string()
+                })?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<SystemNetworksNetworkIdDhcpIpv4Post200Response> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<SystemNetworksNetworkIdDhcpIpv4Post200Response>>
+    for HeaderValue
+{
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<SystemNetworksNetworkIdDhcpIpv4Post200Response>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+             std::result::Result::Ok(value) => std::result::Result::Ok(value),
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Invalid header value for SystemNetworksNetworkIdDhcpIpv4Post200Response - value: {} is invalid {}",
+                     hdr_value, e))
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue>
+    for header::IntoHeaderValue<SystemNetworksNetworkIdDhcpIpv4Post200Response>
+{
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+             std::result::Result::Ok(value) => {
+                    match <SystemNetworksNetworkIdDhcpIpv4Post200Response as std::str::FromStr>::from_str(value) {
+                        std::result::Result::Ok(value) => std::result::Result::Ok(header::IntoHeaderValue(value)),
+                        std::result::Result::Err(err) => std::result::Result::Err(
+                            format!("Unable to convert header value '{}' into SystemNetworksNetworkIdDhcpIpv4Post200Response - {}",
+                                value, err))
+                    }
+             },
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Unable to convert header: {:?} to string: {}",
+                     hdr_value, e))
         }
     }
 }
