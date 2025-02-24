@@ -337,7 +337,6 @@ pub async fn put_instance_usb_device(
     let Some(usb_device) = usb_reader.read_usb_devices()?.remove(&port) else {
         return Ok(PutInstanceUsbDeviceResult::DeviceNotFound);
     };
-    let usb_reader: &dyn UsbDeviceReader = usb_reader;
     let result = spell::instance::modify_instance_config_with(vault, id, |config| {
         Ok(config
             .usb_devices
