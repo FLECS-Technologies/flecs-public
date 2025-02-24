@@ -6,10 +6,14 @@ use axum::extract::Host;
 use axum_extra::extract::CookieJar;
 use flecsd_axum_server::apis::system::{
     System, SystemDevicesGetResponse, SystemDevicesUsbGetResponse, SystemDevicesUsbPortGetResponse,
-    SystemInfoGetResponse, SystemPingGetResponse, SystemVersionGetResponse,
+    SystemInfoGetResponse, SystemNetworksNetworkIdDhcpIpv4PostResponse, SystemPingGetResponse,
+    SystemVersionGetResponse,
 };
 use flecsd_axum_server::models;
-use flecsd_axum_server::models::{AdditionalInfo, SystemDevicesUsbPortGetPathParams};
+use flecsd_axum_server::models::{
+    AdditionalInfo, SystemDevicesUsbPortGetPathParams,
+    SystemNetworksNetworkIdDhcpIpv4PostPathParams,
+};
 use http::Method;
 use tracing::error;
 
@@ -87,6 +91,16 @@ impl<F: Floxy, T: UsbDeviceReader + Sync> System for ServerImpl<F, T> {
                 error!("Could not create SystemInfo: {e}");
             })?,
         ))
+    }
+
+    async fn system_networks_network_id_dhcp_ipv4_post(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: SystemNetworksNetworkIdDhcpIpv4PostPathParams,
+    ) -> Result<SystemNetworksNetworkIdDhcpIpv4PostResponse, ()> {
+        todo!()
     }
 
     async fn system_ping_get(

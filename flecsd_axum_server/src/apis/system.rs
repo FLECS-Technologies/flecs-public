@@ -50,6 +50,18 @@ pub enum SystemInfoGetResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum SystemNetworksNetworkIdDhcpIpv4PostResponse {
+    /// Success
+    Status200_Success(models::SystemNetworksNetworkIdDhcpIpv4Post200Response),
+    /// Unknown network
+    Status404_UnknownNetwork,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum SystemPingGetResponse {
     /// Success
     Status200_Success(models::AdditionalInfo),
@@ -107,6 +119,15 @@ pub trait System {
         host: Host,
         cookies: CookieJar,
     ) -> Result<SystemInfoGetResponse, ()>;
+
+    /// SystemNetworksNetworkIdDhcpIpv4Post - POST /v2/system/networks/{network_id}/dhcp/ipv4
+    async fn system_networks_network_id_dhcp_ipv4_post(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::SystemNetworksNetworkIdDhcpIpv4PostPathParams,
+    ) -> Result<SystemNetworksNetworkIdDhcpIpv4PostResponse, ()>;
 
     /// Check daemon availability and connectivity.
     ///
