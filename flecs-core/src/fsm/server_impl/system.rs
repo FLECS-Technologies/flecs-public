@@ -1,6 +1,7 @@
 use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::{ok, ServerImpl};
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+use crate::sorcerer::systemus::ReserveIpv4AddressResult;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -98,9 +99,38 @@ impl<F: Floxy, T: UsbDeviceReader + Sync> System for ServerImpl<F, T> {
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: SystemNetworksNetworkIdDhcpIpv4PostPathParams,
+        path_params: SystemNetworksNetworkIdDhcpIpv4PostPathParams,
     ) -> Result<SystemNetworksNetworkIdDhcpIpv4PostResponse, ()> {
-        todo!()
+        match crate::sorcerer::systemus::reserve_ipv4_address(
+            self.vault.clone(),
+            path_params.network_id.clone(),
+        )
+        .await
+        {
+            Err(e) => Ok(
+                SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError(
+                    AdditionalInfo::new(e.to_string()),
+                ),
+            ),
+            Ok(ReserveIpv4AddressResult::NoFreeIpAddress) => Ok(
+                SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError(
+                    AdditionalInfo::new(format!(
+                        "No free IP address available in network {}",
+                        path_params.network_id
+                    )),
+                ),
+            ),
+            Ok(ReserveIpv4AddressResult::UnknownNetwork(_)) => {
+                Ok(SystemNetworksNetworkIdDhcpIpv4PostResponse::Status404_UnknownNetwork)
+            }
+            Ok(ReserveIpv4AddressResult::Reserved(address)) => Ok(
+                SystemNetworksNetworkIdDhcpIpv4PostResponse::Status200_Success(
+                    models::SystemNetworksNetworkIdDhcpIpv4Post200Response {
+                        ipv4_address: address.to_string(),
+                    },
+                ),
+            ),
+        }
     }
 
     async fn system_ping_get(
@@ -153,11 +183,28 @@ impl From<UsbDevice> for models::UsbDevice {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
+    use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
     use std::collections::HashMap;
     use std::io::ErrorKind;
     use std::sync::Arc;
+
+    async fn test_vault(deployment: MockedDeployment) -> Arc<Vault> {
+        let vault = Vault::new(VaultConfig::default());
+        vault
+            .reservation()
+            .reserve_deployment_pouch_mut()
+            .grab()
+            .await
+            .deployment_pouch_mut
+            .as_mut()
+            .unwrap()
+            .gems_mut()
+            .insert("TestDeployment".to_string(), Arc::new(deployment));
+        Arc::new(vault)
+    }
 
     fn create_mock_usb_reader_error() -> MockUsbDeviceReader {
         let mut usb_reader = MockUsbDeviceReader::new();
@@ -416,5 +463,128 @@ mod tests {
                 .await,
             Ok(SystemDevicesUsbPortGetResponse::Status500_InternalServerError(_))
         ))
+    }
+
+    #[tokio::test]
+    async fn system_networks_network_id_dhcp_ipv4_post_500() {
+        let usb_reader = MockUsbDeviceReader::new();
+        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let server = ServerImpl::test_instance(vault, usb_reader);
+        assert!(matches!(
+            server
+                .system_networks_network_id_dhcp_ipv4_post(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    SystemNetworksNetworkIdDhcpIpv4PostPathParams {
+                        network_id: "TestNetwork".to_string()
+                    }
+                )
+                .await,
+            Ok(SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError(_))
+        ))
+    }
+
+    #[tokio::test]
+    async fn system_networks_network_id_dhcp_ipv4_post_500_no_free_address() {
+        let bollard_network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("90.70.23.0/31".to_string()),
+                    gateway: Some("90.70.23.1".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_network()
+            .times(1)
+            .returning(move |_| Ok(Some(bollard_network.clone())));
+        let vault = test_vault(deployment).await;
+        let usb_reader = MockUsbDeviceReader::new();
+        let server = ServerImpl::test_instance(vault, usb_reader);
+        assert!(matches!(
+            server
+                .system_networks_network_id_dhcp_ipv4_post(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    SystemNetworksNetworkIdDhcpIpv4PostPathParams {
+                        network_id: "TestNetwork".to_string()
+                    }
+                )
+                .await,
+            Ok(SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError(_))
+        ))
+    }
+
+    #[tokio::test]
+    async fn system_networks_network_id_dhcp_ipv4_post_404() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_network()
+            .times(1)
+            .returning(move |_| Ok(None));
+        let vault = test_vault(deployment).await;
+        let usb_reader = MockUsbDeviceReader::new();
+        let server = ServerImpl::test_instance(vault, usb_reader);
+        assert!(matches!(
+            server
+                .system_networks_network_id_dhcp_ipv4_post(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    SystemNetworksNetworkIdDhcpIpv4PostPathParams {
+                        network_id: "TestNetwork".to_string()
+                    }
+                )
+                .await,
+            Ok(SystemNetworksNetworkIdDhcpIpv4PostResponse::Status404_UnknownNetwork)
+        ))
+    }
+
+    #[tokio::test]
+    async fn system_networks_network_id_dhcp_ipv4_post_200() {
+        let bollard_network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("90.70.23.0/24".to_string()),
+                    gateway: Some("90.70.23.1".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_network()
+            .times(1)
+            .returning(move |_| Ok(Some(bollard_network.clone())));
+        let vault = test_vault(deployment).await;
+        let usb_reader = MockUsbDeviceReader::new();
+        let server = ServerImpl::test_instance(vault, usb_reader);
+        assert_eq!(
+            server
+                .system_networks_network_id_dhcp_ipv4_post(
+                    Method::default(),
+                    Host("host".to_string()),
+                    CookieJar::default(),
+                    SystemNetworksNetworkIdDhcpIpv4PostPathParams {
+                        network_id: "TestNetwork".to_string()
+                    }
+                )
+                .await,
+            Ok(
+                SystemNetworksNetworkIdDhcpIpv4PostResponse::Status200_Success(
+                    models::SystemNetworksNetworkIdDhcpIpv4Post200Response::new(
+                        "90.70.23.2".to_string()
+                    )
+                )
+            )
+        )
     }
 }
