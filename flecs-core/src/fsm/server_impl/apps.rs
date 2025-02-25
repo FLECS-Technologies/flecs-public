@@ -2,6 +2,7 @@ use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::fsm::server_impl::ServerImpl;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::pouch::{AppKey, Pouch};
 use async_trait::async_trait;
 use axum::extract::Host;
@@ -19,7 +20,7 @@ use http::Method;
 use std::sync::Arc;
 
 #[async_trait]
-impl<F: Floxy + 'static, T: UsbDeviceReader + Sync> Apps for ServerImpl<F, T> {
+impl<A: AppRaiser + 'static, F: Floxy + 'static, T: UsbDeviceReader> Apps for ServerImpl<A, F, T> {
     async fn apps_app_delete(
         &self,
         _method: Method,
@@ -50,12 +51,13 @@ impl<F: Floxy + 'static, T: UsbDeviceReader + Sync> Apps for ServerImpl<F, T> {
                 }
                 let vault = self.vault.clone();
                 let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
+                let appraiser = self.sorcerers.app_raiser.clone();
                 let (id, _) = crate::lore::quest::default()
                     .await
                     .lock()
                     .await
-                    .schedule_quest(format!("Uninstall {key}"), |quest| {
-                        crate::sorcerer::appraiser::uninstall_app(quest, vault, floxy, key)
+                    .schedule_quest(format!("Uninstall {key}"), move |quest| async move {
+                        appraiser.uninstall_app(quest, vault, floxy, key).await
                     })
                     .await
                     // TODO: Add 500 Response to API
@@ -77,14 +79,13 @@ impl<F: Floxy + 'static, T: UsbDeviceReader + Sync> Apps for ServerImpl<F, T> {
         path_params: AppsAppGetPathParams,
         query_params: AppsAppGetQueryParams,
     ) -> Result<AppsAppGetResponse, ()> {
-        let apps = crate::sorcerer::appraiser::get_app(
-            self.vault.clone(),
-            path_params.app,
-            query_params.version,
-        )
-        .await
-        // TODO: Add 500 Response to API
-        .map_err(|_| ())?;
+        let apps = self
+            .sorcerers
+            .app_raiser
+            .get_app(self.vault.clone(), path_params.app, query_params.version)
+            .await
+            // TODO: Add 500 Response to API
+            .map_err(|_| ())?;
         if apps.is_empty() {
             Ok(AppsAppGetResponse::Status404_NoSuchAppOrApp)
         } else {
@@ -98,7 +99,10 @@ impl<F: Floxy + 'static, T: UsbDeviceReader + Sync> Apps for ServerImpl<F, T> {
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<AppsGetResponse, ()> {
-        let apps = crate::sorcerer::appraiser::get_apps(self.vault.clone())
+        let apps = self
+            .sorcerers
+            .app_raiser
+            .get_apps(self.vault.clone())
             .await
             // TODO: Add 500 Response to API
             .map_err(|_| ())?;
@@ -115,12 +119,13 @@ impl<F: Floxy + 'static, T: UsbDeviceReader + Sync> Apps for ServerImpl<F, T> {
         let app_key = body.app_key.into();
         let config = crate::lore::console_client_config::default().await;
         let vault = self.vault.clone();
+        let appraiser = self.sorcerers.app_raiser.clone();
         match crate::lore::quest::default()
             .await
             .lock()
             .await
-            .schedule_quest(format!("Install {}", app_key), |quest| {
-                crate::sorcerer::appraiser::install_app(quest, vault, app_key, config)
+            .schedule_quest(format!("Install {}", app_key), move |quest| async move {
+                appraiser.install_app(quest, vault, app_key, config).await
             })
             .await
         {
@@ -157,18 +162,19 @@ impl<F: Floxy + 'static, T: UsbDeviceReader + Sync> Apps for ServerImpl<F, T> {
             Ok(Ok(manifest)) => {
                 let config = crate::lore::console_client_config::default().await;
                 let vault = self.vault.clone();
+                let appraiser = self.sorcerers.app_raiser.clone();
                 match crate::lore::quest::default()
                     .await
                     .lock()
                     .await
-                    .schedule_quest(format!("Sideloading {}", manifest.key), |quest| {
-                        crate::sorcerer::appraiser::install_app_from_manifest(
-                            quest,
-                            vault,
-                            Arc::new(manifest),
-                            config,
-                        )
-                    })
+                    .schedule_quest(
+                        format!("Sideloading {}", manifest.key),
+                        move |quest| async move {
+                            appraiser
+                                .install_app_from_manifest(quest, vault, Arc::new(manifest), config)
+                                .await
+                        },
+                    )
                     .await
                 {
                     Ok((id, _)) => Ok(AppsSideloadPostResponse::Status202_Accepted(JobMeta {
@@ -186,6 +192,7 @@ impl<F: Floxy + 'static, T: UsbDeviceReader + Sync> Apps for ServerImpl<F, T> {
 mod tests {
     use crate::fsm::server_impl::ServerImpl;
     use crate::relic::device::usb::MockUsbDeviceReader;
+    use crate::sorcerer::MockSorcerers;
     use crate::tests::prepare_test_path;
     use crate::vault::{Vault, VaultConfig};
     use axum::extract::Host;
@@ -201,6 +208,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             Arc::new(Vault::new(VaultConfig { path })),
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(server
             .apps_app_delete(
@@ -222,6 +230,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             Arc::new(Vault::new(VaultConfig { path })),
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp),
