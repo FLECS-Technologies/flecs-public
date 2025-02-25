@@ -3,6 +3,7 @@ use crate::fsm::server_impl::{
     additional_info_from_error, console_session_id_to_core_session_id, ok, ServerImpl,
 };
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::sorcerer::appraiser::AppRaiser;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -18,7 +19,7 @@ use http::Method;
 use tracing::warn;
 
 #[async_trait]
-impl<F: Floxy, T: UsbDeviceReader + Sync> Device for ServerImpl<F, T> {
+impl<A: AppRaiser + 'static, F: Floxy, T: UsbDeviceReader> Device for ServerImpl<A, F, T> {
     async fn device_license_activation_post(
         &self,
         _method: Method,
@@ -116,12 +117,13 @@ impl<F: Floxy, T: UsbDeviceReader + Sync> Device for ServerImpl<F, T> {
             .collect();
         let config = crate::lore::console_client_config::default().await;
         let vault = self.vault.clone();
+        let appraiser = self.sorcerers.app_raiser.clone();
         match crate::lore::quest::default()
             .await
             .lock()
             .await
-            .schedule_quest("Install apps via device onboarding".to_string(), |quest| {
-                crate::sorcerer::appraiser::install_apps(quest, vault, app_keys, config)
+            .schedule_quest("Install apps via device onboarding".to_string(), move |quest| async move {
+                appraiser.install_apps(quest, vault, app_keys, config).await
             })
             .await
         {

@@ -1,6 +1,7 @@
 use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::{ok, ServerImpl};
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::systemus::ReserveIpv4AddressResult;
 use async_trait::async_trait;
 use axum::extract::Host;
@@ -19,7 +20,7 @@ use http::Method;
 use tracing::error;
 
 #[async_trait]
-impl<F: Floxy, T: UsbDeviceReader + Sync> System for ServerImpl<F, T> {
+impl<A: AppRaiser, F: Floxy, T: UsbDeviceReader> System for ServerImpl<A, F, T> {
     async fn system_devices_get(
         &self,
         _method: Method,
@@ -157,7 +158,7 @@ impl<F: Floxy, T: UsbDeviceReader + Sync> System for ServerImpl<F, T> {
     }
 }
 
-impl<F: Floxy, T: UsbDeviceReader> ServerImpl<F, T> {
+impl<A: AppRaiser, F: Floxy, T: UsbDeviceReader> ServerImpl<A, F, T> {
     fn get_usb_devices(&self) -> Result<Vec<models::UsbDevice>, crate::Error> {
         Ok(self
             .usb_reader
@@ -185,6 +186,7 @@ mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
+    use crate::sorcerer::MockSorcerers;
     use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
     use std::collections::HashMap;
@@ -304,7 +306,7 @@ mod tests {
     async fn get_usb_devices_err() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_error();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(server.get_usb_devices().is_err());
     }
 
@@ -312,7 +314,7 @@ mod tests {
     async fn get_usb_devices_ok() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         let expected_devices = create_expected_usb_devices();
         let result_devices = server.get_usb_devices().unwrap();
         assert_eq!(expected_devices.len(), result_devices.len());
@@ -325,7 +327,7 @@ mod tests {
     async fn system_devices_get_200() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         let expected_devices = create_expected_usb_devices();
         let Ok(SystemDevicesGetResponse::Status200_Success(models::Devices {
             usb: Some(result_devices),
@@ -349,7 +351,7 @@ mod tests {
     async fn system_devices_get_500() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_error();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .system_devices_get(
@@ -366,7 +368,7 @@ mod tests {
     async fn system_devices_usb_get_200() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         let expected_devices = create_expected_usb_devices();
         let Ok(SystemDevicesUsbGetResponse::Status200_Success(result_devices)) = server
             .system_devices_usb_get(
@@ -388,7 +390,7 @@ mod tests {
     async fn system_devices_usb_get_500() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_error();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .system_devices_usb_get(
@@ -407,7 +409,7 @@ mod tests {
     async fn system_devices_usb_port_get_200() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .system_devices_usb_port_get(
@@ -429,7 +431,7 @@ mod tests {
     async fn system_devices_usb_port_get_404() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_values();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .system_devices_usb_port_get(
@@ -449,7 +451,7 @@ mod tests {
     async fn system_devices_usb_port_get_500() {
         let vault = Arc::new(Vault::new(VaultConfig::default()));
         let usb_reader = create_mock_usb_reader_error();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .system_devices_usb_port_get(
@@ -469,7 +471,7 @@ mod tests {
     async fn system_networks_network_id_dhcp_ipv4_post_500() {
         let usb_reader = MockUsbDeviceReader::new();
         let vault = Arc::new(Vault::new(VaultConfig::default()));
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .system_networks_network_id_dhcp_ipv4_post(
@@ -505,7 +507,7 @@ mod tests {
             .returning(move |_| Ok(Some(bollard_network.clone())));
         let vault = test_vault(deployment).await;
         let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .system_networks_network_id_dhcp_ipv4_post(
@@ -530,7 +532,7 @@ mod tests {
             .returning(move |_| Ok(None));
         let vault = test_vault(deployment).await;
         let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .system_networks_network_id_dhcp_ipv4_post(
@@ -566,7 +568,7 @@ mod tests {
             .returning(move |_| Ok(Some(bollard_network.clone())));
         let vault = test_vault(deployment).await;
         let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .system_networks_network_id_dhcp_ipv4_post(

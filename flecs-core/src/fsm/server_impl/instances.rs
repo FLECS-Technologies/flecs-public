@@ -4,6 +4,7 @@ use crate::jeweler::gem::instance::{InstanceId, TransportProtocol, UsbPathConfig
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::quest::{Quest, QuestResult};
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::instancius::{GetInstanceUsbDeviceResult, PutInstanceUsbDeviceResult};
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
@@ -78,7 +79,7 @@ use std::num::NonZeroU16;
 use std::str::FromStr;
 
 #[async_trait]
-impl<F: Floxy + 'static, T: UsbDeviceReader + Send + Sync> Instances for ServerImpl<F, T> {
+impl<A: AppRaiser, F: Floxy + 'static, T: UsbDeviceReader> Instances for ServerImpl<A, F, T> {
     async fn instances_create_post(
         &self,
         _method: Method,
@@ -87,7 +88,12 @@ impl<F: Floxy + 'static, T: UsbDeviceReader + Send + Sync> Instances for ServerI
         body: InstancesCreatePostRequest,
     ) -> Result<InstancesCreatePostResponse, ()> {
         let app_key: AppKey = body.app_key.into();
-        if !crate::sorcerer::appraiser::does_app_exist(self.vault.clone(), app_key.clone()).await {
+        if !self
+            .sorcerers
+            .app_raiser
+            .does_app_exist(self.vault.clone(), app_key.clone())
+            .await
+        {
             return Ok(InstancesCreatePostResponse::Status400_MalformedRequest(
                 AdditionalInfo {
                     additional_info: format!("App {app_key} does not exist"),
@@ -1256,6 +1262,8 @@ mod tests {
     use crate::fsm::server_impl::ServerImpl;
     use crate::jeweler::gem::app::{try_create_app, AppDeserializable};
     use crate::relic::device::usb::MockUsbDeviceReader;
+    use crate::sorcerer::appraiser::MockAppRaiser;
+    use crate::sorcerer::MockSorcerers;
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
@@ -1282,6 +1290,7 @@ mod tests {
                 path: path.join("vault"),
             })),
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             Ok(InstancesInstanceIdStartPostResponse::Status404_NoInstanceWithThisInstance),
@@ -1304,6 +1313,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             Arc::new(Vault::new(VaultConfig { path })),
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance),
@@ -1326,6 +1336,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             Arc::new(Vault::new(VaultConfig { path })),
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance),
@@ -1345,9 +1356,14 @@ mod tests {
     #[tokio::test]
     async fn create_instance_no_app() {
         let path = prepare_test_path(module_path!(), "create_instance_no_app");
+        let mut appraiser = MockAppRaiser::new();
+        appraiser.expect_does_app_exist().once().return_const(false);
         let server = ServerImpl::test_instance(
             Arc::new(Vault::new(VaultConfig { path })),
             MockUsbDeviceReader::new(),
+            MockSorcerers {
+                app_raiser: Arc::new(appraiser),
+            },
         );
         assert!(matches!(
             server
@@ -1393,7 +1409,15 @@ mod tests {
             .unwrap()
             .gems_mut()
             .insert(test_key.into(), app);
-        let server = ServerImpl::test_instance(vault, MockUsbDeviceReader::new());
+        let mut appraiser = MockAppRaiser::new();
+        appraiser.expect_does_app_exist().once().return_const(true);
+        let server = ServerImpl::test_instance(
+            vault,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                app_raiser: Arc::new(appraiser),
+            },
+        );
         assert!(matches!(
             server
                 .instances_create_post(
@@ -1419,6 +1443,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1441,6 +1466,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1478,6 +1504,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1500,6 +1527,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -1545,6 +1573,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -1588,6 +1617,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1614,6 +1644,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1640,6 +1671,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -1675,6 +1707,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1702,6 +1735,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1729,6 +1763,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -1772,6 +1807,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1799,6 +1835,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1826,6 +1863,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -1860,6 +1898,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1888,6 +1927,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1916,6 +1956,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -1960,6 +2001,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2005,6 +2047,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2032,6 +2075,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2059,6 +2103,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2086,6 +2131,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -2129,6 +2175,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2156,6 +2203,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2183,6 +2231,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2210,6 +2259,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -2250,6 +2300,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -2284,6 +2335,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2315,6 +2367,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2346,6 +2399,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2377,6 +2431,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2408,6 +2463,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2439,6 +2495,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -2489,6 +2546,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -2541,6 +2599,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         let port_mappings = vec![
             models::InstancePortMapping::InstancePortMappingRange(Box::new(
@@ -2588,6 +2647,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2626,6 +2686,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -2653,6 +2714,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         let port_mappings = vec![
             models::InstancePortMapping::InstancePortMappingSingle(Box::new(
@@ -3104,6 +3166,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3132,6 +3195,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3160,6 +3224,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -3208,6 +3273,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3234,6 +3300,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3260,6 +3327,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -3319,6 +3387,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -3348,6 +3417,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -3400,6 +3470,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -3449,6 +3520,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3471,6 +3543,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3508,6 +3581,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3530,6 +3604,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -3566,6 +3641,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3598,6 +3674,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3621,6 +3698,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3679,6 +3757,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3751,6 +3830,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3773,6 +3853,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -3804,6 +3885,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3827,6 +3909,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert!(matches!(
             server
@@ -3850,6 +3933,7 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
+            MockSorcerers::default(),
         );
         assert_eq!(
             server
@@ -3942,7 +4026,7 @@ mod tests {
         );
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
         let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_delete(
@@ -3966,7 +4050,7 @@ mod tests {
         );
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
         let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_delete(
@@ -3994,7 +4078,7 @@ mod tests {
             .expect_read_usb_devices()
             .times(1)
             .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_get(
@@ -4020,7 +4104,7 @@ mod tests {
         usb_reader
             .expect_read_usb_devices()
             .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_get(
@@ -4049,7 +4133,7 @@ mod tests {
                 "test error",
             )))
         });
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_get(
@@ -4072,7 +4156,7 @@ mod tests {
         );
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
         let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_delete(
@@ -4096,7 +4180,7 @@ mod tests {
         );
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
         let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_delete(
@@ -4124,7 +4208,7 @@ mod tests {
         );
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
         let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_delete(
@@ -4156,7 +4240,7 @@ mod tests {
             .expect_read_usb_devices()
             .times(1)
             .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4206,7 +4290,7 @@ mod tests {
                     },
                 )]))
             });
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4242,7 +4326,7 @@ mod tests {
         );
         let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
         let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4281,7 +4365,7 @@ mod tests {
                     },
                 )]))
             });
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4309,7 +4393,7 @@ mod tests {
             .expect_read_usb_devices()
             .times(1)
             .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4339,7 +4423,7 @@ mod tests {
                 "test error",
             )))
         });
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4382,7 +4466,7 @@ mod tests {
                     },
                 )]))
             });
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_put(
@@ -4410,7 +4494,7 @@ mod tests {
             .expect_read_usb_devices()
             .times(1)
             .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_put(
@@ -4459,7 +4543,7 @@ mod tests {
             .withf(|value_name, _| value_name == "busnum")
             .times(1)
             .returning(|_, _| Ok("121".to_string()));
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_port_put(
@@ -4508,7 +4592,7 @@ mod tests {
             .withf(|value_name, _| value_name == "busnum")
             .times(1)
             .returning(|_, _| Ok("121".to_string()));
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_port_put(
@@ -4538,7 +4622,7 @@ mod tests {
                 "test error",
             )))
         });
-        let server = ServerImpl::test_instance(vault, usb_reader);
+        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_put(

@@ -1,6 +1,7 @@
 use flecs_core::enchantment::floxy::{Floxy, FloxyImpl};
 use flecs_core::enchantment::Enchantments;
 use flecs_core::fsm::StartupError;
+use flecs_core::sorcerer::Sorcerers;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::info;
@@ -25,6 +26,12 @@ async fn main() -> flecs_core::fsm::Result<()> {
         .floxy
         .start()
         .map_err(|e| StartupError(e.to_string()))?;
+
     info!("Starting rust server listening on {FLECSD_SOCKET}");
-    flecs_core::fsm::server(PathBuf::from(FLECSD_SOCKET), enchantments).await
+    flecs_core::fsm::server(
+        Sorcerers::default(),
+        PathBuf::from(FLECSD_SOCKET),
+        enchantments,
+    )
+    .await
 }

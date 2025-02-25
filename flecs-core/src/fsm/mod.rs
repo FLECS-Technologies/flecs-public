@@ -3,6 +3,7 @@ mod server_impl;
 use crate::enchantment::floxy::FloxyImpl;
 use crate::enchantment::Enchantments;
 use crate::relic::device::usb::UsbDeviceReaderImpl;
+use crate::sorcerer::Sorcerers;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use axum::{
     extract::connect_info::{self},
@@ -72,9 +73,11 @@ pub fn init_tracing() {
 }
 
 async fn create_service(
+    sorcerers: Sorcerers,
     enchantments: Enchantments<FloxyImpl>,
 ) -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
-    let server = server_impl::ServerImpl::new(enchantments, UsbDeviceReaderImpl::default()).await;
+    let server =
+        server_impl::ServerImpl::new(sorcerers, enchantments, UsbDeviceReaderImpl::default()).await;
     let app = flecsd_axum_server::server::new(Arc::new(server)).layer(
         tower_http::trace::TraceLayer::new_for_http()
             .make_span_with(|request: &Request<_>| {
@@ -141,10 +144,14 @@ async fn serve(
     }
 }
 
-pub async fn server(socket_path: PathBuf, enchantments: Enchantments<FloxyImpl>) -> Result<()> {
+pub async fn server(
+    sorcerers: Sorcerers,
+    socket_path: PathBuf,
+    enchantments: Enchantments<FloxyImpl>,
+) -> Result<()> {
     serve(
         create_unix_socket(socket_path).await?,
-        create_service(enchantments).await,
+        create_service(sorcerers, enchantments).await,
     )
     .await;
     Ok(())

@@ -8,6 +8,8 @@ mod system;
 use crate::enchantment::floxy::Floxy;
 use crate::enchantment::Enchantments;
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::sorcerer::appraiser::AppRaiser;
+use crate::sorcerer::SorcerersTemplate;
 use crate::vault::Vault;
 use anyhow::Error;
 use axum::async_trait;
@@ -31,40 +33,52 @@ fn ok() -> AdditionalInfo {
     }
 }
 
-pub struct ServerImpl<F: Floxy, T: UsbDeviceReader> {
+pub struct ServerImpl<A: AppRaiser, F: Floxy, T: UsbDeviceReader> {
     vault: Arc<Vault>,
     enchantments: Enchantments<F>,
     usb_reader: T,
+    sorcerers: SorcerersTemplate<A>,
 }
 
-impl<F: Floxy, T: UsbDeviceReader> ServerImpl<F, T> {
-    pub async fn new(enchantments: Enchantments<F>, usb_reader: T) -> Self {
+impl<A: AppRaiser, F: Floxy, T: UsbDeviceReader> ServerImpl<A, F, T> {
+    pub async fn new(
+        sorcerers: SorcerersTemplate<A>,
+        enchantments: Enchantments<F>,
+        usb_reader: T,
+    ) -> Self {
         Self {
             vault: crate::lore::vault::default().await,
             enchantments,
             usb_reader,
+            sorcerers,
         }
     }
 }
 
 #[cfg(test)]
 impl
-    ServerImpl<crate::enchantment::floxy::MockFloxy, crate::relic::device::usb::MockUsbDeviceReader>
+    ServerImpl<
+        crate::sorcerer::appraiser::MockAppRaiser,
+        crate::enchantment::floxy::MockFloxy,
+        crate::relic::device::usb::MockUsbDeviceReader,
+    >
 {
     #[cfg(test)]
     pub fn test_instance(
         vault: Arc<Vault>,
         usb_reader: crate::relic::device::usb::MockUsbDeviceReader,
+        sorcerers: crate::sorcerer::MockSorcerers,
     ) -> Self {
         Self {
             vault,
             enchantments: Enchantments::test_instance(),
             usb_reader,
+            sorcerers,
         }
     }
 }
 #[async_trait]
-impl<F: Floxy, T: UsbDeviceReader + Sync> Flunder for ServerImpl<F, T> {
+impl<A: AppRaiser, F: Floxy, T: UsbDeviceReader> Flunder for ServerImpl<A, F, T> {
     async fn flunder_browse_get(
         &self,
         _method: Method,
