@@ -8,6 +8,7 @@ mod usb;
 pub use crate::manifest::download_manifest;
 use flecs_core::enchantment::floxy::{Floxy, FloxyImpl};
 use flecs_core::enchantment::Enchantments;
+use flecs_core::sorcerer::Sorcerers;
 pub use floxy::{
     create_instance_editor_redirect_to_free_port, delete_reverse_proxy_configs,
     delete_server_proxy_configs, load_instance_reverse_proxy_config,
@@ -120,6 +121,7 @@ struct Server {
     runtime: Runtime,
     handle: Option<JoinHandle<()>>,
     floxy: Arc<FloxyImpl>,
+    sorcerers: Sorcerers,
 }
 
 fn get_server() -> Arc<Mutex<Server>> {
@@ -136,6 +138,7 @@ fn get_server() -> Arc<Mutex<Server>> {
                     )
                     .unwrap(),
                 ),
+                sorcerers: Sorcerers::default(),
             }))
         })
         .clone()
@@ -153,9 +156,11 @@ pub fn start_server() {
     }
     info!("Spawning rust server");
     let floxy = server.floxy.clone();
+    let sorcerers = server.sorcerers.clone();
     server.handle = Some(server.runtime.spawn(async {
         info!("Starting rust server");
         flecs_core::fsm::server(
+            sorcerers,
             PathBuf::from("/run/flecs/flecsd-rs.sock"),
             Enchantments { floxy },
         )
