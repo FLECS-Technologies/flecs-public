@@ -9,6 +9,7 @@ use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::{
     GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult,
 };
+use crate::sorcerer::licenso::Licenso;
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
 use async_trait::async_trait;
@@ -86,9 +87,10 @@ impl<
         APP: AppRaiser,
         AUTH: Authmancer,
         I: Instancius + 'static,
+        L: Licenso,
         F: Floxy + 'static,
         T: UsbDeviceReader + 'static,
-    > Instances for ServerImpl<APP, AUTH, I, F, T>
+    > Instances for ServerImpl<APP, AUTH, I, L, F, T>
 {
     async fn instances_create_post(
         &self,

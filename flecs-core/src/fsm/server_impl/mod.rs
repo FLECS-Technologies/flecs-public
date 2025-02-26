@@ -11,6 +11,7 @@ use crate::relic::device::usb::UsbDeviceReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
+use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::SorcerersTemplate;
 use crate::vault::Vault;
 use anyhow::Error;
@@ -35,19 +36,25 @@ fn ok() -> AdditionalInfo {
     }
 }
 
-pub struct ServerImpl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, F: Floxy, T: UsbDeviceReader>
-{
+pub struct ServerImpl<
+    APP: AppRaiser,
+    AUTH: Authmancer,
+    I: Instancius,
+    L: Licenso,
+    F: Floxy,
+    T: UsbDeviceReader,
+> {
     vault: Arc<Vault>,
     enchantments: Enchantments<F>,
     usb_reader: Arc<T>,
-    sorcerers: SorcerersTemplate<APP, AUTH, I>,
+    sorcerers: SorcerersTemplate<APP, AUTH, I, L>,
 }
 
-impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, F: Floxy, T: UsbDeviceReader>
-    ServerImpl<APP, AUTH, I, F, T>
+impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: UsbDeviceReader>
+    ServerImpl<APP, AUTH, I, L, F, T>
 {
     pub async fn new(
-        sorcerers: SorcerersTemplate<APP, AUTH, I>,
+        sorcerers: SorcerersTemplate<APP, AUTH, I, L>,
         enchantments: Enchantments<F>,
         usb_reader: T,
     ) -> Self {
@@ -66,6 +73,7 @@ impl
         crate::sorcerer::appraiser::MockAppRaiser,
         crate::sorcerer::authmancer::MockAuthmancer,
         crate::sorcerer::instancius::MockInstancius,
+        crate::sorcerer::licenso::MockLicenso,
         crate::enchantment::floxy::MockFloxy,
         crate::relic::device::usb::MockUsbDeviceReader,
     >
@@ -85,8 +93,8 @@ impl
     }
 }
 #[async_trait]
-impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, F: Floxy, T: UsbDeviceReader> Flunder
-    for ServerImpl<APP, AUTH, I, F, T>
+impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: UsbDeviceReader>
+    Flunder for ServerImpl<APP, AUTH, I, L, F, T>
 {
     async fn flunder_browse_get(
         &self,
