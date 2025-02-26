@@ -4,6 +4,7 @@ use crate::fsm::server_impl::{
 };
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::sorcerer::appraiser::AppRaiser;
+use crate::sorcerer::authmancer::Authmancer;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -19,7 +20,9 @@ use http::Method;
 use tracing::warn;
 
 #[async_trait]
-impl<A: AppRaiser + 'static, F: Floxy, T: UsbDeviceReader> Device for ServerImpl<A, F, T> {
+impl<APP: AppRaiser + 'static, AUTH: Authmancer, F: Floxy, T: UsbDeviceReader> Device
+    for ServerImpl<APP, AUTH, F, T>
+{
     async fn device_license_activation_post(
         &self,
         _method: Method,

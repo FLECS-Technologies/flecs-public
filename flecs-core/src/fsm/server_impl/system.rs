@@ -2,6 +2,7 @@ use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::{ok, ServerImpl};
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::sorcerer::appraiser::AppRaiser;
+use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::systemus::ReserveIpv4AddressResult;
 use async_trait::async_trait;
 use axum::extract::Host;
@@ -20,7 +21,9 @@ use http::Method;
 use tracing::error;
 
 #[async_trait]
-impl<A: AppRaiser, F: Floxy, T: UsbDeviceReader> System for ServerImpl<A, F, T> {
+impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy, T: UsbDeviceReader> System
+    for ServerImpl<APP, AUTH, F, T>
+{
     async fn system_devices_get(
         &self,
         _method: Method,
@@ -158,7 +161,7 @@ impl<A: AppRaiser, F: Floxy, T: UsbDeviceReader> System for ServerImpl<A, F, T> 
     }
 }
 
-impl<A: AppRaiser, F: Floxy, T: UsbDeviceReader> ServerImpl<A, F, T> {
+impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy, T: UsbDeviceReader> ServerImpl<APP, AUTH, F, T> {
     fn get_usb_devices(&self) -> Result<Vec<models::UsbDevice>, crate::Error> {
         Ok(self
             .usb_reader

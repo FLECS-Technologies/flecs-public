@@ -5,6 +5,7 @@ use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, Por
 use crate::quest::{Quest, QuestResult};
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::sorcerer::appraiser::AppRaiser;
+use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::{GetInstanceUsbDeviceResult, PutInstanceUsbDeviceResult};
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
@@ -79,7 +80,9 @@ use std::num::NonZeroU16;
 use std::str::FromStr;
 
 #[async_trait]
-impl<A: AppRaiser, F: Floxy + 'static, T: UsbDeviceReader> Instances for ServerImpl<A, F, T> {
+impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> Instances
+    for ServerImpl<APP, AUTH, F, T>
+{
     async fn instances_create_post(
         &self,
         _method: Method,
@@ -1363,6 +1366,7 @@ mod tests {
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 app_raiser: Arc::new(appraiser),
+                ..Default::default()
             },
         );
         assert!(matches!(
@@ -1416,6 +1420,7 @@ mod tests {
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 app_raiser: Arc::new(appraiser),
+                ..Default::default()
             },
         );
         assert!(matches!(
