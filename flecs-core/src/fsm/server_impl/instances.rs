@@ -6,7 +6,9 @@ use crate::quest::{Quest, QuestResult};
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
-use crate::sorcerer::instancius::{GetInstanceUsbDeviceResult, PutInstanceUsbDeviceResult};
+use crate::sorcerer::instancius::{
+    GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult,
+};
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
 use async_trait::async_trait;
@@ -80,8 +82,13 @@ use std::num::NonZeroU16;
 use std::str::FromStr;
 
 #[async_trait]
-impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> Instances
-    for ServerImpl<APP, AUTH, F, T>
+impl<
+        APP: AppRaiser,
+        AUTH: Authmancer,
+        I: Instancius + 'static,
+        F: Floxy + 'static,
+        T: UsbDeviceReader + 'static,
+    > Instances for ServerImpl<APP, AUTH, I, F, T>
 {
     async fn instances_create_post(
         &self,
@@ -105,6 +112,7 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         }
         let vault = self.vault.clone();
         let instance_name = body.instance_name;
+        let instancius = self.sorcerers.instancius.clone();
         let (id, _quest) = crate::lore::quest::default()
             .await
             .lock()
@@ -112,13 +120,9 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
             .schedule_quest_with_result(
                 format!("Create instance for {app_key}"),
                 |quest| async move {
-                    let id = crate::sorcerer::instancius::create_instance(
-                        quest,
-                        vault,
-                        app_key,
-                        instance_name.unwrap_or_default(),
-                    )
-                    .await?;
+                    let id = instancius
+                        .create_instance(quest, vault, app_key, instance_name.unwrap_or_default())
+                        .await?;
                     Ok(QuestResult::InstanceId(id))
                 },
             )
@@ -142,23 +146,27 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
                 version: None,
                 app: None,
             } => {
-                crate::sorcerer::instancius::get_all_instances(
-                    Quest::new_synced("Get info for all instances".to_string()),
-                    self.vault.clone(),
-                )
-                .await
+                self.sorcerers
+                    .instancius
+                    .get_all_instances(
+                        Quest::new_synced("Get info for all instances".to_string()),
+                        self.vault.clone(),
+                    )
+                    .await
             }
             InstancesGetQueryParams { version, app } => {
-                crate::sorcerer::instancius::get_instances_filtered(
-                    Quest::new_synced(format!(
-                        "Get all instances matching {:?} in version {:?}",
-                        app, version
-                    )),
-                    self.vault.clone(),
-                    app,
-                    version,
-                )
-                .await
+                self.sorcerers
+                    .instancius
+                    .get_instances_filtered(
+                        Quest::new_synced(format!(
+                            "Get all instances matching {:?} in version {:?}",
+                            app, version
+                        )),
+                        self.vault.clone(),
+                        app,
+                        version,
+                    )
+                    .await
             }
         };
         Ok(InstancesGetResponse::Status200_Success(instances))
@@ -172,7 +180,7 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: InstancesInstanceIdConfigDevicesUsbDeletePathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbDeleteResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::delete_instance_usb_devices(self.vault.clone(), instance_id)
+        match self.sorcerers.instancius.delete_instance_usb_devices(self.vault.clone(), instance_id)
             .await
         {
             Some(_) => Ok(InstancesInstanceIdConfigDevicesUsbDeleteResponse::Status200_Success),
@@ -188,7 +196,7 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: InstancesInstanceIdConfigDevicesUsbGetPathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbGetResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::get_instance_usb_devices(self.vault.clone(), instance_id, &self.usb_reader)
+        match self.sorcerers.instancius.get_instance_usb_devices(self.vault.clone(), instance_id, self.usb_reader.clone())
             .await
         {
             Err(e) => Ok(
@@ -215,12 +223,11 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortDeleteResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::delete_instance_usb_device(
-            self.vault.clone(),
-            instance_id,
-            path_params.port.clone(),
-        )
-        .await
+        match self
+            .sorcerers
+            .instancius
+            .delete_instance_usb_device(self.vault.clone(), instance_id, path_params.port.clone())
+            .await
         {
             Some(Some(_)) => {
                 Ok(InstancesInstanceIdConfigDevicesUsbPortDeleteResponse::Status200_Success)
@@ -253,11 +260,11 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortGetResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::get_instance_usb_device(
+        match self.sorcerers.instancius.get_instance_usb_device(
             self.vault.clone(),
             instance_id,
             path_params.port.clone(),
-            &self.usb_reader,
+            self.usb_reader.clone(),
         )
         .await
         {
@@ -314,11 +321,11 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortPutResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::put_instance_usb_device(
+        match self.sorcerers.instancius.put_instance_usb_device(
             self.vault.clone(),
             instance_id,
             path_params.port.clone(),
-            &self.usb_reader,
+            self.usb_reader.clone(),
         )
         .await
         {
@@ -354,11 +361,11 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: DeleteEnvironmentParams,
     ) -> Result<DeleteEnvironmentResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::delete_instance_config_environment(
-            self.vault.clone(),
-            instance_id,
-        )
-        .await
+        match self
+            .sorcerers
+            .instancius
+            .delete_instance_config_environment(self.vault.clone(), instance_id)
+            .await
         {
             None => Ok(DeleteEnvironmentResponse::Status404_NoInstanceWithThisInstance),
             Some(_) => {
@@ -375,11 +382,11 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: GetEnvironmentParams,
     ) -> Result<GetEnvironmentResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::get_instance_config_environment(
-            self.vault.clone(),
-            instance_id,
-        )
-        .await
+        match self
+            .sorcerers
+            .instancius
+            .get_instance_config_environment(self.vault.clone(), instance_id)
+            .await
         {
             None => Ok(GetEnvironmentResponse::Status404_NoInstanceWithThisInstance),
             Some(environment) => Ok(GetEnvironmentResponse::Status200_Success(
@@ -410,7 +417,7 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
                 },
             ));
         };
-        match crate::sorcerer::instancius::put_instance_config_environment(self.vault.clone(), instance_id, environment).await {
+        match self.sorcerers.instancius.put_instance_config_environment(self.vault.clone(), instance_id, environment).await {
             None => Ok(PutEnvironmentResponse::Status404_NoInstanceWithThisInstance),
             Some(previous_environment) if previous_environment.is_empty() => Ok(PutEnvironmentResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated),
             Some(_) => Ok(PutEnvironmentResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet),
@@ -425,7 +432,7 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: DeleteEnvironmentVariableParams,
     ) -> Result<DeleteEnvironmentVariableResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::delete_instance_config_environment_variable_value(
+        match self.sorcerers.instancius.delete_instance_config_environment_variable_value(
             self.vault.clone(), instance_id, path_params.variable_name.clone())
             .await
         {
@@ -451,12 +458,15 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: GetEnvironmentVariableParams,
     ) -> Result<GetEnvironmentVariableResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::get_instance_config_environment_variable_value(
-            self.vault.clone(),
-            instance_id,
-            path_params.variable_name.clone(),
-        )
-        .await
+        match self
+            .sorcerers
+            .instancius
+            .get_instance_config_environment_variable_value(
+                self.vault.clone(),
+                instance_id,
+                path_params.variable_name.clone(),
+            )
+            .await
         {
             None => Ok(GetEnvironmentVariableResponse::Status404_ResourceNotFound(
                 OptionalAdditionalInfo {
@@ -486,7 +496,7 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         body: PutEnvironmentVariableRequest,
     ) -> Result<PutEnvironmentVariableResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::put_instance_config_environment_variable_value(
+        match self.sorcerers.instancius.put_instance_config_environment_variable_value(
             self.vault.clone(),
             instance_id,
             EnvironmentVariable {
@@ -519,7 +529,10 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: GetLabelsParams,
     ) -> Result<GetLabelsResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::get_instance_labels(self.vault.clone(), instance_id)
+        match self
+            .sorcerers
+            .instancius
+            .get_instance_labels(self.vault.clone(), instance_id)
             .await
         {
             None => Ok(GetLabelsResponse::Status404_NoInstanceWithThisInstance),
@@ -540,12 +553,15 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: GetLabelParams,
     ) -> Result<GetLabelResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::get_instance_label_value(
-            self.vault.clone(),
-            instance_id,
-            path_params.label_name.clone(),
-        )
-        .await
+        match self
+            .sorcerers
+            .instancius
+            .get_instance_label_value(
+                self.vault.clone(),
+                instance_id,
+                path_params.label_name.clone(),
+            )
+            .await
         {
             None => Ok(GetLabelResponse::Status404_ResourceNotFound(
                 OptionalAdditionalInfo {
@@ -574,11 +590,11 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: DeletePortsParams,
     ) -> Result<DeletePortsResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        if crate::sorcerer::instancius::delete_instance_config_port_mappings(
-            self.vault.clone(),
-            instance_id,
-        )
-        .await
+        if self
+            .sorcerers
+            .instancius
+            .delete_instance_config_port_mappings(self.vault.clone(), instance_id)
+            .await
         {
             Ok(DeletePortsResponse::Status200_ExposedPortsOfInstanceWithThisInstance)
         } else {
@@ -594,11 +610,11 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: GetPortsParams,
     ) -> Result<GetPortsResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::get_instance_config_port_mappings(
-            self.vault.clone(),
-            instance_id,
-        )
-        .await
+        match self
+            .sorcerers
+            .instancius
+            .get_instance_config_port_mappings(self.vault.clone(), instance_id)
+            .await
         {
             None => Ok(GetPortsResponse::Status404_NoInstanceWithThisInstance),
             Some(mapping) => Ok(GetPortsResponse::Status200_Success(models::InstancePorts {
@@ -617,7 +633,7 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: DeleteProtocolPortsParams,
     ) -> Result<DeleteProtocolPortsResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        match crate::sorcerer::instancius::delete_instance_config_protocol_port_mappings(
+        match self.sorcerers.instancius.delete_instance_config_protocol_port_mappings(
             self.vault.clone(),
             instance_id,
             path_params.transport_protocol.into(),
@@ -639,8 +655,10 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: GetProtocolPortsParams,
     ) -> Result<GetProtocolPortsResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        if let Some(port_mapping) =
-            crate::sorcerer::instancius::get_instance_config_protocol_port_mappings(
+        if let Some(port_mapping) = self
+            .sorcerers
+            .instancius
+            .get_instance_config_protocol_port_mappings(
                 self.vault.clone(),
                 instance_id,
                 path_params.transport_protocol.into(),
@@ -671,13 +689,16 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
             Ok(host_port_range) => host_port_range,
             Err(e) => return Ok(DeletePortRangeResponse::Status400_MalformedRequest(e)),
         };
-        match crate::sorcerer::instancius::delete_instance_config_port_mapping_range(
-            self.vault.clone(),
-            instance_id,
-            host_port_range,
-            path_params.transport_protocol.into(),
-        )
-        .await
+        match self
+            .sorcerers
+            .instancius
+            .delete_instance_config_port_mapping_range(
+                self.vault.clone(),
+                instance_id,
+                host_port_range,
+                path_params.transport_protocol.into(),
+            )
+            .await
         {
             None => Ok(DeletePortRangeResponse::Status404_ResourceNotFound(
                 OptionalAdditionalInfo {
@@ -708,13 +729,16 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
             Ok(host_port_range) => host_port_range,
             Err(e) => return Ok(GetPortRangeResponse::Status400_MalformedRequest(e)),
         };
-        match crate::sorcerer::instancius::get_instance_config_port_mapping_range(
-            self.vault.clone(),
-            instance_id,
-            host_port_range,
-            path_params.transport_protocol.into(),
-        )
-        .await
+        match self
+            .sorcerers
+            .instancius
+            .get_instance_config_port_mapping_range(
+                self.vault.clone(),
+                instance_id,
+                host_port_range,
+                path_params.transport_protocol.into(),
+            )
+            .await
         {
             None => Ok(GetPortRangeResponse::Status404_ResourceNotFound(
                 OptionalAdditionalInfo {
@@ -781,17 +805,20 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
                 )),
             ));
         }
-        match crate::sorcerer::instancius::put_instance_config_port_mapping(
-            self.vault.clone(),
-            instance_id,
-            PortMapping::Range {
-                from: host_port_range,
-                to: container_port_range,
-            }
-            .normalize(),
-            path_params.transport_protocol.into(),
-        )
-        .await
+        match self
+            .sorcerers
+            .instancius
+            .put_instance_config_port_mapping(
+                self.vault.clone(),
+                instance_id,
+                PortMapping::Range {
+                    from: host_port_range,
+                    to: container_port_range,
+                }
+                .normalize(),
+                path_params.transport_protocol.into(),
+            )
+            .await
         {
             Err(e) => Ok(PutPortRangeResponse::Status400_MalformedRequest(
                 AdditionalInfo::new(e.to_string()),
@@ -834,8 +861,10 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
                 AdditionalInfo::new(format!("Invalid port mapping: {}", errors.join("\n"))),
             ));
         }
-        let instance_found =
-            crate::sorcerer::instancius::put_instance_config_protocol_port_mappings(
+        let instance_found = self
+            .sorcerers
+            .instancius
+            .put_instance_config_protocol_port_mappings(
                 self.vault.clone(),
                 instance_id,
                 port_mapping,
@@ -870,19 +899,29 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         path_params: InstancesInstanceIdDeletePathParams,
     ) -> Result<InstancesInstanceIdDeleteResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-        if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
+        if !self
+            .sorcerers
+            .instancius
+            .does_instance_exist(self.vault.clone(), instance_id)
+            .await
         {
             return Ok(InstancesInstanceIdDeleteResponse::Status404_NoInstanceWithThisInstance);
         }
         let vault = self.vault.clone();
         let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
+        let instancius = self.sorcerers.instancius.clone();
         let quest_id = crate::lore::quest::default()
             .await
             .lock()
             .await
-            .schedule_quest(format!("Delete instance {instance_id}"), move |quest| {
-                crate::sorcerer::instancius::delete_instance(quest, vault, floxy, instance_id)
-            })
+            .schedule_quest(
+                format!("Delete instance {instance_id}"),
+                move |quest| async move {
+                    instancius
+                        .delete_instance(quest, vault, floxy, instance_id)
+                        .await
+                },
+            )
             .await
             // TODO: Add 500 Response to API
             .map_err(|_| ())?
@@ -906,6 +945,7 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
         super::route_impl::instances::instance_id::editor::port::get(
             self.vault.clone(),
             self.enchantments.floxy.clone(),
+            self.sorcerers.instancius.clone(),
             host,
             instance_id,
             port,
@@ -930,7 +970,10 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
             }
             Ok(instance_id) => instance_id,
         };
-        match crate::sorcerer::instancius::get_instance_detailed(self.vault.clone(), instance_id)
+        match self
+            .sorcerers
+            .instancius
+            .get_instance_detailed(self.vault.clone(), instance_id)
             .await
         {
             Ok(Some(details)) => Ok(InstancesInstanceIdGetResponse::Status200_Success(details)),
@@ -952,11 +995,19 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
     ) -> Result<InstancesInstanceIdLogsGetResponse, ()> {
         // TODO: Add 400 Response to API
         let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
-        if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
+        if !self
+            .sorcerers
+            .instancius
+            .does_instance_exist(self.vault.clone(), instance_id)
+            .await
         {
             return Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance);
         }
-        match crate::sorcerer::instancius::get_instance_logs(self.vault.clone(), instance_id).await
+        match self
+            .sorcerers
+            .instancius
+            .get_instance_logs(self.vault.clone(), instance_id)
+            .await
         {
             Err(e) => Ok(
                 InstancesInstanceIdLogsGetResponse::Status500_InternalServerError(AdditionalInfo {
@@ -992,19 +1043,29 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
     ) -> Result<InstancesInstanceIdStartPostResponse, ()> {
         // TODO: Add 400 Response to API
         let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
-        if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
+        if !self
+            .sorcerers
+            .instancius
+            .does_instance_exist(self.vault.clone(), instance_id)
+            .await
         {
             return Ok(InstancesInstanceIdStartPostResponse::Status404_NoInstanceWithThisInstance);
         }
         let vault = self.vault.clone();
         let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
+        let instancius = self.sorcerers.instancius.clone();
         let quest_id = crate::lore::quest::default()
             .await
             .lock()
             .await
-            .schedule_quest(format!("Start instance {instance_id}"), move |quest| {
-                crate::sorcerer::instancius::start_instance(quest, vault, floxy, instance_id)
-            })
+            .schedule_quest(
+                format!("Start instance {instance_id}"),
+                move |quest| async move {
+                    instancius
+                        .start_instance(quest, vault, floxy, instance_id)
+                        .await
+                },
+            )
             .await
             // TODO: Add 500 Response to API
             .map_err(|_| ())?
@@ -1025,19 +1086,29 @@ impl<APP: AppRaiser, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> I
     ) -> Result<InstancesInstanceIdStopPostResponse, ()> {
         // TODO: Add 400 Response to API
         let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
-        if !crate::sorcerer::instancius::does_instance_exist(self.vault.clone(), instance_id).await
+        if !self
+            .sorcerers
+            .instancius
+            .does_instance_exist(self.vault.clone(), instance_id)
+            .await
         {
             return Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance);
         }
         let vault = self.vault.clone();
         let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
+        let instancius = self.sorcerers.instancius.clone();
         let quest_id = crate::lore::quest::default()
             .await
             .lock()
             .await
-            .schedule_quest(format!("Stop instance {instance_id}"), move |quest| {
-                crate::sorcerer::instancius::stop_instance(quest, vault, floxy, instance_id)
-            })
+            .schedule_quest(
+                format!("Stop instance {instance_id}"),
+                move |quest| async move {
+                    instancius
+                        .stop_instance(quest, vault, floxy, instance_id)
+                        .await
+                },
+            )
             .await
             // TODO: Add 500 Response to API
             .map_err(|_| ())?
@@ -1263,12 +1334,12 @@ fn instance_config_usb_device_from(
 mod tests {
     use super::*;
     use crate::fsm::server_impl::ServerImpl;
-    use crate::jeweler::gem::app::{try_create_app, AppDeserializable};
+    use crate::jeweler::gem::instance::InstancePortMapping;
     use crate::relic::device::usb::MockUsbDeviceReader;
     use crate::sorcerer::appraiser::MockAppRaiser;
+    use crate::sorcerer::instancius::MockInstancius;
     use crate::sorcerer::MockSorcerers;
     use crate::tests::prepare_test_path;
-    use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
     use axum::extract::Host;
     use axum_extra::extract::CookieJar;
@@ -1282,21 +1353,51 @@ mod tests {
     };
     use http::Method;
     use std::collections::HashMap;
-    use std::io::ErrorKind;
     use std::sync::Arc;
+
+    async fn await_quest_completion() {
+        let quest = crate::lore::quest::default()
+            .await
+            .lock()
+            .await
+            .schedule_quest("Wait for quests to complete".to_string(), |_quest| async {
+                Ok(())
+            })
+            .await
+            .unwrap()
+            .1;
+        quest
+            .lock()
+            .await
+            .create_infallible_sub_quest(
+                "Subquest: Wait for quests to complete".to_string(),
+                |_quest| async {},
+            )
+            .await
+            .2
+            .await;
+    }
 
     #[tokio::test]
     async fn start_404() {
         let path = prepare_test_path(module_path!(), "start_404");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_does_instance_exist()
+            .withf(|_, id| id.value == 0x1234)
+            .once()
+            .returning(|_, _| false);
         let server = ServerImpl::test_instance(
             Arc::new(Vault::new(VaultConfig {
                 path: path.join("vault"),
             })),
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
-            Ok(InstancesInstanceIdStartPostResponse::Status404_NoInstanceWithThisInstance),
             server
                 .instances_instance_id_start_post(
                     Method::default(),
@@ -1306,20 +1407,29 @@ mod tests {
                         instance_id: "00001234".to_string(),
                     },
                 )
-                .await
+                .await,
+            Ok(InstancesInstanceIdStartPostResponse::Status404_NoInstanceWithThisInstance)
         )
     }
 
     #[tokio::test]
     async fn stop_404() {
         let path = prepare_test_path(module_path!(), "stop_404");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_does_instance_exist()
+            .withf(|_, id| id.value == 0x1234)
+            .once()
+            .returning(|_, _| false);
         let server = ServerImpl::test_instance(
             Arc::new(Vault::new(VaultConfig { path })),
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
-            Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance),
             server
                 .instances_instance_id_stop_post(
                     Method::default(),
@@ -1329,20 +1439,29 @@ mod tests {
                         instance_id: "00001234".to_string(),
                     },
                 )
-                .await
+                .await,
+            Ok(InstancesInstanceIdStopPostResponse::Status404_NoInstanceWithThisInstance)
         )
     }
 
     #[tokio::test]
     async fn logs_404() {
         let path = prepare_test_path(module_path!(), "logs_404");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_does_instance_exist()
+            .withf(|_, id| id.value == 0x1234)
+            .once()
+            .returning(|_, _| false);
         let server = ServerImpl::test_instance(
             Arc::new(Vault::new(VaultConfig { path })),
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
-            Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance),
             server
                 .instances_instance_id_logs_get(
                     Method::default(),
@@ -1352,7 +1471,8 @@ mod tests {
                         instance_id: "00001234".to_string(),
                     },
                 )
-                .await
+                .await,
+            Ok(InstancesInstanceIdLogsGetResponse::Status404_NoInstanceWithThisInstance)
         )
     }
 
@@ -1391,64 +1511,70 @@ mod tests {
     #[tokio::test]
     async fn create_instance_ok() {
         let path = prepare_test_path(module_path!(), "create_instance_ok");
-        let vault = Arc::new(Vault::new(VaultConfig {
-            path: path.join("vault"),
-        }));
         let test_key = AppKey {
             name: "TestName".to_string(),
             version: "1.2.3".to_string(),
         };
-        let app = AppDeserializable {
-            key: test_key.clone().into(),
-            deployments: Vec::new(),
-        };
-        let app = try_create_app(app, &HashMap::new(), &HashMap::new()).unwrap();
-        vault
-            .reservation()
-            .reserve_app_pouch_mut()
-            .grab()
-            .await
-            .app_pouch_mut
-            .as_mut()
-            .unwrap()
-            .gems_mut()
-            .insert(test_key.into(), app);
+        let expected_key = test_key.clone();
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_create_instance()
+            .withf(move |_, _, app_key, name| {
+                app_key.name == expected_key.name
+                    && app_key.version == expected_key.version
+                    && name.is_empty()
+            })
+            .once()
+            .returning(|_, _, _, _| Ok(InstanceId::new(1)));
         let mut appraiser = MockAppRaiser::new();
-        appraiser.expect_does_app_exist().once().return_const(true);
+        appraiser
+            .expect_does_app_exist()
+            .once()
+            .returning(|_, _| true);
         let server = ServerImpl::test_instance(
-            vault,
+            Arc::new(Vault::new(VaultConfig { path })),
             MockUsbDeviceReader::new(),
             MockSorcerers {
+                instancius: Arc::new(instancius),
                 app_raiser: Arc::new(appraiser),
-                ..Default::default()
+                ..MockSorcerers::default()
             },
         );
-        assert!(matches!(
-            server
-                .instances_create_post(
-                    Method::default(),
-                    Host("host".to_string()),
-                    CookieJar::default(),
-                    InstancesCreatePostRequest {
-                        app_key: AppKey {
-                            name: "TestName".to_string(),
-                            version: "1.2.3".to_string()
-                        },
-                        instance_name: None,
-                    },
-                )
-                .await,
-            Ok(InstancesCreatePostResponse::Status202_Accepted(_))
-        ))
+        let result = server
+            .instances_create_post(
+                Method::default(),
+                Host("host".to_string()),
+                CookieJar::default(),
+                InstancesCreatePostRequest {
+                    app_key: test_key.clone(),
+                    instance_name: None,
+                },
+            )
+            .await;
+        match result {
+            Ok(InstancesCreatePostResponse::Status202_Accepted(_)) => {
+                await_quest_completion().await;
+            }
+            _ => panic!("Expected InstancesCreatePostResponse::Status202_Accepted"),
+        }
     }
 
     #[tokio::test]
     async fn delete_instance_config_ports_404() {
         let path = prepare_test_path(module_path!(), "delete_instance_config_ports_404");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_port_mappings()
+            .withf(move |_, id| id.value == 0x12341234)
+            .once()
+            .returning(|_, _| false);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1468,10 +1594,19 @@ mod tests {
     #[tokio::test]
     async fn delete_instance_config_ports_200() {
         let path = prepare_test_path(module_path!(), "delete_instance_config_ports_200");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_port_mappings()
+            .withf(move |_, id| id.value == 6)
+            .once()
+            .returning(|_, _| true);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1486,30 +1621,24 @@ mod tests {
                 .await,
             Ok(DeletePortsResponse::Status200_ExposedPortsOfInstanceWithThisInstance)
         ));
-        assert!(server
-            .vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&InstanceId::new(6))
-            .unwrap()
-            .config
-            .port_mapping
-            .is_empty())
     }
 
     #[tokio::test]
     async fn get_instance_config_ports_404() {
         let path = prepare_test_path(module_path!(), "get_instance_config_ports_404");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_port_mappings()
+            .withf(move |_, id| id.value == 0x12341234)
+            .once()
+            .returning(|_, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1529,10 +1658,28 @@ mod tests {
     #[tokio::test]
     async fn get_instance_config_ports_200() {
         let path = prepare_test_path(module_path!(), "get_instance_config_ports_200");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_port_mappings()
+            .withf(move |_, id| id.value == 6)
+            .once()
+            .returning(|_, _| {
+                Some(InstancePortMapping {
+                    tcp: vec![PortMapping::Single(80, 8080)],
+                    udp: vec![PortMapping::Range {
+                        from: PortRange::new(50..=100),
+                        to: PortRange::new(150..=200),
+                    }],
+                    sctp: vec![],
+                })
+            });
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -1575,10 +1722,19 @@ mod tests {
             module_path!(),
             "delete_instance_config_ports_transport_protocol_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_protocol_port_mappings()
+            .withf(move |_, id, protocol| id.value == 6 && *protocol == TransportProtocol::Tcp)
+            .once()
+            .returning(|_, _, _| Some(Vec::new()));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -1594,23 +1750,6 @@ mod tests {
                 .await,
             Ok(DeleteProtocolPortsResponse::Status200_RemovedAllPublishedPortsOfInstanceWithThisInstance)
         );
-        let port_mappings = server
-            .vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&InstanceId::new(6))
-            .unwrap()
-            .config
-            .port_mapping
-            .clone();
-        assert!(port_mappings.tcp.is_empty());
-        assert!(!port_mappings.udp.is_empty());
     }
 
     #[tokio::test]
@@ -1619,10 +1758,21 @@ mod tests {
             module_path!(),
             "delete_instance_config_ports_transport_protocol_404",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_protocol_port_mappings()
+            .withf(move |_, id, protocol| {
+                id.value == 0xaaaaaaaa && *protocol == TransportProtocol::Tcp
+            })
+            .once()
+            .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1646,10 +1796,21 @@ mod tests {
             module_path!(),
             "get_instance_config_ports_transport_protocol_404",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_protocol_port_mappings()
+            .withf(move |_, id, protocol| {
+                id.value == 0xabcdabcd && *protocol == TransportProtocol::Tcp
+            })
+            .once()
+            .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1673,10 +1834,19 @@ mod tests {
             module_path!(),
             "get_instance_config_ports_transport_protocol_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_protocol_port_mappings()
+            .withf(move |_, id, protocol| id.value == 6 && *protocol == TransportProtocol::Tcp)
+            .once()
+            .returning(|_, _, _| Some(vec![PortMapping::Single(80, 8080)]));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -1709,10 +1879,23 @@ mod tests {
             module_path!(),
             "delete_instance_config_ports_transport_protocol_host_port_404_instance",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 0xffffffff
+                    && *protocol == TransportProtocol::Tcp
+                    && *port == PortRange::new(80..=80)
+            })
+            .once()
+            .returning(|_, _, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1737,10 +1920,23 @@ mod tests {
             module_path!(),
             "delete_instance_config_ports_transport_protocol_host_port_404_host",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Tcp
+                    && *port == PortRange::new(90..=90)
+            })
+            .once()
+            .returning(|_, _, _, _| Some(false));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1760,15 +1956,28 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_instance_config_ports_transport_protocol_host_port_200_host() {
+    async fn delete_instance_config_ports_transport_protocol_host_port_200() {
         let path = prepare_test_path(
             module_path!(),
-            "delete_instance_config_ports_transport_protocol_host_port_200_host",
+            "delete_instance_config_ports_transport_protocol_host_port_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Tcp
+                    && *port == PortRange::new(80..=80)
+            })
+            .once()
+            .returning(|_, _, _, _| Some(true));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -1785,22 +1994,6 @@ mod tests {
                 .await,
             Ok(DeletePortRangeResponse::Status200_Success)
         );
-        assert!(server
-            .vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&InstanceId::new(6))
-            .unwrap()
-            .config
-            .port_mapping
-            .tcp
-            .is_empty())
     }
 
     #[tokio::test]
@@ -1809,10 +2002,23 @@ mod tests {
             module_path!(),
             "get_instance_config_ports_transport_protocol_host_port_404_instance",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 0xffffffff
+                    && *protocol == TransportProtocol::Tcp
+                    && *port == PortRange::new(80..=80)
+            })
+            .once()
+            .returning(|_, _, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1837,10 +2043,23 @@ mod tests {
             module_path!(),
             "get_instance_config_ports_transport_protocol_host_port_404_host",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Tcp
+                    && *port == PortRange::new(90..=90)
+            })
+            .once()
+            .returning(|_, _, _, _| Some(None));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1865,10 +2084,23 @@ mod tests {
             module_path!(),
             "get_instance_config_ports_transport_protocol_host_port_200_single",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Tcp
+                    && *port == PortRange::new(80..=80)
+            })
+            .once()
+            .returning(|_, _, _, _| Some(Some(PortMapping::Single(80, 8080))));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -1900,10 +2132,23 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_host_port_400_overlap",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_port_mapping()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Udp
+                    && *mapping == PortMapping::Single(80, 20)
+            })
+            .once()
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1929,10 +2174,23 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_host_port_404",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_port_mapping()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 0xffffffff
+                    && *protocol == TransportProtocol::Udp
+                    && *mapping == PortMapping::Single(80, 20)
+            })
+            .once()
+            .returning(|_, _, _, _| Ok(None));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1958,10 +2216,23 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_host_port_201",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_port_mapping()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Tcp
+                    && *mapping == PortMapping::Single(70, 20)
+            })
+            .once()
+            .returning(|_, _, _, _| Ok(Some(false)));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -1979,22 +2250,6 @@ mod tests {
                 .await,
             Ok(PutPortRangeResponse::Status201_TheSpecifiedPortMappingWasCreated)
         ));
-        assert!(server
-            .vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&InstanceId::new(6))
-            .unwrap()
-            .config
-            .port_mapping
-            .tcp
-            .contains(&PortMapping::Single(70, 20)))
     }
 
     #[tokio::test]
@@ -2003,10 +2258,23 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_host_port_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_port_mapping()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Tcp
+                    && *mapping == PortMapping::Single(80, 20)
+            })
+            .once()
+            .returning(|_, _, _, _| Ok(Some(true)));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -2024,23 +2292,6 @@ mod tests {
                 .await,
             Ok(PutPortRangeResponse::Status200_TheSpecifiedPortMappingWasSet)
         ));
-        let resulting_port_mapping = server
-            .vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&InstanceId::new(6))
-            .unwrap()
-            .config
-            .port_mapping
-            .tcp
-            .clone();
-        assert_eq!(resulting_port_mapping, vec![PortMapping::Single(80, 20)])
     }
 
     #[tokio::test]
@@ -2077,10 +2328,23 @@ mod tests {
             module_path!(),
             "delete_instance_config_ports_transport_protocol_range_404_range",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Udp
+                    && *port == PortRange::new(20..=70)
+            })
+            .once()
+            .returning(|_, _, _, _| Some(false));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -2105,10 +2369,23 @@ mod tests {
             module_path!(),
             "delete_instance_config_ports_transport_protocol_range_404_instance",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 0xaabbccdd
+                    && *protocol == TransportProtocol::Udp
+                    && *port == PortRange::new(50..=100)
+            })
+            .once()
+            .returning(|_, _, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -2133,10 +2410,23 @@ mod tests {
             module_path!(),
             "delete_instance_config_ports_transport_protocol_range_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Udp
+                    && *port == PortRange::new(50..=100)
+            })
+            .once()
+            .returning(|_, _, _, _| Some(true));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -2153,22 +2443,6 @@ mod tests {
                 .await,
             Ok(DeletePortRangeResponse::Status200_Success)
         );
-        assert!(server
-            .vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&InstanceId::new(6))
-            .unwrap()
-            .config
-            .port_mapping
-            .udp
-            .is_empty())
     }
 
     #[tokio::test]
@@ -2205,10 +2479,23 @@ mod tests {
             module_path!(),
             "get_instance_config_ports_transport_protocol_range_404_range",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Udp
+                    && *port == PortRange::new(70..=100)
+            })
+            .once()
+            .returning(|_, _, _, _| Some(None));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -2233,10 +2520,23 @@ mod tests {
             module_path!(),
             "get_instance_config_ports_transport_protocol_range_404_instance",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 0x12345678
+                    && *protocol == TransportProtocol::Udp
+                    && *port == PortRange::new(50..=100)
+            })
+            .once()
+            .returning(|_, _, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -2261,10 +2561,28 @@ mod tests {
             module_path!(),
             "get_instance_config_ports_transport_protocol_range_200_range",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Udp
+                    && *port == PortRange::new(50..=100)
+            })
+            .once()
+            .returning(|_, _, _, _| {
+                Some(Some(PortMapping::Range {
+                    from: PortRange::new(50..=100),
+                    to: PortRange::new(150..=200),
+                }))
+            });
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -2302,10 +2620,23 @@ mod tests {
             module_path!(),
             "get_instance_config_ports_transport_protocol_range_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_port_mapping_range()
+            .withf(move |_, id, port, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Tcp
+                    && *port == PortRange::new(80..=80)
+            })
+            .once()
+            .returning(|_, _, _, _| Some(Some(PortMapping::Single(80, 8080))));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -2433,10 +2764,27 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_range_400_overlap",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_port_mapping()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Tcp
+                    && *mapping
+                        == PortMapping::Range {
+                            from: PortRange::new(70..=90),
+                            to: PortRange::new(200..=220),
+                        }
+            })
+            .once()
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -2465,10 +2813,27 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_range_404",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_port_mapping()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 0xffeeddcc
+                    && *protocol == TransportProtocol::Sctp
+                    && *mapping
+                        == PortMapping::Range {
+                            from: PortRange::new(1000..=1100),
+                            to: PortRange::new(200..=300),
+                        }
+            })
+            .once()
+            .returning(|_, _, _, _| Ok(None));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -2497,10 +2862,27 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_range_201",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_port_mapping()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Sctp
+                    && *mapping
+                        == PortMapping::Range {
+                            from: PortRange::new(1000..=1100),
+                            to: PortRange::new(200..=300),
+                        }
+            })
+            .once()
+            .returning(|_, _, _, _| Ok(Some(false)));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -2521,25 +2903,6 @@ mod tests {
                 .await,
             Ok(PutPortRangeResponse::Status201_TheSpecifiedPortMappingWasCreated)
         );
-        assert!(server
-            .vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&InstanceId::new(6))
-            .unwrap()
-            .config
-            .port_mapping
-            .sctp
-            .contains(&PortMapping::Range {
-                from: PortRange::new(1000..=1100),
-                to: PortRange::new(200..=300),
-            }));
     }
 
     #[tokio::test]
@@ -2548,10 +2911,27 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_range_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_port_mapping()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Udp
+                    && *mapping
+                        == PortMapping::Range {
+                            from: PortRange::new(50..=100),
+                            to: PortRange::new(200..=250),
+                        }
+            })
+            .once()
+            .returning(|_, _, _, _| Ok(Some(true)));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -2571,27 +2951,6 @@ mod tests {
                 )
                 .await,
             Ok(PutPortRangeResponse::Status200_TheSpecifiedPortMappingWasSet)
-        );
-        assert_eq!(
-            server
-                .vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&InstanceId::new(6))
-                .unwrap()
-                .config
-                .port_mapping
-                .udp,
-            vec![PortMapping::Range {
-                from: PortRange::new(50..=100),
-                to: PortRange::new(200..=250),
-            }]
         );
     }
 
@@ -2688,10 +3047,21 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_404",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_protocol_port_mappings()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 0x77778888 && *protocol == TransportProtocol::Udp && mapping.is_empty()
+            })
+            .once()
+            .returning(|_, _, _, _| false);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -2716,10 +3086,31 @@ mod tests {
             module_path!(),
             "put_instance_config_ports_transport_protocol_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_protocol_port_mappings()
+            .withf(move |_, id, mapping, protocol| {
+                id.value == 6
+                    && *protocol == TransportProtocol::Udp
+                    && *mapping
+                        == vec![
+                            PortMapping::Single(100, 20),
+                            PortMapping::Range {
+                                from: PortRange::new(2000..=3000),
+                                to: PortRange::new(6000..=7000),
+                            },
+                            PortMapping::Single(60, 70),
+                        ]
+            })
+            .once()
+            .returning(|_, _, _, _| true);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         let port_mappings = vec![
             models::InstancePortMapping::InstancePortMappingSingle(Box::new(
@@ -2761,31 +3152,6 @@ mod tests {
                 )
                 .await,
             Ok(PutProtocolPortsResponse::Status200_PublishedPortsOfInstanceWithThisInstance)
-        );
-        assert_eq!(
-            server
-                .vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&InstanceId::new(6))
-                .unwrap()
-                .config
-                .port_mapping
-                .udp,
-            vec![
-                PortMapping::Single(100, 20),
-                PortMapping::Range {
-                    from: PortRange::new(2000..=3000),
-                    to: PortRange::new(6000..=7000),
-                },
-                PortMapping::Single(60, 70)
-            ]
         );
     }
 
@@ -3168,10 +3534,19 @@ mod tests {
             module_path!(),
             "get_instance_config_environment_variable_404_instance",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_environment_variable_value()
+            .withf(move |_, id, name| id.value == 0x99887766 && name == "variable_name")
+            .once()
+            .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3197,10 +3572,19 @@ mod tests {
             module_path!(),
             "get_instance_config_environment_variable_404_variable",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_environment_variable_value()
+            .withf(move |_, id, name| id.value == 6 && name == "variable_name")
+            .once()
+            .returning(|_, _, _| Some(None));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3226,10 +3610,24 @@ mod tests {
             module_path!(),
             "get_instance_config_environment_variable_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_environment_variable_value()
+            .withf(move |_, id, name| id.value == 6 && name == "VAR_1")
+            .once()
+            .returning(|_, _, _| Some(Some(None)));
+        instancius
+            .expect_get_instance_config_environment_variable_value()
+            .withf(move |_, id, name| id.value == 6 && name == "VAR_2")
+            .once()
+            .returning(|_, _, _| Some(Some(Some("value".to_string()))));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -3275,10 +3673,19 @@ mod tests {
             module_path!(),
             "delete_instance_config_environment_variable_404_instance",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_environment_variable_value()
+            .withf(move |_, id, name| id.value == 0x99887766 && name == "variable_name")
+            .once()
+            .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3302,10 +3709,19 @@ mod tests {
             module_path!(),
             "delete_instance_config_environment_variable_404_variable",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_environment_variable_value()
+            .withf(move |_, id, name| id.value == 6 && name == "variable_name")
+            .once()
+            .returning(|_, _, _| Some(None));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3329,10 +3745,24 @@ mod tests {
             module_path!(),
             "delete_instance_config_environment_variable_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_environment_variable_value()
+            .withf(move |_, id, name| id.value == 6 && name == "VAR_1")
+            .once()
+            .returning(|_, _, _| {
+                Some(Some(EnvironmentVariable {
+                    name: "VAR_1".to_string(),
+                    value: Some("value".to_string()),
+                }))
+            });
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -3350,37 +3780,6 @@ mod tests {
                 DeleteEnvironmentVariableResponse::Status200_EnvironmentVariableOfInstanceWithThisInstance
             )
         );
-        assert_eq!(
-            server
-                .instances_instance_id_config_environment_variable_name_delete(
-                    Default::default(),
-                    Host("host".to_string()),
-                    Default::default(),
-                    DeleteEnvironmentVariableParams {
-                        instance_id: "00000006".to_string(),
-                        variable_name: "VAR_2".to_string(),
-                    },
-                )
-                .await,
-            Ok(
-                DeleteEnvironmentVariableResponse::Status200_EnvironmentVariableOfInstanceWithThisInstance
-            )
-        );
-        assert!(server
-            .vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&InstanceId::new(6))
-            .unwrap()
-            .config
-            .environment_variables
-            .is_empty());
     }
 
     #[tokio::test]
@@ -3389,10 +3788,26 @@ mod tests {
             module_path!(),
             "put_instance_config_environment_variable_404",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_environment_variable_value()
+            .withf(move |_, id, var| {
+                id.value == 0x12341234
+                    && *var
+                        == EnvironmentVariable {
+                            name: "VAR_3".to_string(),
+                            value: Some("new value".to_string()),
+                        }
+            })
+            .once()
+            .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -3419,10 +3834,26 @@ mod tests {
             module_path!(),
             "delete_instance_config_environment_variable_201",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_environment_variable_value()
+            .withf(move |_, id, var| {
+                id.value == 6
+                    && *var
+                        == EnvironmentVariable {
+                            name: "VAR_3".to_string(),
+                            value: Some("new value".to_string()),
+                        }
+            })
+            .once()
+            .returning(|_, _, _| Some(None));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -3443,27 +3874,6 @@ mod tests {
                 PutEnvironmentVariableResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated
             )
         );
-        assert_eq!(
-            server
-                .vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&InstanceId::new(6))
-                .unwrap()
-                .config
-                .environment_variables
-                .get(2),
-            Some(&EnvironmentVariable {
-                name: "VAR_3".to_string(),
-                value: Some("new value".to_string())
-            })
-        );
     }
 
     #[tokio::test]
@@ -3472,10 +3882,26 @@ mod tests {
             module_path!(),
             "put_instance_config_environment_variable_200",
         );
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_environment_variable_value()
+            .withf(move |_, id, var| {
+                id.value == 6
+                    && *var
+                        == EnvironmentVariable {
+                            name: "VAR_2".to_string(),
+                            value: Some("new value".to_string()),
+                        }
+            })
+            .once()
+            .returning(|_, _, _| Some(Some("previous_value".to_string())));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -3496,36 +3922,24 @@ mod tests {
                 PutEnvironmentVariableResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet
             )
         );
-        assert_eq!(
-            server
-                .vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&InstanceId::new(6))
-                .unwrap()
-                .config
-                .environment_variables
-                .get(1),
-            Some(&EnvironmentVariable {
-                name: "VAR_2".to_string(),
-                value: Some("new value".to_string())
-            })
-        );
     }
 
     #[tokio::test]
     async fn delete_instance_config_environment_404() {
         let path = prepare_test_path(module_path!(), "delete_instance_config_environment_404");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_environment()
+            .withf(move |_, id| id.value == 0x12341234)
+            .once()
+            .returning(|_, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3545,10 +3959,19 @@ mod tests {
     #[tokio::test]
     async fn delete_instance_config_environment_200() {
         let path = prepare_test_path(module_path!(), "delete_instance_config_environment_200");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_config_environment()
+            .withf(move |_, id| id.value == 6)
+            .once()
+            .returning(|_, _| Some(Vec::new()));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3563,30 +3986,24 @@ mod tests {
                 .await,
             Ok(DeleteEnvironmentResponse::Status200_EnvironmentOfInstanceWithThisInstance)
         ));
-        assert!(server
-            .vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&InstanceId::new(6))
-            .unwrap()
-            .config
-            .environment_variables
-            .is_empty());
     }
 
     #[tokio::test]
     async fn get_instance_config_environment_404() {
         let path = prepare_test_path(module_path!(), "get_instance_config_environment_404");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_environment()
+            .withf(move |_, id| id.value == 0x12341234)
+            .once()
+            .returning(|_, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3606,10 +4023,30 @@ mod tests {
     #[tokio::test]
     async fn get_instance_config_environment_200() {
         let path = prepare_test_path(module_path!(), "get_instance_config_environment_200");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_config_environment()
+            .withf(move |_, id| id.value == 6)
+            .once()
+            .returning(|_, _| {
+                Some(vec![
+                    EnvironmentVariable {
+                        name: "VAR_1".to_string(),
+                        value: None,
+                    },
+                    EnvironmentVariable {
+                        name: "VAR_2".to_string(),
+                        value: Some("value".to_string()),
+                    },
+                ])
+            });
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -3676,10 +4113,19 @@ mod tests {
     #[tokio::test]
     async fn put_instance_config_environment_404() {
         let path = prepare_test_path(module_path!(), "put_instance_config_environment_404");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_environment()
+            .withf(move |_, id, envs| id.value == 0x78907890 && envs.is_empty())
+            .once()
+            .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3700,10 +4146,32 @@ mod tests {
     #[tokio::test]
     async fn put_instance_config_environment_201() {
         let path = prepare_test_path(module_path!(), "put_instance_config_environment_201");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_environment()
+            .withf(move |_, id, envs| {
+                id.value == 1
+                    && *envs
+                        == vec![
+                            EnvironmentVariable {
+                                name: "VAR_1".to_string(),
+                                value: None,
+                            },
+                            EnvironmentVariable {
+                                name: "VAR_2".to_string(),
+                                value: Some("value".to_string()),
+                            },
+                        ]
+            })
+            .once()
+            .returning(|_, _, _| Some(Vec::new()));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3728,41 +4196,42 @@ mod tests {
                 .await,
             Ok(PutEnvironmentResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated)
         ));
-        assert_eq!(
-            server
-                .vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&InstanceId::new(1))
-                .unwrap()
-                .config
-                .environment_variables,
-            vec![
-                EnvironmentVariable {
-                    name: "VAR_1".to_string(),
-                    value: None,
-                },
-                EnvironmentVariable {
-                    name: "VAR_2".to_string(),
-                    value: Some("value".to_string()),
-                }
-            ]
-        );
     }
 
     #[tokio::test]
     async fn put_instance_config_environment_200() {
         let path = prepare_test_path(module_path!(), "put_instance_config_environment_200");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_config_environment()
+            .withf(move |_, id, envs| {
+                id.value == 6
+                    && *envs
+                        == vec![
+                            EnvironmentVariable {
+                                name: "VAR_10".to_string(),
+                                value: None,
+                            },
+                            EnvironmentVariable {
+                                name: "VAR_20".to_string(),
+                                value: Some("value".to_string()),
+                            },
+                        ]
+            })
+            .once()
+            .returning(|_, _, _| {
+                Some(vec![EnvironmentVariable {
+                    name: "previous_var".to_string(),
+                    value: None,
+                }])
+            });
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3787,32 +4256,6 @@ mod tests {
                 .await,
             Ok(PutEnvironmentResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet)
         ));
-        assert_eq!(
-            server
-                .vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&InstanceId::new(6))
-                .unwrap()
-                .config
-                .environment_variables,
-            vec![
-                EnvironmentVariable {
-                    name: "VAR_10".to_string(),
-                    value: None,
-                },
-                EnvironmentVariable {
-                    name: "VAR_20".to_string(),
-                    value: Some("value".to_string()),
-                }
-            ]
-        );
     }
 
     #[test]
@@ -3832,10 +4275,19 @@ mod tests {
     #[tokio::test]
     async fn get_instance_labels_404() {
         let path = prepare_test_path(module_path!(), "get_instance_labels_404");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_labels()
+            .withf(move |_, id| id.value == 0x66229933)
+            .once()
+            .returning(|_, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3855,10 +4307,30 @@ mod tests {
     #[tokio::test]
     async fn get_instance_labels_200() {
         let path = prepare_test_path(module_path!(), "get_instance_labels_200");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_labels()
+            .withf(move |_, id| id.value == 1)
+            .once()
+            .returning(|_, _| {
+                Some(vec![
+                    Label {
+                        label: "tech.flecs".to_string(),
+                        value: None,
+                    },
+                    Label {
+                        label: "tech.flecs.some-label".to_string(),
+                        value: Some("Some custom label value".to_string()),
+                    },
+                ])
+            });
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -3887,10 +4359,19 @@ mod tests {
     #[tokio::test]
     async fn get_instance_label_404_instance() {
         let path = prepare_test_path(module_path!(), "get_instance_label_404_instance");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_label_value()
+            .withf(move |_, id, name| id.value == 0x12345678 && name == "flecs.tech")
+            .once()
+            .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3911,10 +4392,19 @@ mod tests {
     #[tokio::test]
     async fn get_instance_label_404_label() {
         let path = prepare_test_path(module_path!(), "get_instance_label_404_label");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_label_value()
+            .withf(move |_, id, name| id.value == 2 && name == "not.existing.label")
+            .once()
+            .returning(|_, _, _| Some(None));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert!(matches!(
             server
@@ -3935,10 +4425,24 @@ mod tests {
     #[tokio::test]
     async fn get_instance_label_200() {
         let path = prepare_test_path(module_path!(), "get_instance_label_200");
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_label_value()
+            .withf(move |_, id, name| id.value == 2 && name == "tech.flecs")
+            .once()
+            .returning(|_, _, _| Some(Some(None)));
+        instancius
+            .expect_get_instance_label_value()
+            .withf(move |_, id, name| id.value == 2 && name == "tech.flecs.some-label")
+            .once()
+            .returning(|_, _, _| Some(Some(Some("Some custom label value".to_string()))));
         let server = ServerImpl::test_instance(
             crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
             MockUsbDeviceReader::new(),
-            MockSorcerers::default(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
         );
         assert_eq!(
             server
@@ -4029,9 +4533,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_delete_200",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_usb_devices()
+            .withf(move |_, id| id.value == 2)
+            .once()
+            .returning(|_, _| Some(HashMap::new()));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_delete(
@@ -4053,9 +4568,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_delete_404",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_usb_devices()
+            .withf(move |_, id| id.value == 0xaabbccdd)
+            .once()
+            .returning(|_, _| None);
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_delete(
@@ -4077,13 +4603,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_get_200",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .times(1)
-            .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_usb_devices::<MockUsbDeviceReader>()
+            .withf(move |_, id, _| id.value == 6)
+            .once()
+            .returning(|_, _, _| Ok(Some(vec![])));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_get(
@@ -4095,7 +4628,7 @@ mod tests {
                     }
                 )
                 .await,
-            Ok(InstancesInstanceIdConfigDevicesUsbGetResponse::Status200_Success(_))
+            Ok(InstancesInstanceIdConfigDevicesUsbGetResponse::Status200_Success(vec)) if vec.is_empty()
         ))
     }
     #[tokio::test]
@@ -4104,12 +4637,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_get_404",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_usb_devices::<MockUsbDeviceReader>()
+            .withf(move |_, id, _| id.value == 0x1234abcd)
+            .once()
+            .returning(|_, _, _| Ok(None));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_get(
@@ -4130,15 +4671,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_get_500",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader.expect_read_usb_devices().times(1).returning(|| {
-            Err(crate::relic::device::usb::Error::Io(std::io::Error::new(
-                ErrorKind::Other,
-                "test error",
-            )))
-        });
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_usb_devices::<MockUsbDeviceReader>()
+            .withf(move |_, id, _| id.value == 6)
+            .once()
+            .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_get(
@@ -4159,9 +4705,26 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_delete_200",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_usb_device()
+            .withf(move |_, id, port| id.value == 6 && port == "test_port")
+            .once()
+            .returning(|_, _, _| {
+                Some(Some(UsbPathConfig {
+                    port: "test_port".to_string(),
+                    bus_num: 100,
+                    dev_num: 200,
+                }))
+            });
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_delete(
@@ -4183,9 +4746,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_delete_404_instance",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_usb_device()
+            .withf(move |_, id, port| id.value == 0xabcddcba && port == "test_port")
+            .once()
+            .returning(|_, _, _| None);
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_delete(
@@ -4211,9 +4785,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_delete_404_port",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_delete_instance_usb_device()
+            .withf(move |_, id, port| id.value == 6 && port == "unknown port")
+            .once()
+            .returning(|_, _, _| Some(None));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_delete(
@@ -4239,13 +4824,26 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_get_200_inactive",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .times(1)
-            .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 6 && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| {
+                Ok(GetInstanceUsbDeviceResult::DeviceInactive(UsbPathConfig {
+                    port: "test_port".to_string(),
+                    bus_num: 10,
+                    dev_num: 20,
+                }))
+            });
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4278,24 +4876,35 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_get_200_active",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .times(1)
-            .return_once(|| {
-                Ok(HashMap::from([(
-                    "test_port".to_string(),
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 6 && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| {
+                Ok(GetInstanceUsbDeviceResult::DeviceActive(
+                    UsbPathConfig {
+                        port: "test_port".to_string(),
+                        bus_num: 10,
+                        dev_num: 20,
+                    },
                     UsbDevice {
                         vid: 10,
                         pid: 20,
-                        port: "test_port".to_string(),
                         device: "test-dev".to_string(),
+                        port: "test_port".to_string(),
                         vendor: "test-vendor".to_string(),
                     },
-                )]))
+                ))
             });
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4329,9 +4938,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_get_404_instance",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 0xaaabbbcc && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| Ok(GetInstanceUsbDeviceResult::InstanceNotFound));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4353,24 +4973,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_get_404_port",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .times(1)
-            .return_once(|| {
-                Ok(HashMap::from([(
-                    "test_port".to_string(),
-                    UsbDevice {
-                        vid: 10,
-                        pid: 20,
-                        port: "test_port".to_string(),
-                        device: "test-dev".to_string(),
-                        vendor: "test-vendor".to_string(),
-                    },
-                )]))
-            });
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 2 && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| Ok(GetInstanceUsbDeviceResult::DeviceNotMapped));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4392,13 +5008,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_get_404_unknown",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .times(1)
-            .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 2 && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| Ok(GetInstanceUsbDeviceResult::UnknownDevice));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4420,15 +5043,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_get_500",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader.expect_read_usb_devices().times(1).returning(|| {
-            Err(crate::relic::device::usb::Error::Io(std::io::Error::new(
-                ErrorKind::Other,
-                "test error",
-            )))
-        });
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_get_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 6 && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_get(
@@ -4454,24 +5082,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_put_404_instance",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .times(1)
-            .return_once(|| {
-                Ok(HashMap::from([(
-                    "test_port".to_string(),
-                    UsbDevice {
-                        vid: 10,
-                        pid: 20,
-                        port: "test_port".to_string(),
-                        device: "test-dev".to_string(),
-                        vendor: "test-vendor".to_string(),
-                    },
-                )]))
-            });
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 0xaaabbbcc && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| Ok(PutInstanceUsbDeviceResult::InstanceNotFound));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_put(
@@ -4493,13 +5117,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_put_404_device",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .times(1)
-            .return_once(|| Ok(HashMap::from([])));
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 3 && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| Ok(PutInstanceUsbDeviceResult::DeviceNotFound));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_put(
@@ -4521,34 +5152,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_put_201",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .times(1)
-            .return_once(|| {
-                Ok(HashMap::from([(
-                    "test_port".to_string(),
-                    UsbDevice {
-                        vid: 10,
-                        pid: 20,
-                        port: "test_port".to_string(),
-                        device: "test-dev".to_string(),
-                        vendor: "test-vendor".to_string(),
-                    },
-                )]))
-            });
-        usb_reader
-            .expect_get_usb_value()
-            .withf(|value_name, _| value_name == "devnum")
-            .times(1)
-            .returning(|_, _| Ok("919".to_string()));
-        usb_reader
-            .expect_get_usb_value()
-            .withf(|value_name, _| value_name == "busnum")
-            .times(1)
-            .returning(|_, _| Ok("121".to_string()));
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 3 && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_port_put(
@@ -4570,34 +5187,28 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_put_200",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader
-            .expect_read_usb_devices()
-            .times(1)
-            .return_once(|| {
-                Ok(HashMap::from([(
-                    "test_port".to_string(),
-                    UsbDevice {
-                        vid: 10,
-                        pid: 20,
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 6 && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| {
+                Ok(PutInstanceUsbDeviceResult::DeviceMappingUpdated(
+                    UsbPathConfig {
                         port: "test_port".to_string(),
-                        device: "test-dev".to_string(),
-                        vendor: "test-vendor".to_string(),
+                        bus_num: 121,
+                        dev_num: 919,
                     },
-                )]))
+                ))
             });
-        usb_reader
-            .expect_get_usb_value()
-            .withf(|value_name, _| value_name == "devnum")
-            .times(1)
-            .returning(|_, _| Ok("919".to_string()));
-        usb_reader
-            .expect_get_usb_value()
-            .withf(|value_name, _| value_name == "busnum")
-            .times(1)
-            .returning(|_, _| Ok("121".to_string()));
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert_eq!(
             server
                 .instances_instance_id_config_devices_usb_port_put(
@@ -4619,15 +5230,20 @@ mod tests {
             module_path!(),
             "instances_instance_id_config_devices_usb_port_put_500",
         );
-        let vault = crate::sorcerer::instancius::tests::spell_test_vault(path, None).await;
-        let mut usb_reader = MockUsbDeviceReader::new();
-        usb_reader.expect_read_usb_devices().times(1).returning(|| {
-            Err(crate::relic::device::usb::Error::Io(std::io::Error::new(
-                ErrorKind::Other,
-                "test error",
-            )))
-        });
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_put_instance_usb_device::<MockUsbDeviceReader>()
+            .withf(move |_, id, port, _| id.value == 6 && port == "test_port")
+            .once()
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let server = ServerImpl::test_instance(
+            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                instancius: Arc::new(instancius),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .instances_instance_id_config_devices_usb_port_put(
