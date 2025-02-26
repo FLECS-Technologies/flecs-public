@@ -5,6 +5,7 @@ use crate::relic::device::usb::UsbDeviceReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
+use crate::sorcerer::licenso::Licenso;
 use crate::vault::pouch::{AppKey, Pouch};
 use async_trait::async_trait;
 use axum::extract::Host;
@@ -26,9 +27,10 @@ impl<
         APP: AppRaiser + 'static,
         AUTH: Authmancer,
         I: Instancius,
+        L: Licenso,
         F: Floxy + 'static,
         T: UsbDeviceReader,
-    > Apps for ServerImpl<APP, AUTH, I, F, T>
+    > Apps for ServerImpl<APP, AUTH, I, L, F, T>
 {
     async fn apps_app_delete(
         &self,
