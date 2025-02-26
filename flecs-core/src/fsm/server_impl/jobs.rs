@@ -4,6 +4,7 @@ use crate::relic::device::usb::UsbDeviceReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
+use crate::sorcerer::licenso::Licenso;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -14,8 +15,8 @@ use flecsd_axum_server::models::{JobsJobIdDeletePathParams, JobsJobIdGetPathPara
 use http::Method;
 
 #[async_trait]
-impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, F: Floxy, T: UsbDeviceReader> Jobs
-    for ServerImpl<APP, AUTH, I, F, T>
+impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: UsbDeviceReader> Jobs
+    for ServerImpl<APP, AUTH, I, L, F, T>
 {
     async fn jobs_get(
         &self,
