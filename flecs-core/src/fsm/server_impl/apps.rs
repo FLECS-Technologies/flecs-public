@@ -4,6 +4,7 @@ use crate::jeweler::gem::manifest::AppManifest;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
+use crate::sorcerer::instancius::Instancius;
 use crate::vault::pouch::{AppKey, Pouch};
 use async_trait::async_trait;
 use axum::extract::Host;
@@ -21,8 +22,13 @@ use http::Method;
 use std::sync::Arc;
 
 #[async_trait]
-impl<APP: AppRaiser + 'static, AUTH: Authmancer, F: Floxy + 'static, T: UsbDeviceReader> Apps
-    for ServerImpl<APP, AUTH, F, T>
+impl<
+        APP: AppRaiser + 'static,
+        AUTH: Authmancer,
+        I: Instancius,
+        F: Floxy + 'static,
+        T: UsbDeviceReader,
+    > Apps for ServerImpl<APP, AUTH, I, F, T>
 {
     async fn apps_app_delete(
         &self,
