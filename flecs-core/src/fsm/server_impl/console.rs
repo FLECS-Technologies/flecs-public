@@ -6,6 +6,7 @@ use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
+use crate::sorcerer::manifesto::Manifesto;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -22,9 +23,10 @@ impl<
         I: Instancius,
         L: Licenso,
         Q: MageQuester,
+        M: Manifesto,
         F: Floxy,
         T: UsbDeviceReader,
-    > Console for ServerImpl<APP, AUTH, I, L, Q, F, T>
+    > Console for ServerImpl<APP, AUTH, I, L, Q, M, F, T>
 {
     async fn console_authentication_delete(
         &self,
