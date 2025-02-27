@@ -10,6 +10,7 @@ use crate::sorcerer::instancius::{
     GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult,
 };
 use crate::sorcerer::licenso::Licenso;
+use crate::sorcerer::mage_quester::MageQuester;
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
 use async_trait::async_trait;
@@ -88,9 +89,10 @@ impl<
         AUTH: Authmancer,
         I: Instancius + 'static,
         L: Licenso,
+        Q: MageQuester,
         F: Floxy + 'static,
         T: UsbDeviceReader + 'static,
-    > Instances for ServerImpl<APP, AUTH, I, L, F, T>
+    > Instances for ServerImpl<APP, AUTH, I, L, Q, F, T>
 {
     async fn instances_create_post(
         &self,
