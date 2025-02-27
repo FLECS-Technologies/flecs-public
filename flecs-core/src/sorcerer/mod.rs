@@ -14,6 +14,7 @@ use crate::sorcerer::instancius::{Instancius, InstanciusImpl};
 use crate::sorcerer::licenso::{Licenso, LicensoImpl};
 use crate::sorcerer::mage_quester::{MageQuester, MageQuesterImpl};
 use crate::sorcerer::manifesto::{Manifesto, ManifestoImpl};
+use crate::sorcerer::systemus::{Systemus, SystemusImpl};
 use std::sync::Arc;
 
 pub type Sorcerers = SorcerersTemplate<
@@ -23,6 +24,7 @@ pub type Sorcerers = SorcerersTemplate<
     LicensoImpl,
     MageQuesterImpl,
     ManifestoImpl,
+    SystemusImpl,
 >;
 pub trait Sorcerer: Send + Sync {}
 impl Default for Sorcerers {
@@ -34,6 +36,7 @@ impl Default for Sorcerers {
             licenso: Default::default(),
             mage_quester: Default::default(),
             manifesto: Default::default(),
+            systemus: Default::default(),
         }
     }
 }
@@ -45,6 +48,7 @@ pub struct SorcerersTemplate<
     L: Licenso + ?Sized,
     Q: MageQuester + ?Sized,
     M: Manifesto + ?Sized,
+    SYS: Systemus + ?Sized,
 > {
     pub app_raiser: Arc<APP>,
     pub authmancer: Arc<AUTH>,
@@ -52,6 +56,7 @@ pub struct SorcerersTemplate<
     pub licenso: Arc<L>,
     pub mage_quester: Arc<Q>,
     pub manifesto: Arc<M>,
+    pub systemus: Arc<SYS>,
 }
 
 impl<
@@ -61,7 +66,8 @@ impl<
         L: Licenso + ?Sized,
         Q: MageQuester + ?Sized,
         M: Manifesto + ?Sized,
-    > Clone for SorcerersTemplate<APP, AUTH, I, L, Q, M>
+        SYS: Systemus + ?Sized,
+    > Clone for SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS>
 {
     fn clone(&self) -> Self {
         Self {
@@ -71,6 +77,7 @@ impl<
             licenso: self.licenso.clone(),
             mage_quester: self.mage_quester.clone(),
             manifesto: self.manifesto.clone(),
+            systemus: self.systemus.clone(),
         }
     }
 }
@@ -83,6 +90,7 @@ pub type MockSorcerers = SorcerersTemplate<
     crate::sorcerer::licenso::MockLicenso,
     crate::sorcerer::mage_quester::MockMageQuester,
     crate::sorcerer::manifesto::MockManifesto,
+    crate::sorcerer::systemus::MockSystemus,
 >;
 
 #[cfg(test)]
@@ -95,6 +103,7 @@ impl Default for MockSorcerers {
             licenso: Arc::new(crate::sorcerer::licenso::MockLicenso::default()),
             mage_quester: Arc::new(crate::sorcerer::mage_quester::MockMageQuester::default()),
             manifesto: Arc::new(crate::sorcerer::manifesto::MockManifesto::default()),
+            systemus: Arc::new(crate::sorcerer::systemus::MockSystemus::default()),
         }
     }
 }

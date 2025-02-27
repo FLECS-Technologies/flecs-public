@@ -9,6 +9,7 @@ use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::manifesto::Manifesto;
+use crate::sorcerer::systemus::Systemus;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -31,9 +32,10 @@ impl<
         L: Licenso,
         Q: MageQuester,
         M: Manifesto,
+        SYS: Systemus,
         F: Floxy,
         T: UsbDeviceReader,
-    > Device for ServerImpl<APP, AUTH, I, L, Q, M, F, T>
+    > Device for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
 {
     async fn device_license_activation_post(
         &self,
