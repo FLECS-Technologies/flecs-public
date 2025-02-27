@@ -13,6 +13,7 @@ use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
+use crate::sorcerer::manifesto::Manifesto;
 use crate::sorcerer::SorcerersTemplate;
 use crate::vault::Vault;
 use anyhow::Error;
@@ -43,13 +44,14 @@ pub struct ServerImpl<
     I: Instancius,
     L: Licenso,
     Q: MageQuester,
+    M: Manifesto,
     F: Floxy,
     T: UsbDeviceReader,
 > {
     vault: Arc<Vault>,
     enchantments: Enchantments<F>,
     usb_reader: Arc<T>,
-    sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q>,
+    sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M>,
 }
 
 impl<
@@ -58,12 +60,13 @@ impl<
         I: Instancius,
         L: Licenso,
         Q: MageQuester,
+        M: Manifesto,
         F: Floxy,
         T: UsbDeviceReader,
-    > ServerImpl<APP, AUTH, I, L, Q, F, T>
+    > ServerImpl<APP, AUTH, I, L, Q, M, F, T>
 {
     pub async fn new(
-        sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q>,
+        sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M>,
         enchantments: Enchantments<F>,
         usb_reader: T,
     ) -> Self {
@@ -84,6 +87,7 @@ impl
         crate::sorcerer::instancius::MockInstancius,
         crate::sorcerer::licenso::MockLicenso,
         crate::sorcerer::mage_quester::MockMageQuester,
+        crate::sorcerer::manifesto::MockManifesto,
         crate::enchantment::floxy::MockFloxy,
         crate::relic::device::usb::MockUsbDeviceReader,
     >
@@ -109,9 +113,10 @@ impl<
         I: Instancius,
         L: Licenso,
         Q: MageQuester,
+        M: Manifesto,
         F: Floxy,
         T: UsbDeviceReader,
-    > Flunder for ServerImpl<APP, AUTH, I, L, Q, F, T>
+    > Flunder for ServerImpl<APP, AUTH, I, L, Q, M, F, T>
 {
     async fn flunder_browse_get(
         &self,
