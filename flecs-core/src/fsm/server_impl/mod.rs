@@ -12,6 +12,7 @@ use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
+use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::SorcerersTemplate;
 use crate::vault::Vault;
 use anyhow::Error;
@@ -41,20 +42,28 @@ pub struct ServerImpl<
     AUTH: Authmancer,
     I: Instancius,
     L: Licenso,
+    Q: MageQuester,
     F: Floxy,
     T: UsbDeviceReader,
 > {
     vault: Arc<Vault>,
     enchantments: Enchantments<F>,
     usb_reader: Arc<T>,
-    sorcerers: SorcerersTemplate<APP, AUTH, I, L>,
+    sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q>,
 }
 
-impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: UsbDeviceReader>
-    ServerImpl<APP, AUTH, I, L, F, T>
+impl<
+        APP: AppRaiser,
+        AUTH: Authmancer,
+        I: Instancius,
+        L: Licenso,
+        Q: MageQuester,
+        F: Floxy,
+        T: UsbDeviceReader,
+    > ServerImpl<APP, AUTH, I, L, Q, F, T>
 {
     pub async fn new(
-        sorcerers: SorcerersTemplate<APP, AUTH, I, L>,
+        sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q>,
         enchantments: Enchantments<F>,
         usb_reader: T,
     ) -> Self {
@@ -74,6 +83,7 @@ impl
         crate::sorcerer::authmancer::MockAuthmancer,
         crate::sorcerer::instancius::MockInstancius,
         crate::sorcerer::licenso::MockLicenso,
+        crate::sorcerer::mage_quester::MockMageQuester,
         crate::enchantment::floxy::MockFloxy,
         crate::relic::device::usb::MockUsbDeviceReader,
     >
@@ -93,8 +103,15 @@ impl
     }
 }
 #[async_trait]
-impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: UsbDeviceReader>
-    Flunder for ServerImpl<APP, AUTH, I, L, F, T>
+impl<
+        APP: AppRaiser,
+        AUTH: Authmancer,
+        I: Instancius,
+        L: Licenso,
+        Q: MageQuester,
+        F: Floxy,
+        T: UsbDeviceReader,
+    > Flunder for ServerImpl<APP, AUTH, I, L, Q, F, T>
 {
     async fn flunder_browse_get(
         &self,
