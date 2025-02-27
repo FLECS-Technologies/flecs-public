@@ -5,6 +5,7 @@ use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
+use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::systemus::ReserveIpv4AddressResult;
 use async_trait::async_trait;
 use axum::extract::Host;
@@ -23,8 +24,15 @@ use http::Method;
 use tracing::error;
 
 #[async_trait]
-impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: UsbDeviceReader>
-    System for ServerImpl<APP, AUTH, I, L, F, T>
+impl<
+        APP: AppRaiser,
+        AUTH: Authmancer,
+        I: Instancius,
+        L: Licenso,
+        Q: MageQuester,
+        F: Floxy,
+        T: UsbDeviceReader,
+    > System for ServerImpl<APP, AUTH, I, L, Q, F, T>
 {
     async fn system_devices_get(
         &self,
@@ -163,8 +171,15 @@ impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: U
     }
 }
 
-impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: UsbDeviceReader>
-    ServerImpl<APP, AUTH, I, L, F, T>
+impl<
+        APP: AppRaiser,
+        AUTH: Authmancer,
+        I: Instancius,
+        L: Licenso,
+        Q: MageQuester,
+        F: Floxy,
+        T: UsbDeviceReader,
+    > ServerImpl<APP, AUTH, I, L, Q, F, T>
 {
     fn get_usb_devices(&self) -> Result<Vec<models::UsbDevice>, crate::Error> {
         Ok(self

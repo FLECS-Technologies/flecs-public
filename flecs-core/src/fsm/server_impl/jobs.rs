@@ -5,6 +5,7 @@ use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
+use crate::sorcerer::mage_quester::MageQuester;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -15,8 +16,15 @@ use flecsd_axum_server::models::{JobsJobIdDeletePathParams, JobsJobIdGetPathPara
 use http::Method;
 
 #[async_trait]
-impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: UsbDeviceReader> Jobs
-    for ServerImpl<APP, AUTH, I, L, F, T>
+impl<
+        APP: AppRaiser,
+        AUTH: Authmancer,
+        I: Instancius,
+        L: Licenso,
+        Q: MageQuester,
+        F: Floxy,
+        T: UsbDeviceReader,
+    > Jobs for ServerImpl<APP, AUTH, I, L, Q, F, T>
 {
     async fn jobs_get(
         &self,
@@ -25,7 +33,7 @@ impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: U
         _cookies: CookieJar,
     ) -> Result<JobsGetResponse, ()> {
         Ok(JobsGetResponse::Status200_Success(
-            crate::sorcerer::magequester::get_jobs().await,
+            self.sorcerers.mage_quester.get_jobs().await,
         ))
     }
 
@@ -36,7 +44,12 @@ impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: U
         _cookies: CookieJar,
         path_params: JobsJobIdDeletePathParams,
     ) -> Result<JobsJobIdDeleteResponse, ()> {
-        match crate::sorcerer::magequester::delete_job(path_params.job_id as u64).await {
+        match self
+            .sorcerers
+            .mage_quester
+            .delete_job(path_params.job_id as u64)
+            .await
+        {
             Ok(_) => Ok(JobsJobIdDeleteResponse::Status200_Success),
             Err(crate::quest::quest_master::DeleteQuestError::StillRunning) => {
                 Ok(JobsJobIdDeleteResponse::Status400_JobNotFinished(format!(
@@ -57,7 +70,12 @@ impl<APP: AppRaiser, AUTH: Authmancer, I: Instancius, L: Licenso, F: Floxy, T: U
         _cookies: CookieJar,
         path_params: JobsJobIdGetPathParams,
     ) -> Result<JobsJobIdGetResponse, ()> {
-        match crate::sorcerer::magequester::get_job(path_params.job_id as u64).await {
+        match self
+            .sorcerers
+            .mage_quester
+            .get_job(path_params.job_id as u64)
+            .await
+        {
             Some(job) => Ok(JobsJobIdGetResponse::Status200_Success(job)),
             None => Ok(JobsJobIdGetResponse::Status404_NotFound),
         }
