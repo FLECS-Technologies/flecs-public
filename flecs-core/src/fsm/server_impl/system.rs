@@ -7,7 +7,7 @@ use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::manifesto::Manifesto;
-use crate::sorcerer::systemus::ReserveIpv4AddressResult;
+use crate::sorcerer::systemus::{ReserveIpv4AddressResult, Systemus};
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -32,9 +32,10 @@ impl<
         L: Licenso,
         Q: MageQuester,
         M: Manifesto,
+        SYS: Systemus,
         F: Floxy,
         T: UsbDeviceReader,
-    > System for ServerImpl<APP, AUTH, I, L, Q, M, F, T>
+    > System for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
 {
     async fn system_devices_get(
         &self,
@@ -117,11 +118,11 @@ impl<
         _cookies: CookieJar,
         path_params: SystemNetworksNetworkIdDhcpIpv4PostPathParams,
     ) -> Result<SystemNetworksNetworkIdDhcpIpv4PostResponse, ()> {
-        match crate::sorcerer::systemus::reserve_ipv4_address(
-            self.vault.clone(),
-            path_params.network_id.clone(),
-        )
-        .await
+        match self
+            .sorcerers
+            .systemus
+            .reserve_ipv4_address(self.vault.clone(), path_params.network_id.clone())
+            .await
         {
             Err(e) => Ok(
                 SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError(
@@ -180,9 +181,10 @@ impl<
         L: Licenso,
         Q: MageQuester,
         M: Manifesto,
+        SYS: Systemus,
         F: Floxy,
         T: UsbDeviceReader,
-    > ServerImpl<APP, AUTH, I, L, Q, M, F, T>
+    > ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
 {
     fn get_usb_devices(&self) -> Result<Vec<models::UsbDevice>, crate::Error> {
         Ok(self
@@ -209,29 +211,14 @@ impl From<UsbDevice> for models::UsbDevice {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
+    use crate::sorcerer::systemus::MockSystemus;
     use crate::sorcerer::MockSorcerers;
-    use crate::vault::pouch::Pouch;
     use crate::vault::{Vault, VaultConfig};
     use std::collections::HashMap;
     use std::io::ErrorKind;
+    use std::net::Ipv4Addr;
     use std::sync::Arc;
-
-    async fn test_vault(deployment: MockedDeployment) -> Arc<Vault> {
-        let vault = Vault::new(VaultConfig::default());
-        vault
-            .reservation()
-            .reserve_deployment_pouch_mut()
-            .grab()
-            .await
-            .deployment_pouch_mut
-            .as_mut()
-            .unwrap()
-            .gems_mut()
-            .insert("TestDeployment".to_string(), Arc::new(deployment));
-        Arc::new(vault)
-    }
 
     fn create_mock_usb_reader_error() -> MockUsbDeviceReader {
         let mut usb_reader = MockUsbDeviceReader::new();
@@ -494,9 +481,21 @@ mod tests {
 
     #[tokio::test]
     async fn system_networks_network_id_dhcp_ipv4_post_500() {
-        let usb_reader = MockUsbDeviceReader::new();
         let vault = Arc::new(Vault::new(VaultConfig::default()));
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let mut systemus = MockSystemus::default();
+        systemus
+            .expect_reserve_ipv4_address()
+            .once()
+            .withf(|_, network| network == "TestNetwork")
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        let server = ServerImpl::test_instance(
+            vault,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                systemus: Arc::new(systemus),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .system_networks_network_id_dhcp_ipv4_post(
@@ -514,25 +513,21 @@ mod tests {
 
     #[tokio::test]
     async fn system_networks_network_id_dhcp_ipv4_post_500_no_free_address() {
-        let bollard_network = bollard::models::Network {
-            ipam: Some(bollard::models::Ipam {
-                config: Some(vec![bollard::models::IpamConfig {
-                    subnet: Some("90.70.23.0/31".to_string()),
-                    gateway: Some("90.70.23.1".to_string()),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let mut deployment = MockedDeployment::new();
-        deployment
-            .expect_network()
-            .times(1)
-            .returning(move |_| Ok(Some(bollard_network.clone())));
-        let vault = test_vault(deployment).await;
-        let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let mut systemus = MockSystemus::default();
+        systemus
+            .expect_reserve_ipv4_address()
+            .once()
+            .withf(|_, network| network == "TestNetwork")
+            .returning(|_, _| Ok(ReserveIpv4AddressResult::NoFreeIpAddress));
+        let server = ServerImpl::test_instance(
+            vault,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                systemus: Arc::new(systemus),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .system_networks_network_id_dhcp_ipv4_post(
@@ -550,14 +545,25 @@ mod tests {
 
     #[tokio::test]
     async fn system_networks_network_id_dhcp_ipv4_post_404() {
-        let mut deployment = MockedDeployment::new();
-        deployment
-            .expect_network()
-            .times(1)
-            .returning(move |_| Ok(None));
-        let vault = test_vault(deployment).await;
-        let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let mut systemus = MockSystemus::default();
+        systemus
+            .expect_reserve_ipv4_address()
+            .once()
+            .withf(|_, network| network == "TestNetwork")
+            .returning(|_, _| {
+                Ok(ReserveIpv4AddressResult::UnknownNetwork(
+                    "TestNetwork".to_string(),
+                ))
+            });
+        let server = ServerImpl::test_instance(
+            vault,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                systemus: Arc::new(systemus),
+                ..MockSorcerers::default()
+            },
+        );
         assert!(matches!(
             server
                 .system_networks_network_id_dhcp_ipv4_post(
@@ -575,25 +581,25 @@ mod tests {
 
     #[tokio::test]
     async fn system_networks_network_id_dhcp_ipv4_post_200() {
-        let bollard_network = bollard::models::Network {
-            ipam: Some(bollard::models::Ipam {
-                config: Some(vec![bollard::models::IpamConfig {
-                    subnet: Some("90.70.23.0/24".to_string()),
-                    gateway: Some("90.70.23.1".to_string()),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let mut deployment = MockedDeployment::new();
-        deployment
-            .expect_network()
-            .times(1)
-            .returning(move |_| Ok(Some(bollard_network.clone())));
-        let vault = test_vault(deployment).await;
-        let usb_reader = MockUsbDeviceReader::new();
-        let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
+        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let mut systemus = MockSystemus::default();
+        systemus
+            .expect_reserve_ipv4_address()
+            .once()
+            .withf(|_, network| network == "TestNetwork")
+            .returning(|_, _| {
+                Ok(ReserveIpv4AddressResult::Reserved(Ipv4Addr::new(
+                    90, 70, 23, 2,
+                )))
+            });
+        let server = ServerImpl::test_instance(
+            vault,
+            MockUsbDeviceReader::new(),
+            MockSorcerers {
+                systemus: Arc::new(systemus),
+                ..MockSorcerers::default()
+            },
+        );
         assert_eq!(
             server
                 .system_networks_network_id_dhcp_ipv4_post(

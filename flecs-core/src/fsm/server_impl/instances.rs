@@ -12,6 +12,7 @@ use crate::sorcerer::instancius::{
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::manifesto::Manifesto;
+use crate::sorcerer::systemus::Systemus;
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
 use async_trait::async_trait;
@@ -92,9 +93,10 @@ impl<
         L: Licenso,
         Q: MageQuester,
         M: Manifesto,
+        SYS: Systemus,
         F: Floxy + 'static,
         T: UsbDeviceReader + 'static,
-    > Instances for ServerImpl<APP, AUTH, I, L, Q, M, F, T>
+    > Instances for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
 {
     async fn instances_create_post(
         &self,
