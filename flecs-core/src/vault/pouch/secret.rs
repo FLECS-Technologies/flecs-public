@@ -117,9 +117,21 @@ impl SecretPouch {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
+    use testdir::testdir;
     const TEST_PATH: &str = "/tmp/flecs-tests/pouch";
+
+    pub fn test_secret_pouch() -> SecretPouch {
+        SecretPouch {
+            path: testdir!().join("secrets"),
+            secrets: Secrets {
+                license_key: None,
+                session_id: Default::default(),
+                authentication: None,
+            },
+        }
+    }
 
     #[test]
     fn open_complete_secret_pouch() {

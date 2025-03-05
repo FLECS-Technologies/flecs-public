@@ -89,16 +89,16 @@ pub async fn replace_manifest(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::gem::app::App;
     use crate::jeweler::gem::manifest::Label;
     use crate::quest::Quest;
-    use crate::sorcerer::spell::instance::tests::create_test_vault;
-    use crate::tests::prepare_test_path;
-    use crate::vault::pouch::manifest::tests::create_test_manifest;
-    use crate::vault::pouch::AppKey;
+    use crate::vault;
+    use crate::vault::pouch::instance::tests::LABEL_INSTANCE;
+    use crate::vault::pouch::manifest::tests::label_manifest;
     use flecs_app_manifest::generated::manifest_3_1_0::{
         App as OtherApp, FlecsAppManifest, Image, Single, Version,
     };
+    use std::collections::HashMap;
+    use std::ops::Deref;
     use std::str::FromStr;
 
     #[tokio::test]
@@ -216,42 +216,23 @@ mod tests {
     }
     #[tokio::test]
     async fn replace_manifest_test() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "replace_manifest_test"),
-            None,
-        )
-        .await;
-        let mut manifest = create_test_manifest("some.test.app-1", "1.2.3");
-        let labels = vec![Label {
-            label: "Replacing".to_string(),
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        let mut new_manifest = label_manifest().deref().clone();
+        let app_key = new_manifest.key.clone();
+        new_manifest.labels.push(Label {
+            label: "new.label".to_string(),
             value: None,
-        }];
-        manifest.labels = labels.clone();
-        let manifest = Arc::new(manifest);
-        let app_key_1 = AppKey {
-            name: "some.test.app-1".to_string(),
-            version: "1.2.3".to_string(),
-        };
-        let app_key_2 = AppKey {
-            name: "some.test.app-2".to_string(),
-            version: "1.2.4".to_string(),
-        };
-        {
-            let app_1 = App::new(app_key_1.clone(), Vec::new());
-            let app_2 = App::new(app_key_2.clone(), Vec::new());
-            let mut grab = vault.reservation().reserve_app_pouch_mut().grab().await;
-            let apps = grab.app_pouch_mut.as_mut().unwrap();
-            apps.gems_mut().insert(app_key_1.clone(), app_1);
-            apps.gems_mut().insert(app_key_2.clone(), app_2);
-        }
+        });
+        let new_manifest = Arc::new(new_manifest);
         let old_manifest = replace_manifest(
             Quest::new_synced("TestQuest".to_string()),
             vault.clone(),
-            manifest.clone(),
+            new_manifest.clone(),
         )
         .await
+        .unwrap()
         .unwrap();
-        assert_ne!(old_manifest.unwrap().labels, labels);
+        assert_eq!(old_manifest, label_manifest());
         let GrabbedPouches {
             manifest_pouch: Some(ref manifests),
             app_pouch: Some(ref apps),
@@ -267,23 +248,14 @@ mod tests {
         else {
             unreachable!("Reservation should never fail");
         };
-        assert!(apps.gems().get(&app_key_2).unwrap().manifest().is_none());
         assert_eq!(
-            apps.gems()
-                .get(&app_key_1)
-                .unwrap()
-                .manifest()
-                .unwrap()
-                .labels,
-            labels
+            apps.gems().get(&app_key).unwrap().manifest(),
+            Some(new_manifest.clone())
         );
-        assert_eq!(manifests.gems().get(&app_key_1).unwrap().labels, labels);
-        for instance in instances.gems().values() {
-            if instance.app_key() == app_key_1 {
-                assert_eq!(instance.manifest.labels, labels);
-            } else {
-                assert_ne!(instance.manifest.labels, labels);
-            }
-        }
+        assert_eq!(manifests.gems().get(&app_key), Some(&new_manifest.clone()));
+        assert_eq!(
+            instances.gems().get(&LABEL_INSTANCE).unwrap().manifest,
+            new_manifest
+        );
     }
 }

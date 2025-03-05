@@ -1,6 +1,13 @@
 use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::ServerImpl;
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::sorcerer::appraiser::AppRaiser;
+use crate::sorcerer::authmancer::Authmancer;
+use crate::sorcerer::instancius::Instancius;
+use crate::sorcerer::licenso::Licenso;
+use crate::sorcerer::mage_quester::MageQuester;
+use crate::sorcerer::manifesto::Manifesto;
+use crate::sorcerer::systemus::Systemus;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
@@ -11,14 +18,28 @@ use flecsd_axum_server::models::AuthResponseData;
 use http::Method;
 
 #[async_trait]
-impl<F: Floxy, T: UsbDeviceReader + Sync> Console for ServerImpl<F, T> {
+impl<
+        APP: AppRaiser,
+        AUTH: Authmancer,
+        I: Instancius,
+        L: Licenso,
+        Q: MageQuester,
+        M: Manifesto,
+        SYS: Systemus,
+        F: Floxy,
+        T: UsbDeviceReader,
+    > Console for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
+{
     async fn console_authentication_delete(
         &self,
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ConsoleAuthenticationDeleteResponse, ()> {
-        crate::sorcerer::authmancer::delete_authentication(&self.vault).await;
+        self.sorcerers
+            .authmancer
+            .delete_authentication(&self.vault)
+            .await;
         Ok(ConsoleAuthenticationDeleteResponse::Status204_NoContent)
     }
 
@@ -29,7 +50,10 @@ impl<F: Floxy, T: UsbDeviceReader + Sync> Console for ServerImpl<F, T> {
         _cookies: CookieJar,
         body: AuthResponseData,
     ) -> Result<ConsoleAuthenticationPutResponse, ()> {
-        crate::sorcerer::authmancer::store_authentication(body, &self.vault).await;
+        self.sorcerers
+            .authmancer
+            .store_authentication(body, &self.vault)
+            .await;
         Ok(ConsoleAuthenticationPutResponse::Status204_NoContent)
     }
 }

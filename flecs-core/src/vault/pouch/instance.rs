@@ -15,7 +15,7 @@ use tracing::error;
 
 const INSTANCES_FILE_NAME: &str = "instances.json";
 pub type InstanceId = jeweler::gem::instance::InstanceId;
-
+pub type InstancesMap = HashMap<InstanceId, Instance>;
 pub struct InstancePouch {
     path: PathBuf,
     instances: HashMap<InstanceId, Instance>,
@@ -56,25 +56,45 @@ impl InstancePouch {
         Ok(serde_json::from_reader(file)?)
     }
 
+    fn try_create_instances(
+        instances: Vec<InstanceDeserializable>,
+        manifests: &HashMap<AppKey, Arc<AppManifest>>,
+        deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
+    ) -> core::result::Result<InstancesMap, (InstancesMap, Vec<(InstanceId, anyhow::Error)>)> {
+        let mut errors = Vec::new();
+        let instances: HashMap<InstanceId, Instance> = instances
+            .into_iter()
+            .filter_map(|instance| {
+                let id = instance.id;
+                match try_create_instance(instance, manifests, deployments) {
+                    Ok(instance) => Some((id, instance)),
+                    Err(e) => {
+                        errors.push((id, e));
+                        None
+                    }
+                }
+            })
+            .collect();
+        if errors.is_empty() {
+            Ok(instances)
+        } else {
+            Err((instances, errors))
+        }
+    }
+
     fn create_instances(
         instances: Vec<InstanceDeserializable>,
         manifests: &HashMap<AppKey, Arc<AppManifest>>,
         deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
     ) -> HashMap<InstanceId, Instance> {
-        instances
-            .into_iter()
-            .filter_map(|instance| {
-                let id = instance.id;
-                let app_key = instance.app_key.clone();
-                match try_create_instance(instance, manifests, deployments) {
-                    Ok(instance) => Some((id, instance)),
-                    Err(e) => {
-                        error!("Could not create instance {id} of {app_key}: {e}");
-                        None
-                    }
+        Self::try_create_instances(instances, manifests, deployments).unwrap_or_else(
+            |(instances, errors)| {
+                for (id, error) in errors {
+                    error!("Could not create instance {id}: {error}");
                 }
-            })
-            .collect()
+                instances
+            },
+        )
     }
 
     pub fn instance_ids_by_app_key(&self, app_key: AppKey) -> Vec<InstanceId> {
@@ -173,9 +193,218 @@ pub mod tests {
     use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange, VolumeMount};
     use crate::relic::network::{Ipv4Iterator, Ipv4Network};
     use crate::tests::prepare_test_path;
+    use crate::vault::pouch::app::tests::{
+        EDITOR_APP_NAME, EDITOR_APP_VERSION, LABEL_APP_NAME, LABEL_APP_VERSION, MINIMAL_APP_2_NAME,
+        MINIMAL_APP_2_VERSION, MINIMAL_APP_WITH_INSTANCE_NAME, MINIMAL_APP_WITH_INSTANCE_VERSION,
+    };
     use crate::vault::pouch::manifest::tests::create_test_manifest;
     use serde_json::Value;
     use std::net::Ipv6Addr;
+    use testdir::testdir;
+
+    pub const UNKNOWN_INSTANCE_1: InstanceId = InstanceId::new(0xffff0001);
+    pub const UNKNOWN_INSTANCE_2: InstanceId = InstanceId::new(0xffff0002);
+    pub const UNKNOWN_INSTANCE_3: InstanceId = InstanceId::new(0xffff0003);
+    pub const MINIMAL_INSTANCE: InstanceId = InstanceId::new(1);
+    pub const RUNNING_INSTANCE: InstanceId = InstanceId::new(2);
+    pub const PORT_MAPPING_INSTANCE: InstanceId = InstanceId::new(3);
+    pub const ENV_INSTANCE: InstanceId = InstanceId::new(4);
+    pub const LABEL_INSTANCE: InstanceId = InstanceId::new(5);
+    pub const USB_DEV_INSTANCE: InstanceId = InstanceId::new(6);
+    pub const EDITOR_INSTANCE: InstanceId = InstanceId::new(7);
+
+    fn default_deployment() -> Arc<dyn crate::jeweler::deployment::Deployment> {
+        let mut default_deployment = MockedDeployment::default();
+        default_deployment
+            .expect_id()
+            .returning(move || "DefaultMockedDeployment".to_string());
+        Arc::new(default_deployment)
+    }
+
+    pub fn test_instance_pouch(
+        manifests: &HashMap<AppKey, Arc<AppManifest>>,
+        mut deployments: HashMap<InstanceId, Arc<dyn crate::jeweler::deployment::Deployment>>,
+        fallback_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
+    ) -> InstancePouch {
+        let default_deployment = fallback_deployment.unwrap_or_else(|| default_deployment());
+        let mut instances = test_instances();
+        for instance in instances.iter_mut() {
+            let entry = deployments
+                .entry(instance.id)
+                .or_insert(default_deployment.clone());
+            instance.deployment_id = entry.id();
+        }
+        let deployments = deployments
+            .into_values()
+            .map(|deployment| (deployment.id(), deployment))
+            .collect();
+        InstancePouch {
+            path: testdir!().join("instances"),
+            instances: InstancePouch::try_create_instances(instances, manifests, &deployments)
+                .unwrap(),
+            reserved_ip_addresses: HashSet::default(),
+        }
+    }
+
+    fn minimal_instance() -> InstanceDeserializable {
+        InstanceDeserializable {
+            hostname: format!("flecs-{MINIMAL_INSTANCE}"),
+            name: "Minimal instance".to_string(),
+            id: MINIMAL_INSTANCE,
+            config: Default::default(),
+            desired: InstanceStatus::Stopped,
+            app_key: AppKey {
+                name: MINIMAL_APP_WITH_INSTANCE_NAME.to_string(),
+                version: MINIMAL_APP_WITH_INSTANCE_VERSION.to_string(),
+            },
+            deployment_id: format!("deployment-{MINIMAL_INSTANCE}"),
+        }
+    }
+
+    fn running_instance() -> InstanceDeserializable {
+        InstanceDeserializable {
+            hostname: format!("flecs-{RUNNING_INSTANCE}"),
+            name: "Running instance".to_string(),
+            id: RUNNING_INSTANCE,
+            config: Default::default(),
+            desired: InstanceStatus::Running,
+            app_key: AppKey {
+                name: MINIMAL_APP_2_NAME.to_string(),
+                version: MINIMAL_APP_2_VERSION.to_string(),
+            },
+            deployment_id: format!("deployment-{RUNNING_INSTANCE}"),
+        }
+    }
+
+    pub fn test_port_mapping() -> InstancePortMapping {
+        InstancePortMapping {
+            tcp: vec![PortMapping::Single(80, 8080)],
+            udp: vec![PortMapping::Range {
+                from: PortRange::new(50..=100),
+                to: PortRange::new(150..=200),
+            }],
+            sctp: vec![],
+        }
+    }
+
+    fn port_mapping_instance() -> InstanceDeserializable {
+        InstanceDeserializable {
+            hostname: format!("flecs-{PORT_MAPPING_INSTANCE}"),
+            name: "Running instance".to_string(),
+            id: PORT_MAPPING_INSTANCE,
+            config: InstanceConfig {
+                port_mapping: test_port_mapping(),
+                ..Default::default()
+            },
+            desired: InstanceStatus::Running,
+            app_key: AppKey {
+                name: MINIMAL_APP_2_NAME.to_string(),
+                version: MINIMAL_APP_2_VERSION.to_string(),
+            },
+            deployment_id: format!("deployment-{PORT_MAPPING_INSTANCE}"),
+        }
+    }
+
+    fn label_instance() -> InstanceDeserializable {
+        InstanceDeserializable {
+            hostname: format!("flecs-{LABEL_INSTANCE}"),
+            name: "Running instance".to_string(),
+            id: LABEL_INSTANCE,
+            config: InstanceConfig::default(),
+            desired: InstanceStatus::Running,
+            app_key: AppKey {
+                name: LABEL_APP_NAME.to_string(),
+                version: LABEL_APP_VERSION.to_string(),
+            },
+            deployment_id: format!("deployment-{LABEL_INSTANCE}"),
+        }
+    }
+
+    fn env_instance() -> InstanceDeserializable {
+        InstanceDeserializable {
+            hostname: format!("flecs-{ENV_INSTANCE}"),
+            name: "Running instance".to_string(),
+            id: ENV_INSTANCE,
+            config: InstanceConfig {
+                environment_variables: vec![
+                    EnvironmentVariable {
+                        name: "VAR_1".to_string(),
+                        value: None,
+                    },
+                    EnvironmentVariable {
+                        name: "VAR_2".to_string(),
+                        value: Some("value".to_string()),
+                    },
+                ],
+                ..Default::default()
+            },
+            desired: InstanceStatus::Running,
+            app_key: AppKey {
+                name: MINIMAL_APP_2_NAME.to_string(),
+                version: MINIMAL_APP_2_VERSION.to_string(),
+            },
+            deployment_id: format!("deployment-{ENV_INSTANCE}"),
+        }
+    }
+
+    fn usb_dev_instance() -> InstanceDeserializable {
+        InstanceDeserializable {
+            hostname: format!("flecs-{USB_DEV_INSTANCE}"),
+            name: "Running instance".to_string(),
+            id: USB_DEV_INSTANCE,
+            config: InstanceConfig {
+                usb_devices: HashMap::from([(
+                    "test_port".to_string(),
+                    UsbPathConfig {
+                        bus_num: 10,
+                        dev_num: 20,
+                        port: "test_port".to_string(),
+                    },
+                )]),
+                ..Default::default()
+            },
+            desired: InstanceStatus::Running,
+            app_key: AppKey {
+                name: MINIMAL_APP_2_NAME.to_string(),
+                version: MINIMAL_APP_2_VERSION.to_string(),
+            },
+            deployment_id: format!("deployment-{USB_DEV_INSTANCE}"),
+        }
+    }
+
+    fn editor_instance() -> InstanceDeserializable {
+        InstanceDeserializable {
+            hostname: format!("flecs-{EDITOR_INSTANCE}"),
+            name: "Running instance".to_string(),
+            id: EDITOR_INSTANCE,
+            config: InstanceConfig {
+                network_addresses: HashMap::from([(
+                    "flecs".to_string(),
+                    IpAddr::V4(Ipv4Addr::new(120, 20, 40, 50)),
+                )]),
+                mapped_editor_ports: HashMap::from([(3000, 4000)]),
+                ..InstanceConfig::default()
+            },
+            desired: InstanceStatus::Running,
+            app_key: AppKey {
+                name: EDITOR_APP_NAME.to_string(),
+                version: EDITOR_APP_VERSION.to_string(),
+            },
+            deployment_id: format!("deployment-{EDITOR_INSTANCE}"),
+        }
+    }
+
+    pub fn test_instances() -> Vec<InstanceDeserializable> {
+        vec![
+            minimal_instance(),
+            running_instance(),
+            port_mapping_instance(),
+            env_instance(),
+            label_instance(),
+            usb_dev_instance(),
+            editor_instance(),
+        ]
+    }
 
     pub fn create_manifest_for_instance(
         instance: &InstanceDeserializable,

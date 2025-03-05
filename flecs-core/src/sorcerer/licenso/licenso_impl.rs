@@ -1,97 +1,112 @@
-use super::spell;
-use super::spell::license::ActivationResult;
-pub use super::Result;
+use crate::sorcerer::licenso::Licenso;
+use crate::sorcerer::spell::license::ActivationResult;
+use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::Pouch;
 use crate::vault::{GrabbedPouches, Vault};
 use anyhow::{anyhow, Context};
+use async_trait::async_trait;
 use flecs_console_client::apis::configuration::Configuration;
 use std::sync::Arc;
 
-pub async fn activate_license(vault: &Vault, configuration: Arc<Configuration>) -> Result<()> {
-    let secrets = vault.get_secrets().await;
+#[derive(Default)]
+pub struct LicensoImpl {}
 
-    let activation_result = match (
-        secrets.license_key.as_ref(),
-        spell::license::read_serial_number(),
-    ) {
-        (Some(&ref key), _) | (None, Some(ref key)) => {
-            spell::license::activate_via_license_key(key, secrets.get_session_id(), configuration)
-                .await
-        }
-        (None, None) => spell::license::activate_via_user_license(
-            configuration,
-            &secrets
-                .authentication
-                .as_ref()
-                .ok_or_else(|| {
-                    anyhow!("Can not activate license, as no license key or user authentication is present")
-                })?
-                .jwt
-                .token,
-        )
-        .await,
-    };
-    match activation_result? {
-        ActivationResult::Activated(activation_data) => {
-            if let GrabbedPouches {
-                secret_pouch_mut: Some(ref mut secret_pouch),
-                ..
-            } = vault.reservation().reserve_secret_pouch_mut().grab().await
-            {
-                secret_pouch.gems_mut().license_key = Some(activation_data.license_key);
-                secret_pouch
-                    .gems_mut()
-                    .set_session_id(*activation_data.session_id);
-                Ok(())
-            } else {
-                panic!("Failed to reserve secret pouch mut");
+impl Sorcerer for LicensoImpl {}
+
+#[async_trait]
+impl Licenso for LicensoImpl {
+    async fn activate_license(
+        &self,
+        vault: &Vault,
+        configuration: Arc<Configuration>,
+    ) -> anyhow::Result<()> {
+        let secrets = vault.get_secrets().await;
+
+        let activation_result = match (
+            secrets.license_key.as_ref(),
+            spell::license::read_serial_number(),
+        ) {
+            (Some(&ref key), _) | (None, Some(ref key)) => {
+                spell::license::activate_via_license_key(key, secrets.get_session_id(), configuration)
+                    .await
             }
-        }
-        ActivationResult::AlreadyActive => {
-            if let GrabbedPouches {
-                secret_pouch: Some(ref secret_pouch),
-                ..
-            } = vault.reservation().reserve_secret_pouch().grab().await
-            {
-                match (&secret_pouch.gems().license_key, secret_pouch.gems().get_session_id().id) {
-                    (None, None) => Err(anyhow!("Console responded with already active, but license and session id are not set")),
-                    (None, Some(_)) => Err(anyhow!("Console responded with already active, but license is not set")),
-                    (Some(_), None)=> Err(anyhow!("Console responded with already active, but session id is not set")),
-                    _ => Ok(()),
+            (None, None) => spell::license::activate_via_user_license(
+                configuration,
+                &secrets
+                    .authentication
+                    .as_ref()
+                    .ok_or_else(|| {
+                        anyhow!("Can not activate license, as no license key or user authentication is present")
+                    })?
+                    .jwt
+                    .token,
+            )
+                .await,
+        };
+        match activation_result? {
+            ActivationResult::Activated(activation_data) => {
+                if let GrabbedPouches {
+                    secret_pouch_mut: Some(ref mut secret_pouch),
+                    ..
+                } = vault.reservation().reserve_secret_pouch_mut().grab().await
+                {
+                    secret_pouch.gems_mut().license_key = Some(activation_data.license_key);
+                    secret_pouch
+                        .gems_mut()
+                        .set_session_id(*activation_data.session_id);
+                    Ok(())
+                } else {
+                    panic!("Failed to reserve secret pouch mut");
                 }
-            } else {
-                panic!("Failed to reserve secret pouch");
             }
-        }
-    }.context("Could not activate license")
-}
+            ActivationResult::AlreadyActive => {
+                if let GrabbedPouches {
+                    secret_pouch: Some(ref secret_pouch),
+                    ..
+                } = vault.reservation().reserve_secret_pouch().grab().await
+                {
+                    match (&secret_pouch.gems().license_key, secret_pouch.gems().get_session_id().id) {
+                        (None, None) => Err(anyhow!("Console responded with already active, but license and session id are not set")),
+                        (None, Some(_)) => Err(anyhow!("Console responded with already active, but license is not set")),
+                        (Some(_), None)=> Err(anyhow!("Console responded with already active, but session id is not set")),
+                        _ => Ok(()),
+                    }
+                } else {
+                    panic!("Failed to reserve secret pouch");
+                }
+            }
+        }.context("Could not activate license")
+    }
 
-pub async fn validate_license(vault: &Vault, configuration: Arc<Configuration>) -> Result<bool> {
-    let session_id = vault
-        .reservation()
-        .reserve_secret_pouch()
-        .grab()
-        .await
-        .secret_pouch
-        .as_ref()
-        .unwrap()
-        .gems()
-        .get_session_id()
-        .id;
-    spell::license::validate_license(session_id, configuration).await
+    async fn validate_license(
+        &self,
+        vault: &Vault,
+        configuration: Arc<Configuration>,
+    ) -> anyhow::Result<bool> {
+        let session_id = vault
+            .reservation()
+            .reserve_secret_pouch()
+            .grab()
+            .await
+            .secret_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get_session_id()
+            .id;
+        spell::license::validate_license(session_id, configuration).await
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::vault::pouch::secret::Secrets;
-    use crate::vault::VaultConfig;
+    use crate::vault::tests::create_empty_test_vault;
     use flecs_console_client::models::SessionId;
     use flecsd_axum_server::models::{AuthResponseData, FeatureFlags, Jwt, User};
     use mockito::Matcher;
-    use std::path::Path;
 
-    const TEST_PATH: &str = "/tmp/flecs-tests/licenso";
     const LICENSE_KEY: &str = "1234-ABCD-5678-EFGH";
     const SESSION_ID: &str = "74c3b620-6048-4bfd-9bf7-c9857a001694";
     const TIMESTAMP: u64 = 17243237291234u64;
@@ -132,9 +147,7 @@ mod tests {
     #[tokio::test]
     async fn activate_via_user_test() {
         let auth = "some_valid_auth";
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(
@@ -169,7 +182,10 @@ mod tests {
             .match_header("Authorization", format!("Bearer {}", auth).as_str())
             .create_async()
             .await;
-        activate_license(&vault, config).await.unwrap();
+        LicensoImpl::default()
+            .activate_license(&vault, config)
+            .await
+            .unwrap();
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
@@ -179,9 +195,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_via_license_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(Some(LICENSE_KEY.to_string()), SessionId::default(), None),
@@ -212,7 +226,10 @@ mod tests {
             .match_header("Authorization", Matcher::Missing)
             .create_async()
             .await;
-        activate_license(&vault, config).await.unwrap();
+        LicensoImpl::default()
+            .activate_license(&vault, config)
+            .await
+            .unwrap();
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
@@ -222,9 +239,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_already_active_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(
@@ -247,7 +262,10 @@ mod tests {
             .with_status(204)
             .create_async()
             .await;
-        activate_license(&vault, config).await.unwrap();
+        LicensoImpl::default()
+            .activate_license(&vault, config)
+            .await
+            .unwrap();
         mock.assert();
         let mut secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let secrets = secrets.secret_pouch_mut.as_mut().unwrap();
@@ -257,9 +275,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_already_active_no_license_no_session_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(
@@ -277,7 +293,11 @@ mod tests {
             .await;
         assert!(format!(
             "{:#}",
-            activate_license(&vault, config).await.err().unwrap()
+            LicensoImpl::default()
+                .activate_license(&vault, config)
+                .await
+                .err()
+                .unwrap()
         )
         .contains("Console responded with already active, but license and session id are not set"));
         mock.assert();
@@ -289,9 +309,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_already_active_no_license_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(
@@ -312,7 +330,11 @@ mod tests {
             .await;
         assert!(format!(
             "{:#}",
-            activate_license(&vault, config).await.err().unwrap()
+            LicensoImpl::default()
+                .activate_license(&vault, config)
+                .await
+                .err()
+                .unwrap()
         )
         .contains("Console responded with already active, but license is not set"));
         mock.assert();
@@ -330,9 +352,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_already_active_no_session_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(Some(LICENSE_KEY.to_string()), SessionId::default(), None),
@@ -346,7 +366,11 @@ mod tests {
             .await;
         assert!(format!(
             "{:#}",
-            activate_license(&vault, config).await.err().unwrap()
+            LicensoImpl::default()
+                .activate_license(&vault, config)
+                .await
+                .err()
+                .unwrap()
         )
         .contains("Console responded with already active, but session id is not set"));
         mock.assert();
@@ -358,9 +382,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_without_secrets_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(&vault, Secrets::new(None, SessionId::default(), None)).await;
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = server
@@ -370,7 +392,8 @@ mod tests {
             .expect(0)
             .create_async()
             .await;
-        assert!(activate_license(&vault, config)
+        assert!(LicensoImpl::default()
+            .activate_license(&vault, config)
             .await
             .err()
             .unwrap()

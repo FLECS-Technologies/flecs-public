@@ -106,11 +106,31 @@ impl DeploymentPouch {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
+    use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::tests::prepare_test_path;
     use serde_json::json;
     use std::path::Path;
+    use testdir::testdir;
+
+    pub fn test_deployment_pouch(
+        default_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
+    ) -> DeploymentPouch {
+        let deployment = default_deployment.unwrap_or_else(|| {
+            let mut deployment = MockedDeployment::new();
+            deployment
+                .expect_id()
+                .returning(|| "DefaultMockedDeploymentId".to_string());
+            Arc::new(deployment)
+        });
+        let deployments: HashMap<String, Arc<dyn crate::jeweler::deployment::Deployment>> =
+            HashMap::from([(deployment.id(), deployment)]);
+        DeploymentPouch {
+            path: testdir!().join("deployments"),
+            deployments,
+        }
+    }
 
     fn test_deployment_json() -> serde_json::Value {
         json!([{

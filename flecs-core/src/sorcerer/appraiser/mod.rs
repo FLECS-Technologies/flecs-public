@@ -1,0 +1,65 @@
+mod appraiser_impl;
+pub use super::Result;
+use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::jeweler::gem::manifest::AppManifest;
+use crate::quest::SyncQuest;
+use crate::sorcerer::Sorcerer;
+use crate::vault::pouch::AppKey;
+use crate::vault::Vault;
+pub use appraiser_impl::AppraiserImpl;
+use async_trait::async_trait;
+use flecs_console_client::apis::configuration::Configuration;
+use flecsd_axum_server::models::InstalledApp;
+#[cfg(test)]
+use mockall::automock;
+use std::sync::Arc;
+
+#[cfg_attr(test, automock)]
+#[async_trait]
+pub trait AppRaiser: Sorcerer {
+    async fn uninstall_app<F: Floxy + 'static>(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+        app_key: AppKey,
+    ) -> Result<()>;
+
+    async fn does_app_exist(&self, vault: Arc<Vault>, app_key: AppKey) -> bool;
+
+    async fn get_app(
+        &self,
+        vault: Arc<Vault>,
+        name: String,
+        version: Option<String>,
+    ) -> Result<Vec<InstalledApp>>;
+
+    async fn get_apps(&self, vault: Arc<Vault>) -> Result<Vec<InstalledApp>>;
+
+    async fn install_app_from_manifest(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        manifest: Arc<AppManifest>,
+        config: Arc<Configuration>,
+    ) -> Result<()>;
+
+    async fn install_apps(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        app_keys: Vec<AppKey>,
+        config: Arc<Configuration>,
+    ) -> Result<()>;
+
+    async fn install_app(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        app_key: AppKey,
+        config: Arc<Configuration>,
+    ) -> Result<()>;
+}
+
+#[cfg(test)]
+impl Sorcerer for MockAppRaiser {}

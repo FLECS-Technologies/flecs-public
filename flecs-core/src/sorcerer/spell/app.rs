@@ -40,16 +40,13 @@ mod tests {
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::gem::app::{App, AppData};
     use crate::quest::Quest;
-    use crate::vault::VaultConfig;
-    use std::path::Path;
+    use crate::vault::tests::create_empty_test_vault;
 
     #[tokio::test]
     async fn uninstall_app_not_found() {
         assert!(uninstall_app(
             Quest::new_synced("TestQuest".to_string()),
-            Arc::new(Vault::new(VaultConfig {
-                path: Path::new("/tmp/flecs-tests/uninstall_app_not_found/").to_path_buf(),
-            })),
+            create_empty_test_vault(),
             AppKey {
                 name: "not_found".to_string(),
                 version: "1.0.0".to_string(),
@@ -82,9 +79,7 @@ mod tests {
         let mut app = App::new(key.clone(), Vec::new());
         app.deployments
             .insert("Mocked_deployment".to_string(), app_data);
-        let vault = Arc::new(Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/uninstall_app_error/").to_path_buf(),
-        }));
+        let vault = create_empty_test_vault();
         vault
             .reservation()
             .reserve_app_pouch_mut()
@@ -122,9 +117,7 @@ mod tests {
         let mut app = App::new(key.clone(), Vec::new());
         app.deployments
             .insert("Mocked_deployment".to_string(), app_data);
-        let vault = Arc::new(Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/uninstall_app_ok/").to_path_buf(),
-        }));
+        let vault = create_empty_test_vault();
         vault
             .reservation()
             .reserve_app_pouch_mut()

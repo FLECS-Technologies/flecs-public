@@ -111,12 +111,28 @@ impl Vault {
     /// vault.open();
     /// ```
     pub fn new(config: VaultConfig) -> Self {
+        Self::new_from_pouches(
+            AppPouch::new(&config.path.join("apps")),
+            ManifestPouch::new(&config.path.join("manifests")),
+            SecretPouch::new(&config.path.join("device")),
+            DeploymentPouch::new(&config.path.join("deployments")),
+            InstancePouch::new(&config.path.join("instances")),
+        )
+    }
+
+    fn new_from_pouches(
+        apps: AppPouch,
+        manifests: ManifestPouch,
+        secrets: SecretPouch,
+        deployments: DeploymentPouch,
+        instances: InstancePouch,
+    ) -> Self {
         Self {
-            app_pouch: RwLock::new(AppPouch::new(&config.path.join("apps"))),
-            manifest_pouch: RwLock::new(ManifestPouch::new(&config.path.join("manifests"))),
-            secret_pouch: RwLock::new(SecretPouch::new(&config.path.join("device"))),
-            deployment_pouch: RwLock::new(DeploymentPouch::new(&config.path.join("deployments"))),
-            instance_pouch: RwLock::new(InstancePouch::new(&config.path.join("instances"))),
+            app_pouch: RwLock::new(apps),
+            manifest_pouch: RwLock::new(manifests),
+            secret_pouch: RwLock::new(secrets),
+            deployment_pouch: RwLock::new(deployments),
+            instance_pouch: RwLock::new(instances),
         }
     }
 
@@ -456,11 +472,63 @@ impl Drop for GrabbedPouches<'_> {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
+    use crate::jeweler::gem::instance::InstanceId;
+    use crate::vault::pouch::app::tests::test_app_pouch;
+    use crate::vault::pouch::deployment::tests::test_deployment_pouch;
+    use crate::vault::pouch::instance::tests::test_instance_pouch;
+    use crate::vault::pouch::manifest::tests::test_manifest_pouch;
+    use crate::vault::pouch::secret::tests::test_secret_pouch;
+    use crate::vault::pouch::AppKey;
     use flecs_console_client::models::SessionId;
     use ntest::timeout;
+    use std::collections::HashMap;
     use std::fs;
+    use testdir::testdir;
+
+    pub fn create_test_vault(
+        instance_deployments: HashMap<InstanceId, Arc<dyn crate::jeweler::deployment::Deployment>>,
+        app_deployments: HashMap<AppKey, Arc<dyn crate::jeweler::deployment::Deployment>>,
+        default_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
+    ) -> Arc<Vault> {
+        let manifest_pouch = test_manifest_pouch();
+        let instance_pouch = test_instance_pouch(
+            manifest_pouch.gems(),
+            instance_deployments,
+            default_deployment.clone(),
+        );
+        let deployment_pouch = test_deployment_pouch(default_deployment.clone());
+        let secret_pouch = test_secret_pouch();
+        let app_pouch = test_app_pouch(manifest_pouch.gems(), app_deployments, default_deployment);
+        Arc::new(Vault::new_from_pouches(
+            app_pouch,
+            manifest_pouch,
+            secret_pouch,
+            deployment_pouch,
+            instance_pouch,
+        ))
+    }
+
+    pub fn create_empty_test_vault() -> Arc<Vault> {
+        Arc::new(Vault::new(VaultConfig {
+            path: testdir!().join("vault"),
+        }))
+    }
+
+    pub fn create_test_vault_with_deployment(
+        deployment: Arc<dyn crate::jeweler::deployment::Deployment>,
+    ) -> Arc<Vault> {
+        let mut vault = Vault::new(VaultConfig {
+            path: testdir!().join("vault"),
+        });
+        vault
+            .deployment_pouch
+            .get_mut()
+            .gems_mut()
+            .insert(deployment.id(), deployment);
+        Arc::new(vault)
+    }
 
     #[tokio::test]
     #[timeout(10000)]
