@@ -50,16 +50,12 @@ mod tests {
     use super::*;
     use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::gem::instance::InstanceId;
-    use crate::sorcerer::instancius::tests::spell_test_vault;
     use crate::sorcerer::instancius::MockInstancius;
-    use crate::tests::prepare_test_path;
     use std::num::NonZeroU16;
     use std::sync::Arc;
 
     #[tokio::test]
     async fn get_500() {
-        let vault =
-            spell_test_vault(prepare_test_path(module_path!(), "get_500"), Some(false)).await;
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request::<MockFloxy>()
@@ -67,7 +63,7 @@ mod tests {
             .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
         assert!(matches!(
             get(
-                vault,
+                crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
                 Arc::new(instancius),
                 Host("host".to_string()),
@@ -81,8 +77,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_302() {
-        let vault =
-            spell_test_vault(prepare_test_path(module_path!(), "get_302"), Some(true)).await;
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request::<MockFloxy>()
@@ -91,7 +85,7 @@ mod tests {
             .returning(|_, _, _, _| Ok(Redirected(125)));
         assert_eq!(
             get(
-                vault,
+                crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
                 Arc::new(instancius),
                 Host("host".to_string()),
@@ -107,11 +101,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_404_instance_not_found() {
-        let vault = spell_test_vault(
-            prepare_test_path(module_path!(), "get_404_instance_not_found"),
-            None,
-        )
-        .await;
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request::<MockFloxy>()
@@ -120,7 +109,7 @@ mod tests {
             .returning(|_, _, _, _| Ok(InstanceNotFound));
         assert!(matches!(
             get(
-                vault,
+                crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
                 Arc::new(instancius),
                 Host("host".to_string()),
@@ -134,11 +123,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_404_unknown_port() {
-        let vault = spell_test_vault(
-            prepare_test_path(module_path!(), "get_404_unknown_port"),
-            None,
-        )
-        .await;
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request::<MockFloxy>()
@@ -147,7 +131,7 @@ mod tests {
             .returning(|_, _, _, _| Ok(UnknownPort));
         assert!(matches!(
             get(
-                vault,
+                crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
                 Arc::new(instancius),
                 Host("host".to_string()),
@@ -161,11 +145,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_400_reverse_proxy_support() {
-        let vault = spell_test_vault(
-            prepare_test_path(module_path!(), "get_400_reverse_proxy_support"),
-            Some(true),
-        )
-        .await;
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request::<MockFloxy>()
@@ -173,7 +152,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(EditorSupportsReverseProxy));
         let result = get(
-            vault,
+            crate::vault::tests::create_empty_test_vault(),
             Arc::new(MockFloxy::new()),
             Arc::new(instancius),
             Host("host".to_string()),
@@ -190,11 +169,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_400_instance_stopped() {
-        let vault = spell_test_vault(
-            prepare_test_path(module_path!(), "get_400_instance_stopped"),
-            None,
-        )
-        .await;
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request::<MockFloxy>()
@@ -203,7 +177,7 @@ mod tests {
             .returning(|_, _, _, _| Ok(InstanceNotRunning));
         assert!(matches!(
             get(
-                vault,
+                crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
                 Arc::new(instancius),
                 Host("host".to_string()),
@@ -217,11 +191,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_400_not_connected_to_network() {
-        let vault = spell_test_vault(
-            prepare_test_path(module_path!(), "get_400_not_connected_to_network"),
-            Some(true),
-        )
-        .await;
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request::<MockFloxy>()
@@ -230,7 +199,7 @@ mod tests {
             .returning(|_, _, _, _| Ok(InstanceNotConnectedToNetwork));
         assert!(matches!(
             get(
-                vault,
+                crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
                 Arc::new(instancius),
                 Host("host".to_string()),

@@ -82,10 +82,11 @@ impl AppPouch {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::jeweler;
     use crate::jeweler::app::AppStatus;
+    use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::gem::app::AppDataDeserializable;
     use crate::jeweler::gem::deployment::docker::DockerDeployment;
     use crate::tests::prepare_test_path;
@@ -93,6 +94,186 @@ mod tests {
     use flecs_app_manifest::AppManifestVersion;
     use serde_json::Value;
     use std::fs;
+    use testdir::testdir;
+
+    fn default_deployment() -> Arc<dyn crate::jeweler::deployment::Deployment> {
+        let mut default_deployment = MockedDeployment::default();
+        default_deployment
+            .expect_id()
+            .returning(move || "DefaultMockedDeployment".to_string());
+        Arc::new(default_deployment)
+    }
+
+    pub fn test_app_pouch(
+        manifests: &HashMap<AppKey, Arc<AppManifest>>,
+        mut deployments: HashMap<AppKey, Arc<dyn crate::jeweler::deployment::Deployment>>,
+        fallback_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
+    ) -> AppPouch {
+        let default_deployment = fallback_deployment.unwrap_or_else(|| default_deployment());
+        let mut apps = test_apps();
+        for app in apps.iter_mut() {
+            let entry = deployments
+                .entry(app.key.clone())
+                .or_insert(default_deployment.clone());
+            app.deployments.first_mut().unwrap().deployment_id = entry.id();
+        }
+        let deployments = deployments
+            .into_values()
+            .map(|deployment| (deployment.id(), deployment))
+            .collect();
+        AppPouch {
+            apps: AppPouch::create_apps(apps, manifests, &deployments),
+            path: testdir!().join("apps"),
+        }
+    }
+
+    fn test_apps() -> Vec<AppDeserializable> {
+        vec![
+            minimal_app(),
+            single_instance_app(),
+            multi_instance_app(),
+            no_manifest_app(),
+            minimal_app_with_instance(),
+            minimal_app_2(),
+            label_app(),
+            editor_app(),
+        ]
+    }
+
+    pub fn existing_app_keys() -> Vec<AppKey> {
+        test_apps().into_iter().map(|app| app.key).collect()
+    }
+
+    pub const UNKNOWN_APP_NAME: &str = "tech.flecs.unknown";
+    pub const UNKNOWN_APP_VERSION: &str = "1.1.4";
+
+    pub const MINIMAL_APP_WITH_INSTANCE_NAME: &str = "tech.flecs.min-app";
+    pub const MINIMAL_APP_WITH_INSTANCE_VERSION: &str = "1.1.4";
+    fn minimal_app_with_instance() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: MINIMAL_APP_WITH_INSTANCE_NAME.to_string(),
+                version: MINIMAL_APP_WITH_INSTANCE_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("887665412".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
+            }],
+        }
+    }
+
+    pub const MINIMAL_APP_NAME: &str = "tech.flecs.min-app";
+    pub const MINIMAL_APP_VERSION: &str = "1.0.0";
+    fn minimal_app() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: MINIMAL_APP_NAME.to_string(),
+                version: MINIMAL_APP_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("12345678".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
+            }],
+        }
+    }
+
+    pub const MINIMAL_APP_2_NAME: &str = "tech.flecs.min-app";
+    pub const MINIMAL_APP_2_VERSION: &str = "2.4.5";
+    fn minimal_app_2() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: MINIMAL_APP_2_NAME.to_string(),
+                version: MINIMAL_APP_2_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("1234005678".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
+            }],
+        }
+    }
+
+    pub const SINGLE_INSTANCE_APP_NAME: &str = "tech.flecs.single-instance";
+    pub const SINGLE_INSTANCE_APP_VERSION: &str = "1.0.0";
+    fn single_instance_app() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: SINGLE_INSTANCE_APP_NAME.to_string(),
+                version: SINGLE_INSTANCE_APP_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("ababababab".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
+            }],
+        }
+    }
+
+    pub const MULTI_INSTANCE_APP_NAME: &str = "tech.flecs.multi-instance";
+    pub const MULTI_INSTANCE_APP_VERSION: &str = "1.0.0";
+    fn multi_instance_app() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: MULTI_INSTANCE_APP_NAME.to_string(),
+                version: MULTI_INSTANCE_APP_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("cdcdcdcdcdc".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
+            }],
+        }
+    }
+
+    pub const LABEL_APP_NAME: &str = "tech.flecs.label-app";
+    pub const LABEL_APP_VERSION: &str = "7.6.2";
+    fn label_app() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: LABEL_APP_NAME.to_string(),
+                version: LABEL_APP_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("7171717171".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
+            }],
+        }
+    }
+
+    pub const EDITOR_APP_NAME: &str = "tech.flecs.editor-app";
+    pub const EDITOR_APP_VERSION: &str = "5.2.1";
+    fn editor_app() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: EDITOR_APP_NAME.to_string(),
+                version: EDITOR_APP_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("67438969213497".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
+            }],
+        }
+    }
+
+    pub const NO_MANIFEST_APP_NAME: &str = "tech.flecs.no-manifest";
+    pub const NO_MANIFEST_APP_VERSION: &str = "1.0.0";
+    fn no_manifest_app() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: NO_MANIFEST_APP_NAME.to_string(),
+                version: NO_MANIFEST_APP_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("aabbaaccddee".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::NotInstalled,
+            }],
+        }
+    }
 
     fn create_test_json() -> Value {
         serde_json::json!([

@@ -54,28 +54,13 @@ impl Systemus for SystemusImpl {
 mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::vault::VaultConfig;
+    use crate::vault::tests::{create_empty_test_vault, create_test_vault_with_deployment};
     use std::net::Ipv4Addr;
-
-    async fn test_vault(deployment: MockedDeployment) -> Arc<Vault> {
-        let vault = Vault::new(VaultConfig::default());
-        vault
-            .reservation()
-            .reserve_deployment_pouch_mut()
-            .grab()
-            .await
-            .deployment_pouch_mut
-            .as_mut()
-            .unwrap()
-            .gems_mut()
-            .insert("TestDeployment".to_string(), Arc::new(deployment));
-        Arc::new(vault)
-    }
 
     #[tokio::test]
     async fn reserve_ipv4_address_err_no_deployment() {
         assert!(SystemusImpl::default()
-            .reserve_ipv4_address(Arc::new(Vault::new(VaultConfig::default())), String::new())
+            .reserve_ipv4_address(create_empty_test_vault(), String::new())
             .await
             .is_err())
     }
@@ -83,11 +68,12 @@ mod tests {
     #[tokio::test]
     async fn reserve_ipv4_address_err_network() {
         let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
         deployment
             .expect_network()
             .once()
             .returning(|_| Err(anyhow::anyhow!("TestError")));
-        let vault = test_vault(deployment).await;
+        let vault = create_test_vault_with_deployment(Arc::new(deployment));
         assert!(SystemusImpl::default()
             .reserve_ipv4_address(vault, String::new())
             .await
@@ -97,8 +83,9 @@ mod tests {
     #[tokio::test]
     async fn reserve_ipv4_address_ok_unknown_network() {
         let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
         deployment.expect_network().once().returning(|_| Ok(None));
-        let vault = test_vault(deployment).await;
+        let vault = create_test_vault_with_deployment(Arc::new(deployment));
         assert_eq!(
             SystemusImpl::default()
                 .reserve_ipv4_address(vault, "TestNetwork".to_string())
@@ -122,11 +109,12 @@ mod tests {
             ..Default::default()
         };
         let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
         deployment
             .expect_network()
             .times(6)
             .returning(move |_| Ok(Some(bollard_network.clone())));
-        let vault = test_vault(deployment).await;
+        let vault = create_test_vault_with_deployment(Arc::new(deployment));
         assert_eq!(
             SystemusImpl::default()
                 .reserve_ipv4_address(vault.clone(), "TestNetwork".to_string())

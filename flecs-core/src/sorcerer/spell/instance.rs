@@ -300,111 +300,35 @@ pub mod tests {
     use super::*;
     use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::gem::instance::{
-        try_create_instance, InstanceDeserializable, InstanceStatus,
-    };
+    use crate::jeweler::gem::instance::InstanceStatus;
     use crate::jeweler::gem::manifest::EnvironmentVariable;
     use crate::quest::Quest;
     use crate::relic::network::Ipv4Network;
-    use crate::tests::prepare_test_path;
-    use crate::vault::pouch::deployment::DeploymentId;
+    use crate::vault;
     use crate::vault::pouch::instance::tests::{
-        create_manifest_for_instance, create_test_instances_deserializable,
+        EDITOR_INSTANCE, ENV_INSTANCE, LABEL_INSTANCE, MINIMAL_INSTANCE, PORT_MAPPING_INSTANCE,
+        RUNNING_INSTANCE, UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2, UNKNOWN_INSTANCE_3,
+        USB_DEV_INSTANCE,
     };
-    use crate::vault::pouch::AppKey;
-    use crate::vault::{GrabbedPouches, VaultConfig};
+    use mockall::predicate::eq;
     use std::collections::HashMap;
-    use std::path::PathBuf;
-
-    fn create_deployment_for_instance(
-        instance: &InstanceDeserializable,
-        instance_status_return: Option<bool>,
-    ) -> (DeploymentId, Arc<dyn Deployment>) {
-        let mut deployment = MockedDeployment::new();
-        let deployment_id = instance.deployment_id.clone();
-        match instance_status_return {
-            Some(true) => {
-                deployment
-                    .expect_instance_status()
-                    .returning(|_| Ok(InstanceStatus::Running));
-            }
-            Some(false) => {
-                deployment
-                    .expect_instance_status()
-                    .returning(|_| Err(anyhow::anyhow!("TestError")));
-            }
-            _ => {
-                deployment
-                    .expect_instance_status()
-                    .returning(|_| Ok(InstanceStatus::Stopped));
-            }
-        }
-        deployment.expect_default_network().returning(|| {
-            Ok(bollard::models::Network {
-                name: Some("flecs".to_string()),
-                id: Some("flecs".to_string()),
-                ..Default::default()
-            })
-        });
-        deployment
-            .expect_id()
-            .returning(move || deployment_id.clone());
-        (
-            instance.deployment_id.clone(),
-            Arc::new(deployment) as Arc<dyn Deployment>,
-        )
-    }
-
-    pub async fn create_test_vault(
-        path: PathBuf,
-        instance_status_return: Option<bool>,
-    ) -> Arc<Vault> {
-        let vault = Arc::new(Vault::new(VaultConfig { path }));
-        let instances = create_test_instances_deserializable();
-        let manifests = instances
-            .iter()
-            .map(create_manifest_for_instance)
-            .collect::<HashMap<AppKey, Arc<AppManifest>>>();
-        let deployments = instances
-            .iter()
-            .map(|instance| create_deployment_for_instance(instance, instance_status_return))
-            .collect::<HashMap<DeploymentId, Arc<dyn Deployment>>>();
-        let instances: Vec<Instance> = instances
-            .into_iter()
-            .map(|instance| try_create_instance(instance, &manifests, &deployments).unwrap())
-            .collect();
-        if let GrabbedPouches {
-            deployment_pouch_mut: Some(ref mut deployment_pouch),
-            manifest_pouch_mut: Some(ref mut manifest_pouch),
-            instance_pouch_mut: Some(ref mut instance_pouch),
-            ..
-        } = vault
-            .reservation()
-            .reserve_deployment_pouch_mut()
-            .reserve_manifest_pouch_mut()
-            .reserve_instance_pouch_mut()
-            .grab()
-            .await
-        {
-            for instance in instances {
-                instance_pouch.gems_mut().insert(instance.id, instance);
-            }
-            *manifest_pouch.gems_mut() = manifests;
-            *deployment_pouch.gems_mut() = deployments;
-        } else {
-            unreachable!("Vault reservations should never fail")
-        };
-        vault
-    }
 
     #[tokio::test]
     async fn get_instance_info_details_ok() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instance_info_details_ok"),
-            Some(true),
-        )
-        .await;
-        assert!(get_instance_detailed_info(vault, InstanceId::new(1))
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_instance_status()
+            .returning(|_| Ok(InstanceStatus::Running));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = vault::tests::create_test_vault(
+            HashMap::from([(RUNNING_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        assert!(get_instance_detailed_info(vault, RUNNING_INSTANCE)
             .await
             .unwrap()
             .is_some());
@@ -412,12 +336,8 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_details_not_found() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instance_info_details_not_found"),
-            None,
-        )
-        .await;
-        assert!(get_instance_detailed_info(vault, InstanceId::new(100))
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert!(get_instance_detailed_info(vault, UNKNOWN_INSTANCE_2)
             .await
             .unwrap()
             .is_none());
@@ -425,24 +345,40 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_details_err() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instance_info_details_err"),
-            Some(false),
-        )
-        .await;
-        assert!(get_instance_detailed_info(vault, InstanceId::new(1))
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_instance_status()
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = vault::tests::create_test_vault(
+            HashMap::from([(RUNNING_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        assert!(get_instance_detailed_info(vault, RUNNING_INSTANCE)
             .await
             .is_err());
     }
 
     #[tokio::test]
     async fn get_instance_info_ok() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instance_info_ok"),
-            Some(true),
-        )
-        .await;
-        assert!(get_instance_info(vault, InstanceId::new(1))
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_instance_status()
+            .returning(|_| Ok(InstanceStatus::Running));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = vault::tests::create_test_vault(
+            HashMap::from([(RUNNING_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        assert!(get_instance_info(vault, RUNNING_INSTANCE)
             .await
             .unwrap()
             .is_some());
@@ -450,12 +386,8 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_not_found() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instance_info_not_found"),
-            None,
-        )
-        .await;
-        assert!(get_instance_info(vault, InstanceId::new(100))
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert!(get_instance_info(vault, UNKNOWN_INSTANCE_2)
             .await
             .unwrap()
             .is_none());
@@ -463,29 +395,47 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_err() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instance_info_err"),
-            Some(false),
-        )
-        .await;
-        assert!(get_instance_info(vault, InstanceId::new(1)).await.is_err());
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_instance_status()
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = vault::tests::create_test_vault(
+            HashMap::from([(RUNNING_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        assert!(get_instance_info(vault, RUNNING_INSTANCE).await.is_err());
     }
 
     #[tokio::test]
     async fn get_instances_info_ok() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instances_info_ok"),
-            Some(true),
-        )
-        .await;
-        let instance_ids: Vec<InstanceId> = (1..=6).map(Into::into).collect();
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_instance_status()
+            .returning(|_| Ok(InstanceStatus::Running));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault =
+            vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
+        let instance_ids = vec![
+            RUNNING_INSTANCE,
+            PORT_MAPPING_INSTANCE,
+            ENV_INSTANCE,
+            EDITOR_INSTANCE,
+        ];
         let instance_infos = get_instances_info(
             Quest::new_synced("TestQuest".to_string()),
             vault,
             instance_ids.clone(),
         )
         .await;
-        assert_eq!(instance_infos.len(), 6);
+        assert_eq!(instance_infos.len(), instance_ids.len());
         for instance_id in instance_ids {
             assert!(instance_infos
                 .iter()
@@ -495,38 +445,58 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_info_part_not_found() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instances_info_part_not_found"),
-            Some(true),
-        )
-        .await;
-        let instance_ids: Vec<InstanceId> = (4..=9).map(Into::into).collect();
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_instance_status()
+            .returning(|_| Ok(InstanceStatus::Running));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault =
+            vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
+        let unknown_instance_ids = [UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2];
+        let known_instance_ids = [MINIMAL_INSTANCE, LABEL_INSTANCE, USB_DEV_INSTANCE];
         let instance_infos = get_instances_info(
             Quest::new_synced("TestQuest".to_string()),
             vault,
-            instance_ids.clone(),
+            unknown_instance_ids
+                .iter()
+                .chain(known_instance_ids.iter())
+                .cloned()
+                .collect(),
         )
         .await;
-        assert_eq!(instance_infos.len(), 3);
-        for instance_id in (4..=6).map(Into::<InstanceId>::into) {
+        assert_eq!(instance_infos.len(), known_instance_ids.len());
+        for known_instance_id in known_instance_ids {
             assert!(instance_infos
                 .iter()
-                .any(|instance| instance.instance_id == instance_id.to_string()));
+                .any(|instance| instance.instance_id == known_instance_id.to_string()));
+        }
+        for unknown_instance_id in unknown_instance_ids {
+            assert!(!instance_infos
+                .iter()
+                .any(|instance| instance.instance_id == unknown_instance_id.to_string()));
         }
     }
 
     #[tokio::test]
     async fn get_instances_info_err() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instances_info_err"),
-            Some(false),
-        )
-        .await;
-        let instance_ids: Vec<InstanceId> = (4..=9).map(Into::into).collect();
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_instance_status()
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault =
+            vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
+        let instance_ids = vec![MINIMAL_INSTANCE, LABEL_INSTANCE, USB_DEV_INSTANCE];
         let instance_infos = get_instances_info(
             Quest::new_synced("TestQuest".to_string()),
             vault,
-            instance_ids.clone(),
+            instance_ids,
         )
         .await;
         assert!(instance_infos.is_empty());
@@ -534,14 +504,32 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_ok() {
-        let path = prepare_test_path(module_path!(), "start_instance_ok");
-        let vault = create_test_vault(path.join("vault"), Some(true)).await;
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_instance_status()
+            .once()
+            .with(eq(RUNNING_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        deployment
+            .expect_start_instance()
+            .once()
+            .withf(|_, id, _| *id == Some(RUNNING_INSTANCE))
+            .returning(|_, _, _| Ok(RUNNING_INSTANCE));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = vault::tests::create_test_vault(
+            HashMap::from([(RUNNING_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
             floxy,
-            InstanceId::new(1),
+            RUNNING_INSTANCE,
         )
         .await
         .unwrap();
@@ -549,14 +537,27 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_err() {
-        let path = prepare_test_path(module_path!(), "start_instance_err");
-        let vault = create_test_vault(path.join("vault"), Some(false)).await;
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(move || "MockedDeployment".to_string());
+        deployment
+            .expect_instance_status()
+            .once()
+            .with(eq(RUNNING_INSTANCE))
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = vault::tests::create_test_vault(
+            HashMap::from([(RUNNING_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         assert!(start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
             floxy,
-            InstanceId::new(1),
+            RUNNING_INSTANCE,
         )
         .await
         .is_err());
@@ -564,14 +565,13 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_not_found() {
-        let path = prepare_test_path(module_path!(), "start_instance_not_found");
-        let vault = create_test_vault(path.join("vault"), Some(true)).await;
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         assert!(start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
             floxy,
-            InstanceId::new(10),
+            UNKNOWN_INSTANCE_1,
         )
         .await
         .is_err());
@@ -579,17 +579,13 @@ pub mod tests {
 
     #[tokio::test]
     async fn stop_instance_not_found() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "stop_instance_not_found"),
-            Some(true),
-        )
-        .await;
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         assert!(stop_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
             floxy,
-            InstanceId::new(10),
+            UNKNOWN_INSTANCE_1,
         )
         .await
         .is_err());
@@ -597,11 +593,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn make_ip_reservation_test() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "make_ip_reservation_test"),
-            Some(true),
-        )
-        .await;
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
             Ipv4Addr::new(10, 18, 102, 2),
@@ -615,11 +607,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn clear_ip_reservation_test() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "clear_ip_reservation_test"),
-            Some(true),
-        )
-        .await;
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
             Ipv4Addr::new(10, 18, 102, 2),
@@ -666,13 +654,9 @@ pub mod tests {
 
     #[tokio::test]
     async fn modify_instance_config_with_none() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "modify_instance_config_with_none"),
-            None,
-        )
-        .await;
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         assert!(
-            modify_instance_config_with(vault, InstanceId::new(10000), |_| true)
+            modify_instance_config_with(vault, UNKNOWN_INSTANCE_3, |_| true)
                 .await
                 .is_none()
         );
@@ -680,17 +664,13 @@ pub mod tests {
 
     #[tokio::test]
     async fn modify_instance_config_with_some() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "modify_instance_config_with_some"),
-            None,
-        )
-        .await;
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let test_env_var = EnvironmentVariable {
             name: "TestVar".to_string(),
             value: None,
         };
         assert_eq!(
-            modify_instance_config_with(vault.clone(), InstanceId::new(1), |config| {
+            modify_instance_config_with(vault.clone(), RUNNING_INSTANCE, |config| {
                 config.environment_variables.push(test_env_var.clone());
                 "test_value"
             })
@@ -703,7 +683,7 @@ pub mod tests {
                 .as_ref()
                 .unwrap()
                 .gems()
-                .get(&InstanceId::new(1))
+                .get(&RUNNING_INSTANCE)
                 .unwrap()
                 .config
                 .environment_variables,
@@ -713,13 +693,9 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_config_part_with_none() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instance_config_part_with_none"),
-            None,
-        )
-        .await;
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         assert!(
-            get_instance_config_part_with(vault, InstanceId::new(10000), |_| true)
+            get_instance_config_part_with(vault, UNKNOWN_INSTANCE_1, |_| true)
                 .await
                 .is_none()
         );
@@ -727,11 +703,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_config_part_with_some() {
-        let vault = create_test_vault(
-            prepare_test_path(module_path!(), "get_instance_config_part_with_some"),
-            None,
-        )
-        .await;
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let test_env_var = EnvironmentVariable {
             name: "TestVar".to_string(),
             value: None,
@@ -745,13 +717,13 @@ pub mod tests {
             .as_mut()
             .unwrap()
             .gems_mut()
-            .get_mut(&InstanceId::new(1))
+            .get_mut(&RUNNING_INSTANCE)
             .unwrap()
             .config
             .environment_variables
             .push(test_env_var.clone());
         assert_eq!(
-            get_instance_config_part_with(vault.clone(), InstanceId::new(1), |config| {
+            get_instance_config_part_with(vault.clone(), RUNNING_INSTANCE, |config| {
                 config.environment_variables.clone()
             })
             .await,

@@ -282,8 +282,3 @@ pub trait Instancius: Sorcerer {
 
 #[cfg(test)]
 impl Sorcerer for MockInstancius {}
-
-#[cfg(test)]
-pub mod tests {
-    pub use super::instancius_impl::tests::spell_test_vault;
-}

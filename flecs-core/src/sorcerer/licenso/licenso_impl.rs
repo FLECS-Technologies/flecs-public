@@ -102,13 +102,11 @@ impl Licenso for LicensoImpl {
 mod tests {
     use super::*;
     use crate::vault::pouch::secret::Secrets;
-    use crate::vault::VaultConfig;
+    use crate::vault::tests::create_empty_test_vault;
     use flecs_console_client::models::SessionId;
     use flecsd_axum_server::models::{AuthResponseData, FeatureFlags, Jwt, User};
     use mockito::Matcher;
-    use std::path::Path;
 
-    const TEST_PATH: &str = "/tmp/flecs-tests/licenso";
     const LICENSE_KEY: &str = "1234-ABCD-5678-EFGH";
     const SESSION_ID: &str = "74c3b620-6048-4bfd-9bf7-c9857a001694";
     const TIMESTAMP: u64 = 17243237291234u64;
@@ -149,9 +147,7 @@ mod tests {
     #[tokio::test]
     async fn activate_via_user_test() {
         let auth = "some_valid_auth";
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(
@@ -199,9 +195,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_via_license_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(Some(LICENSE_KEY.to_string()), SessionId::default(), None),
@@ -245,9 +239,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_already_active_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(
@@ -283,9 +275,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_already_active_no_license_no_session_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(
@@ -319,9 +309,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_already_active_no_license_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(
@@ -364,9 +352,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_already_active_no_session_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(
             &vault,
             Secrets::new(Some(LICENSE_KEY.to_string()), SessionId::default(), None),
@@ -396,9 +382,7 @@ mod tests {
 
     #[tokio::test]
     async fn activate_without_secrets_test() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new(TEST_PATH).to_path_buf(),
-        });
+        let vault = create_empty_test_vault();
         setup_secrets(&vault, Secrets::new(None, SessionId::default(), None)).await;
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = server

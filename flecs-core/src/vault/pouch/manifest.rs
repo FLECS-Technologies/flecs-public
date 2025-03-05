@@ -113,6 +113,151 @@ pub mod tests {
     use serde_json::Value;
     use std::fs;
     use std::io::Write;
+    use testdir::testdir;
+
+    fn manifest_from_json(json: &Value) -> Arc<AppManifest> {
+        let manifest = AppManifestVersion::from_str(&serde_json::to_string(json).unwrap()).unwrap();
+        Arc::new(manifest.try_into().unwrap())
+    }
+
+    pub fn test_manifests() -> Vec<Arc<AppManifest>> {
+        vec![
+            min_app_1_1_0_manifest(),
+            min_app_1_0_0_manifest(),
+            min_app_1_1_4_manifest(),
+            min_app_2_4_5_manifest(),
+            single_instance_app_manifest(),
+            multi_instance_app_manifest(),
+            label_manifest(),
+            editor_manifest(),
+        ]
+    }
+
+    pub fn test_manifest_pouch() -> ManifestPouch {
+        let manifests = HashMap::from_iter(
+            test_manifests()
+                .into_iter()
+                .map(|manifest| (manifest.key.clone(), manifest)),
+        );
+        ManifestPouch {
+            path: testdir!().join("manifests"),
+            existing_manifest_keys: HashSet::from_iter(manifests.keys().cloned()),
+            manifests,
+        }
+    }
+
+    pub fn single_instance_app_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.single-instance",
+            "version": "1.0.0",
+            "image": "flecs.azurecr.io/tech.flecs.single-instance",
+            "multiInstance": false
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn multi_instance_app_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.multi-instance",
+            "version": "1.0.0",
+            "image": "flecs.azurecr.io/tech.flecs.multi-instance",
+            "multiInstance": true
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn min_app_1_0_0_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.min-app",
+            "version": "1.0.0",
+            "image": "flecs.azurecr.io/tech.flecs.min-app"
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn min_app_1_1_0_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.min-app",
+            "version": "1.1.0",
+            "image": "flecs.azurecr.io/tech.flecs.min-app"
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn min_app_1_1_4_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.min-app",
+            "version": "1.1.4",
+            "image": "flecs.azurecr.io/tech.flecs.min-app"
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn min_app_2_4_5_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.min-app",
+            "version": "2.4.5",
+            "image": "flecs.azurecr.io/tech.flecs.min-app"
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn label_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.label-app",
+            "version": "7.6.2",
+            "image": "flecs.azurecr.io/tech.flecs.label-app",
+            "labels": [
+                "tech.flecs",
+                "tech.flecs.some-label=Some custom label value"
+            ]
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn editor_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.editor-app",
+            "version": "5.2.1",
+            "image": "flecs.azurecr.io/tech.flecs.editor-app",
+            "editors": [
+                {
+                   "name": "editor 1",
+                   "port": 1234,
+                   "supportsReverseProxy": false
+                },
+                {
+                   "name": "editor 2",
+                   "port": 5678,
+                   "supportsReverseProxy": true
+                },
+                {
+                   "name": "editor 3",
+                   "port": 3000,
+                   "supportsReverseProxy": false
+                },
+            ]
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn no_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.no-manifest",
+            "version": "1.0.0",
+            "image": "flecs.azurecr.io/tech.flecs.no-manifest"
+        });
+        manifest_from_json(&json)
+    }
 
     pub fn create_test_manifest(app_name: &str, app_version: &str) -> AppManifest {
         let manifest = AppManifestVersion::from_str(

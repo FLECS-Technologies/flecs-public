@@ -210,20 +210,17 @@ mod tests {
     use crate::fsm::server_impl::ServerImpl;
     use crate::relic::device::usb::MockUsbDeviceReader;
     use crate::sorcerer::MockSorcerers;
-    use crate::tests::prepare_test_path;
-    use crate::vault::{Vault, VaultConfig};
+    use crate::vault::tests::create_empty_test_vault;
     use axum::extract::Host;
     use axum_extra::extract::CookieJar;
     use flecsd_axum_server::apis::apps::{Apps, AppsAppDeleteResponse};
     use flecsd_axum_server::models::{AppsAppDeletePathParams, AppsAppDeleteQueryParams};
     use http::Method;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn uninstall_no_version() {
-        let path = prepare_test_path(module_path!(), "uninstall_no_version");
         let server = ServerImpl::test_instance(
-            Arc::new(Vault::new(VaultConfig { path })),
+            create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );
@@ -243,9 +240,8 @@ mod tests {
 
     #[tokio::test]
     async fn uninstall_404() {
-        let path = prepare_test_path(module_path!(), "uninstall_404");
         let server = ServerImpl::test_instance(
-            Arc::new(Vault::new(VaultConfig { path })),
+            create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );

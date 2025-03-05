@@ -398,20 +398,23 @@ pub mod tests {
     use crate::jeweler::app::{AppInfo, AppStatus};
     use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::deployment::Deployment;
-    use crate::jeweler::gem::app::tests::{test_key, test_key_numbered};
-    use crate::jeweler::gem::app::App;
-    use crate::jeweler::gem::manifest::tests::{
-        create_test_manifest, create_test_manifest_numbered,
-    };
     use crate::jeweler::gem::manifest::AppManifest;
     use crate::quest::{Progress, Quest};
+    use crate::vault::pouch::app::tests::{
+        existing_app_keys, EDITOR_APP_NAME, LABEL_APP_NAME, MINIMAL_APP_NAME, MINIMAL_APP_VERSION,
+        MULTI_INSTANCE_APP_NAME, NO_MANIFEST_APP_NAME, NO_MANIFEST_APP_VERSION,
+        SINGLE_INSTANCE_APP_NAME, UNKNOWN_APP_NAME, UNKNOWN_APP_VERSION,
+    };
+    use crate::vault::pouch::manifest::tests::{no_manifest, test_manifests};
     use crate::vault::pouch::Pouch;
-    use crate::vault::{GrabbedPouches, Vault, VaultConfig};
+    use crate::vault::tests::{create_empty_test_vault, create_test_vault};
+    use crate::vault::GrabbedPouches;
     use flecs_console_client::models::{
         GetApiV2ManifestsAppVersion200Response, PostApiV2Tokens200Response,
         PostApiV2Tokens200ResponseData, PostApiV2Tokens200ResponseDataToken,
     };
     use mockito::{Mock, ServerGuard};
+    use std::collections::HashMap;
     use std::sync::Arc;
 
     async fn token_mock_err(server: &mut ServerGuard, status: usize) -> Mock {
@@ -451,16 +454,8 @@ pub mod tests {
     async fn token_mock_ok(server: &mut ServerGuard) -> Mock {
         token_mock_ok_called(server, 1).await
     }
-    async fn manifest_mock_err(server: &mut ServerGuard, status: usize) -> Mock {
-        manifest_mock_err_numbered(server, status, 0, 0).await
-    }
-    async fn manifest_mock_err_numbered(
-        server: &mut ServerGuard,
-        status: usize,
-        name_number: u8,
-        version_number: u8,
-    ) -> Mock {
-        let key = test_key_numbered(name_number, version_number);
+
+    async fn manifest_mock_err(server: &mut ServerGuard, status: usize, key: &AppKey) -> Mock {
         server
             .mock(
                 "GET",
@@ -475,16 +470,12 @@ pub mod tests {
             .create_async()
             .await
     }
-    async fn manifest_mock_ok(server: &mut ServerGuard, manifest: Arc<AppManifest>) -> Mock {
-        manifest_mock_ok_numbered(server, manifest, 0, 0).await
-    }
-    async fn manifest_mock_ok_numbered(
+
+    async fn manifest_mock_ok(
         server: &mut ServerGuard,
         manifest: Arc<AppManifest>,
-        name_number: u8,
-        version_number: u8,
+        key: &AppKey,
     ) -> Mock {
-        let key = test_key_numbered(name_number, version_number);
         let body = serde_json::to_vec(&GetApiV2ManifestsAppVersion200Response {
             status_code: Some(200),
             status_text: None,
@@ -507,214 +498,173 @@ pub mod tests {
             .await
     }
 
-    const CREATED_APPS_WITH_MANIFEST: [(u8, u8); 4] = [(1, 1), (1, 2), (1, 3), (1, 4)];
-    const CREATED_APPS_WITHOUT_MANIFEST: [(u8, u8); 4] = [(2, 1), (2, 2), (2, 3), (2, 4)];
-    const INSTALLED_APPS_WITHOUT_MANIFEST: [(u8, u8); 4] = [(3, 1), (3, 2), (3, 3), (3, 4)];
-    const INSTALLED_APPS_WITH_MANIFEST: [(u8, u8); 4] = [(4, 1), (4, 2), (4, 3), (4, 4)];
-    const UNKNOWN_APPS: [(u8, u8); 4] = [(5, 1), (5, 2), (5, 3), (5, 4)];
-    fn create_test_deployment() -> Arc<dyn Deployment> {
-        let mut deployment = MockedDeployment::new();
-        deployment
-            .expect_app_info()
-            .withf(|_, id| id == "INSTALLED")
-            .returning(|_, _| {
-                Ok(AppInfo {
-                    size: Some(2000),
-                    ..AppInfo::default()
-                })
-            });
-        deployment
-            .expect_app_info()
-            .returning(|_, _| Err(anyhow::anyhow!("test")));
-        deployment.expect_id().returning(String::new);
-        Arc::new(deployment) as Arc<dyn Deployment>
-    }
-    async fn create_test_vault() -> Arc<Vault> {
-        let deployments = vec![create_test_deployment()];
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
-        {
-            let mut reserved_pouch = vault.reservation().reserve_app_pouch_mut().grab().await;
-            let apps = reserved_pouch.app_pouch_mut.as_mut().unwrap();
-            for (name_number, version_number) in CREATED_APPS_WITH_MANIFEST {
-                let mut app = App::new(
-                    test_key_numbered(name_number, version_number),
-                    deployments.clone(),
-                );
-                app.set_manifest(create_test_manifest_numbered(
-                    name_number,
-                    version_number,
-                    None,
-                ));
-                app.deployments
-                    .values_mut()
-                    .next()
-                    .unwrap()
-                    .set_id("INSTALLED".to_string());
-                apps.gems_mut().insert(app.key.clone(), app);
-            }
-            for (name_number, version_number) in INSTALLED_APPS_WITHOUT_MANIFEST {
-                let mut app = App::new(
-                    test_key_numbered(name_number, version_number),
-                    deployments.clone(),
-                );
-                app.deployments
-                    .values_mut()
-                    .next()
-                    .unwrap()
-                    .set_id("INSTALLED".to_string());
-                apps.gems_mut().insert(app.key.clone(), app);
-            }
-            for (name_number, version_number) in INSTALLED_APPS_WITH_MANIFEST {
-                let mut app = App::new(
-                    test_key_numbered(name_number, version_number),
-                    deployments.clone(),
-                );
-                app.deployments
-                    .values_mut()
-                    .next()
-                    .unwrap()
-                    .set_id("INSTALLED".to_string());
-                app.set_manifest(create_test_manifest_numbered(
-                    name_number,
-                    version_number,
-                    None,
-                ));
-                apps.gems_mut().insert(app.key.clone(), app);
-            }
-            for (name_number, version_number) in CREATED_APPS_WITHOUT_MANIFEST {
-                let app = App::new(
-                    test_key_numbered(name_number, version_number),
-                    deployments.clone(),
-                );
-                apps.gems_mut().insert(app.key.clone(), app);
-            }
-        }
-        vault
-    }
-
     #[tokio::test]
     async fn test_get_app_explicit_version() {
-        let vault = create_test_vault().await;
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        deployment.expect_app_info().returning(|_, app| {
+            Ok(AppInfo {
+                id: Some(app),
+                size: Some(200),
+                ..AppInfo::default()
+            })
+        });
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let appraiser = AppraiserImpl::default();
-        for (name_number, version_number) in INSTALLED_APPS_WITH_MANIFEST {
-            let key = test_key_numbered(name_number, version_number);
-            let result = appraiser
-                .get_app(vault.clone(), key.name, Some(key.version))
-                .await;
-            assert_eq!(result.unwrap().len(), 1);
+        for app_key in existing_app_keys()
+            .into_iter()
+            .filter(|app_key| app_key.name != NO_MANIFEST_APP_NAME)
+        {
+            assert_eq!(
+                appraiser
+                    .get_app(vault.clone(), app_key.name, Some(app_key.version))
+                    .await
+                    .unwrap()
+                    .len(),
+                1
+            );
         }
-        for (name_number, version_number) in INSTALLED_APPS_WITHOUT_MANIFEST {
-            let key = test_key_numbered(name_number, version_number);
-            let result = appraiser
-                .get_app(vault.clone(), key.name, Some(key.version))
-                .await;
-            assert!(result.is_err());
-        }
-        for (name_number, version_number) in CREATED_APPS_WITH_MANIFEST {
-            let key = test_key_numbered(name_number, version_number);
-            let result = appraiser
-                .get_app(vault.clone(), key.name, Some(key.version))
-                .await;
-            assert_eq!(result.unwrap().len(), 1);
-        }
-        for (name_number, version_number) in CREATED_APPS_WITHOUT_MANIFEST {
-            let key = test_key_numbered(name_number, version_number);
-            let result = appraiser
-                .get_app(vault.clone(), key.name, Some(key.version))
-                .await;
-            assert!(result.is_err());
-        }
-        for (name_number, version_number) in UNKNOWN_APPS {
-            let key = test_key_numbered(name_number, version_number);
-            let result = appraiser
-                .get_app(vault.clone(), key.name, Some(key.version))
-                .await;
-            assert_eq!(result.unwrap().len(), 0);
-        }
+        assert!(appraiser
+            .get_app(
+                vault.clone(),
+                NO_MANIFEST_APP_NAME.to_string(),
+                Some(NO_MANIFEST_APP_VERSION.to_string())
+            )
+            .await
+            .is_err());
+        assert!(appraiser
+            .get_app(
+                vault.clone(),
+                UNKNOWN_APP_NAME.to_string(),
+                Some(UNKNOWN_APP_VERSION.to_string())
+            )
+            .await
+            .unwrap()
+            .is_empty());
     }
 
     #[tokio::test]
     async fn test_get_app_no_version() {
-        let vault = create_test_vault().await;
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        deployment.expect_app_info().returning(|_, app| {
+            Ok(AppInfo {
+                id: Some(app),
+                size: Some(200),
+                ..AppInfo::default()
+            })
+        });
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let appraiser = AppraiserImpl::default();
-        {
-            let name_number = INSTALLED_APPS_WITH_MANIFEST[0].0;
-            let name = test_key_numbered(name_number, 0).name;
-            let result = appraiser.get_app(vault.clone(), name, None).await;
-            assert_eq!(result.unwrap().len(), 4);
-        }
-        {
-            let name_number = INSTALLED_APPS_WITHOUT_MANIFEST[0].0;
-            let name = test_key_numbered(name_number, 0).name;
-            let result = appraiser.get_app(vault.clone(), name, None).await;
-            assert_eq!(result.unwrap().len(), 0);
-        }
-        {
-            let name_number = CREATED_APPS_WITH_MANIFEST[0].0;
-            let name = test_key_numbered(name_number, 0).name;
-            let result = appraiser.get_app(vault.clone(), name, None).await;
-            assert_eq!(result.unwrap().len(), 4);
-        }
-        {
-            let name_number = CREATED_APPS_WITHOUT_MANIFEST[0].0;
-            let name = test_key_numbered(name_number, 0).name;
-            let result = appraiser.get_app(vault.clone(), name, None).await;
-            assert_eq!(result.unwrap().len(), 0);
-        }
-        {
-            let name_number = UNKNOWN_APPS[0].0;
-            let name = test_key_numbered(name_number, 0).name;
-            let result = appraiser.get_app(vault.clone(), name, None).await;
-            assert_eq!(result.unwrap().len(), 0);
-        }
-    }
-
-    #[tokio::test]
-    async fn test_get_apps_no_version() {
-        let vault = create_test_vault().await;
-        let result = AppraiserImpl::default().get_apps(vault).await.unwrap();
         assert_eq!(
-            result.len(),
-            INSTALLED_APPS_WITH_MANIFEST.len() + CREATED_APPS_WITH_MANIFEST.len()
+            appraiser
+                .get_app(vault.clone(), MINIMAL_APP_NAME.to_string(), None)
+                .await
+                .unwrap()
+                .len(),
+            3
         );
-        for (name_number, version_number) in INSTALLED_APPS_WITH_MANIFEST
-            .iter()
-            .chain(CREATED_APPS_WITH_MANIFEST.iter())
-        {
-            let key = test_key_numbered(*name_number, *version_number).into();
-            assert!(result.iter().any(|info| info.app_key == key));
-        }
+        assert_eq!(
+            appraiser
+                .get_app(vault.clone(), UNKNOWN_APP_NAME.to_string(), None)
+                .await
+                .unwrap()
+                .len(),
+            0
+        );
+        assert_eq!(
+            appraiser
+                .get_app(vault.clone(), SINGLE_INSTANCE_APP_NAME.to_string(), None)
+                .await
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            appraiser
+                .get_app(vault.clone(), MULTI_INSTANCE_APP_NAME.to_string(), None)
+                .await
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            appraiser
+                .get_app(vault.clone(), LABEL_APP_NAME.to_string(), None)
+                .await
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            appraiser
+                .get_app(vault.clone(), EDITOR_APP_NAME.to_string(), None)
+                .await
+                .unwrap()
+                .len(),
+            1
+        );
+        assert!(appraiser
+            .get_app(vault.clone(), NO_MANIFEST_APP_NAME.to_string(), None)
+            .await
+            .unwrap()
+            .is_empty());
     }
 
     #[tokio::test]
-    async fn test_create_app() {
-        let app = App::new(test_key(), Vec::new());
-        let manifest = create_test_manifest(None);
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
-        assert!(vault
-            .reservation()
-            .reserve_app_pouch_mut()
-            .grab()
-            .await
-            .app_pouch_mut
-            .as_mut()
-            .unwrap()
-            .gems_mut()
-            .insert(test_key(), app)
-            .is_none());
+    async fn test_get_apps() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        deployment.expect_app_info().returning(|_, app| {
+            Ok(AppInfo {
+                id: Some(app),
+                size: Some(200),
+                ..AppInfo::default()
+            })
+        });
+        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
+        let result = AppraiserImpl::default().get_apps(vault).await.unwrap();
+        assert_eq!(result.len(), 7);
+        for app_key in existing_app_keys()
+            .into_iter()
+            .filter(|app_key| app_key.name != NO_MANIFEST_APP_NAME)
+        {
+            assert!(result
+                .iter()
+                .any(|info| AppKey::from(info.app_key.clone()) == app_key));
+        }
+        assert!(!result
+            .iter()
+            .any(|info| info.app_key.name == NO_MANIFEST_APP_NAME
+                && info.app_key.version == NO_MANIFEST_APP_VERSION));
+    }
+
+    #[tokio::test]
+    async fn set_manifest_and_desired_or_create_app_existing() {
+        let manifest = no_manifest();
+        let key = manifest.key.clone();
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         set_manifest_and_desired_or_create_app(
             vault.clone(),
             manifest.clone(),
-            test_key(),
+            key.clone(),
             AppStatus::Installed,
         )
         .await
         .unwrap();
         let grab = vault.reservation().reserve_app_pouch().grab().await;
         let apps = grab.app_pouch.as_ref().unwrap();
-        assert_eq!(apps.gems().len(), 1);
-        let app = apps.gems().get(&test_key()).unwrap();
-        assert_eq!(app.key, test_key());
+        let app = apps.gems().get(&key).unwrap();
+        assert_eq!(app.key, key);
         for data in app.deployments.values() {
             assert_eq!(data.desired, AppStatus::Installed);
         }
@@ -722,13 +672,14 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn test_set_manifest() {
-        let manifest = create_test_manifest(None);
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+    async fn set_manifest_and_desired_or_create_app_new() {
+        let manifest = no_manifest();
+        let key = manifest.key.clone();
+        let vault = create_empty_test_vault();
         set_manifest_and_desired_or_create_app(
             vault.clone(),
             manifest.clone(),
-            test_key(),
+            key.clone(),
             AppStatus::NotInstalled,
         )
         .await
@@ -736,8 +687,8 @@ pub mod tests {
         let grab = vault.reservation().reserve_app_pouch().grab().await;
         let apps = grab.app_pouch.as_ref().unwrap();
         assert_eq!(apps.gems().len(), 1);
-        let app = apps.gems().get(&test_key()).unwrap();
-        assert_eq!(app.key, test_key());
+        let app = apps.gems().get(&key).unwrap();
+        assert_eq!(app.key, key);
         for data in app.deployments.values() {
             assert_eq!(data.desired, AppStatus::NotInstalled);
         }
@@ -746,12 +697,16 @@ pub mod tests {
 
     #[tokio::test]
     async fn install_non_existing_app() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let (_, config) = crate::tests::create_test_server_and_config().await;
+        let key = AppKey {
+            name: UNKNOWN_APP_NAME.to_string(),
+            version: UNKNOWN_APP_VERSION.to_string(),
+        };
         assert!(install_existing_app(
             Quest::new_synced("TestQuest".to_string()),
             vault,
-            test_key(),
+            key,
             config,
         )
         .await
@@ -760,25 +715,34 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install_existing_app() {
-        let mut app = App::new(test_key(), Vec::new());
-        app.set_manifest(create_test_manifest(None));
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
-        vault
-            .reservation()
-            .reserve_app_pouch_mut()
-            .grab()
-            .await
-            .app_pouch_mut
-            .as_mut()
-            .unwrap()
-            .gems_mut()
-            .insert(test_key(), app);
+        let key = AppKey {
+            name: MINIMAL_APP_NAME.to_string(),
+            version: MINIMAL_APP_VERSION.to_string(),
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        deployment
+            .expect_app_info()
+            .once()
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_install_app()
+            .once()
+            .returning(|_, _, _| Ok("TestAppId".to_string()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::new(),
+            HashMap::from([(key.clone(), deployment)]),
+            None,
+        );
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = token_mock_ok(&mut server).await;
         install_existing_app(
             Quest::new_synced("TestQuest".to_string()),
             vault,
-            test_key(),
+            key,
             config,
         )
         .await
@@ -788,25 +752,17 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install_existing_app_token_failure() {
-        let mut app = App::new(test_key(), Vec::new());
-        app.set_manifest(create_test_manifest(None));
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
-        vault
-            .reservation()
-            .reserve_app_pouch_mut()
-            .grab()
-            .await
-            .app_pouch_mut
-            .as_mut()
-            .unwrap()
-            .gems_mut()
-            .insert(test_key(), app);
+        let key = AppKey {
+            name: MINIMAL_APP_NAME.to_string(),
+            version: MINIMAL_APP_VERSION.to_string(),
+        };
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = token_mock_err(&mut server, 500).await;
         assert!(install_existing_app(
             Quest::new_synced("TestQuest".to_string()),
             vault,
-            test_key(),
+            key,
             config,
         )
         .await
@@ -816,24 +772,16 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_manifest_download() {
-        let mut app = App::new(test_key(), Vec::new());
-        let manifest = create_test_manifest(None);
-        app.set_manifest(manifest.clone());
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
-        vault
-            .reservation()
-            .reserve_app_pouch_mut()
-            .grab()
-            .await
-            .app_pouch_mut
-            .as_mut()
-            .unwrap()
-            .gems_mut()
-            .insert(test_key(), app);
+        let key = AppKey {
+            name: NO_MANIFEST_APP_NAME.to_string(),
+            version: NO_MANIFEST_APP_VERSION.to_string(),
+        };
+        let manifest = no_manifest();
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
-        let mock = manifest_mock_ok(&mut server, manifest.clone()).await;
+        let mock = manifest_mock_ok(&mut server, manifest.clone(), &key).await;
         assert_eq!(
-            download_manifest(vault.clone(), test_key(), config,)
+            download_manifest(vault.clone(), key, config,)
                 .await
                 .unwrap(),
             manifest
@@ -843,36 +791,30 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_manifest_download_fail() {
-        let mut app = App::new(test_key(), Vec::new());
-        let manifest = create_test_manifest(None);
-        app.set_manifest(manifest.clone());
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
-        vault
-            .reservation()
-            .reserve_app_pouch_mut()
-            .grab()
-            .await
-            .app_pouch_mut
-            .as_mut()
-            .unwrap()
-            .gems_mut()
-            .insert(test_key(), app);
+        let key = AppKey {
+            name: NO_MANIFEST_APP_NAME.to_string(),
+            version: NO_MANIFEST_APP_VERSION.to_string(),
+        };
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
-        let mock = manifest_mock_err(&mut server, 500).await;
-        assert!(download_manifest(vault, test_key(), config,).await.is_err());
+        let mock = manifest_mock_err(&mut server, 500, &key).await;
+        assert!(download_manifest(vault, key, config).await.is_err());
         mock.assert();
     }
 
     #[tokio::test]
     async fn test_install_no_manifest() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let key = AppKey {
+            name: NO_MANIFEST_APP_NAME.to_string(),
+            version: NO_MANIFEST_APP_VERSION.to_string(),
+        };
+        let vault = create_empty_test_vault();
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
-        let manifest_mock = manifest_mock_err(&mut server, 404).await;
-
+        let manifest_mock = manifest_mock_err(&mut server, 404, &key).await;
         let token_mock = token_mock_uncalled(&mut server).await;
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(AppraiserImpl::default()
-            .install_app(quest.clone(), vault, test_key(), config)
+            .install_app(quest.clone(), vault, key, config)
             .await
             .is_err());
         let quest = quest.lock().await;
@@ -889,15 +831,18 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install_token_error() {
-        let manifest = create_test_manifest(None);
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let key = AppKey {
+            name: NO_MANIFEST_APP_NAME.to_string(),
+            version: NO_MANIFEST_APP_VERSION.to_string(),
+        };
+        let manifest = no_manifest();
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
-
         let token_mock = token_mock_err(&mut server, 500).await;
-        let manifest_mock = manifest_mock_ok(&mut server, manifest.clone()).await;
+        let manifest_mock = manifest_mock_ok(&mut server, manifest.clone(), &key).await;
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(AppraiserImpl::default()
-            .install_app(quest.clone(), vault, test_key(), config)
+            .install_app(quest.clone(), vault, key, config)
             .await
             .is_err());
         let quest = quest.lock().await;
@@ -914,14 +859,35 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install() {
-        let manifest = create_test_manifest(None);
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let key = AppKey {
+            name: NO_MANIFEST_APP_NAME.to_string(),
+            version: NO_MANIFEST_APP_VERSION.to_string(),
+        };
+        let manifest = no_manifest();
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
-        let manifest_mock = manifest_mock_ok(&mut server, manifest.clone()).await;
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        deployment
+            .expect_app_info()
+            .once()
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_install_app()
+            .once()
+            .returning(|_, _, _| Ok("TestAppId".to_string()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::new(),
+            HashMap::from([(key.clone(), deployment)]),
+            None,
+        );
+        let manifest_mock = manifest_mock_ok(&mut server, manifest.clone(), &key).await;
         let token_mock = token_mock_ok(&mut server).await;
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(AppraiserImpl::default()
-            .install_app(quest.clone(), vault, test_key(), config)
+            .install_app(quest.clone(), vault, key, config)
             .await
             .is_ok());
         let quest = quest.lock().await;
@@ -938,10 +904,9 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_sideload_token_error() {
-        let manifest = create_test_manifest(None);
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let manifest = no_manifest();
+        let vault = create_empty_test_vault();
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
-
         let token_mock = token_mock_err(&mut server, 500).await;
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(AppraiserImpl::default()
@@ -961,13 +926,32 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_sideload() {
-        let manifest = create_test_manifest(None);
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let mut deployment = MockedDeployment::new();
+        let manifest = no_manifest();
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        deployment
+            .expect_install_app()
+            .once()
+            .returning(|_, _, _| Ok("TestAppId".to_string()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_empty_test_vault();
+        vault
+            .reservation()
+            .reserve_deployment_pouch_mut()
+            .grab()
+            .await
+            .deployment_pouch_mut
+            .as_mut()
+            .unwrap()
+            .gems_mut()
+            .insert(deployment.id(), deployment);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let token_mock = token_mock_ok(&mut server).await;
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(AppraiserImpl::default()
-            .install_app_from_manifest(quest.clone(), vault, manifest, config)
+            .install_app_from_manifest(quest.clone(), vault.clone(), manifest.clone(), config)
             .await
             .is_ok());
         let quest = quest.lock().await;
@@ -979,11 +963,29 @@ pub mod tests {
             }
         );
         token_mock.assert();
+        let GrabbedPouches {
+            manifest_pouch: Some(ref manifest_pouch),
+            app_pouch: Some(ref app_pouch),
+            ..
+        } = vault
+            .reservation()
+            .reserve_manifest_pouch()
+            .reserve_app_pouch()
+            .grab()
+            .await
+        else {
+            unreachable!("Reservation should never fail")
+        };
+        let key = manifest.key.clone();
+        let app = app_pouch.gems().get(&key).unwrap();
+        assert_eq!(manifest_pouch.gems().get(&key), Some(&manifest));
+        assert_eq!(app.manifest(), Some(manifest));
+        assert_eq!(key, app.key);
     }
 
     #[tokio::test]
     async fn test_install_apps_empty() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let token_mock = token_mock_uncalled(&mut server).await;
         let quest = Quest::new_synced("TestQuest".to_string());
@@ -1004,27 +1006,40 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install_apps_ok() {
-        const APP_COUNT: u8 = 10;
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let manifests = test_manifests();
+        let app_count = manifests.len();
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        deployment
+            .expect_install_app()
+            .times(app_count)
+            .returning(|_, _, _| Ok("TestAppId".to_string()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_empty_test_vault();
+        vault
+            .reservation()
+            .reserve_deployment_pouch_mut()
+            .grab()
+            .await
+            .deployment_pouch_mut
+            .as_mut()
+            .unwrap()
+            .gems_mut()
+            .insert(deployment.id(), deployment);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
-        let token_mock = token_mock_ok_called(&mut server, APP_COUNT as usize).await;
+        let token_mock = token_mock_ok_called(&mut server, app_count).await;
         let mut manifest_mocks = Vec::new();
         let mut keys = Vec::new();
-        for i in 0..APP_COUNT {
-            manifest_mocks.push(
-                manifest_mock_ok_numbered(
-                    &mut server,
-                    create_test_manifest_numbered(i, i, None),
-                    i,
-                    i,
-                )
-                .await,
-            );
-            keys.push(test_key_numbered(i, i));
+        for manifest in manifests.iter() {
+            manifest_mocks
+                .push(manifest_mock_ok(&mut server, manifest.clone(), &manifest.key).await);
+            keys.push(manifest.key.clone());
         }
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(AppraiserImpl::default()
-            .install_apps(quest.clone(), vault.clone(), keys, config)
+            .install_apps(quest.clone(), vault.clone(), keys.clone(), config)
             .await
             .is_ok());
         {
@@ -1032,15 +1047,15 @@ pub mod tests {
             assert_eq!(
                 quest.sub_quest_progress().await,
                 Progress {
-                    total: Some(APP_COUNT as u64),
-                    current: APP_COUNT as u64
+                    total: Some(app_count as u64),
+                    current: app_count as u64
                 }
             );
         }
         token_mock.assert();
         let GrabbedPouches {
-            manifest_pouch: Some(ref manifests),
-            app_pouch: Some(ref apps),
+            manifest_pouch: Some(ref manifest_pouch),
+            app_pouch: Some(ref app_pouch),
             ..
         } = vault
             .reservation()
@@ -1054,41 +1069,58 @@ pub mod tests {
         for manifest_mock in manifest_mocks {
             manifest_mock.assert();
         }
-        for i in 0..APP_COUNT {
-            let key = test_key_numbered(i, i);
-            let manifest = create_test_manifest_numbered(i, i, None);
-            let app = apps.gems().get(&key).unwrap();
-            assert_eq!(Some(&manifest), manifests.gems().get(&key));
-            assert_eq!(Some(manifest), app.manifest());
+        for key in keys {
+            let app = app_pouch.gems().get(&key).unwrap();
+            let manifest = manifests
+                .iter()
+                .find(|manifest| manifest.key == key)
+                .cloned()
+                .unwrap();
+            assert_eq!(manifest_pouch.gems().get(&key), Some(&manifest));
+            assert_eq!(app.manifest(), Some(manifest));
             assert_eq!(key, app.key);
         }
     }
 
     #[tokio::test]
     async fn test_install_apps_err() {
-        const OK_APP_COUNT: u8 = 10;
-        const FAILING_APP_COUNT: u8 = 6;
-        const TOTAL_APP_COUNT: u8 = OK_APP_COUNT + FAILING_APP_COUNT;
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let mut manifests = test_manifests().into_iter();
+        let failing_manifests: Vec<_> = manifests.by_ref().take(4).collect();
+        let installed_manifests: Vec<_> = manifests.collect();
+        let installed_app_count = installed_manifests.len();
+        let total_app_count = installed_app_count + failing_manifests.len();
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(|| "MockedDeployment".to_string());
+        deployment
+            .expect_install_app()
+            .times(installed_app_count)
+            .returning(|_, _, _| Ok("TestAppId".to_string()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_empty_test_vault();
+        vault
+            .reservation()
+            .reserve_deployment_pouch_mut()
+            .grab()
+            .await
+            .deployment_pouch_mut
+            .as_mut()
+            .unwrap()
+            .gems_mut()
+            .insert(deployment.id(), deployment);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
-        let token_mock = token_mock_ok_called(&mut server, OK_APP_COUNT as usize).await;
+        let token_mock = token_mock_ok_called(&mut server, installed_app_count).await;
         let mut manifest_mocks = Vec::new();
         let mut keys = Vec::new();
-        for i in 0..OK_APP_COUNT {
-            manifest_mocks.push(
-                manifest_mock_ok_numbered(
-                    &mut server,
-                    create_test_manifest_numbered(i, i, None),
-                    i,
-                    i,
-                )
-                .await,
-            );
-            keys.push(test_key_numbered(i, i));
+        for manifest in installed_manifests.iter() {
+            manifest_mocks
+                .push(manifest_mock_ok(&mut server, manifest.clone(), &manifest.key).await);
+            keys.push(manifest.key.clone());
         }
-        for i in OK_APP_COUNT..TOTAL_APP_COUNT {
-            manifest_mocks.push(manifest_mock_err_numbered(&mut server, 404, i, i).await);
-            keys.push(test_key_numbered(i, i));
+        for manifest in failing_manifests.iter() {
+            manifest_mocks.push(manifest_mock_err(&mut server, 404, &manifest.key).await);
+            keys.push(manifest.key.clone());
         }
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(AppraiserImpl::default()
@@ -1100,8 +1132,8 @@ pub mod tests {
             assert_eq!(
                 quest.sub_quest_progress().await,
                 Progress {
-                    total: Some(TOTAL_APP_COUNT as u64),
-                    current: TOTAL_APP_COUNT as u64
+                    total: Some(total_app_count as u64),
+                    current: total_app_count as u64
                 }
             );
         }
@@ -1122,16 +1154,15 @@ pub mod tests {
         for manifest_mock in manifest_mocks {
             manifest_mock.assert();
         }
-        for i in 0..OK_APP_COUNT {
-            let key = test_key_numbered(i, i);
-            let manifest = create_test_manifest_numbered(i, i, None);
+        for manifest in installed_manifests {
+            let key = manifest.key.clone();
             let app = apps.gems().get(&key).unwrap();
-            assert_eq!(Some(&manifest), manifests.gems().get(&key));
-            assert_eq!(Some(manifest), app.manifest());
+            assert_eq!(manifests.gems().get(&key), Some(&manifest));
+            assert_eq!(app.manifest(), Some(manifest));
             assert_eq!(key, app.key);
         }
-        for i in OK_APP_COUNT..TOTAL_APP_COUNT {
-            let key = test_key_numbered(i, i);
+        for manifest in failing_manifests {
+            let key = manifest.key.clone();
             assert!(apps.gems().get(&key).is_none());
             assert!(manifests.gems().get(&key).is_none());
         }
@@ -1139,31 +1170,24 @@ pub mod tests {
 
     #[tokio::test]
     async fn app_exist() {
-        let vault = create_test_vault().await;
-        for (name_number, version_number) in CREATED_APPS_WITH_MANIFEST
-            .iter()
-            .chain(CREATED_APPS_WITHOUT_MANIFEST.iter())
-            .chain(INSTALLED_APPS_WITHOUT_MANIFEST.iter())
-            .chain(INSTALLED_APPS_WITH_MANIFEST.iter())
-        {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        for key in existing_app_keys() {
             assert!(
                 AppraiserImpl::default()
-                    .does_app_exist(
-                        vault.clone(),
-                        test_key_numbered(*name_number, *version_number)
-                    )
+                    .does_app_exist(vault.clone(), key)
                     .await
             )
         }
-        for (name_number, version_number) in UNKNOWN_APPS.iter() {
-            assert!(
-                !AppraiserImpl::default()
-                    .does_app_exist(
-                        vault.clone(),
-                        test_key_numbered(*name_number, *version_number)
-                    )
-                    .await
-            )
-        }
+        assert!(
+            !AppraiserImpl::default()
+                .does_app_exist(
+                    vault.clone(),
+                    AppKey {
+                        name: UNKNOWN_APP_NAME.to_string(),
+                        version: UNKNOWN_APP_VERSION.to_string(),
+                    }
+                )
+                .await
+        )
     }
 }
