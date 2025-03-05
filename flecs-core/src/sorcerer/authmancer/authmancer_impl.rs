@@ -65,12 +65,8 @@ impl Authmancer for AuthmancerImpl {
 mod tests {
     use super::*;
     use crate::vault::pouch::Pouch;
-    use crate::vault::{Vault, VaultConfig};
+    use crate::vault::tests::create_empty_test_vault;
     use flecsd_axum_server::models::{AuthResponseData, FeatureFlags, Jwt, User};
-    use std::fs;
-    use std::path::Path;
-
-    const TEST_PATH: &str = "/tmp/flecs-tests/auth";
 
     fn create_test_auth() -> AuthResponseData {
         AuthResponseData {
@@ -93,9 +89,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_authentication_test() {
-        let test_path = Path::new(TEST_PATH).join("delete_authentication");
-        fs::create_dir_all(&test_path).unwrap();
-        let vault = Vault::new(VaultConfig { path: test_path });
+        let vault = create_empty_test_vault();
         vault
             .reservation()
             .reserve_secret_pouch_mut()
@@ -124,9 +118,7 @@ mod tests {
 
     #[tokio::test]
     async fn store_authentication_test() {
-        let test_path = Path::new(TEST_PATH).join("store_authentication");
-        fs::create_dir_all(&test_path).unwrap();
-        let vault = Vault::new(VaultConfig { path: test_path });
+        let vault = create_empty_test_vault();
         assert!(vault
             .reservation()
             .reserve_secret_pouch()

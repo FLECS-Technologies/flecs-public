@@ -1347,8 +1347,6 @@ mod tests {
     use crate::sorcerer::appraiser::MockAppRaiser;
     use crate::sorcerer::instancius::MockInstancius;
     use crate::sorcerer::MockSorcerers;
-    use crate::tests::prepare_test_path;
-    use crate::vault::{Vault, VaultConfig};
     use axum::extract::Host;
     use axum_extra::extract::CookieJar;
     use flecsd_axum_server::apis::instances::{
@@ -1388,7 +1386,6 @@ mod tests {
 
     #[tokio::test]
     async fn start_404() {
-        let path = prepare_test_path(module_path!(), "start_404");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_does_instance_exist()
@@ -1396,9 +1393,7 @@ mod tests {
             .once()
             .returning(|_, _| false);
         let server = ServerImpl::test_instance(
-            Arc::new(Vault::new(VaultConfig {
-                path: path.join("vault"),
-            })),
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1422,7 +1417,6 @@ mod tests {
 
     #[tokio::test]
     async fn stop_404() {
-        let path = prepare_test_path(module_path!(), "stop_404");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_does_instance_exist()
@@ -1430,7 +1424,7 @@ mod tests {
             .once()
             .returning(|_, _| false);
         let server = ServerImpl::test_instance(
-            Arc::new(Vault::new(VaultConfig { path })),
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1454,7 +1448,6 @@ mod tests {
 
     #[tokio::test]
     async fn logs_404() {
-        let path = prepare_test_path(module_path!(), "logs_404");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_does_instance_exist()
@@ -1462,7 +1455,7 @@ mod tests {
             .once()
             .returning(|_, _| false);
         let server = ServerImpl::test_instance(
-            Arc::new(Vault::new(VaultConfig { path })),
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1486,11 +1479,10 @@ mod tests {
 
     #[tokio::test]
     async fn create_instance_no_app() {
-        let path = prepare_test_path(module_path!(), "create_instance_no_app");
         let mut appraiser = MockAppRaiser::new();
         appraiser.expect_does_app_exist().once().return_const(false);
         let server = ServerImpl::test_instance(
-            Arc::new(Vault::new(VaultConfig { path })),
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 app_raiser: Arc::new(appraiser),
@@ -1518,7 +1510,6 @@ mod tests {
 
     #[tokio::test]
     async fn create_instance_ok() {
-        let path = prepare_test_path(module_path!(), "create_instance_ok");
         let test_key = AppKey {
             name: "TestName".to_string(),
             version: "1.2.3".to_string(),
@@ -1540,7 +1531,7 @@ mod tests {
             .once()
             .returning(|_, _| true);
         let server = ServerImpl::test_instance(
-            Arc::new(Vault::new(VaultConfig { path })),
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1569,7 +1560,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_404() {
-        let path = prepare_test_path(module_path!(), "delete_instance_config_ports_404");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mappings()
@@ -1577,7 +1567,7 @@ mod tests {
             .once()
             .returning(|_, _| false);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1601,7 +1591,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_200() {
-        let path = prepare_test_path(module_path!(), "delete_instance_config_ports_200");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mappings()
@@ -1609,7 +1598,7 @@ mod tests {
             .once()
             .returning(|_, _| true);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1633,7 +1622,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_404() {
-        let path = prepare_test_path(module_path!(), "get_instance_config_ports_404");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mappings()
@@ -1641,7 +1629,7 @@ mod tests {
             .once()
             .returning(|_, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1665,7 +1653,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_200() {
-        let path = prepare_test_path(module_path!(), "get_instance_config_ports_200");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mappings()
@@ -1682,7 +1669,7 @@ mod tests {
                 })
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1726,10 +1713,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_protocol_port_mappings()
@@ -1737,7 +1720,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(Vec::new()));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1762,10 +1745,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_404() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_404",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_protocol_port_mappings()
@@ -1775,7 +1754,7 @@ mod tests {
             .once()
             .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1800,10 +1779,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_404() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_404",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_protocol_port_mappings()
@@ -1813,7 +1788,7 @@ mod tests {
             .once()
             .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1838,10 +1813,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_protocol_port_mappings()
@@ -1849,7 +1820,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(vec![PortMapping::Single(80, 8080)]));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1883,10 +1854,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_host_port_404_instance() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_host_port_404_instance",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mapping_range()
@@ -1898,7 +1865,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1924,10 +1891,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_host_port_404_host() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_host_port_404_host",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mapping_range()
@@ -1939,7 +1902,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Some(false));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -1965,10 +1928,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_host_port_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_host_port_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mapping_range()
@@ -1980,7 +1939,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Some(true));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2006,10 +1965,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_host_port_404_instance() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_host_port_404_instance",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mapping_range()
@@ -2021,7 +1976,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2047,10 +2002,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_host_port_404_host() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_host_port_404_host",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mapping_range()
@@ -2062,7 +2013,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Some(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2088,10 +2039,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_host_port_200_single() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_host_port_200_single",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mapping_range()
@@ -2103,7 +2050,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Some(Some(PortMapping::Single(80, 8080))));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2136,10 +2083,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_host_port_400_overlap() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_host_port_400_overlap",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_port_mapping()
@@ -2151,7 +2094,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2178,10 +2121,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_host_port_404() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_host_port_404",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_port_mapping()
@@ -2193,7 +2132,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2220,10 +2159,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_host_port_201() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_host_port_201",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_port_mapping()
@@ -2235,7 +2170,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(Some(false)));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2262,10 +2197,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_host_port_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_host_port_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_port_mapping()
@@ -2277,7 +2208,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(Some(true)));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2304,12 +2235,8 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_range_400_range() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_range_400_range",
-        );
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );
@@ -2332,10 +2259,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_range_404_range() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_range_404_range",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mapping_range()
@@ -2347,7 +2270,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Some(false));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2373,10 +2296,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_range_404_instance() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_range_404_instance",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mapping_range()
@@ -2388,7 +2307,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2414,10 +2333,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_ports_transport_protocol_range_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_ports_transport_protocol_range_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mapping_range()
@@ -2429,7 +2344,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Some(true));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2455,12 +2370,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_range_400_range() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_range_400_range",
-        );
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );
@@ -2483,10 +2394,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_range_404_range() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_range_404_range",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mapping_range()
@@ -2498,7 +2405,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Some(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2524,10 +2431,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_range_404_instance() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_range_404_instance",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mapping_range()
@@ -2539,7 +2442,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2565,10 +2468,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_range_200_range() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_range_200_range",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mapping_range()
@@ -2585,7 +2484,7 @@ mod tests {
                 }))
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2624,10 +2523,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_ports_transport_protocol_range_200_single() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_ports_transport_protocol_range_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mapping_range()
@@ -2639,7 +2534,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Some(Some(PortMapping::Single(80, 8080))));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2672,12 +2567,8 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_range_400_host_range() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_range_400_host_range",
-        );
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );
@@ -2704,12 +2595,8 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_range_400_container_range() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_range_400_container_range",
-        );
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );
@@ -2736,12 +2623,8 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_range_400_range_mismatch() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_range_400_range_mismatch",
-        );
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );
@@ -2768,10 +2651,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_range_400_overlap() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_range_400_overlap",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_port_mapping()
@@ -2787,7 +2666,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2817,10 +2696,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_range_404() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_range_404",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_port_mapping()
@@ -2836,7 +2711,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2866,10 +2741,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_range_201() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_range_201",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_port_mapping()
@@ -2885,7 +2756,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(Some(false)));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2915,10 +2786,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_range_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_range_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_port_mapping()
@@ -2934,7 +2801,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(Some(true)));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -2964,12 +2831,8 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_400_overlap() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_400_overlap",
-        );
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );
@@ -3012,12 +2875,8 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_400_port_mapping() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_400_port_mapping",
-        );
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );
@@ -3051,10 +2910,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_404() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_404",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_protocol_port_mappings()
@@ -3064,7 +2919,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| false);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3090,10 +2945,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_ports_transport_protocol_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_ports_transport_protocol_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_protocol_port_mappings()
@@ -3113,7 +2964,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| true);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3538,10 +3389,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_environment_variable_404_instance() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_environment_variable_404_instance",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_environment_variable_value()
@@ -3549,7 +3396,7 @@ mod tests {
             .once()
             .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3576,10 +3423,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_environment_variable_404_variable() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_environment_variable_404_variable",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_environment_variable_value()
@@ -3587,7 +3430,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3614,10 +3457,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_environment_variable_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "get_instance_config_environment_variable_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_environment_variable_value()
@@ -3630,7 +3469,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(Some(Some("value".to_string()))));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3677,10 +3516,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_environment_variable_404_instance() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_environment_variable_404_instance",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_environment_variable_value()
@@ -3688,7 +3523,7 @@ mod tests {
             .once()
             .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3713,10 +3548,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_environment_variable_404_variable() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_environment_variable_404_variable",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_environment_variable_value()
@@ -3724,7 +3555,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3749,10 +3580,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_environment_variable_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_environment_variable_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_environment_variable_value()
@@ -3765,7 +3592,7 @@ mod tests {
                 }))
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3792,10 +3619,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_environment_variable_404() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_environment_variable_404",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_environment_variable_value()
@@ -3810,7 +3633,7 @@ mod tests {
             .once()
             .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3838,10 +3661,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_environment_variable_201() {
-        let path = prepare_test_path(
-            module_path!(),
-            "delete_instance_config_environment_variable_201",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_environment_variable_value()
@@ -3856,7 +3675,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3886,10 +3705,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_environment_variable_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_environment_variable_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_environment_variable_value()
@@ -3904,7 +3719,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(Some("previous_value".to_string())));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3934,7 +3749,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_environment_404() {
-        let path = prepare_test_path(module_path!(), "delete_instance_config_environment_404");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_environment()
@@ -3942,7 +3756,7 @@ mod tests {
             .once()
             .returning(|_, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3966,7 +3780,6 @@ mod tests {
 
     #[tokio::test]
     async fn delete_instance_config_environment_200() {
-        let path = prepare_test_path(module_path!(), "delete_instance_config_environment_200");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_environment()
@@ -3974,7 +3787,7 @@ mod tests {
             .once()
             .returning(|_, _| Some(Vec::new()));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -3998,7 +3811,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_environment_404() {
-        let path = prepare_test_path(module_path!(), "get_instance_config_environment_404");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_environment()
@@ -4006,7 +3818,7 @@ mod tests {
             .once()
             .returning(|_, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4030,7 +3842,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_config_environment_200() {
-        let path = prepare_test_path(module_path!(), "get_instance_config_environment_200");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_environment()
@@ -4049,7 +3860,7 @@ mod tests {
                 ])
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4084,12 +3895,8 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_environment_400_duplicate_variable_name() {
-        let path = prepare_test_path(
-            module_path!(),
-            "put_instance_config_environment_400_duplicate_variable_name",
-        );
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers::default(),
         );
@@ -4120,7 +3927,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_environment_404() {
-        let path = prepare_test_path(module_path!(), "put_instance_config_environment_404");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_environment()
@@ -4128,7 +3934,7 @@ mod tests {
             .once()
             .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4153,7 +3959,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_environment_201() {
-        let path = prepare_test_path(module_path!(), "put_instance_config_environment_201");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_environment()
@@ -4174,7 +3979,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(Vec::new()));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4208,7 +4013,6 @@ mod tests {
 
     #[tokio::test]
     async fn put_instance_config_environment_200() {
-        let path = prepare_test_path(module_path!(), "put_instance_config_environment_200");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_environment()
@@ -4234,7 +4038,7 @@ mod tests {
                 }])
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4282,7 +4086,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_labels_404() {
-        let path = prepare_test_path(module_path!(), "get_instance_labels_404");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_labels()
@@ -4290,7 +4093,7 @@ mod tests {
             .once()
             .returning(|_, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4314,7 +4117,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_labels_200() {
-        let path = prepare_test_path(module_path!(), "get_instance_labels_200");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_labels()
@@ -4333,7 +4135,7 @@ mod tests {
                 ])
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4366,7 +4168,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_label_404_instance() {
-        let path = prepare_test_path(module_path!(), "get_instance_label_404_instance");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_label_value()
@@ -4374,7 +4175,7 @@ mod tests {
             .once()
             .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4399,7 +4200,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_label_404_label() {
-        let path = prepare_test_path(module_path!(), "get_instance_label_404_label");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_label_value()
@@ -4407,7 +4207,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4432,7 +4232,6 @@ mod tests {
 
     #[tokio::test]
     async fn get_instance_label_200() {
-        let path = prepare_test_path(module_path!(), "get_instance_label_200");
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_label_value()
@@ -4445,7 +4244,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(Some(Some("Some custom label value".to_string()))));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4537,10 +4336,6 @@ mod tests {
 
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_delete_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_delete_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_usb_devices()
@@ -4548,7 +4343,7 @@ mod tests {
             .once()
             .returning(|_, _| Some(HashMap::new()));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4572,10 +4367,6 @@ mod tests {
 
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_delete_404() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_delete_404",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_usb_devices()
@@ -4583,7 +4374,7 @@ mod tests {
             .once()
             .returning(|_, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4607,10 +4398,6 @@ mod tests {
 
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_get_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_get_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_usb_devices::<MockUsbDeviceReader>()
@@ -4618,7 +4405,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Ok(Some(vec![])));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4641,10 +4428,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_get_404() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_get_404",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_usb_devices::<MockUsbDeviceReader>()
@@ -4652,7 +4435,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Ok(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4675,10 +4458,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_get_500() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_get_500",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_usb_devices::<MockUsbDeviceReader>()
@@ -4686,7 +4465,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4709,10 +4488,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_delete_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_delete_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_usb_device()
@@ -4726,7 +4501,7 @@ mod tests {
                 }))
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4750,10 +4525,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_delete_404_instance() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_delete_404_instance",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_usb_device()
@@ -4761,7 +4532,7 @@ mod tests {
             .once()
             .returning(|_, _, _| None);
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4789,10 +4560,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_delete_404_port() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_delete_404_port",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_usb_device()
@@ -4800,7 +4567,7 @@ mod tests {
             .once()
             .returning(|_, _, _| Some(None));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4828,10 +4595,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_get_200_inactive() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_get_200_inactive",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_usb_device::<MockUsbDeviceReader>()
@@ -4845,7 +4608,7 @@ mod tests {
                 }))
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4880,10 +4643,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_get_200_active() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_get_200_active",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_usb_device::<MockUsbDeviceReader>()
@@ -4906,7 +4665,7 @@ mod tests {
                 ))
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4942,10 +4701,6 @@ mod tests {
 
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_get_404_instance() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_get_404_instance",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_usb_device::<MockUsbDeviceReader>()
@@ -4953,7 +4708,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(GetInstanceUsbDeviceResult::InstanceNotFound));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -4977,10 +4732,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_get_404_port() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_get_404_port",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_usb_device::<MockUsbDeviceReader>()
@@ -4988,7 +4739,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(GetInstanceUsbDeviceResult::DeviceNotMapped));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -5012,10 +4763,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_get_404_unknown() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_get_404_unknown",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_usb_device::<MockUsbDeviceReader>()
@@ -5023,7 +4770,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(GetInstanceUsbDeviceResult::UnknownDevice));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -5047,10 +4794,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_get_500() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_get_500",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_usb_device::<MockUsbDeviceReader>()
@@ -5058,7 +4801,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -5086,10 +4829,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_put_404_instance() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_put_404_instance",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_usb_device::<MockUsbDeviceReader>()
@@ -5097,7 +4836,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(PutInstanceUsbDeviceResult::InstanceNotFound));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -5121,10 +4860,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_put_404_device() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_put_404_device",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_usb_device::<MockUsbDeviceReader>()
@@ -5132,7 +4867,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(PutInstanceUsbDeviceResult::DeviceNotFound));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -5156,10 +4891,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_put_201() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_put_201",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_usb_device::<MockUsbDeviceReader>()
@@ -5167,7 +4898,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -5191,10 +4922,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_put_200() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_put_200",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_usb_device::<MockUsbDeviceReader>()
@@ -5210,7 +4937,7 @@ mod tests {
                 ))
             });
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
@@ -5234,10 +4961,6 @@ mod tests {
     }
     #[tokio::test]
     async fn instances_instance_id_config_devices_usb_port_put_500() {
-        let path = prepare_test_path(
-            module_path!(),
-            "instances_instance_id_config_devices_usb_port_put_500",
-        );
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_usb_device::<MockUsbDeviceReader>()
@@ -5245,7 +4968,7 @@ mod tests {
             .once()
             .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
         let server = ServerImpl::test_instance(
-            crate::sorcerer::instancius::tests::spell_test_vault(path, None).await,
+            crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
             MockSorcerers {
                 instancius: Arc::new(instancius),

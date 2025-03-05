@@ -214,7 +214,7 @@ mod tests {
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
     use crate::sorcerer::systemus::MockSystemus;
     use crate::sorcerer::MockSorcerers;
-    use crate::vault::{Vault, VaultConfig};
+    use crate::vault::tests::create_empty_test_vault;
     use std::collections::HashMap;
     use std::io::ErrorKind;
     use std::net::Ipv4Addr;
@@ -316,7 +316,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_usb_devices_err() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let usb_reader = create_mock_usb_reader_error();
         let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(server.get_usb_devices().is_err());
@@ -324,7 +324,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_usb_devices_ok() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let usb_reader = create_mock_usb_reader_values();
         let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         let expected_devices = create_expected_usb_devices();
@@ -337,7 +337,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_devices_get_200() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let usb_reader = create_mock_usb_reader_values();
         let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         let expected_devices = create_expected_usb_devices();
@@ -361,7 +361,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_devices_get_500() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let usb_reader = create_mock_usb_reader_error();
         let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
@@ -378,7 +378,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_devices_usb_get_200() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let usb_reader = create_mock_usb_reader_values();
         let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         let expected_devices = create_expected_usb_devices();
@@ -400,7 +400,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_devices_usb_get_500() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let usb_reader = create_mock_usb_reader_error();
         let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
@@ -419,7 +419,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_devices_usb_port_get_200() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let usb_reader = create_mock_usb_reader_values();
         let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
@@ -441,7 +441,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_devices_usb_port_get_404() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let usb_reader = create_mock_usb_reader_values();
         let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert_eq!(
@@ -461,7 +461,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_devices_usb_port_get_500() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let usb_reader = create_mock_usb_reader_error();
         let server = ServerImpl::test_instance(vault, usb_reader, MockSorcerers::default());
         assert!(matches!(
@@ -481,7 +481,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_networks_network_id_dhcp_ipv4_post_500() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let mut systemus = MockSystemus::default();
         systemus
             .expect_reserve_ipv4_address()
@@ -513,7 +513,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_networks_network_id_dhcp_ipv4_post_500_no_free_address() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let mut systemus = MockSystemus::default();
         systemus
             .expect_reserve_ipv4_address()
@@ -545,7 +545,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_networks_network_id_dhcp_ipv4_post_404() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let mut systemus = MockSystemus::default();
         systemus
             .expect_reserve_ipv4_address()
@@ -581,7 +581,7 @@ mod tests {
 
     #[tokio::test]
     async fn system_networks_network_id_dhcp_ipv4_post_200() {
-        let vault = Arc::new(Vault::new(VaultConfig::default()));
+        let vault = create_empty_test_vault();
         let mut systemus = MockSystemus::default();
         systemus
             .expect_reserve_ipv4_address()
