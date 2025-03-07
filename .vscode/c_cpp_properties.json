@@ -10,7 +10,7 @@
             ],
             "defines": [
                 "FLECS_EXPORT=__attribute__((visibility(\"default\")))",
-                "FLECS_VERSION=\"3.6.0-hedgehog\"",
+                "FLECS_VERSION=\"3.6.1-hedgehog\"",
                 "FLECS_API_VERSION=\"2.0.0\"",
                 "FLECS_GIT_SHA=\"abcd1234\"",
                 "FLECS_FINAL_UNLESS_TESTED=final",
