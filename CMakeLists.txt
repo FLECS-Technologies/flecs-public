@@ -39,7 +39,7 @@ include(FetchContent)
 FetchContent_Declare(
         Corrosion
         GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-        GIT_TAG 64289b1d79d6d19cd2e241db515381a086bb8407
+        GIT_TAG b1fab721655c5c4b1b08a083d3cd29f163af75d0
 )
 
 if ("${ARCH}" STREQUAL "amd64")
