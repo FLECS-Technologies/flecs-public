@@ -196,7 +196,8 @@ auto compose_t::do_start_instance(std::shared_ptr<instances::instance_t> instanc
     const auto project_name = std::string{"flecs-"} + instance->id().hex();
     const auto workdir = "/var/lib/flecs/instances/" + instance->id().hex() + "/work";
     auto ec = std::error_code{};
-    if (!fs::create_directories(workdir, ec)) {
+    fs::create_directories(workdir, ec);
+    if (ec) {
         return {-1, "Could not create working directory"};
     }
 
