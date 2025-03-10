@@ -52,6 +52,7 @@ auto deployment_t::load(const fs::path& base_path) //
     if (!fs::exists(deployment_json_path, ec)) {
         fs::create_directories(deployment_json_path.parent_path(), ec);
         auto deployment_json = std::ofstream{deployment_json_path};
+        deployment_json << json_t::array_t{};
     }
 
     return do_load(std::move(deployment_json_path));
