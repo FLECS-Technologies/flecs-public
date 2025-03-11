@@ -950,7 +950,7 @@ impl<
     ) -> Result<InstancesInstanceIdEditorPortGetResponse, ()> {
         let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
         let port = NonZeroU16::new(path_params.port as u16).unwrap();
-        super::route_impl::instances::instance_id::editor::port::get(
+        super::api::v2::instances::instance_id::editor::port::get(
             self.vault.clone(),
             self.enchantments.floxy.clone(),
             self.sorcerers.instancius.clone(),
