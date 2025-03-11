@@ -13,12 +13,14 @@ use axum::extract::Host;
 use axum_extra::extract::CookieJar;
 use flecsd_axum_server::apis::system::{
     System, SystemDevicesGetResponse, SystemDevicesUsbGetResponse, SystemDevicesUsbPortGetResponse,
-    SystemInfoGetResponse, SystemNetworksNetworkIdDhcpIpv4PostResponse, SystemPingGetResponse,
-    SystemVersionGetResponse,
+    SystemInfoGetResponse, SystemNetworkAdaptersGetResponse,
+    SystemNetworkAdaptersNetworkAdapterIdGetResponse, SystemNetworksNetworkIdDhcpIpv4PostResponse,
+    SystemPingGetResponse, SystemVersionGetResponse,
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
     AdditionalInfo, SystemDevicesUsbPortGetPathParams,
+    SystemNetworkAdaptersNetworkAdapterIdGetPathParams,
     SystemNetworksNetworkIdDhcpIpv4PostPathParams,
 };
 use http::Method;
@@ -109,6 +111,25 @@ impl<
                 error!("Could not create SystemInfo: {e}");
             })?,
         ))
+    }
+
+    async fn system_network_adapters_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+    ) -> Result<SystemNetworkAdaptersGetResponse, ()> {
+        todo!()
+    }
+
+    async fn system_network_adapters_network_adapter_id_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: SystemNetworkAdaptersNetworkAdapterIdGetPathParams,
+    ) -> Result<SystemNetworkAdaptersNetworkAdapterIdGetResponse, ()> {
+        todo!()
     }
 
     async fn system_networks_network_id_dhcp_ipv4_post(

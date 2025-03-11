@@ -354,6 +354,79 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/usb_device"
+    ipv4_address:
+      type: string
+      format: ipv4
+    ipv6_address:
+      type: string
+      format: ipv6
+    mac_address:
+      type: string
+      pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+    ipv4_network:
+      type: object
+      required:
+        - address
+        - netmask
+      properties:
+        address:
+          $ref: "#/components/schemas/ipv4_address"
+        netmask:
+          $ref: "#/components/schemas/ipv4_address"
+    ipv6_network:
+      type: object
+      required:
+        - address
+        - prefix_len
+      properties:
+        address:
+          $ref: "#/components/schemas/ipv6_address"
+        prefix_len:
+          type: integer
+          minimum: 0
+          maximum: 128
+    network:
+      oneOf:
+        - $ref: "#/components/schemas/ipv4_network"
+        - $ref: "#/components/schemas/ipv6_network"
+    network_type:
+      enum: [
+        "Unknown",
+        "Wired",
+        "Wireless",
+        "Local",
+        "Bridge",
+        "Virtual",
+      ]
+    network_adapter:
+      type: object
+      required:
+        - name
+        - net_type
+        - is_connected
+      properties:
+        name:
+          type: string
+        ipv4_addresses:
+          type: array
+          items:
+            $ref: "#/components/schemas/ipv4_address"
+        ipv6_addresses:
+          type: array
+          items:
+            $ref: "#/components/schemas/ipv6_address"
+        networks:
+          type: array
+          items:
+            $ref: "#/components/schemas/network"
+        gateway:
+          $ref: "#/components/schemas/ipv4_address"
+        mac_address:
+          $ref: "#/components/schemas/mac_address"
+        net_type:
+          $ref: "#/components/schemas/network_type"
+        is_connected:
+          type: boolean
     instance_config_network_adapter:
       type: object
       required:
@@ -1745,6 +1818,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/system_info"
+  /system/network_adapters:
+    get:
+      tags: [ "System" ]
+      summary: Get network adapters of system
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/network_adapter"
+        "500":
+          $ref: "#/components/responses/response_500"
+  /system/network_adapters/{network_adapter_id}:
+    get:
+      tags: [ "System" ]
+      summary: Get network adapter of system
+      parameters:
+        - name: network_adapter_id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/network_adapter"
+        "404":
+          description: Network adapter not found
+        "500":
+          $ref: "#/components/responses/response_500"
   /system/devices:
     get:
       tags: [ "System" ]

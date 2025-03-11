@@ -50,6 +50,28 @@ pub enum SystemInfoGetResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum SystemNetworkAdaptersGetResponse {
+    /// Success
+    Status200_Success(Vec<models::NetworkAdapter>),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum SystemNetworkAdaptersNetworkAdapterIdGetResponse {
+    /// Success
+    Status200_Success(models::NetworkAdapter),
+    /// Network adapter not found
+    Status404_NetworkAdapterNotFound,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum SystemNetworksNetworkIdDhcpIpv4PostResponse {
     /// Success
     Status200_Success(models::SystemNetworksNetworkIdDhcpIpv4Post200Response),
@@ -119,6 +141,27 @@ pub trait System {
         host: Host,
         cookies: CookieJar,
     ) -> Result<SystemInfoGetResponse, ()>;
+
+    /// Get network adapters of system.
+    ///
+    /// SystemNetworkAdaptersGet - GET /v2/system/network_adapters
+    async fn system_network_adapters_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+    ) -> Result<SystemNetworkAdaptersGetResponse, ()>;
+
+    /// Get network adapter of system.
+    ///
+    /// SystemNetworkAdaptersNetworkAdapterIdGet - GET /v2/system/network_adapters/{network_adapter_id}
+    async fn system_network_adapters_network_adapter_id_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::SystemNetworkAdaptersNetworkAdapterIdGetPathParams,
+    ) -> Result<SystemNetworkAdaptersNetworkAdapterIdGetResponse, ()>;
 
     /// SystemNetworksNetworkIdDhcpIpv4Post - POST /v2/system/networks/{network_id}/dhcp/ipv4
     async fn system_networks_network_id_dhcp_ipv4_post(
