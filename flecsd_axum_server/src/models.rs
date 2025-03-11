@@ -521,6 +521,12 @@ lazy_static::lazy_static! {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct SystemNetworkAdaptersNetworkAdapterIdGetPathParams {
+    pub network_adapter_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct SystemNetworksNetworkIdDhcpIpv4PostPathParams {
     pub network_id: String,
 }
@@ -7660,6 +7666,410 @@ impl std::convert::TryFrom<HeaderValue>
     }
 }
 
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Ipv4Address(String);
+
+impl validator::Validate for Ipv4Address {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for Ipv4Address {
+    fn from(x: String) -> Self {
+        Ipv4Address(x)
+    }
+}
+
+impl std::fmt::Display for Ipv4Address {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for Ipv4Address {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(Ipv4Address(x.to_string()))
+    }
+}
+
+impl std::convert::From<Ipv4Address> for String {
+    fn from(x: Ipv4Address) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for Ipv4Address {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for Ipv4Address {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Ipv4Network {
+    #[serde(rename = "address")]
+    pub address: String,
+
+    #[serde(rename = "netmask")]
+    pub netmask: String,
+}
+
+impl Ipv4Network {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(address: String, netmask: String) -> Ipv4Network {
+        Ipv4Network { address, netmask }
+    }
+}
+
+/// Converts the Ipv4Network value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for Ipv4Network {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("address".to_string()),
+            Some(self.address.to_string()),
+            Some("netmask".to_string()),
+            Some(self.netmask.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a Ipv4Network value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for Ipv4Network {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub address: Vec<String>,
+            pub netmask: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing Ipv4Network".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "address" => intermediate_rep.address.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "netmask" => intermediate_rep.netmask.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing Ipv4Network".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(Ipv4Network {
+            address: intermediate_rep
+                .address
+                .into_iter()
+                .next()
+                .ok_or_else(|| "address missing in Ipv4Network".to_string())?,
+            netmask: intermediate_rep
+                .netmask
+                .into_iter()
+                .next()
+                .ok_or_else(|| "netmask missing in Ipv4Network".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<Ipv4Network> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<Ipv4Network>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<Ipv4Network>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for Ipv4Network - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Ipv4Network> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <Ipv4Network as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into Ipv4Network - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Ipv6Address(String);
+
+impl validator::Validate for Ipv6Address {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for Ipv6Address {
+    fn from(x: String) -> Self {
+        Ipv6Address(x)
+    }
+}
+
+impl std::fmt::Display for Ipv6Address {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for Ipv6Address {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(Ipv6Address(x.to_string()))
+    }
+}
+
+impl std::convert::From<Ipv6Address> for String {
+    fn from(x: Ipv6Address) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for Ipv6Address {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for Ipv6Address {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Ipv6Network {
+    #[serde(rename = "address")]
+    pub address: String,
+
+    #[serde(rename = "prefix_len")]
+    #[validate(range(min = 0u8, max = 128u8))]
+    pub prefix_len: u8,
+}
+
+impl Ipv6Network {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(address: String, prefix_len: u8) -> Ipv6Network {
+        Ipv6Network {
+            address,
+            prefix_len,
+        }
+    }
+}
+
+/// Converts the Ipv6Network value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for Ipv6Network {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("address".to_string()),
+            Some(self.address.to_string()),
+            Some("prefix_len".to_string()),
+            Some(self.prefix_len.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a Ipv6Network value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for Ipv6Network {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub address: Vec<String>,
+            pub prefix_len: Vec<u8>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing Ipv6Network".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "address" => intermediate_rep.address.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "prefix_len" => intermediate_rep
+                        .prefix_len
+                        .push(<u8 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing Ipv6Network".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(Ipv6Network {
+            address: intermediate_rep
+                .address
+                .into_iter()
+                .next()
+                .ok_or_else(|| "address missing in Ipv6Network".to_string())?,
+            prefix_len: intermediate_rep
+                .prefix_len
+                .into_iter()
+                .next()
+                .ok_or_else(|| "prefix_len missing in Ipv6Network".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<Ipv6Network> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<Ipv6Network>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<Ipv6Network>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for Ipv6Network - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Ipv6Network> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <Ipv6Network as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into Ipv6Network - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct Job {
@@ -8684,6 +9094,414 @@ impl std::ops::Deref for LicenseKey {
 impl std::ops::DerefMut for LicenseKey {
     fn deref_mut(&mut self) -> &mut String {
         &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct MacAddress(String);
+
+impl validator::Validate for MacAddress {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for MacAddress {
+    fn from(x: String) -> Self {
+        MacAddress(x)
+    }
+}
+
+impl std::fmt::Display for MacAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for MacAddress {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(MacAddress(x.to_string()))
+    }
+}
+
+impl std::convert::From<MacAddress> for String {
+    fn from(x: MacAddress) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for MacAddress {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for MacAddress {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+#[allow(non_camel_case_types)]
+pub enum Network {
+    Ipv4Network(Box<models::Ipv4Network>),
+    Ipv6Network(Box<models::Ipv6Network>),
+}
+
+impl validator::Validate for Network {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        match self {
+            Self::Ipv4Network(x) => x.validate(),
+            Self::Ipv6Network(x) => x.validate(),
+        }
+    }
+}
+
+impl From<models::Ipv4Network> for Network {
+    fn from(value: models::Ipv4Network) -> Self {
+        Self::Ipv4Network(Box::new(value))
+    }
+}
+impl From<models::Ipv6Network> for Network {
+    fn from(value: models::Ipv6Network) -> Self {
+        Self::Ipv6Network(Box::new(value))
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a Network value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for Network {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        serde_json::from_str(s)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct NetworkAdapter {
+    #[serde(rename = "name")]
+    pub name: String,
+
+    #[serde(rename = "ipv4_addresses")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ipv4_addresses: Option<Vec<models::Ipv4Address>>,
+
+    #[serde(rename = "ipv6_addresses")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ipv6_addresses: Option<Vec<models::Ipv6Address>>,
+
+    #[serde(rename = "networks")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub networks: Option<Vec<models::Network>>,
+
+    #[serde(rename = "gateway")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gateway: Option<String>,
+
+    #[serde(rename = "mac_address")]
+    #[validate(
+            regex(path = *RE_NETWORKADAPTER_MAC_ADDRESS),
+        )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mac_address: Option<String>,
+
+    #[serde(rename = "net_type")]
+    pub net_type: models::NetworkType,
+
+    #[serde(rename = "is_connected")]
+    pub is_connected: bool,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_NETWORKADAPTER_MAC_ADDRESS: regex::Regex = regex::Regex::new("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$").unwrap();
+}
+
+impl NetworkAdapter {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String, net_type: models::NetworkType, is_connected: bool) -> NetworkAdapter {
+        NetworkAdapter {
+            name,
+            ipv4_addresses: None,
+            ipv6_addresses: None,
+            networks: None,
+            gateway: None,
+            mac_address: None,
+            net_type,
+            is_connected,
+        }
+    }
+}
+
+/// Converts the NetworkAdapter value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for NetworkAdapter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            self.ipv4_addresses.as_ref().map(|ipv4_addresses| {
+                [
+                    "ipv4_addresses".to_string(),
+                    ipv4_addresses
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            self.ipv6_addresses.as_ref().map(|ipv6_addresses| {
+                [
+                    "ipv6_addresses".to_string(),
+                    ipv6_addresses
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            // Skipping networks in query parameter serialization
+            self.gateway
+                .as_ref()
+                .map(|gateway| ["gateway".to_string(), gateway.to_string()].join(",")),
+            self.mac_address
+                .as_ref()
+                .map(|mac_address| ["mac_address".to_string(), mac_address.to_string()].join(",")),
+            // Skipping net_type in query parameter serialization
+            Some("is_connected".to_string()),
+            Some(self.is_connected.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a NetworkAdapter value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for NetworkAdapter {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub ipv4_addresses: Vec<Vec<models::Ipv4Address>>,
+            pub ipv6_addresses: Vec<Vec<models::Ipv6Address>>,
+            pub networks: Vec<Vec<models::Network>>,
+            pub gateway: Vec<String>,
+            pub mac_address: Vec<String>,
+            pub net_type: Vec<models::NetworkType>,
+            pub is_connected: Vec<bool>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing NetworkAdapter".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    "ipv4_addresses" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in NetworkAdapter"
+                                .to_string(),
+                        )
+                    }
+                    "ipv6_addresses" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in NetworkAdapter"
+                                .to_string(),
+                        )
+                    }
+                    "networks" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in NetworkAdapter"
+                                .to_string(),
+                        )
+                    }
+                    #[allow(clippy::redundant_clone)]
+                    "gateway" => intermediate_rep.gateway.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "mac_address" => intermediate_rep.mac_address.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "net_type" => intermediate_rep.net_type.push(
+                        <models::NetworkType as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "is_connected" => intermediate_rep.is_connected.push(
+                        <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing NetworkAdapter".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(NetworkAdapter {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in NetworkAdapter".to_string())?,
+            ipv4_addresses: intermediate_rep.ipv4_addresses.into_iter().next(),
+            ipv6_addresses: intermediate_rep.ipv6_addresses.into_iter().next(),
+            networks: intermediate_rep.networks.into_iter().next(),
+            gateway: intermediate_rep.gateway.into_iter().next(),
+            mac_address: intermediate_rep.mac_address.into_iter().next(),
+            net_type: intermediate_rep
+                .net_type
+                .into_iter()
+                .next()
+                .ok_or_else(|| "net_type missing in NetworkAdapter".to_string())?,
+            is_connected: intermediate_rep
+                .is_connected
+                .into_iter()
+                .next()
+                .ok_or_else(|| "is_connected missing in NetworkAdapter".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<NetworkAdapter> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<NetworkAdapter>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<NetworkAdapter>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for NetworkAdapter - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<NetworkAdapter> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <NetworkAdapter as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into NetworkAdapter - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+/// Enumeration of values.
+/// Since this enum's variants do not hold data, we can easily define them as `#[repr(C)]`
+/// which helps with FFI.
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[cfg_attr(feature = "conversion", derive(frunk_enum_derive::LabelledGenericEnum))]
+pub enum NetworkType {
+    #[serde(rename = "Unknown")]
+    Unknown,
+    #[serde(rename = "Wired")]
+    Wired,
+    #[serde(rename = "Wireless")]
+    Wireless,
+    #[serde(rename = "Local")]
+    Local,
+    #[serde(rename = "Bridge")]
+    Bridge,
+    #[serde(rename = "Virtual")]
+    Virtual,
+}
+
+impl std::fmt::Display for NetworkType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            NetworkType::Unknown => write!(f, "Unknown"),
+            NetworkType::Wired => write!(f, "Wired"),
+            NetworkType::Wireless => write!(f, "Wireless"),
+            NetworkType::Local => write!(f, "Local"),
+            NetworkType::Bridge => write!(f, "Bridge"),
+            NetworkType::Virtual => write!(f, "Virtual"),
+        }
+    }
+}
+
+impl std::str::FromStr for NetworkType {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "Unknown" => std::result::Result::Ok(NetworkType::Unknown),
+            "Wired" => std::result::Result::Ok(NetworkType::Wired),
+            "Wireless" => std::result::Result::Ok(NetworkType::Wireless),
+            "Local" => std::result::Result::Ok(NetworkType::Local),
+            "Bridge" => std::result::Result::Ok(NetworkType::Bridge),
+            "Virtual" => std::result::Result::Ok(NetworkType::Virtual),
+            _ => std::result::Result::Err(format!("Value not valid: {}", s)),
+        }
     }
 }
 
