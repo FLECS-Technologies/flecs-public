@@ -2,7 +2,9 @@ pub mod console_client;
 mod server_impl;
 use crate::enchantment::floxy::FloxyImpl;
 use crate::enchantment::Enchantments;
+use crate::relic::device::net::NetDeviceReaderImpl;
 use crate::relic::device::usb::UsbDeviceReaderImpl;
+use crate::relic::network::NetworkAdapterReaderImpl;
 use crate::sorcerer::Sorcerers;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use axum::{
@@ -76,8 +78,14 @@ async fn create_service(
     sorcerers: Sorcerers,
     enchantments: Enchantments<FloxyImpl>,
 ) -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
-    let server =
-        server_impl::ServerImpl::new(sorcerers, enchantments, UsbDeviceReaderImpl::default()).await;
+    let server = server_impl::ServerImpl::new(
+        sorcerers,
+        enchantments,
+        UsbDeviceReaderImpl::default(),
+        NetworkAdapterReaderImpl,
+        NetDeviceReaderImpl,
+    )
+    .await;
     let app = flecsd_axum_server::server::new(Arc::new(server)).layer(
         tower_http::trace::TraceLayer::new_for_http()
             .make_span_with(|request: &Request<_>| {

@@ -1,18 +1,18 @@
-use libc::{
-    freeifaddrs, getifaddrs, ifaddrs, sockaddr_in, sockaddr_in6, sockaddr_ll, AF_INET, AF_INET6,
-    AF_PACKET,
-};
-use procfs::net::RouteEntry;
+mod ipv4;
+mod ipv6;
+mod network_adapter;
+pub use ipv4::*;
+pub use ipv6::*;
+#[cfg(test)]
+pub use network_adapter::tests::*;
+#[cfg(test)]
+pub use network_adapter::MockNetworkAdapterReader;
+pub use network_adapter::{NetworkAdapter, NetworkAdapterReader, NetworkAdapterReaderImpl};
 use procfs::ProcError;
-use std::collections::{HashMap, HashSet};
-use std::ffi::CStr;
 use std::fmt::{Display, Formatter};
-use std::mem::MaybeUninit;
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, TcpListener};
-use std::ops::Range;
+use std::net::{Ipv4Addr, SocketAddrV4, TcpListener};
 use std::str::FromStr;
 use thiserror::Error;
-
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
@@ -21,11 +21,13 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Unsupported SA Family: {0}")]
     UnsupportedSaFamily(u16),
+    #[error("Invalid network: {0}")]
+    InvalidNetwork(String),
 }
 
 type Result<T> = std::result::Result<T, crate::relic::network::Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NetType {
     Unknown,
     Wired,
@@ -49,279 +51,38 @@ pub struct NetInfo {
     pub gateway: String,
 }
 
-#[derive(Debug)]
-pub struct NetworkAddress {
-    name: String,
-    address: Address,
-}
-#[derive(Debug)]
-enum Address {
-    Mac(String),
-    Ipv4(IpAddr),
-    Ipv6(IpAddr),
-}
-
-enum SaFamily {
-    Unsupported(u16),
-    Packet,
-    Inet4,
-    Inet6,
-}
-
-pub struct IfAddrs {
-    inner: *mut ifaddrs,
-}
-
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Network {
     Ipv4(Ipv4Network),
     Ipv6(Ipv6Network),
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Ipv4Network {
-    address: Ipv4Addr,
-    size: u8,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Ipv4NetworkAccess {
-    network: Ipv4Network,
-    gateway: Ipv4Addr,
-}
-
-impl Ipv4NetworkAccess {
-    pub fn next_free_ipv4_address(
-        &self,
-        mut unavailable_addresses: HashSet<Ipv4Addr>,
-    ) -> Option<Ipv4Addr> {
-        unavailable_addresses.insert(self.gateway);
-        self.network
-            .iter()
-            .find(|address| !unavailable_addresses.contains(address))
-    }
-
-    pub fn try_new(network: Ipv4Network, gateway: Ipv4Addr) -> crate::Result<Self> {
-        anyhow::ensure!(
-            network.iter().contains(gateway),
-            "The gateway has to be part of the network."
-        );
-        Ok(Self { network, gateway })
-    }
-}
-
-impl TryFrom<bollard::models::Network> for Ipv4NetworkAccess {
-    type Error = crate::Error;
-
-    fn try_from(value: bollard::models::Network) -> std::result::Result<Self, Self::Error> {
-        let config = value
-            .ipam
-            .ok_or_else(|| anyhow::anyhow!("No ipam present"))?
-            .config
-            .ok_or_else(|| anyhow::anyhow!("No ipam config present"))?
-            .first()
-            .ok_or_else(|| anyhow::anyhow!("No network in ipam config present"))?
-            .clone();
-        let network = Ipv4Network::from_str(
-            config
-                .subnet
-                .as_deref()
-                .ok_or_else(|| anyhow::anyhow!("No subnet in ipam network config present"))?,
-        )?;
-        Ok(Self {
-            network,
-            gateway: Ipv4Addr::from_str(
-                &config
-                    .gateway
-                    .ok_or_else(|| anyhow::anyhow!("No gateway in ipam network config present"))?,
-            )?,
-        })
-    }
-}
-
-pub struct Ipv4Iterator {
-    current: u32,
-    max: u32,
-}
-
-impl Ipv4Iterator {
-    pub fn contains(&self, address: Ipv4Addr) -> bool {
-        (self.current..self.max).contains(&u32::from(address))
-    }
-}
-
-impl Iterator for Ipv4Iterator {
-    type Item = Ipv4Addr;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current >= self.max {
-            None
-        } else {
-            let next = Some(Ipv4Addr::from(self.current));
-            self.current += 1;
-            next
+impl Display for Network {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Network::Ipv4(ip) => Display::fmt(ip, f),
+            Network::Ipv6(ip) => Display::fmt(ip, f),
         }
     }
 }
 
-impl From<Range<u32>> for Ipv4Iterator {
-    fn from(value: Range<u32>) -> Self {
-        Self {
-            current: value.start,
-            max: value.end,
-        }
-    }
-}
-
-impl Ipv4Iterator {
-    fn new(start: Ipv4Addr, end_exclusive: Ipv4Addr) -> Self {
-        (start.into()..end_exclusive.into()).into()
-    }
-}
-
-impl Ipv4Network {
-    pub fn try_new(address: Ipv4Addr, size: u8) -> crate::Result<Self> {
-        anyhow::ensure!(size <= 32, "Network size has to be 32 or less, not {size}");
-        let mask = Ipv4Addr::from(0xffffffff >> size);
-        anyhow::ensure!(
-            (address & mask) == Ipv4Addr::UNSPECIFIED,
-            "Address part of network is not 0"
-        );
-        Ok(Self { address, size })
-    }
-
-    pub fn iter(&self) -> Ipv4Iterator {
-        let start = Ipv4Addr::from(u32::from(self.address) + 2_u32);
-        Ipv4Iterator::new(start, self.broadcast())
-    }
-
-    pub fn broadcast(&self) -> Ipv4Addr {
-        (u32::from(self.address) | 0xffffffff >> self.size).into()
-    }
-}
-
-impl Default for Ipv4Network {
-    fn default() -> Self {
-        Self {
-            address: Ipv4Addr::new(172, 21, 0, 0),
-            size: 16,
-        }
-    }
-}
-
-impl FromStr for Ipv4Network {
+impl FromStr for Network {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let (address, size) = s
-            .split_once('/')
-            .ok_or_else(|| anyhow::anyhow!("No '/' found"))?;
-        Ipv4Network::try_new(Ipv4Addr::from_str(address)?, u8::from_str(size)?)
-    }
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Ipv6Network {
-    address: Ipv6Addr,
-    suffix: u8,
-}
-
-impl Display for Ipv4Network {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", self.address, self.size)
-    }
-}
-
-impl Display for Ipv6Network {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", self.address, self.suffix)
-    }
-}
-
-impl Display for Network {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Network::Ipv4(ip) => {
-                    ip.to_string()
-                }
-                Network::Ipv6(ip) => {
-                    ip.to_string()
-                }
-            }
-        )
-    }
-}
-
-impl From<u16> for SaFamily {
-    fn from(value: u16) -> Self {
-        match value {
-            x if x as i32 == AF_INET => SaFamily::Inet4,
-            x if x as i32 == AF_INET6 => SaFamily::Inet6,
-            x if x as i32 == AF_PACKET => SaFamily::Packet,
-            x => SaFamily::Unsupported(x),
+        match (Ipv4Network::from_str(s), Ipv6Network::from_str(s)) {
+            (Ok(ipv4), _) => Ok(Self::Ipv4(ipv4)),
+            (_, Ok(ipv6)) => Ok(Self::Ipv6(ipv6)),
+            (Err(e1), Err(e2)) => Err(anyhow::anyhow!(
+                "'{s}' is no valid ipv4 ({e1}) or ipv6 ({e2}) network"
+            )),
         }
     }
-}
-
-pub fn transfer_ipv4_to_network(network: Ipv4Network, address: Ipv4Addr) -> Ipv4Addr {
-    // Remove network part from address
-    let address = address & Ipv4Addr::from(0xffffffffu32 >> network.size);
-    address | network.address
 }
 
 impl Default for NetType {
     fn default() -> Self {
         Self::Unknown
-    }
-}
-
-impl NetInfo {
-    pub fn try_read_from_system() -> Result<HashMap<String, Self>> {
-        let mut adapters: HashMap<String, Self> = HashMap::new();
-        let addresses: Result<Vec<_>> = IfAddrs::new()?
-            .iter()
-            .map(NetworkAddress::try_from)
-            .collect();
-        let route_entries: Vec<_> = procfs::net::route()?
-            .into_iter()
-            .filter(|route_entry| route_entry.destination.is_unspecified())
-            .collect();
-        for NetworkAddress { name, address } in addresses?.into_iter() {
-            let entry = adapters
-                .entry(name.clone())
-                .or_insert(Self::new(name.as_str()));
-            match address {
-                Address::Mac(mac) => {
-                    entry.mac = mac;
-                }
-                Address::Ipv4(ipv4) => {
-                    entry.ipv4addresses.push(ipv4);
-                }
-                Address::Ipv6(ipv6) => {
-                    entry.ipv4addresses.push(ipv6);
-                }
-            }
-        }
-        for RouteEntry { iface, gateway, .. } in route_entries {
-            let entry = adapters
-                .entry(iface.clone())
-                .or_insert(Self::new(iface.as_str()));
-            entry.gateway = gateway.to_string();
-        }
-        Ok(adapters)
-    }
-
-    fn new(name: &str) -> Self {
-        Self {
-            net_type: name.into(),
-            gateway: String::default(),
-            ipv4addresses: Vec::default(),
-            mac: String::default(),
-            ipv6addresses: Vec::default(),
-        }
     }
 }
 
@@ -335,129 +96,6 @@ impl From<&str> for NetType {
             v if v.starts_with("br") || v.starts_with("docker") => Self::Bridge,
             _ => Self::Unknown,
         }
-    }
-}
-
-impl TryFrom<ifaddrs> for NetworkAddress {
-    type Error = Error;
-
-    fn try_from(value: ifaddrs) -> Result<Self> {
-        let sa_family: SaFamily = unsafe { *value.ifa_addr }.sa_family.into();
-        let name = unsafe { CStr::from_ptr(value.ifa_name as *const _) }
-            .to_string_lossy()
-            .into_owned();
-        match sa_family {
-            SaFamily::Unsupported(val) => Err(Self::Error::UnsupportedSaFamily(val)),
-            SaFamily::Packet => {
-                let s = unsafe { *(value.ifa_addr as *const sockaddr_ll) };
-                let mac = format!(
-                    "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
-                    s.sll_addr[0],
-                    s.sll_addr[1],
-                    s.sll_addr[2],
-                    s.sll_addr[3],
-                    s.sll_addr[4],
-                    s.sll_addr[5]
-                );
-                Ok(NetworkAddress {
-                    address: Address::Mac(mac),
-                    name,
-                })
-            }
-            SaFamily::Inet4 => {
-                let s = unsafe { *(value.ifa_addr as *const sockaddr_in) };
-                let addr: Ipv4Addr = u32::from_be(s.sin_addr.s_addr).into();
-                let addr = addr.to_string();
-                let s = unsafe { *(value.ifa_netmask as *const sockaddr_in) };
-                let subnet_mask: Ipv4Addr = u32::from_be(s.sin_addr.s_addr).into();
-                let subnet_mask = subnet_mask.to_string();
-                Ok(NetworkAddress {
-                    address: Address::Ipv4(IpAddr { addr, subnet_mask }),
-                    name,
-                })
-            }
-            SaFamily::Inet6 => {
-                let s = unsafe { *(value.ifa_addr as *const sockaddr_in6) };
-                let addr: Ipv6Addr = s.sin6_addr.s6_addr.into();
-                let addr = addr.to_string();
-                let s = unsafe { *(value.ifa_netmask as *const sockaddr_in6) };
-                let subnet_mask: Ipv6Addr = s.sin6_addr.s6_addr.into();
-                let subnet_mask = subnet_mask.to_string();
-                Ok(NetworkAddress {
-                    address: Address::Ipv6(IpAddr { addr, subnet_mask }),
-                    name,
-                })
-            }
-        }
-    }
-}
-
-impl IfAddrs {
-    #[allow(unsafe_code, clippy::new_ret_no_self)]
-    pub fn new() -> std::io::Result<Self> {
-        let mut ifaddrs: MaybeUninit<*mut ifaddrs> = MaybeUninit::uninit();
-
-        let ifaddrs = unsafe {
-            if -1 == getifaddrs(ifaddrs.as_mut_ptr()) {
-                return Err(std::io::Error::last_os_error());
-            }
-            ifaddrs.assume_init()
-        };
-
-        Ok(Self { inner: ifaddrs })
-    }
-
-    pub fn iter(&self) -> IfAddrsIterator {
-        IfAddrsIterator { next: self.inner }
-    }
-}
-
-impl Drop for IfAddrs {
-    #[allow(unsafe_code)]
-    fn drop(&mut self) {
-        unsafe {
-            freeifaddrs(self.inner);
-        }
-    }
-}
-
-pub struct IfAddrsIterator {
-    next: *mut ifaddrs,
-}
-
-impl Iterator for IfAddrsIterator {
-    type Item = ifaddrs;
-
-    #[allow(unsafe_code)]
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.next.is_null() {
-            return None;
-        };
-
-        Some(unsafe {
-            let result = *self.next;
-            self.next = (*self.next).ifa_next;
-
-            result
-        })
-    }
-}
-
-pub fn ipv4_to_network(ip: Ipv4Addr, subnet_mask: Ipv4Addr) -> Ipv4Network {
-    let address = ip & subnet_mask;
-    let subnet_mask: u32 = subnet_mask.into();
-    Ipv4Network {
-        address,
-        size: subnet_mask.count_ones() as u8,
-    }
-}
-
-pub fn ipv6_to_network(ip: Ipv6Addr, subnet_mask: Ipv6Addr) -> Ipv6Network {
-    let address = ip & subnet_mask;
-    let subnet_mask: u128 = subnet_mask.into();
-    Ipv6Network {
-        address,
-        suffix: subnet_mask.count_ones() as u8,
     }
 }
 
@@ -484,131 +122,9 @@ pub fn get_random_free_port() -> crate::Result<u16> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ntest::test_case;
+    use std::net::Ipv6Addr;
     use std::str::FromStr;
-
-    #[test]
-    fn test_transfer_ipv4_to_network() {
-        assert_eq!(
-            transfer_ipv4_to_network(
-                Ipv4Network::try_new(
-                    Ipv4Addr::new(0b10101010, 0b10101010, 0b10100000, 0b00000000),
-                    20
-                )
-                .unwrap(),
-                Ipv4Addr::new(0b01010101, 0b01010101, 0b01010101, 0b01010101)
-            ),
-            Ipv4Addr::new(0b10101010, 0b10101010, 0b10100101, 0b01010101)
-        );
-        assert_eq!(
-            transfer_ipv4_to_network(
-                Ipv4Network::try_new(Ipv4Addr::new(10, 20, 30, 0), 24).unwrap(),
-                Ipv4Addr::new(55, 55, 55, 99)
-            ),
-            Ipv4Addr::new(10, 20, 30, 99)
-        );
-    }
-    #[test]
-    fn test_try_new_ipv4network() {
-        let address = Ipv4Addr::new(20, 30, 1, 0);
-        let size = 24;
-        assert_eq!(
-            Ipv4Network::try_new(address, size).unwrap(),
-            Ipv4Network { address, size }
-        );
-        let address = Ipv4Addr::new(0, 0, 0, 0);
-        let size = 33;
-        assert!(Ipv4Network::try_new(address, size).is_err());
-        let address = Ipv4Addr::new(0, 0, 1, 0);
-        let size = 9;
-        assert!(Ipv4Network::try_new(address, size).is_err());
-    }
-
-    #[test]
-    fn test_address() {
-        let addresses = IfAddrs::new().expect("Getting IfAddrs failed");
-        for address in addresses.iter() {
-            let net_addr: NetworkAddress = address
-                .try_into()
-                .expect("Converting to NetworkAddress failed");
-            println!("Parsed: {:?}", net_addr);
-        }
-    }
-
-    #[test]
-    fn test_adapters() {
-        let infos = NetInfo::try_read_from_system().expect("Failed to read network adapters");
-        for (name, info) in infos {
-            println!("Parsed adapter {}: {:?}", name, info);
-        }
-    }
-
-    #[test]
-    fn test_ipv4_to_network() {
-        assert_eq!(
-            ipv4_to_network(
-                Ipv4Addr::from_str("192.168.99.21").unwrap(),
-                Ipv4Addr::from_str("255.255.252.0").unwrap()
-            ),
-            Ipv4Network {
-                address: Ipv4Addr::from_str("192.168.96.0").unwrap(),
-                size: 22
-            }
-        );
-        assert_eq!(
-            ipv4_to_network(
-                Ipv4Addr::from_str("127.0.0.1").unwrap(),
-                Ipv4Addr::from_str("255.0.0.0").unwrap()
-            ),
-            Ipv4Network {
-                address: Ipv4Addr::from_str("127.0.0.0").unwrap(),
-                size: 8
-            }
-        );
-        assert_eq!(
-            ipv4_to_network(
-                Ipv4Addr::from_str("169.254.52.1").unwrap(),
-                Ipv4Addr::from_str("255.255.0.0").unwrap()
-            ),
-            Ipv4Network {
-                address: Ipv4Addr::from_str("169.254.0.0").unwrap(),
-                size: 16
-            }
-        );
-    }
-
-    #[test]
-    fn test_ipv6_to_network() {
-        assert_eq!(
-            ipv6_to_network(
-                Ipv6Addr::from_str("2002:0000:0000:1234:abcd:ffff:c0a8:0101").unwrap(),
-                Ipv6Addr::from_str("ffff:ffff:ffff:ffff:0000:0000:0000:0000").unwrap()
-            ),
-            Ipv6Network {
-                address: Ipv6Addr::from_str("2002:0000:0000:1234:0000:0000:0000:0000").unwrap(),
-                suffix: 64
-            }
-        );
-        assert_eq!(
-            ipv6_to_network(
-                Ipv6Addr::from_str("abcd:4422:efef:0707:8888:1212:3234:1256").unwrap(),
-                Ipv6Addr::from_str("ffff:ffff:0000:0000:0000:0000:0000:0000").unwrap()
-            ),
-            Ipv6Network {
-                address: Ipv6Addr::from_str("abcd:4422:0000:0000:0000:0000:0000:0000").unwrap(),
-                suffix: 32
-            }
-        );
-        assert_eq!(
-            ipv6_to_network(
-                Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap(),
-                Ipv6Addr::from_str("ffff:ffff:ffff:ffff:ffff:fff0:0000:0000").unwrap()
-            ),
-            Ipv6Network {
-                address: Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1110:0000:0000").unwrap(),
-                suffix: 92
-            }
-        );
-    }
 
     #[test]
     fn test_ip_to_network() {
@@ -636,10 +152,9 @@ mod tests {
                 )
             )
             .unwrap(),
-            Network::Ipv6(Ipv6Network {
-                address: Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1110:0000:0000").unwrap(),
-                suffix: 92
-            })
+            Network::Ipv6(
+                Ipv6Network::from_str("aaaa:bbbb:cccc:dddd:eeee:1110:0000:0000/92").unwrap(),
+            )
         );
 
         assert_eq!(
@@ -648,79 +163,8 @@ mod tests {
                 std::net::IpAddr::V4(Ipv4Addr::from_str("255.255.0.0").unwrap())
             )
             .unwrap(),
-            Network::Ipv4(Ipv4Network {
-                address: Ipv4Addr::from_str("169.254.0.0").unwrap(),
-                size: 16
-            })
+            Network::Ipv4(Ipv4Network::from_str("169.254.0.0/16").unwrap())
         );
-    }
-
-    #[test]
-    fn ipv4_network_from_str() {
-        let ip = Ipv4Addr::new(10, 0b11100000, 0, 0);
-        let suffix = 11;
-        assert_eq!(
-            Ipv4Network {
-                address: ip,
-                size: suffix,
-            },
-            Ipv4Network::from_str(&format!("{}/{}", ip, suffix)).unwrap()
-        )
-    }
-
-    #[test]
-    fn ipv4_network_broadcast() {
-        assert_eq!(
-            Ipv4Network {
-                address: Ipv4Addr::new(0b10100101, 0b11010100, 0b10100000, 0x00000000),
-                size: 20,
-            }
-            .broadcast(),
-            Ipv4Addr::new(0b10100101, 0b11010100, 0b10101111, 0b11111111)
-        );
-        assert_eq!(
-            Ipv4Network {
-                address: Ipv4Addr::new(0b10100101, 0b11010100, 0b10100000, 0x00000000),
-                size: 30,
-            }
-            .broadcast(),
-            Ipv4Addr::new(0b10100101, 0b11010100, 0b10100000, 0b00000011)
-        );
-        assert_eq!(
-            Ipv4Network {
-                address: Ipv4Addr::new(0xaa, 0xa0, 0x00, 0x00),
-                size: 12,
-            }
-            .broadcast(),
-            Ipv4Addr::new(0xaa, 0xaf, 0xff, 0xff)
-        );
-    }
-
-    #[test]
-    fn ipv4_network_iter() {
-        let base = Ipv4Addr::new(10, 40, 0b10101000, 0);
-        let size = 22;
-        let iter = Ipv4Network {
-            address: base,
-            size,
-        }
-        .iter();
-        assert_eq!(
-            iter.current,
-            u32::from(Ipv4Addr::new(10, 40, 0b10101000, 2))
-        );
-        assert_eq!(iter.max, u32::from(Ipv4Addr::new(10, 40, 0b10101011, 255)));
-    }
-
-    #[test]
-    fn default_flecs_network() {
-        assert_eq!(
-            Ipv4Network::default(),
-            Ipv4Network {
-                address: Ipv4Addr::new(172, 21, 0, 0),
-                size: 16
-            }
-        )
     }
 
     #[test]
@@ -729,292 +173,79 @@ mod tests {
         TcpListener::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, random_port)).unwrap();
     }
 
-    #[test]
-    fn ipv4_iterator_new() {
-        let start = Ipv4Addr::new(10, 20, 30, 40);
-        let end = Ipv4Addr::new(10, 20, 30, 200);
-        let iterator = Ipv4Iterator::new(start, end);
-        assert_eq!(iterator.current, u32::from(start));
-        assert_eq!(iterator.max, u32::from(end));
+    #[test_case("eth0", NetType::Wired)]
+    #[test_case("eth51", NetType::Wired)]
+    #[test_case("en1", NetType::Wired)]
+    #[test_case("en0", NetType::Wired)]
+    #[test_case("wl412", NetType::Wireless)]
+    #[test_case("wl2", NetType::Wireless)]
+    #[test_case("lo", NetType::Local)]
+    #[test_case("lo10", NetType::Local)]
+    #[test_case("veth", NetType::Virtual)]
+    #[test_case("veth0", NetType::Virtual)]
+    #[test_case("veth7", NetType::Virtual)]
+    #[test_case("br", NetType::Bridge)]
+    #[test_case("br0", NetType::Bridge)]
+    #[test_case("br24", NetType::Bridge)]
+    #[test_case("docker", NetType::Bridge)]
+    #[test_case("docker0", NetType::Bridge)]
+    #[test_case("docker79", NetType::Bridge)]
+    #[test_case("123", NetType::Unknown)]
+    #[test_case("abab", NetType::Unknown)]
+    #[test_case("wireless", NetType::Unknown)]
+    #[test_case("lan", NetType::Unknown)]
+    #[test_case("virtual", NetType::Unknown)]
+    fn network_type_from_str(s: &str, net_type: NetType) {
+        assert_eq!(NetType::from(s), net_type);
     }
 
     #[test]
-    fn ipv4_iterator_from_range() {
-        let start = 200;
-        let end = 2000;
-        let iterator = Ipv4Iterator::from(start..end);
-        assert_eq!(iterator.current, start);
-        assert_eq!(iterator.max, end);
+    fn network_display() {
+        let ipv4 = Ipv4Network::from_str("127.0.0.0/10").unwrap();
+        let expected = ipv4.to_string();
+        assert_eq!(Network::Ipv4(ipv4).to_string(), expected);
+        let ipv6 = Ipv6Network::from_str("aaaa:bbbb:cccc:dddd::/64").unwrap();
+        let expected = ipv6.to_string();
+        assert_eq!(Network::Ipv6(ipv6).to_string(), expected);
+    }
+
+    #[test_case("10.20.30.0/24")]
+    #[test_case("127.0.2.0/24")]
+    #[test_case("100.0.0.0/8")]
+    #[test_case("200.200.80.0/20")]
+    #[test_case("127.0.0.0/10")]
+    fn network_from_ipv4_str(ip: &str) {
+        let ipv4 = Ipv4Network::from_str(ip).unwrap();
+        assert_eq!(Network::from_str(ip).unwrap(), Network::Ipv4(ipv4));
+    }
+
+    #[test_case("aaaa:bbbb:cccc:dddd::/64")]
+    #[test_case("81f2:f385:4800::/37")]
+    #[test_case("86e5:6018:d00::/44")]
+    #[test_case("4761:45da:6::/50")]
+    #[test_case("b884:6129:db74:a800::/53")]
+    #[test_case("15a1:b1ac::/33")]
+    #[test_case("3cf9:2cff::/33")]
+    #[test_case("ffa4:aafb:9c26:3040::/59")]
+    #[test_case("b20d:a3e5:3857:b800::/53")]
+    #[test_case("7519:f47a:9000::/37")]
+    #[test_case("d5f0:bf0f:7ec0::/45")]
+    #[test_case("23f1:99b8:6000::/35")]
+    #[test_case("97a7:922d:5ec0::/46")]
+    #[test_case("edd3:206b:1e8f:f6c0::/58")]
+    #[test_case("e831:1727:7500::/40")]
+    #[test_case("b4c9:b860:e45e:b500::/57")]
+    #[test_case("71d4:f385:375a:e000::/51")]
+    #[test_case("383e:da05:7800::/39")]
+    #[test_case("9926:8e1a:47ee:c000::/50")]
+    #[test_case("5abd:c7f5:e300::/43")]
+    fn network_from_ipv6_str(ip: &str) {
+        let ipv6 = Ipv6Network::from_str(ip).unwrap();
+        assert_eq!(Network::from_str(ip).unwrap(), Network::Ipv6(ipv6));
     }
 
     #[test]
-    fn ipv4_iterator_next() {
-        let start = 5;
-        let end = 10;
-        let mut iterator = Ipv4Iterator {
-            current: start,
-            max: end,
-        };
-        assert_eq!(iterator.next(), Some(Ipv4Addr::from(5)));
-        assert_eq!(iterator.next(), Some(Ipv4Addr::from(6)));
-        assert_eq!(iterator.next(), Some(Ipv4Addr::from(7)));
-        assert_eq!(iterator.next(), Some(Ipv4Addr::from(8)));
-        assert_eq!(iterator.next(), Some(Ipv4Addr::from(9)));
-        assert_eq!(iterator.next(), None);
-    }
-
-    #[test]
-    fn next_free_ipv4_address_all_available() {
-        let network = Ipv4NetworkAccess {
-            network: Ipv4Network {
-                address: Ipv4Addr::new(123, 123, 123, 0),
-                size: 24,
-            },
-            gateway: Ipv4Addr::new(123, 123, 123, 254),
-        };
-        assert_eq!(
-            network.next_free_ipv4_address(HashSet::default()),
-            Some(Ipv4Addr::new(123, 123, 123, 2))
-        );
-    }
-
-    #[test]
-    fn next_free_ipv4_address_skip_gateway() {
-        let network = Ipv4NetworkAccess {
-            network: Ipv4Network {
-                address: Ipv4Addr::new(123, 123, 123, 0),
-                size: 24,
-            },
-            gateway: Ipv4Addr::new(123, 123, 123, 2),
-        };
-        assert_eq!(
-            network.next_free_ipv4_address(HashSet::default()),
-            Some(Ipv4Addr::new(123, 123, 123, 3))
-        );
-    }
-
-    #[test]
-    fn next_free_ipv4_address_none_available() {
-        let network = Ipv4NetworkAccess {
-            network: Ipv4Network {
-                address: Ipv4Addr::new(123, 123, 123, 0),
-                size: 24,
-            },
-            gateway: Ipv4Addr::new(123, 123, 123, 2),
-        };
-        let unavailable_ips = (3..255).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
-        assert_eq!(network.next_free_ipv4_address(unavailable_ips), None);
-    }
-
-    #[test]
-    fn next_free_ipv4_address_2_available() {
-        let network = Ipv4NetworkAccess {
-            network: Ipv4Network {
-                address: Ipv4Addr::new(123, 123, 123, 0),
-                size: 24,
-            },
-            gateway: Ipv4Addr::new(123, 123, 123, 3),
-        };
-        let unavailable_ips = (4..255).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
-        assert_eq!(
-            network.next_free_ipv4_address(unavailable_ips),
-            Some(Ipv4Addr::new(123, 123, 123, 2)),
-        );
-    }
-
-    #[test]
-    fn next_free_ipv4_address_254_available() {
-        let network = Ipv4NetworkAccess {
-            network: Ipv4Network {
-                address: Ipv4Addr::new(123, 123, 123, 0),
-                size: 24,
-            },
-            gateway: Ipv4Addr::new(123, 123, 123, 2),
-        };
-        let unavailable_ips = (3..254).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
-        assert_eq!(
-            network.next_free_ipv4_address(unavailable_ips),
-            Some(Ipv4Addr::new(123, 123, 123, 254)),
-        );
-    }
-
-    #[test]
-    fn next_free_ipv4_address_100_available() {
-        let network = Ipv4NetworkAccess {
-            network: Ipv4Network {
-                address: Ipv4Addr::new(123, 123, 123, 0),
-                size: 24,
-            },
-            gateway: Ipv4Addr::new(123, 123, 123, 2),
-        };
-        let unavailable_ips = (3..100).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
-        assert_eq!(
-            network.next_free_ipv4_address(unavailable_ips),
-            Some(Ipv4Addr::new(123, 123, 123, 100)),
-        );
-    }
-
-    #[test]
-    fn try_ipv4_network_access_from_bollard_network_ok() {
-        let bollard_network = bollard::models::Network {
-            ipam: Some(bollard::models::Ipam {
-                config: Some(vec![bollard::models::IpamConfig {
-                    subnet: Some("10.18.100.0/22".to_string()),
-                    gateway: Some("10.18.100.10".to_string()),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let expected_network = Ipv4NetworkAccess {
-            network: Ipv4Network {
-                address: Ipv4Addr::new(10, 18, 100, 0),
-                size: 22,
-            },
-            gateway: Ipv4Addr::new(10, 18, 100, 10),
-        };
-        assert_eq!(
-            Ipv4NetworkAccess::try_from(bollard_network).unwrap(),
-            expected_network
-        );
-    }
-
-    #[test]
-    fn try_ipv4_network_access_from_bollard_network_invalid_gateway() {
-        let bollard_network = bollard::models::Network {
-            ipam: Some(bollard::models::Ipam {
-                config: Some(vec![bollard::models::IpamConfig {
-                    subnet: Some("10.18.100.0/22".to_string()),
-                    gateway: Some("10.18.1000.10".to_string()),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
-    }
-
-    #[test]
-    fn try_ipv4_network_access_from_bollard_network_no_gateway() {
-        let bollard_network = bollard::models::Network {
-            ipam: Some(bollard::models::Ipam {
-                config: Some(vec![bollard::models::IpamConfig {
-                    subnet: Some("10.18.100.0/22".to_string()),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
-    }
-
-    #[test]
-    fn try_ipv4_network_access_from_bollard_network_no_subnet() {
-        let bollard_network = bollard::models::Network {
-            ipam: Some(bollard::models::Ipam {
-                config: Some(vec![bollard::models::IpamConfig {
-                    gateway: Some("10.18.100.10".to_string()),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
-    }
-
-    #[test]
-    fn try_ipv4_network_access_from_bollard_network_invalid_subnet() {
-        let bollard_network = bollard::models::Network {
-            ipam: Some(bollard::models::Ipam {
-                config: Some(vec![bollard::models::IpamConfig {
-                    subnet: Some("10.18.100.0/7".to_string()),
-                    gateway: Some("10.18.100.10".to_string()),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
-    }
-
-    #[test]
-    fn try_ipv4_network_access_from_bollard_network_empty_ipam_configs() {
-        let bollard_network = bollard::models::Network {
-            ipam: Some(bollard::models::Ipam {
-                config: Some(vec![]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
-    }
-
-    #[test]
-    fn try_ipv4_network_access_from_bollard_network_no_ipam_configs() {
-        let bollard_network = bollard::models::Network {
-            ipam: Some(bollard::models::Ipam {
-                config: None,
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
-    }
-
-    #[test]
-    fn try_ipv4_network_access_from_bollard_network_no_ipam() {
-        let bollard_network = bollard::models::Network {
-            ipam: None,
-            ..Default::default()
-        };
-        assert!(Ipv4NetworkAccess::try_from(bollard_network).is_err());
-    }
-
-    #[test]
-    fn try_new_ipv4_network_access_ok() {
-        Ipv4NetworkAccess::try_new(
-            Ipv4Network::try_new(Ipv4Addr::new(10, 20, 0, 0), 16).unwrap(),
-            Ipv4Addr::new(10, 20, 20, 100),
-        )
-        .unwrap();
-    }
-
-    #[test]
-    fn try_new_ipv4_network_access_err() {
-        assert!(Ipv4NetworkAccess::try_new(
-            Ipv4Network::try_new(Ipv4Addr::new(10, 20, 0, 0), 16).unwrap(),
-            Ipv4Addr::new(10, 10, 20, 100),
-        )
-        .is_err());
-    }
-
-    #[test]
-    fn ipv4_iterator_contains() {
-        let mut iter = Ipv4Iterator {
-            current: 10,
-            max: 14,
-        };
-        assert!(!iter.contains(Ipv4Addr::from(8)));
-        assert!(!iter.contains(Ipv4Addr::from(9)));
-        assert!(iter.contains(Ipv4Addr::from(10)));
-        assert!(iter.contains(Ipv4Addr::from(11)));
-        assert!(iter.contains(Ipv4Addr::from(12)));
-        assert!(iter.contains(Ipv4Addr::from(13)));
-        assert!(!iter.contains(Ipv4Addr::from(14)));
-        assert!(!iter.contains(Ipv4Addr::from(15)));
-        iter.next();
-        assert!(!iter.contains(Ipv4Addr::from(8)));
-        assert!(!iter.contains(Ipv4Addr::from(9)));
-        assert!(!iter.contains(Ipv4Addr::from(10)));
-        assert!(iter.contains(Ipv4Addr::from(11)));
-        assert!(iter.contains(Ipv4Addr::from(12)));
-        assert!(iter.contains(Ipv4Addr::from(13)));
-        assert!(!iter.contains(Ipv4Addr::from(14)));
-        assert!(!iter.contains(Ipv4Addr::from(15)));
+    fn network_from_ipv6_str() {
+        assert!(Network::from_str("1235").is_err());
     }
 }

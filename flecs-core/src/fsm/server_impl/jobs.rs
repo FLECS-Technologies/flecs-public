@@ -1,6 +1,8 @@
 use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::ServerImpl;
+use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
@@ -28,7 +30,9 @@ impl<
         SYS: Systemus,
         F: Floxy,
         T: UsbDeviceReader,
-    > Jobs for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
+        NET: NetworkAdapterReader,
+        NetDev: NetDeviceReader,
+    > Jobs for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T, NET, NetDev>
 {
     async fn jobs_get(
         &self,
