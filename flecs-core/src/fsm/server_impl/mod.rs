@@ -1,6 +1,7 @@
 mod api;
 mod apps;
 mod console;
+mod deployments;
 mod device;
 mod instances;
 mod jobs;

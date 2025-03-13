@@ -354,6 +354,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/usb_device"
+    deployment_network:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        driver:
+          type: string
+        subnet:
+          $ref: "#/components/schemas/network"
+        parent:
+          type: string
     ipv4_address:
       type: string
       format: ipv4
@@ -723,6 +736,9 @@ tags:
   - name: "Apps"
     x-displayName: "Apps"
     description: Install, manage and uninstall Apps
+  - name: "Deployments"
+    x-displayName: "Deployments"
+    description: Create, manage and query Deployments
   - name: "Instances"
     x-displayName: "Instances"
     description: Create, manage and delete Instances
@@ -869,6 +885,57 @@ paths:
       responses:
         "204":
           description: No content
+  # Deployment related paths
+  /deployments/{deployment_id}/networks:
+    get:
+      tags: [ "Deployments" ]
+      parameters:
+        - name: deployment_id
+          in: path
+          schema:
+            type: string
+            description: The id of the deployment or 'default'
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/deployment_network"
+        "404":
+          description: No deployment with this deployment_id found
+        "500":
+          $ref: "#/components/responses/response_500"
+  /deployments/{deployment_id}/networks/{network_id}:
+    get:
+      tags: [ "Deployments" ]
+      parameters:
+        - name: deployment_id
+          in: path
+          schema:
+            type: string
+            description: The id of the deployment or 'default'
+          required: true
+        - name: network_id
+          in: path
+          schema:
+            type: string
+            description: The id of the network
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/deployment_network"
+        "404":
+          $ref: "#/components/responses/response_404"
+        "500":
+          $ref: "#/components/responses/response_500"
   # Instance related paths
   /instances:
     get:
