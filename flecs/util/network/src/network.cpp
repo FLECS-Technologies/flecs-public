@@ -18,6 +18,10 @@
 
 #include <bitset>
 #include <regex>
+#include <iostream>
+
+#include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
+#include "cxxbridge/rust/cxx.h"
 
 #include "flecs/util/network/ip_addr.h"
 #include "flecs/util/string/string_utils.h"
@@ -73,8 +77,12 @@ auto get_network_adapters() //
     -> std::map<std::string, NetInfo>
 {
     auto adapters = std::map<std::string, NetInfo>{};
-    for (auto adapter : read_network_adapters()) {
-        adapters.insert({std::string(adapter.name.c_str()), std::move(adapter.info)});
+    try {
+        for (auto adapter : read_network_adapters()) {
+            adapters.insert({std::string(adapter.name.c_str()), std::move(adapter.info)});
+        }
+    } catch (const rust::Error& e) {
+        std::cerr << "Error reading network adapters: " << e.what() << "\n";
     }
     return adapters;
 }
