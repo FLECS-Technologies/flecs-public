@@ -13,6 +13,7 @@ use crate::relic::device::usb::UsbDeviceReader;
 use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
+use crate::sorcerer::deploymento::Deploymento;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
@@ -50,6 +51,7 @@ pub struct ServerImpl<
     Q: MageQuester,
     M: Manifesto,
     SYS: Systemus,
+    D: Deploymento,
     F: Floxy,
     T: UsbDeviceReader,
     NET: NetworkAdapterReader,
@@ -60,7 +62,7 @@ pub struct ServerImpl<
     usb_reader: Arc<T>,
     network_adapter_reader: Arc<NET>,
     net_device_reader: Arc<NetDev>,
-    sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS>,
+    sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS, D>,
 }
 
 impl<
@@ -71,14 +73,15 @@ impl<
         Q: MageQuester,
         M: Manifesto,
         SYS: Systemus,
+        D: Deploymento,
         F: Floxy,
         T: UsbDeviceReader,
         NET: NetworkAdapterReader,
         NetDev: NetDeviceReader,
-    > ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T, NET, NetDev>
+    > ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, F, T, NET, NetDev>
 {
     pub async fn new(
-        sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS>,
+        sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS, D>,
         enchantments: Enchantments<F>,
         usb_reader: T,
         network_adapter_reader: NET,
@@ -105,6 +108,7 @@ impl
         crate::sorcerer::mage_quester::MockMageQuester,
         crate::sorcerer::manifesto::MockManifesto,
         crate::sorcerer::systemus::MockSystemus,
+        crate::sorcerer::deploymento::MockDeploymento,
         crate::enchantment::floxy::MockFloxy,
         crate::relic::device::usb::MockUsbDeviceReader,
         crate::relic::network::MockNetworkAdapterReader,
@@ -138,11 +142,12 @@ impl<
         Q: MageQuester,
         M: Manifesto,
         SYS: Systemus,
+        D: Deploymento,
         F: Floxy,
         T: UsbDeviceReader,
         NET: NetworkAdapterReader,
         NetDev: NetDeviceReader,
-    > Flunder for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T, NET, NetDev>
+    > Flunder for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, F, T, NET, NetDev>
 {
     async fn flunder_browse_get(
         &self,

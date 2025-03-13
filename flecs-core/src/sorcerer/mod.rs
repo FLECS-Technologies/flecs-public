@@ -1,5 +1,6 @@
 pub mod appraiser;
 pub mod authmancer;
+pub mod deploymento;
 pub mod instancius;
 pub mod licenso;
 pub mod mage_quester;
@@ -10,6 +11,7 @@ pub mod systemus;
 pub use super::{Error, Result};
 use crate::sorcerer::appraiser::{AppRaiser, AppraiserImpl};
 use crate::sorcerer::authmancer::{Authmancer, AuthmancerImpl};
+use crate::sorcerer::deploymento::{Deploymento, DeploymentoImpl};
 use crate::sorcerer::instancius::{Instancius, InstanciusImpl};
 use crate::sorcerer::licenso::{Licenso, LicensoImpl};
 use crate::sorcerer::mage_quester::{MageQuester, MageQuesterImpl};
@@ -25,6 +27,7 @@ pub type Sorcerers = SorcerersTemplate<
     MageQuesterImpl,
     ManifestoImpl,
     SystemusImpl,
+    DeploymentoImpl,
 >;
 pub trait Sorcerer: Send + Sync {}
 impl Default for Sorcerers {
@@ -37,6 +40,7 @@ impl Default for Sorcerers {
             mage_quester: Default::default(),
             manifesto: Default::default(),
             systemus: Default::default(),
+            deploymento: Default::default(),
         }
     }
 }
@@ -49,6 +53,7 @@ pub struct SorcerersTemplate<
     Q: MageQuester + ?Sized,
     M: Manifesto + ?Sized,
     SYS: Systemus + ?Sized,
+    D: Deploymento + ?Sized,
 > {
     pub app_raiser: Arc<APP>,
     pub authmancer: Arc<AUTH>,
@@ -57,6 +62,7 @@ pub struct SorcerersTemplate<
     pub mage_quester: Arc<Q>,
     pub manifesto: Arc<M>,
     pub systemus: Arc<SYS>,
+    pub deploymento: Arc<D>,
 }
 
 impl<
@@ -67,7 +73,8 @@ impl<
         Q: MageQuester + ?Sized,
         M: Manifesto + ?Sized,
         SYS: Systemus + ?Sized,
-    > Clone for SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS>
+        D: Deploymento + ?Sized,
+    > Clone for SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS, D>
 {
     fn clone(&self) -> Self {
         Self {
@@ -78,6 +85,7 @@ impl<
             mage_quester: self.mage_quester.clone(),
             manifesto: self.manifesto.clone(),
             systemus: self.systemus.clone(),
+            deploymento: self.deploymento.clone(),
         }
     }
 }
@@ -91,6 +99,7 @@ pub type MockSorcerers = SorcerersTemplate<
     crate::sorcerer::mage_quester::MockMageQuester,
     crate::sorcerer::manifesto::MockManifesto,
     crate::sorcerer::systemus::MockSystemus,
+    crate::sorcerer::deploymento::MockDeploymento,
 >;
 
 #[cfg(test)]
@@ -104,6 +113,7 @@ impl Default for MockSorcerers {
             mage_quester: Arc::new(crate::sorcerer::mage_quester::MockMageQuester::default()),
             manifesto: Arc::new(crate::sorcerer::manifesto::MockManifesto::default()),
             systemus: Arc::new(crate::sorcerer::systemus::MockSystemus::default()),
+            deploymento: Arc::new(crate::sorcerer::deploymento::MockDeploymento::default()),
         }
     }
 }
