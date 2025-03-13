@@ -1,5 +1,5 @@
 use crate::relic::device::net::NetDeviceReader;
-use crate::relic::network::Ipv4Network;
+use crate::relic::network::{Ipv4Network, Network};
 use crate::relic::network::{Ipv6Network, NetType, NetworkAdapter, NetworkAdapterReader};
 use crate::sorcerer::systemus::Systemus;
 use flecsd_axum_server::apis::system::SystemNetworkAdaptersNetworkAdapterIdGetResponse as GetResponse;
@@ -74,6 +74,15 @@ pub fn create_network_adapter_model(
         gateway: value.gateway.as_ref().map(ToString::to_string),
         mac_address: value.mac,
         net_type: value.net_type.into(),
+    }
+}
+
+impl From<Network> for models::Network {
+    fn from(value: Network) -> Self {
+        match value {
+            Network::Ipv4(network) => Self::from(network),
+            Network::Ipv6(network) => Self::from(network),
+        }
     }
 }
 
@@ -404,6 +413,10 @@ mod tests {
         assert_eq!(models::Ipv4Network::from(network), expected_model);
         let expected_model = models::Network::Ipv4Network(Box::new(expected_model));
         assert_eq!(models::Network::from(network), expected_model);
+        assert_eq!(
+            models::Network::from(Network::Ipv4(network)),
+            expected_model
+        );
     }
 
     #[test_case("81f2:f385:4800::", 37)]
@@ -431,6 +444,10 @@ mod tests {
         assert_eq!(models::Ipv6Network::from(network), expected_model);
         let expected_model = models::Network::Ipv6Network(Box::new(expected_model));
         assert_eq!(models::Network::from(network), expected_model);
+        assert_eq!(
+            models::Network::from(Network::Ipv6(network)),
+            expected_model
+        );
     }
 
     #[test]

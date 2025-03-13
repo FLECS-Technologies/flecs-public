@@ -8,6 +8,7 @@ use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
+use crate::sorcerer::deploymento::Deploymento;
 use crate::sorcerer::instancius::{
     GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult,
 };
@@ -96,11 +97,12 @@ impl<
         Q: MageQuester,
         M: Manifesto,
         SYS: Systemus,
+        D: Deploymento,
         F: Floxy + 'static,
         T: UsbDeviceReader + 'static,
         NET: NetworkAdapterReader,
         NetDev: NetDeviceReader,
-    > Instances for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T, NET, NetDev>
+    > Instances for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, F, T, NET, NetDev>
 {
     async fn instances_create_post(
         &self,
