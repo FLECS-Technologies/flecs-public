@@ -2,7 +2,6 @@ use crate::jeweler::network::NetworkId;
 use crate::relic::network::{Ipv4NetworkAccess, NetworkAdapter, NetworkAdapterReader};
 use crate::sorcerer::systemus::{ReserveIpv4AddressResult, Systemus};
 use crate::sorcerer::Sorcerer;
-use crate::vault::pouch::Pouch;
 use crate::vault::Vault;
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -27,10 +26,7 @@ impl Systemus for SystemusImpl {
                 .deployment_pouch
                 .as_ref()
                 .expect("Vault reservations should never fail")
-                .gems()
-                .values()
-                .next()
-                .cloned()
+                .default_deployment()
             else {
                 anyhow::bail!("No deployment available");
             };
@@ -94,6 +90,7 @@ mod tests {
             .expect_network()
             .once()
             .returning(|_| Err(anyhow::anyhow!("TestError")));
+        deployment.expect_is_default().return_const(true);
         let vault = create_test_vault_with_deployment(Arc::new(deployment));
         assert!(SystemusImpl::default()
             .reserve_ipv4_address(vault, String::new())
@@ -106,6 +103,7 @@ mod tests {
         let mut deployment = MockedDeployment::new();
         deployment.expect_id().return_const("MockedDeployment");
         deployment.expect_network().once().returning(|_| Ok(None));
+        deployment.expect_is_default().return_const(true);
         let vault = create_test_vault_with_deployment(Arc::new(deployment));
         assert_eq!(
             SystemusImpl::default()
@@ -135,6 +133,7 @@ mod tests {
             .expect_network()
             .times(6)
             .returning(move |_| Ok(Some(bollard_network.clone())));
+        deployment.expect_is_default().return_const(true);
         let vault = create_test_vault_with_deployment(Arc::new(deployment));
         assert_eq!(
             SystemusImpl::default()
