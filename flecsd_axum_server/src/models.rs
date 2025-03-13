@@ -37,6 +37,19 @@ pub struct AppsAppGetQueryParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct DeploymentsDeploymentIdNetworksGetPathParams {
+    pub deployment_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct DeploymentsDeploymentIdNetworksNetworkIdGetPathParams {
+    pub deployment_id: String,
+    pub network_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct FlunderBrowseGetQueryParams {
     #[serde(rename = "q")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1737,6 +1750,186 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AuthResponse
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
                         "Unable to convert header value '{}' into AuthResponseData - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct DeploymentNetwork {
+    #[serde(rename = "name")]
+    pub name: String,
+
+    #[serde(rename = "driver")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub driver: Option<String>,
+
+    #[serde(rename = "subnet")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subnet: Option<models::Network>,
+
+    #[serde(rename = "parent")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent: Option<String>,
+}
+
+impl DeploymentNetwork {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String) -> DeploymentNetwork {
+        DeploymentNetwork {
+            name,
+            driver: None,
+            subnet: None,
+            parent: None,
+        }
+    }
+}
+
+/// Converts the DeploymentNetwork value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for DeploymentNetwork {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            self.driver
+                .as_ref()
+                .map(|driver| ["driver".to_string(), driver.to_string()].join(",")),
+            // Skipping subnet in query parameter serialization
+            self.parent
+                .as_ref()
+                .map(|parent| ["parent".to_string(), parent.to_string()].join(",")),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a DeploymentNetwork value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for DeploymentNetwork {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub driver: Vec<String>,
+            pub subnet: Vec<models::Network>,
+            pub parent: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing DeploymentNetwork".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "driver" => intermediate_rep.driver.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "subnet" => intermediate_rep.subnet.push(
+                        <models::Network as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "parent" => intermediate_rep.parent.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing DeploymentNetwork".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(DeploymentNetwork {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in DeploymentNetwork".to_string())?,
+            driver: intermediate_rep.driver.into_iter().next(),
+            subnet: intermediate_rep.subnet.into_iter().next(),
+            parent: intermediate_rep.parent.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<DeploymentNetwork> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<DeploymentNetwork>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<DeploymentNetwork>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for DeploymentNetwork - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<DeploymentNetwork> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <DeploymentNetwork as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into DeploymentNetwork - {}",
                         value, err
                     )),
                 }
