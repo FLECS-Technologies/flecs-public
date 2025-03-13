@@ -15,8 +15,10 @@
 #include "flecs/util/usb/usb.h"
 
 #include <tuple>
+#include <iostream>
 
 #include "cxxbridge/flecs_core_cxx_bridge/src/lib.rs.h"
+#include "cxxbridge/rust/cxx.h"
 
 namespace flecs {
 namespace usb {
@@ -64,14 +66,18 @@ auto get_devices() //
     -> std::set<device_t>
 {
     auto devices = std::set<device_t>{};
-
-    for (auto device : read_usb_devices()) {
-        devices.insert(device_t{
-            device.vid,
-            device.pid,
-            device.port.c_str(),
-            device.device.c_str(),
-            device.vendor.c_str()});
+    try {
+        for (auto device : read_usb_devices()) {
+            devices.insert(
+                device_t{
+                    device.vid,
+                    device.pid,
+                    device.port.c_str(),
+                    device.device.c_str(),
+                    device.vendor.c_str()});
+        }
+    } catch (const rust::Error& e) {
+        std::cerr << "Error reading usb devices: " << e.what() << "\n";
     }
     return devices;
 }
