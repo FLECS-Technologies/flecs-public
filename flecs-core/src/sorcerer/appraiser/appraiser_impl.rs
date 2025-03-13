@@ -935,6 +935,7 @@ pub mod tests {
             .expect_install_app()
             .once()
             .returning(|_, _, _| Ok("TestAppId".to_string()));
+        deployment.expect_is_default().return_const(true);
         let deployment: Arc<dyn Deployment> = Arc::new(deployment);
         let vault = create_empty_test_vault();
         vault
@@ -1016,6 +1017,7 @@ pub mod tests {
             .expect_install_app()
             .times(app_count)
             .returning(|_, _, _| Ok("TestAppId".to_string()));
+        deployment.expect_is_default().return_const(true);
         let deployment: Arc<dyn Deployment> = Arc::new(deployment);
         let vault = create_empty_test_vault();
         vault
@@ -1097,6 +1099,7 @@ pub mod tests {
             .expect_install_app()
             .times(installed_app_count)
             .returning(|_, _, _| Ok("TestAppId".to_string()));
+        deployment.expect_is_default().return_const(true);
         let deployment: Arc<dyn Deployment> = Arc::new(deployment);
         let vault = create_empty_test_vault();
         vault

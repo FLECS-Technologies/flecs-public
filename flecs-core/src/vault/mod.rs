@@ -237,6 +237,7 @@ impl Vault {
                             Deployment::Docker(default) => default,
                         }),
                     );
+                    deployment_pouch_mut.set_default_deployment();
                     info!("No deployments configured, added default Docker deployment");
                 }
             }
@@ -522,11 +523,9 @@ pub mod tests {
         let mut vault = Vault::new(VaultConfig {
             path: testdir!().join("vault"),
         });
-        vault
-            .deployment_pouch
-            .get_mut()
-            .gems_mut()
-            .insert(deployment.id(), deployment);
+        let deployments = vault.deployment_pouch.get_mut();
+        deployments.gems_mut().insert(deployment.id(), deployment);
+        deployments.set_default_deployment();
         Arc::new(vault)
     }
 
