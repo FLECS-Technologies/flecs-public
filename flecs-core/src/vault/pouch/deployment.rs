@@ -18,7 +18,7 @@ pub enum Deployment {
 
 impl Default for Deployment {
     fn default() -> Self {
-        Self::Docker(DockerDeployment::new(
+        Self::Docker(DockerDeployment::new_default(
             "DefaultDockerDeployment".to_string(),
             PathBuf::from("/var/run/docker.sock"),
         ))
@@ -38,6 +38,7 @@ pub type DeploymentId = String;
 #[derive(Debug)]
 pub struct DeploymentPouch {
     deployments: HashMap<DeploymentId, Arc<dyn DeploymentTrait>>,
+    default_deployment_id: Option<DeploymentId>,
     path: PathBuf,
 }
 
@@ -55,6 +56,7 @@ impl Pouch for DeploymentPouch {
 
 impl DeploymentPouch {
     pub(in super::super) fn close(&mut self) -> Result<()> {
+        self.set_default_deployment();
         fs::create_dir_all(&self.path)?;
         let file = fs::File::create(self.deployments_path())?;
         serde_json::to_writer_pretty(file, &SerdeIteratorAdapter::new(self.deployments.values()))?;
@@ -73,6 +75,7 @@ impl DeploymentPouch {
                 (id, deployment)
             })
             .collect();
+        self.set_default_deployment();
         Ok(())
     }
 }
@@ -90,7 +93,23 @@ impl DeploymentPouch {
         Self {
             deployments: Default::default(),
             path: path.to_path_buf(),
+            default_deployment_id: Default::default(),
         }
+    }
+
+    pub fn default_deployment(&self) -> Option<Arc<dyn DeploymentTrait>> {
+        self.deployments
+            .get(self.default_deployment_id.as_ref()?)
+            .cloned()
+    }
+
+    pub fn set_default_deployment(&mut self) {
+        self.default_deployment_id = self
+            .deployments
+            .values()
+            .find(|deployment| deployment.is_default())
+            .or_else(|| self.deployments.values().next())
+            .map(|deployment| deployment.id())
     }
 
     fn deployments_path(&self) -> PathBuf {
@@ -122,13 +141,16 @@ pub mod tests {
             deployment
                 .expect_id()
                 .returning(|| "DefaultMockedDeploymentId".to_string());
+            deployment.expect_is_default().return_const(true);
             Arc::new(deployment)
         });
+        let default_deployment_id = Some(deployment.id());
         let deployments: HashMap<String, Arc<dyn crate::jeweler::deployment::Deployment>> =
             HashMap::from([(deployment.id(), deployment)]);
         DeploymentPouch {
             path: testdir!().join("deployments"),
             deployments,
+            default_deployment_id,
         }
     }
 
@@ -136,7 +158,8 @@ pub mod tests {
         json!([{
                 "type": "Docker",
                 "id": TEST_DEPLOYMENT_ID,
-                "path": TEST_DEPLOYMENT_SOCK_PATH
+                "path": TEST_DEPLOYMENT_SOCK_PATH,
+                "is_default": false,
         }])
     }
 
@@ -179,10 +202,12 @@ pub mod tests {
             TEST_DEPLOYMENT_ID.to_string(),
             PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
         ));
+        let default_deployment_id = Some(deployment.id());
         let gems = HashMap::from([(TEST_DEPLOYMENT_ID.to_string(), deployment)]);
         let mut deployment_pouch = DeploymentPouch {
             deployments: gems,
             path: prepare_test_path(module_path!(), "gems"),
+            default_deployment_id,
         };
         assert_eq!(deployment_pouch.gems().len(), 1);
         assert_eq!(
@@ -238,9 +263,11 @@ pub mod tests {
             TEST_DEPLOYMENT_ID.to_string(),
             PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
         ));
+        let default_deployment_id = Some(deployment.id());
         let mut deployment_pouch = DeploymentPouch {
             deployments: HashMap::from([(TEST_DEPLOYMENT_ID.to_string(), deployment)]),
             path: path.parent().unwrap().to_path_buf(),
+            default_deployment_id,
         };
         deployment_pouch.close().unwrap();
         let file_content: serde_json::Value =
@@ -274,6 +301,120 @@ pub mod tests {
                     PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
                 ))
             ]
+        );
+    }
+
+    #[test]
+    fn get_default_deployment_no_id() {
+        let deployment: Arc<dyn jeweler::deployment::Deployment> =
+            Arc::new(MockedDeployment::new());
+        let pouch = DeploymentPouch {
+            path: testdir!(),
+            default_deployment_id: None,
+            deployments: HashMap::from([("MockDeployment".to_string(), deployment)]),
+        };
+        assert!(pouch.default_deployment().is_none());
+    }
+
+    #[test]
+    fn get_default_deployment_no_deployment() {
+        let deployment: Arc<dyn jeweler::deployment::Deployment> =
+            Arc::new(MockedDeployment::new());
+        let pouch = DeploymentPouch {
+            path: testdir!(),
+            default_deployment_id: Some("DefaultDeployment".to_string()),
+            deployments: HashMap::from([("MockDeployment".to_string(), deployment)]),
+        };
+        assert!(pouch.default_deployment().is_none());
+    }
+
+    #[test]
+    fn get_default_deployment_some() {
+        let deployments = HashMap::from_iter(
+            [
+                "MockDeployment1",
+                "MockDeployment2",
+                "MockDeployment3",
+                "DefaultDeployment",
+            ]
+            .map(|name| {
+                let mut deployment = MockedDeployment::new();
+                deployment.expect_id().return_const(name);
+                let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(deployment);
+                (deployment.id(), deployment)
+            }),
+        );
+        let pouch = DeploymentPouch {
+            path: testdir!(),
+            default_deployment_id: Some("DefaultDeployment".to_string()),
+            deployments,
+        };
+        assert_eq!(
+            pouch.default_deployment().unwrap().id(),
+            "DefaultDeployment"
+        );
+    }
+
+    #[test]
+    fn set_default_deployment_no_deployment() {
+        let mut pouch = DeploymentPouch {
+            path: testdir!(),
+            default_deployment_id: Some("DefaultDeployment".to_string()),
+            deployments: HashMap::new(),
+        };
+        pouch.set_default_deployment();
+        assert!(pouch.default_deployment_id.is_none());
+    }
+
+    #[test]
+    fn set_default_deployment_no_default_deployment() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment.expect_is_default().return_const(false);
+        let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(deployment);
+        let mut pouch = DeploymentPouch {
+            path: testdir!(),
+            default_deployment_id: None,
+            deployments: HashMap::from([("MockedDeployment".to_string(), deployment)]),
+        };
+        pouch.set_default_deployment();
+        assert_eq!(
+            pouch.default_deployment_id,
+            Some("MockedDeployment".to_string())
+        );
+    }
+
+    #[test]
+    fn set_default_deployment_some_default_deployment() {
+        const DEFAULT_DEPLOYMENT_ID: &str = "DefaultDeployment";
+        let deployments = HashMap::from_iter(
+            [
+                "MockDeployment1",
+                "MockDeployment2",
+                "MockDeployment3",
+                DEFAULT_DEPLOYMENT_ID,
+            ]
+            .map(|name| {
+                let mut deployment = MockedDeployment::new();
+                deployment.expect_id().return_const(name);
+                deployment
+                    .expect_is_default()
+                    .return_const(name == DEFAULT_DEPLOYMENT_ID);
+                let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(deployment);
+                (deployment.id(), deployment)
+            }),
+        );
+        let mut pouch = DeploymentPouch {
+            path: testdir!(),
+            default_deployment_id: None,
+            deployments,
+        };
+        pouch.set_default_deployment();
+        assert_eq!(
+            pouch.default_deployment_id,
+            Some(DEFAULT_DEPLOYMENT_ID.to_string())
         );
     }
 }

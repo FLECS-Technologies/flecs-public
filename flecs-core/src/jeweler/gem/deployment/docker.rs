@@ -36,6 +36,8 @@ use tracing::{debug, warn};
 pub struct DockerDeployment {
     id: DeploymentId,
     path: PathBuf,
+    #[serde(default)]
+    is_default: bool,
     #[serde(skip, default = "default_network_adapter_reader")]
     network_adapter_reader: Box<dyn NetworkAdapterReader>,
 }
@@ -47,14 +49,23 @@ impl std::fmt::Debug for DockerDeployment {
         struct DockerDeployment<'a> {
             id: &'a DeploymentId,
             path: &'a PathBuf,
+            is_default: &'a bool,
         }
 
         let Self {
             id,
             path,
+            is_default,
             network_adapter_reader: _,
         } = self;
-        std::fmt::Debug::fmt(&DockerDeployment { id, path }, f)
+        std::fmt::Debug::fmt(
+            &DockerDeployment {
+                id,
+                path,
+                is_default,
+            },
+            f,
+        )
     }
 }
 
@@ -84,6 +95,16 @@ impl DockerDeployment {
             id,
             path,
             network_adapter_reader: default_network_adapter_reader(),
+            is_default: false,
+        }
+    }
+
+    pub fn new_default(id: String, path: PathBuf) -> Self {
+        Self {
+            id,
+            path,
+            network_adapter_reader: default_network_adapter_reader(),
+            is_default: true,
         }
     }
 
@@ -1043,6 +1064,10 @@ impl InstanceDeployment for DockerDeployment {
 impl jeweler::deployment::Deployment for DockerDeployment {
     fn id(&self) -> jeweler::deployment::DeploymentId {
         self.id.clone()
+    }
+
+    fn is_default(&self) -> bool {
+        self.is_default
     }
 }
 

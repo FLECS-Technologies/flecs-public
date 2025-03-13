@@ -19,6 +19,7 @@ pub trait Deployment:
     + erased_serde::Serialize
 {
     fn id(&self) -> DeploymentId;
+    fn is_default(&self) -> bool;
 }
 
 serialize_trait_object!(Deployment);
@@ -148,6 +149,7 @@ pub mod tests {
         #[async_trait]
         impl Deployment for edDeployment {
             fn id(&self) -> DeploymentId;
+            fn is_default(&self) -> bool;
         }
     }
 
