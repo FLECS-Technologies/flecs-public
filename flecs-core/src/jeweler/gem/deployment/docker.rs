@@ -914,13 +914,7 @@ impl NetworkDeployment for DockerDeployment {
 
     async fn networks(&self, _quest: SyncQuest) -> anyhow::Result<Vec<Network>> {
         let docker_client = self.client()?;
-        relic::docker::network::list(
-            docker_client,
-            Some(ListNetworksOptions {
-                filters: HashMap::from([("name", vec!["flecs.*"])]),
-            }),
-        )
-        .await
+        relic::docker::network::list::<String>(docker_client, None).await
     }
 
     async fn connect_network(
