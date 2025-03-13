@@ -3,6 +3,7 @@ Cargo.toml
 README.md
 src/apis/apps.rs
 src/apis/console.rs
+src/apis/deployments.rs
 src/apis/device.rs
 src/apis/flunder.rs
 src/apis/instances.rs
