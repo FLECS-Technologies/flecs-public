@@ -760,14 +760,19 @@ impl Instance {
         &mut self,
         network_id: NetworkId,
     ) -> crate::Result<Option<IpAddr>> {
-        match (
+        let disconnect_result = if self.is_running().await? {
             self.deployment
                 .disconnect_network(
                     Quest::new_synced(format!("Disconnect {} from network {network_id}", self.id)),
                     network_id.clone(),
                     self.id,
                 )
-                .await,
+                .await
+        } else {
+            Ok(())
+        };
+        match (
+            disconnect_result,
             self.config.connected_networks.entry(network_id),
         ) {
             (_, Entry::Vacant(_)) => Ok(None),
@@ -2155,21 +2160,30 @@ pub mod tests {
     }
 
     fn disconnect_test_instance(
-        mock_result: crate::Result<()>,
+        disconnect_mock_result: Option<crate::Result<()>>,
+        status_mock_result: Option<crate::Result<InstanceStatus>>,
         connected_networks: HashMap<String, IpAddr>,
     ) -> Instance {
         const INSTANCE_ID: InstanceId = InstanceId::new(10);
         let manifest = crate::vault::pouch::manifest::tests::min_app_1_1_0_manifest();
         let mut deployment = MockedDeployment::new();
-        deployment
-            .expect_disconnect_network()
-            .once()
-            .with(
-                predicate::always(),
-                predicate::eq("TestNetwork".to_string()),
-                predicate::eq(INSTANCE_ID),
-            )
-            .return_once(|_, _, _| mock_result);
+        if let Some(mock_result) = disconnect_mock_result {
+            deployment
+                .expect_disconnect_network()
+                .once()
+                .with(
+                    predicate::always(),
+                    predicate::eq("TestNetwork".to_string()),
+                    predicate::eq(INSTANCE_ID),
+                )
+                .return_once(|_, _, _| mock_result);
+        }
+        if let Some(mock_result) = status_mock_result {
+            deployment
+                .expect_instance_status()
+                .with(predicate::eq(INSTANCE_ID))
+                .return_once(|_| mock_result);
+        }
         Instance {
             name: "TestInstance".to_string(),
             hostname: INSTANCE_ID.to_docker_id(),
@@ -2186,7 +2200,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_disconnect_network_unknown_ok() {
-        let mut instance = disconnect_test_instance(Ok(()), HashMap::new());
+        let mut instance = disconnect_test_instance(
+            Some(Ok(())),
+            Some(Ok(InstanceStatus::Running)),
+            HashMap::new(),
+        );
         assert_eq!(
             instance
                 .disconnect_network("TestNetwork".to_string())
@@ -2198,8 +2216,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_disconnect_network_unknown_err() {
-        let mut instance =
-            disconnect_test_instance(Err(anyhow::anyhow!("TestError")), HashMap::new());
+        let mut instance = disconnect_test_instance(
+            Some(Err(anyhow::anyhow!("TestError"))),
+            Some(Ok(InstanceStatus::Running)),
+            HashMap::new(),
+        );
         assert_eq!(
             instance
                 .disconnect_network("TestNetwork".to_string())
@@ -2213,7 +2234,8 @@ pub mod tests {
     async fn instance_disconnect_network_ok() {
         let ip_address = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
         let mut instance = disconnect_test_instance(
-            Ok(()),
+            Some(Ok(())),
+            Some(Ok(InstanceStatus::Running)),
             HashMap::from([("TestNetwork".to_string(), ip_address)]),
         );
         assert_eq!(
@@ -2226,10 +2248,25 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn instance_disconnect_network_err() {
+    async fn instance_disconnect_network_err_disconnect() {
         let ip_address = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
         let mut instance = disconnect_test_instance(
-            Err(anyhow::anyhow!("TestError")),
+            Some(Err(anyhow::anyhow!("TestError"))),
+            Some(Ok(InstanceStatus::Running)),
+            HashMap::from([("TestNetwork".to_string(), ip_address)]),
+        );
+        assert!(instance
+            .disconnect_network("TestNetwork".to_string())
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_err_status() {
+        let ip_address = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
+        let mut instance = disconnect_test_instance(
+            None,
+            Some(Err(anyhow::anyhow!("TestError"))),
             HashMap::from([("TestNetwork".to_string(), ip_address)]),
         );
         assert!(instance

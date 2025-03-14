@@ -626,9 +626,16 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams,
+        path_params: InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams,
     ) -> Result<InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::networks::network_id::delete(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                path_params,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_networks_network_id_get(

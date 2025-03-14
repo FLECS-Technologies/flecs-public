@@ -1,9 +1,15 @@
 use crate::jeweler::gem::instance::InstanceId;
-use crate::sorcerer::instancius::{GetInstanceConfigNetworkResult, Instancius};
+use crate::sorcerer::instancius::{
+    DisconnectInstanceError, GetInstanceConfigNetworkResult, Instancius,
+};
 use crate::vault::Vault;
+use flecsd_axum_server::apis::instances::InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse as DeleteResponse;
 use flecsd_axum_server::apis::instances::InstancesInstanceIdConfigNetworksNetworkIdGetResponse as GetResponse;
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::InstancesInstanceIdConfigNetworksNetworkIdGetPathParams as GetPathParams;
+use flecsd_axum_server::models::{
+    AdditionalInfo, InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams as DeletePathParams,
+};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -28,6 +34,27 @@ pub async fn get<T: Instancius>(
                 name,
                 ip_address: address.to_string(),
             })
+        }
+    }
+}
+
+pub async fn delete<T: Instancius>(
+    vault: Arc<Vault>,
+    instancius: Arc<T>,
+    path_params: DeletePathParams,
+) -> DeleteResponse {
+    let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+    match instancius
+        .disconnect_instance_from_network(vault, instance_id, path_params.network_id)
+        .await
+    {
+        Ok(_) => DeleteResponse::Status200_Success,
+        Err(DisconnectInstanceError::InstanceNotFound(_))
+        | Err(DisconnectInstanceError::InstanceNotConnected { .. }) => {
+            DeleteResponse::Status404_InstanceIdOrNetworkNotFound
+        }
+        Err(DisconnectInstanceError::Other(reason)) => {
+            DeleteResponse::Status500_InternalServerError(AdditionalInfo::new(reason))
         }
     }
 }
@@ -128,6 +155,92 @@ mod tests {
             )
             .await,
             GetResponse::Status404_InstanceIdOrNetworkNotFound
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_200() {
+        let vault = create_empty_test_vault();
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_disconnect_instance_from_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(INSTANCE_ID),
+                predicate::eq(NETWORK_NAME.to_string()),
+            )
+            .returning(|_, _, _| Ok(IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40))));
+        assert_eq!(
+            delete(
+                vault,
+                Arc::new(instancius),
+                DeletePathParams {
+                    instance_id: INSTANCE_ID.to_string(),
+                    network_id: NETWORK_NAME.to_string(),
+                },
+            )
+            .await,
+            DeleteResponse::Status200_Success
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_404_instance() {
+        let vault = create_empty_test_vault();
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_disconnect_instance_from_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(INSTANCE_ID),
+                predicate::eq(NETWORK_NAME.to_string()),
+            )
+            .returning(|_, _, _| Err(DisconnectInstanceError::InstanceNotFound(INSTANCE_ID)));
+        assert_eq!(
+            delete(
+                vault,
+                Arc::new(instancius),
+                DeletePathParams {
+                    instance_id: INSTANCE_ID.to_string(),
+                    network_id: NETWORK_NAME.to_string(),
+                },
+            )
+            .await,
+            DeleteResponse::Status404_InstanceIdOrNetworkNotFound
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_404_network() {
+        let vault = create_empty_test_vault();
+        let mut instancius = MockInstancius::new();
+        instancius
+            .expect_disconnect_instance_from_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(INSTANCE_ID),
+                predicate::eq(NETWORK_NAME.to_string()),
+            )
+            .returning(|_, _, _| {
+                Err(DisconnectInstanceError::InstanceNotConnected {
+                    network: NETWORK_NAME.to_string(),
+                    instance: INSTANCE_ID,
+                })
+            });
+        assert_eq!(
+            delete(
+                vault,
+                Arc::new(instancius),
+                DeletePathParams {
+                    instance_id: INSTANCE_ID.to_string(),
+                    network_id: NETWORK_NAME.to_string(),
+                },
+            )
+            .await,
+            DeleteResponse::Status404_InstanceIdOrNetworkNotFound
         );
     }
 }
