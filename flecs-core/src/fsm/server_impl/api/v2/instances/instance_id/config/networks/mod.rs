@@ -1,3 +1,4 @@
+pub mod network_id;
 
 use crate::sorcerer::instancius::Instancius;
 use crate::vault::pouch::instance::InstanceId;
