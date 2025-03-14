@@ -440,6 +440,16 @@ components:
           $ref: "#/components/schemas/network_type"
         is_connected:
           type: boolean
+    instance_config_network:
+      required:
+        - name
+        - ipAddress
+      properties:
+        name:
+          type: string
+        ipAddress:
+          type: string
+          format: ipv4
     instance_config_network_adapter:
       type: object
       required:
@@ -1674,6 +1684,117 @@ paths:
           $ref: "#/components/responses/response_400"
         "404":
           description: No instance with this instance_id found
+  /instances/{instance_id}/config/networks:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve connected networks of instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/instance_config_network"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: Instance id not found
+    post:
+      tags: [ "Instances" ]
+      summary: Connect instance to network
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                network_id:
+                  type: string
+                ip_address_suggestion:
+                  type: string
+                  format: ipv4
+              required:
+                - network_id
+      responses:
+        "201":
+          description: Instance connected
+          headers:
+            Location:
+              schema:
+                type: string
+              required: true
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: Instance id or network not found
+        "409":
+          description: Instance already connected to Network
+        "500":
+          $ref: "#/components/responses/response_500"
+  /instances/{instance_id}/config/networks/{network_id}:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve connected network of instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: network_id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/instance_config_network"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: Instance id or network not found
+    delete:
+      tags: [ "Instances" ]
+      summary: Remove connected network of instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: network_id
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: Instance id or network not found
+        "500":
+          $ref: "#/components/responses/response_500"
   /instances/{instance_id}/config/labels/{label_name}:
     get:
       tags: [ "Instances" ]

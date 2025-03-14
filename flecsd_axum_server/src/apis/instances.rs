@@ -206,6 +206,60 @@ pub enum InstancesInstanceIdConfigLabelsLabelNameGetResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigNetworksGetResponse {
+    /// Success
+    Status200_Success(Vec<models::InstanceConfigNetwork>),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Instance id not found
+    Status404_InstanceIdNotFound,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse {
+    /// Success
+    Status200_Success,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Instance id or network not found
+    Status404_InstanceIdOrNetworkNotFound,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigNetworksNetworkIdGetResponse {
+    /// Success
+    Status200_Success(models::InstanceConfigNetwork),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Instance id or network not found
+    Status404_InstanceIdOrNetworkNotFound,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigNetworksPostResponse {
+    /// Instance connected
+    Status201_InstanceConnected { location: String },
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Instance id or network not found
+    Status404_InstanceIdOrNetworkNotFound,
+    /// Instance already connected to Network
+    Status409_InstanceAlreadyConnectedToNetwork,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdConfigPortsDeleteResponse {
     /// Exposed ports of instance with this instance_id was deleted
     Status200_ExposedPortsOfInstanceWithThisInstance,
@@ -570,6 +624,51 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigLabelsLabelNameGetPathParams,
     ) -> Result<InstancesInstanceIdConfigLabelsLabelNameGetResponse, ()>;
+
+    /// Retrieve connected networks of instance.
+    ///
+    /// InstancesInstanceIdConfigNetworksGet - GET /v2/instances/{instance_id}/config/networks
+    async fn instances_instance_id_config_networks_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigNetworksGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigNetworksGetResponse, ()>;
+
+    /// Remove connected network of instance.
+    ///
+    /// InstancesInstanceIdConfigNetworksNetworkIdDelete - DELETE /v2/instances/{instance_id}/config/networks/{network_id}
+    async fn instances_instance_id_config_networks_network_id_delete(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse, ()>;
+
+    /// Retrieve connected network of instance.
+    ///
+    /// InstancesInstanceIdConfigNetworksNetworkIdGet - GET /v2/instances/{instance_id}/config/networks/{network_id}
+    async fn instances_instance_id_config_networks_network_id_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigNetworksNetworkIdGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigNetworksNetworkIdGetResponse, ()>;
+
+    /// Connect instance to network.
+    ///
+    /// InstancesInstanceIdConfigNetworksPost - POST /v2/instances/{instance_id}/config/networks
+    async fn instances_instance_id_config_networks_post(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigNetworksPostPathParams,
+        body: models::InstancesInstanceIdConfigNetworksPostRequest,
+    ) -> Result<InstancesInstanceIdConfigNetworksPostResponse, ()>;
 
     /// Delete exposed ports of an instance.
     ///
