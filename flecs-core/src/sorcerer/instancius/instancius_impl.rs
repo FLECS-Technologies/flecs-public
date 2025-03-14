@@ -604,6 +604,17 @@ impl Instancius for InstanciusImpl {
         .await
     }
 
+    async fn get_instance_config_networks(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Option<HashMap<String, IpAddr>> {
+        spell::instance::get_instance_config_part_with(vault, id, |config| {
+            config.connected_networks.clone()
+        })
+        .await
+    }
+
     async fn delete_instance<F: Floxy + 'static>(
         &self,
         quest: SyncQuest,
@@ -747,9 +758,9 @@ pub mod tests {
         SINGLE_INSTANCE_APP_VERSION, UNKNOWN_APP_NAME, UNKNOWN_APP_VERSION,
     };
     use crate::vault::pouch::instance::tests::{
-        test_instances, test_port_mapping, EDITOR_INSTANCE, ENV_INSTANCE, LABEL_INSTANCE,
-        PORT_MAPPING_INSTANCE, RUNNING_INSTANCE, UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2,
-        UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
+        network_instance, test_instances, test_port_mapping, EDITOR_INSTANCE, ENV_INSTANCE,
+        LABEL_INSTANCE, NETWORK_INSTANCE, PORT_MAPPING_INSTANCE, RUNNING_INSTANCE,
+        UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2, UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
     };
     use crate::vault::pouch::Pouch;
     use bollard::models::{Ipam, IpamConfig, Network};
@@ -2488,6 +2499,26 @@ pub mod tests {
             .config
             .environment_variables
             .is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_networks_none() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert!(InstanciusImpl::default()
+            .get_instance_config_networks(vault, UNKNOWN_INSTANCE_2)
+            .await
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_networks_some() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_networks(vault, NETWORK_INSTANCE)
+                .await,
+            Some(network_instance().config.connected_networks)
+        );
     }
 
     #[tokio::test]
