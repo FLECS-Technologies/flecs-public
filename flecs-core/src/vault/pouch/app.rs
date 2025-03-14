@@ -137,6 +137,7 @@ pub mod tests {
             minimal_app_2(),
             label_app(),
             editor_app(),
+            network_app(),
         ]
     }
 
@@ -253,6 +254,22 @@ pub mod tests {
             },
             deployments: vec![AppDataDeserializable {
                 id: Some("67438969213497".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
+            }],
+        }
+    }
+
+    pub const NETWORK_APP_NAME: &str = "tech.flecs.network-app";
+    pub const NETWORK_APP_VERSION: &str = "1.2.12";
+    fn network_app() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: NETWORK_APP_NAME.to_string(),
+                version: NETWORK_APP_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("7843584357".to_string()),
                 deployment_id: "".to_string(),
                 desired: AppStatus::Installed,
             }],

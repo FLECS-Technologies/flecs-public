@@ -130,6 +130,7 @@ pub mod tests {
             multi_instance_app_manifest(),
             label_manifest(),
             editor_manifest(),
+            network_manifest(),
         ]
     }
 
@@ -245,6 +246,16 @@ pub mod tests {
                    "supportsReverseProxy": false
                 },
             ]
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn network_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.network-app",
+            "version": "1.2.12",
+            "image": "flecs.azurecr.io/tech.flecs.network-app"
         });
         manifest_from_json(&json)
     }

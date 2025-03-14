@@ -15,6 +15,7 @@ pub use instancius_impl::InstanciusImpl;
 #[cfg(test)]
 use mockall::automock;
 use std::collections::HashMap;
+use std::net::IpAddr;
 use std::num::NonZeroU16;
 use std::sync::Arc;
 pub type UsbDevices = Vec<(UsbPathConfig, Option<UsbDevice>)>;
@@ -251,6 +252,12 @@ pub trait Instancius: Sorcerer {
         vault: Arc<Vault>,
         id: InstanceId,
     ) -> Option<Vec<EnvironmentVariable>>;
+
+    async fn get_instance_config_networks(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Option<HashMap<String, IpAddr>>;
 
     async fn delete_instance<F: Floxy + 'static>(
         &self,
