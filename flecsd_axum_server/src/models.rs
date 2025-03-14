@@ -293,6 +293,60 @@ lazy_static::lazy_static! {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigNetworksGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGNETWORKSGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGNETWORKSGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGNETWORKSNETWORKIDDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    pub network_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGNETWORKSNETWORKIDDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigNetworksNetworkIdGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGNETWORKSNETWORKIDGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    pub network_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGNETWORKSNETWORKIDGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigNetworksPostPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGNETWORKSPOSTPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGNETWORKSPOSTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigPortsDeletePathParams {
     #[validate(
                           regex(path = *RE_INSTANCESINSTANCEIDCONFIGPORTSDELETEPATHPARAMS_INSTANCE_ID),
@@ -3784,6 +3838,158 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceConf
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstanceConfigNetwork {
+    #[serde(rename = "name")]
+    pub name: String,
+
+    #[serde(rename = "ipAddress")]
+    pub ip_address: String,
+}
+
+impl InstanceConfigNetwork {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String, ip_address: String) -> InstanceConfigNetwork {
+        InstanceConfigNetwork { name, ip_address }
+    }
+}
+
+/// Converts the InstanceConfigNetwork value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstanceConfigNetwork {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            Some("ipAddress".to_string()),
+            Some(self.ip_address.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstanceConfigNetwork value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstanceConfigNetwork {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub ip_address: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing InstanceConfigNetwork".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "ipAddress" => intermediate_rep.ip_address.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing InstanceConfigNetwork".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstanceConfigNetwork {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in InstanceConfigNetwork".to_string())?,
+            ip_address: intermediate_rep
+                .ip_address
+                .into_iter()
+                .next()
+                .ok_or_else(|| "ipAddress missing in InstanceConfigNetwork".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstanceConfigNetwork> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<InstanceConfigNetwork>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstanceConfigNetwork>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for InstanceConfigNetwork - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstanceConfigNetwork> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <InstanceConfigNetwork as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into InstanceConfigNetwork - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstanceConfigNetworkAdapter {
     #[serde(rename = "name")]
     pub name: String,
@@ -7229,6 +7435,165 @@ impl std::convert::TryFrom<HeaderValue>
                         std::result::Result::Ok(value) => std::result::Result::Ok(header::IntoHeaderValue(value)),
                         std::result::Result::Err(err) => std::result::Result::Err(
                             format!("Unable to convert header value '{}' into InstancesInstanceIdConfigLabelsLabelNameGet200Response - {}",
+                                value, err))
+                    }
+             },
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Unable to convert header: {:?} to string: {}",
+                     hdr_value, e))
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigNetworksPostRequest {
+    #[serde(rename = "network_id")]
+    pub network_id: String,
+
+    #[serde(rename = "ip_address_suggestion")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ip_address_suggestion: Option<String>,
+}
+
+impl InstancesInstanceIdConfigNetworksPostRequest {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(network_id: String) -> InstancesInstanceIdConfigNetworksPostRequest {
+        InstancesInstanceIdConfigNetworksPostRequest {
+            network_id,
+            ip_address_suggestion: None,
+        }
+    }
+}
+
+/// Converts the InstancesInstanceIdConfigNetworksPostRequest value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstancesInstanceIdConfigNetworksPostRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("network_id".to_string()),
+            Some(self.network_id.to_string()),
+            self.ip_address_suggestion
+                .as_ref()
+                .map(|ip_address_suggestion| {
+                    [
+                        "ip_address_suggestion".to_string(),
+                        ip_address_suggestion.to_string(),
+                    ]
+                    .join(",")
+                }),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstancesInstanceIdConfigNetworksPostRequest value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstancesInstanceIdConfigNetworksPostRequest {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub network_id: Vec<String>,
+            pub ip_address_suggestion: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val =
+                match string_iter.next() {
+                    Some(x) => x,
+                    None => return std::result::Result::Err(
+                        "Missing value while parsing InstancesInstanceIdConfigNetworksPostRequest"
+                            .to_string(),
+                    ),
+                };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "network_id" => intermediate_rep.network_id.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "ip_address_suggestion" => intermediate_rep.ip_address_suggestion.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => return std::result::Result::Err(
+                        "Unexpected key while parsing InstancesInstanceIdConfigNetworksPostRequest"
+                            .to_string(),
+                    ),
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstancesInstanceIdConfigNetworksPostRequest {
+            network_id: intermediate_rep
+                .network_id
+                .into_iter()
+                .next()
+                .ok_or_else(|| {
+                    "network_id missing in InstancesInstanceIdConfigNetworksPostRequest".to_string()
+                })?,
+            ip_address_suggestion: intermediate_rep.ip_address_suggestion.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstancesInstanceIdConfigNetworksPostRequest> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<InstancesInstanceIdConfigNetworksPostRequest>>
+    for HeaderValue
+{
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<InstancesInstanceIdConfigNetworksPostRequest>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+             std::result::Result::Ok(value) => std::result::Result::Ok(value),
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Invalid header value for InstancesInstanceIdConfigNetworksPostRequest - value: {} is invalid {}",
+                     hdr_value, e))
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue>
+    for header::IntoHeaderValue<InstancesInstanceIdConfigNetworksPostRequest>
+{
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+             std::result::Result::Ok(value) => {
+                    match <InstancesInstanceIdConfigNetworksPostRequest as std::str::FromStr>::from_str(value) {
+                        std::result::Result::Ok(value) => std::result::Result::Ok(header::IntoHeaderValue(value)),
+                        std::result::Result::Err(err) => std::result::Result::Err(
+                            format!("Unable to convert header value '{}' into InstancesInstanceIdConfigNetworksPostRequest - {}",
                                 value, err))
                     }
              },
