@@ -117,6 +117,12 @@ where
         .route("/v2/instances/:instance_id/config/labels/:label_name",
             get(instances_instance_id_config_labels_label_name_get::<I, A>)
         )
+        .route("/v2/instances/:instance_id/config/networks",
+            get(instances_instance_id_config_networks_get::<I, A>)
+        )
+        .route("/v2/instances/:instance_id/config/networks/:network_id",
+            delete(instances_instance_id_config_networks_network_id_delete::<I, A>).get(instances_instance_id_config_networks_network_id_get::<I, A>).put(instances_instance_id_config_networks_network_id_put::<I, A>)
+        )
         .route("/v2/instances/:instance_id/config/ports",
             delete(instances_instance_id_config_ports_delete::<I, A>).get(instances_instance_id_config_ports_get::<I, A>)
         )
@@ -3180,6 +3186,429 @@ where
                                                     (body)
                                                 => {
                                                   let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_networks_get_validation(
+    path_params: models::InstancesInstanceIdConfigNetworksGetPathParams,
+) -> std::result::Result<(models::InstancesInstanceIdConfigNetworksGetPathParams,), ValidationErrors>
+{
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigNetworksGet - GET /v2/instances/{instance_id}/config/networks
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_networks_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigNetworksGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_networks_get_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_networks_get(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigNetworksGetResponse::Status200_Success
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksGetResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksGetResponse::Status404_InstanceIdNotFound
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  response.body(Body::empty())
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_networks_network_id_delete_validation(
+    path_params: models::InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams,
+) -> std::result::Result<
+    (models::InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams,),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigNetworksNetworkIdDelete - DELETE /v2/instances/{instance_id}/config/networks/{network_id}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_networks_network_id_delete<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_networks_network_id_delete_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_networks_network_id_delete(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse::Status200_Success
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse::Status404_InstanceIdOrNetworkNotFound
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  response.body(Body::empty())
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_networks_network_id_get_validation(
+    path_params: models::InstancesInstanceIdConfigNetworksNetworkIdGetPathParams,
+) -> std::result::Result<
+    (models::InstancesInstanceIdConfigNetworksNetworkIdGetPathParams,),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigNetworksNetworkIdGet - GET /v2/instances/{instance_id}/config/networks/{network_id}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_networks_network_id_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigNetworksNetworkIdGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_networks_network_id_get_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_networks_network_id_get(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdGetResponse::Status200_Success
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdGetResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdGetResponse::Status404_InstanceIdOrNetworkNotFound
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  response.body(Body::empty())
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[derive(validator::Validate)]
+#[allow(dead_code)]
+struct InstancesInstanceIdConfigNetworksNetworkIdPutBodyValidator<'a> {
+    #[validate(nested)]
+    body: &'a models::InstanceConnectToNetworkConfig,
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_networks_network_id_put_validation(
+    path_params: models::InstancesInstanceIdConfigNetworksNetworkIdPutPathParams,
+    body: models::InstanceConnectToNetworkConfig,
+) -> std::result::Result<
+    (
+        models::InstancesInstanceIdConfigNetworksNetworkIdPutPathParams,
+        models::InstanceConnectToNetworkConfig,
+    ),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+    let b = InstancesInstanceIdConfigNetworksNetworkIdPutBodyValidator { body: &body };
+    b.validate()?;
+
+    Ok((path_params, body))
+}
+/// InstancesInstanceIdConfigNetworksNetworkIdPut - PUT /v2/instances/{instance_id}/config/networks/{network_id}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_networks_network_id_put<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigNetworksNetworkIdPutPathParams>,
+    State(api_impl): State<I>,
+    Json(body): Json<models::InstanceConnectToNetworkConfig>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_networks_network_id_put_validation(path_params, body)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params, body)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_networks_network_id_put(
+            method,
+            host,
+            cookies,
+            path_params,
+            body,
+        )
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdPutResponse::Status200_InstanceWasAlreadyConnected
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdPutResponse::Status201_InstanceConnected
+                                                => {
+                                                  let mut response = response.status(201);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdPutResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdPutResponse::Status404_InstanceIdOrNetworkNotFound
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigNetworksNetworkIdPutResponse::Status500_InternalServerError
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(500);
                                                   {
                                                     let mut response_headers = response.headers_mut().unwrap();
                                                     response_headers.insert(
