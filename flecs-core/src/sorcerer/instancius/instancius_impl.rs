@@ -12,8 +12,8 @@ use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::instancius::{
-    GetInstanceConfigNetworkResult, GetInstanceUsbDeviceResult, Instancius,
-    PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
+    DeleteInstanceConfigNetworkResult, GetInstanceConfigNetworkResult, GetInstanceUsbDeviceResult,
+    Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
 };
 use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::{AppKey, Pouch};
@@ -634,6 +634,23 @@ impl Instancius for InstanciusImpl {
                 name: network_id,
                 address,
             },
+        }
+    }
+
+    async fn delete_instance_config_network(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        network_id: NetworkId,
+    ) -> DeleteInstanceConfigNetworkResult {
+        match spell::instance::modify_instance_config_with(vault, id, |config| {
+            config.connected_networks.remove(&network_id)
+        })
+        .await
+        {
+            None => DeleteInstanceConfigNetworkResult::InstanceNotFound,
+            Some(None) => DeleteInstanceConfigNetworkResult::UnknownNetwork,
+            Some(Some(address)) => DeleteInstanceConfigNetworkResult::Deleted(address),
         }
     }
 
@@ -2587,6 +2604,71 @@ pub mod tests {
                     0x123, 0x123, 0x456, 0x456, 0x789, 0x789, 0xabc, 0xabc,
                 )),
             }
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_network_unknown_instance() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .delete_instance_config_network(vault, UNKNOWN_INSTANCE_3, "test-net".to_string())
+                .await,
+            DeleteInstanceConfigNetworkResult::InstanceNotFound
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_network_unknown_network() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .delete_instance_config_network(vault, NETWORK_INSTANCE, "unknown-net".to_string())
+                .await,
+            DeleteInstanceConfigNetworkResult::UnknownNetwork
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_network_some() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .delete_instance_config_network(
+                    vault.clone(),
+                    NETWORK_INSTANCE,
+                    "flecs".to_string()
+                )
+                .await,
+            DeleteInstanceConfigNetworkResult::Deleted(IpAddr::V4(Ipv4Addr::new(120, 20, 40, 50))),
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_network(vault.clone(), NETWORK_INSTANCE, "flecs".to_string())
+                .await,
+            GetInstanceConfigNetworkResult::UnknownNetwork
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .delete_instance_config_network(
+                    vault.clone(),
+                    NETWORK_INSTANCE,
+                    "flecsipv6".to_string()
+                )
+                .await,
+            DeleteInstanceConfigNetworkResult::Deleted(IpAddr::V6(Ipv6Addr::new(
+                0x123, 0x123, 0x456, 0x456, 0x789, 0x789, 0xabc, 0xabc,
+            )))
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_network(
+                    vault.clone(),
+                    NETWORK_INSTANCE,
+                    "flecsipv6".to_string()
+                )
+                .await,
+            GetInstanceConfigNetworkResult::UnknownNetwork
         );
     }
 

@@ -54,6 +54,14 @@ pub enum GetInstanceConfigNetworkResult {
     UnknownNetwork,
     Network { name: String, address: IpAddr },
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum DeleteInstanceConfigNetworkResult {
+    InstanceNotFound,
+    UnknownNetwork,
+    Deleted(IpAddr),
+}
+
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait Instancius: Sorcerer {
@@ -274,6 +282,13 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         network_id: NetworkId,
     ) -> GetInstanceConfigNetworkResult;
+
+    async fn delete_instance_config_network(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        network_id: NetworkId,
+    ) -> DeleteInstanceConfigNetworkResult;
 
     async fn delete_instance<F: Floxy + 'static>(
         &self,
