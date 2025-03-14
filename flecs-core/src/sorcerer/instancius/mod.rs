@@ -8,6 +8,7 @@ use crate::jeweler::instance::Logs;
 use crate::jeweler::network::NetworkId;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+pub use crate::sorcerer::spell::instance::DisconnectInstanceError;
 use crate::sorcerer::Sorcerer;
 use crate::vault::pouch::AppKey;
 use crate::vault::Vault;
@@ -54,6 +55,7 @@ pub enum GetInstanceConfigNetworkResult {
     UnknownNetwork,
     Network { name: String, address: IpAddr },
 }
+
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait Instancius: Sorcerer {
@@ -274,6 +276,13 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         network_id: NetworkId,
     ) -> GetInstanceConfigNetworkResult;
+
+    async fn disconnect_instance_from_network(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        network_id: NetworkId,
+    ) -> Result<IpAddr, DisconnectInstanceError>;
 
     async fn delete_instance<F: Floxy + 'static>(
         &self,

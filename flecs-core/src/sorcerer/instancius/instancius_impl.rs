@@ -12,8 +12,8 @@ use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::instancius::{
-    GetInstanceConfigNetworkResult, GetInstanceUsbDeviceResult, Instancius,
-    PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
+    DisconnectInstanceError, GetInstanceConfigNetworkResult, GetInstanceUsbDeviceResult,
+    Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
 };
 use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::{AppKey, Pouch};
@@ -637,6 +637,15 @@ impl Instancius for InstanciusImpl {
         }
     }
 
+    async fn disconnect_instance_from_network(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        network_id: NetworkId,
+    ) -> anyhow::Result<IpAddr, DisconnectInstanceError> {
+        spell::instance::disconnect_instance_from_network(vault, id, network_id).await
+    }
+
     async fn delete_instance<F: Floxy + 'static>(
         &self,
         quest: SyncQuest,
@@ -786,6 +795,7 @@ pub mod tests {
     };
     use crate::vault::pouch::Pouch;
     use bollard::models::{Ipam, IpamConfig, Network};
+    use mockall::predicate;
     use std::collections::{HashMap, HashSet};
     use std::io::ErrorKind;
     use std::net::{Ipv4Addr, Ipv6Addr};
@@ -2587,6 +2597,126 @@ pub mod tests {
                     0x123, 0x123, 0x456, 0x456, 0x789, 0x789, 0xabc, 0xabc,
                 )),
             }
+        );
+    }
+
+    #[tokio::test]
+    async fn disconnect_instance_from_network_unknown_instance() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .disconnect_instance_from_network(vault, UNKNOWN_INSTANCE_3, "test-net".to_string())
+                .await,
+            Err(DisconnectInstanceError::InstanceNotFound(
+                UNKNOWN_INSTANCE_3
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn disconnect_instance_from_network_unknown_network() {
+        let network = "unknown-net".to_string();
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(network.clone()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment.expect_id().return_const("MockedDeployment");
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = vault::tests::create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .disconnect_instance_from_network(vault, NETWORK_INSTANCE, network.clone())
+                .await,
+            Err(DisconnectInstanceError::InstanceNotConnected {
+                network,
+                instance: NETWORK_INSTANCE
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn disconnect_instance_from_network_some() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq("flecs".to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq("flecsipv6".to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment.expect_id().return_const("MockedDeployment");
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = vault::tests::create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .disconnect_instance_from_network(
+                    vault.clone(),
+                    NETWORK_INSTANCE,
+                    "flecs".to_string()
+                )
+                .await,
+            Ok(IpAddr::V4(Ipv4Addr::new(120, 20, 40, 50))),
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_network(vault.clone(), NETWORK_INSTANCE, "flecs".to_string())
+                .await,
+            GetInstanceConfigNetworkResult::UnknownNetwork
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .disconnect_instance_from_network(
+                    vault.clone(),
+                    NETWORK_INSTANCE,
+                    "flecsipv6".to_string()
+                )
+                .await,
+            Ok(IpAddr::V6(Ipv6Addr::new(
+                0x123, 0x123, 0x456, 0x456, 0x789, 0x789, 0xabc, 0xabc,
+            )))
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_network(
+                    vault.clone(),
+                    NETWORK_INSTANCE,
+                    "flecsipv6".to_string()
+                )
+                .await,
+            GetInstanceConfigNetworkResult::UnknownNetwork
         );
     }
 

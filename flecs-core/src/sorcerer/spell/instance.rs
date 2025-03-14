@@ -3,6 +3,7 @@ use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::{Instance, InstanceConfig, InstanceId};
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::network::NetworkId;
 use crate::quest::{State, SyncQuest};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::vault::pouch::{AppKey, Pouch};
@@ -11,6 +12,19 @@ use futures_util::future::join_all;
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
 use tracing::error;
+
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+pub enum DisconnectInstanceError {
+    #[error("Instance not found: {0}")]
+    InstanceNotFound(InstanceId),
+    #[error("Instance {instance} not connected to {network}")]
+    InstanceNotConnected {
+        network: NetworkId,
+        instance: InstanceId,
+    },
+    #[error("Failed to disconnect instance: {0}")]
+    Other(String),
+}
 
 pub async fn create_instance(
     quest: SyncQuest,
@@ -293,6 +307,33 @@ where
             .get(&instance_id)?
             .config,
     ))
+}
+
+pub async fn disconnect_instance_from_network(
+    vault: Arc<Vault>,
+    id: InstanceId,
+    network_id: NetworkId,
+) -> Result<IpAddr, DisconnectInstanceError> {
+    let mut grab = vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await;
+    let instance = grab
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Reservations should never fail")
+        .gems_mut()
+        .get_mut(&id)
+        .ok_or(DisconnectInstanceError::InstanceNotFound(id))?;
+    match instance.disconnect_network(network_id.clone()).await {
+        Ok(Some(address)) => Ok(address),
+        Ok(None) => Err(DisconnectInstanceError::InstanceNotConnected {
+            instance: id,
+            network: network_id,
+        }),
+        Err(e) => Err(DisconnectInstanceError::Other(e.to_string())),
+    }
 }
 
 #[cfg(test)]
