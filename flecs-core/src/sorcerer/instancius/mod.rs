@@ -5,6 +5,7 @@ use crate::jeweler::gem;
 use crate::jeweler::gem::instance::{InstanceId, TransportProtocol, UsbPathConfig};
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::jeweler::instance::Logs;
+use crate::jeweler::network::NetworkId;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::sorcerer::Sorcerer;
@@ -18,6 +19,7 @@ use std::collections::HashMap;
 use std::net::IpAddr;
 use std::num::NonZeroU16;
 use std::sync::Arc;
+
 pub type UsbDevices = Vec<(UsbPathConfig, Option<UsbDevice>)>;
 
 #[derive(Eq, PartialEq, Debug)]
@@ -44,6 +46,13 @@ pub enum RedirectEditorRequestResult {
     InstanceNotRunning,
     InstanceNotConnectedToNetwork,
     Redirected(u16),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum GetInstanceConfigNetworkResult {
+    InstanceNotFound,
+    UnknownNetwork,
+    Network { name: String, address: IpAddr },
 }
 #[cfg_attr(test, automock)]
 #[async_trait]
@@ -258,6 +267,13 @@ pub trait Instancius: Sorcerer {
         vault: Arc<Vault>,
         id: InstanceId,
     ) -> Option<HashMap<String, IpAddr>>;
+
+    async fn get_instance_config_network(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        network_id: NetworkId,
+    ) -> GetInstanceConfigNetworkResult;
 
     async fn delete_instance<F: Floxy + 'static>(
         &self,
