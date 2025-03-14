@@ -37,6 +37,10 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigGetResponse,
     InstancesInstanceIdConfigLabelsGetResponse as GetLabelsResponse,
     InstancesInstanceIdConfigLabelsLabelNameGetResponse as GetLabelResponse,
+    InstancesInstanceIdConfigNetworksGetResponse,
+    InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse,
+    InstancesInstanceIdConfigNetworksNetworkIdGetResponse,
+    InstancesInstanceIdConfigNetworksPostResponse,
     InstancesInstanceIdConfigPortsDeleteResponse as DeletePortsResponse,
     InstancesInstanceIdConfigPortsGetResponse as GetPortsResponse,
     InstancesInstanceIdConfigPortsTransportProtocolDeleteResponse as DeleteProtocolPortsResponse,
@@ -52,8 +56,9 @@ use flecsd_axum_server::apis::instances::{
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
-    AdditionalInfo, InstanceConfig, InstanceEnvironment, InstancesCreatePostRequest,
-    InstancesGetQueryParams, InstancesInstanceIdConfigDevicesUsbDeletePathParams,
+    AdditionalInfo, InstanceConfig, InstanceConnectToNetworkAdapter, InstanceEnvironment,
+    InstancesCreatePostRequest, InstancesGetQueryParams,
+    InstancesInstanceIdConfigDevicesUsbDeletePathParams,
     InstancesInstanceIdConfigDevicesUsbGetPathParams,
     InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
     InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
@@ -68,6 +73,10 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdConfigGetPathParams,
     InstancesInstanceIdConfigLabelsGetPathParams as GetLabelsParams,
     InstancesInstanceIdConfigLabelsLabelNameGetPathParams as GetLabelParams,
+    InstancesInstanceIdConfigNetworksGetPathParams,
+    InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams,
+    InstancesInstanceIdConfigNetworksNetworkIdGetPathParams,
+    InstancesInstanceIdConfigNetworksPostPathParams,
     InstancesInstanceIdConfigPortsDeletePathParams as DeletePortsParams,
     InstancesInstanceIdConfigPortsGetPathParams as GetPortsParams,
     InstancesInstanceIdConfigPortsTransportProtocolDeletePathParams as DeleteProtocolPortsParams,
@@ -100,7 +109,7 @@ impl<
         D: Deploymento,
         F: Floxy + 'static,
         T: UsbDeviceReader + 'static,
-        NET: NetworkAdapterReader,
+        NET: NetworkAdapterReader + 'static,
         NetDev: NetDeviceReader,
     > Instances for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, F, T, NET, NetDev>
 {
@@ -594,6 +603,47 @@ impl<
                 models::InstancesInstanceIdConfigLabelsLabelNameGet200Response { value },
             )),
         }
+    }
+
+    async fn instances_instance_id_config_networks_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigNetworksGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigNetworksGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_networks_network_id_delete(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_networks_network_id_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigNetworksNetworkIdGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigNetworksNetworkIdGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_networks_post(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigNetworksPostPathParams,
+        _body: InstanceConnectToNetworkAdapter,
+    ) -> Result<InstancesInstanceIdConfigNetworksPostResponse, ()> {
+        todo!()
     }
 
     async fn instances_instance_id_config_ports_delete(
