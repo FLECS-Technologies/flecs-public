@@ -7,11 +7,13 @@ use crate::jeweler::gem::instance::{
 };
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::jeweler::instance::Logs;
+use crate::jeweler::network::NetworkId;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::instancius::{
-    GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
+    GetInstanceConfigNetworkResult, GetInstanceUsbDeviceResult, Instancius,
+    PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
 };
 use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::{AppKey, Pouch};
@@ -615,6 +617,26 @@ impl Instancius for InstanciusImpl {
         .await
     }
 
+    async fn get_instance_config_network(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        network_id: NetworkId,
+    ) -> GetInstanceConfigNetworkResult {
+        match spell::instance::get_instance_config_part_with(vault, id, |config| {
+            config.connected_networks.get(&network_id).copied()
+        })
+        .await
+        {
+            None => GetInstanceConfigNetworkResult::InstanceNotFound,
+            Some(None) => GetInstanceConfigNetworkResult::UnknownNetwork,
+            Some(Some(address)) => GetInstanceConfigNetworkResult::Network {
+                name: network_id,
+                address,
+            },
+        }
+    }
+
     async fn delete_instance<F: Floxy + 'static>(
         &self,
         quest: SyncQuest,
@@ -766,7 +788,7 @@ pub mod tests {
     use bollard::models::{Ipam, IpamConfig, Network};
     use std::collections::{HashMap, HashSet};
     use std::io::ErrorKind;
-    use std::net::Ipv4Addr;
+    use std::net::{Ipv4Addr, Ipv6Addr};
     use std::sync::Arc;
 
     #[tokio::test]
@@ -2518,6 +2540,53 @@ pub mod tests {
                 .get_instance_config_networks(vault, NETWORK_INSTANCE)
                 .await,
             Some(network_instance().config.connected_networks)
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_network_unknown_instance() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_network(vault, UNKNOWN_INSTANCE_3, "test-net".to_string())
+                .await,
+            GetInstanceConfigNetworkResult::InstanceNotFound
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_network_unknown_network() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_network(vault, NETWORK_INSTANCE, "unknown-net".to_string())
+                .await,
+            GetInstanceConfigNetworkResult::UnknownNetwork
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_network_some() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_network(vault.clone(), NETWORK_INSTANCE, "flecs".to_string())
+                .await,
+            GetInstanceConfigNetworkResult::Network {
+                name: "flecs".to_string(),
+                address: IpAddr::V4(Ipv4Addr::new(120, 20, 40, 50)),
+            }
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_network(vault, NETWORK_INSTANCE, "flecsipv6".to_string())
+                .await,
+            GetInstanceConfigNetworkResult::Network {
+                name: "flecsipv6".to_string(),
+                address: IpAddr::V6(Ipv6Addr::new(
+                    0x123, 0x123, 0x456, 0x456, 0x789, 0x789, 0xabc, 0xabc,
+                )),
+            }
         );
     }
 
