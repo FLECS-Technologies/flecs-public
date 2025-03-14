@@ -1000,7 +1000,7 @@ pub mod tests {
                 .get(&instance_id)
                 .unwrap()
                 .config
-                .network_addresses,
+                .connected_networks,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
@@ -1140,7 +1140,7 @@ pub mod tests {
                 .get(&instance_id_1)
                 .unwrap()
                 .config
-                .network_addresses,
+                .connected_networks,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
@@ -1152,7 +1152,7 @@ pub mod tests {
                 .get(&instance_id_2)
                 .unwrap()
                 .config
-                .network_addresses,
+                .connected_networks,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
@@ -1223,7 +1223,7 @@ pub mod tests {
                 .get(&instance_id)
                 .unwrap()
                 .config
-                .network_addresses,
+                .connected_networks,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))

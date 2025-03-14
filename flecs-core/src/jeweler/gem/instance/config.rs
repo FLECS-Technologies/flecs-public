@@ -200,7 +200,7 @@ pub struct InstanceConfig {
     #[serde(skip_serializing_if = "InstancePortMapping::is_empty", default)]
     pub port_mapping: InstancePortMapping,
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    pub network_addresses: HashMap<NetworkId, IpAddr>,
+    pub connected_networks: HashMap<NetworkId, IpAddr>,
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub usb_devices: HashMap<String, UsbPathConfig>,
     #[serde(skip)]
@@ -251,7 +251,7 @@ impl InstanceConfig {
 
     pub fn generate_network_config(&self) -> bollard::container::NetworkingConfig<String> {
         let endpoints_config = self
-            .network_addresses
+            .connected_networks
             .iter()
             .map(|(id, address)| {
                 let endpoint_ipam_config = match address {
@@ -835,7 +835,7 @@ pub(crate) mod tests {
     #[test]
     fn generate_network_config_empty() {
         let config = InstanceConfig {
-            network_addresses: HashMap::from([]),
+            connected_networks: HashMap::from([]),
             ..InstanceConfig::default()
         };
         assert_eq!(
@@ -849,7 +849,7 @@ pub(crate) mod tests {
     #[test]
     fn generate_network_config_single_ipv4() {
         let config = InstanceConfig {
-            network_addresses: HashMap::from([(
+            connected_networks: HashMap::from([(
                 "test-network".to_string(),
                 IpAddr::V4(Ipv4Addr::new(160, 80, 40, 20)),
             )]),
@@ -876,7 +876,7 @@ pub(crate) mod tests {
     #[test]
     fn generate_network_config_single_ipv6() {
         let config = InstanceConfig {
-            network_addresses: HashMap::from([(
+            connected_networks: HashMap::from([(
                 "test-network".to_string(),
                 IpAddr::V6(Ipv6Addr::new(
                     0xab, 0xcd, 0xef, 0x12, 0x34, 0x45, 0x67, 0x89,
@@ -905,7 +905,7 @@ pub(crate) mod tests {
     #[test]
     fn generate_network_config_multiple() {
         let config = InstanceConfig {
-            network_addresses: HashMap::from([
+            connected_networks: HashMap::from([
                 (
                     "test-network1".to_string(),
                     IpAddr::V6(Ipv6Addr::new(
