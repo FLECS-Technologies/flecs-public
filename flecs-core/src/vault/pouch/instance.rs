@@ -212,6 +212,7 @@ pub mod tests {
     pub const LABEL_INSTANCE: InstanceId = InstanceId::new(5);
     pub const USB_DEV_INSTANCE: InstanceId = InstanceId::new(6);
     pub const EDITOR_INSTANCE: InstanceId = InstanceId::new(7);
+    pub const NETWORK_INSTANCE: InstanceId = InstanceId::new(8);
 
     fn default_deployment() -> Arc<dyn crate::jeweler::deployment::Deployment> {
         let mut default_deployment = MockedDeployment::default();
@@ -394,6 +395,35 @@ pub mod tests {
         }
     }
 
+    pub fn network_instance() -> InstanceDeserializable {
+        InstanceDeserializable {
+            hostname: format!("flecs-{NETWORK_INSTANCE}"),
+            name: "Running instance".to_string(),
+            id: NETWORK_INSTANCE,
+            config: InstanceConfig {
+                connected_networks: HashMap::from([
+                    (
+                        "flecs".to_string(),
+                        IpAddr::V4(Ipv4Addr::new(120, 20, 40, 50)),
+                    ),
+                    (
+                        "flecsipv6".to_string(),
+                        IpAddr::V6(Ipv6Addr::new(
+                            0x123, 0x123, 0x456, 0x456, 0x789, 0x789, 0xabc, 0xabc,
+                        )),
+                    ),
+                ]),
+                ..InstanceConfig::default()
+            },
+            desired: InstanceStatus::Running,
+            app_key: AppKey {
+                name: EDITOR_APP_NAME.to_string(),
+                version: EDITOR_APP_VERSION.to_string(),
+            },
+            deployment_id: format!("deployment-{NETWORK_INSTANCE}"),
+        }
+    }
+
     pub fn test_instances() -> Vec<InstanceDeserializable> {
         vec![
             minimal_instance(),
@@ -403,6 +433,7 @@ pub mod tests {
             label_instance(),
             usb_dev_instance(),
             editor_instance(),
+            network_instance(),
         ]
     }
 
@@ -521,7 +552,7 @@ pub mod tests {
                     }
                 ]
             },
-            "network_addresses": {
+            "connected_networks": {
                 "Network2": "ab:cd:ef:12:34:56:78:90",
                 "flecs": "50.60.70.80"
             },
