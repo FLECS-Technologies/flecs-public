@@ -230,7 +230,7 @@ impl Instance {
     pub async fn get_default_network_address(&self) -> crate::Result<Option<IpAddr>> {
         match self.deployment.default_network().await?.id {
             None => anyhow::bail!("Default network has no id"),
-            Some(network_id) => Ok(self.config.network_addresses.get(&network_id).cloned()),
+            Some(network_id) => Ok(self.config.connected_networks.get(&network_id).cloned()),
         }
     }
 
@@ -280,7 +280,7 @@ impl Instance {
                 hostname: self.hostname.clone(),
                 ip_address: self
                     .config
-                    .network_addresses
+                    .connected_networks
                     .values()
                     .next()
                     .map(ToString::to_string)
@@ -496,7 +496,7 @@ impl Instance {
                 sctp: vec![],
             },
             volume_mounts,
-            network_addresses: HashMap::from([(default_network_id, address)]),
+            connected_networks: HashMap::from([(default_network_id, address)]),
             usb_devices: HashMap::new(),
             mapped_editor_ports: Default::default(),
         };
@@ -958,7 +958,7 @@ pub mod tests {
                         },
                     ],
                 },
-                network_addresses: HashMap::new(),
+                connected_networks: HashMap::new(),
                 usb_devices: HashMap::from([
                     (
                         "test_instance_dev_1".to_string(),
@@ -1384,7 +1384,7 @@ pub mod tests {
             &manifest.environment_variables
         );
         assert_eq!(
-            &instance.config.network_addresses,
+            &instance.config.connected_networks,
             &HashMap::from([("DefaultTestNetworkId".to_string(), address)])
         );
         assert_eq!(
@@ -1537,7 +1537,7 @@ pub mod tests {
             manifest,
             deployment,
             config: InstanceConfig {
-                network_addresses: HashMap::from([(
+                connected_networks: HashMap::from([(
                     "TestNetwork".to_string(),
                     IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
                 )]),
@@ -1638,11 +1638,11 @@ pub mod tests {
         let deployment = Arc::new(deployment);
         let manifest = Arc::new(create_test_manifest_full(Some(true)));
         let mut instance = test_instance(123, deployment, manifest);
-        instance.config.network_addresses.insert(
+        instance.config.connected_networks.insert(
             "Ipv4Network".to_string(),
             IpAddr::V4(Ipv4Addr::new(20, 22, 24, 26)),
         );
-        instance.config.network_addresses.insert(
+        instance.config.connected_networks.insert(
             "Ipv6Network".to_string(),
             IpAddr::V6(Ipv6Addr::new(
                 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
@@ -2018,7 +2018,7 @@ pub mod tests {
             Arc::new(deployment),
             Arc::new(create_test_manifest_full(None)),
         );
-        instance.config.network_addresses.insert(
+        instance.config.connected_networks.insert(
             "flecs".to_string(),
             IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20)),
         );

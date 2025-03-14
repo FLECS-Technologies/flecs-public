@@ -140,7 +140,7 @@ impl InstancePouch {
         let instance_ips = self.instances.values().flat_map(|instance| {
             instance
                 .config
-                .network_addresses
+                .connected_networks
                 .values()
                 .filter_map(|ip_addr| match ip_addr {
                     IpAddr::V4(address) => Some(address),
@@ -378,7 +378,7 @@ pub mod tests {
             name: "Running instance".to_string(),
             id: EDITOR_INSTANCE,
             config: InstanceConfig {
-                network_addresses: HashMap::from([(
+                connected_networks: HashMap::from([(
                     "flecs".to_string(),
                     IpAddr::V4(Ipv4Addr::new(120, 20, 40, 50)),
                 )]),
@@ -459,7 +459,7 @@ pub mod tests {
                 }],
                 sctp: vec![],
             },
-            network_addresses: HashMap::from([
+            connected_networks: HashMap::from([
                 (
                     "flecs".to_string(),
                     IpAddr::V4(Ipv4Addr::new(50, 60, 70, 80)),
@@ -925,7 +925,7 @@ pub mod tests {
             reserved_ip_addresses: HashSet::default(),
         };
         for instance in pouch.instances.values_mut() {
-            instance.config.network_addresses.insert(
+            instance.config.connected_networks.insert(
                 format!("TestNetwork-{}", instance.id),
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
             );
@@ -935,7 +935,7 @@ pub mod tests {
             .get_mut(&InstanceId::new(1))
             .unwrap()
             .config
-            .network_addresses
+            .connected_networks
             .insert(
                 "DoubleTestNetwork".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40)),
@@ -980,7 +980,7 @@ pub mod tests {
             Ipv4Addr::new(50, 60, 70, 80),
         ]);
         for instance in pouch.instances.values_mut() {
-            instance.config.network_addresses.insert(
+            instance.config.connected_networks.insert(
                 format!("TestNetwork-{}", instance.id),
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
             );
@@ -990,7 +990,7 @@ pub mod tests {
             .get_mut(&InstanceId::new(1))
             .unwrap()
             .config
-            .network_addresses
+            .connected_networks
             .insert(
                 "DoubleTestNetwork".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40)),
@@ -1018,7 +1018,7 @@ pub mod tests {
             ]),
         };
         for instance in pouch.instances.values_mut() {
-            instance.config.network_addresses.insert(
+            instance.config.connected_networks.insert(
                 format!("TestNetwork-{}", instance.id),
                 IpAddr::V6(Ipv6Addr::new(1, 2, 3, 4, 5, 6, 7, instance.id.value as u16)),
             );
@@ -1028,7 +1028,7 @@ pub mod tests {
             .get_mut(&InstanceId::new(1))
             .unwrap()
             .config
-            .network_addresses
+            .connected_networks
             .insert(
                 "DoubleTestNetwork".to_string(),
                 IpAddr::V6(Ipv6Addr::new(
@@ -1086,7 +1086,7 @@ pub mod tests {
             ]),
         };
         for (i, instance) in pouch.instances.values_mut().enumerate() {
-            instance.config.network_addresses.insert(
+            instance.config.connected_networks.insert(
                 format!("TestNetwork-{}", instance.id),
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, (6 + i) as u8)),
             );
