@@ -106,13 +106,13 @@ pub mod tests {
                 quest: SyncQuest,
                 id: NetworkId,
                 address: Ipv4Addr,
-                container: &str,
+                instance_id: InstanceId,
             ) -> Result<()>;
             async fn disconnect_network(
                 &self,
                 quest: SyncQuest,
                 id: NetworkId,
-                container: &str,
+                instance_id: InstanceId,
             ) -> Result<()>;
         }
         #[async_trait]

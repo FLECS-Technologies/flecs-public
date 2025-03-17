@@ -922,11 +922,11 @@ impl NetworkDeployment for DockerDeployment {
         _quest: SyncQuest,
         id: NetworkId,
         address: Ipv4Addr,
-        container: &str,
+        instance_id: InstanceId,
     ) -> anyhow::Result<()> {
         let docker_client = self.client()?;
         let options = ConnectNetworkOptions {
-            container,
+            container: instance_id.to_docker_id(),
             endpoint_config: EndpointSettings {
                 ip_address: Some(address.to_string()),
                 ipam_config: Some(EndpointIpamConfig {
@@ -943,11 +943,11 @@ impl NetworkDeployment for DockerDeployment {
         &self,
         _quest: SyncQuest,
         id: NetworkId,
-        container: &str,
+        instance_id: InstanceId,
     ) -> anyhow::Result<()> {
         let docker_client = self.client()?;
         let options = DisconnectNetworkOptions {
-            container,
+            container: instance_id.to_docker_id(),
             force: false,
         };
         relic::docker::network::disconnect(docker_client, &id, options).await
