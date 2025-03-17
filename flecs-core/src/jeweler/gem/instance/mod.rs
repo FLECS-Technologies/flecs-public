@@ -3,6 +3,7 @@ use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::{Deployment, DeploymentId};
 use crate::jeweler::gem::manifest::{AppManifest, BindMount, ConfigFile, Mount, VolumeMount};
 use crate::jeweler::instance::Logs;
+use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
 use crate::quest::{Quest, SyncQuest};
@@ -12,6 +13,7 @@ use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, Mount
 pub use config::*;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::mem::swap;
@@ -753,6 +755,26 @@ impl Instance {
             )
             .await
     }
+
+    pub async fn disconnect_network(
+        &mut self,
+        network_id: NetworkId,
+    ) -> crate::Result<Option<IpAddr>> {
+        match (
+            self.deployment
+                .disconnect_network(
+                    Quest::new_synced(format!("Disconnect {} from network {network_id}", self.id)),
+                    network_id.clone(),
+                    self.id,
+                )
+                .await,
+            self.config.connected_networks.entry(network_id),
+        ) {
+            (_, Entry::Vacant(_)) => Ok(None),
+            (Ok(()), Entry::Occupied(entry)) => Ok(Some(entry.remove())),
+            (Err(e), Entry::Occupied(_)) => Err(e),
+        }
+    }
 }
 
 pub fn try_create_instance(
@@ -809,6 +831,7 @@ pub mod tests {
         InstanceDetailConfigFile, InstanceDetailConfigFiles, InstanceDetailPort,
         InstanceDetailVolume,
     };
+    use mockall::predicate;
     use std::fs::File;
     use std::io::Write;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -2129,5 +2152,89 @@ pub mod tests {
         );
         instance.config.mapped_editor_ports.clear();
         assert!(!instance.delete_server_proxy_configs(floxy).unwrap());
+    }
+
+    fn disconnect_test_instance(
+        mock_result: crate::Result<()>,
+        connected_networks: HashMap<String, IpAddr>,
+    ) -> Instance {
+        const INSTANCE_ID: InstanceId = InstanceId::new(10);
+        let manifest = crate::vault::pouch::manifest::tests::min_app_1_1_0_manifest();
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq("TestNetwork".to_string()),
+                predicate::eq(INSTANCE_ID),
+            )
+            .return_once(|_, _, _| mock_result);
+        Instance {
+            name: "TestInstance".to_string(),
+            hostname: INSTANCE_ID.to_docker_id(),
+            id: INSTANCE_ID,
+            config: InstanceConfig {
+                connected_networks,
+                ..Default::default()
+            },
+            deployment: Arc::new(deployment),
+            manifest,
+            desired: InstanceStatus::Running,
+        }
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_unknown_ok() {
+        let mut instance = disconnect_test_instance(Ok(()), HashMap::new());
+        assert_eq!(
+            instance
+                .disconnect_network("TestNetwork".to_string())
+                .await
+                .unwrap(),
+            None
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_unknown_err() {
+        let mut instance =
+            disconnect_test_instance(Err(anyhow::anyhow!("TestError")), HashMap::new());
+        assert_eq!(
+            instance
+                .disconnect_network("TestNetwork".to_string())
+                .await
+                .unwrap(),
+            None
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_ok() {
+        let ip_address = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
+        let mut instance = disconnect_test_instance(
+            Ok(()),
+            HashMap::from([("TestNetwork".to_string(), ip_address)]),
+        );
+        assert_eq!(
+            instance
+                .disconnect_network("TestNetwork".to_string())
+                .await
+                .unwrap(),
+            Some(ip_address)
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_err() {
+        let ip_address = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
+        let mut instance = disconnect_test_instance(
+            Err(anyhow::anyhow!("TestError")),
+            HashMap::from([("TestNetwork".to_string(), ip_address)]),
+        );
+        assert!(instance
+            .disconnect_network("TestNetwork".to_string())
+            .await
+            .is_err());
     }
 }
