@@ -1,4 +1,5 @@
 use super::Result;
+use crate::jeweler::gem::instance::InstanceId;
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
 use std::fmt::{Display, Formatter};
@@ -71,12 +72,12 @@ pub trait NetworkDeployment {
         quest: SyncQuest,
         id: NetworkId,
         address: Ipv4Addr,
-        container: &str,
+        instance_id: InstanceId,
     ) -> Result<()>;
     async fn disconnect_network(
         &self,
         quest: SyncQuest,
         id: NetworkId,
-        container: &str,
+        instance_id: InstanceId,
     ) -> Result<()>;
 }
