@@ -17,13 +17,13 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::mem::swap;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::fs;
-use tracing::warn;
+use tracing::{error, warn};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -756,6 +756,10 @@ impl Instance {
             .await
     }
 
+    pub fn deployment(&self) -> Arc<dyn Deployment> {
+        self.deployment.clone()
+    }
+
     pub async fn disconnect_network(
         &mut self,
         network_id: NetworkId,
@@ -779,6 +783,37 @@ impl Instance {
             (Ok(()), Entry::Occupied(entry)) => Ok(Some(entry.remove())),
             (Err(e), Entry::Occupied(_)) => Err(e),
         }
+    }
+
+    pub async fn connect_network(
+        &mut self,
+        network_id: NetworkId,
+        address: Ipv4Addr,
+    ) -> crate::Result<Option<IpAddr>> {
+        let previous_address = if self.is_running().await? {
+            let previous_address = match self.disconnect_network(network_id.clone()).await {
+                Err(e) => {
+                    error!("Failed to disconnect {} from {network_id}: {e}", self.id);
+                    None
+                }
+                Ok(previous_address) => previous_address,
+            };
+            self.deployment
+                .connect_network(
+                    Quest::new_synced(format!("Connect {} to network {network_id}", self.id)),
+                    network_id.clone(),
+                    address,
+                    self.id,
+                )
+                .await?;
+            previous_address
+        } else {
+            self.config.connected_networks.get(&network_id).copied()
+        };
+        self.config
+            .connected_networks
+            .insert(network_id, IpAddr::V4(address));
+        Ok(previous_address)
     }
 }
 
@@ -831,6 +866,7 @@ pub mod tests {
     use crate::quest::Quest;
     use crate::relic::device::usb::tests::prepare_usb_device_test_path;
     use crate::tests::prepare_test_path;
+    use crate::vault::pouch::instance::tests::{get_test_instance, NETWORK_INSTANCE};
     use bollard::secret::Network;
     use flecsd_axum_server::models::{
         InstanceDetailConfigFile, InstanceDetailConfigFiles, InstanceDetailPort,
@@ -2273,5 +2309,224 @@ pub mod tests {
             .disconnect_network("TestNetwork".to_string())
             .await
             .is_err());
+    }
+
+    #[test]
+    fn get_instance_deployment() {
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .returning(|| "GetMockedDeployment".to_string());
+        let instance = test_instance(
+            2,
+            Arc::new(deployment),
+            Arc::new(create_test_manifest_full(None)),
+        );
+        assert_eq!(instance.deployment().id(), "GetMockedDeployment");
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_running_ok() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "TestNet";
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Ok(()));
+        let mut instance = get_test_instance(NETWORK_INSTANCE);
+        instance.deployment = Arc::new(deployment);
+        assert!(matches!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await,
+            Ok(None)
+        ));
+        assert_eq!(
+            instance.config.connected_networks.get(NETWORK_NAME),
+            Some(&IpAddr::V4(ip_address))
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_stopped_ok() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "TestNet";
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        let mut instance = get_test_instance(NETWORK_INSTANCE);
+        instance.deployment = Arc::new(deployment);
+        assert!(matches!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await,
+            Ok(None)
+        ));
+        assert_eq!(
+            instance.config.connected_networks.get(NETWORK_NAME),
+            Some(&IpAddr::V4(ip_address))
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_err_connect() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "TestNet";
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let mut instance = get_test_instance(NETWORK_INSTANCE);
+        instance.deployment = Arc::new(deployment);
+        assert!(instance
+            .connect_network(NETWORK_NAME.to_string(), ip_address)
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_err_status() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "TestNet";
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let mut instance = get_test_instance(NETWORK_INSTANCE);
+        instance.deployment = Arc::new(deployment);
+        assert!(instance
+            .connect_network(NETWORK_NAME.to_string(), ip_address)
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_reconnect() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        let old_ip_address = IpAddr::V4(Ipv4Addr::new(120, 20, 40, 50));
+        const NETWORK_NAME: &str = "flecs";
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Ok(()));
+        let mut instance = get_test_instance(NETWORK_INSTANCE);
+        instance.deployment = Arc::new(deployment);
+        assert_eq!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await
+                .unwrap(),
+            Some(old_ip_address)
+        );
+        assert_eq!(
+            instance.config.connected_networks.get(NETWORK_NAME),
+            Some(&IpAddr::V4(ip_address))
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_reconnect_failed_disconnect() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "flecs";
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Ok(()));
+        let mut instance = get_test_instance(NETWORK_INSTANCE);
+        instance.deployment = Arc::new(deployment);
+        assert_eq!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await
+                .unwrap(),
+            None
+        );
+        assert_eq!(
+            instance.config.connected_networks.get(NETWORK_NAME),
+            Some(&IpAddr::V4(ip_address))
+        );
     }
 }

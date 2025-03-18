@@ -35,6 +35,10 @@ impl Ipv6Network {
     pub fn prefix_len(&self) -> u8 {
         self.prefix_len
     }
+
+    pub fn contains(&self, address: Ipv6Addr) -> bool {
+        self.subnet_mask() & address == self.address
+    }
 }
 
 impl FromStr for Ipv6Network {
@@ -195,6 +199,59 @@ mod tests {
         assert_eq!(
             Ipv6Network::new_from_address_and_subnet_mask(ip, subnet_mask),
             expected
+        );
+    }
+
+    #[test_case("81f2:f385:4800::/37", "81f2:f385:4800::")]
+    #[test_case("81f2:f385:4800::/37", "81f2:f385:4800:346::")]
+    #[test_case("81f2:f385:4800::/37", "81f2:f385:4800:aaaa::bbbb")]
+    #[test_case("86e5:6018:d00::/44", "86e5:6018:d00::")]
+    #[test_case("86e5:6018:d00::/44", "86e5:6018:d00:0:0:0:ffff:aaaa")]
+    #[test_case("86e5:6018:d00::/44", "86e5:6018:d00::9")]
+    #[test_case("4761:45da:6::/50", "4761:45da:6::")]
+    #[test_case("4761:45da:6::/50", "4761:45da:6::35")]
+    #[test_case("4761:45da:6::/50", "4761:45da:6:33:33:33:33:33")]
+    #[test_case("b884:6129:db74:a800::/53", "b884:6129:db74:a800::")]
+    #[test_case("b884:6129:db74:a800::/53", "b884:6129:db74:a800::214")]
+    #[test_case("b884:6129:db74:a800::/53", "b884:6129:db74:a800:123::123")]
+    #[test_case("15a1:b1ac::/33", "15a1:b1ac::")]
+    #[test_case("15a1:b1ac::/33", "15a1:b1ac:7fff:ffff:ffff:ffff:ffff:ffff")]
+    #[test_case("15a1:b1ac::/33", "15a1:b1ac:1::")]
+    #[test_case("3cf9:2cff::/33", "3cf9:2cff::")]
+    #[test_case("ffa4:aafb:9c26:3040::/59", "ffa4:aafb:9c26:3040::")]
+    #[test_case("b20d:a3e5:3857:b800::/53", "b20d:a3e5:3857:b800::")]
+    #[test_case("7519:f47a:9000::/37", "7519:f47a:9000::")]
+    fn ipv6_contains(network: &str, address: &str) {
+        let network = Ipv6Network::from_str(network).unwrap();
+        let address = Ipv6Addr::from_str(address).unwrap();
+        assert!(
+            network.contains(address),
+            "{network} should contain {address}"
+        );
+    }
+
+    #[test_case("81f2:f385:4800::/37", "81f2:f384:4800::1")]
+    #[test_case("86e5:6018:d00::/44", "86e5:6118:d00::")]
+    #[test_case("4761:45da:6::/50", "4761:45da::")]
+    #[test_case("4761:45da:6::/50", "47a1:45da:6::")]
+    #[test_case("b884:6129:db74:a800::/53", "b884:6129:db74:a010::")]
+    #[test_case("b884:6129:db74:a800::/53", "b824:6129:db74:a800::")]
+    #[test_case("15a1:b1ac::/33", "15a1:b1af::")]
+    #[test_case("15a1:b1ac::/33", "15a1:b0ac::")]
+    #[test_case("3cf9:2cff::/33", "3cf9:2bff::")]
+    #[test_case("3cf9:2cff::/33", "3cf9:2fff:ff:ff:ff::")]
+    #[test_case("ffa4:aafb:9c26:3040::/59", "ffa4:aafb:9c26:3060::1")]
+    #[test_case("ffa4:aafb:9c26:3040::/59", "ffa4:aaab:9c26:3040::")]
+    #[test_case("b20d:a3e5:3857:b800::/53", "b20d:a3e5:3857:800:7:0:1::")]
+    #[test_case("b20d:a3e5:3857:b800::/53", "b20f:a3e5:3857:b800::")]
+    #[test_case("7519:f47a:9000::/37", "7519:f47b:9000::ffff")]
+    #[test_case("7519:f47a:9000::/37", "7519:f47a:1000::")]
+    fn ipv6_contains_not(network: &str, address: &str) {
+        let network = Ipv6Network::from_str(network).unwrap();
+        let address = Ipv6Addr::from_str(address).unwrap();
+        assert!(
+            !network.contains(address),
+            "{network} should not contain {address}"
         );
     }
 }

@@ -3,12 +3,14 @@ use crate::sorcerer::instancius::{
     DisconnectInstanceError, GetInstanceConfigNetworkResult, Instancius,
 };
 use crate::vault::Vault;
-use flecsd_axum_server::apis::instances::InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse as DeleteResponse;
-use flecsd_axum_server::apis::instances::InstancesInstanceIdConfigNetworksNetworkIdGetResponse as GetResponse;
+use flecsd_axum_server::apis::instances::{
+    InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse as DeleteResponse,
+    InstancesInstanceIdConfigNetworksNetworkIdGetResponse as GetResponse,
+};
 use flecsd_axum_server::models;
-use flecsd_axum_server::models::InstancesInstanceIdConfigNetworksNetworkIdGetPathParams as GetPathParams;
 use flecsd_axum_server::models::{
     AdditionalInfo, InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams as DeletePathParams,
+    InstancesInstanceIdConfigNetworksNetworkIdGetPathParams as GetPathParams,
 };
 use std::str::FromStr;
 use std::sync::Arc;

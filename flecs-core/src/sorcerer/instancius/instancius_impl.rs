@@ -1,4 +1,5 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::vec::VecExtension;
 use crate::jeweler::app::AppStatus;
 use crate::jeweler::deployment::Deployment;
@@ -7,13 +8,14 @@ use crate::jeweler::gem::instance::{
 };
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::jeweler::instance::Logs;
-use crate::jeweler::network::NetworkId;
+use crate::jeweler::network::{Network, NetworkId};
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::instancius::{
-    DisconnectInstanceError, GetInstanceConfigNetworkResult, GetInstanceUsbDeviceResult,
-    Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
+    ConnectInstanceConfigNetworkError, DisconnectInstanceError, GetInstanceConfigNetworkResult,
+    GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult,
+    RedirectEditorRequestResult,
 };
 use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::{AppKey, Pouch};
@@ -21,7 +23,7 @@ use crate::vault::{GrabbedPouches, Vault};
 use async_trait::async_trait;
 use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
 use std::collections::HashMap;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU16;
 use std::sync::Arc;
 
@@ -646,6 +648,76 @@ impl Instancius for InstanciusImpl {
         spell::instance::disconnect_instance_from_network(vault, id, network_id).await
     }
 
+    async fn connect_instance_to_network(
+        &self,
+        vault: Arc<Vault>,
+        network_id: NetworkId,
+        id: InstanceId,
+        address: Option<Ipv4Addr>,
+    ) -> anyhow::Result<IpAddr, ConnectInstanceConfigNetworkError> {
+        let GrabbedPouches {
+            instance_pouch_mut: Some(ref mut instances),
+            ..
+        } = vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await
+        else {
+            panic!("Vault reservations should never fail");
+        };
+        let deployment = instances
+            .gems_mut()
+            .get_mut(&id)
+            .ok_or(ConnectInstanceConfigNetworkError::InstanceNotFound(id))?
+            .deployment();
+        let network = match deployment.network(network_id.clone()).await {
+            Ok(Some(network)) => network,
+            Ok(None) => {
+                return Err(ConnectInstanceConfigNetworkError::NetworkNotFound(
+                    network_id,
+                ))
+            }
+            Err(e) => return Err(ConnectInstanceConfigNetworkError::Other(e.to_string())),
+        };
+        let address = match address {
+            None => {
+                let network = network_access_from_network(&network)?;
+                instances
+                    .get_free_ipv4_address(network)
+                    .ok_or(ConnectInstanceConfigNetworkError::NoFreeAddress)?
+            }
+            Some(address) => {
+                if !network
+                    .subnets_ipv4()?
+                    .iter()
+                    .any(|network| network.contains(address))
+                {
+                    return Err(ConnectInstanceConfigNetworkError::AddressOutOfRange {
+                        network: network_id,
+                        address: IpAddr::V4(address),
+                    });
+                }
+                address
+            }
+        };
+        let Some(instance) = instances.gems_mut().get_mut(&id) else {
+            return Err(ConnectInstanceConfigNetworkError::InstanceNotFound(id));
+        };
+        if instance.config.connected_networks.contains_key(&network_id) {
+            return Err(ConnectInstanceConfigNetworkError::NetworkAlreadyConnected(
+                network_id,
+            ));
+        }
+        instance
+            .connect_network(network_id, address)
+            .await
+            .map_err(|e| ConnectInstanceConfigNetworkError::Other(e.to_string()))?;
+        let new_address = IpAddr::V4(address);
+        instances.clear_ip_address_reservation(new_address);
+        Ok(new_address)
+    }
+
     async fn delete_instance<F: Floxy + 'static>(
         &self,
         quest: SyncQuest,
@@ -771,6 +843,34 @@ impl Instancius for InstanciusImpl {
     }
 }
 
+fn network_access_from_network(
+    network: &Network,
+) -> Result<Ipv4NetworkAccess, ConnectInstanceConfigNetworkError> {
+    let Some(network_name) = network.name.as_ref() else {
+        return Err(ConnectInstanceConfigNetworkError::Other(format!(
+            "Network has no name {network:?}"
+        )));
+    };
+    let gateway = network.gateway_ipv4()?.ok_or_else(|| {
+        ConnectInstanceConfigNetworkError::InvalidNetwork {
+            network: network_name.clone(),
+            reason: "No ipv4 gateway".to_string(),
+        }
+    })?;
+    let network = network.subnet_ipv4()?.ok_or_else(|| {
+        ConnectInstanceConfigNetworkError::InvalidNetwork {
+            network: network_name.clone(),
+            reason: "No ipv4 subnet".to_string(),
+        }
+    })?;
+    Ipv4NetworkAccess::try_new(network, gateway).map_err(|e| {
+        ConnectInstanceConfigNetworkError::InvalidNetwork {
+            network: network_name.clone(),
+            reason: e.to_string(),
+        }
+    })
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -781,6 +881,7 @@ pub mod tests {
     use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
     use crate::quest::Quest;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
+    use crate::relic::network::Ipv4Network;
     use crate::vault;
     use crate::vault::pouch::app::tests::{
         MINIMAL_APP_NAME, MINIMAL_APP_VERSION, MINIMAL_APP_WITH_INSTANCE_NAME,
@@ -794,11 +895,13 @@ pub mod tests {
         UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2, UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
     };
     use crate::vault::pouch::Pouch;
+    use crate::vault::tests::create_test_vault;
     use bollard::models::{Ipam, IpamConfig, Network};
     use mockall::predicate;
     use std::collections::{HashMap, HashSet};
     use std::io::ErrorKind;
     use std::net::{Ipv4Addr, Ipv6Addr};
+    use std::str::FromStr;
     use std::sync::Arc;
 
     #[tokio::test]
@@ -3580,5 +3683,459 @@ pub mod tests {
             )
             .await
             .is_err());
+    }
+
+    #[test]
+    fn network_access_from_network_ok() {
+        let network = Ipv4Network::from_str("10.20.128.0/17").unwrap();
+        let gateway = Ipv4Addr::new(10, 20, 128, 11);
+        let expected_network_access = Ipv4NetworkAccess::try_new(network, gateway).unwrap();
+        let network = Network {
+            name: Some("TestNetwork".to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    subnet: Some(network.to_string()),
+                    gateway: Some(gateway.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert_eq!(
+            network_access_from_network(&network),
+            Ok(expected_network_access)
+        );
+    }
+
+    #[test]
+    fn network_access_from_network_err_no_network() {
+        let gateway = Ipv4Addr::new(10, 20, 128, 11);
+        let network = Network {
+            name: Some("TestNetwork".to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    gateway: Some(gateway.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(matches!(
+            network_access_from_network(&network),
+            Err(ConnectInstanceConfigNetworkError::InvalidNetwork { .. })
+        ));
+    }
+
+    #[test]
+    fn network_access_from_network_err_no_gateway() {
+        let network = Ipv4Network::from_str("10.20.128.0/17").unwrap();
+        let network = Network {
+            name: Some("TestNetwork".to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    subnet: Some(network.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(matches!(
+            network_access_from_network(&network),
+            Err(ConnectInstanceConfigNetworkError::InvalidNetwork { .. })
+        ));
+    }
+
+    #[test]
+    fn network_access_from_network_err_gateway_not_in_network() {
+        let network = Ipv4Network::from_str("10.20.128.0/17").unwrap();
+        let gateway = Ipv4Addr::new(11, 20, 128, 11);
+        let network = Network {
+            name: Some("TestNetwork".to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    subnet: Some(network.to_string()),
+                    gateway: Some(gateway.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert!(matches!(
+            network_access_from_network(&network),
+            Err(ConnectInstanceConfigNetworkError::InvalidNetwork { .. })
+        ));
+    }
+
+    fn connect_instance_to_network_ok_data(expected_ip_address: Ipv4Addr) -> (Arc<Vault>, Network) {
+        const NETWORK_NAME: &str = "new-test-network";
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let gateway = Ipv4Addr::new(10, 20, 124, 1);
+        let network = Network {
+            name: Some(NETWORK_NAME.to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    subnet: Some(network.to_string()),
+                    gateway: Some(gateway.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let expected_network = network.clone();
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_network()
+            .once()
+            .with(predicate::eq(NETWORK_NAME.to_string()))
+            .returning(move |_| Ok(Some(expected_network.clone())));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(expected_ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Ok(()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        (vault, network)
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_ok_address_given() {
+        let ip_address = Ipv4Addr::new(10, 20, 124, 2);
+        let (vault, network) = connect_instance_to_network_ok_data(ip_address);
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network(
+                    vault,
+                    network.name.unwrap(),
+                    NETWORK_INSTANCE,
+                    Some(ip_address)
+                )
+                .await,
+            Ok(IpAddr::V4(ip_address))
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_ok_with_reservation() {
+        let ip_address = Ipv4Addr::new(10, 20, 0, 2);
+        let (vault, network) = connect_instance_to_network_ok_data(ip_address);
+        let network_access = network_access_from_network(&network).unwrap();
+        vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await
+            .instance_pouch_mut
+            .as_mut()
+            .expect("Vault reservations should never fail")
+            .reserve_free_ipv4_address(network_access)
+            .unwrap();
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network(
+                    vault.clone(),
+                    network.name.unwrap(),
+                    NETWORK_INSTANCE,
+                    Some(ip_address)
+                )
+                .await,
+            Ok(IpAddr::V4(ip_address))
+        );
+        assert!(!vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .expect("Vault reservations should never fail")
+            .reserved_ip_addresses()
+            .contains(&IpAddr::V4(ip_address)))
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_ok_no_address() {
+        let ip_address = Ipv4Addr::new(10, 20, 0, 1);
+        let (vault, network) = connect_instance_to_network_ok_data(ip_address);
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network(vault, network.name.unwrap(), NETWORK_INSTANCE, None)
+                .await,
+            Ok(IpAddr::V4(ip_address))
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_err_address_out_of_range() {
+        const NETWORK_NAME: &str = "test-network";
+        let ip_address = Ipv4Addr::new(10, 4, 0, 2);
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let gateway = Ipv4Addr::new(10, 20, 124, 1);
+        let network = Network {
+            name: Some(NETWORK_NAME.to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    subnet: Some(network.to_string()),
+                    gateway: Some(gateway.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockDeployment".to_string());
+        deployment
+            .expect_network()
+            .once()
+            .with(predicate::eq(NETWORK_NAME.to_string()))
+            .returning(move |_| Ok(Some(network.clone())));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network(
+                    vault,
+                    NETWORK_NAME.to_string(),
+                    NETWORK_INSTANCE,
+                    Some(ip_address)
+                )
+                .await,
+            Err(ConnectInstanceConfigNetworkError::AddressOutOfRange {
+                address: IpAddr::V4(ip_address),
+                network: NETWORK_NAME.to_string()
+            },)
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_err_no_free_address() {
+        const NETWORK_NAME: &str = "test-network";
+        let network = Ipv4Network::from_str("10.20.0.0/28").unwrap();
+        let gateway = Ipv4Addr::new(10, 20, 0, 2);
+        let network = Network {
+            name: Some(NETWORK_NAME.to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    subnet: Some(network.to_string()),
+                    gateway: Some(gateway.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let network_access = network_access_from_network(&network).unwrap();
+        let mut deployment = MockedDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockDeployment".to_string());
+        deployment
+            .expect_network()
+            .once()
+            .with(predicate::eq(NETWORK_NAME.to_string()))
+            .returning(move |_| Ok(Some(network.clone())));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        {
+            let mut grab = vault
+                .reservation()
+                .reserve_instance_pouch_mut()
+                .grab()
+                .await;
+            let instance_pouch = grab
+                .instance_pouch_mut
+                .as_mut()
+                .expect("Vault reservations should never fail");
+            while instance_pouch
+                .reserve_free_ipv4_address(network_access)
+                .is_some()
+            {}
+        }
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network(
+                    vault,
+                    NETWORK_NAME.to_string(),
+                    NETWORK_INSTANCE,
+                    None
+                )
+                .await,
+            Err(ConnectInstanceConfigNetworkError::NoFreeAddress)
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_err_instance_not_found() {
+        const NETWORK_NAME: &str = "test-network";
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let gateway = Ipv4Addr::new(10, 20, 0, 2);
+        let network = Network {
+            name: Some(NETWORK_NAME.to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    subnet: Some(network.to_string()),
+                    gateway: Some(gateway.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network(vault, network.name.unwrap(), UNKNOWN_INSTANCE_2, None)
+                .await,
+            Err(ConnectInstanceConfigNetworkError::InstanceNotFound(
+                UNKNOWN_INSTANCE_2
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_err_connect() {
+        const NETWORK_NAME: &str = "new-test-network";
+        let ip_address = Ipv4Addr::new(10, 20, 0, 2);
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let gateway = Ipv4Addr::new(10, 20, 0, 1);
+        let network = Network {
+            name: Some(NETWORK_NAME.to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    subnet: Some(network.to_string()),
+                    gateway: Some(gateway.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_network()
+            .once()
+            .with(predicate::eq(NETWORK_NAME.to_string()))
+            .returning(move |_| Ok(Some(network.clone())));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        let result = InstanciusImpl::default()
+            .connect_instance_to_network(vault, NETWORK_NAME.to_string(), NETWORK_INSTANCE, None)
+            .await;
+        assert!(
+            matches!(result, Err(ConnectInstanceConfigNetworkError::Other(_))),
+            "Result: {result:?}, expected: Err(ConnectInstanceConfigNetworkError::Other(_))"
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_err_already_connected() {
+        const NETWORK_NAME: &str = "test-network";
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let gateway = Ipv4Addr::new(10, 20, 0, 1);
+        let network = Network {
+            name: Some(NETWORK_NAME.to_string()),
+            ipam: Some(Ipam {
+                config: Some(vec![IpamConfig {
+                    subnet: Some(network.to_string()),
+                    gateway: Some(gateway.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_network()
+            .once()
+            .with(predicate::eq(NETWORK_NAME.to_string()))
+            .returning(move |_| Ok(Some(network.clone())));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        let result = InstanciusImpl::default()
+            .connect_instance_to_network(vault, NETWORK_NAME.to_string(), NETWORK_INSTANCE, None)
+            .await;
+        assert_eq!(
+            result,
+            Err(ConnectInstanceConfigNetworkError::NetworkAlreadyConnected(
+                NETWORK_NAME.to_string()
+            ))
+        );
     }
 }

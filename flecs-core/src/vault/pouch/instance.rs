@@ -159,13 +159,21 @@ impl InstancePouch {
     }
 
     pub fn reserve_free_ipv4_address(&mut self, network: Ipv4NetworkAccess) -> Option<Ipv4Addr> {
-        match network.next_free_ipv4_address(self.unavailable_ipv4_addresses()) {
+        match self.get_free_ipv4_address(network) {
             None => None,
             Some(address) => {
                 self.reserved_ip_addresses.insert(IpAddr::V4(address));
                 Some(address)
             }
         }
+    }
+
+    pub fn get_free_ipv4_address(&self, network: Ipv4NetworkAccess) -> Option<Ipv4Addr> {
+        network.next_free_ipv4_address(self.unavailable_ipv4_addresses())
+    }
+
+    pub fn reserved_ip_addresses(&self) -> &HashSet<IpAddr> {
+        &self.reserved_ip_addresses
     }
 
     pub fn clear_ip_address_reservation(&mut self, address: IpAddr) {
@@ -198,6 +206,7 @@ pub mod tests {
         MINIMAL_APP_2_VERSION, MINIMAL_APP_WITH_INSTANCE_NAME, MINIMAL_APP_WITH_INSTANCE_VERSION,
     };
     use crate::vault::pouch::manifest::tests::create_test_manifest;
+    use crate::vault::tests::create_test_vault_raw;
     use serde_json::Value;
     use std::net::Ipv6Addr;
     use testdir::testdir;
@@ -220,6 +229,16 @@ pub mod tests {
             .expect_id()
             .returning(move || "DefaultMockedDeployment".to_string());
         Arc::new(default_deployment)
+    }
+
+    pub fn get_test_instance(id: InstanceId) -> Instance {
+        let mut vault = create_test_vault_raw(HashMap::new(), HashMap::new(), None);
+        vault
+            .instance_pouch
+            .get_mut()
+            .instances
+            .remove(&id)
+            .unwrap()
     }
 
     pub fn test_instance_pouch(
@@ -411,6 +430,10 @@ pub mod tests {
                         IpAddr::V6(Ipv6Addr::new(
                             0x123, 0x123, 0x456, 0x456, 0x789, 0x789, 0xabc, 0xabc,
                         )),
+                    ),
+                    (
+                        "test-network".to_string(),
+                        IpAddr::V4(Ipv4Addr::new(10, 20, 124, 200)),
                     ),
                 ]),
                 ..InstanceConfig::default()
@@ -1116,6 +1139,7 @@ pub mod tests {
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, 5)),
             ]),
         };
+        let expected_new_address = Ipv4Addr::new(20, 30, 40, 6 + pouch.instances.len() as u8);
         for (i, instance) in pouch.instances.values_mut().enumerate() {
             instance.config.connected_networks.insert(
                 format!("TestNetwork-{}", instance.id),
@@ -1123,9 +1147,19 @@ pub mod tests {
             );
         }
         assert_eq!(
+            pouch.get_free_ipv4_address(network),
+            Some(expected_new_address)
+        );
+        assert!(!pouch
+            .reserved_ip_addresses
+            .contains(&IpAddr::V4(expected_new_address)));
+        assert_eq!(
             pouch.reserve_free_ipv4_address(network),
-            Some(Ipv4Addr::new(20, 30, 40, 6 + pouch.instances.len() as u8))
-        )
+            Some(expected_new_address)
+        );
+        assert!(pouch
+            .reserved_ip_addresses
+            .contains(&IpAddr::V4(expected_new_address)));
     }
 
     #[test]
@@ -1136,15 +1170,19 @@ pub mod tests {
             Ipv4Addr::new(20, 30, 40, 1),
         )
         .unwrap();
+        let reserved_ip_addresses: HashSet<IpAddr> = Ipv4Iterator::from(
+            Ipv4Addr::new(20, 30, 40, 2).into()..Ipv4Addr::new(20, 30, 40, 255).into(),
+        )
+        .map(Into::into)
+        .collect();
         let mut pouch = InstancePouch {
             path: path.clone(),
             instances: HashMap::default(),
-            reserved_ip_addresses: Ipv4Iterator::from(
-                Ipv4Addr::new(20, 30, 40, 2).into()..Ipv4Addr::new(20, 30, 40, 255).into(),
-            )
-            .map(Into::into)
-            .collect(),
+            reserved_ip_addresses: reserved_ip_addresses.clone(),
         };
-        assert_eq!(pouch.reserve_free_ipv4_address(network), None)
+        assert_eq!(pouch.get_free_ipv4_address(network), None);
+        assert_eq!(pouch.reserved_ip_addresses, reserved_ip_addresses);
+        assert_eq!(pouch.reserve_free_ipv4_address(network), None);
+        assert_eq!(pouch.reserved_ip_addresses, reserved_ip_addresses);
     }
 }

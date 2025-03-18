@@ -278,6 +278,19 @@ impl NetworkAdapter {
     pub fn is_connected(&self, net_device_reader: &dyn NetDeviceReader) -> bool {
         net_device_reader.is_connected(self.name.as_str())
     }
+
+    pub fn connected_networks_contain(&self, address: IpAddr) -> bool {
+        match address {
+            IpAddr::V4(address) => self
+                .ipv4_networks
+                .iter()
+                .any(|network| network.contains(address)),
+            IpAddr::V6(address) => self
+                .ipv6_networks
+                .iter()
+                .any(|network| network.contains(address)),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -462,5 +475,34 @@ pub(crate) mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn network_adapter_contains() {
+        let contained_ipv4 = IpAddr::V4(Ipv4Addr::new(95, 12, 62, 78));
+        let contained_ipv6 = IpAddr::V6(Ipv6Addr::new(
+            0x10, 0x51, 0x737, 0x342, 0x6, 0x83, 0x78, 0x35,
+        ));
+        let adapter = NetworkAdapter {
+            gateway: None,
+            name: "TestAdapter".to_string(),
+            ip_addresses: Vec::new(),
+            mac: None,
+            net_type: NetType::Unknown,
+            ipv4_networks: vec![
+                Ipv4Network::from_str("10.20.0.0/16").unwrap(),
+                Ipv4Network::from_str("95.12.62.0/24").unwrap(),
+                Ipv4Network::from_str("89.0.0.0/8").unwrap(),
+            ],
+            ipv6_networks: vec![
+                Ipv6Network::from_str("abcd::/16").unwrap(),
+                Ipv6Network::from_str("10:51:737::/48").unwrap(),
+                Ipv6Network::from_str("1234::/16").unwrap(),
+            ],
+        };
+        assert!(adapter.connected_networks_contain(contained_ipv4));
+        assert!(adapter.connected_networks_contain(contained_ipv6));
+        assert!(!adapter.connected_networks_contain(IpAddr::from_str("65.89.0.12").unwrap()));
+        assert!(!adapter.connected_networks_contain(IpAddr::from_str("200:200::26").unwrap()));
     }
 }
