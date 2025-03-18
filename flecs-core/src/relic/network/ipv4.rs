@@ -125,7 +125,7 @@ impl Ipv4Network {
     }
 
     pub fn iter(&self) -> Ipv4Iterator {
-        let start = Ipv4Addr::from(u32::from(self.address) + 2_u32);
+        let start = Ipv4Addr::from(u32::from(self.address) + 1_u32);
         Ipv4Iterator::new(start, self.broadcast())
     }
 
@@ -327,7 +327,7 @@ mod tests {
         .iter();
         assert_eq!(
             iter.current,
-            u32::from(Ipv4Addr::new(10, 40, 0b10101000, 2))
+            u32::from(Ipv4Addr::new(10, 40, 0b10101000, 1))
         );
         assert_eq!(iter.max, u32::from(Ipv4Addr::new(10, 40, 0b10101011, 255)));
     }
@@ -388,7 +388,7 @@ mod tests {
         };
         assert_eq!(
             network.next_free_ipv4_address(HashSet::default()),
-            Some(Ipv4Addr::new(123, 123, 123, 2))
+            Some(Ipv4Addr::new(123, 123, 123, 1))
         );
     }
 
@@ -403,6 +403,10 @@ mod tests {
         };
         assert_eq!(
             network.next_free_ipv4_address(HashSet::default()),
+            Some(Ipv4Addr::new(123, 123, 123, 1))
+        );
+        assert_eq!(
+            network.next_free_ipv4_address(HashSet::from([Ipv4Addr::new(123, 123, 123, 1)])),
             Some(Ipv4Addr::new(123, 123, 123, 3))
         );
     }
@@ -414,14 +418,14 @@ mod tests {
                 address: Ipv4Addr::new(123, 123, 123, 0),
                 size: 24,
             },
-            gateway: Ipv4Addr::new(123, 123, 123, 2),
+            gateway: Ipv4Addr::new(123, 123, 123, 1),
         };
-        let unavailable_ips = (3..255).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
+        let unavailable_ips = (2..255).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
         assert_eq!(network.next_free_ipv4_address(unavailable_ips), None);
     }
 
     #[test]
-    fn next_free_ipv4_address_2_available() {
+    fn next_free_ipv4_address_1_available() {
         let network = Ipv4NetworkAccess {
             network: Ipv4Network {
                 address: Ipv4Addr::new(123, 123, 123, 0),
@@ -432,7 +436,7 @@ mod tests {
         let unavailable_ips = (4..255).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
         assert_eq!(
             network.next_free_ipv4_address(unavailable_ips),
-            Some(Ipv4Addr::new(123, 123, 123, 2)),
+            Some(Ipv4Addr::new(123, 123, 123, 1)),
         );
     }
 
@@ -443,9 +447,9 @@ mod tests {
                 address: Ipv4Addr::new(123, 123, 123, 0),
                 size: 24,
             },
-            gateway: Ipv4Addr::new(123, 123, 123, 2),
+            gateway: Ipv4Addr::new(123, 123, 123, 1),
         };
-        let unavailable_ips = (3..254).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
+        let unavailable_ips = (2..254).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
         assert_eq!(
             network.next_free_ipv4_address(unavailable_ips),
             Some(Ipv4Addr::new(123, 123, 123, 254)),
@@ -459,9 +463,9 @@ mod tests {
                 address: Ipv4Addr::new(123, 123, 123, 0),
                 size: 24,
             },
-            gateway: Ipv4Addr::new(123, 123, 123, 2),
+            gateway: Ipv4Addr::new(123, 123, 123, 1),
         };
-        let unavailable_ips = (3..100).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
+        let unavailable_ips = (2..100).map(|b| Ipv4Addr::new(123, 123, 123, b)).collect();
         assert_eq!(
             network.next_free_ipv4_address(unavailable_ips),
             Some(Ipv4Addr::new(123, 123, 123, 100)),
