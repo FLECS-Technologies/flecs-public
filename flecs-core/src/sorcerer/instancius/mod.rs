@@ -12,12 +12,13 @@ pub use crate::sorcerer::spell::instance::DisconnectInstanceError;
 use crate::sorcerer::Sorcerer;
 use crate::vault::pouch::AppKey;
 use crate::vault::Vault;
+use anyhow::Error;
 use async_trait::async_trait;
 pub use instancius_impl::InstanciusImpl;
 #[cfg(test)]
 use mockall::automock;
 use std::collections::HashMap;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU16;
 use std::sync::Arc;
 
@@ -54,6 +55,30 @@ pub enum GetInstanceConfigNetworkResult {
     InstanceNotFound,
     UnknownNetwork,
     Network { name: String, address: IpAddr },
+}
+
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+pub enum ConnectInstanceConfigNetworkError {
+    #[error("Instance not found: {0}")]
+    InstanceNotFound(InstanceId),
+    #[error("No free ip address available")]
+    NoFreeAddress,
+    #[error("Given address '{address}' is not part of network '{network}'")]
+    AddressOutOfRange { address: IpAddr, network: NetworkId },
+    #[error("Given network '{network}' is invalid: {reason}")]
+    InvalidNetwork { network: NetworkId, reason: String },
+    #[error("Network not found: {0}")]
+    NetworkNotFound(NetworkId),
+    #[error("Instance already connected to network '{0}'")]
+    NetworkAlreadyConnected(NetworkId),
+    #[error("Failed to connect instance: {0}")]
+    Other(String),
+}
+
+impl From<anyhow::Error> for ConnectInstanceConfigNetworkError {
+    fn from(value: Error) -> Self {
+        Self::Other(value.to_string())
+    }
 }
 
 #[cfg_attr(test, automock)]
@@ -283,6 +308,14 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         network_id: NetworkId,
     ) -> Result<IpAddr, DisconnectInstanceError>;
+
+    async fn connect_instance_to_network(
+        &self,
+        vault: Arc<Vault>,
+        network_id: NetworkId,
+        id: InstanceId,
+        address: Option<Ipv4Addr>,
+    ) -> Result<IpAddr, ConnectInstanceConfigNetworkError>;
 
     async fn delete_instance<F: Floxy + 'static>(
         &self,

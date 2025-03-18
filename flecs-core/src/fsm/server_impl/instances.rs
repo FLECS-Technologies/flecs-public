@@ -660,10 +660,18 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigNetworksPostPathParams,
-        _body: InstancesInstanceIdConfigNetworksPostRequest,
+        path_params: InstancesInstanceIdConfigNetworksPostPathParams,
+        body: InstancesInstanceIdConfigNetworksPostRequest,
     ) -> Result<InstancesInstanceIdConfigNetworksPostResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::networks::post(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                path_params,
+                body,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_ports_delete(
