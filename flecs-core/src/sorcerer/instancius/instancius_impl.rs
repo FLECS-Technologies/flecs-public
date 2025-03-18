@@ -10,10 +10,11 @@ use crate::jeweler::instance::Logs;
 use crate::jeweler::network::NetworkId;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
-use crate::relic::network::Ipv4NetworkAccess;
+use crate::relic::network::{Ipv4NetworkAccess, NetworkAdapter};
 use crate::sorcerer::instancius::{
-    DisconnectInstanceError, GetInstanceConfigNetworkResult, GetInstanceUsbDeviceResult,
-    Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
+    ConnectInstanceConfigNetworkError, DisconnectInstanceError, GetInstanceConfigNetworkResult,
+    GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult,
+    RedirectEditorRequestResult,
 };
 use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::{AppKey, Pouch};
@@ -21,7 +22,7 @@ use crate::vault::{GrabbedPouches, Vault};
 use async_trait::async_trait;
 use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
 use std::collections::HashMap;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU16;
 use std::sync::Arc;
 
@@ -646,6 +647,64 @@ impl Instancius for InstanciusImpl {
         spell::instance::disconnect_instance_from_network(vault, id, network_id).await
     }
 
+    async fn connect_instance_to_network_adapter(
+        &self,
+        vault: Arc<Vault>,
+        network_adapter: NetworkAdapter,
+        id: InstanceId,
+        address: Option<Ipv4Addr>,
+    ) -> anyhow::Result<(IpAddr, Option<IpAddr>), ConnectInstanceConfigNetworkError> {
+        if let Some(address) = address {
+            if !network_adapter.connected_networks_contain(IpAddr::V4(address)) {
+                return Err(ConnectInstanceConfigNetworkError::AddressOutOfRange {
+                    address: IpAddr::V4(address),
+                    adapter: network_adapter.name,
+                });
+            }
+        }
+        let GrabbedPouches {
+            instance_pouch_mut: Some(ref mut instances),
+            ..
+        } = vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await
+        else {
+            panic!("Vault reservations should never fail");
+        };
+        let network = network_access_from_network_adapter(&network_adapter)?;
+        let address = match address {
+            None => match instances.get_free_ipv4_address(network) {
+                Some(address) => address,
+                None => return Err(ConnectInstanceConfigNetworkError::NoFreeAddress),
+            },
+            Some(address) => address,
+        };
+        let Some(instance) = instances.gems_mut().get_mut(&id) else {
+            return Err(ConnectInstanceConfigNetworkError::InstanceNotFound(id));
+        };
+        let network_name = spell::network::create_vlan_for_network_adapter(
+            instance.deployment(),
+            network_adapter.name.clone(),
+            network,
+        )
+        .await
+        .map_err(
+            |e| ConnectInstanceConfigNetworkError::CouldNotCreateNetwork {
+                adapter: network_adapter.name,
+                reason: e.to_string(),
+            },
+        )?;
+        let old_address = instance
+            .connect_network(network_name, address)
+            .await
+            .map_err(|e| ConnectInstanceConfigNetworkError::Other(e.to_string()))?;
+        let new_address = IpAddr::V4(address);
+        instances.clear_ip_address_reservation(new_address);
+        Ok((new_address, old_address))
+    }
+
     async fn delete_instance<F: Floxy + 'static>(
         &self,
         quest: SyncQuest,
@@ -771,6 +830,29 @@ impl Instancius for InstanciusImpl {
     }
 }
 
+fn network_access_from_network_adapter(
+    network_adapter: &NetworkAdapter,
+) -> Result<Ipv4NetworkAccess, ConnectInstanceConfigNetworkError> {
+    let Some(network) = network_adapter.ipv4_networks.first() else {
+        return Err(ConnectInstanceConfigNetworkError::InvalidAdapter {
+            adapter: network_adapter.name.clone(),
+            reason: "Not connected to any networks".to_string(),
+        });
+    };
+    let Some(gateway) = network_adapter.gateway else {
+        return Err(ConnectInstanceConfigNetworkError::InvalidAdapter {
+            adapter: network_adapter.name.clone(),
+            reason: "Not connected to any networks".to_string(),
+        });
+    };
+    Ipv4NetworkAccess::try_new(*network, gateway).map_err(|e| {
+        ConnectInstanceConfigNetworkError::InvalidAdapter {
+            adapter: network_adapter.name.clone(),
+            reason: e.to_string(),
+        }
+    })
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -781,6 +863,7 @@ pub mod tests {
     use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
     use crate::quest::Quest;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
+    use crate::relic::network::{Ipv4Network, NetType};
     use crate::vault;
     use crate::vault::pouch::app::tests::{
         MINIMAL_APP_NAME, MINIMAL_APP_VERSION, MINIMAL_APP_WITH_INSTANCE_NAME,
@@ -794,11 +877,13 @@ pub mod tests {
         UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2, UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
     };
     use crate::vault::pouch::Pouch;
+    use crate::vault::tests::create_test_vault;
     use bollard::models::{Ipam, IpamConfig, Network};
     use mockall::predicate;
     use std::collections::{HashMap, HashSet};
     use std::io::ErrorKind;
     use std::net::{Ipv4Addr, Ipv6Addr};
+    use std::str::FromStr;
     use std::sync::Arc;
 
     #[tokio::test]
@@ -3580,5 +3665,412 @@ pub mod tests {
             )
             .await
             .is_err());
+    }
+
+    #[test]
+    fn network_access_from_network_adapter_ok() {
+        let network = Ipv4Network::from_str("10.20.128.0/17").unwrap();
+        let gateway = Ipv4Addr::new(10, 20, 128, 11);
+        let network_adapter = NetworkAdapter {
+            name: "TestAdapter".to_string(),
+            mac: None,
+            net_type: Default::default(),
+            ipv4_networks: vec![network],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: Some(gateway),
+        };
+        let expected_network_access = Ipv4NetworkAccess::try_new(network, gateway).unwrap();
+        assert_eq!(
+            network_access_from_network_adapter(&network_adapter),
+            Ok(expected_network_access)
+        );
+    }
+
+    #[test]
+    fn network_access_from_network_adapter_err_no_network() {
+        let gateway = Ipv4Addr::new(10, 20, 128, 11);
+        let network_adapter = NetworkAdapter {
+            name: "TestAdapter".to_string(),
+            mac: None,
+            net_type: Default::default(),
+            ipv4_networks: vec![],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: Some(gateway),
+        };
+        assert!(matches!(
+            network_access_from_network_adapter(&network_adapter),
+            Err(ConnectInstanceConfigNetworkError::InvalidAdapter { .. })
+        ));
+    }
+
+    #[test]
+    fn network_access_from_network_adapter_err_no_gateway() {
+        let network = Ipv4Network::from_str("10.20.128.0/17").unwrap();
+        let network_adapter = NetworkAdapter {
+            name: "TestAdapter".to_string(),
+            mac: None,
+            net_type: Default::default(),
+            ipv4_networks: vec![network],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: None,
+        };
+        assert!(matches!(
+            network_access_from_network_adapter(&network_adapter),
+            Err(ConnectInstanceConfigNetworkError::InvalidAdapter { .. })
+        ));
+    }
+
+    #[test]
+    fn network_access_from_network_adapter_err_gateway_not_in_network() {
+        let network = Ipv4Network::from_str("10.20.128.0/17").unwrap();
+        let gateway = Ipv4Addr::new(11, 20, 128, 11);
+        let network_adapter = NetworkAdapter {
+            name: "TestAdapter".to_string(),
+            mac: None,
+            net_type: Default::default(),
+            ipv4_networks: vec![network],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: Some(gateway),
+        };
+        assert!(matches!(
+            network_access_from_network_adapter(&network_adapter),
+            Err(ConnectInstanceConfigNetworkError::InvalidAdapter { .. })
+        ));
+    }
+
+    fn connect_instance_to_network_adapter_ok_data(
+        expected_ip_address: Ipv4Addr,
+    ) -> (Arc<Vault>, NetworkAdapter) {
+        const ADAPTER_NAME: &str = "test-adapter";
+        const VLAN_NAME: &str = "flecs-ipvlan_l2-test-adapter";
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let network_adapter = NetworkAdapter {
+            name: ADAPTER_NAME.to_string(),
+            mac: None,
+            net_type: NetType::Wireless,
+            ipv4_networks: vec![network],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: Some(Ipv4Addr::new(10, 20, 124, 1)),
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_network()
+            .once()
+            .with(predicate::eq(VLAN_NAME.to_string()))
+            .returning(|_| Ok(Some(Network::default())));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(VLAN_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(VLAN_NAME.to_string()),
+                predicate::eq(expected_ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Ok(()));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        (vault, network_adapter)
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_adapter_ok_address_given() {
+        let ip_address = Ipv4Addr::new(10, 20, 124, 2);
+        let (vault, network_adapter) = connect_instance_to_network_adapter_ok_data(ip_address);
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network_adapter(
+                    vault,
+                    network_adapter,
+                    NETWORK_INSTANCE,
+                    Some(ip_address)
+                )
+                .await,
+            Ok((
+                IpAddr::V4(ip_address),
+                Some(IpAddr::V4(Ipv4Addr::new(10, 20, 124, 200)))
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_adapter_ok_with_reservation() {
+        let ip_address = Ipv4Addr::new(10, 20, 0, 2);
+        let (vault, network_adapter) = connect_instance_to_network_adapter_ok_data(ip_address);
+        let network_access = network_access_from_network_adapter(&network_adapter).unwrap();
+        vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await
+            .instance_pouch_mut
+            .as_mut()
+            .expect("Vault reservations should never fail")
+            .reserve_free_ipv4_address(network_access)
+            .unwrap();
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network_adapter(
+                    vault.clone(),
+                    network_adapter,
+                    NETWORK_INSTANCE,
+                    Some(ip_address)
+                )
+                .await,
+            Ok((
+                IpAddr::V4(ip_address),
+                Some(IpAddr::V4(Ipv4Addr::new(10, 20, 124, 200)))
+            ))
+        );
+        assert!(!vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .expect("Vault reservations should never fail")
+            .reserved_ip_addresses()
+            .contains(&IpAddr::V4(ip_address)))
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_adapter_ok_no_address() {
+        let ip_address = Ipv4Addr::new(10, 20, 0, 1);
+        let (vault, network_adapter) = connect_instance_to_network_adapter_ok_data(ip_address);
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network_adapter(vault, network_adapter, NETWORK_INSTANCE, None)
+                .await,
+            Ok((
+                IpAddr::V4(ip_address),
+                Some(IpAddr::V4(Ipv4Addr::new(10, 20, 124, 200)))
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_adapter_err_address_out_of_range() {
+        const ADAPTER_NAME: &str = "test-adapter";
+        let ip_address = Ipv4Addr::new(10, 4, 0, 2);
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let network_adapter = NetworkAdapter {
+            name: ADAPTER_NAME.to_string(),
+            mac: None,
+            net_type: NetType::Wireless,
+            ipv4_networks: vec![network],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: Some(Ipv4Addr::new(10, 20, 124, 1)),
+        };
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network_adapter(
+                    vault,
+                    network_adapter,
+                    NETWORK_INSTANCE,
+                    Some(ip_address)
+                )
+                .await,
+            Err(ConnectInstanceConfigNetworkError::AddressOutOfRange {
+                address: IpAddr::V4(ip_address),
+                adapter: ADAPTER_NAME.to_string()
+            },)
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_adapter_err_no_free_address() {
+        const ADAPTER_NAME: &str = "test-adapter";
+        let network = Ipv4Network::from_str("10.20.0.0/28").unwrap();
+        let network_adapter = NetworkAdapter {
+            name: ADAPTER_NAME.to_string(),
+            mac: None,
+            net_type: NetType::Wireless,
+            ipv4_networks: vec![network],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: Some(Ipv4Addr::new(10, 20, 0, 2)),
+        };
+        let network_access = network_access_from_network_adapter(&network_adapter).unwrap();
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        {
+            let mut grab = vault
+                .reservation()
+                .reserve_instance_pouch_mut()
+                .grab()
+                .await;
+            let instance_pouch = grab
+                .instance_pouch_mut
+                .as_mut()
+                .expect("Vault reservations should never fail");
+            while instance_pouch
+                .reserve_free_ipv4_address(network_access)
+                .is_some()
+            {}
+        }
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network_adapter(vault, network_adapter, NETWORK_INSTANCE, None)
+                .await,
+            Err(ConnectInstanceConfigNetworkError::NoFreeAddress)
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_adapter_err_instance_not_found() {
+        const ADAPTER_NAME: &str = "test-adapter";
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let network_adapter = NetworkAdapter {
+            name: ADAPTER_NAME.to_string(),
+            mac: None,
+            net_type: NetType::Wireless,
+            ipv4_networks: vec![network],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: Some(Ipv4Addr::new(10, 20, 0, 2)),
+        };
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network_adapter(
+                    vault,
+                    network_adapter,
+                    UNKNOWN_INSTANCE_2,
+                    None
+                )
+                .await,
+            Err(ConnectInstanceConfigNetworkError::InstanceNotFound(
+                UNKNOWN_INSTANCE_2
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_adapter_err_network_creation() {
+        const ADAPTER_NAME: &str = "test-adapter";
+        const VLAN_NAME: &str = "flecs-ipvlan_l2-test-adapter";
+        let ip_address = Ipv4Addr::new(10, 20, 0, 2);
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let network_adapter = NetworkAdapter {
+            name: ADAPTER_NAME.to_string(),
+            mac: None,
+            net_type: NetType::Wireless,
+            ipv4_networks: vec![network],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: Some(Ipv4Addr::new(10, 20, 124, 1)),
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
+        deployment
+            .expect_network()
+            .once()
+            .with(predicate::eq(VLAN_NAME.to_string()))
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        assert_eq!(
+            InstanciusImpl::default()
+                .connect_instance_to_network_adapter(
+                    vault,
+                    network_adapter,
+                    NETWORK_INSTANCE,
+                    Some(ip_address)
+                )
+                .await,
+            Err(ConnectInstanceConfigNetworkError::CouldNotCreateNetwork {
+                reason: anyhow::anyhow!("TestError").to_string(),
+                adapter: ADAPTER_NAME.to_string()
+            },)
+        );
+    }
+
+    #[tokio::test]
+    async fn connect_instance_to_network_adapter_err_connect() {
+        const ADAPTER_NAME: &str = "test-adapter";
+        const VLAN_NAME: &str = "flecs-ipvlan_l2-test-adapter";
+        let ip_address = Ipv4Addr::new(10, 20, 0, 2);
+        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let network_adapter = NetworkAdapter {
+            name: ADAPTER_NAME.to_string(),
+            mac: None,
+            net_type: NetType::Wireless,
+            ipv4_networks: vec![network],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: Some(Ipv4Addr::new(10, 20, 0, 1)),
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_network()
+            .once()
+            .with(predicate::eq(VLAN_NAME.to_string()))
+            .returning(|_| Ok(Some(Network::default())));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(VLAN_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(VLAN_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let vault = create_test_vault(
+            HashMap::from([(NETWORK_INSTANCE, deployment)]),
+            HashMap::new(),
+            None,
+        );
+        let result = InstanciusImpl::default()
+            .connect_instance_to_network_adapter(vault, network_adapter, NETWORK_INSTANCE, None)
+            .await;
+        assert!(
+            matches!(result, Err(ConnectInstanceConfigNetworkError::Other(_))),
+            "Result: {result:?}, expected: Err(ConnectInstanceConfigNetworkError::Other(_))"
+        );
     }
 }

@@ -493,6 +493,18 @@ pub mod tests {
         app_deployments: HashMap<AppKey, Arc<dyn crate::jeweler::deployment::Deployment>>,
         default_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
     ) -> Arc<Vault> {
+        Arc::new(create_test_vault_raw(
+            instance_deployments,
+            app_deployments,
+            default_deployment,
+        ))
+    }
+
+    pub fn create_test_vault_raw(
+        instance_deployments: HashMap<InstanceId, Arc<dyn crate::jeweler::deployment::Deployment>>,
+        app_deployments: HashMap<AppKey, Arc<dyn crate::jeweler::deployment::Deployment>>,
+        default_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
+    ) -> Vault {
         let manifest_pouch = test_manifest_pouch();
         let instance_pouch = test_instance_pouch(
             manifest_pouch.gems(),
@@ -502,13 +514,13 @@ pub mod tests {
         let deployment_pouch = test_deployment_pouch(default_deployment.clone());
         let secret_pouch = test_secret_pouch();
         let app_pouch = test_app_pouch(manifest_pouch.gems(), app_deployments, default_deployment);
-        Arc::new(Vault::new_from_pouches(
+        Vault::new_from_pouches(
             app_pouch,
             manifest_pouch,
             secret_pouch,
             deployment_pouch,
             instance_pouch,
-        ))
+        )
     }
 
     pub fn create_empty_test_vault() -> Arc<Vault> {

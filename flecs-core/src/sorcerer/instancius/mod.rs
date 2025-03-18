@@ -8,6 +8,7 @@ use crate::jeweler::instance::Logs;
 use crate::jeweler::network::NetworkId;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+use crate::relic::network::NetworkAdapter;
 pub use crate::sorcerer::spell::instance::DisconnectInstanceError;
 use crate::sorcerer::Sorcerer;
 use crate::vault::pouch::AppKey;
@@ -17,7 +18,7 @@ pub use instancius_impl::InstanciusImpl;
 #[cfg(test)]
 use mockall::automock;
 use std::collections::HashMap;
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU16;
 use std::sync::Arc;
 
@@ -54,6 +55,22 @@ pub enum GetInstanceConfigNetworkResult {
     InstanceNotFound,
     UnknownNetwork,
     Network { name: String, address: IpAddr },
+}
+
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+pub enum ConnectInstanceConfigNetworkError {
+    #[error("Instance not found: {0}")]
+    InstanceNotFound(InstanceId),
+    #[error("No free ip address available")]
+    NoFreeAddress,
+    #[error("Given address {address} is not part of networks of adapter {adapter}")]
+    AddressOutOfRange { address: IpAddr, adapter: NetworkId },
+    #[error("Given network adapter '{adapter}' is invalid: {reason}")]
+    InvalidAdapter { adapter: NetworkId, reason: String },
+    #[error("Failed to create overlay network for network adapter {adapter}: {reason}")]
+    CouldNotCreateNetwork { adapter: NetworkId, reason: String },
+    #[error("Failed to connect instance: {0}")]
+    Other(String),
 }
 
 #[cfg_attr(test, automock)]
@@ -283,6 +300,14 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         network_id: NetworkId,
     ) -> Result<IpAddr, DisconnectInstanceError>;
+
+    async fn connect_instance_to_network_adapter(
+        &self,
+        vault: Arc<Vault>,
+        network_adapter: NetworkAdapter,
+        id: InstanceId,
+        address: Option<Ipv4Addr>,
+    ) -> Result<(IpAddr, Option<IpAddr>), ConnectInstanceConfigNetworkError>;
 
     async fn delete_instance<F: Floxy + 'static>(
         &self,

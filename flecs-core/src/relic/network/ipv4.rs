@@ -30,9 +30,17 @@ impl Ipv4NetworkAccess {
     pub fn try_new(network: Ipv4Network, gateway: Ipv4Addr) -> crate::Result<Self> {
         anyhow::ensure!(
             network.iter().contains(gateway),
-            "The gateway has to be part of the network."
+            "The gateway {gateway} has to be part of the network {network}."
         );
         Ok(Self { network, gateway })
+    }
+
+    pub fn network(&self) -> Ipv4Network {
+        self.network
+    }
+
+    pub fn gateway(&self) -> Ipv4Addr {
+        self.gateway
     }
 }
 
@@ -139,6 +147,10 @@ impl Ipv4Network {
 
     pub fn subnet_mask(&self) -> Ipv4Addr {
         Ipv4Addr::from(0xffffffff << (32 - self.size))
+    }
+
+    pub fn contains(&self, address: Ipv4Addr) -> bool {
+        self.subnet_mask() & address == self.address
     }
 }
 
@@ -595,11 +607,13 @@ mod tests {
 
     #[test]
     fn try_new_ipv4_network_access_ok() {
-        Ipv4NetworkAccess::try_new(
-            Ipv4Network::try_new(Ipv4Addr::new(10, 20, 0, 0), 16).unwrap(),
-            Ipv4Addr::new(10, 20, 20, 100),
-        )
-        .unwrap();
+        let network = Ipv4Network::try_new(Ipv4Addr::new(10, 20, 0, 0), 16).unwrap();
+        let gateway = Ipv4Addr::new(10, 20, 20, 100);
+        let network_access = Ipv4NetworkAccess::try_new(network, gateway).unwrap();
+        assert_eq!(network_access.network, network);
+        assert_eq!(network_access.network(), network);
+        assert_eq!(network_access.gateway, gateway);
+        assert_eq!(network_access.gateway(), gateway);
     }
 
     #[test]
@@ -663,6 +677,44 @@ mod tests {
         assert_eq!(
             Ipv4Network::new_from_address_and_subnet_mask(address, subnet_mask).unwrap(),
             expected
+        );
+    }
+
+    #[test_case("10.20.30.0/24", "10.20.30.255")]
+    #[test_case("10.20.30.0/24", "10.20.30.1")]
+    #[test_case("127.0.2.0/24", "127.0.2.255")]
+    #[test_case("127.0.2.0/24", "127.0.2.55")]
+    #[test_case("100.0.0.0/8", "100.255.255.255")]
+    #[test_case("100.0.0.0/8", "100.25.1.2")]
+    #[test_case("200.200.80.0/20", "200.200.95.255")]
+    #[test_case("200.200.80.0/20", "200.200.88.2")]
+    #[test_case("127.0.0.0/10", "127.63.25.1")]
+    #[test_case("127.0.0.0/10", "127.40.255.255")]
+    fn ipv4_contains(network: &str, address: &str) {
+        let network = Ipv4Network::from_str(network).unwrap();
+        let address = Ipv4Addr::from_str(address).unwrap();
+        assert!(
+            network.contains(address),
+            "{network} should contain {address}"
+        );
+    }
+
+    #[test_case("10.20.30.0/24", "10.20.31.255")]
+    #[test_case("10.20.30.0/24", "10.22.30.1")]
+    #[test_case("127.0.2.0/24", "127.0.3.255")]
+    #[test_case("127.0.2.0/24", "127.1.2.55")]
+    #[test_case("100.0.0.0/8", "99.255.255.255")]
+    #[test_case("100.0.0.0/8", "101.25.1.2")]
+    #[test_case("200.200.80.0/20", "200.200.128.255")]
+    #[test_case("200.200.80.0/20", "200.100.100.2")]
+    #[test_case("127.0.0.0/10", "127.64.25.1")]
+    #[test_case("127.0.0.0/10", "121.70.255.255")]
+    fn ipv4_contains_not(network: &str, address: &str) {
+        let network = Ipv4Network::from_str(network).unwrap();
+        let address = Ipv4Addr::from_str(address).unwrap();
+        assert!(
+            !network.contains(address),
+            "{network} should not contain {address}"
         );
     }
 }
