@@ -596,12 +596,12 @@ pub mod tests {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
-            Ipv4Addr::new(10, 18, 102, 2),
+            Ipv4Addr::new(10, 18, 102, 1),
         )
         .unwrap();
         assert_eq!(
             make_ipv4_reservation(vault, network).await,
-            Some(Ipv4Addr::new(10, 18, 102, 3)),
+            Some(Ipv4Addr::new(10, 18, 102, 2)),
         );
     }
 
@@ -610,7 +610,7 @@ pub mod tests {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
-            Ipv4Addr::new(10, 18, 102, 2),
+            Ipv4Addr::new(10, 18, 102, 1),
         )
         .unwrap();
         assert_eq!(
@@ -623,7 +623,7 @@ pub mod tests {
                 .as_mut()
                 .unwrap()
                 .reserve_free_ipv4_address(network),
-            Some(Ipv4Addr::new(10, 18, 102, 3)),
+            Some(Ipv4Addr::new(10, 18, 102, 2)),
         );
         assert_eq!(
             vault
@@ -635,9 +635,9 @@ pub mod tests {
                 .as_mut()
                 .unwrap()
                 .reserve_free_ipv4_address(network),
-            Some(Ipv4Addr::new(10, 18, 102, 4)),
+            Some(Ipv4Addr::new(10, 18, 102, 3)),
         );
-        clear_ip_reservation(vault.clone(), IpAddr::V4(Ipv4Addr::new(10, 18, 102, 3))).await;
+        clear_ip_reservation(vault.clone(), IpAddr::V4(Ipv4Addr::new(10, 18, 102, 2))).await;
         assert_eq!(
             vault
                 .reservation()
@@ -648,7 +648,7 @@ pub mod tests {
                 .as_mut()
                 .unwrap()
                 .reserve_free_ipv4_address(network),
-            Some(Ipv4Addr::new(10, 18, 102, 3)),
+            Some(Ipv4Addr::new(10, 18, 102, 2)),
         );
     }
 

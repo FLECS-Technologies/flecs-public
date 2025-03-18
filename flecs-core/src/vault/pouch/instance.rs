@@ -1071,7 +1071,7 @@ pub mod tests {
         let path = prepare_test_path(module_path!(), "reserve_free_ipv4_address_some");
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(20, 30, 40, 0), 24).unwrap(),
-            Ipv4Addr::new(20, 30, 40, 2),
+            Ipv4Addr::new(20, 30, 40, 1),
         )
         .unwrap();
         let (instances, manifests, deployments) = create_test_data();
@@ -1079,6 +1079,7 @@ pub mod tests {
             path: path.clone(),
             instances: InstancePouch::create_instances(instances.clone(), &manifests, &deployments),
             reserved_ip_addresses: HashSet::from([
+                IpAddr::V4(Ipv4Addr::new(20, 30, 40, 2)),
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, 3)),
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, 4)),
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, 5)),
@@ -1101,14 +1102,14 @@ pub mod tests {
         let path = prepare_test_path(module_path!(), "reserve_free_ipv4_address_none");
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(20, 30, 40, 0), 24).unwrap(),
-            Ipv4Addr::new(20, 30, 40, 2),
+            Ipv4Addr::new(20, 30, 40, 1),
         )
         .unwrap();
         let mut pouch = InstancePouch {
             path: path.clone(),
             instances: HashMap::default(),
             reserved_ip_addresses: Ipv4Iterator::from(
-                Ipv4Addr::new(20, 30, 40, 3).into()..Ipv4Addr::new(20, 30, 40, 255).into(),
+                Ipv4Addr::new(20, 30, 40, 2).into()..Ipv4Addr::new(20, 30, 40, 255).into(),
             )
             .map(Into::into)
             .collect(),

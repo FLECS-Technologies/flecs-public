@@ -1003,7 +1003,7 @@ pub mod tests {
                 .network_addresses,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
+                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
             )])
         );
     }
@@ -1143,7 +1143,7 @@ pub mod tests {
                 .network_addresses,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
+                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
             )])
         );
         assert_eq!(
@@ -1155,7 +1155,7 @@ pub mod tests {
                 .network_addresses,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 3))
+                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
             )])
         );
     }
@@ -1226,7 +1226,7 @@ pub mod tests {
                 .network_addresses,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
+                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
             )])
         );
     }
