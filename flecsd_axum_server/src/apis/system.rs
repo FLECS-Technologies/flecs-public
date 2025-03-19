@@ -74,7 +74,7 @@ pub enum SystemNetworkAdaptersNetworkAdapterIdGetResponse {
 #[allow(clippy::large_enum_variant)]
 pub enum SystemNetworksNetworkIdDhcpIpv4PostResponse {
     /// Success
-    Status200_Success(models::SystemNetworksNetworkIdDhcpIpv4Post200Response),
+    Status200_Success(models::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4Post200Response),
     /// Unknown network
     Status404_UnknownNetwork,
     /// Internal server error
