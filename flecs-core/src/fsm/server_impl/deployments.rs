@@ -16,10 +16,12 @@ use axum::extract::Host;
 use axum_extra::extract::CookieJar;
 use flecsd_axum_server::apis::deployments::{
     Deployments, DeploymentsDeploymentIdNetworksGetResponse,
+    DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse,
     DeploymentsDeploymentIdNetworksNetworkIdGetResponse,
 };
 use flecsd_axum_server::models::{
     DeploymentsDeploymentIdNetworksGetPathParams,
+    DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams,
     DeploymentsDeploymentIdNetworksNetworkIdGetPathParams,
 };
 use http::Method;
@@ -53,6 +55,16 @@ impl<
             path_params,
         )
         .await)
+    }
+
+    async fn deployments_deployment_id_networks_network_id_dhcp_ipv4_post(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams,
+    ) -> Result<DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse, ()> {
+        todo!()
     }
 
     async fn deployments_deployment_id_networks_network_id_get(

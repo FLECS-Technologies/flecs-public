@@ -75,6 +75,9 @@ where
         .route("/v2/deployments/:deployment_id/networks/:network_id",
             get(deployments_deployment_id_networks_network_id_get::<I, A>)
         )
+        .route("/v2/deployments/:deployment_id/networks/:network_id/dhcp/ipv4",
+            post(deployments_deployment_id_networks_network_id_dhcp_ipv4_post::<I, A>)
+        )
         .route("/v2/device/license/activation",
             post(device_license_activation_post::<I, A>)
         )
@@ -897,6 +900,144 @@ where
                                                   response.body(Body::empty())
                                                 },
                                                 apis::deployments::DeploymentsDeploymentIdNetworksGetResponse::Status500_InternalServerError
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(500);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn deployments_deployment_id_networks_network_id_dhcp_ipv4_post_validation(
+    path_params: models::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams,
+) -> std::result::Result<
+    (models::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams,),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4Post - POST /v2/deployments/{deployment_id}/networks/{network_id}/dhcp/ipv4
+#[tracing::instrument(skip_all)]
+async fn deployments_deployment_id_networks_network_id_dhcp_ipv4_post<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::deployments::Deployments,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        deployments_deployment_id_networks_network_id_dhcp_ipv4_post_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .deployments_deployment_id_networks_network_id_dhcp_ipv4_post(
+            method,
+            host,
+            cookies,
+            path_params,
+        )
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse::Status200_Success
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse::Status404_ResourceNotFound
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError
                                                     (body)
                                                 => {
                                                   let mut response = response.status(500);
