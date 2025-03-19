@@ -10,21 +10,20 @@ use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::manifesto::Manifesto;
-use crate::sorcerer::systemus::{ReserveIpv4AddressResult, Systemus};
+use crate::sorcerer::systemus::Systemus;
 use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
 use flecsd_axum_server::apis::system::{
     System, SystemDevicesGetResponse, SystemDevicesUsbGetResponse, SystemDevicesUsbPortGetResponse,
     SystemInfoGetResponse, SystemNetworkAdaptersGetResponse,
-    SystemNetworkAdaptersNetworkAdapterIdGetResponse, SystemNetworksNetworkIdDhcpIpv4PostResponse,
-    SystemPingGetResponse, SystemVersionGetResponse,
+    SystemNetworkAdaptersNetworkAdapterIdGetResponse, SystemPingGetResponse,
+    SystemVersionGetResponse,
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
     AdditionalInfo, SystemDevicesUsbPortGetPathParams,
     SystemNetworkAdaptersNetworkAdapterIdGetPathParams,
-    SystemNetworksNetworkIdDhcpIpv4PostPathParams,
 };
 use http::Method;
 use tracing::error;
@@ -149,45 +148,6 @@ impl<
         )
     }
 
-    async fn system_networks_network_id_dhcp_ipv4_post(
-        &self,
-        _method: Method,
-        _host: Host,
-        _cookies: CookieJar,
-        path_params: SystemNetworksNetworkIdDhcpIpv4PostPathParams,
-    ) -> Result<SystemNetworksNetworkIdDhcpIpv4PostResponse, ()> {
-        match self
-            .sorcerers
-            .systemus
-            .reserve_ipv4_address(self.vault.clone(), path_params.network_id.clone())
-            .await
-        {
-            Err(e) => Ok(
-                SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError(
-                    AdditionalInfo::new(e.to_string()),
-                ),
-            ),
-            Ok(ReserveIpv4AddressResult::NoFreeIpAddress) => Ok(
-                SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError(
-                    AdditionalInfo::new(format!(
-                        "No free IP address available in network {}",
-                        path_params.network_id
-                    )),
-                ),
-            ),
-            Ok(ReserveIpv4AddressResult::UnknownNetwork(_)) => {
-                Ok(SystemNetworksNetworkIdDhcpIpv4PostResponse::Status404_UnknownNetwork)
-            }
-            Ok(ReserveIpv4AddressResult::Reserved(address)) => Ok(
-                SystemNetworksNetworkIdDhcpIpv4PostResponse::Status200_Success(
-                    models::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4Post200Response {
-                        ipv4_address: address.to_string(),
-                    },
-                ),
-            ),
-        }
-    }
-
     async fn system_ping_get(
         &self,
         _method: Method,
@@ -255,13 +215,10 @@ mod tests {
     use crate::relic::device::net::MockNetDeviceReader;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
     use crate::relic::network::MockNetworkAdapterReader;
-    use crate::sorcerer::systemus::MockSystemus;
     use crate::sorcerer::MockSorcerers;
     use crate::vault::tests::create_empty_test_vault;
     use std::collections::HashMap;
     use std::io::ErrorKind;
-    use std::net::Ipv4Addr;
-    use std::sync::Arc;
 
     fn create_mock_usb_reader_error() -> MockUsbDeviceReader {
         let mut usb_reader = MockUsbDeviceReader::new();
@@ -574,155 +531,5 @@ mod tests {
                 .await,
             Ok(SystemDevicesUsbPortGetResponse::Status500_InternalServerError(_))
         ))
-    }
-
-    #[tokio::test]
-    async fn system_networks_network_id_dhcp_ipv4_post_500() {
-        let vault = create_empty_test_vault();
-        let mut systemus = MockSystemus::default();
-        systemus
-            .expect_reserve_ipv4_address()
-            .once()
-            .withf(|_, network| network == "TestNetwork")
-            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
-        let server = ServerImpl::test_instance(
-            vault,
-            MockUsbDeviceReader::new(),
-            MockNetworkAdapterReader::default(),
-            MockNetDeviceReader::default(),
-            MockSorcerers {
-                systemus: Arc::new(systemus),
-                ..MockSorcerers::default()
-            },
-        );
-        assert!(matches!(
-            server
-                .system_networks_network_id_dhcp_ipv4_post(
-                    Method::default(),
-                    Host("host".to_string()),
-                    CookieJar::default(),
-                    SystemNetworksNetworkIdDhcpIpv4PostPathParams {
-                        network_id: "TestNetwork".to_string()
-                    }
-                )
-                .await,
-            Ok(SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError(_))
-        ))
-    }
-
-    #[tokio::test]
-    async fn system_networks_network_id_dhcp_ipv4_post_500_no_free_address() {
-        let vault = create_empty_test_vault();
-        let mut systemus = MockSystemus::default();
-        systemus
-            .expect_reserve_ipv4_address()
-            .once()
-            .withf(|_, network| network == "TestNetwork")
-            .returning(|_, _| Ok(ReserveIpv4AddressResult::NoFreeIpAddress));
-        let server = ServerImpl::test_instance(
-            vault,
-            MockUsbDeviceReader::new(),
-            MockNetworkAdapterReader::default(),
-            MockNetDeviceReader::default(),
-            MockSorcerers {
-                systemus: Arc::new(systemus),
-                ..MockSorcerers::default()
-            },
-        );
-        assert!(matches!(
-            server
-                .system_networks_network_id_dhcp_ipv4_post(
-                    Method::default(),
-                    Host("host".to_string()),
-                    CookieJar::default(),
-                    SystemNetworksNetworkIdDhcpIpv4PostPathParams {
-                        network_id: "TestNetwork".to_string()
-                    }
-                )
-                .await,
-            Ok(SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError(_))
-        ))
-    }
-
-    #[tokio::test]
-    async fn system_networks_network_id_dhcp_ipv4_post_404() {
-        let vault = create_empty_test_vault();
-        let mut systemus = MockSystemus::default();
-        systemus
-            .expect_reserve_ipv4_address()
-            .once()
-            .withf(|_, network| network == "TestNetwork")
-            .returning(|_, _| {
-                Ok(ReserveIpv4AddressResult::UnknownNetwork(
-                    "TestNetwork".to_string(),
-                ))
-            });
-        let server = ServerImpl::test_instance(
-            vault,
-            MockUsbDeviceReader::new(),
-            MockNetworkAdapterReader::default(),
-            MockNetDeviceReader::default(),
-            MockSorcerers {
-                systemus: Arc::new(systemus),
-                ..MockSorcerers::default()
-            },
-        );
-        assert!(matches!(
-            server
-                .system_networks_network_id_dhcp_ipv4_post(
-                    Method::default(),
-                    Host("host".to_string()),
-                    CookieJar::default(),
-                    SystemNetworksNetworkIdDhcpIpv4PostPathParams {
-                        network_id: "TestNetwork".to_string()
-                    }
-                )
-                .await,
-            Ok(SystemNetworksNetworkIdDhcpIpv4PostResponse::Status404_UnknownNetwork)
-        ))
-    }
-
-    #[tokio::test]
-    async fn system_networks_network_id_dhcp_ipv4_post_200() {
-        let vault = create_empty_test_vault();
-        let mut systemus = MockSystemus::default();
-        systemus
-            .expect_reserve_ipv4_address()
-            .once()
-            .withf(|_, network| network == "TestNetwork")
-            .returning(|_, _| {
-                Ok(ReserveIpv4AddressResult::Reserved(Ipv4Addr::new(
-                    90, 70, 23, 2,
-                )))
-            });
-        let server = ServerImpl::test_instance(
-            vault,
-            MockUsbDeviceReader::new(),
-            MockNetworkAdapterReader::default(),
-            MockNetDeviceReader::default(),
-            MockSorcerers {
-                systemus: Arc::new(systemus),
-                ..MockSorcerers::default()
-            },
-        );
-        assert_eq!(
-            server
-                .system_networks_network_id_dhcp_ipv4_post(
-                    Method::default(),
-                    Host("host".to_string()),
-                    CookieJar::default(),
-                    SystemNetworksNetworkIdDhcpIpv4PostPathParams {
-                        network_id: "TestNetwork".to_string()
-                    }
-                )
-                .await,
-            Ok(
-                SystemNetworksNetworkIdDhcpIpv4PostResponse::Status200_Success(
-                    models::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4Post200Response::new(
-                        "90.70.23.2".to_string()
-                    )
-                )
-            )
-        )
     }
 }

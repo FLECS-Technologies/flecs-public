@@ -174,9 +174,6 @@ where
         .route("/v2/system/network_adapters/:network_adapter_id",
             get(system_network_adapters_network_adapter_id_get::<I, A>)
         )
-        .route("/v2/system/networks/:network_id/dhcp/ipv4",
-            post(system_networks_network_id_dhcp_ipv4_post::<I, A>)
-        )
         .route("/v2/system/ping",
             get(system_ping_get::<I, A>)
         )
@@ -6267,106 +6264,6 @@ where
                                                   response.body(Body::empty())
                                                 },
                                                 apis::system::SystemNetworkAdaptersNetworkAdapterIdGetResponse::Status500_InternalServerError
-                                                    (body)
-                                                => {
-                                                  let mut response = response.status(500);
-                                                  {
-                                                    let mut response_headers = response.headers_mut().unwrap();
-                                                    response_headers.insert(
-                                                        CONTENT_TYPE,
-                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
-                                                  }
-
-                                                  let body_content =  tokio::task::spawn_blocking(move ||
-                                                      serde_json::to_vec(&body).map_err(|e| {
-                                                        error!(error = ?e);
-                                                        StatusCode::INTERNAL_SERVER_ERROR
-                                                      })).await.unwrap()?;
-                                                  response.body(Body::from(body_content))
-                                                },
-                                            },
-                                            Err(_) => {
-                                                // Application code returned an error. This should not happen, as the implementation should
-                                                // return a valid response.
-                                                response.status(500).body(Body::empty())
-                                            },
-                                        };
-
-    resp.map_err(|e| {
-        error!(error = ?e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })
-}
-
-#[tracing::instrument(skip_all)]
-fn system_networks_network_id_dhcp_ipv4_post_validation(
-    path_params: models::SystemNetworksNetworkIdDhcpIpv4PostPathParams,
-) -> std::result::Result<(models::SystemNetworksNetworkIdDhcpIpv4PostPathParams,), ValidationErrors>
-{
-    path_params.validate()?;
-
-    Ok((path_params,))
-}
-/// SystemNetworksNetworkIdDhcpIpv4Post - POST /v2/system/networks/{network_id}/dhcp/ipv4
-#[tracing::instrument(skip_all)]
-async fn system_networks_network_id_dhcp_ipv4_post<I, A>(
-    method: Method,
-    host: Host,
-    cookies: CookieJar,
-    Path(path_params): Path<models::SystemNetworksNetworkIdDhcpIpv4PostPathParams>,
-    State(api_impl): State<I>,
-) -> Result<Response, StatusCode>
-where
-    I: AsRef<A> + Send + Sync,
-    A: apis::system::System,
-{
-    #[allow(clippy::redundant_closure)]
-    let validation = tokio::task::spawn_blocking(move || {
-        system_networks_network_id_dhcp_ipv4_post_validation(path_params)
-    })
-    .await
-    .unwrap();
-
-    let Ok((path_params,)) = validation else {
-        return Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(Body::from(validation.unwrap_err().to_string()))
-            .map_err(|_| StatusCode::BAD_REQUEST);
-    };
-
-    let result = api_impl
-        .as_ref()
-        .system_networks_network_id_dhcp_ipv4_post(method, host, cookies, path_params)
-        .await;
-
-    let mut response = Response::builder();
-
-    let resp = match result {
-                                            Ok(rsp) => match rsp {
-                                                apis::system::SystemNetworksNetworkIdDhcpIpv4PostResponse::Status200_Success
-                                                    (body)
-                                                => {
-                                                  let mut response = response.status(200);
-                                                  {
-                                                    let mut response_headers = response.headers_mut().unwrap();
-                                                    response_headers.insert(
-                                                        CONTENT_TYPE,
-                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
-                                                  }
-
-                                                  let body_content =  tokio::task::spawn_blocking(move ||
-                                                      serde_json::to_vec(&body).map_err(|e| {
-                                                        error!(error = ?e);
-                                                        StatusCode::INTERNAL_SERVER_ERROR
-                                                      })).await.unwrap()?;
-                                                  response.body(Body::from(body_content))
-                                                },
-                                                apis::system::SystemNetworksNetworkIdDhcpIpv4PostResponse::Status404_UnknownNetwork
-                                                => {
-                                                  let mut response = response.status(404);
-                                                  response.body(Body::empty())
-                                                },
-                                                apis::system::SystemNetworksNetworkIdDhcpIpv4PostResponse::Status500_InternalServerError
                                                     (body)
                                                 => {
                                                   let mut response = response.status(500);
