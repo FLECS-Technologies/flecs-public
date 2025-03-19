@@ -1,7 +1,7 @@
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::network::{Network, NetworkId};
 use crate::quest::Quest;
-use crate::sorcerer::deploymento::{Deploymento, GetDeploymentNetworkResult};
+use crate::sorcerer::deploymento::{Deploymento, GetDeploymentNetworkError};
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
 use async_trait::async_trait;
@@ -41,18 +41,24 @@ impl Deploymento for DeploymentoImpl {
         vault: Arc<Vault>,
         deployment_id: DeploymentId,
         network_id: NetworkId,
-    ) -> anyhow::Result<GetDeploymentNetworkResult> {
-        let result = crate::sorcerer::spell::deployment::query_deployment(
-            vault,
-            deployment_id.clone(),
-            |deployment| async move { deployment.network(network_id).await },
-        )
-        .await;
+    ) -> anyhow::Result<Network, GetDeploymentNetworkError> {
+        let result = {
+            let network_id = network_id.clone();
+            crate::sorcerer::spell::deployment::query_deployment(
+                vault,
+                deployment_id.clone(),
+                |deployment| async move { deployment.network(network_id).await },
+            )
+            .await
+        };
         match result {
-            None => Ok(GetDeploymentNetworkResult::DeploymentNotFound),
-            Some(Err(e)) => Err(e),
-            Some(Ok(None)) => Ok(GetDeploymentNetworkResult::NetworkNotFound),
-            Some(Ok(Some(network))) => Ok(GetDeploymentNetworkResult::Network(Box::new(network))),
+            None => Err(GetDeploymentNetworkError::DeploymentNotFound(deployment_id)),
+            Some(Err(e)) => Err(GetDeploymentNetworkError::Other {
+                network_id,
+                reason: e.to_string(),
+            }),
+            Some(Ok(None)) => Err(GetDeploymentNetworkError::NetworkNotFound(network_id)),
+            Some(Ok(Some(network))) => Ok(network),
         }
     }
 }
@@ -121,9 +127,10 @@ mod tests {
                     "UnknownDeployment".to_string(),
                     "TestNetwork".to_string()
                 )
-                .await
-                .unwrap(),
-            GetDeploymentNetworkResult::DeploymentNotFound
+                .await,
+            Err(GetDeploymentNetworkError::DeploymentNotFound(
+                "UnknownDeployment".to_string()
+            ))
         );
     }
 
@@ -145,9 +152,10 @@ mod tests {
                     "TestDeployment".to_string(),
                     "UnknownNetwork".to_string()
                 )
-                .await
-                .unwrap(),
-            GetDeploymentNetworkResult::NetworkNotFound
+                .await,
+            Err(GetDeploymentNetworkError::NetworkNotFound(
+                "UnknownNetwork".to_string()
+            ))
         );
     }
 
@@ -169,9 +177,8 @@ mod tests {
                     "TestDeployment".to_string(),
                     "TestNetwork".to_string()
                 )
-                .await
-                .unwrap(),
-            GetDeploymentNetworkResult::Network(Box::default())
+                .await,
+            Ok(Network::default())
         );
     }
 
@@ -186,13 +193,15 @@ mod tests {
             .returning(|_| Err(anyhow::anyhow!("TestError")));
         deployment.expect_id().return_const("TestDeployment");
         let vault = create_test_vault_with_deployment(Arc::new(deployment));
-        assert!(DeploymentoImpl
-            .get_deployment_network(
-                vault,
-                "TestDeployment".to_string(),
-                "UnknownNetwork".to_string()
-            )
-            .await
-            .is_err());
+        assert!(matches!(
+            DeploymentoImpl
+                .get_deployment_network(
+                    vault,
+                    "TestDeployment".to_string(),
+                    "UnknownNetwork".to_string()
+                )
+                .await,
+            Err(GetDeploymentNetworkError::Other { .. })
+        ));
     }
 }
