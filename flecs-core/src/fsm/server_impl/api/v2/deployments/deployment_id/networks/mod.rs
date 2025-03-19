@@ -1,3 +1,4 @@
+pub mod dhcp;
 pub mod network_id;
 
 use crate::fsm::server_impl::api::v2::deployments::deployment_id::networks::network_id::try_model_from_network;
