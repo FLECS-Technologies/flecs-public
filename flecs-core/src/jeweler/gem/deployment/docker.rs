@@ -12,8 +12,8 @@ use bollard::auth::DockerCredentials;
 use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions};
 use bollard::image::RemoveImageOptions;
 use bollard::models::{
-    ContainerInspectResponse, ContainerState, EndpointSettings, Ipam, IpamConfig,
-    MountPointTypeEnum, Network, Volume,
+    ContainerInspectResponse, ContainerState, EndpointIpamConfig, EndpointSettings, Ipam,
+    IpamConfig, MountPointTypeEnum, Network, Volume,
 };
 use bollard::network::{
     ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions, ListNetworksOptions,
@@ -876,6 +876,10 @@ impl NetworkDeployment for DockerDeployment {
             container,
             endpoint_config: EndpointSettings {
                 ip_address: Some(address.to_string()),
+                ipam_config: Some(EndpointIpamConfig {
+                    ipv4_address: Some(address.to_string()),
+                    ..EndpointIpamConfig::default()
+                }),
                 ..EndpointSettings::default()
             },
         };
