@@ -1,6 +1,6 @@
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::jeweler::network::Network;
-use crate::sorcerer::deploymento::{Deploymento, GetDeploymentNetworkResult};
+use crate::sorcerer::deploymento::{Deploymento, GetDeploymentNetworkError};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdGetResponse as GetResponse;
 use flecsd_axum_server::models;
@@ -23,25 +23,16 @@ pub async fn get<T: Deploymento>(
         )
         .await
     {
-        Ok(GetDeploymentNetworkResult::Network(network)) => {
-            match try_model_from_network(*network) {
-                Ok(network) => GetResponse::Status200_Success(network),
-                Err(err) => GetResponse::Status500_InternalServerError(AdditionalInfo::new(
-                    format!("Could not parse network: {err}"),
-                )),
-            }
-        }
-        Ok(GetDeploymentNetworkResult::DeploymentNotFound) => {
+        Ok(network) => match try_model_from_network(network) {
+            Ok(network) => GetResponse::Status200_Success(network),
+            Err(err) => GetResponse::Status500_InternalServerError(AdditionalInfo::new(format!(
+                "Could not parse network: {err}"
+            ))),
+        },
+        Err(e @ GetDeploymentNetworkError::DeploymentNotFound(_))
+        | Err(e @ GetDeploymentNetworkError::NetworkNotFound(_)) => {
             GetResponse::Status404_ResourceNotFound(OptionalAdditionalInfo {
-                additional_info: Some(format!(
-                    "Deployment not found '{}'",
-                    path_params.deployment_id
-                )),
-            })
-        }
-        Ok(GetDeploymentNetworkResult::NetworkNotFound) => {
-            GetResponse::Status404_ResourceNotFound(OptionalAdditionalInfo {
-                additional_info: Some(format!("Network not found '{}'", path_params.network_id)),
+                additional_info: Some(e.to_string()),
             })
         }
         Err(e) => GetResponse::Status500_InternalServerError(AdditionalInfo::new(e.to_string())),
@@ -81,12 +72,10 @@ mod tests {
                 predicate::eq("TestNetwork".to_string()),
             )
             .returning(|_, _, _| {
-                Ok(GetDeploymentNetworkResult::Network(Box::new(
-                    bollard::models::Network {
-                        name: Some("TestNetwork".to_string()),
-                        ..Default::default()
-                    },
-                )))
+                Ok(bollard::models::Network {
+                    name: Some("TestNetwork".to_string()),
+                    ..Default::default()
+                })
             });
         let deploymento = Arc::new(deploymento);
         assert_eq!(
@@ -120,7 +109,7 @@ mod tests {
                 predicate::eq("TestDeployment".to_string()),
                 predicate::eq("TestNetwork".to_string()),
             )
-            .returning(|_, _, _| Ok(GetDeploymentNetworkResult::Network(Box::default())));
+            .returning(|_, _, _| Ok(bollard::models::Network::default()));
         let deploymento = Arc::new(deploymento);
         assert!(matches!(
             get(
@@ -148,7 +137,11 @@ mod tests {
                 predicate::eq("TestDeployment".to_string()),
                 predicate::eq("TestNetwork".to_string()),
             )
-            .returning(|_, _, _| Ok(GetDeploymentNetworkResult::DeploymentNotFound));
+            .returning(|_, _, _| {
+                Err(GetDeploymentNetworkError::DeploymentNotFound(
+                    "TestDeployment".to_string(),
+                ))
+            });
         let deploymento = Arc::new(deploymento);
         assert!(matches!(
             get(
@@ -176,7 +169,11 @@ mod tests {
                 predicate::eq("TestDeployment".to_string()),
                 predicate::eq("TestNetwork".to_string()),
             )
-            .returning(|_, _, _| Ok(GetDeploymentNetworkResult::NetworkNotFound));
+            .returning(|_, _, _| {
+                Err(GetDeploymentNetworkError::NetworkNotFound(
+                    "TestNetwork".to_string(),
+                ))
+            });
         let deploymento = Arc::new(deploymento);
         assert!(matches!(
             get(
@@ -204,7 +201,12 @@ mod tests {
                 predicate::eq("TestDeployment".to_string()),
                 predicate::eq("TestNetwork".to_string()),
             )
-            .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _, _| {
+                Err(GetDeploymentNetworkError::Other {
+                    network_id: "TestNetwork".to_string(),
+                    reason: "TestError".to_string(),
+                })
+            });
         let deploymento = Arc::new(deploymento);
         assert!(matches!(
             get(

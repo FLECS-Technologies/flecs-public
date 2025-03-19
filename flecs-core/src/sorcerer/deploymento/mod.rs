@@ -24,15 +24,21 @@ pub trait Deploymento: Sorcerer {
         vault: Arc<Vault>,
         deployment_id: DeploymentId,
         network_id: NetworkId,
-    ) -> Result<GetDeploymentNetworkResult>;
+    ) -> Result<Network, GetDeploymentNetworkError>;
 }
 
 #[cfg(test)]
 impl Sorcerer for MockDeploymento {}
 
-#[derive(Debug, PartialEq)]
-pub enum GetDeploymentNetworkResult {
-    DeploymentNotFound,
-    NetworkNotFound,
-    Network(Box<Network>),
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum GetDeploymentNetworkError {
+    #[error("Deployment not found: {0}")]
+    DeploymentNotFound(DeploymentId),
+    #[error("Network not found: {0}")]
+    NetworkNotFound(NetworkId),
+    #[error("Failed to get network {network_id}: {reason}")]
+    Other {
+        network_id: NetworkId,
+        reason: String,
+    },
 }
