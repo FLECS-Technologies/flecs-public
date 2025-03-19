@@ -180,7 +180,7 @@ impl<
             }
             Ok(ReserveIpv4AddressResult::Reserved(address)) => Ok(
                 SystemNetworksNetworkIdDhcpIpv4PostResponse::Status200_Success(
-                    models::SystemNetworksNetworkIdDhcpIpv4Post200Response {
+                    models::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4Post200Response {
                         ipv4_address: address.to_string(),
                     },
                 ),
@@ -718,7 +718,7 @@ mod tests {
                 .await,
             Ok(
                 SystemNetworksNetworkIdDhcpIpv4PostResponse::Status200_Success(
-                    models::SystemNetworksNetworkIdDhcpIpv4Post200Response::new(
+                    models::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4Post200Response::new(
                         "90.70.23.2".to_string()
                     )
                 )

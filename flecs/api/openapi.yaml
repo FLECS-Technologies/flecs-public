@@ -946,6 +946,40 @@ paths:
           $ref: "#/components/responses/response_404"
         "500":
           $ref: "#/components/responses/response_500"
+  /deployments/{deployment_id}/networks/{network_id}/dhcp/ipv4:
+    post:
+      tags: [ "Deployments" ]
+      parameters:
+        - name: deployment_id
+          in: path
+          schema:
+            type: string
+            description: The id of the deployment or 'default'
+          required: true
+        - name: network_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ipv4_address:
+                    type: string
+                    format: ipv4
+                required:
+                  - ipv4_address
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+        "500":
+          $ref: "#/components/responses/response_500"
   # Instance related paths
   /instances:
     get:
