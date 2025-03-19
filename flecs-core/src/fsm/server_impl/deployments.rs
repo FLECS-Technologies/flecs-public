@@ -62,9 +62,16 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams,
+        path_params: DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams,
     ) -> Result<DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::deployments::deployment_id::networks::dhcp::ipv4::post(
+                self.vault.clone(),
+                self.sorcerers.deploymento.clone(),
+                path_params,
+            )
+            .await,
+        )
     }
 
     async fn deployments_deployment_id_networks_network_id_get(

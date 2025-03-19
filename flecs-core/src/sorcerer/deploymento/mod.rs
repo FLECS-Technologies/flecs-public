@@ -1,4 +1,5 @@
 mod deploymento_impl;
+
 pub use super::Result;
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::network::{Network, NetworkId};
@@ -8,6 +9,7 @@ use async_trait::async_trait;
 pub use deploymento_impl::DeploymentoImpl;
 #[cfg(test)]
 use mockall::automock;
+use std::net::Ipv4Addr;
 use std::sync::Arc;
 
 #[cfg_attr(test, automock)]
@@ -25,6 +27,13 @@ pub trait Deploymento: Sorcerer {
         deployment_id: DeploymentId,
         network_id: NetworkId,
     ) -> Result<Network, GetDeploymentNetworkError>;
+
+    async fn reserve_ipv4_address(
+        &self,
+        vault: Arc<Vault>,
+        deployment_id: DeploymentId,
+        network_id: NetworkId,
+    ) -> Result<Ipv4Addr, ReserveIpv4AddressError>;
 }
 
 #[cfg(test)]
@@ -41,4 +50,31 @@ pub enum GetDeploymentNetworkError {
         network_id: NetworkId,
         reason: String,
     },
+}
+
+#[derive(thiserror::Error, Debug, Clone, PartialEq)]
+pub enum ReserveIpv4AddressError {
+    #[error("Deployment not found: {0}")]
+    DeploymentNotFound(DeploymentId),
+    #[error("Network not found: {0}")]
+    NetworkNotFound(NetworkId),
+    #[error("No ip address free")]
+    NoFreeIpAddress,
+    #[error("Failed to reserve ip address in {network_id}: {reason}")]
+    Other {
+        network_id: NetworkId,
+        reason: String,
+    },
+}
+
+impl From<GetDeploymentNetworkError> for ReserveIpv4AddressError {
+    fn from(value: GetDeploymentNetworkError) -> Self {
+        match value {
+            GetDeploymentNetworkError::DeploymentNotFound(id) => Self::DeploymentNotFound(id),
+            GetDeploymentNetworkError::NetworkNotFound(id) => Self::NetworkNotFound(id),
+            GetDeploymentNetworkError::Other { network_id, reason } => {
+                Self::Other { network_id, reason }
+            }
+        }
+    }
 }
