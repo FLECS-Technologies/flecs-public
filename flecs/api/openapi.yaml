@@ -2125,32 +2125,6 @@ paths:
           description: Device not found
         "500":
           $ref: "#/components/responses/response_500"
-  /system/networks/{network_id}/dhcp/ipv4:
-    post:
-      tags: [ "System" ]
-      parameters:
-        - name: network_id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ipv4_address:
-                    type: string
-                    format: ipv4
-                required:
-                  - ipv4_address
-        "404":
-          description: Unknown network
-        "500":
-          $ref: "#/components/responses/response_500"
   # Device related paths
   /device/license/activation:
     post:

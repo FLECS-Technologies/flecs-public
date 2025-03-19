@@ -599,12 +599,6 @@ pub struct SystemNetworkAdaptersNetworkAdapterIdGetPathParams {
     pub network_adapter_id: String,
 }
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
-#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct SystemNetworksNetworkIdDhcpIpv4PostPathParams {
-    pub network_id: String,
-}
-
 /// Additional info
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
