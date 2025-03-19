@@ -12,7 +12,8 @@ use bollard::auth::DockerCredentials;
 use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions};
 use bollard::image::RemoveImageOptions;
 use bollard::models::{
-    ContainerInspectResponse, ContainerState, EndpointSettings, MountPointTypeEnum, Network, Volume,
+    ContainerInspectResponse, ContainerState, EndpointSettings, Ipam, IpamConfig,
+    MountPointTypeEnum, Network, Volume,
 };
 use bollard::network::{
     ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions, ListNetworksOptions,
@@ -811,6 +812,14 @@ impl NetworkDeployment for DockerDeployment {
             name: config.name.as_str(),
             driver: driver.as_str(),
             options,
+            ipam: Ipam {
+                config: Some(vec![IpamConfig {
+                    gateway: config.gateway.as_ref().map(ToString::to_string),
+                    subnet: config.cidr_subnet.as_ref().map(ToString::to_string),
+                    ..IpamConfig::default()
+                }]),
+                ..Ipam::default()
+            },
             ..CreateNetworkOptions::default()
         };
         relic::docker::network::create(docker_client, options).await
