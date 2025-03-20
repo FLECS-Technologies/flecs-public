@@ -45,6 +45,22 @@ pub enum DeploymentsDeploymentIdNetworksNetworkIdGetResponse {
     Status500_InternalServerError(models::AdditionalInfo),
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum DeploymentsDeploymentIdNetworksNetworkIdPutResponse {
+    /// Already created
+    Status200_AlreadyCreated,
+    /// Created
+    Status201_Created,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Deployment not found
+    Status404_DeploymentNotFound,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
 /// Deployments
 #[async_trait]
 #[allow(clippy::ptr_arg)]
@@ -75,4 +91,14 @@ pub trait Deployments {
         cookies: CookieJar,
         path_params: models::DeploymentsDeploymentIdNetworksNetworkIdGetPathParams,
     ) -> Result<DeploymentsDeploymentIdNetworksNetworkIdGetResponse, ()>;
+
+    /// DeploymentsDeploymentIdNetworksNetworkIdPut - PUT /v2/deployments/{deployment_id}/networks/{network_id}
+    async fn deployments_deployment_id_networks_network_id_put(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::DeploymentsDeploymentIdNetworksNetworkIdPutPathParams,
+        body: models::PutDeploymentNetwork,
+    ) -> Result<DeploymentsDeploymentIdNetworksNetworkIdPutResponse, ()>;
 }
