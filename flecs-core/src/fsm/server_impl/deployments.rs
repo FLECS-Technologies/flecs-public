@@ -18,11 +18,13 @@ use flecsd_axum_server::apis::deployments::{
     Deployments, DeploymentsDeploymentIdNetworksGetResponse,
     DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse,
     DeploymentsDeploymentIdNetworksNetworkIdGetResponse,
+    DeploymentsDeploymentIdNetworksNetworkIdPutResponse,
 };
 use flecsd_axum_server::models::{
     DeploymentsDeploymentIdNetworksGetPathParams,
     DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams,
     DeploymentsDeploymentIdNetworksNetworkIdGetPathParams,
+    DeploymentsDeploymentIdNetworksNetworkIdPutPathParams, PutDeploymentNetwork,
 };
 use http::Method;
 
@@ -89,5 +91,16 @@ impl<
             )
             .await,
         )
+    }
+
+    async fn deployments_deployment_id_networks_network_id_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: DeploymentsDeploymentIdNetworksNetworkIdPutPathParams,
+        _body: PutDeploymentNetwork,
+    ) -> Result<DeploymentsDeploymentIdNetworksNetworkIdPutResponse, ()> {
+        todo!()
     }
 }

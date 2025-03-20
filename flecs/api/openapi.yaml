@@ -354,6 +354,37 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/usb_device"
+    network_kind:
+      type: string
+      enum: [
+        "Internal",
+        "Bridge",
+        "MACVLAN",
+        "IpvlanL2",
+        "IpvlanL3"
+      ]
+    ipam:
+      type: object
+      properties:
+        ipv4_subnet:
+          $ref: "#/components/schemas/ipv4_network"
+        ipv4_gateway:
+          $ref: "#/components/schemas/ipv4_address"
+    put_deployment_network:
+      type: object
+      required:
+        - network_kind
+      properties:
+        network_kind:
+          $ref: "#/components/schemas/network_kind"
+        options:
+          type: object
+          additionalProperties:
+            type: string
+        parent_adapter:
+          type: string
+        ipam:
+          $ref: "#/components/schemas/ipam"
     deployment_network:
       type: object
       required:
@@ -920,6 +951,38 @@ paths:
         "500":
           $ref: "#/components/responses/response_500"
   /deployments/{deployment_id}/networks/{network_id}:
+    put:
+      tags: [ "Deployments" ]
+      parameters:
+        - name: deployment_id
+          in: path
+          schema:
+            type: string
+            description: The id of the deployment or 'default'
+          required: true
+        - name: network_id
+          in: path
+          schema:
+            type: string
+            description: The id of the network
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/put_deployment_network"
+      responses:
+        "200":
+          description: Already created
+        "201":
+          description: Created
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: Deployment not found
+        "500":
+          $ref: "#/components/responses/response_500"
     get:
       tags: [ "Deployments" ]
       parameters:
