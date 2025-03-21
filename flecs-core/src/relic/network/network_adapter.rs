@@ -1,33 +1,45 @@
-use crate::relic::network::{Error, IpAddr, NetType};
+use crate::relic::device::net::{NetDeviceReader, NetDeviceReaderExt};
+use crate::relic::network::ipv4::Ipv4Network;
+use crate::relic::network::{Error, Ipv6Network, NetType};
 use libc::{
     freeifaddrs, getifaddrs, ifaddrs, sockaddr_in, sockaddr_in6, sockaddr_ll, AF_INET, AF_INET6,
     AF_PACKET,
 };
+#[cfg(test)]
+use mockall::automock;
 use procfs::net::RouteEntry;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::mem::MaybeUninit;
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-#[derive(Debug)]
-pub struct NetInfo {
-    pub mac: String,
+#[cfg_attr(test, automock)]
+pub trait NetworkAdapterReader: Send + Sync {
+    fn try_read_network_adapters(
+        &self,
+    ) -> crate::relic::network::Result<HashMap<String, NetworkAdapter>>;
+}
+
+#[derive(Default)]
+pub struct NetworkAdapterReaderImpl;
+
+impl NetworkAdapterReader for NetworkAdapterReaderImpl {
+    fn try_read_network_adapters(
+        &self,
+    ) -> crate::relic::network::Result<HashMap<String, NetworkAdapter>> {
+        NetworkAdapter::try_read_from_system(IfAddrs::new()?)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct NetworkAdapter {
+    pub name: String,
+    pub mac: Option<String>,
     pub net_type: NetType,
-    pub ipv4addresses: Vec<IpAddr>,
-    pub ipv6addresses: Vec<IpAddr>,
-    pub gateway: String,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct NetworkAddress {
-    name: String,
-    address: Address,
-}
-#[derive(Debug, PartialEq)]
-enum Address {
-    Mac(String),
-    Ipv4(IpAddr),
-    Ipv6(IpAddr),
+    pub ipv4_networks: Vec<Ipv4Network>,
+    pub ipv6_networks: Vec<Ipv6Network>,
+    pub ip_addresses: Vec<IpAddr>,
+    pub gateway: Option<Ipv4Addr>,
 }
 
 enum SaFamily {
@@ -52,52 +64,26 @@ pub struct IfAddrs {
     inner: *mut ifaddrs,
 }
 
-impl NetInfo {
-    pub fn try_read_from_system() -> crate::relic::network::Result<HashMap<String, Self>> {
-        let mut adapters: HashMap<String, Self> = HashMap::new();
-        let addresses = IfAddrs::new()?
-            .into_iter()
-            .filter_map(|ifaddrs| NetworkAddress::try_from(ifaddrs).ok());
-        let route_entries = procfs::net::route()?
-            .into_iter()
-            .filter(|route_entry| route_entry.destination.is_unspecified());
-        for NetworkAddress { name, address } in addresses {
-            let entry = adapters
-                .entry(name.clone())
-                .or_insert(Self::new(name.as_str()));
-            match address {
-                Address::Mac(mac) => {
-                    entry.mac = mac;
-                }
-                Address::Ipv4(ipv4) => {
-                    entry.ipv4addresses.push(ipv4);
-                }
-                Address::Ipv6(ipv6) => {
-                    entry.ipv4addresses.push(ipv6);
-                }
-            }
-        }
-        for RouteEntry { iface, gateway, .. } in route_entries {
-            let entry = adapters
-                .entry(iface.clone())
-                .or_insert(Self::new(iface.as_str()));
-            entry.gateway = gateway.to_string();
-        }
-        Ok(adapters)
-    }
-
-    fn new(name: &str) -> Self {
-        Self {
-            net_type: name.into(),
-            gateway: String::default(),
-            ipv4addresses: Vec::default(),
-            mac: String::default(),
-            ipv6addresses: Vec::default(),
-        }
-    }
+#[derive(Debug, PartialEq, Clone)]
+struct IfAddrsReadResult {
+    name: String,
+    address: IfAddrsReadResultAddress,
 }
 
-impl TryFrom<ifaddrs> for NetworkAddress {
+#[derive(Debug, PartialEq, Clone)]
+enum IfAddrsReadResultAddress {
+    Mac(String),
+    Ipv4 {
+        address: Ipv4Addr,
+        subnet_mask: Ipv4Addr,
+    },
+    Ipv6 {
+        address: Ipv6Addr,
+        subnet_mask: Ipv6Addr,
+    },
+}
+
+impl TryFrom<ifaddrs> for IfAddrsReadResult {
     type Error = Error;
 
     fn try_from(value: ifaddrs) -> crate::relic::network::Result<Self> {
@@ -121,33 +107,36 @@ impl TryFrom<ifaddrs> for NetworkAddress {
                     s.sll_addr[4],
                     s.sll_addr[5]
                 );
-                Ok(NetworkAddress {
-                    address: Address::Mac(mac),
+
+                Ok(IfAddrsReadResult {
                     name,
+                    address: IfAddrsReadResultAddress::Mac(mac),
                 })
             }
             SaFamily::Inet4 => {
                 let s = unsafe { *(value.ifa_addr as *const sockaddr_in) };
-                let addr: Ipv4Addr = u32::from_be(s.sin_addr.s_addr).into();
-                let addr = addr.to_string();
+                let address: Ipv4Addr = u32::from_be(s.sin_addr.s_addr).into();
                 let s = unsafe { *(value.ifa_netmask as *const sockaddr_in) };
                 let subnet_mask: Ipv4Addr = u32::from_be(s.sin_addr.s_addr).into();
-                let subnet_mask = subnet_mask.to_string();
-                Ok(NetworkAddress {
-                    address: Address::Ipv4(IpAddr { addr, subnet_mask }),
+                Ok(IfAddrsReadResult {
                     name,
+                    address: IfAddrsReadResultAddress::Ipv4 {
+                        address,
+                        subnet_mask,
+                    },
                 })
             }
             SaFamily::Inet6 => {
                 let s = unsafe { *(value.ifa_addr as *const sockaddr_in6) };
-                let addr: Ipv6Addr = s.sin6_addr.s6_addr.into();
-                let addr = addr.to_string();
+                let address: Ipv6Addr = s.sin6_addr.s6_addr.into();
                 let s = unsafe { *(value.ifa_netmask as *const sockaddr_in6) };
                 let subnet_mask: Ipv6Addr = s.sin6_addr.s6_addr.into();
-                let subnet_mask = subnet_mask.to_string();
-                Ok(NetworkAddress {
-                    address: Address::Ipv6(IpAddr { addr, subnet_mask }),
+                Ok(IfAddrsReadResult {
                     name,
+                    address: IfAddrsReadResultAddress::Ipv6 {
+                        address,
+                        subnet_mask,
+                    },
                 })
             }
         }
@@ -215,14 +204,88 @@ impl Iterator for IfAddrsIterator {
         })
     }
 }
+impl NetworkAdapter {
+    fn try_read_from_system(
+        if_addrs: IfAddrs,
+    ) -> crate::relic::network::Result<HashMap<String, Self>> {
+        let mut adapters: HashMap<String, Self> = HashMap::new();
+        let addresses = if_addrs
+            .into_iter()
+            .filter_map(|if_addrs| IfAddrsReadResult::try_from(if_addrs).ok());
+        let route_entries = procfs::net::route()?
+            .into_iter()
+            .filter(|route_entry| route_entry.destination.is_unspecified());
+        for result in addresses {
+            let entry = adapters
+                .entry(result.name.clone())
+                .or_insert(Self::new(result.name.clone()));
+            match result {
+                IfAddrsReadResult {
+                    address: IfAddrsReadResultAddress::Mac(mac),
+                    ..
+                } => entry.mac = Some(mac),
+                IfAddrsReadResult {
+                    address:
+                        IfAddrsReadResultAddress::Ipv4 {
+                            address,
+                            subnet_mask,
+                        },
+                    ..
+                } => {
+                    entry.ipv4_networks.push(
+                        Ipv4Network::new_from_address_and_subnet_mask(address, subnet_mask)
+                            .map_err(|e| Error::InvalidNetwork(e.to_string()))?,
+                    );
+                    entry.ip_addresses.push(address.into());
+                }
+                IfAddrsReadResult {
+                    address:
+                        IfAddrsReadResultAddress::Ipv6 {
+                            address,
+                            subnet_mask,
+                        },
+                    ..
+                } => {
+                    entry
+                        .ipv6_networks
+                        .push(Ipv6Network::new_from_address_and_subnet_mask(
+                            address,
+                            subnet_mask,
+                        ));
+                    entry.ip_addresses.push(address.into());
+                }
+            }
+        }
+        for RouteEntry { iface, gateway, .. } in route_entries {
+            let entry = adapters.entry(iface.clone()).or_insert(Self::new(iface));
+            entry.gateway = Some(gateway);
+        }
+        Ok(adapters)
+    }
+
+    fn new(name: String) -> Self {
+        Self {
+            net_type: name.as_str().into(),
+            ipv6_networks: Vec::new(),
+            ipv4_networks: Vec::new(),
+            gateway: None,
+            name,
+            mac: None,
+            ip_addresses: Vec::new(),
+        }
+    }
+
+    pub fn is_connected(&self, net_device_reader: &dyn NetDeviceReader) -> bool {
+        net_device_reader.is_connected(self.name.as_str())
+    }
+}
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
-    use crate::relic::network::IpAddr;
     use libc::{ifaddrs, sockaddr, sockaddr_in, sockaddr_in6, sockaddr_ll};
     use std::ffi::CString;
-    use std::net::{Ipv4Addr, Ipv6Addr};
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
     use std::str::FromStr;
     use std::{mem, ptr};
 
@@ -246,23 +309,23 @@ mod tests {
     }
 
     #[test]
-    fn try_network_address_from_ifaddr_ok_packet() {
+    fn try_from_ifaddr_ok_packet() {
         let mut addr: Box<sockaddr_ll> = unsafe { Box::new(mem::zeroed()) };
         addr.sll_addr = [0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef];
         let addr = Box::into_raw(addr) as *mut sockaddr;
         unsafe { (*addr).sa_family = 17 };
         let if_addrs = new_test_ifaddr(Some("eth0"), Some(addr), None);
         assert_eq!(
-            NetworkAddress::try_from(if_addrs).unwrap(),
-            NetworkAddress {
+            IfAddrsReadResult::try_from(if_addrs).unwrap(),
+            IfAddrsReadResult {
                 name: "eth0".to_string(),
-                address: Address::Mac("12:34:56:78:90:ab".to_string())
+                address: IfAddrsReadResultAddress::Mac("12:34:56:78:90:ab".to_string())
             }
         )
     }
 
     #[test]
-    fn try_network_address_from_ifaddr_ok_inet4() {
+    fn try_from_ifaddr_ok_inet4() {
         let mut addr: Box<sockaddr_in> = unsafe { Box::new(mem::zeroed()) };
         addr.sin_addr.s_addr = u32::to_be(Ipv4Addr::new(10, 20, 0, 0).into());
         let addr = Box::into_raw(addr) as *mut sockaddr;
@@ -273,19 +336,19 @@ mod tests {
         unsafe { (*netmask).sa_family = 2 };
         let if_addrs = new_test_ifaddr(Some("eth0"), Some(addr), Some(netmask));
         assert_eq!(
-            NetworkAddress::try_from(if_addrs).unwrap(),
-            NetworkAddress {
+            IfAddrsReadResult::try_from(if_addrs).unwrap(),
+            IfAddrsReadResult {
                 name: "eth0".to_string(),
-                address: Address::Ipv4(IpAddr {
-                    addr: "10.20.0.0".to_string(),
-                    subnet_mask: "255.255.0.0".to_string()
-                })
+                address: IfAddrsReadResultAddress::Ipv4 {
+                    address: Ipv4Addr::new(10, 20, 0, 0),
+                    subnet_mask: Ipv4Addr::new(255, 255, 0, 0)
+                }
             }
         )
     }
 
     #[test]
-    fn try_network_address_from_ifaddr_ok_inet6() {
+    fn try_from_ifaddr_ok_inet6() {
         let mut addr: Box<sockaddr_in6> = unsafe { Box::new(mem::zeroed()) };
         addr.sin6_addr.s6_addr = [
             0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
@@ -300,62 +363,104 @@ mod tests {
         unsafe { (*netmask).sa_family = 10 };
         let if_addrs = new_test_ifaddr(Some("wl2"), Some(addr), Some(netmask));
         assert_eq!(
-            NetworkAddress::try_from(if_addrs).unwrap(),
-            NetworkAddress {
+            IfAddrsReadResult::try_from(if_addrs).unwrap(),
+            IfAddrsReadResult {
                 name: "wl2".to_string(),
-                address: Address::Ipv6(IpAddr {
-                    addr: Ipv6Addr::from_str("1122:3344:aabb:ccdd::")
-                        .unwrap()
-                        .to_string(),
-                    subnet_mask: Ipv6Addr::from_str("ffff:ffff:ffff:ffff::")
-                        .unwrap()
-                        .to_string()
-                })
+                address: IfAddrsReadResultAddress::Ipv6 {
+                    address: Ipv6Addr::from_str("1122:3344:aabb:ccdd::").unwrap(),
+                    subnet_mask: Ipv6Addr::from_str("ffff:ffff:ffff:ffff::").unwrap()
+                }
             }
         )
     }
 
     #[test]
-    fn try_network_address_from_ifaddr_err_addr_null() {
+    fn try_from_ifaddr_err_addr_null() {
         let mut addr: Box<sockaddr_ll> = unsafe { Box::new(mem::zeroed()) };
         addr.sll_addr = [0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef];
         let addr = Box::into_raw(addr) as *mut sockaddr;
         unsafe { (*addr).sa_family = 17 };
         let if_addrs = new_test_ifaddr(Some("eth1"), None, None);
         assert!(matches!(
-            NetworkAddress::try_from(if_addrs),
+            IfAddrsReadResult::try_from(if_addrs),
             Err(Error::PropertyNull(property)) if property == "ifa_addr"
         ));
     }
 
     #[test]
-    fn try_network_address_from_ifaddr_err_unsupported_sa_family() {
+    fn try_from_ifaddr_err_unsupported_sa_family() {
         let mut addr: Box<sockaddr> = unsafe { Box::new(mem::zeroed()) };
         addr.sa_family = 100;
         let addr = Box::into_raw(addr);
         let if_addrs = new_test_ifaddr(Some("eth1"), Some(addr), None);
         assert!(matches!(
-            NetworkAddress::try_from(if_addrs),
+            IfAddrsReadResult::try_from(if_addrs),
             Err(Error::UnsupportedSaFamily(100))
         ));
     }
 
-    #[test]
-    fn test_address() {
-        let addresses = IfAddrs::new().expect("Getting IfAddrs failed");
-        for address in addresses.into_iter() {
-            let net_addr: NetworkAddress = address
-                .try_into()
-                .expect("Converting to NetworkAddress failed");
-            println!("Parsed: {:?}", net_addr);
+    pub fn minimal_network_adapter() -> NetworkAdapter {
+        NetworkAdapter {
+            name: "TestAdapterMinimal".to_string(),
+            mac: None,
+            net_type: Default::default(),
+            ipv4_networks: vec![],
+            ipv6_networks: vec![],
+            ip_addresses: vec![],
+            gateway: None,
         }
     }
 
+    pub fn full_network_adapter() -> NetworkAdapter {
+        NetworkAdapter {
+            name: "TestAdapterFull".to_string(),
+            mac: Some("D7:60:A1:12:35:80".to_string()),
+            net_type: NetType::Wireless,
+            ipv4_networks: vec![Ipv4Network::from_str("22.41.0.0/16").unwrap()],
+            ipv6_networks: vec![
+                Ipv6Network::from_str("15a1:b1ac::/33").unwrap(),
+                Ipv6Network::from_str("d5f0:bf0f:7ec0::/45").unwrap(),
+            ],
+            ip_addresses: vec![
+                IpAddr::V6(Ipv6Addr::from_str("15a1:b1ac::12").unwrap()),
+                IpAddr::V6(Ipv6Addr::from_str("d5f0:bf0f:7ec0::1:100").unwrap()),
+                IpAddr::V4(Ipv4Addr::new(22, 41, 12, 11)),
+                IpAddr::V4(Ipv4Addr::new(22, 41, 87, 55)),
+            ],
+            gateway: Some(Ipv4Addr::new(22, 41, 0, 1)),
+        }
+    }
+
+    pub fn test_adapters() -> HashMap<String, NetworkAdapter> {
+        let min = minimal_network_adapter();
+        let full = full_network_adapter();
+        HashMap::from([(min.name.clone(), min), (full.name.clone(), full)])
+    }
+
     #[test]
-    fn test_adapters() {
-        let infos = NetInfo::try_read_from_system().expect("Failed to read network adapters");
-        for (name, info) in infos {
-            println!("Parsed adapter {}: {:?}", name, info);
+    fn print_adapters() {
+        let adapters = NetworkAdapterReaderImpl
+            .try_read_network_adapters()
+            .unwrap();
+        println!("{:#?}", adapters);
+        for adapter in adapters.values() {
+            println!("IPv4 networks of {}", adapter.name);
+            for ipv4 in adapter.ipv4_networks.iter() {
+                println!(
+                    "IPv4 address: {}, subnet_mask: {}",
+                    ipv4.address(),
+                    ipv4.subnet_mask()
+                );
+            }
+            println!("IPv6 networks of {}", adapter.name);
+            for ipv6 in adapter.ipv6_networks.iter() {
+                println!(
+                    "IPv6 address: {}, prefix_len: {}, subnet_mask: {}",
+                    ipv6.address(),
+                    ipv6.prefix_len(),
+                    ipv6.subnet_mask()
+                );
+            }
         }
     }
 }

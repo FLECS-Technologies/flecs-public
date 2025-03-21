@@ -7,7 +7,9 @@ mod jobs;
 mod system;
 use crate::enchantment::floxy::Floxy;
 use crate::enchantment::Enchantments;
+use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
@@ -49,10 +51,14 @@ pub struct ServerImpl<
     SYS: Systemus,
     F: Floxy,
     T: UsbDeviceReader,
+    NET: NetworkAdapterReader,
+    NetDev: NetDeviceReader,
 > {
     vault: Arc<Vault>,
     enchantments: Enchantments<F>,
     usb_reader: Arc<T>,
+    network_adapter_reader: Arc<NET>,
+    net_device_reader: Arc<NetDev>,
     sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS>,
 }
 
@@ -66,17 +72,23 @@ impl<
         SYS: Systemus,
         F: Floxy,
         T: UsbDeviceReader,
-    > ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
+        NET: NetworkAdapterReader,
+        NetDev: NetDeviceReader,
+    > ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T, NET, NetDev>
 {
     pub async fn new(
         sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS>,
         enchantments: Enchantments<F>,
         usb_reader: T,
+        network_adapter_reader: NET,
+        net_device_reader: NetDev,
     ) -> Self {
         Self {
             vault: crate::lore::vault::default().await,
             enchantments,
             usb_reader: Arc::new(usb_reader),
+            net_device_reader: Arc::new(net_device_reader),
+            network_adapter_reader: Arc::new(network_adapter_reader),
             sorcerers,
         }
     }
@@ -94,12 +106,16 @@ impl
         crate::sorcerer::systemus::MockSystemus,
         crate::enchantment::floxy::MockFloxy,
         crate::relic::device::usb::MockUsbDeviceReader,
+        crate::relic::network::MockNetworkAdapterReader,
+        crate::relic::device::net::MockNetDeviceReader,
     >
 {
     #[cfg(test)]
     pub fn test_instance(
         vault: Arc<Vault>,
         usb_reader: crate::relic::device::usb::MockUsbDeviceReader,
+        network_adapter_reader: crate::relic::network::MockNetworkAdapterReader,
+        net_device_reader: crate::relic::device::net::MockNetDeviceReader,
         sorcerers: crate::sorcerer::MockSorcerers,
     ) -> Self {
         Self {
@@ -107,6 +123,8 @@ impl
             enchantments: Enchantments::test_instance(),
             usb_reader: Arc::new(usb_reader),
             sorcerers,
+            network_adapter_reader: Arc::new(network_adapter_reader),
+            net_device_reader: Arc::new(net_device_reader),
         }
     }
 }
@@ -121,7 +139,9 @@ impl<
         SYS: Systemus,
         F: Floxy,
         T: UsbDeviceReader,
-    > Flunder for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
+        NET: NetworkAdapterReader,
+        NetDev: NetDeviceReader,
+    > Flunder for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T, NET, NetDev>
 {
     async fn flunder_browse_get(
         &self,

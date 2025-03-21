@@ -10,7 +10,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(tag = "type")]
 pub enum Deployment {
     Docker(DockerDeployment),
