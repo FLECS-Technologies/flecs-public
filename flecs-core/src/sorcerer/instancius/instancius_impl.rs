@@ -1168,7 +1168,7 @@ pub mod tests {
         deployment
             .expect_default_network()
             .times(1)
-            .returning(|| Err(anyhow::anyhow!("TestError")));
+            .returning(|| Err(anyhow::anyhow!("TestError").into()));
         let deployment: Arc<dyn Deployment> = Arc::new(deployment);
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
