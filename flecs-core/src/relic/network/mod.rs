@@ -176,14 +176,12 @@ impl Default for NetType {
 impl NetInfo {
     pub fn try_read_from_system() -> Result<HashMap<String, Self>> {
         let mut adapters: HashMap<String, Self> = HashMap::new();
-        let addresses: Vec<_> = IfAddrs::new()?
+        let addresses = IfAddrs::new()?
             .into_iter()
-            .filter_map(|ifaddrs| NetworkAddress::try_from(ifaddrs).ok())
-            .collect();
-        let route_entries: Vec<_> = procfs::net::route()?
+            .filter_map(|ifaddrs| NetworkAddress::try_from(ifaddrs).ok());
+        let route_entries = procfs::net::route()?
             .into_iter()
-            .filter(|route_entry| route_entry.destination.is_unspecified())
-            .collect();
+            .filter(|route_entry| route_entry.destination.is_unspecified());
         for NetworkAddress { name, address } in addresses {
             let entry = adapters
                 .entry(name.clone())
