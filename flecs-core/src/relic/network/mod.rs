@@ -1,5 +1,7 @@
 pub mod ipv4;
 pub use ipv4::*;
+pub mod ipv6;
+pub use ipv6::*;
 use libc::{
     freeifaddrs, getifaddrs, ifaddrs, sockaddr_in, sockaddr_in6, sockaddr_ll, AF_INET, AF_INET6,
     AF_PACKET,
@@ -78,18 +80,6 @@ pub struct IfAddrs {
 pub enum Network {
     Ipv4(Ipv4Network),
     Ipv6(Ipv6Network),
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Ipv6Network {
-    address: Ipv6Addr,
-    suffix: u8,
-}
-
-impl Display for Ipv6Network {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", self.address, self.suffix)
-    }
 }
 
 impl Display for Network {
@@ -303,15 +293,6 @@ impl Iterator for IfAddrsIterator {
     }
 }
 
-pub fn ipv6_to_network(ip: Ipv6Addr, subnet_mask: Ipv6Addr) -> Ipv6Network {
-    let address = ip & subnet_mask;
-    let subnet_mask: u128 = subnet_mask.into();
-    Ipv6Network {
-        address,
-        suffix: subnet_mask.count_ones() as u8,
-    }
-}
-
 pub fn ip_to_network(
     ip: std::net::IpAddr,
     subnet_mask: std::net::IpAddr,
@@ -472,41 +453,6 @@ mod tests {
             println!("Parsed adapter {}: {:?}", name, info);
         }
     }
-
-    #[test]
-    fn test_ipv6_to_network() {
-        assert_eq!(
-            ipv6_to_network(
-                Ipv6Addr::from_str("2002:0000:0000:1234:abcd:ffff:c0a8:0101").unwrap(),
-                Ipv6Addr::from_str("ffff:ffff:ffff:ffff:0000:0000:0000:0000").unwrap()
-            ),
-            Ipv6Network {
-                address: Ipv6Addr::from_str("2002:0000:0000:1234:0000:0000:0000:0000").unwrap(),
-                suffix: 64
-            }
-        );
-        assert_eq!(
-            ipv6_to_network(
-                Ipv6Addr::from_str("abcd:4422:efef:0707:8888:1212:3234:1256").unwrap(),
-                Ipv6Addr::from_str("ffff:ffff:0000:0000:0000:0000:0000:0000").unwrap()
-            ),
-            Ipv6Network {
-                address: Ipv6Addr::from_str("abcd:4422:0000:0000:0000:0000:0000:0000").unwrap(),
-                suffix: 32
-            }
-        );
-        assert_eq!(
-            ipv6_to_network(
-                Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap(),
-                Ipv6Addr::from_str("ffff:ffff:ffff:ffff:ffff:fff0:0000:0000").unwrap()
-            ),
-            Ipv6Network {
-                address: Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1110:0000:0000").unwrap(),
-                suffix: 92
-            }
-        );
-    }
-
     #[test]
     fn test_ip_to_network() {
         assert!(ip_to_network(
