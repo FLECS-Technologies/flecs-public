@@ -21,6 +21,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Unsupported SA Family: {0}")]
     UnsupportedSaFamily(u16),
+    #[error("Property is null: {0}")]
+    PropertyNull(String),
 }
 
 type Result<T> = std::result::Result<T, crate::relic::network::Error>;
@@ -34,7 +36,7 @@ pub enum NetType {
     Bridge,
     Virtual,
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct IpAddr {
     pub addr: String,
     pub subnet_mask: String,
@@ -49,12 +51,12 @@ pub struct NetInfo {
     pub gateway: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct NetworkAddress {
     name: String,
     address: Address,
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Address {
     Mac(String),
     Ipv4(IpAddr),
@@ -281,15 +283,15 @@ impl Default for NetType {
 impl NetInfo {
     pub fn try_read_from_system() -> Result<HashMap<String, Self>> {
         let mut adapters: HashMap<String, Self> = HashMap::new();
-        let addresses: Result<Vec<_>> = IfAddrs::new()?
+        let addresses: Vec<_> = IfAddrs::new()?
             .iter()
-            .map(NetworkAddress::try_from)
+            .filter_map(|ifaddrs| NetworkAddress::try_from(ifaddrs).ok())
             .collect();
         let route_entries: Vec<_> = procfs::net::route()?
             .into_iter()
             .filter(|route_entry| route_entry.destination.is_unspecified())
             .collect();
-        for NetworkAddress { name, address } in addresses?.into_iter() {
+        for NetworkAddress { name, address } in addresses {
             let entry = adapters
                 .entry(name.clone())
                 .or_insert(Self::new(name.as_str()));
@@ -342,6 +344,9 @@ impl TryFrom<ifaddrs> for NetworkAddress {
     type Error = Error;
 
     fn try_from(value: ifaddrs) -> Result<Self> {
+        if value.ifa_addr.is_null() {
+            return Err(Error::PropertyNull("ifa_addr".to_string()));
+        }
         let sa_family: SaFamily = unsafe { *value.ifa_addr }.sa_family.into();
         let name = unsafe { CStr::from_ptr(value.ifa_name as *const _) }
             .to_string_lossy()
@@ -415,8 +420,10 @@ impl IfAddrs {
 impl Drop for IfAddrs {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        unsafe {
-            freeifaddrs(self.inner);
+        if !self.inner.is_null() {
+            unsafe {
+                freeifaddrs(self.inner);
+            }
         }
     }
 }
@@ -484,7 +491,10 @@ pub fn get_random_free_port() -> crate::Result<u16> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use libc::sockaddr;
+    use std::ffi::CString;
     use std::str::FromStr;
+    use std::{mem, ptr};
 
     #[test]
     fn test_transfer_ipv4_to_network() {
@@ -521,6 +531,120 @@ mod tests {
         let address = Ipv4Addr::new(0, 0, 1, 0);
         let size = 9;
         assert!(Ipv4Network::try_new(address, size).is_err());
+    }
+
+    fn new_test_ifaddr(
+        name: Option<&str>,
+        addr: Option<*mut sockaddr>,
+        net_mask: Option<*mut sockaddr>,
+    ) -> ifaddrs {
+        let ifa_name = name.map_or(ptr::null_mut(), |name| {
+            CString::new(name).unwrap().into_raw()
+        });
+        ifaddrs {
+            ifa_next: ptr::null_mut(),
+            ifa_name,
+            ifa_flags: 2,
+            ifa_addr: addr.unwrap_or(ptr::null_mut()),
+            ifa_netmask: net_mask.unwrap_or(ptr::null_mut()),
+            ifa_ifu: ptr::null_mut(),
+            ifa_data: ptr::null_mut(),
+        }
+    }
+
+    #[test]
+    fn try_network_address_from_ifaddr_ok_packet() {
+        let mut addr: Box<sockaddr_ll> = unsafe { Box::new(mem::zeroed()) };
+        addr.sll_addr = [0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef];
+        let addr = Box::into_raw(addr) as *mut sockaddr;
+        unsafe { (*addr).sa_family = 17 };
+        let if_addrs = new_test_ifaddr(Some("eth0"), Some(addr), None);
+        assert_eq!(
+            NetworkAddress::try_from(if_addrs).unwrap(),
+            NetworkAddress {
+                name: "eth0".to_string(),
+                address: Address::Mac("12:34:56:78:90:ab".to_string())
+            }
+        )
+    }
+
+    #[test]
+    fn try_network_address_from_ifaddr_ok_inet4() {
+        let mut addr: Box<sockaddr_in> = unsafe { Box::new(mem::zeroed()) };
+        addr.sin_addr.s_addr = u32::to_be(Ipv4Addr::new(10, 20, 0, 0).into());
+        let addr = Box::into_raw(addr) as *mut sockaddr;
+        unsafe { (*addr).sa_family = 2 };
+        let mut netmask: Box<sockaddr_in> = unsafe { Box::new(mem::zeroed()) };
+        netmask.sin_addr.s_addr = u32::to_be(Ipv4Addr::new(255, 255, 0, 0).into());
+        let netmask = Box::into_raw(netmask) as *mut sockaddr;
+        unsafe { (*netmask).sa_family = 2 };
+        let if_addrs = new_test_ifaddr(Some("eth0"), Some(addr), Some(netmask));
+        assert_eq!(
+            NetworkAddress::try_from(if_addrs).unwrap(),
+            NetworkAddress {
+                name: "eth0".to_string(),
+                address: Address::Ipv4(IpAddr {
+                    addr: "10.20.0.0".to_string(),
+                    subnet_mask: "255.255.0.0".to_string()
+                })
+            }
+        )
+    }
+
+    #[test]
+    fn try_network_address_from_ifaddr_ok_inet6() {
+        let mut addr: Box<sockaddr_in6> = unsafe { Box::new(mem::zeroed()) };
+        addr.sin6_addr.s6_addr = [
+            0x11, 0x22, 0x33, 0x44, 0xaa, 0xbb, 0xcc, 0xdd, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+        ];
+        let addr = Box::into_raw(addr) as *mut sockaddr;
+        unsafe { (*addr).sa_family = 10 };
+        let mut netmask: Box<sockaddr_in6> = unsafe { Box::new(mem::zeroed()) };
+        netmask.sin6_addr.s6_addr = [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+        ];
+        let netmask = Box::into_raw(netmask) as *mut sockaddr;
+        unsafe { (*netmask).sa_family = 10 };
+        let if_addrs = new_test_ifaddr(Some("wl2"), Some(addr), Some(netmask));
+        assert_eq!(
+            NetworkAddress::try_from(if_addrs).unwrap(),
+            NetworkAddress {
+                name: "wl2".to_string(),
+                address: Address::Ipv6(IpAddr {
+                    addr: Ipv6Addr::from_str("1122:3344:aabb:ccdd::")
+                        .unwrap()
+                        .to_string(),
+                    subnet_mask: Ipv6Addr::from_str("ffff:ffff:ffff:ffff::")
+                        .unwrap()
+                        .to_string()
+                })
+            }
+        )
+    }
+
+    #[test]
+    fn try_network_address_from_ifaddr_err_addr_null() {
+        let mut addr: Box<sockaddr_ll> = unsafe { Box::new(mem::zeroed()) };
+        addr.sll_addr = [0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef];
+        let addr = Box::into_raw(addr) as *mut sockaddr;
+        unsafe { (*addr).sa_family = 17 };
+        let if_addrs = new_test_ifaddr(Some("eth1"), None, None);
+        assert!(matches!(
+            NetworkAddress::try_from(if_addrs),
+            Err(Error::PropertyNull(property)) if property == "ifa_addr"
+        ));
+    }
+
+    #[test]
+    fn try_network_address_from_ifaddr_err_unsupported_sa_family() {
+        let mut addr: Box<sockaddr> = unsafe { Box::new(mem::zeroed()) };
+        addr.sa_family = 100;
+        let addr = Box::into_raw(addr);
+        let if_addrs = new_test_ifaddr(Some("eth1"), Some(addr), None);
+        assert!(matches!(
+            NetworkAddress::try_from(if_addrs),
+            Err(Error::UnsupportedSaFamily(100))
+        ));
     }
 
     #[test]
