@@ -111,9 +111,17 @@ impl Ipv4Network {
         let mask = Ipv4Addr::from(0xffffffff >> size);
         anyhow::ensure!(
             (address & mask) == Ipv4Addr::UNSPECIFIED,
-            "Address part of network is not 0"
+            "Address part of network {address}/{size} is not 0"
         );
         Ok(Self { address, size })
+    }
+
+    pub fn new_from_address_and_subnet_mask(
+        address: Ipv4Addr,
+        subnet_mask: Ipv4Addr,
+    ) -> crate::Result<Self> {
+        let size = u32::from(subnet_mask).count_ones();
+        Self::try_new(address & subnet_mask, size as u8)
     }
 
     pub fn iter(&self) -> Ipv4Iterator {
@@ -123,6 +131,14 @@ impl Ipv4Network {
 
     pub fn broadcast(&self) -> Ipv4Addr {
         (u32::from(self.address) | 0xffffffff >> self.size).into()
+    }
+
+    pub fn address(&self) -> &Ipv4Addr {
+        &self.address
+    }
+
+    pub fn subnet_mask(&self) -> Ipv4Addr {
+        Ipv4Addr::from(0xffffffff << (32 - self.size))
     }
 }
 
@@ -170,6 +186,7 @@ pub fn ipv4_to_network(ip: Ipv4Addr, subnet_mask: Ipv4Addr) -> Ipv4Network {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ntest::test_case;
     use std::str::FromStr;
 
     #[test]
@@ -243,17 +260,32 @@ mod tests {
         );
     }
 
-    #[test]
-    fn ipv4_network_from_str() {
-        let ip = Ipv4Addr::new(10, 0b11100000, 0, 0);
-        let suffix = 11;
-        assert_eq!(
-            Ipv4Network {
-                address: ip,
-                size: suffix,
-            },
-            Ipv4Network::from_str(&format!("{}/{}", ip, suffix)).unwrap()
-        )
+    #[test_case("10.20.30.0/24", 24, "10.20.30.0")]
+    #[test_case("127.0.2.0/24", 24, "127.0.2.0")]
+    #[test_case("100.0.0.0/8", 8, "100.0.0.0")]
+    #[test_case("200.200.80.0/20", 20, "200.200.80.0")]
+    #[test_case("127.0.0.0/10", 10, "127.0.0.0")]
+    fn ipv4_network_from_str(network: &str, prefix_len: u8, address: &str) {
+        let ip = Ipv4Addr::from_str(address).unwrap();
+        let expected = Ipv4Network {
+            address: ip,
+            size: prefix_len,
+        };
+        assert_eq!(Ipv4Network::from_str(network).unwrap(), expected)
+    }
+
+    #[test_case("10.20.30.0/24", 24, "10.20.30.0")]
+    #[test_case("127.0.2.0/24", 24, "127.0.2.0")]
+    #[test_case("100.0.0.0/8", 8, "100.0.0.0")]
+    #[test_case("200.200.80.0/20", 20, "200.200.80.0")]
+    #[test_case("127.0.0.0/10", 10, "127.0.0.0")]
+    fn ipv4_network_display(s: &str, prefix_len: u8, address: &str) {
+        let ip = Ipv4Addr::from_str(address).unwrap();
+        let network = Ipv4Network {
+            address: ip,
+            size: prefix_len,
+        };
+        assert_eq!(network.to_string(), s);
     }
 
     #[test]
@@ -598,5 +630,35 @@ mod tests {
         assert!(iter.contains(Ipv4Addr::from(13)));
         assert!(!iter.contains(Ipv4Addr::from(14)));
         assert!(!iter.contains(Ipv4Addr::from(15)));
+    }
+
+    #[test_case("10.20.30.0", 24, "255.255.255.0", "10.20.30.255")]
+    #[test_case("127.0.2.0", 24, "255.255.255.0", "127.0.2.255")]
+    #[test_case("100.0.0.0", 8, "255.0.0.0", "100.255.255.255")]
+    #[test_case("200.200.80.0", 20, "255.255.240.0", "200.200.95.255")]
+    #[test_case("127.0.0.0", 10, "255.192.0.0", "127.63.255.255")]
+    fn ipv4_getter(ip: &str, prefix_len: u8, subnet_mask: &str, broadcast: &str) {
+        let network = Ipv4Network::try_new(Ipv4Addr::from_str(ip).unwrap(), prefix_len).unwrap();
+        assert_eq!(*network.address(), Ipv4Addr::from_str(ip).unwrap());
+        assert_eq!(
+            network.subnet_mask(),
+            Ipv4Addr::from_str(subnet_mask).unwrap()
+        );
+        assert_eq!(network.broadcast(), Ipv4Addr::from_str(broadcast).unwrap());
+    }
+
+    #[test_case("10.20.30.0", 24, "255.255.255.0")]
+    #[test_case("127.0.2.0", 24, "255.255.255.0")]
+    #[test_case("100.0.0.0", 8, "255.0.0.0")]
+    #[test_case("200.200.80.0", 20, "255.255.240.0")]
+    #[test_case("127.0.0.0", 10, "255.192.0.0")]
+    fn ipv4_from_address_and_subnet_mask(ip: &str, prefix_len: u8, subnet_mask: &str) {
+        let address = Ipv4Addr::from_str(ip).unwrap();
+        let expected = Ipv4Network::try_new(address, prefix_len).unwrap();
+        let subnet_mask = Ipv4Addr::from_str(subnet_mask).unwrap();
+        assert_eq!(
+            Ipv4Network::new_from_address_and_subnet_mask(address, subnet_mask).unwrap(),
+            expected
+        );
     }
 }

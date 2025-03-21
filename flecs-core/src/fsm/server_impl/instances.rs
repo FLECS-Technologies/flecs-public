@@ -3,7 +3,9 @@ use crate::fsm::server_impl::ServerImpl;
 use crate::jeweler::gem::instance::{InstanceId, TransportProtocol, UsbPathConfig};
 use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
 use crate::quest::{Quest, QuestResult};
+use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::{
@@ -96,7 +98,9 @@ impl<
         SYS: Systemus,
         F: Floxy + 'static,
         T: UsbDeviceReader + 'static,
-    > Instances for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
+        NET: NetworkAdapterReader,
+        NetDev: NetDeviceReader,
+    > Instances for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T, NET, NetDev>
 {
     async fn instances_create_post(
         &self,
@@ -1343,7 +1347,9 @@ mod tests {
     use super::*;
     use crate::fsm::server_impl::ServerImpl;
     use crate::jeweler::gem::instance::InstancePortMapping;
+    use crate::relic::device::net::MockNetDeviceReader;
     use crate::relic::device::usb::MockUsbDeviceReader;
+    use crate::relic::network::MockNetworkAdapterReader;
     use crate::sorcerer::appraiser::MockAppRaiser;
     use crate::sorcerer::instancius::MockInstancius;
     use crate::sorcerer::MockSorcerers;
@@ -1395,6 +1401,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1426,6 +1434,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1457,6 +1467,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1484,6 +1496,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 app_raiser: Arc::new(appraiser),
                 ..Default::default()
@@ -1533,6 +1547,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 app_raiser: Arc::new(appraiser),
@@ -1569,6 +1585,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1600,6 +1618,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1631,6 +1651,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1671,6 +1693,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1722,6 +1746,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1756,6 +1782,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1790,6 +1818,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1822,6 +1852,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1867,6 +1899,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1904,6 +1938,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1941,6 +1977,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -1978,6 +2016,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2015,6 +2055,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2052,6 +2094,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2096,6 +2140,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2134,6 +2180,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2172,6 +2220,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2210,6 +2260,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2238,6 +2290,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         assert!(matches!(
@@ -2272,6 +2326,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2309,6 +2365,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2346,6 +2404,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2373,6 +2433,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         assert!(matches!(
@@ -2407,6 +2469,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2444,6 +2508,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2486,6 +2552,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2536,6 +2604,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2570,6 +2640,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         assert!(matches!(
@@ -2598,6 +2670,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         assert!(matches!(
@@ -2626,6 +2700,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         assert!(matches!(
@@ -2668,6 +2744,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2713,6 +2791,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2758,6 +2838,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2803,6 +2885,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2834,6 +2918,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         let port_mappings = vec![
@@ -2878,6 +2964,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         assert!(matches!(
@@ -2921,6 +3009,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -2966,6 +3056,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3398,6 +3490,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3432,6 +3526,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3471,6 +3567,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3525,6 +3623,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3557,6 +3657,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3594,6 +3696,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3635,6 +3739,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3677,6 +3783,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3721,6 +3829,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3758,6 +3868,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3789,6 +3901,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3820,6 +3934,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3862,6 +3978,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3898,6 +4016,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         assert!(matches!(
@@ -3936,6 +4056,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -3981,6 +4103,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4040,6 +4164,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4095,6 +4221,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4137,6 +4265,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4177,6 +4307,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4209,6 +4341,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4246,6 +4380,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4345,6 +4481,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4376,6 +4514,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4407,6 +4547,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4437,6 +4579,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4467,6 +4611,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4503,6 +4649,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4534,6 +4682,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4569,6 +4719,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4610,6 +4762,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4667,6 +4821,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4710,6 +4866,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4741,6 +4899,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4772,6 +4932,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4803,6 +4965,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4838,6 +5002,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4869,6 +5035,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4900,6 +5068,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4939,6 +5109,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()
@@ -4970,6 +5142,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             crate::vault::tests::create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers {
                 instancius: Arc::new(instancius),
                 ..MockSorcerers::default()

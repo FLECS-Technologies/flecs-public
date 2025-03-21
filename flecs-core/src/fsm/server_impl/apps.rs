@@ -1,7 +1,9 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::fsm::server_impl::ServerImpl;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
@@ -36,7 +38,9 @@ impl<
         SYS: Systemus,
         F: Floxy + 'static,
         T: UsbDeviceReader,
-    > Apps for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
+        NET: NetworkAdapterReader,
+        NetDev: NetDeviceReader,
+    > Apps for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T, NET, NetDev>
 {
     async fn apps_app_delete(
         &self,
@@ -208,7 +212,9 @@ impl<
 #[cfg(test)]
 mod tests {
     use crate::fsm::server_impl::ServerImpl;
+    use crate::relic::device::net::MockNetDeviceReader;
     use crate::relic::device::usb::MockUsbDeviceReader;
+    use crate::relic::network::MockNetworkAdapterReader;
     use crate::sorcerer::MockSorcerers;
     use crate::vault::tests::create_empty_test_vault;
     use axum::extract::Host;
@@ -222,6 +228,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         assert!(server
@@ -243,6 +251,8 @@ mod tests {
         let server = ServerImpl::test_instance(
             create_empty_test_vault(),
             MockUsbDeviceReader::new(),
+            MockNetworkAdapterReader::default(),
+            MockNetDeviceReader::default(),
             MockSorcerers::default(),
         );
         assert_eq!(

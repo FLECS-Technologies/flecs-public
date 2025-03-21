@@ -1,9 +1,11 @@
 use crate::ffi;
 use flecs_core::relic::network;
+use flecs_core::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
 use flecs_core::Result;
 
 pub fn read_network_adapters() -> Result<Vec<ffi::NetAdapter>> {
-    Ok(network::NetInfo::try_read_from_system()?
+    Ok(NetworkAdapterReaderImpl
+        .try_read_network_adapters()?
         .into_iter()
         .map(|(name, info)| ffi::NetAdapter {
             name,
@@ -12,23 +14,22 @@ pub fn read_network_adapters() -> Result<Vec<ffi::NetAdapter>> {
         .collect())
 }
 
-impl From<network::NetInfo> for ffi::NetInfo {
-    fn from(value: network::NetInfo) -> Self {
+impl From<network::NetworkAdapter> for ffi::NetInfo {
+    fn from(value: network::NetworkAdapter) -> Self {
         Self {
-            mac: value.mac,
+            mac: value.mac.unwrap_or_default(),
             net_type: value.net_type.into(),
             ipv4addresses: value
-                .ipv4addresses
+                .ipv4_networks
                 .into_iter()
                 .map(std::convert::Into::into)
                 .collect(),
             ipv6addresses: value
-                .ipv6addresses
+                .ipv6_networks
                 .into_iter()
                 .map(std::convert::Into::into)
                 .collect(),
-
-            gateway: value.gateway,
+            gateway: value.gateway.map(|ip| ip.to_string()).unwrap_or_default(),
         }
     }
 }
@@ -46,11 +47,20 @@ impl From<network::NetType> for ffi::NetType {
     }
 }
 
-impl From<network::IpAddr> for ffi::IpAddr {
-    fn from(value: network::IpAddr) -> Self {
+impl From<network::Ipv4Network> for ffi::IpAddr {
+    fn from(value: network::Ipv4Network) -> Self {
         Self {
-            addr: value.addr,
-            subnet_mask: value.subnet_mask,
+            addr: value.address().to_string(),
+            subnet_mask: value.subnet_mask().to_string(),
+        }
+    }
+}
+
+impl From<network::Ipv6Network> for ffi::IpAddr {
+    fn from(value: network::Ipv6Network) -> Self {
+        Self {
+            addr: value.address().to_string(),
+            subnet_mask: value.subnet_mask().to_string(),
         }
     }
 }

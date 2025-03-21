@@ -5,6 +5,7 @@ use crate::jeweler::instance::{InstanceDeployment, Logs};
 use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
 use crate::jeweler::volume::{VolumeDeployment, VolumeId};
 use crate::quest::{Quest, QuestId, State, SyncQuest};
+use crate::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
 use crate::{jeweler, relic};
 use async_trait::async_trait;
@@ -23,19 +24,51 @@ use bollard::{Docker, API_DEFAULT_VERSION};
 use futures_util::future::{join_all, BoxFuture};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Formatter;
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use std::sync::Arc;
 use tokio::{fs, join};
 use tracing::{debug, warn};
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
+#[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[serde(rename = "Docker")]
 pub struct DockerDeployment {
     id: DeploymentId,
     path: PathBuf,
+    #[serde(skip, default = "default_network_adapter_reader")]
+    network_adapter_reader: Box<dyn NetworkAdapterReader>,
+}
+
+impl std::fmt::Debug for DockerDeployment {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        #[derive(Debug)]
+        #[allow(dead_code)]
+        struct DockerDeployment<'a> {
+            id: &'a DeploymentId,
+            path: &'a PathBuf,
+        }
+
+        let Self {
+            id,
+            path,
+            network_adapter_reader: _,
+        } = self;
+        std::fmt::Debug::fmt(&DockerDeployment { id, path }, f)
+    }
+}
+
+impl PartialEq for DockerDeployment {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.path == other.path
+    }
+}
+
+impl Eq for DockerDeployment {}
+
+fn default_network_adapter_reader() -> Box<dyn NetworkAdapterReader> {
+    Box::new(NetworkAdapterReaderImpl)
 }
 
 impl DockerDeployment {
@@ -48,7 +81,11 @@ impl DockerDeployment {
     }
 
     pub fn new(id: String, path: PathBuf) -> Self {
-        Self { id, path }
+        Self {
+            id,
+            path,
+            network_adapter_reader: default_network_adapter_reader(),
+        }
     }
 
     pub fn default_network_name() -> &'static str {
@@ -782,22 +819,23 @@ impl NetworkDeployment for DockerDeployment {
                 };
                 match (config.cidr_subnet, config.gateway) {
                     (None, _) | (_, None) => {
-                        let (parent_name, parent_adapter) =
-                            relic::network::NetInfo::try_read_from_system()?
-                                .remove_entry(parent_adapter)
-                                .ok_or_else(|| {
-                                    anyhow::anyhow!(
-                                        "parent network adapter {parent_adapter} does not exist"
-                                    )
-                                })?;
-                        if parent_adapter.ipv4addresses.is_empty() {
+                        let (parent_name, parent_adapter) = self
+                            .network_adapter_reader
+                            .try_read_network_adapters()?
+                            .remove_entry(parent_adapter)
+                            .ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "parent network adapter {parent_adapter} does not exist"
+                                )
+                            })?;
+                        if parent_adapter.ipv4_networks.is_empty() {
                             anyhow::bail!("parent network adapter {parent_name} is not ready");
                         }
                         config.cidr_subnet = Some(relic::network::ipv4_to_network(
-                            Ipv4Addr::from_str(&parent_adapter.ipv4addresses[0].addr)?,
-                            Ipv4Addr::from_str(&parent_adapter.ipv4addresses[0].subnet_mask)?,
+                            *parent_adapter.ipv4_networks[0].address(),
+                            parent_adapter.ipv4_networks[0].subnet_mask(),
                         ));
-                        config.gateway = Some(Ipv4Addr::from_str(&parent_adapter.gateway)?);
+                        config.gateway = parent_adapter.gateway;
                     }
                     _ => {}
                 }

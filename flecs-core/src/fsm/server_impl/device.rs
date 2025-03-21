@@ -2,7 +2,9 @@ use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::{
     additional_info_from_error, console_session_id_to_core_session_id, ok, ServerImpl,
 };
+use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::instancius::Instancius;
@@ -35,7 +37,9 @@ impl<
         SYS: Systemus,
         F: Floxy,
         T: UsbDeviceReader,
-    > Device for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T>
+        NET: NetworkAdapterReader,
+        NetDev: NetDeviceReader,
+    > Device for ServerImpl<APP, AUTH, I, L, Q, M, SYS, F, T, NET, NetDev>
 {
     async fn device_license_activation_post(
         &self,
