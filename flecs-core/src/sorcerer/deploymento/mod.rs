@@ -2,7 +2,7 @@ mod deploymento_impl;
 
 pub use super::Result;
 use crate::jeweler::deployment::DeploymentId;
-use crate::jeweler::network::{Network, NetworkId};
+use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
 use async_trait::async_trait;
@@ -15,6 +15,13 @@ use std::sync::Arc;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait Deploymento: Sorcerer {
+    async fn create_network(
+        &self,
+        vault: Arc<Vault>,
+        deployment_id: DeploymentId,
+        config: NetworkConfig,
+    ) -> Result<Network, CreateNetworkError>;
+
     async fn get_deployment_networks(
         &self,
         vault: Arc<Vault>,
@@ -50,6 +57,15 @@ pub enum GetDeploymentNetworkError {
         network_id: NetworkId,
         reason: String,
     },
+}
+
+#[derive(thiserror::Error, Debug, Clone, PartialEq)]
+#[allow(clippy::large_enum_variant)]
+pub enum CreateNetworkError {
+    #[error("Deployment not found: {0}")]
+    DeploymentNotFound(DeploymentId),
+    #[error(transparent)]
+    Deployment(#[from] crate::jeweler::network::CreateNetworkError),
 }
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq)]

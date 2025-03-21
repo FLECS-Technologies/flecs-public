@@ -98,9 +98,17 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: DeploymentsDeploymentIdNetworksNetworkIdPutPathParams,
-        _body: PutDeploymentNetwork,
+        path_params: DeploymentsDeploymentIdNetworksNetworkIdPutPathParams,
+        body: PutDeploymentNetwork,
     ) -> Result<DeploymentsDeploymentIdNetworksNetworkIdPutResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::deployments::deployment_id::networks::network_id::put(
+                self.vault.clone(),
+                self.sorcerers.deploymento.clone(),
+                path_params,
+                body,
+            )
+            .await,
+        )
     }
 }

@@ -1,7 +1,9 @@
 use super::Result;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::quest::SyncQuest;
+use anyhow::Error;
 use async_trait::async_trait;
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::net::Ipv4Addr;
 
@@ -51,19 +53,62 @@ impl Display for NetworkKind {
     }
 }
 
-#[derive(Default, Debug, PartialEq)]
+impl From<&str> for NetworkKind {
+    fn from(value: &str) -> Self {
+        match value {
+            "none" => NetworkKind::None,
+            "internal" => NetworkKind::Internal,
+            "bridge" => NetworkKind::Bridge,
+            "macvlan" => NetworkKind::MACVLAN,
+            "ipvlan_l2" => NetworkKind::IpvlanL2,
+            "ipvlan_l3" => NetworkKind::IpvlanL3,
+            _ => NetworkKind::Unknown,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct NetworkConfig {
     pub kind: NetworkKind,
     pub name: String,
     pub cidr_subnet: Option<crate::relic::network::Ipv4Network>,
     pub gateway: Option<Ipv4Addr>,
     pub parent_adapter: Option<String>,
+    pub options: Option<HashMap<String, String>>,
+}
+
+#[derive(thiserror::Error, Debug, Clone, PartialEq)]
+pub enum CreateNetworkError {
+    #[error("Network config invalid at {location}: {reason}")]
+    NetworkConfigInvalid { location: String, reason: String },
+    #[error("Network already exists")]
+    ExactNetworkExists(Network),
+    #[error("Network with same name but different config already exists")]
+    DifferentNetworkExists(Network),
+    #[error("Failed to create network: {0}")]
+    Other(String),
+}
+
+impl From<Error> for CreateNetworkError {
+    fn from(value: Error) -> Self {
+        Self::Other(value.to_string())
+    }
+}
+
+impl From<crate::relic::network::Error> for CreateNetworkError {
+    fn from(value: crate::relic::network::Error) -> Self {
+        Self::Other(value.to_string())
+    }
 }
 
 #[async_trait]
 pub trait NetworkDeployment {
-    async fn create_network(&self, quest: SyncQuest, config: NetworkConfig) -> Result<NetworkId>;
-    async fn default_network(&self) -> Result<Network>;
+    async fn create_network(
+        &self,
+        quest: SyncQuest,
+        config: NetworkConfig,
+    ) -> Result<Network, CreateNetworkError>;
+    async fn default_network(&self) -> Result<Network, CreateNetworkError>;
     async fn delete_network(&self, id: NetworkId) -> Result<()>;
     async fn network(&self, id: NetworkId) -> Result<Option<Network>>;
     async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;
@@ -80,4 +125,20 @@ pub trait NetworkDeployment {
         id: NetworkId,
         instance_id: InstanceId,
     ) -> Result<()>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn network_kind_from_str() {
+        assert_eq!(NetworkKind::from("none"), NetworkKind::None);
+        assert_eq!(NetworkKind::from("internal"), NetworkKind::Internal);
+        assert_eq!(NetworkKind::from("bridge"), NetworkKind::Bridge);
+        assert_eq!(NetworkKind::from("macvlan"), NetworkKind::MACVLAN);
+        assert_eq!(NetworkKind::from("ipvlan_l2"), NetworkKind::IpvlanL2);
+        assert_eq!(NetworkKind::from("ipvlan_l3"), NetworkKind::IpvlanL3);
+        assert_eq!(NetworkKind::from("08ih208h5"), NetworkKind::Unknown);
+    }
 }

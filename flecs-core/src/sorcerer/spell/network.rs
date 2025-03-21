@@ -22,6 +22,7 @@ pub async fn create_vlan_for_network_adapter(
                     cidr_subnet: Some(network.network()),
                     gateway: Some(network.gateway()),
                     parent_adapter: Some(adapter_name),
+                    options: None,
                 },
             )
             .await?;
@@ -33,7 +34,9 @@ pub async fn create_vlan_for_network_adapter(
 mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
+    use crate::jeweler::network::Network;
     use crate::relic::network::Ipv4Network;
+    use core::default::Default;
     use mockall::predicate;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
@@ -51,13 +54,19 @@ mod tests {
             kind: NetworkKind::IpvlanL2,
             gateway: Some(gateway),
             cidr_subnet: Some(network),
+            options: None,
         };
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_create_network()
             .once()
             .with(predicate::always(), predicate::eq(expected_network_config))
-            .returning(|_, _| Ok("1234abcd".to_string()));
+            .returning(|_, _| {
+                Ok(Network {
+                    id: Some("1234abcd".to_string()),
+                    ..Default::default()
+                })
+            });
         deployment
             .expect_network()
             .once()
@@ -105,13 +114,14 @@ mod tests {
             kind: NetworkKind::IpvlanL2,
             gateway: Some(gateway),
             cidr_subnet: Some(network),
+            options: None,
         };
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_create_network()
             .once()
             .with(predicate::always(), predicate::eq(expected_network_config))
-            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _| Err(anyhow::anyhow!("TestError").into()));
         deployment
             .expect_network()
             .once()

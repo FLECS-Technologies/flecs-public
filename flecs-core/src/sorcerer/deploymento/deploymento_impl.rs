@@ -1,9 +1,9 @@
 use crate::jeweler::deployment::DeploymentId;
-use crate::jeweler::network::{Network, NetworkId};
+use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
 use crate::quest::Quest;
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::deploymento::{
-    Deploymento, GetDeploymentNetworkError, ReserveIpv4AddressError,
+    CreateNetworkError, Deploymento, GetDeploymentNetworkError, ReserveIpv4AddressError,
 };
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
@@ -16,6 +16,35 @@ pub struct DeploymentoImpl;
 
 #[async_trait]
 impl Deploymento for DeploymentoImpl {
+    async fn create_network(
+        &self,
+        vault: Arc<Vault>,
+        deployment_id: DeploymentId,
+        config: NetworkConfig,
+    ) -> anyhow::Result<Network, CreateNetworkError> {
+        let deployment = deployment_id.clone();
+        match crate::sorcerer::spell::deployment::query_deployment(
+            vault,
+            deployment_id.clone(),
+            |deployment| async move {
+                deployment
+                    .create_network(
+                        Quest::new_synced(format!(
+                            "Create network {} at {deployment_id}",
+                            config.name
+                        )),
+                        config,
+                    )
+                    .await
+            },
+        )
+        .await
+        {
+            None => Err(CreateNetworkError::DeploymentNotFound(deployment)),
+            Some(network) => Ok(network?),
+        }
+    }
+
     async fn get_deployment_networks(
         &self,
         vault: Arc<Vault>,
@@ -97,6 +126,7 @@ impl Sorcerer for DeploymentoImpl {}
 mod tests {
     use super::*;
     use crate::jeweler::deployment::tests::MockedDeployment;
+    use crate::jeweler::network::NetworkKind;
     use crate::vault::tests::{create_empty_test_vault, create_test_vault_with_deployment};
     use mockall::predicate;
 
@@ -375,6 +405,87 @@ mod tests {
                 )
                 .await,
             Err(ReserveIpv4AddressError::NoFreeIpAddress),
+        );
+    }
+
+    #[tokio::test]
+    async fn create_network_ok() {
+        let config = NetworkConfig {
+            kind: NetworkKind::Bridge,
+            name: "TestNetwork".to_string(),
+            cidr_subnet: None,
+            gateway: None,
+            parent_adapter: None,
+            options: None,
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
+        deployment.expect_is_default().return_const(true);
+        deployment
+            .expect_create_network()
+            .once()
+            .with(predicate::always(), predicate::eq(config.clone()))
+            .returning(|_, _| Ok(Network::default()));
+        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        assert_eq!(
+            DeploymentoImpl
+                .create_network(vault, "MockedDeployment".to_string(), config)
+                .await,
+            Ok(Network::default())
+        );
+    }
+
+    #[tokio::test]
+    async fn create_network_err_deployment_err() {
+        let config = NetworkConfig {
+            kind: NetworkKind::Bridge,
+            name: "TestNetwork".to_string(),
+            cidr_subnet: None,
+            gateway: None,
+            parent_adapter: None,
+            options: None,
+        };
+        let mut deployment = MockedDeployment::new();
+        deployment.expect_id().return_const("MockedDeployment");
+        deployment.expect_is_default().return_const(true);
+        deployment
+            .expect_create_network()
+            .once()
+            .with(predicate::always(), predicate::eq(config.clone()))
+            .returning(|_, _| {
+                Err(crate::jeweler::network::CreateNetworkError::Other(
+                    "TestError".to_string(),
+                ))
+            });
+        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        assert_eq!(
+            DeploymentoImpl
+                .create_network(vault, "MockedDeployment".to_string(), config)
+                .await,
+            Err(CreateNetworkError::Deployment(
+                crate::jeweler::network::CreateNetworkError::Other("TestError".to_string())
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn create_network_err_unknown_deployment() {
+        let config = NetworkConfig {
+            kind: NetworkKind::Bridge,
+            name: "TestNetwork".to_string(),
+            cidr_subnet: None,
+            gateway: None,
+            parent_adapter: None,
+            options: None,
+        };
+        let vault = create_empty_test_vault();
+        assert_eq!(
+            DeploymentoImpl
+                .create_network(vault, "MockedDeployment".to_string(), config)
+                .await,
+            Err(CreateNetworkError::DeploymentNotFound(
+                "MockedDeployment".to_string()
+            ))
         );
     }
 }

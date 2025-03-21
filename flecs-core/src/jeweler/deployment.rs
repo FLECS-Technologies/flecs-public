@@ -38,7 +38,7 @@ pub mod tests {
     use crate::jeweler::gem::manifest::{AppManifest, ConfigFile};
     use crate::jeweler::instance::Config;
     use crate::jeweler::instance::Logs;
-    use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
+    use crate::jeweler::network::{CreateNetworkError, Network, NetworkConfig, NetworkId};
     use crate::jeweler::volume::{Volume, VolumeId};
     use crate::quest::SyncQuest;
     use crate::Result;
@@ -96,8 +96,8 @@ pub mod tests {
         }
         #[async_trait]
         impl NetworkDeployment for edDeployment {
-            async fn create_network(&self, quest: SyncQuest, config: NetworkConfig) -> Result<NetworkId>;
-            async fn default_network(&self) -> Result<Network>;
+            async fn create_network(&self, quest: SyncQuest, config: NetworkConfig) -> Result<Network, CreateNetworkError>;
+            async fn default_network(&self) -> Result<Network, CreateNetworkError>;
             async fn delete_network(&self, id: NetworkId) -> Result<()>;
             async fn network(&self, id: NetworkId) -> Result<Option<Network>>;
             async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;

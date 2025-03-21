@@ -1,11 +1,14 @@
+use crate::forge::bollard::BollardNetworkExtension;
 use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
 use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
 use crate::jeweler::gem::manifest::{AppManifest, ConfigFile};
 use crate::jeweler::instance::{InstanceDeployment, Logs};
-use crate::jeweler::network::{NetworkConfig, NetworkDeployment, NetworkId, NetworkKind};
+use crate::jeweler::network::{
+    CreateNetworkError, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
+};
 use crate::jeweler::volume::{VolumeDeployment, VolumeId};
 use crate::quest::{Quest, QuestId, State, SyncQuest};
-use crate::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
+use crate::relic::network::{Ipv4Network, NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
 use crate::{jeweler, relic};
 use async_trait::async_trait;
@@ -25,7 +28,7 @@ use futures_util::future::{join_all, BoxFuture};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Formatter;
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::{fs, join};
@@ -128,19 +131,70 @@ impl DockerDeployment {
             cidr_subnet: Some(Self::default_cidr_subnet()),
             gateway: Some(Self::default_gateway()),
             parent_adapter: None,
+            options: Default::default(),
         }
     }
 
-    pub async fn create_default_network(&self) -> crate::Result<jeweler::network::Network> {
-        let id = self
-            .create_network(
-                Quest::new_synced("Create default network".to_string()),
-                Self::default_network_config(),
-            )
-            .await?;
-        self.network(id.clone())
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("Failed to get default network {id} after creation"))
+    fn network_config_fits_network(
+        config: &NetworkConfig,
+        network: &Network,
+    ) -> anyhow::Result<bool> {
+        Ok(Self::name_fits_network(&config.name, network)
+            && Self::kind_fits_network(config.kind, network)
+            && Self::subnet_fits_network(config.cidr_subnet, network)?
+            && Self::gateway_fits_network(config.gateway, network)?
+            && Self::parent_fits_network(config.parent_adapter.as_ref(), network)
+            && Self::options_fit_network(config.options.as_ref(), network))
+    }
+
+    fn name_fits_network(name: &String, network: &Network) -> bool {
+        network.name.as_ref() == Some(name)
+    }
+
+    fn kind_fits_network(kind: NetworkKind, network: &Network) -> bool {
+        kind == network.guess_network_kind()
+    }
+
+    fn subnet_fits_network(subnet: Option<Ipv4Network>, network: &Network) -> anyhow::Result<bool> {
+        let fits = match subnet {
+            Some(subnet) => network
+                .subnets()?
+                .contains(&relic::network::Network::Ipv4(subnet)),
+            None => true,
+        };
+        Ok(fits)
+    }
+
+    fn gateway_fits_network(gateway: Option<Ipv4Addr>, network: &Network) -> anyhow::Result<bool> {
+        let fits = match gateway {
+            Some(gateway) => network.gateways()?.contains(&IpAddr::V4(gateway)),
+            None => true,
+        };
+        Ok(fits)
+    }
+
+    fn parent_fits_network(parent: Option<&NetworkId>, network: &Network) -> bool {
+        parent == network.parent_network().as_ref()
+    }
+
+    fn options_fit_network(options: Option<&HashMap<String, String>>, network: &Network) -> bool {
+        match (options, network.options.as_ref()) {
+            (None, _) => true,
+            (Some(options), None) => options.is_empty(),
+            (Some(options), Some(existing_options)) => options
+                .iter()
+                .all(|(key, value)| existing_options.get(key) == Some(value)),
+        }
+    }
+
+    pub async fn create_default_network(
+        &self,
+    ) -> crate::Result<jeweler::network::Network, CreateNetworkError> {
+        self.create_network(
+            Quest::new_synced("Create default network".to_string()),
+            Self::default_network_config(),
+        )
+        .await
     }
 
     async fn copy_to_instance(
@@ -818,15 +872,25 @@ impl NetworkDeployment for DockerDeployment {
         &self,
         _quest: SyncQuest,
         mut config: NetworkConfig,
-    ) -> anyhow::Result<NetworkId> {
+    ) -> Result<Network, CreateNetworkError> {
         let docker_client = self.client()?;
-        let mut options = HashMap::new();
+        if let Some(existing_network) =
+            relic::docker::network::inspect::<&str>(docker_client.clone(), &config.name, None)
+                .await?
+        {
+            return if Self::network_config_fits_network(&config, &existing_network)? {
+                Err(CreateNetworkError::ExactNetworkExists(existing_network))
+            } else {
+                Err(CreateNetworkError::DifferentNetworkExists(existing_network))
+            };
+        };
+        let mut options = config.options.unwrap_or_default();
         match &config.kind {
             NetworkKind::IpvlanL2 => {
-                options.insert("ipvlan_mode", "l2");
+                options.insert("ipvlan_mode".to_string(), "l2".to_string());
             }
             NetworkKind::IpvlanL3 => {
-                options.insert("ipvlan_mode", "l3");
+                options.insert("ipvlan_mode".to_string(), "l3".to_string());
             }
             _ => {}
         }
@@ -836,7 +900,10 @@ impl NetworkDeployment for DockerDeployment {
             }
             NetworkKind::IpvlanL2 | NetworkKind::IpvlanL3 => {
                 let Some(parent_adapter) = &config.parent_adapter else {
-                    anyhow::bail!("Can not create ipvlan network without parent");
+                    return Err(CreateNetworkError::NetworkConfigInvalid {
+                        location: "parent_adapter".to_string(),
+                        reason: "Can not create ipvlan network without parent".to_string(),
+                    });
                 };
                 match (config.cidr_subnet, config.gateway) {
                     (None, _) | (_, None) => {
@@ -844,13 +911,19 @@ impl NetworkDeployment for DockerDeployment {
                             .network_adapter_reader
                             .try_read_network_adapters()?
                             .remove_entry(parent_adapter)
-                            .ok_or_else(|| {
-                                anyhow::anyhow!(
-                                    "parent network adapter {parent_adapter} does not exist"
-                                )
+                            .ok_or_else(|| CreateNetworkError::NetworkConfigInvalid {
+                                location: "parent_adapter".to_string(),
+                                reason: format!(
+                                    "Parent network adapter {parent_adapter} does not exist"
+                                ),
                             })?;
                         if parent_adapter.ipv4_networks.is_empty() {
-                            anyhow::bail!("parent network adapter {parent_name} is not ready");
+                            return Err(CreateNetworkError::NetworkConfigInvalid {
+                                location: "parent_adapter".to_string(),
+                                reason: format!(
+                                    "Parent network adapter {parent_name} is not ready"
+                                ),
+                            });
                         }
                         config.cidr_subnet = Some(relic::network::ipv4_to_network(
                             *parent_adapter.ipv4_networks[0].address(),
@@ -862,14 +935,19 @@ impl NetworkDeployment for DockerDeployment {
                 }
                 "ipvlan".to_string()
             }
-            x => anyhow::bail!("Invalid network type {}", x),
+            x => {
+                return Err(CreateNetworkError::NetworkConfigInvalid {
+                    location: "kind".to_string(),
+                    reason: format!("Invalid network type {x}"),
+                })
+            }
         };
-        if let Some(parent_adapter) = &config.parent_adapter {
-            options.insert("parent", parent_adapter.as_str());
+        if let Some(parent_adapter) = config.parent_adapter {
+            options.insert("parent".to_string(), parent_adapter);
         }
         let options = CreateNetworkOptions {
-            name: config.name.as_str(),
-            driver: driver.as_str(),
+            name: config.name,
+            driver,
             options,
             ipam: Ipam {
                 config: Some(vec![IpamConfig {
@@ -881,10 +959,10 @@ impl NetworkDeployment for DockerDeployment {
             },
             ..CreateNetworkOptions::default()
         };
-        relic::docker::network::create(docker_client, options).await
+        Ok(relic::docker::network::create(docker_client, options).await?)
     }
 
-    async fn default_network(&self) -> anyhow::Result<jeweler::network::Network> {
+    async fn default_network(&self) -> Result<jeweler::network::Network, CreateNetworkError> {
         let docker_client = self.client()?;
         let default_network_name = Self::default_network_name();
         let network = relic::docker::network::list(
@@ -1081,11 +1159,14 @@ impl jeweler::deployment::Deployment for DockerDeployment {
 #[cfg(test)]
 mod tests {
     use crate::jeweler::gem::deployment::docker::DockerDeployment;
-    use crate::jeweler::network::NetworkKind;
+    use crate::jeweler::network::{NetworkConfig, NetworkKind};
     use crate::relic::network::Ipv4Network;
     use crate::vault::pouch::deployment::Deployment;
+    use bollard::models::Network;
+    use std::collections::HashMap;
     use std::net::Ipv4Addr;
     use std::path::PathBuf;
+    use std::str::FromStr;
 
     const TEST_DEPLOYMENT_ID: &str = "some-deployment-id";
     const TEST_DEPLOYMENT_SOCK_PATH: &str = "/path/to/docker.sock";
@@ -1144,5 +1225,435 @@ mod tests {
             DockerDeployment::default_cidr_subnet(),
             Ipv4Network::try_new(Ipv4Addr::new(172, 21, 0, 0), 16).unwrap()
         );
+    }
+
+    fn fitting_network_config_data() -> (Network, NetworkConfig) {
+        let config = NetworkConfig {
+            kind: NetworkKind::Bridge,
+            name: "TestNetwork".to_string(),
+            cidr_subnet: Some(Ipv4Network::from_str("10.67.3.0/24").unwrap()),
+            gateway: Some(Ipv4Addr::from_str("10.67.3.12").unwrap()),
+            parent_adapter: Some("ParentTestNetwork".to_string()),
+            options: Some(HashMap::from([
+                ("Option1".to_string(), "value 1".to_string()),
+                ("Option2".to_string(), "value 2".to_string()),
+                ("Option3".to_string(), "value 3".to_string()),
+            ])),
+        };
+        let network = Network {
+            name: Some("TestNetwork".to_string()),
+            driver: Some("bridge".to_string()),
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("10.67.3.0/24".to_string()),
+                    gateway: Some("10.67.3.12".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            options: Some(HashMap::from([
+                ("parent".to_string(), "ParentTestNetwork".to_string()),
+                ("Option1".to_string(), "value 1".to_string()),
+                ("Option2".to_string(), "value 2".to_string()),
+                ("Option3".to_string(), "value 3".to_string()),
+            ])),
+            ..Network::default()
+        };
+        (network, config)
+    }
+
+    #[test]
+    fn network_config_fits_network_everything_fits() {
+        let (network, config) = fitting_network_config_data();
+        assert!(DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+    }
+
+    #[test]
+    fn network_config_fits_network_false_name() {
+        let (network, mut config) = fitting_network_config_data();
+        config.name = "Other".to_string();
+        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+    }
+
+    #[test]
+    fn network_config_fits_network_false_kind() {
+        let (network, mut config) = fitting_network_config_data();
+        config.kind = NetworkKind::MACVLAN;
+        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+    }
+
+    #[test]
+    fn network_config_fits_network_false_subnet() {
+        let (network, mut config) = fitting_network_config_data();
+        config.cidr_subnet = Some(Ipv4Network::from_str("10.20.30.0/24").unwrap());
+        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+    }
+
+    #[test]
+    fn network_config_fits_network_false_gateway() {
+        let (network, mut config) = fitting_network_config_data();
+        config.gateway = Some(Ipv4Addr::from_str("10.20.30.40").unwrap());
+        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+    }
+
+    #[test]
+    fn network_config_fits_network_false_parent() {
+        let (network, mut config) = fitting_network_config_data();
+        config.parent_adapter = Some("Other".to_string());
+        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+    }
+
+    #[test]
+    fn network_config_fits_network_false_options() {
+        let (network, mut config) = fitting_network_config_data();
+        config
+            .options
+            .as_mut()
+            .unwrap()
+            .insert("Custom Option".to_string(), "unexpected".to_string());
+        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+    }
+
+    #[test]
+    fn network_config_fits_network_err_subnet() {
+        let (mut network, config) = fitting_network_config_data();
+        network
+            .ipam
+            .as_mut()
+            .unwrap()
+            .config
+            .as_mut()
+            .unwrap()
+            .push(bollard::models::IpamConfig {
+                subnet: Some("invalid".to_string()),
+                ..Default::default()
+            });
+        assert!(DockerDeployment::network_config_fits_network(&config, &network).is_err())
+    }
+
+    #[test]
+    fn network_config_fits_network_err_gateway() {
+        let (mut network, config) = fitting_network_config_data();
+        network
+            .ipam
+            .as_mut()
+            .unwrap()
+            .config
+            .as_mut()
+            .unwrap()
+            .push(bollard::models::IpamConfig {
+                gateway: Some("invalid".to_string()),
+                ..Default::default()
+            });
+        assert!(DockerDeployment::network_config_fits_network(&config, &network).is_err())
+    }
+
+    #[test]
+    fn name_fits_network_true() {
+        let network = Network {
+            name: Some("TestNetwork".to_string()),
+            ..Network::default()
+        };
+        assert!(DockerDeployment::name_fits_network(
+            &"TestNetwork".to_string(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn name_fits_network_false_some() {
+        let network = Network {
+            name: Some("OtherTestNetwork".to_string()),
+            ..Network::default()
+        };
+        assert!(!DockerDeployment::name_fits_network(
+            &"TestNetwork".to_string(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn name_fits_network_false_none() {
+        let network = Network {
+            name: None,
+            ..Network::default()
+        };
+        assert!(!DockerDeployment::name_fits_network(
+            &"TestNetwork".to_string(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn kind_fits_network_true() {
+        let network = Network {
+            driver: Some("bridge".to_string()),
+            ..Network::default()
+        };
+        assert!(DockerDeployment::kind_fits_network(
+            NetworkKind::Bridge,
+            &network
+        ));
+    }
+
+    #[test]
+    fn kind_fits_network_false() {
+        let network = Network {
+            driver: None,
+            ..Network::default()
+        };
+        assert!(!DockerDeployment::kind_fits_network(
+            NetworkKind::Bridge,
+            &network
+        ));
+    }
+
+    fn subnet_network_data() -> Network {
+        Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![
+                    bollard::models::IpamConfig {
+                        subnet: Some("1.22.223.0/24".to_string()),
+                        ..Default::default()
+                    },
+                    bollard::models::IpamConfig {
+                        subnet: Some("44.11.0.0/16".to_string()),
+                        ..Default::default()
+                    },
+                    bollard::models::IpamConfig {
+                        subnet: Some("60.0.0.0/12".to_string()),
+                        ..Default::default()
+                    },
+                ]),
+                ..Default::default()
+            }),
+            ..Network::default()
+        }
+    }
+
+    #[test]
+    fn subnet_fits_network_true_some() {
+        let network = subnet_network_data();
+        assert!(DockerDeployment::subnet_fits_network(
+            Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
+            &network
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn subnet_fits_network_true_none() {
+        let network = subnet_network_data();
+        assert!(DockerDeployment::subnet_fits_network(None, &network).unwrap());
+    }
+
+    #[test]
+    fn subnet_fits_network_false() {
+        let network = subnet_network_data();
+        assert!(!DockerDeployment::subnet_fits_network(
+            Some(Ipv4Network::from_str("44.21.0.0/16").unwrap()),
+            &network
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn subnet_fits_network_err() {
+        let mut network = subnet_network_data();
+        network
+            .ipam
+            .as_mut()
+            .unwrap()
+            .config
+            .as_mut()
+            .unwrap()
+            .push(bollard::models::IpamConfig {
+                subnet: Some("invalid".to_string()),
+                ..Default::default()
+            });
+        assert!(DockerDeployment::subnet_fits_network(
+            Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
+            &network
+        )
+        .is_err());
+    }
+
+    fn gateway_network_data() -> Network {
+        Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![
+                    bollard::models::IpamConfig {
+                        gateway: Some("1.22.223.12".to_string()),
+                        ..Default::default()
+                    },
+                    bollard::models::IpamConfig {
+                        gateway: Some("44.11.24.12".to_string()),
+                        ..Default::default()
+                    },
+                    bollard::models::IpamConfig {
+                        gateway: Some("60.0.0.1".to_string()),
+                        ..Default::default()
+                    },
+                ]),
+                ..Default::default()
+            }),
+            ..Network::default()
+        }
+    }
+
+    #[test]
+    fn gateway_fits_network_true_some() {
+        let network = gateway_network_data();
+        assert!(DockerDeployment::gateway_fits_network(
+            Some(Ipv4Addr::from_str("44.11.24.12").unwrap()),
+            &network
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn gateway_fits_network_true_none() {
+        let network = gateway_network_data();
+        assert!(DockerDeployment::gateway_fits_network(None, &network).unwrap());
+    }
+
+    #[test]
+    fn gateway_fits_network_err() {
+        let mut network = gateway_network_data();
+        network
+            .ipam
+            .as_mut()
+            .unwrap()
+            .config
+            .as_mut()
+            .unwrap()
+            .push(bollard::models::IpamConfig {
+                gateway: Some("invalid".to_string()),
+                ..Default::default()
+            });
+        assert!(DockerDeployment::gateway_fits_network(
+            Some(Ipv4Addr::from_str("44.11.24.12").unwrap()),
+            &network
+        )
+        .is_err());
+    }
+
+    fn options_network_data() -> Network {
+        Network {
+            options: Some(HashMap::from([
+                ("parent".to_string(), "ParentTestNetwork".to_string()),
+                ("Option1".to_string(), "value 1".to_string()),
+                ("Option2".to_string(), "value 2".to_string()),
+                ("Option3".to_string(), "value 3".to_string()),
+            ])),
+            ..Network::default()
+        }
+    }
+
+    #[test]
+    fn options_fit_network_true_all() {
+        let network = options_network_data();
+        let options = Some(HashMap::from([
+            ("parent".to_string(), "ParentTestNetwork".to_string()),
+            ("Option1".to_string(), "value 1".to_string()),
+            ("Option2".to_string(), "value 2".to_string()),
+            ("Option3".to_string(), "value 3".to_string()),
+        ]));
+        assert!(DockerDeployment::options_fit_network(
+            options.as_ref(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn options_fit_network_true_some() {
+        let network = options_network_data();
+        let options = Some(HashMap::from([
+            ("Option1".to_string(), "value 1".to_string()),
+            ("Option3".to_string(), "value 3".to_string()),
+        ]));
+        assert!(DockerDeployment::options_fit_network(
+            options.as_ref(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn options_fit_network_true_empty() {
+        let network = options_network_data();
+        let options = Some(HashMap::new());
+        assert!(DockerDeployment::options_fit_network(
+            options.as_ref(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn options_fit_network_true_none_some() {
+        let network = options_network_data();
+        let options = None;
+        assert!(DockerDeployment::options_fit_network(
+            options.as_ref(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn options_fit_network_true_none_none() {
+        let network = Network::default();
+        let options = None;
+        assert!(DockerDeployment::options_fit_network(
+            options.as_ref(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn options_fit_network_true_empty_none() {
+        let network = Network::default();
+        let options = Some(HashMap::new());
+        assert!(DockerDeployment::options_fit_network(
+            options.as_ref(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn options_fit_network_false_different_value() {
+        let network = options_network_data();
+        let options = Some(HashMap::from([
+            ("Option1".to_string(), "different".to_string()),
+            ("Option3".to_string(), "value 3".to_string()),
+        ]));
+        assert!(!DockerDeployment::options_fit_network(
+            options.as_ref(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn options_fit_network_false_different_key() {
+        let network = options_network_data();
+        let options = Some(HashMap::from([(
+            "DifferentOption".to_string(),
+            "value 3".to_string(),
+        )]));
+        assert!(!DockerDeployment::options_fit_network(
+            options.as_ref(),
+            &network
+        ));
+    }
+
+    #[test]
+    fn options_fit_network_false_some_none() {
+        let network = Network::default();
+        let options = Some(HashMap::from([(
+            "Option 1".to_string(),
+            "value 1".to_string(),
+        )]));
+        assert!(!DockerDeployment::options_fit_network(
+            options.as_ref(),
+            &network
+        ));
     }
 }
