@@ -15,6 +15,7 @@ pub trait BollardNetworkExtension {
     fn gateways_ipv4(&self) -> Result<Vec<Ipv4Addr>>;
     fn gateway_ipv4(&self) -> Result<Option<Ipv4Addr>>;
     fn parent_network(&self) -> Option<String>;
+    fn guess_network_kind(&self) -> NetworkKind;
 }
 
 impl BollardNetworkExtension for bollard::models::Network {
@@ -97,6 +98,20 @@ impl BollardNetworkExtension for bollard::models::Network {
 
     fn parent_network(&self) -> Option<String> {
         self.options.as_ref()?.get(PARENT_IDENTIFIER).cloned()
+    }
+
+    fn guess_network_kind(&self) -> NetworkKind {
+        if let Some(options) = self.options.as_ref() {
+            match options.get("ipvlan_mode").map(|s| s.as_str()) {
+                Some("l2") => return NetworkKind::IpvlanL2,
+                Some("l3") => return NetworkKind::IpvlanL3,
+                _ => {}
+            }
+        };
+        match self.driver.as_deref() {
+            Some(driver) => NetworkKind::from(driver),
+            None => NetworkKind::Unknown,
+        }
     }
 }
 

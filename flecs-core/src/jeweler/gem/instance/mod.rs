@@ -1516,7 +1516,7 @@ pub mod tests {
         deployment
             .expect_default_network()
             .times(1)
-            .returning(|| Err(anyhow::anyhow!("TestError")));
+            .returning(|| Err(anyhow::anyhow!("TestError").into()));
         let deployment: Arc<dyn Deployment> = Arc::new(deployment);
         assert!(Instance::create(
             Quest::new_synced("TestQuest".to_string()),
@@ -2094,7 +2094,7 @@ pub mod tests {
         let mut deployment = MockedDeployment::new();
         deployment
             .expect_default_network()
-            .returning(|| Err(anyhow::anyhow!("TestError")));
+            .returning(|| Err(anyhow::anyhow!("TestError").into()));
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         let instance = test_instance(
             2,

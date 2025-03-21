@@ -112,12 +112,14 @@ where
 pub async fn create<T>(
     docker_client: Arc<Docker>,
     options: CreateNetworkOptions<T>,
-) -> Result<String>
+) -> Result<Network>
 where
     T: Into<String> + Eq + Hash + serde::ser::Serialize,
 {
     let response = docker_client.create_network(options).await?;
-    Ok(response.id)
+    inspect::<&str>(docker_client, &response.id, None)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("Could not get network after creation"))
 }
 
 /// # Example
