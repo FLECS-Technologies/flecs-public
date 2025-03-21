@@ -284,7 +284,7 @@ impl NetInfo {
     pub fn try_read_from_system() -> Result<HashMap<String, Self>> {
         let mut adapters: HashMap<String, Self> = HashMap::new();
         let addresses: Vec<_> = IfAddrs::new()?
-            .iter()
+            .into_iter()
             .filter_map(|ifaddrs| NetworkAddress::try_from(ifaddrs).ok())
             .collect();
         let route_entries: Vec<_> = procfs::net::route()?
@@ -411,9 +411,17 @@ impl IfAddrs {
 
         Ok(Self { inner: ifaddrs })
     }
+}
 
-    pub fn iter(&self) -> IfAddrsIterator {
-        IfAddrsIterator { next: self.inner }
+impl IntoIterator for IfAddrs {
+    type Item = ifaddrs;
+    type IntoIter = IfAddrsIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IfAddrsIterator {
+            next: self.inner,
+            _source: self,
+        }
     }
 }
 
@@ -429,6 +437,7 @@ impl Drop for IfAddrs {
 }
 
 pub struct IfAddrsIterator {
+    _source: IfAddrs,
     next: *mut ifaddrs,
 }
 
@@ -650,7 +659,7 @@ mod tests {
     #[test]
     fn test_address() {
         let addresses = IfAddrs::new().expect("Getting IfAddrs failed");
-        for address in addresses.iter() {
+        for address in addresses.into_iter() {
             let net_addr: NetworkAddress = address
                 .try_into()
                 .expect("Converting to NetworkAddress failed");
