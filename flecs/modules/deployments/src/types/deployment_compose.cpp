@@ -213,8 +213,8 @@ auto compose_t::do_start_instance(std::shared_ptr<instances::instance_t> instanc
             workdir,
             "-f",
             "-",
-            "-d",
-            "up");
+            "up",
+            "-d");
         if (res < 0) {
             return {res, {}};
         }
