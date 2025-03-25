@@ -42,11 +42,11 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ConsoleAuthenticationDeleteResponse, ()> {
-        self.sorcerers
-            .authmancer
-            .delete_authentication(&self.vault)
-            .await;
-        Ok(ConsoleAuthenticationDeleteResponse::Status204_NoContent)
+        Ok(super::api::v2::console::authentication::delete(
+            self.vault.clone(),
+            self.sorcerers.authmancer.clone(),
+        )
+        .await)
     }
 
     async fn console_authentication_put(
@@ -56,10 +56,11 @@ impl<
         _cookies: CookieJar,
         body: AuthResponseData,
     ) -> Result<ConsoleAuthenticationPutResponse, ()> {
-        self.sorcerers
-            .authmancer
-            .store_authentication(body, &self.vault)
-            .await;
-        Ok(ConsoleAuthenticationPutResponse::Status204_NoContent)
+        Ok(super::api::v2::console::authentication::put(
+            self.vault.clone(),
+            self.sorcerers.authmancer.clone(),
+            body,
+        )
+        .await)
     }
 }
