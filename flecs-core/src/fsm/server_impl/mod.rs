@@ -168,3 +168,27 @@ fn console_session_id_to_core_session_id(
         timestamp: session_id.timestamp,
     }
 }
+
+#[cfg(test)]
+async fn await_quest_completion() {
+    let quest = crate::lore::quest::default()
+        .await
+        .lock()
+        .await
+        .schedule_quest("Wait for quests to complete".to_string(), |_quest| async {
+            Ok(())
+        })
+        .await
+        .unwrap()
+        .1;
+    quest
+        .lock()
+        .await
+        .create_infallible_sub_quest(
+            "Subquest: Wait for quests to complete".to_string(),
+            |_quest| async {},
+        )
+        .await
+        .2
+        .await;
+}

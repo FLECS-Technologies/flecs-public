@@ -5,7 +5,7 @@ use crate::sorcerer::instancius::RedirectEditorRequestResult::*;
 use crate::vault::Vault;
 use axum::extract::Host;
 use flecsd_axum_server::apis::instances::InstancesInstanceIdEditorPortGetResponse as GetResponse;
-use flecsd_axum_server::models::AdditionalInfo;
+use flecsd_axum_server::models;
 use std::num::NonZeroU16;
 use std::sync::Arc;
 
@@ -22,25 +22,25 @@ pub async fn get<F: Floxy + 'static, I: Instancius>(
         .await
     {
         Err(e) => Ok(GetResponse::Status500_InternalServerError(
-            AdditionalInfo::new(e.to_string()),
+            models::AdditionalInfo::new(e.to_string()),
         )),
         Ok(Redirected(host_port)) => Ok(GetResponse::Status302_Found {
             location: format!("http://{}:{host_port}", host.0),
         }),
         Ok(InstanceNotFound) => Ok(GetResponse::Status404_InstanceIdOrPortNotFound(
-            AdditionalInfo::new(format!("Instance {instance_id} not found")),
+            models::AdditionalInfo::new(format!("Instance {instance_id} not found")),
         )),
         Ok(UnknownPort) => Ok(GetResponse::Status404_InstanceIdOrPortNotFound(
-            AdditionalInfo::new(format!("Unknown port {port}")),
+            models::AdditionalInfo::new(format!("Unknown port {port}")),
         )),
         Ok(EditorSupportsReverseProxy) => Ok(GetResponse::Status400_MalformedRequest(
-            AdditionalInfo::new("Editor supports reverse proxy -> use floxy".to_string()),
+            models::AdditionalInfo::new("Editor supports reverse proxy -> use floxy".to_string()),
         )),
         Ok(InstanceNotRunning) => Ok(GetResponse::Status400_MalformedRequest(
-            AdditionalInfo::new(format!("Instance {instance_id} not running")),
+            models::AdditionalInfo::new(format!("Instance {instance_id} not running")),
         )),
         Ok(InstanceNotConnectedToNetwork) => Ok(GetResponse::Status400_MalformedRequest(
-            AdditionalInfo::new(format!("Instance {instance_id} not connected to network")),
+            models::AdditionalInfo::new(format!("Instance {instance_id} not connected to network")),
         )),
     }
 }
