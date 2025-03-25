@@ -1,7 +1,5 @@
 use crate::enchantment::floxy::Floxy;
-use crate::fsm::server_impl::{
-    additional_info_from_error, console_session_id_to_core_session_id, ok, ServerImpl,
-};
+use crate::fsm::server_impl::ServerImpl;
 use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::relic::network::NetworkAdapterReader;
@@ -20,12 +18,8 @@ use flecsd_axum_server::apis::device::{
     Device, DeviceLicenseActivationPostResponse, DeviceLicenseActivationStatusGetResponse,
     DeviceLicenseInfoGetResponse, DeviceOnboardingPostResponse,
 };
-use flecsd_axum_server::models::{
-    AdditionalInfo, DeviceLicenseActivationStatusGet200Response, DeviceLicenseInfoGet200Response,
-    Dosschema, JobMeta,
-};
+use flecsd_axum_server::models::Dosschema;
 use http::Method;
-use tracing::warn;
 
 #[async_trait]
 impl<
@@ -49,22 +43,12 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<DeviceLicenseActivationPostResponse, ()> {
-        match self
-            .sorcerers
-            .licenso
-            .activate_license(
-                &self.vault,
-                crate::lore::console_client_config::default().await,
-            )
-            .await
-        {
-            Ok(()) => Ok(DeviceLicenseActivationPostResponse::Status200_Success(ok())),
-            Err(e) => Ok(
-                DeviceLicenseActivationPostResponse::Status500_InternalServerError(
-                    additional_info_from_error(e),
-                ),
-            ),
-        }
+        Ok(super::api::v2::device::license::activation::post(
+            self.vault.clone(),
+            self.sorcerers.licenso.clone(),
+            crate::lore::console_client_config::default().await,
+        )
+        .await)
     }
 
     async fn device_license_activation_status_get(
@@ -73,24 +57,12 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<DeviceLicenseActivationStatusGetResponse, ()> {
-        match self
-            .sorcerers
-            .licenso
-            .validate_license(
-                &self.vault,
-                crate::lore::console_client_config::default().await,
-            )
-            .await
-        {
-            Ok(is_valid) => Ok(DeviceLicenseActivationStatusGetResponse::Status200_Success(
-                DeviceLicenseActivationStatusGet200Response { is_valid },
-            )),
-            Err(e) => Ok(
-                DeviceLicenseActivationStatusGetResponse::Status500_InternalServerError({
-                    additional_info_from_error(e)
-                }),
-            ),
-        }
+        Ok(super::api::v2::device::license::activation::status::get(
+            self.vault.clone(),
+            self.sorcerers.licenso.clone(),
+            crate::lore::console_client_config::default().await,
+        )
+        .await)
     }
 
     async fn device_license_info_get(
@@ -99,17 +71,7 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<DeviceLicenseInfoGetResponse, ()> {
-        let secrets = self.vault.get_secrets().await;
-        Ok(DeviceLicenseInfoGetResponse::Status200_Success(
-            DeviceLicenseInfoGet200Response {
-                // TODO: Use correct type, as soon as serial numbers are implemented
-                r#type: "Via user license".to_string(),
-                session_id: Some(console_session_id_to_core_session_id(
-                    secrets.get_session_id(),
-                )),
-                license: secrets.license_key,
-            },
-        ))
+        Ok(super::api::v2::device::license::info::get(self.vault.clone()).await)
     }
 
     async fn device_onboarding_post(
@@ -119,48 +81,11 @@ impl<
         _cookies: CookieJar,
         body: Dosschema,
     ) -> Result<DeviceOnboardingPostResponse, ()> {
-        if body.apps.is_empty() {
-            return Ok(DeviceOnboardingPostResponse::Status400_MalformedRequest(
-                AdditionalInfo {
-                    additional_info: "No apps to install given (field 'apps' is empty)".to_string(),
-                },
-            ));
-        }
-        let app_keys = body
-            .apps
-            .into_iter()
-            .filter_map(|app| {
-                if let Some(version) = app.version {
-                    Some(crate::vault::pouch::AppKey {
-                        name: app.name,
-                        version,
-                    })
-                } else {
-                    warn!(
-                        "Skip installing newest version of app {}, not implemented yet",
-                        app.name
-                    );
-                    None
-                }
-            })
-            .collect();
-        let config = crate::lore::console_client_config::default().await;
-        let vault = self.vault.clone();
-        let appraiser = self.sorcerers.app_raiser.clone();
-        match crate::lore::quest::default()
-            .await
-            .lock()
-            .await
-            .schedule_quest("Install apps via device onboarding".to_string(), move |quest| async move {
-                appraiser.install_apps(quest, vault, app_keys, config).await
-            })
-            .await
-        {
-            Ok((id, _)) => Ok(DeviceOnboardingPostResponse::Status202_Accepted(JobMeta {
-                job_id: id.0 as i32,
-            })),
-            // TODO: Add 500 Response to API
-            Err(_) => Err(()),
-        }
+        super::api::v2::device::onboarding::post(
+            self.vault.clone(),
+            self.sorcerers.app_raiser.clone(),
+            body,
+        )
+        .await
     }
 }
