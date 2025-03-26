@@ -42,9 +42,7 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<JobsGetResponse, ()> {
-        Ok(JobsGetResponse::Status200_Success(
-            self.sorcerers.mage_quester.get_jobs().await,
-        ))
+        Ok(super::api::v2::jobs::get(self.sorcerers.mage_quester.clone()).await)
     }
 
     async fn jobs_job_id_delete(
@@ -54,23 +52,10 @@ impl<
         _cookies: CookieJar,
         path_params: JobsJobIdDeletePathParams,
     ) -> Result<JobsJobIdDeleteResponse, ()> {
-        match self
-            .sorcerers
-            .mage_quester
-            .delete_job(path_params.job_id as u64)
-            .await
-        {
-            Ok(_) => Ok(JobsJobIdDeleteResponse::Status200_Success),
-            Err(crate::quest::quest_master::DeleteQuestError::StillRunning) => {
-                Ok(JobsJobIdDeleteResponse::Status400_JobNotFinished(format!(
-                    "Not removing unfinished job {}",
-                    path_params.job_id
-                )))
-            }
-            Err(crate::quest::quest_master::DeleteQuestError::Unknown) => {
-                Ok(JobsJobIdDeleteResponse::Status404_NotFound)
-            }
-        }
+        Ok(
+            super::api::v2::jobs::job_id::delete(self.sorcerers.mage_quester.clone(), path_params)
+                .await,
+        )
     }
 
     async fn jobs_job_id_get(
@@ -80,14 +65,9 @@ impl<
         _cookies: CookieJar,
         path_params: JobsJobIdGetPathParams,
     ) -> Result<JobsJobIdGetResponse, ()> {
-        match self
-            .sorcerers
-            .mage_quester
-            .get_job(path_params.job_id as u64)
-            .await
-        {
-            Some(job) => Ok(JobsJobIdGetResponse::Status200_Success(job)),
-            None => Ok(JobsJobIdGetResponse::Status404_NotFound),
-        }
+        Ok(
+            super::api::v2::jobs::job_id::get(self.sorcerers.mage_quester.clone(), path_params)
+                .await,
+        )
     }
 }
