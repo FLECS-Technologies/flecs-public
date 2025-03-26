@@ -1,11 +1,10 @@
 use crate::sorcerer::deploymento::{Deploymento, ReserveIpv4AddressError};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse as PostResponse;
+use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
-    AdditionalInfo,
     DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4Post200Response as PostResponse200,
     DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams as PostPathParams,
-    OptionalAdditionalInfo,
 };
 use std::sync::Arc;
 
@@ -23,11 +22,11 @@ pub async fn post<T: Deploymento>(
         }),
         Err(e @ ReserveIpv4AddressError::Other { .. })
         | Err(e @ ReserveIpv4AddressError::NoFreeIpAddress) => {
-            PostResponse::Status500_InternalServerError(AdditionalInfo::new(e.to_string()))
+            PostResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
         }
         Err(e @ ReserveIpv4AddressError::DeploymentNotFound(_))
         | Err(e @ ReserveIpv4AddressError::NetworkNotFound(_)) => {
-            PostResponse::Status404_ResourceNotFound(OptionalAdditionalInfo {
+            PostResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
                 additional_info: Some(e.to_string()),
             })
         }
@@ -89,7 +88,7 @@ mod tests {
         let (vault, deploymento, path_params) = post_data(Some(Err(mock_error.clone())));
         assert_eq!(
             post(vault, deploymento, path_params).await,
-            PostResponse::Status500_InternalServerError(AdditionalInfo::new(
+            PostResponse::Status500_InternalServerError(models::AdditionalInfo::new(
                 mock_error.to_string()
             ))
         );
@@ -101,7 +100,7 @@ mod tests {
         let (vault, deploymento, path_params) = post_data(Some(Err(mock_error.clone())));
         assert_eq!(
             post(vault, deploymento, path_params).await,
-            PostResponse::Status500_InternalServerError(AdditionalInfo::new(
+            PostResponse::Status500_InternalServerError(models::AdditionalInfo::new(
                 mock_error.to_string()
             ))
         );
@@ -113,7 +112,7 @@ mod tests {
         let (vault, deploymento, path_params) = post_data(Some(Err(mock_error.clone())));
         assert_eq!(
             post(vault, deploymento, path_params).await,
-            PostResponse::Status404_ResourceNotFound(OptionalAdditionalInfo {
+            PostResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
                 additional_info: Some(mock_error.to_string())
             })
         );
@@ -125,7 +124,7 @@ mod tests {
         let (vault, deploymento, path_params) = post_data(Some(Err(mock_error.clone())));
         assert_eq!(
             post(vault, deploymento, path_params).await,
-            PostResponse::Status404_ResourceNotFound(OptionalAdditionalInfo {
+            PostResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
                 additional_info: Some(mock_error.to_string())
             })
         );
