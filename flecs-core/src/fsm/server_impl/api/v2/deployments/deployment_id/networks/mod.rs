@@ -7,9 +7,7 @@ use crate::sorcerer::deploymento::Deploymento;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::deployments::DeploymentsDeploymentIdNetworksGetResponse as GetResponse;
 use flecsd_axum_server::models;
-use flecsd_axum_server::models::{
-    AdditionalInfo, DeploymentsDeploymentIdNetworksGetPathParams as GetPathParams,
-};
+use flecsd_axum_server::models::DeploymentsDeploymentIdNetworksGetPathParams as GetPathParams;
 use std::sync::Arc;
 use tracing::error;
 
@@ -24,7 +22,9 @@ pub async fn get<T: Deploymento>(
     {
         Ok(Some(networks)) => GetResponse::Status200_Success(create_networks_model(networks)),
         Ok(None) => GetResponse::Status404_NoDeploymentWithThisDeployment,
-        Err(e) => GetResponse::Status500_InternalServerError(AdditionalInfo::new(e.to_string())),
+        Err(e) => {
+            GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 

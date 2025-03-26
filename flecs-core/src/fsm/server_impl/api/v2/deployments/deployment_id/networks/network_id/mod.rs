@@ -10,8 +10,8 @@ use flecsd_axum_server::apis::deployments::{
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
-    AdditionalInfo, DeploymentsDeploymentIdNetworksNetworkIdGetPathParams as GetPathParams,
-    DeploymentsDeploymentIdNetworksNetworkIdPutPathParams as PutPathParams, OptionalAdditionalInfo,
+    DeploymentsDeploymentIdNetworksNetworkIdGetPathParams as GetPathParams,
+    DeploymentsDeploymentIdNetworksNetworkIdPutPathParams as PutPathParams,
     PutDeploymentNetwork as PutRequest,
 };
 use std::net::Ipv4Addr;
@@ -25,7 +25,9 @@ pub async fn put<T: Deploymento>(
     request: PutRequest,
 ) -> PutResponse {
     match try_network_config_from_put_request(request, path_params.network_id) {
-        Err(e) => PutResponse::Status400_MalformedRequest(AdditionalInfo::new(e.to_string())),
+        Err(e) => {
+            PutResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
         Ok(config) => {
             match deploymento
                 .create_network(vault, path_params.deployment_id, config)
@@ -47,10 +49,12 @@ pub async fn put<T: Deploymento>(
                     e @ CreateNetworkError::Deployment(
                         DeploymentCreateNetworkError::DifferentNetworkExists(_),
                     ),
-                ) => PutResponse::Status400_MalformedRequest(AdditionalInfo::new(e.to_string())),
-                Err(e) => {
-                    PutResponse::Status500_InternalServerError(AdditionalInfo::new(e.to_string()))
-                }
+                ) => PutResponse::Status400_MalformedRequest(models::AdditionalInfo::new(
+                    e.to_string(),
+                )),
+                Err(e) => PutResponse::Status500_InternalServerError(models::AdditionalInfo::new(
+                    e.to_string(),
+                )),
             }
         }
     }
@@ -71,17 +75,19 @@ pub async fn get<T: Deploymento>(
     {
         Ok(network) => match try_model_from_network(network) {
             Ok(network) => GetResponse::Status200_Success(network),
-            Err(err) => GetResponse::Status500_InternalServerError(AdditionalInfo::new(format!(
-                "Could not parse network: {err}"
-            ))),
+            Err(err) => GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(
+                format!("Could not parse network: {err}"),
+            )),
         },
         Err(e @ GetDeploymentNetworkError::DeploymentNotFound(_))
         | Err(e @ GetDeploymentNetworkError::NetworkNotFound(_)) => {
-            GetResponse::Status404_ResourceNotFound(OptionalAdditionalInfo {
+            GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
                 additional_info: Some(e.to_string()),
             })
         }
-        Err(e) => GetResponse::Status500_InternalServerError(AdditionalInfo::new(e.to_string())),
+        Err(e) => {
+            GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 
