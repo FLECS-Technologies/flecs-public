@@ -225,7 +225,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn delete_instance_config_ports_transport_protocol_range_404_range() {
+        async fn delete_404_range() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_delete_instance_config_port_mapping_range()
@@ -253,7 +253,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn delete_instance_config_ports_transport_protocol_range_404_instance() {
+        async fn delete_404_instance() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_delete_instance_config_port_mapping_range()
@@ -281,7 +281,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn delete_instance_config_ports_transport_protocol_range_200() {
+        async fn delete_200() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_delete_instance_config_port_mapping_range()
@@ -309,7 +309,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn get_instance_config_ports_transport_protocol_range_400_range() {
+        async fn get_400_range() {
             let vault = crate::vault::tests::create_empty_test_vault();
             let instancius = MockInstancius::new();
             assert!(matches!(
@@ -328,7 +328,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn get_instance_config_ports_transport_protocol_range_404_range() {
+        async fn get_404_range() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_get_instance_config_port_mapping_range()
@@ -356,7 +356,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn get_instance_config_ports_transport_protocol_range_404_instance() {
+        async fn get_404_instance() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_get_instance_config_port_mapping_range()
@@ -384,7 +384,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn get_instance_config_ports_transport_protocol_range_200_range() {
+        async fn get_200_range() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_get_instance_config_port_mapping_range()
@@ -430,7 +430,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn get_instance_config_ports_transport_protocol_range_200_single() {
+        async fn get_200_single() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_get_instance_config_port_mapping_range()
@@ -465,7 +465,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_range_400_host_range() {
+        async fn put_400_host_range() {
             let vault = crate::vault::tests::create_empty_test_vault();
             let instancius = MockInstancius::new();
             assert!(matches!(
@@ -488,7 +488,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_range_400_container_range() {
+        async fn put_400_container_range() {
             let vault = crate::vault::tests::create_empty_test_vault();
             let instancius = MockInstancius::new();
             assert!(matches!(
@@ -511,7 +511,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_range_400_range_mismatch() {
+        async fn put_400_range_mismatch() {
             let vault = crate::vault::tests::create_empty_test_vault();
             let instancius = MockInstancius::new();
             assert!(matches!(
@@ -534,7 +534,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_range_400_overlap() {
+        async fn put_400_overlap() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_put_instance_config_port_mapping()
@@ -570,7 +570,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_range_404() {
+        async fn put_404() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_put_instance_config_port_mapping()
@@ -606,7 +606,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_range_201() {
+        async fn put_201() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_put_instance_config_port_mapping()
@@ -642,7 +642,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_range_200() {
+        async fn put_200() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_put_instance_config_port_mapping()
@@ -684,7 +684,7 @@ mod tests {
         use crate::sorcerer::instancius::MockInstancius;
 
         #[tokio::test]
-        async fn delete_instance_config_ports_transport_protocol_host_port_404_instance() {
+        async fn delete_404_instance() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_delete_instance_config_port_mapping_range()
@@ -712,7 +712,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn delete_instance_config_ports_transport_protocol_host_port_404_host() {
+        async fn delete_404_host() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_delete_instance_config_port_mapping_range()
@@ -740,7 +740,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn delete_instance_config_ports_transport_protocol_host_port_200() {
+        async fn delete_200() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_delete_instance_config_port_mapping_range()
@@ -768,7 +768,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn get_instance_config_ports_transport_protocol_host_port_404_instance() {
+        async fn get_404_instance() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_get_instance_config_port_mapping_range()
@@ -796,7 +796,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn get_instance_config_ports_transport_protocol_host_port_404_host() {
+        async fn get_404_host() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_get_instance_config_port_mapping_range()
@@ -824,7 +824,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn get_instance_config_ports_transport_protocol_host_port_200_single() {
+        async fn get_200_single() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_get_instance_config_port_mapping_range()
@@ -859,7 +859,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_host_port_400_overlap() {
+        async fn put_400_overlap() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_put_instance_config_port_mapping()
@@ -888,7 +888,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_host_port_404() {
+        async fn put_404() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_put_instance_config_port_mapping()
@@ -917,7 +917,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_host_port_201() {
+        async fn put_201() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_put_instance_config_port_mapping()
@@ -946,7 +946,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn put_instance_config_ports_transport_protocol_host_port_200() {
+        async fn put_200() {
             let mut instancius = MockInstancius::new();
             instancius
                 .expect_put_instance_config_port_mapping()

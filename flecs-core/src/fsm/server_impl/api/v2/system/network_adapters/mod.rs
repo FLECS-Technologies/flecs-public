@@ -2,7 +2,7 @@ use crate::relic::device::net::NetDeviceReader;
 use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::systemus::Systemus;
 use flecsd_axum_server::apis::system::SystemNetworkAdaptersGetResponse as GetResponse;
-use flecsd_axum_server::models::AdditionalInfo;
+use flecsd_axum_server::models;
 use std::sync::Arc;
 
 pub mod network_adapter_id;
@@ -21,7 +21,9 @@ pub fn get(
                 })
                 .collect(),
         ),
-        Err(e) => GetResponse::Status500_InternalServerError(AdditionalInfo::new(e.to_string())),
+        Err(e) => {
+            GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 

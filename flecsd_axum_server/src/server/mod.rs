@@ -6043,8 +6043,8 @@ where
 
 #[tracing::instrument(skip_all)]
 fn system_devices_usb_port_get_validation(
-    path_params: models::SystemDevicesUsbPortGetPathParams,
-) -> std::result::Result<(models::SystemDevicesUsbPortGetPathParams,), ValidationErrors> {
+    path_params: models::GetPathParams,
+) -> std::result::Result<(models::GetPathParams,), ValidationErrors> {
     path_params.validate()?;
 
     Ok((path_params,))
@@ -6055,7 +6055,7 @@ async fn system_devices_usb_port_get<I, A>(
     method: Method,
     host: Host,
     cookies: CookieJar,
-    Path(path_params): Path<models::SystemDevicesUsbPortGetPathParams>,
+    Path(path_params): Path<models::GetPathParams>,
     State(api_impl): State<I>,
 ) -> Result<Response, StatusCode>
 where

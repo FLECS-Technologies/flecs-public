@@ -96,7 +96,7 @@ mod tests {
     use crate::sorcerer::instancius::MockInstancius;
 
     #[tokio::test]
-    async fn delete_instance_config_ports_404() {
+    async fn delete_404() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mappings()
@@ -118,7 +118,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_instance_config_ports_200() {
+    async fn delete_200() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_port_mappings()
@@ -140,7 +140,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_config_ports_404() {
+    async fn get_404() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mappings()
@@ -162,7 +162,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_config_ports_200() {
+    async fn get_200() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_port_mappings()
