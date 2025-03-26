@@ -4,9 +4,7 @@ use crate::relic::network::{Ipv6Network, NetType, NetworkAdapter, NetworkAdapter
 use crate::sorcerer::systemus::Systemus;
 use flecsd_axum_server::apis::system::SystemNetworkAdaptersNetworkAdapterIdGetResponse as GetResponse;
 use flecsd_axum_server::models;
-use flecsd_axum_server::models::{
-    AdditionalInfo, SystemNetworkAdaptersNetworkAdapterIdGetPathParams as GetPathParams,
-};
+use flecsd_axum_server::models::SystemNetworkAdaptersNetworkAdapterIdGetPathParams as GetPathParams;
 use std::net::IpAddr;
 use std::sync::Arc;
 
@@ -22,7 +20,9 @@ pub fn get(
             &*net_device_reader,
         )),
         Ok(None) => GetResponse::Status404_NetworkAdapterNotFound,
-        Err(e) => GetResponse::Status500_InternalServerError(AdditionalInfo::new(e.to_string())),
+        Err(e) => {
+            GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 

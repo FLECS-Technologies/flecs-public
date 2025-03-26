@@ -98,41 +98,6 @@ impl<
     }
 }
 
-#[cfg(test)]
-impl
-    ServerImpl<
-        crate::sorcerer::appraiser::MockAppRaiser,
-        crate::sorcerer::authmancer::MockAuthmancer,
-        crate::sorcerer::instancius::MockInstancius,
-        crate::sorcerer::licenso::MockLicenso,
-        crate::sorcerer::mage_quester::MockMageQuester,
-        crate::sorcerer::manifesto::MockManifesto,
-        crate::sorcerer::systemus::MockSystemus,
-        crate::sorcerer::deploymento::MockDeploymento,
-        crate::enchantment::floxy::MockFloxy,
-        crate::relic::device::usb::MockUsbDeviceReader,
-        crate::relic::network::MockNetworkAdapterReader,
-        crate::relic::device::net::MockNetDeviceReader,
-    >
-{
-    #[cfg(test)]
-    pub fn test_instance(
-        vault: Arc<Vault>,
-        usb_reader: crate::relic::device::usb::MockUsbDeviceReader,
-        network_adapter_reader: crate::relic::network::MockNetworkAdapterReader,
-        net_device_reader: crate::relic::device::net::MockNetDeviceReader,
-        sorcerers: crate::sorcerer::MockSorcerers,
-    ) -> Self {
-        Self {
-            vault,
-            enchantments: Enchantments::test_instance(),
-            usb_reader: Arc::new(usb_reader),
-            sorcerers,
-            network_adapter_reader: Arc::new(network_adapter_reader),
-            net_device_reader: Arc::new(net_device_reader),
-        }
-    }
-}
 #[async_trait]
 impl<
         APP: AppRaiser,

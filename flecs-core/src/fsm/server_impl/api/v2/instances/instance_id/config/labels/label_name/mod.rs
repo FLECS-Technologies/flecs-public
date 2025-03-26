@@ -39,7 +39,7 @@ mod tests {
     use crate::sorcerer::instancius::MockInstancius;
 
     #[tokio::test]
-    async fn get_instance_label_404_instance() {
+    async fn get_404_instance() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_label_value()
@@ -62,7 +62,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_label_404_label() {
+    async fn get_404_label() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_label_value()
@@ -85,7 +85,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_label_200() {
+    async fn get_200() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_label_value()

@@ -102,7 +102,7 @@ mod tests {
     use crate::sorcerer::instancius::MockInstancius;
 
     #[tokio::test]
-    async fn get_instance_config_environment_variable_404_instance() {
+    async fn get_404_instance() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_environment_variable_value()
@@ -125,7 +125,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_config_environment_variable_404_variable() {
+    async fn get_404_variable() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_environment_variable_value()
@@ -149,7 +149,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_instance_config_environment_variable_200() {
+    async fn get_200() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_get_instance_config_environment_variable_value()
@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_instance_config_environment_variable_404_instance() {
+    async fn delete_404_instance() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_environment_variable_value()
@@ -217,7 +217,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_instance_config_environment_variable_404_variable() {
+    async fn delete_404_variable() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_environment_variable_value()
@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn delete_instance_config_environment_variable_200() {
+    async fn delete_200() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_delete_instance_config_environment_variable_value()
@@ -270,7 +270,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn put_instance_config_environment_variable_404() {
+    async fn put_404() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_environment_variable_value()
@@ -304,7 +304,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn put_instance_config_environment_variable_201() {
+    async fn put_201() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_environment_variable_value()
@@ -338,7 +338,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn put_instance_config_environment_variable_200() {
+    async fn put_200() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_put_instance_config_environment_variable_value()
