@@ -1,10 +1,12 @@
-pub use super::{Error, Result};
 use crate::quest::{finish_quest, Quest, QuestId, QuestResult, State, SyncQuest};
+use anyhow::Result;
 use futures::future::BoxFuture;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::future::Future;
+use std::sync::Arc;
 use tokio::sync::mpsc::{channel, error::TrySendError, Sender};
+use tokio::task::JoinError;
 use tracing::{error, info, warn};
 
 #[derive(Debug, Eq, PartialEq)]
@@ -13,83 +15,100 @@ pub enum DeleteQuestError {
     StillRunning,
 }
 
-pub struct QuestMaster {
+type ScheduledQuest = (
+    SyncQuest,
+    BoxFuture<'static, Result<QuestResult>>,
+    std::time::Instant,
+);
+
+pub type QuestMaster = Arc<tokio::sync::Mutex<QuestMasterInner>>;
+
+pub struct QuestMasterInner {
     quests: HashMap<QuestId, SyncQuest>,
-    schedule_channel: Sender<(
-        SyncQuest,
-        BoxFuture<'static, Result<QuestResult>>,
-        std::time::Instant,
-    )>,
+    schedule_channel: Sender<ScheduledQuest>,
 }
 
-impl Default for QuestMaster {
+impl Default for QuestMasterInner {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl QuestMaster {
+impl QuestMasterInner {
     pub fn new() -> Self {
-        let (tx, mut rx) = channel::<(
+        let (quest_sender, mut quest_receiver) = channel::<(
             SyncQuest,
             BoxFuture<'static, Result<QuestResult>>,
             std::time::Instant,
         )>(1000);
 
         tokio::spawn(async move {
-            while let Some((quest, future, start)) = rx.recv().await {
-                let start = {
-                    let mut quest = quest.lock().await;
-                    quest.state = State::Ongoing;
-                    info!(
-                        "Quest '{}' with id {} started. It waited for {:#?} in queue.",
-                        quest.id.0,
-                        quest.description,
-                        std::time::Instant::now() - start
-                    );
-                    std::time::Instant::now()
-                };
-
-                match tokio::spawn(future).await {
-                    Ok(result) => match finish_quest(&quest, result).await {
-                        Err(e) => {
-                            let quest = quest.lock().await;
-                            warn!(
-                                "Quest '{}' with id {} failed after {:#?}: {e}",
-                                quest.description,
-                                quest.id.0,
-                                std::time::Instant::now() - start
-                            )
-                        }
-                        Ok(result) => {
-                            let mut quest = quest.lock().await;
-                            if quest.result == QuestResult::None {
-                                quest.result = result;
-                            }
-                            info!(
-                                "Quest '{}' with id {} succeeded after {:#?}.",
-                                quest.description,
-                                quest.id.0,
-                                std::time::Instant::now() - start
-                            )
-                        }
-                    },
-                    Err(e) => {
-                        let mut quest = quest.lock().await;
-                        error!(
-                            "Quest '{}' with id {} caused a panic after {:#?}: {e}",
-                            quest.description,
-                            quest.id.0,
-                            std::time::Instant::now() - start
-                        );
-                        quest.state = State::Failed;
-                    }
+            loop {
+                if let Some((quest, future, scheduled_time)) = quest_receiver.recv().await {
+                    _ = Self::process_quest(quest, future, scheduled_time).await;
                 }
             }
         });
         Self {
             quests: HashMap::new(),
-            schedule_channel: tx,
+            schedule_channel: quest_sender,
+        }
+    }
+
+    async fn process_quest(
+        quest: SyncQuest,
+        future: BoxFuture<'static, Result<QuestResult>>,
+        scheduled_time: std::time::Instant,
+    ) -> Result<Result<QuestResult>, JoinError> {
+        let start = {
+            let mut quest = quest.lock().await;
+            quest.state = State::Ongoing;
+            info!(
+                "Quest '{}' with id {} started. It waited for {:#?} in queue.",
+                quest.id.0,
+                quest.description,
+                std::time::Instant::now() - scheduled_time
+            );
+            std::time::Instant::now()
+        };
+
+        match tokio::spawn(future).await {
+            Ok(result) => match finish_quest(&quest, result).await {
+                Err(e) => {
+                    let quest = quest.lock().await;
+                    warn!(
+                        "Quest '{}' with id {} failed after {:#?}: {e}",
+                        quest.description,
+                        quest.id.0,
+                        std::time::Instant::now() - start
+                    );
+                    Ok(Err(e))
+                }
+                Ok(result) => {
+                    let mut quest = quest.lock().await;
+                    if quest.result == QuestResult::None {
+                        quest.result = result.clone();
+                    }
+                    info!(
+                        "Quest '{}' with id {} succeeded after {:#?}.",
+                        quest.description,
+                        quest.id.0,
+                        std::time::Instant::now() - start
+                    );
+                    Ok(Ok(result))
+                }
+            },
+            Err(e) => {
+                let mut quest = quest.lock().await;
+                error!(
+                    "Quest '{}' with id {} caused a panic after {:#?}: {e}",
+                    quest.description,
+                    quest.id.0,
+                    std::time::Instant::now() - start
+                );
+                quest.state = State::Failed;
+                Err(e)
+            }
         }
     }
 
@@ -167,27 +186,14 @@ impl QuestMaster {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::quest::{Quest, State};
+    use crate::quest::{create_test_quest, State};
     use ntest::timeout;
-    use std::sync::Arc;
     use std::time::Duration;
-    use tokio::sync::Mutex;
     use tokio::time::sleep;
 
-    fn create_test_quest(id: u64) -> SyncQuest {
-        Arc::new(Mutex::new(Quest {
-            id: QuestId(id),
-            description: "Test Quest".to_string(),
-            detail: None,
-            sub_quests: vec![],
-            progress: None,
-            state: State::Ongoing,
-            result: QuestResult::None,
-        }))
-    }
     #[tokio::test]
     async fn test_query_quest() {
-        let mut master = QuestMaster::default();
+        let mut master = QuestMasterInner::default();
 
         // Add quests to master
         master.quests.insert(QuestId(1), create_test_quest(1));
@@ -215,7 +221,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_schedule_quest() {
-        let mut master = QuestMaster::default();
+        let mut master = QuestMasterInner::default();
 
         let (quest_id, _) = master
             .schedule_quest("Test Quest Description".to_string(), test_quest_fn)
@@ -227,7 +233,7 @@ mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn test_schedule_quest_start() {
-        let mut master = QuestMaster::default();
+        let mut master = QuestMasterInner::default();
         let (tx, rx) = tokio::sync::oneshot::channel::<u64>();
 
         let _ = master
@@ -243,7 +249,7 @@ mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn test_schedule_quest_success() {
-        let mut master = QuestMaster::default();
+        let mut master = QuestMasterInner::default();
         let (tx, rx) = tokio::sync::oneshot::channel::<u64>();
 
         let (_, quest) = master
@@ -261,7 +267,7 @@ mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn test_schedule_quest_with_result_success() {
-        let mut master = QuestMaster::default();
+        let mut master = QuestMasterInner::default();
         let (tx, rx) = tokio::sync::oneshot::channel::<u64>();
 
         let (_, quest) = master
@@ -283,7 +289,7 @@ mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn test_schedule_quest_with_result_success_no_overwrite() {
-        let mut master = QuestMaster::default();
+        let mut master = QuestMasterInner::default();
         let (tx, rx) = tokio::sync::oneshot::channel::<u64>();
 
         let (_, quest) = master
@@ -306,7 +312,7 @@ mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn test_schedule_quest_failure() {
-        let mut master = QuestMaster::default();
+        let mut master = QuestMasterInner::default();
         let (tx, rx) = tokio::sync::oneshot::channel::<u64>();
 
         let (_, quest) = master
@@ -323,7 +329,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_quests() {
-        let mut master = QuestMaster::default();
+        let mut master = QuestMasterInner::default();
 
         // Empty case
         assert!(master.get_quests().is_empty());
@@ -350,7 +356,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_quest() {
-        let mut master = QuestMaster::default();
+        let mut master = QuestMasterInner::default();
         let quest = create_test_quest(1);
 
         // Add quest to master

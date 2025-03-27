@@ -1,4 +1,5 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::sorcerer::instancius::Instancius;
 use crate::vault::Vault;
@@ -12,6 +13,7 @@ pub async fn post<I: Instancius + 'static, F: Floxy + 'static>(
     vault: Arc<Vault>,
     instancius: Arc<I>,
     floxy: Arc<F>,
+    quest_master: QuestMaster,
     path_params: PostPathParams,
 ) -> Result<PostResponse, ()> {
     // TODO: Add 400 Response to API
@@ -23,8 +25,7 @@ pub async fn post<I: Instancius + 'static, F: Floxy + 'static>(
         return Ok(PostResponse::Status404_NoInstanceWithThisInstance);
     }
     let floxy = FloxyOperation::new_arc(floxy);
-    let quest_id = crate::lore::quest::default()
-        .await
+    let quest_id = quest_master
         .lock()
         .await
         .schedule_quest(
@@ -66,6 +67,7 @@ mod tests {
                 vault,
                 Arc::new(instancius),
                 Arc::new(floxy),
+                QuestMaster::default(),
                 PostPathParams {
                     instance_id: "00001234".to_string(),
                 },

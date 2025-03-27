@@ -1,3 +1,4 @@
+use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
@@ -10,6 +11,7 @@ use std::sync::Arc;
 pub async fn post<A: AppRaiser + 'static>(
     vault: Arc<Vault>,
     appraiser: Arc<A>,
+    quest_master: QuestMaster,
     request: PostRequest,
 ) -> Result<PostResponse, ()> {
     match serde_json::from_str::<AppManifestVersion>(&request.manifest).map(AppManifest::try_from) {
@@ -21,8 +23,7 @@ pub async fn post<A: AppRaiser + 'static>(
         )),
         Ok(Ok(manifest)) => {
             let config = crate::lore::console_client_config::default().await;
-            match crate::lore::quest::default()
-                .await
+            match quest_master
                 .lock()
                 .await
                 .schedule_quest(

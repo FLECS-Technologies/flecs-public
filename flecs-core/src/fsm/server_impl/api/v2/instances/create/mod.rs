@@ -1,3 +1,4 @@
+use crate::enchantment::quest_master::QuestMaster;
 use crate::quest::QuestResult;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::instancius::Instancius;
@@ -12,6 +13,7 @@ pub async fn post<A: AppRaiser, I: Instancius + 'static>(
     vault: Arc<Vault>,
     appraiser: Arc<A>,
     instancius: Arc<I>,
+    quest_master: QuestMaster,
     request: PostRequest,
 ) -> Result<PostResponse, ()> {
     let app_key: AppKey = request.app_key.into();
@@ -24,8 +26,7 @@ pub async fn post<A: AppRaiser, I: Instancius + 'static>(
         ));
     }
     let instance_name = request.instance_name;
-    let (id, _quest) = crate::lore::quest::default()
-        .await
+    let (id, _quest) = quest_master
         .lock()
         .await
         .schedule_quest_with_result(
@@ -66,6 +67,7 @@ mod tests {
                 vault,
                 appraiser,
                 instancius,
+                QuestMaster::default(),
                 PostRequest {
                     app_key: models::AppKey {
                         name: "TestName".to_string(),
@@ -101,11 +103,13 @@ mod tests {
             .expect_does_app_exist()
             .once()
             .returning(|_, _| true);
+        let quest_master = QuestMaster::default();
         let vault = crate::vault::tests::create_empty_test_vault();
         let result = post(
             vault,
             Arc::new(appraiser),
             Arc::new(instancius),
+            quest_master.clone(),
             PostRequest {
                 app_key: test_key.clone(),
                 instance_name: None,
@@ -114,7 +118,7 @@ mod tests {
         .await;
         match result {
             Ok(PostResponse::Status202_Accepted(_)) => {
-                await_quest_completion().await;
+                await_quest_completion(quest_master).await;
             }
             _ => panic!("Expected InstancesCreatePostResponse::Status202_Accepted"),
         }

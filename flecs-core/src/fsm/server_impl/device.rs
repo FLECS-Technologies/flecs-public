@@ -84,6 +84,7 @@ impl<
         super::api::v2::device::onboarding::post(
             self.vault.clone(),
             self.sorcerers.app_raiser.clone(),
+            self.enchantments.quest_master.clone(),
             body,
         )
         .await

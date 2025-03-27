@@ -11,8 +11,6 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tracing::debug;
 
-pub mod quest_master;
-
 #[repr(transparent)]
 #[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
 pub struct QuestId(pub u64);
@@ -74,7 +72,7 @@ impl Display for State {
     }
 }
 
-async fn finish_quest<T>(quest: &SyncQuest, result: Result<T>) -> Result<T> {
+pub(crate) async fn finish_quest<T>(quest: &SyncQuest, result: Result<T>) -> Result<T> {
     match result {
         Ok(ok) => {
             let mut quest = quest.lock().await;
@@ -338,6 +336,19 @@ pub trait StatusUpdate {
     fn progress(&self) -> Option<Progress>;
     fn details(&self) -> Option<String>;
     fn state(&self) -> Option<State>;
+}
+
+#[cfg(test)]
+pub fn create_test_quest(id: u64) -> SyncQuest {
+    Arc::new(Mutex::new(Quest {
+        id: QuestId(id),
+        description: "Test Quest".to_string(),
+        detail: None,
+        sub_quests: vec![],
+        progress: None,
+        state: State::Ongoing,
+        result: QuestResult::None,
+    }))
 }
 
 #[cfg(test)]

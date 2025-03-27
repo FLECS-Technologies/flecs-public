@@ -1,4 +1,5 @@
 use flecs_core::enchantment::floxy::{Floxy, FloxyImpl};
+use flecs_core::enchantment::quest_master::QuestMaster;
 use flecs_core::enchantment::Enchantments;
 use flecs_core::fsm::StartupError;
 use flecs_core::sorcerer::Sorcerers;
@@ -21,6 +22,7 @@ async fn main() -> flecs_core::fsm::Result<()> {
             )
             .unwrap(),
         ),
+        quest_master: QuestMaster::default(),
     };
     enchantments
         .floxy

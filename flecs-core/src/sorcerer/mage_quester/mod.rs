@@ -1,5 +1,5 @@
 mod mage_quester_impl;
-use crate::quest::quest_master::DeleteQuestError;
+use crate::enchantment::quest_master::{DeleteQuestError, QuestMaster};
 use crate::quest::{State, SyncQuest};
 use crate::sorcerer::Sorcerer;
 use async_trait::async_trait;
@@ -11,9 +11,13 @@ use mockall::automock;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait MageQuester: Sorcerer {
-    async fn get_job(&self, id: u64) -> Option<models::Job>;
-    async fn get_jobs(&self) -> Vec<models::Job>;
-    async fn delete_job(&self, id: u64) -> Result<SyncQuest, DeleteQuestError>;
+    async fn get_job(&self, quest_master: QuestMaster, id: u64) -> Option<models::Job>;
+    async fn get_jobs(&self, quest_master: QuestMaster) -> Vec<models::Job>;
+    async fn delete_job(
+        &self,
+        quest_master: QuestMaster,
+        id: u64,
+    ) -> Result<SyncQuest, DeleteQuestError>;
 }
 
 #[cfg(test)]

@@ -1,5 +1,4 @@
-use crate::lore;
-use crate::quest::quest_master::DeleteQuestError;
+use crate::enchantment::quest_master::{DeleteQuestError, QuestMaster};
 use crate::quest::{QuestId, QuestResult, State, SyncQuest};
 use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::Sorcerer;
@@ -15,34 +14,27 @@ impl Sorcerer for MageQuesterImpl {}
 
 #[async_trait]
 impl MageQuester for MageQuesterImpl {
-    async fn get_job(&self, id: u64) -> Option<Job> {
-        match lore::quest::default()
-            .await
-            .lock()
-            .await
-            .query_quest(QuestId(id))
-        {
+    async fn get_job(&self, quest_master: QuestMaster, id: u64) -> Option<Job> {
+        match quest_master.lock().await.query_quest(QuestId(id)) {
             None => None,
             Some(quest) => Some(job_from_quest(quest).await),
         }
     }
 
-    async fn get_jobs(&self) -> Vec<Job> {
-        let questmaster = lore::quest::default().await;
-        let questmaster = questmaster.lock().await;
-        futures::stream::iter(questmaster.get_quests().into_iter())
+    async fn get_jobs(&self, quest_master: QuestMaster) -> Vec<Job> {
+        let quest_master = quest_master.lock().await;
+        futures::stream::iter(quest_master.get_quests().into_iter())
             .then(|quest| async move { job_from_quest(quest).await })
             .collect::<Vec<models::Job>>()
             .await
     }
 
-    async fn delete_job(&self, id: u64) -> Result<SyncQuest, DeleteQuestError> {
-        lore::quest::default()
-            .await
-            .lock()
-            .await
-            .delete_quest(QuestId(id))
-            .await
+    async fn delete_job(
+        &self,
+        quest_master: QuestMaster,
+        id: u64,
+    ) -> Result<SyncQuest, DeleteQuestError> {
+        quest_master.lock().await.delete_quest(QuestId(id)).await
     }
 }
 

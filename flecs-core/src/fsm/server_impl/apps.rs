@@ -52,6 +52,7 @@ impl<
             self.vault.clone(),
             self.enchantments.floxy.clone(),
             self.sorcerers.app_raiser.clone(),
+            self.enchantments.quest_master.clone(),
             path_params,
             query_params,
         )
@@ -94,6 +95,7 @@ impl<
         Ok(super::api::v2::apps::install::post(
             self.vault.clone(),
             self.sorcerers.app_raiser.clone(),
+            self.enchantments.quest_master.clone(),
             body,
         )
         .await)
@@ -109,6 +111,7 @@ impl<
         super::api::v2::apps::sideload::post(
             self.vault.clone(),
             self.sorcerers.app_raiser.clone(),
+            self.enchantments.quest_master.clone(),
             body,
         )
         .await

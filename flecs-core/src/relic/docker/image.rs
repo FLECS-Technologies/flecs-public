@@ -98,7 +98,7 @@ impl crate::quest::StatusUpdate for CreateImageInfo {
 /// Poll and print the status until pull is complete:
 /// ```no_run
 /// use bollard::Docker;
-/// use flecs_core::quest::quest_master::QuestMaster;
+/// use flecs_core::enchantment::quest_master::QuestMaster;
 /// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::image::pull;
 /// use std::sync::Arc;
@@ -107,10 +107,12 @@ impl crate::quest::StatusUpdate for CreateImageInfo {
 ///
 /// # tokio_test::block_on(
 /// async {
-///     let mut quest_master = QuestMaster::new();
+///     let mut quest_master = QuestMaster::default();
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
 ///     let (tx, rx) = oneshot::channel();
 ///     let (_id, quest) = quest_master
+///         .lock()
+///         .await
 ///         .schedule_quest("Docker pull quest".to_string(), |quest| async move {
 ///             let pull_result = pull(
 ///                 quest,
@@ -325,7 +327,7 @@ impl crate::quest::StatusUpdate for BuildInfo {
 /// ```no_run
 /// use bollard::image::ImportImageOptions;
 /// use bollard::Docker;
-/// use flecs_core::quest::quest_master::QuestMaster;
+/// use flecs_core::enchantment::quest_master::QuestMaster;
 /// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::image::load;
 /// use std::path::Path;
@@ -335,8 +337,10 @@ impl crate::quest::StatusUpdate for BuildInfo {
 /// # tokio_test::block_on(
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
-///     let mut quest_master = QuestMaster::new();
+///     let mut quest_master = QuestMaster::default();
 ///     let (_id, quest) = quest_master
+///         .lock()
+///         .await
 ///         .schedule_quest("Docker load image".to_string(), |quest| async move {
 ///             load(
 ///                 quest,
@@ -385,7 +389,7 @@ pub async fn load(
 /// Poll and print the progress until save is complete:
 /// ```no_run
 /// use bollard::Docker;
-/// use flecs_core::quest::quest_master::QuestMaster;
+/// use flecs_core::enchantment::quest_master::QuestMaster;
 /// use flecs_core::quest::Progress;
 /// use flecs_core::relic::docker::image::save;
 /// use flecs_core::relic::docker::ByteStatus;
@@ -396,8 +400,10 @@ pub async fn load(
 /// # tokio_test::block_on(
 /// async {
 ///     let docker_client = Arc::new(Docker::connect_with_defaults().unwrap());
-///     let mut quest_master = QuestMaster::new();
+///     let mut quest_master = QuestMaster::default();
 ///     let (_id, quest) = quest_master
+///         .lock()
+///         .await
 ///         .schedule_quest("Docker save".to_string(), |quest| async move {
 ///             save(
 ///                 quest,

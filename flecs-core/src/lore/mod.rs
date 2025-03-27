@@ -55,20 +55,6 @@ pub mod tracing {
     }
 }
 
-pub mod quest {
-    use crate::quest::quest_master::QuestMaster;
-    use std::sync::Arc;
-    use tokio::sync::{Mutex, OnceCell};
-
-    pub async fn default() -> Arc<Mutex<QuestMaster>> {
-        static DEFAULT_VAULT: OnceCell<Arc<Mutex<QuestMaster>>> = OnceCell::const_new();
-        DEFAULT_VAULT
-            .get_or_init(|| async { Arc::default() })
-            .await
-            .clone()
-    }
-}
-
 pub fn base_path() -> &'static Path {
     Path::new(BASE_PATH)
 }

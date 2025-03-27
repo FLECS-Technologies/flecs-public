@@ -1,3 +1,4 @@
+use crate::enchantment::quest_master::QuestMaster;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::device::DeviceOnboardingPostResponse as PostResponse;
@@ -9,6 +10,7 @@ use tracing::warn;
 pub async fn post<A: AppRaiser + 'static>(
     vault: Arc<Vault>,
     appraiser: Arc<A>,
+    quest_master: QuestMaster,
     request: PostRequest,
 ) -> Result<PostResponse, ()> {
     if request.apps.is_empty() {
@@ -37,8 +39,7 @@ pub async fn post<A: AppRaiser + 'static>(
         })
         .collect();
     let config = crate::lore::console_client_config::default().await;
-    match crate::lore::quest::default()
-        .await
+    match quest_master
         .lock()
         .await
         .schedule_quest("Install apps via device onboarding".to_string(), move |quest| async move {
