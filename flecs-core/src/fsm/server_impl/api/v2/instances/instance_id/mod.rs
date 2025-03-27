@@ -4,6 +4,7 @@ pub mod logs;
 pub mod start;
 pub mod stop;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::sorcerer::instancius::Instancius;
 use crate::vault::Vault;
@@ -23,6 +24,7 @@ pub async fn delete<I: Instancius + 'static, F: Floxy + 'static>(
     vault: Arc<Vault>,
     instancius: Arc<I>,
     floxy: Arc<F>,
+    quest_master: QuestMaster,
     path_params: DeletePathParams,
 ) -> Result<DeleteResponse, ()> {
     let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
@@ -33,8 +35,7 @@ pub async fn delete<I: Instancius + 'static, F: Floxy + 'static>(
         return Ok(DeleteResponse::Status404_NoInstanceWithThisInstance);
     }
     let floxy = FloxyOperation::new_arc(floxy);
-    let quest_id = crate::lore::quest::default()
-        .await
+    let quest_id = quest_master
         .lock()
         .await
         .schedule_quest(

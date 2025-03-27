@@ -1,4 +1,4 @@
-use flecs_core::quest::quest_master::QuestMaster;
+use flecs_core::enchantment::quest_master::QuestMasterInner;
 use flecs_core::quest::Quest;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -590,7 +590,7 @@ pub mod save_princess {
 #[tokio::main]
 async fn main() {
     const PRINCESS: &str = "Fiona";
-    let mut master = QuestMaster::default();
+    let mut master = QuestMasterInner::default();
     let (_, quest) = master
         .schedule_quest(format!("Saving princes {PRINCESS}"), |quest| async {
             let princess = save_princess::save_princess(quest, PRINCESS, 3).await;

@@ -135,9 +135,8 @@ fn console_session_id_to_core_session_id(
 }
 
 #[cfg(test)]
-async fn await_quest_completion() {
-    let quest = crate::lore::quest::default()
-        .await
+async fn await_quest_completion(quest_master: crate::enchantment::quest_master::QuestMaster) {
+    let quest = quest_master
         .lock()
         .await
         .schedule_quest("Wait for quests to complete".to_string(), |_quest| async {

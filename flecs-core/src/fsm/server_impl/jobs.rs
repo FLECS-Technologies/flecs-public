@@ -42,7 +42,11 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<JobsGetResponse, ()> {
-        Ok(super::api::v2::jobs::get(self.sorcerers.mage_quester.clone()).await)
+        Ok(super::api::v2::jobs::get(
+            self.sorcerers.mage_quester.clone(),
+            self.enchantments.quest_master.clone(),
+        )
+        .await)
     }
 
     async fn jobs_job_id_delete(
@@ -52,10 +56,12 @@ impl<
         _cookies: CookieJar,
         path_params: JobsJobIdDeletePathParams,
     ) -> Result<JobsJobIdDeleteResponse, ()> {
-        Ok(
-            super::api::v2::jobs::job_id::delete(self.sorcerers.mage_quester.clone(), path_params)
-                .await,
+        Ok(super::api::v2::jobs::job_id::delete(
+            self.sorcerers.mage_quester.clone(),
+            self.enchantments.quest_master.clone(),
+            path_params,
         )
+        .await)
     }
 
     async fn jobs_job_id_get(
@@ -65,9 +71,11 @@ impl<
         _cookies: CookieJar,
         path_params: JobsJobIdGetPathParams,
     ) -> Result<JobsJobIdGetResponse, ()> {
-        Ok(
-            super::api::v2::jobs::job_id::get(self.sorcerers.mage_quester.clone(), path_params)
-                .await,
+        Ok(super::api::v2::jobs::job_id::get(
+            self.sorcerers.mage_quester.clone(),
+            self.enchantments.quest_master.clone(),
+            path_params,
         )
+        .await)
     }
 }

@@ -7,6 +7,7 @@ mod usb;
 
 pub use crate::manifest::download_manifest;
 use flecs_core::enchantment::floxy::{Floxy, FloxyImpl};
+use flecs_core::enchantment::quest_master::QuestMaster;
 use flecs_core::enchantment::Enchantments;
 use flecs_core::sorcerer::Sorcerers;
 pub use floxy::{
@@ -162,7 +163,10 @@ pub fn start_server() {
         flecs_core::fsm::server(
             sorcerers,
             PathBuf::from("/run/flecs/flecsd-rs.sock"),
-            Enchantments { floxy },
+            Enchantments {
+                floxy,
+                quest_master: QuestMaster::default(),
+            },
         )
         .await
         .unwrap();

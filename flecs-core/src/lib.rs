@@ -14,7 +14,7 @@ pub mod lore;
 /// If we already have a function that takes a [quest::SyncQuest] and returns a [Result]<()>
 /// scheduling it becomes quite easy, we just have to provide a name and the function.
 /// ```
-/// use flecs_core::quest::quest_master::QuestMaster;
+/// use flecs_core::enchantment::quest_master::QuestMaster;
 /// use flecs_core::quest::Result;
 /// use flecs_core::quest::SyncQuest;
 ///
@@ -24,8 +24,10 @@ pub mod lore;
 /// }
 /// # tokio_test::block_on(
 /// async {
-///     let mut quest_master = QuestMaster::new();
+///     let mut quest_master = QuestMaster::default();
 ///     let (_id, _quest) = quest_master
+///         .lock()
+///         .await
 ///         .schedule_quest("Print hello".to_string(), print_hello)
 ///         .await
 ///         .unwrap();
@@ -35,7 +37,7 @@ pub mod lore;
 /// If the signature of the function we want to call does not fit we need to wrap it in a closure
 /// that takes a [quest::SyncQuest] and returns [Result]<()>.
 /// ```
-/// use flecs_core::quest::quest_master::QuestMaster;
+/// use flecs_core::enchantment::quest_master::QuestMaster;
 /// use flecs_core::quest::SyncQuest;
 ///
 /// async fn print_2n(quest: SyncQuest, n: u64) -> u64 {
@@ -45,9 +47,11 @@ pub mod lore;
 /// }
 /// # tokio_test::block_on(
 /// async {
-///     let mut quest_master = QuestMaster::new();
+///     let mut quest_master = QuestMaster::default();
 ///     let n = 50;
 ///     let (_id, _quest) = quest_master
+///         .lock()
+///         .await
 ///         .schedule_quest(format!("Print 2 * {n}"), move |quest| async move {
 ///             let _n = print_2n(quest, n).await;
 ///             Ok(())
@@ -59,13 +63,15 @@ pub mod lore;
 /// ```
 /// It is also possible to directly schedule a closure without any function call.
 /// ```
-/// use flecs_core::quest::quest_master::QuestMaster;
+/// use flecs_core::enchantment::quest_master::QuestMaster;
 ///
 /// # tokio_test::block_on(
 /// async {
-///     let mut quest_master = QuestMaster::new();
+///     let mut quest_master = QuestMaster::default();
 ///     let n = 50;
 ///     let (_id, _quest) = quest_master
+///         .lock()
+///         .await
 ///         .schedule_quest(format!("Print 3 * {n}"), move |quest| async move {
 ///             println!("{}", 3 * n);
 ///             Ok(())

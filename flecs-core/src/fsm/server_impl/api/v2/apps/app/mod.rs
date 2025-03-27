@@ -1,4 +1,5 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::quest_master::QuestMaster;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
@@ -35,6 +36,7 @@ pub async fn delete<A: AppRaiser + 'static, F: Floxy + 'static>(
     vault: Arc<Vault>,
     floxy: Arc<F>,
     appraiser: Arc<A>,
+    quest_master: QuestMaster,
     path_params: DeletePathParams,
     query_params: DeleteQueryParams,
 ) -> Result<DeleteResponse, ()> {
@@ -59,8 +61,7 @@ pub async fn delete<A: AppRaiser + 'static, F: Floxy + 'static>(
             }
             let vault = vault.clone();
             let floxy = FloxyOperation::new_arc(floxy);
-            let (id, _) = crate::lore::quest::default()
-                .await
+            let (id, _) = quest_master
                 .lock()
                 .await
                 .schedule_quest(format!("Uninstall {key}"), move |quest| async move {
@@ -95,6 +96,7 @@ mod tests {
             vault,
             floxy,
             appraiser,
+            QuestMaster::default(),
             DeletePathParams {
                 app: "app".to_string(),
             },
@@ -115,6 +117,7 @@ mod tests {
                 vault,
                 floxy,
                 appraiser,
+                QuestMaster::default(),
                 DeletePathParams {
                     app: "app".to_string(),
                 },

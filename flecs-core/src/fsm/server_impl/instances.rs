@@ -116,6 +116,7 @@ impl<
             self.vault.clone(),
             self.sorcerers.app_raiser.clone(),
             self.sorcerers.instancius.clone(),
+            self.enchantments.quest_master.clone(),
             body,
         )
         .await
@@ -601,6 +602,7 @@ impl<
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
             self.enchantments.floxy.clone(),
+            self.enchantments.quest_master.clone(),
             path_params,
         )
         .await
@@ -678,6 +680,7 @@ impl<
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
             self.enchantments.floxy.clone(),
+            self.enchantments.quest_master.clone(),
             path_params,
         )
         .await
@@ -694,6 +697,7 @@ impl<
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
             self.enchantments.floxy.clone(),
+            self.enchantments.quest_master.clone(),
             path_params,
         )
         .await
