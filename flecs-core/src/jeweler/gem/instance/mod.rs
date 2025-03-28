@@ -638,8 +638,12 @@ impl Instance {
     }
 
     pub async fn stop<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
-        // TODO: Disconnect networks
         self.desired = InstanceStatus::Stopped;
+        self.halt(floxy).await
+    }
+
+    pub async fn halt<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+        // TODO: Disconnect networks
         match self.deployment.instance_status(self.id).await? {
             InstanceStatus::Running | InstanceStatus::Unknown | InstanceStatus::Orphaned => {
                 if let Err(e) = self.delete_server_proxy_configs(floxy) {
@@ -1122,7 +1126,7 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn stop_err() {
+    async fn halt_err() {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -1138,12 +1142,13 @@ pub mod tests {
             .times(1)
             .returning(|_| Ok(InstanceStatus::Running));
         let mut instance = test_instance(4, Arc::new(deployment), create_test_manifest(None));
-        assert!(instance.stop(floxy).await.is_err());
-        assert_eq!(instance.desired, InstanceStatus::Stopped);
+        instance.desired = InstanceStatus::Running;
+        assert!(instance.halt(floxy).await.is_err());
+        assert_eq!(instance.desired, InstanceStatus::Running);
     }
 
     #[tokio::test]
-    async fn stop_ok() {
+    async fn halt_ok() {
         let mut deployment = MockedDeployment::new();
         let mut floxy = MockFloxy::new();
         floxy
@@ -1165,12 +1170,13 @@ pub mod tests {
             Arc::new(create_test_manifest_full(None)),
         );
         instance.config.mapped_editor_ports = HashMap::from([(10, 100)]);
-        assert!(instance.stop(floxy).await.is_ok());
-        assert_eq!(instance.desired, InstanceStatus::Stopped);
+        instance.desired = InstanceStatus::Running;
+        assert!(instance.halt(floxy).await.is_ok());
+        assert_eq!(instance.desired, InstanceStatus::Running);
     }
 
     #[tokio::test]
-    async fn stop_stopped_ok() {
+    async fn halt_stopped_ok() {
         let mut deployment = MockedDeployment::new();
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         deployment.expect_stop_instance().times(0);
@@ -1179,6 +1185,22 @@ pub mod tests {
             .times(1)
             .returning(|_| Ok(InstanceStatus::Stopped));
         let mut instance = test_instance(6, Arc::new(deployment), create_test_manifest(None));
+        instance.desired = InstanceStatus::Running;
+        assert!(instance.halt(floxy).await.is_ok());
+        assert_eq!(instance.desired, InstanceStatus::Running);
+    }
+
+    #[tokio::test]
+    async fn stop_sets_desired() {
+        let mut deployment = MockedDeployment::new();
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        deployment.expect_stop_instance().times(0);
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        let mut instance = test_instance(6, Arc::new(deployment), create_test_manifest(None));
+        instance.desired = InstanceStatus::Running;
         assert!(instance.stop(floxy).await.is_ok());
         assert_eq!(instance.desired, InstanceStatus::Stopped);
     }
@@ -1239,7 +1261,9 @@ pub mod tests {
             .expect_delete_volume()
             .times(4)
             .returning(|_, _| Ok(()));
-        let (_error, instance) = test_instance(8, Arc::new(deployment), create_test_manifest(None))
+        let mut instance = test_instance(8, Arc::new(deployment), create_test_manifest(None));
+        instance.desired = InstanceStatus::Running;
+        let (_error, instance) = instance
             .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
             .await
             .err()
@@ -1265,7 +1289,9 @@ pub mod tests {
             .returning(|_| Ok(InstanceStatus::Running));
         deployment.expect_delete_instance().times(0);
         deployment.expect_delete_volume().times(0);
-        let (_error, instance) = test_instance(9, Arc::new(deployment), create_test_manifest(None))
+        let mut instance = test_instance(9, Arc::new(deployment), create_test_manifest(None));
+        instance.desired = InstanceStatus::Running;
+        let (_error, instance) = instance
             .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
             .await
             .err()
@@ -2034,7 +2060,9 @@ pub mod tests {
             .withf(|id| id.value == 2)
             .returning(|_| Ok(InstanceStatus::Running));
         let mut instance = test_instance(2, Arc::new(deployment), create_test_manifest(None));
+        instance.desired = InstanceStatus::Stopped;
         instance.start(floxy).await.unwrap();
+        assert_eq!(instance.desired, InstanceStatus::Running);
     }
 
     #[tokio::test]
@@ -2052,7 +2080,9 @@ pub mod tests {
             .withf(|_, id, _| id == &Some(InstanceId::new(2)))
             .returning(|_, _, _| Ok(InstanceId::new(2)));
         let mut instance = test_instance(2, Arc::new(deployment), create_test_manifest(None));
+        instance.desired = InstanceStatus::Stopped;
         instance.start(floxy).await.unwrap();
+        assert_eq!(instance.desired, InstanceStatus::Running);
     }
 
     #[tokio::test]

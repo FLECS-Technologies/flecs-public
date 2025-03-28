@@ -78,6 +78,64 @@ pub async fn stop_instance<F: Floxy>(
     instance.stop(floxy).await
 }
 
+pub async fn halt_all_instances<F: Floxy + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+) -> Result<()> {
+    let mut instances_to_halt = Vec::new();
+    let mut halt_results = Vec::new();
+    {
+        let mut grab = vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await;
+        let instances = grab
+            .instance_pouch_mut
+            .as_mut()
+            .expect("Vault reservations should never fail");
+        let mut quest = quest.lock().await;
+        for (id, instance) in instances.gems() {
+            match instance.is_running().await {
+                Ok(false) => {}
+                _ => {
+                    instances_to_halt.push(id);
+                    let result = quest
+                        .create_sub_quest(format!("Halt instance {id}"), |quest| {
+                            halt_instance(quest, vault.clone(), floxy.clone(), *id)
+                        })
+                        .await
+                        .2;
+                    halt_results.push(result);
+                }
+            }
+        }
+    }
+    join_all(halt_results).await.into_iter().collect()
+}
+
+pub async fn halt_instance<F: Floxy>(
+    _quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+    instance_id: InstanceId,
+) -> Result<()> {
+    let mut grab = vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await;
+    let instance = grab
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Vault reservations should never fail")
+        .gems_mut()
+        .get_mut(&instance_id)
+        .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
+    instance.halt(floxy).await
+}
+
 pub async fn get_instances_info(
     quest: SyncQuest,
     vault: Arc<Vault>,
