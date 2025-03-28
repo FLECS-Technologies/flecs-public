@@ -1,7 +1,7 @@
 pub use super::{Error, Result};
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::Deployment;
-use crate::jeweler::gem::instance::{Instance, InstanceConfig, InstanceId};
+use crate::jeweler::gem::instance::{Instance, InstanceConfig, InstanceId, InstanceStatus};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::network::NetworkId;
 use crate::quest::{State, SyncQuest};
@@ -113,6 +113,43 @@ pub async fn halt_all_instances<F: Floxy + 'static>(
         }
     }
     join_all(halt_results).await.into_iter().collect()
+}
+
+pub async fn start_all_instances_as_desired<F: Floxy + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+) -> Result<()> {
+    let mut instances_to_start = Vec::new();
+    let mut start_results = Vec::new();
+    {
+        let mut grab = vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await;
+        let instances = grab
+            .instance_pouch_mut
+            .as_mut()
+            .expect("Vault reservations should never fail");
+        let mut quest = quest.lock().await;
+
+        for (id, _) in instances
+            .gems()
+            .iter()
+            .filter(|(_, instance)| instance.desired_status() == InstanceStatus::Running)
+        {
+            instances_to_start.push(id);
+            let result = quest
+                .create_sub_quest(format!("Start instance {id}"), |quest| {
+                    start_instance(quest, vault.clone(), floxy.clone(), *id)
+                })
+                .await
+                .2;
+            start_results.push(result);
+        }
+    }
+    join_all(start_results).await.into_iter().collect()
 }
 
 pub async fn halt_instance<F: Floxy>(
@@ -405,10 +442,11 @@ pub mod tests {
     use crate::relic::network::Ipv4Network;
     use crate::vault;
     use crate::vault::pouch::instance::tests::{
-        EDITOR_INSTANCE, ENV_INSTANCE, LABEL_INSTANCE, MINIMAL_INSTANCE, PORT_MAPPING_INSTANCE,
-        RUNNING_INSTANCE, UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2, UNKNOWN_INSTANCE_3,
-        USB_DEV_INSTANCE,
+        EDITOR_INSTANCE, ENV_INSTANCE, LABEL_INSTANCE, MINIMAL_INSTANCE, NETWORK_INSTANCE,
+        PORT_MAPPING_INSTANCE, RUNNING_INSTANCE, UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2,
+        UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
     };
+    use mockall::predicate;
     use mockall::predicate::eq;
     use std::collections::HashMap;
 
@@ -828,5 +866,116 @@ pub mod tests {
             .await,
             Some(vec![test_env_var])
         );
+    }
+
+    #[tokio::test]
+    async fn start_all_instances_as_desired_ok() {
+        const INSTANCES_TO_START: [InstanceId; 7] = [
+            RUNNING_INSTANCE,
+            PORT_MAPPING_INSTANCE,
+            LABEL_INSTANCE,
+            ENV_INSTANCE,
+            USB_DEV_INSTANCE,
+            EDITOR_INSTANCE,
+            NETWORK_INSTANCE,
+        ];
+        const RUNNING_INSTANCES: [InstanceId; 3] =
+            [RUNNING_INSTANCE, EDITOR_INSTANCE, NETWORK_INSTANCE];
+        let instance_deployments = HashMap::from_iter(INSTANCES_TO_START.map(|instance_id| {
+            let mut deployment = MockedDeployment::new();
+            deployment
+                .expect_id()
+                .return_const(format!("MockDeployment-{instance_id}"));
+            deployment
+                .expect_instance_status()
+                .once()
+                .with(predicate::eq(instance_id))
+                .returning(|instance_id| {
+                    if RUNNING_INSTANCES.contains(&instance_id) {
+                        Ok(InstanceStatus::Running)
+                    } else {
+                        Ok(InstanceStatus::Stopped)
+                    }
+                });
+            if !RUNNING_INSTANCES.contains(&instance_id) {
+                deployment
+                    .expect_start_instance()
+                    .once()
+                    .with(
+                        predicate::always(),
+                        predicate::eq(Some(instance_id)),
+                        predicate::always(),
+                    )
+                    .returning(move |_, _, _| Ok(instance_id));
+            }
+            let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+            (instance_id, deployment)
+        }));
+        let vault = vault::tests::create_test_vault(instance_deployments, HashMap::new(), None);
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        start_all_instances_as_desired(Quest::new_synced("TestQuest".to_string()), vault, floxy)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn start_all_instances_as_desired_err() {
+        const INSTANCES_TO_START: [InstanceId; 7] = [
+            RUNNING_INSTANCE,
+            PORT_MAPPING_INSTANCE,
+            LABEL_INSTANCE,
+            ENV_INSTANCE,
+            USB_DEV_INSTANCE,
+            EDITOR_INSTANCE,
+            NETWORK_INSTANCE,
+        ];
+        const RUNNING_INSTANCES: [InstanceId; 3] =
+            [RUNNING_INSTANCE, EDITOR_INSTANCE, NETWORK_INSTANCE];
+        const ERROR_INSTANCE: InstanceId = PORT_MAPPING_INSTANCE;
+        let instance_deployments = HashMap::from_iter(INSTANCES_TO_START.map(|instance_id| {
+            let mut deployment = MockedDeployment::new();
+            deployment
+                .expect_id()
+                .return_const(format!("MockDeployment-{instance_id}"));
+            deployment
+                .expect_instance_status()
+                .once()
+                .with(predicate::eq(instance_id))
+                .returning(|instance_id| {
+                    if RUNNING_INSTANCES.contains(&instance_id) {
+                        Ok(InstanceStatus::Running)
+                    } else {
+                        Ok(InstanceStatus::Stopped)
+                    }
+                });
+            if !RUNNING_INSTANCES.contains(&instance_id) {
+                deployment
+                    .expect_start_instance()
+                    .once()
+                    .with(
+                        predicate::always(),
+                        predicate::eq(Some(instance_id)),
+                        predicate::always(),
+                    )
+                    .returning(move |_, _, _| {
+                        if instance_id == ERROR_INSTANCE {
+                            Err(anyhow::anyhow!("TestError"))
+                        } else {
+                            Ok(instance_id)
+                        }
+                    });
+            }
+            let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+            (instance_id, deployment)
+        }));
+        let vault = vault::tests::create_test_vault(instance_deployments, HashMap::new(), None);
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        assert!(start_all_instances_as_desired(
+            Quest::new_synced("TestQuest".to_string()),
+            vault,
+            floxy
+        )
+        .await
+        .is_err());
     }
 }

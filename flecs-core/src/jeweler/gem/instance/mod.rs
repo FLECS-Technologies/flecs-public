@@ -719,6 +719,10 @@ impl Instance {
         self.deployment.instance_status(self.id).await
     }
 
+    pub fn desired_status(&self) -> InstanceStatus {
+        self.desired
+    }
+
     pub async fn copy_from(
         &self,
         quest: SyncQuest,
