@@ -1,5 +1,6 @@
 use super::AppRaiser;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::app::{AppStatus, Token};
 use crate::jeweler::gem::app::App;
 use crate::jeweler::gem::manifest::AppManifest;
@@ -8,7 +9,6 @@ use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
 use async_trait::async_trait;
-use flecs_console_client::apis::configuration::Configuration;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::future::join_all;
 use futures_util::TryFutureExt;
@@ -142,7 +142,7 @@ impl AppRaiser for AppraiserImpl {
         quest: SyncQuest,
         vault: Arc<Vault>,
         manifest: Arc<AppManifest>,
-        config: Arc<Configuration>,
+        config: ConsoleClient,
     ) -> anyhow::Result<()> {
         let app_key = manifest.key.clone();
         quest
@@ -190,7 +190,7 @@ impl AppRaiser for AppraiserImpl {
         quest: SyncQuest,
         vault: Arc<Vault>,
         app_keys: Vec<AppKey>,
-        config: Arc<Configuration>,
+        config: ConsoleClient,
     ) -> anyhow::Result<()> {
         let mut results = Vec::new();
         let mut keys = Vec::new();
@@ -232,7 +232,7 @@ impl AppRaiser for AppraiserImpl {
         quest: SyncQuest,
         vault: Arc<Vault>,
         app_key: AppKey,
-        config: Arc<Configuration>,
+        config: ConsoleClient,
     ) -> anyhow::Result<()> {
         let manifest = quest
             .lock()
@@ -251,7 +251,7 @@ impl AppRaiser for AppraiserImpl {
 async fn download_manifest(
     vault: Arc<Vault>,
     app_key: AppKey,
-    config: Arc<Configuration>,
+    config: ConsoleClient,
 ) -> anyhow::Result<Arc<AppManifest>> {
     let session_id = vault
         .get_secrets()
@@ -308,7 +308,7 @@ async fn install_existing_app(
     quest: SyncQuest,
     vault: Arc<Vault>,
     app_key: AppKey,
-    config: Arc<Configuration>,
+    config: ConsoleClient,
 ) -> anyhow::Result<()> {
     quest
         .lock()

@@ -1,12 +1,11 @@
+use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::app::Token;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::Pouch;
 use crate::vault::Vault;
 use async_trait::async_trait;
-use flecs_console_client::apis::configuration::Configuration;
 use flecsd_axum_server::models::AuthResponseData;
-use std::sync::Arc;
 
 #[derive(Default)]
 pub struct AuthmancerImpl {}
@@ -40,7 +39,7 @@ impl Authmancer for AuthmancerImpl {
 
     async fn acquire_download_token(
         &self,
-        configuration: Arc<Configuration>,
+        configuration: ConsoleClient,
         vault: &Vault,
         app: &str,
         version: &str,

@@ -1,6 +1,6 @@
 pub use super::Result;
+use crate::fsm::console_client::ConsoleClient;
 use anyhow::{anyhow, Context};
-use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::device_api::{
     PostApiV2DeviceLicenseActivateError, PostApiV2DeviceLicenseActivateSuccess,
     PostApiV2DeviceLicenseValidateSuccess,
@@ -10,11 +10,10 @@ use flecs_console_client::models::{
     ActivationData, PostApiV2DeviceLicenseActivateRequest, SessionId,
 };
 use http::StatusCode;
-use std::sync::Arc;
 
 pub async fn validate_license(
     session_id: Option<String>,
-    configuration: Arc<Configuration>,
+    configuration: ConsoleClient,
 ) -> Result<bool> {
     match &session_id {
         Some(session_id) => {
@@ -89,7 +88,7 @@ fn handle_activation_response(
 pub async fn activate_via_license_key(
     license_key: &str,
     session_id: SessionId,
-    configuration: Arc<Configuration>,
+    configuration: ConsoleClient,
 ) -> Result<ActivationResult> {
     let response = flecs_console_client::apis::device_api::post_api_v2_device_license_activate(
         &configuration,
@@ -105,7 +104,7 @@ pub async fn activate_via_license_key(
 }
 
 pub async fn activate_via_user_license(
-    configuration: Arc<Configuration>,
+    configuration: ConsoleClient,
     authorization_token: &str,
 ) -> Result<ActivationResult> {
     let bearer_token = format!("Bearer {authorization_token}");

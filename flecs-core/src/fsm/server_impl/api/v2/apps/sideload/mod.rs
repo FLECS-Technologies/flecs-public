@@ -1,4 +1,5 @@
 use crate::enchantment::quest_master::QuestMaster;
+use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
@@ -12,6 +13,7 @@ pub async fn post<A: AppRaiser + 'static>(
     vault: Arc<Vault>,
     appraiser: Arc<A>,
     quest_master: QuestMaster,
+    console_client: ConsoleClient,
     request: PostRequest,
 ) -> Result<PostResponse, ()> {
     match serde_json::from_str::<AppManifestVersion>(&request.manifest).map(AppManifest::try_from) {
@@ -22,7 +24,6 @@ pub async fn post<A: AppRaiser + 'static>(
             models::AdditionalInfo::new(e.to_string()),
         )),
         Ok(Ok(manifest)) => {
-            let config = crate::lore::console_client_config::default().await;
             match quest_master
                 .lock()
                 .await
@@ -30,7 +31,12 @@ pub async fn post<A: AppRaiser + 'static>(
                     format!("Sideloading {}", manifest.key),
                     move |quest| async move {
                         appraiser
-                            .install_app_from_manifest(quest, vault, Arc::new(manifest), config)
+                            .install_app_from_manifest(
+                                quest,
+                                vault,
+                                Arc::new(manifest),
+                                console_client,
+                            )
                             .await
                     },
                 )

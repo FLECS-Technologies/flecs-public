@@ -1,15 +1,14 @@
 mod manifesto_impl;
 use super::spell::Error;
 use super::Sorcerer;
+use crate::fsm::console_client::ConsoleClient;
 use crate::vault::pouch::AppKey;
 use crate::vault::Vault;
 use async_trait::async_trait;
 use flecs_app_manifest::AppManifestVersion;
-use flecs_console_client::apis::configuration::Configuration;
 pub use manifesto_impl::ManifestoImpl;
 #[cfg(test)]
 use mockall::automock;
-use std::sync::Arc;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
@@ -18,7 +17,7 @@ pub trait Manifesto: Sorcerer {
         &self,
         vault: &Vault,
         app_key: AppKey,
-        config: Arc<Configuration>,
+        config: ConsoleClient,
     ) -> Result<AppManifestVersion, Error>;
 }
 

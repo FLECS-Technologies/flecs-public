@@ -1,48 +1,5 @@
 use std::path::{Path, PathBuf};
 
-pub mod console_client_config {
-    use crate::fsm::console_client::create_default_client_with_middleware;
-    use flecs_console_client::apis::configuration::Configuration;
-    use std::sync::Arc;
-    use tokio::sync::OnceCell;
-
-    pub async fn default() -> Arc<Configuration> {
-        static CONSOLE_CLIENT_CONFIG: OnceCell<Arc<Configuration>> = OnceCell::const_new();
-        #[cfg(debug_assertions)]
-        const BASE_PATH: &str = "https://console-dev.flecs.tech";
-        #[cfg(not(debug_assertions))]
-        const BASE_PATH: &str = "https://console.flecs.tech";
-        CONSOLE_CLIENT_CONFIG
-            .get_or_init(|| async {
-                Arc::new(Configuration {
-                    base_path: BASE_PATH.to_owned(),
-                    client: create_default_client_with_middleware().await,
-                    ..Configuration::default()
-                })
-            })
-            .await
-            .clone()
-    }
-}
-
-pub mod vault {
-    use crate::vault::{Vault, VaultConfig};
-    use std::sync::Arc;
-    use tokio::sync::OnceCell;
-
-    pub async fn default() -> Arc<Vault> {
-        static DEFAULT_VAULT: OnceCell<Arc<Vault>> = OnceCell::const_new();
-        DEFAULT_VAULT
-            .get_or_init(|| async {
-                let vault = Vault::new(VaultConfig::default());
-                vault.open().await;
-                Arc::new(vault)
-            })
-            .await
-            .clone()
-    }
-}
-
 pub mod tracing {
     use tracing_subscriber::EnvFilter;
 
@@ -53,6 +10,18 @@ pub mod tracing {
     pub fn default_filter() -> EnvFilter {
         EnvFilter::try_from_default_env().unwrap_or_else(|_| DEFAULT_TRACING_FILTER.into())
     }
+}
+
+pub mod floxy {
+    pub const BASE_PATH: &str = "/var/lib/flecs/floxy";
+    pub const CONFIG_PATH: &str = "/etc/nginx/floxy.conf";
+}
+
+pub mod console {
+    #[cfg(debug_assertions)]
+    pub const BASE_PATH: &str = "https://console-dev.flecs.tech";
+    #[cfg(not(debug_assertions))]
+    pub const BASE_PATH: &str = "https://console.flecs.tech";
 }
 
 pub fn base_path() -> &'static Path {
@@ -72,3 +41,4 @@ pub const BASE_PATH: &str = "/var/lib/flecs/";
 pub const MAX_SUPPORTED_APP_MANIFEST_VERSION: &str = "3.0.0";
 pub const API_VERSION: &str = env!("FLECS_API_VERSION");
 pub const CORE_VERSION: &str = concat!(env!("FLECS_VERSION"), "-", env!("FLECS_GIT_SHA"));
+pub const FLECSD_SOCKET_PATH: &str = "/run/flecs/flecsd.sock";

@@ -1,11 +1,21 @@
 pub mod console_client;
 mod server_impl;
-use crate::enchantment::floxy::FloxyImpl;
+pub mod world;
+use crate::enchantment::floxy::Floxy;
 use crate::enchantment::Enchantments;
 use crate::relic::device::net::NetDeviceReaderImpl;
 use crate::relic::device::usb::UsbDeviceReaderImpl;
 use crate::relic::network::NetworkAdapterReaderImpl;
+use crate::sorcerer::appraiser::AppRaiser;
+use crate::sorcerer::authmancer::Authmancer;
+use crate::sorcerer::deploymento::Deploymento;
+use crate::sorcerer::instancius::Instancius;
+use crate::sorcerer::licenso::Licenso;
+use crate::sorcerer::mage_quester::MageQuester;
+use crate::sorcerer::manifesto::Manifesto;
+use crate::sorcerer::systemus::Systemus;
 use crate::sorcerer::Sorcerers;
+use crate::vault::Vault;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use axum::{
     extract::connect_info::{self},
@@ -74,11 +84,23 @@ pub fn init_tracing() {
     info!("Tracing initialized");
 }
 
-async fn create_service(
-    sorcerers: Sorcerers,
-    enchantments: Enchantments<FloxyImpl>,
+async fn create_service<
+    APP: AppRaiser + 'static,
+    AUTH: Authmancer + 'static,
+    I: Instancius + 'static,
+    L: Licenso + 'static,
+    Q: MageQuester + 'static,
+    M: Manifesto + 'static,
+    SYS: Systemus + 'static,
+    D: Deploymento + 'static,
+    F: Floxy + 'static,
+>(
+    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>,
+    enchantments: Enchantments<F>,
+    vault: Arc<Vault>,
 ) -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
     let server = server_impl::ServerImpl::new(
+        vault,
         sorcerers,
         enchantments,
         UsbDeviceReaderImpl::default(),
@@ -129,37 +151,110 @@ async fn create_unix_socket(socket_path: PathBuf) -> Result<UnixListener> {
 async fn serve(
     unix_listener: UnixListener,
     service: IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo>,
+    mut shutdown_signal: tokio::sync::oneshot::Receiver<()>,
 ) {
     let mut service = service;
     loop {
-        let (socket, _remote_addr) = unix_listener.accept().await.unwrap();
-        let tower_service = unwrap_infallible(service.call(&socket).await);
+        tokio::select! {
+            _ = &mut shutdown_signal => {
+                info!("Server shutting down.");
+                break
+            },
+            new_connection = unix_listener.accept() => {
+                let (socket, _remote_addr) = new_connection.unwrap();
+                let tower_service = unwrap_infallible(service.call(&socket).await);
 
-        tokio::spawn(async move {
-            let socket = TokioIo::new(socket);
+                tokio::spawn(async move {
+                    let socket = TokioIo::new(socket);
 
-            let hyper_service = hyper::service::service_fn(move |request: Request<Incoming>| {
-                tower_service.clone().call(request)
-            });
+                    let hyper_service = hyper::service::service_fn(move |request: Request<Incoming>| {
+                        tower_service.clone().call(request)
+                    });
 
-            if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
-                .serve_connection_with_upgrades(socket, hyper_service)
-                .await
-            {
-                error!("failed to serve connection: {err:#}");
+                    if let Err(err) = server::conn::auto::Builder::new(TokioExecutor::new())
+                        .serve_connection_with_upgrades(socket, hyper_service)
+                        .await
+                    {
+                        error!("failed to serve connection: {err:#}");
+                    }
+                });
             }
-        });
+        }
     }
 }
 
-pub async fn server(
-    sorcerers: Sorcerers,
+pub struct ServerHandle {
+    server_shutdown_sender: tokio::sync::oneshot::Sender<()>,
+    server_shutdown_finished_receiver: tokio::sync::oneshot::Receiver<()>,
+}
+
+impl ServerHandle {
+    pub async fn shutdown(self) {
+        self.server_shutdown_sender.send(()).unwrap();
+        _ = self.server_shutdown_finished_receiver.await;
+    }
+}
+
+pub fn spawn_server<
+    APP: AppRaiser + 'static,
+    AUTH: Authmancer + 'static,
+    I: Instancius + 'static,
+    L: Licenso + 'static,
+    Q: MageQuester + 'static,
+    M: Manifesto + 'static,
+    SYS: Systemus + 'static,
+    D: Deploymento + 'static,
+    F: Floxy + 'static,
+>(
+    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>,
     socket_path: PathBuf,
-    enchantments: Enchantments<FloxyImpl>,
+    enchantments: Enchantments<F>,
+    vault: Arc<Vault>,
+) -> ServerHandle {
+    let (server_shutdown_sender, server_shutdown_receiver) = tokio::sync::oneshot::channel();
+    let (server_shutdown_finished_sender, server_shutdown_finished_receiver) =
+        tokio::sync::oneshot::channel();
+    tokio::spawn(async move {
+        info!("Starting rust server listening on {socket_path:?}");
+        crate::fsm::server(
+            sorcerers,
+            socket_path.clone(),
+            enchantments,
+            vault,
+            server_shutdown_receiver,
+        )
+        .await
+        .unwrap();
+        info!("Rust server listening on {socket_path:?} stopped");
+        server_shutdown_finished_sender.send(()).unwrap()
+    });
+    ServerHandle {
+        server_shutdown_sender,
+        server_shutdown_finished_receiver,
+    }
+}
+
+pub async fn server<
+    APP: AppRaiser + 'static,
+    AUTH: Authmancer + 'static,
+    I: Instancius + 'static,
+    L: Licenso + 'static,
+    Q: MageQuester + 'static,
+    M: Manifesto + 'static,
+    SYS: Systemus + 'static,
+    D: Deploymento + 'static,
+    F: Floxy + 'static,
+>(
+    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>,
+    socket_path: PathBuf,
+    enchantments: Enchantments<F>,
+    vault: Arc<Vault>,
+    shutdown_signal: tokio::sync::oneshot::Receiver<()>,
 ) -> Result<()> {
     serve(
         create_unix_socket(socket_path).await?,
-        create_service(sorcerers, enchantments).await,
+        create_service(sorcerers, enchantments, vault).await,
+        shutdown_signal,
     )
     .await;
     Ok(())

@@ -1,6 +1,7 @@
 mod appraiser_impl;
 pub use super::Result;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
 use crate::sorcerer::Sorcerer;
@@ -8,7 +9,6 @@ use crate::vault::pouch::AppKey;
 use crate::vault::Vault;
 pub use appraiser_impl::AppraiserImpl;
 use async_trait::async_trait;
-use flecs_console_client::apis::configuration::Configuration;
 use flecsd_axum_server::models::InstalledApp;
 #[cfg(test)]
 use mockall::automock;
@@ -41,7 +41,7 @@ pub trait AppRaiser: Sorcerer {
         quest: SyncQuest,
         vault: Arc<Vault>,
         manifest: Arc<AppManifest>,
-        config: Arc<Configuration>,
+        config: ConsoleClient,
     ) -> Result<()>;
 
     async fn install_apps(
@@ -49,7 +49,7 @@ pub trait AppRaiser: Sorcerer {
         quest: SyncQuest,
         vault: Arc<Vault>,
         app_keys: Vec<AppKey>,
-        config: Arc<Configuration>,
+        config: ConsoleClient,
     ) -> Result<()>;
 
     async fn install_app(
@@ -57,7 +57,7 @@ pub trait AppRaiser: Sorcerer {
         quest: SyncQuest,
         vault: Arc<Vault>,
         app_key: AppKey,
-        config: Arc<Configuration>,
+        config: ConsoleClient,
     ) -> Result<()>;
 }
 

@@ -12,3 +12,5 @@ authors = { workspace = true }
 flecs-core = { path = "../flecs-core", version = "0.1.0" }
 tokio = "1.42.0"
 tracing = "0.1.41"
+async-signal = "0.2.10"
+futures-util = "0.3.31"

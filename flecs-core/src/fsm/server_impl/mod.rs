@@ -8,6 +8,7 @@ mod jobs;
 mod system;
 use crate::enchantment::floxy::Floxy;
 use crate::enchantment::Enchantments;
+use crate::fsm::console_client::ConsoleClient;
 use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::relic::network::NetworkAdapterReader;
@@ -19,7 +20,7 @@ use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::manifesto::Manifesto;
 use crate::sorcerer::systemus::Systemus;
-use crate::sorcerer::SorcerersTemplate;
+use crate::sorcerer::Sorcerers;
 use crate::vault::Vault;
 use anyhow::Error;
 use axum::async_trait;
@@ -62,7 +63,8 @@ pub struct ServerImpl<
     usb_reader: Arc<T>,
     network_adapter_reader: Arc<NET>,
     net_device_reader: Arc<NetDev>,
-    sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS, D>,
+    console_client: ConsoleClient,
+    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>,
 }
 
 impl<
@@ -81,14 +83,16 @@ impl<
     > ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, F, T, NET, NetDev>
 {
     pub async fn new(
-        sorcerers: SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS, D>,
+        vault: Arc<Vault>,
+        sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>,
         enchantments: Enchantments<F>,
         usb_reader: T,
         network_adapter_reader: NET,
         net_device_reader: NetDev,
     ) -> Self {
         Self {
-            vault: crate::lore::vault::default().await,
+            console_client: crate::fsm::console_client::create_default(vault.clone()),
+            vault,
             enchantments,
             usb_reader: Arc::new(usb_reader),
             net_device_reader: Arc::new(net_device_reader),
