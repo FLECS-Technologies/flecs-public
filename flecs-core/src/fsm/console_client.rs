@@ -1,5 +1,6 @@
 use crate::vault::pouch::Pouch;
 use crate::vault::Vault;
+use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::models::SessionId;
 use http::Extensions;
 use reqwest::{Request, Response};
@@ -7,25 +8,21 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Middleware, Next, 
 use std::sync::Arc;
 use tracing::{debug, error};
 
+pub type ConsoleClient = Arc<Configuration>;
+
 struct SessionIdMiddleware {
     vault: Arc<Vault>,
 }
 
-impl SessionIdMiddleware {
-    pub async fn default() -> Self {
-        Self {
-            vault: crate::lore::vault::default().await,
-        }
-    }
+pub fn create_default(vault: Arc<Vault>) -> ConsoleClient {
+    Arc::new(Configuration {
+        base_path: crate::lore::console::BASE_PATH.to_owned(),
+        client: create_new_client_with_middleware(vault),
+        ..Configuration::default()
+    })
 }
 
-pub async fn create_default_client_with_middleware() -> ClientWithMiddleware {
-    ClientBuilder::new(reqwest::Client::new())
-        .with(SessionIdMiddleware::default().await)
-        .build()
-}
-
-pub fn create_new_client_with_middleware(vault: Arc<Vault>) -> ClientWithMiddleware {
+fn create_new_client_with_middleware(vault: Arc<Vault>) -> ClientWithMiddleware {
     ClientBuilder::new(reqwest::Client::new())
         .with(SessionIdMiddleware::new(vault))
         .build()

@@ -46,7 +46,7 @@ impl<
         Ok(super::api::v2::device::license::activation::post(
             self.vault.clone(),
             self.sorcerers.licenso.clone(),
-            crate::lore::console_client_config::default().await,
+            self.console_client.clone(),
         )
         .await)
     }
@@ -60,7 +60,7 @@ impl<
         Ok(super::api::v2::device::license::activation::status::get(
             self.vault.clone(),
             self.sorcerers.licenso.clone(),
-            crate::lore::console_client_config::default().await,
+            self.console_client.clone(),
         )
         .await)
     }
@@ -85,6 +85,7 @@ impl<
             self.vault.clone(),
             self.sorcerers.app_raiser.clone(),
             self.enchantments.quest_master.clone(),
+            self.console_client.clone(),
             body,
         )
         .await

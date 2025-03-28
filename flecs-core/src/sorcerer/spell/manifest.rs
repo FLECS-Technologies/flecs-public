@@ -1,4 +1,5 @@
 pub use super::Result;
+use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::lore;
 use crate::quest::SyncQuest;
@@ -6,7 +7,6 @@ use crate::vault::pouch::Pouch;
 use crate::vault::{GrabbedPouches, Vault};
 use anyhow::anyhow;
 use flecs_app_manifest::AppManifestVersion;
-use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::default_api::{
     get_api_v2_manifests_app_version, GetApiV2ManifestsAppVersionSuccess,
 };
@@ -14,7 +14,7 @@ use http::StatusCode;
 use std::sync::Arc;
 
 pub async fn download_manifest(
-    console_configuration: Arc<Configuration>,
+    console_configuration: ConsoleClient,
     x_session_id: &str,
     app: &str,
     version: &str,

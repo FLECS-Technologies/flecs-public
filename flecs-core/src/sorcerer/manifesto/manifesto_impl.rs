@@ -1,3 +1,4 @@
+use crate::fsm::console_client::ConsoleClient;
 use crate::sorcerer::manifesto::Manifesto;
 use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::{AppKey, Pouch};
@@ -5,8 +6,6 @@ use crate::vault::Vault;
 use anyhow::Error;
 use async_trait::async_trait;
 use flecs_app_manifest::AppManifestVersion;
-use flecs_console_client::apis::configuration::Configuration;
-use std::sync::Arc;
 
 #[derive(Default)]
 pub struct ManifestoImpl {}
@@ -19,7 +18,7 @@ impl Manifesto for ManifestoImpl {
         &self,
         vault: &Vault,
         app_key: AppKey,
-        config: Arc<Configuration>,
+        config: ConsoleClient,
     ) -> Result<AppManifestVersion, Error> {
         let session_id = vault
             .reservation()

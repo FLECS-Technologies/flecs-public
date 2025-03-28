@@ -3,16 +3,39 @@ use anyhow::Result;
 use futures::future::BoxFuture;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::future::Future;
 use std::sync::Arc;
-use tokio::sync::mpsc::{channel, error::TrySendError, Sender};
+use tokio::sync::mpsc::error::SendError;
+use tokio::sync::mpsc::{channel, error::TrySendError, Receiver, Sender};
+use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinError;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum DeleteQuestError {
     Unknown,
     StillRunning,
+}
+
+pub enum ControlSignal {
+    ShutdownWith {
+        quest: SyncQuest,
+        future: BoxFuture<'static, Result<QuestResult>>,
+        result_sender: tokio::sync::oneshot::Sender<Result<Result<QuestResult>, JoinError>>,
+    },
+}
+
+impl Display for ControlSignal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::ShutdownWith { .. } => "ShutdownWith",
+            }
+        )
+    }
 }
 
 type ScheduledQuest = (
@@ -21,17 +44,29 @@ type ScheduledQuest = (
     std::time::Instant,
 );
 
+type ScheduledControlSignal = (ControlSignal, std::time::Instant);
 pub type QuestMaster = Arc<tokio::sync::Mutex<QuestMasterInner>>;
 
 pub struct QuestMasterInner {
     quests: HashMap<QuestId, SyncQuest>,
     schedule_channel: Sender<ScheduledQuest>,
+    control_channel: Sender<ScheduledControlSignal>,
 }
 
 impl Default for QuestMasterInner {
     fn default() -> Self {
         Self::new()
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum ShutdownError {
+    #[error("Failed to send shutdown request: {0}")]
+    SendError(#[from] SendError<ScheduledControlSignal>),
+    #[error("Failed to receive shutdown result: {0}")]
+    ReceiveError(#[from] RecvError),
+    #[error("Failed to execute shutdown: {0}")]
+    JoinError(#[from] JoinError),
 }
 
 impl QuestMasterInner {
@@ -41,18 +76,82 @@ impl QuestMasterInner {
             BoxFuture<'static, Result<QuestResult>>,
             std::time::Instant,
         )>(1000);
+        let (control_sender, mut control_receiver) = channel::<ScheduledControlSignal>(100);
 
         tokio::spawn(async move {
             loop {
-                if let Some((quest, future, scheduled_time)) = quest_receiver.recv().await {
-                    _ = Self::process_quest(quest, future, scheduled_time).await;
+                tokio::select! {
+                    control_message = control_receiver.recv() => {
+                        let Some((signal, time)) = control_message else {
+                            panic!("Channel for control signals was shutdown.");
+                        };
+                        if Self::handle_control_signal(signal, time, &mut quest_receiver).await {
+                            break
+                        }
+                    },
+                    scheduled_quest = quest_receiver.recv() => {
+                        if let Some((quest, future, scheduled_time)) = scheduled_quest {
+                            _ = Self::process_quest(quest, future, scheduled_time).await;
+                        }
+                    }
                 }
             }
+            info!("QuestMaster stopped processing quests and control signals.");
         });
         Self {
             quests: HashMap::new(),
             schedule_channel: quest_sender,
+            control_channel: control_sender,
         }
+    }
+
+    /// Returns true if the scheduler loop should be stopped
+    async fn handle_control_signal(
+        signal: ControlSignal,
+        time: std::time::Instant,
+        quest_receiver: &mut Receiver<ScheduledQuest>,
+    ) -> bool {
+        info!(
+            "Received signal {signal} after {:?}",
+            std::time::Instant::now() - time
+        );
+        match signal {
+            ControlSignal::ShutdownWith {
+                quest,
+                future,
+                result_sender,
+            } => {
+                quest_receiver.close();
+                let result = Self::process_quest(quest, future, time).await;
+                if result_sender.send(result).is_err() {
+                    error!("Failed to send result of shutdown back.")
+                };
+                true
+            }
+        }
+    }
+
+    pub async fn shutdown_with<F, Fut>(
+        &mut self,
+        f: F,
+    ) -> Result<Result<QuestResult>, ShutdownError>
+    where
+        F: FnOnce(SyncQuest) -> Fut + Send + 'static,
+        Fut: Future<Output = Result<QuestResult>> + Send + 'static,
+    {
+        let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+        let quest = Quest::new_synced("Shutting down QuestMaster".to_string());
+        self.control_channel
+            .send((
+                ControlSignal::ShutdownWith {
+                    future: Box::pin(f(quest.clone())),
+                    result_sender,
+                    quest,
+                },
+                std::time::Instant::now(),
+            ))
+            .await?;
+        Ok(result_receiver.await??)
     }
 
     async fn process_quest(
@@ -151,6 +250,7 @@ impl QuestMasterInner {
         )) {
             Ok(()) => {
                 self.quests.insert(quest_id, quest.clone());
+                debug!("Quest '{description}' scheduled with id {}", quest_id.0);
                 Ok((quest_id, quest))
             }
             Err(TrySendError::Full(_)) => anyhow::bail!(
@@ -187,6 +287,7 @@ impl QuestMasterInner {
 mod tests {
     use super::*;
     use crate::quest::{create_test_quest, State};
+    use crate::vault::pouch::instance::InstanceId;
     use ntest::timeout;
     use std::time::Duration;
     use tokio::time::sleep;
@@ -381,5 +482,74 @@ mod tests {
             Err(DeleteQuestError::Unknown) => {}
             _ => panic!("Expected error {:?}", DeleteQuestError::Unknown),
         }
+    }
+
+    #[tokio::test]
+    #[timeout(10000)]
+    async fn handle_control_signal_shutdown_with() {
+        let quest = create_test_quest(1);
+        let (_quest_sender, mut quest_receiver) = channel::<(
+            SyncQuest,
+            BoxFuture<'static, Result<QuestResult>>,
+            std::time::Instant,
+        )>(1);
+        const EXPECTED_INSTANCE: InstanceId = InstanceId::new(200);
+        let (expected_result_sender, expected_result_receiver) = tokio::sync::oneshot::channel();
+        let f = |_quest| async {
+            expected_result_sender.send(20).unwrap();
+            Ok(QuestResult::InstanceId(EXPECTED_INSTANCE))
+        };
+        let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+        let signal = ControlSignal::ShutdownWith {
+            future: Box::pin(f(quest.clone())),
+            result_sender,
+            quest,
+        };
+        assert!(
+            QuestMasterInner::handle_control_signal(
+                signal,
+                std::time::Instant::now(),
+                &mut quest_receiver
+            )
+            .await
+        );
+        assert!(quest_receiver.is_closed());
+        assert_eq!(expected_result_receiver.await, Ok(20));
+        assert!(matches!(
+            result_receiver.await,
+            Ok(Ok(Ok(QuestResult::InstanceId(EXPECTED_INSTANCE))))
+        ));
+    }
+
+    #[tokio::test]
+    #[timeout(10000)]
+    async fn shutdown_with_ok() {
+        let mut quest_master = QuestMasterInner::default();
+        const EXPECTED_STRING: &str = "TestString";
+        let (expected_result_sender, expected_result_receiver) = tokio::sync::oneshot::channel();
+        let f = |_quest| async {
+            expected_result_sender.send(20).unwrap();
+            Ok(QuestResult::ExportId(EXPECTED_STRING.to_string()))
+        };
+        assert_eq!(
+            quest_master.shutdown_with(f).await.unwrap().unwrap(),
+            QuestResult::ExportId(EXPECTED_STRING.to_string())
+        );
+        assert_eq!(expected_result_receiver.await, Ok(20));
+        let f = |_quest| async { panic!("Closure should not be called") };
+        assert!(quest_master.shutdown_with(f).await.is_err());
+    }
+
+    #[tokio::test]
+    #[timeout(10000)]
+    async fn shutdown_with_err_last_quest() {
+        let mut quest_master = QuestMasterInner::default();
+        let (expected_result_sender, expected_result_receiver) = tokio::sync::oneshot::channel();
+        let f = |_quest| async {
+            expected_result_sender.send(20).unwrap();
+            Err(anyhow::anyhow!("TestError"))
+        };
+        assert!(quest_master.shutdown_with(f).await.unwrap().is_err());
+        assert_eq!(expected_result_receiver.await, Ok(20));
     }
 }

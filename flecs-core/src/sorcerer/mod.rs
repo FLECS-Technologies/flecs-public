@@ -19,7 +19,7 @@ use crate::sorcerer::manifesto::{Manifesto, ManifestoImpl};
 use crate::sorcerer::systemus::{Systemus, SystemusImpl};
 use std::sync::Arc;
 
-pub type Sorcerers = SorcerersTemplate<
+pub type FlecsSorcerers = Sorcerers<
     AppraiserImpl,
     AuthmancerImpl,
     InstanciusImpl,
@@ -30,7 +30,7 @@ pub type Sorcerers = SorcerersTemplate<
     DeploymentoImpl,
 >;
 pub trait Sorcerer: Send + Sync {}
-impl Default for Sorcerers {
+impl Default for FlecsSorcerers {
     fn default() -> Self {
         Self {
             app_raiser: Default::default(),
@@ -45,7 +45,7 @@ impl Default for Sorcerers {
     }
 }
 
-pub struct SorcerersTemplate<
+pub struct Sorcerers<
     APP: AppRaiser + ?Sized,
     AUTH: Authmancer + ?Sized,
     I: Instancius + ?Sized,
@@ -74,7 +74,7 @@ impl<
         M: Manifesto + ?Sized,
         SYS: Systemus + ?Sized,
         D: Deploymento + ?Sized,
-    > Clone for SorcerersTemplate<APP, AUTH, I, L, Q, M, SYS, D>
+    > Clone for Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>
 {
     fn clone(&self) -> Self {
         Self {
@@ -91,7 +91,7 @@ impl<
 }
 
 #[cfg(test)]
-pub type MockSorcerers = SorcerersTemplate<
+pub type MockSorcerers = Sorcerers<
     crate::sorcerer::appraiser::MockAppRaiser,
     crate::sorcerer::authmancer::MockAuthmancer,
     crate::sorcerer::instancius::MockInstancius,

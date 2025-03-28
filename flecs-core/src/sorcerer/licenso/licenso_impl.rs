@@ -1,3 +1,4 @@
+use crate::fsm::console_client::ConsoleClient;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::spell::license::ActivationResult;
 use crate::sorcerer::{spell, Sorcerer};
@@ -5,8 +6,6 @@ use crate::vault::pouch::Pouch;
 use crate::vault::{GrabbedPouches, Vault};
 use anyhow::{anyhow, Context};
 use async_trait::async_trait;
-use flecs_console_client::apis::configuration::Configuration;
-use std::sync::Arc;
 
 #[derive(Default)]
 pub struct LicensoImpl {}
@@ -18,7 +17,7 @@ impl Licenso for LicensoImpl {
     async fn activate_license(
         &self,
         vault: &Vault,
-        configuration: Arc<Configuration>,
+        configuration: ConsoleClient,
     ) -> anyhow::Result<()> {
         let secrets = vault.get_secrets().await;
 
@@ -81,7 +80,7 @@ impl Licenso for LicensoImpl {
     async fn validate_license(
         &self,
         vault: &Vault,
-        configuration: Arc<Configuration>,
+        configuration: ConsoleClient,
     ) -> anyhow::Result<bool> {
         let session_id = vault
             .reservation()

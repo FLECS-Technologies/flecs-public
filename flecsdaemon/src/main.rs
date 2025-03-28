@@ -1,39 +1,31 @@
-use flecs_core::enchantment::floxy::{Floxy, FloxyImpl};
-use flecs_core::enchantment::quest_master::QuestMaster;
-use flecs_core::enchantment::Enchantments;
-use flecs_core::fsm::StartupError;
-use flecs_core::sorcerer::Sorcerers;
-use std::path::PathBuf;
-use std::sync::Arc;
+use async_signal::{Signal, Signals};
+use flecs_core::fsm::world::FlecsWorld;
+use futures_util::StreamExt;
 use tracing::info;
 
-const FLECSD_SOCKET: &str = "/run/flecs/flecsd.sock";
+fn init_signal_handler() -> std::io::Result<tokio::sync::oneshot::Receiver<()>> {
+    let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+    let mut signals = Signals::new([Signal::Term, Signal::Int])?;
+    tokio::spawn(async move {
+        info!("Signal handler was initialized");
+        while let Some(signal) = signals.next().await {
+            info!("Received signal {signal:?}");
+            if matches!(signal, Ok(Signal::Int) | Ok(Signal::Term)) {
+                result_sender.send(()).unwrap();
+                break;
+            }
+        }
+    });
+    Ok(result_receiver)
+}
 
 #[tokio::main]
 async fn main() -> flecs_core::fsm::Result<()> {
     flecs_core::fsm::init_backtracing();
     flecs_core::fsm::init_tracing();
-    info!("Starting enchantments");
-    let enchantments = Enchantments {
-        floxy: Arc::new(
-            FloxyImpl::from_config(
-                PathBuf::from("/var/lib/flecs/floxy"),
-                PathBuf::from("/etc/nginx/floxy.conf"),
-            )
-            .unwrap(),
-        ),
-        quest_master: QuestMaster::default(),
-    };
-    enchantments
-        .floxy
-        .start()
-        .map_err(|e| StartupError(e.to_string()))?;
-
-    info!("Starting rust server listening on {FLECSD_SOCKET}");
-    flecs_core::fsm::server(
-        Sorcerers::default(),
-        PathBuf::from(FLECSD_SOCKET),
-        enchantments,
-    )
-    .await
+    let stop_signal = init_signal_handler()?;
+    let world = FlecsWorld::create_default().await?;
+    stop_signal.await?;
+    world.halt().await;
+    Ok(())
 }

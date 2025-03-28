@@ -1,14 +1,13 @@
 pub use super::Result;
+use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::app::Token;
 use crate::vault::pouch::secret::Secrets;
 use anyhow::{anyhow, Context};
-use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::apis::default_api::{post_api_v2_tokens, PostApiV2TokensSuccess};
 use flecs_console_client::apis::ResponseContent;
 use flecs_console_client::models::PostApiV2TokensRequest;
 use flecsd_axum_server::models::AuthResponseData;
 use http::StatusCode;
-use std::sync::Arc;
 
 pub fn delete_authentication(secrets: &mut Secrets) {
     secrets.authentication = None;
@@ -19,7 +18,7 @@ pub fn store_authentication(auth: AuthResponseData, secrets: &mut Secrets) {
 }
 
 pub async fn acquire_download_token(
-    console_configuration: Arc<Configuration>,
+    console_configuration: ConsoleClient,
     x_session_id: &str,
     app: &str,
     version: &str,

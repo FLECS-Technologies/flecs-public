@@ -1,4 +1,5 @@
 use crate::enchantment::quest_master::QuestMaster;
+use crate::fsm::console_client::ConsoleClient;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::device::DeviceOnboardingPostResponse as PostResponse;
@@ -11,6 +12,7 @@ pub async fn post<A: AppRaiser + 'static>(
     vault: Arc<Vault>,
     appraiser: Arc<A>,
     quest_master: QuestMaster,
+    console_client: ConsoleClient,
     request: PostRequest,
 ) -> Result<PostResponse, ()> {
     if request.apps.is_empty() {
@@ -38,16 +40,22 @@ pub async fn post<A: AppRaiser + 'static>(
             }
         })
         .collect();
-    let config = crate::lore::console_client_config::default().await;
     match quest_master
         .lock()
         .await
-        .schedule_quest("Install apps via device onboarding".to_string(), move |quest| async move {
-            appraiser.install_apps(quest, vault, app_keys, config).await
-        })
+        .schedule_quest(
+            "Install apps via device onboarding".to_string(),
+            move |quest| async move {
+                appraiser
+                    .install_apps(quest, vault, app_keys, console_client)
+                    .await
+            },
+        )
         .await
     {
-        Ok((id, _)) => Ok(PostResponse::Status202_Accepted(models::JobMeta::new(id.0 as i32))),
+        Ok((id, _)) => Ok(PostResponse::Status202_Accepted(models::JobMeta::new(
+            id.0 as i32,
+        ))),
         // TODO: Add 500 Response to API
         Err(_) => Err(()),
     }
