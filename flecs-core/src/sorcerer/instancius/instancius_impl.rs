@@ -120,6 +120,15 @@ impl Instancius for InstanciusImpl {
         spell::instance::halt_all_instances(quest, vault, floxy).await
     }
 
+    async fn start_all_instances_as_desired<F: Floxy + 'static>(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<()> {
+        spell::instance::start_all_instances_as_desired(quest, vault, floxy).await
+    }
+
     async fn create_instance(
         &self,
         quest: SyncQuest,

@@ -65,6 +65,8 @@ pub enum CreateError {
     FloxyStartup(String),
     #[error("Failed to create floxy: {0}.")]
     FloxyCreation(String),
+    #[error("Failed to spin world up: {0}.")]
+    SpinUp(String),
 }
 
 impl FlecsWorld {
@@ -133,6 +135,23 @@ impl<
         }
     }
 
+    async fn spin_up(&self) -> crate::Result<()> {
+        let instancius = self.sorcerers.instancius.clone();
+        let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
+        let vault = self.vault.clone();
+        self.enchantments
+            .quest_master
+            .lock()
+            .await
+            .schedule_quest("Flecs startup sequence".to_string(), |quest| async move {
+                instancius
+                    .start_all_instances_as_desired(quest, vault, floxy)
+                    .await
+            })
+            .await?;
+        Ok(())
+    }
+
     pub async fn create(
         sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>,
         enchantments: Enchantments<F>,
@@ -145,7 +164,7 @@ impl<
             .start()
             .map_err(|e| CreateError::FloxyStartup(e.to_string()))?;
         vault.open().await;
-        Ok(Self {
+        let world = Self {
             server: crate::fsm::spawn_server(
                 sorcerers.clone(),
                 socket_path,
@@ -156,6 +175,11 @@ impl<
             enchantments,
             relics,
             vault,
-        })
+        };
+        world
+            .spin_up()
+            .await
+            .map_err(|e| CreateError::SpinUp(e.to_string()))?;
+        Ok(world)
     }
 }

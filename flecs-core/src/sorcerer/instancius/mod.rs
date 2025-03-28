@@ -133,6 +133,13 @@ pub trait Instancius: Sorcerer {
         floxy: Arc<FloxyOperation<F>>,
     ) -> Result<()>;
 
+    async fn start_all_instances_as_desired<F: Floxy + 'static>(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> Result<()>;
+
     async fn create_instance(
         &self,
         quest: SyncQuest,
