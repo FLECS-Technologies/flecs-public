@@ -1113,7 +1113,7 @@ pub mod tests {
             .returning(|_, _| Ok(AppInfo::default()));
         deployment.expect_default_network().times(2).returning(|| {
             Ok(Network {
-                id: Some("DefaultTestNetworkId".to_string()),
+                name: Some("DefaultTestNetworkId".to_string()),
                 ipam: Some(Ipam {
                     config: Some(vec![IpamConfig {
                         subnet: Some("10.18.0.0/16".to_string()),
@@ -1243,7 +1243,7 @@ pub mod tests {
             .returning(|_, _| Ok(AppInfo::default()));
         deployment.expect_default_network().times(4).returning(|| {
             Ok(Network {
-                id: Some("DefaultTestNetworkId".to_string()),
+                name: Some("DefaultTestNetworkId".to_string()),
                 ipam: Some(Ipam {
                     config: Some(vec![IpamConfig {
                         subnet: Some("10.18.0.0/16".to_string()),
@@ -1327,7 +1327,7 @@ pub mod tests {
             .returning(|_, _| Ok(AppInfo::default()));
         deployment.expect_default_network().times(2).returning(|| {
             Ok(Network {
-                id: Some("DefaultTestNetworkId".to_string()),
+                name: Some("DefaultTestNetworkId".to_string()),
                 ipam: Some(Ipam {
                     config: Some(vec![IpamConfig {
                         subnet: Some("10.18.0.0/16".to_string()),
@@ -3538,7 +3538,7 @@ pub mod tests {
             .returning(|_| Ok(InstanceStatus::Running));
         deployment.expect_default_network().once().returning(|| {
             Ok(Network {
-                id: Some("flecs".to_string()),
+                name: Some("flecs".to_string()),
                 ..Network::default()
             })
         });
@@ -3625,7 +3625,7 @@ pub mod tests {
             .returning(|_| Ok(InstanceStatus::Running));
         deployment.expect_default_network().once().returning(|| {
             Ok(Network {
-                id: Some("unknown".to_string()),
+                name: Some("unknown".to_string()),
                 ..Network::default()
             })
         });

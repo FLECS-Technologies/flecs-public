@@ -230,8 +230,8 @@ impl Instance {
     }
 
     pub async fn get_default_network_address(&self) -> crate::Result<Option<IpAddr>> {
-        match self.deployment.default_network().await?.id {
-            None => anyhow::bail!("Default network has no id"),
+        match self.deployment.default_network().await?.name {
+            None => anyhow::bail!("Default network has no name"),
             Some(network_id) => Ok(self.config.connected_networks.get(&network_id).cloned()),
         }
     }
@@ -446,8 +446,8 @@ impl Instance {
         let default_network_id = deployment
             .default_network()
             .await?
-            .id
-            .ok_or_else(|| anyhow::anyhow!("Default network has no id"))?;
+            .name
+            .ok_or_else(|| anyhow::anyhow!("Default network has no name"))?;
         quest
             .lock()
             .await
@@ -1448,7 +1448,7 @@ pub mod tests {
             .returning(|_, _, _, _, _| Ok(()));
         deployment.expect_default_network().times(1).returning(|| {
             Ok(Network {
-                id: Some("DefaultTestNetworkId".to_string()),
+                name: Some("DefaultTestNetworkId".to_string()),
                 ..Network::default()
             })
         });
@@ -1499,7 +1499,7 @@ pub mod tests {
             .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
         deployment.expect_default_network().times(1).returning(|| {
             Ok(Network {
-                id: Some("DefaultTestNetworkId".to_string()),
+                name: Some("DefaultTestNetworkId".to_string()),
                 ..Network::default()
             })
         });
@@ -2091,7 +2091,6 @@ pub mod tests {
         deployment.expect_default_network().returning(|| {
             Ok(Network {
                 name: Some("flecs".to_string()),
-                id: Some("flecs".to_string()),
                 ..Default::default()
             })
         });
@@ -2153,7 +2152,6 @@ pub mod tests {
         deployment.expect_default_network().returning(|| {
             Ok(Network {
                 name: Some("flecs".to_string()),
-                id: Some("flecs".to_string()),
                 ..Default::default()
             })
         });
