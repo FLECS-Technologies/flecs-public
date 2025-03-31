@@ -1988,6 +1988,32 @@ paths:
           $ref: "#/components/responses/response_400"
         "404":
           description: Instance not found
+  /instances/{instance_id}/config/mounts/bind/{container_path}:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve bind mount of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: container_path
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/bind_mount"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
   /instances/{instance_id}/config/mounts/volumes:
     get:
       tags: [ "Instances" ]
@@ -2011,6 +2037,32 @@ paths:
           $ref: "#/components/responses/response_400"
         "404":
           description: Instance not found
+  /instances/{instance_id}/config/mounts/volumes/{volume_name}:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve volume mount of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: volume_name
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/instance_detail_volume"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
   /instances/{instance_id}/editor/{port}:
     get:
       tags: [ "Instances" ]

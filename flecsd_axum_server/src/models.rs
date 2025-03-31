@@ -307,6 +307,20 @@ lazy_static::lazy_static! {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigMountsBindContainerPathGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGMOUNTSBINDCONTAINERPATHGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    pub container_path: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGMOUNTSBINDCONTAINERPATHGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigMountsBindGetPathParams {
     #[validate(
                           regex(path = *RE_INSTANCESINSTANCEIDCONFIGMOUNTSBINDGETPATHPARAMS_INSTANCE_ID),
@@ -342,6 +356,20 @@ pub struct InstancesInstanceIdConfigMountsVolumesGetPathParams {
 
 lazy_static::lazy_static! {
     static ref RE_INSTANCESINSTANCEIDCONFIGMOUNTSVOLUMESGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigMountsVolumesVolumeNameGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGMOUNTSVOLUMESVOLUMENAMEGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    pub volume_name: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGMOUNTSVOLUMESVOLUMENAMEGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
