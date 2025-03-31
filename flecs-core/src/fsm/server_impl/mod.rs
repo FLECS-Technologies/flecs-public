@@ -3,6 +3,7 @@ mod apps;
 mod console;
 mod deployments;
 mod device;
+mod flecsport;
 mod instances;
 mod jobs;
 mod system;
