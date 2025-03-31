@@ -307,6 +307,29 @@ components:
         path:
           type: string
           example: "/var/app"
+    bind_mount:
+      type: object
+      required:
+        - container
+        - host
+      properties:
+        container:
+          type: string
+          example: "/path/to/dir"
+        host:
+          type: string
+          example: "/path/to/host/dir"
+    mounts:
+      type: object
+      properties:
+        bind_mounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/bind_mount"
+        volume_mounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/instance_detail_volume"
     usb_port:
       type: string
       pattern: "^usb[1-9][0-9]*|[1-9][0-9]*-[1-9][0-9]*(?:\\.[1-9][0-9]*)*$"
@@ -1921,6 +1944,73 @@ paths:
           $ref: "#/components/responses/response_400"
         "404":
           $ref: "#/components/responses/response_404"
+  /instances/{instance_id}/config/mounts:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve volumes of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/mounts"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: Instance not found
+  /instances/{instance_id}/config/mounts/bind:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve bind mounts of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/bind_mount"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: Instance not found
+  /instances/{instance_id}/config/mounts/volumes:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve volumes mounts of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/instance_detail_volume"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: Instance not found
   /instances/{instance_id}/editor/{port}:
     get:
       tags: [ "Instances" ]
