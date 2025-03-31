@@ -117,7 +117,7 @@ pub trait System {
         method: Method,
         host: Host,
         cookies: CookieJar,
-        path_params: models::GetPathParams,
+        path_params: models::SystemDevicesUsbPortGetPathParams,
     ) -> Result<SystemDevicesUsbPortGetResponse, ()>;
 
     /// Get architecture and operating system information.

@@ -1,7 +1,7 @@
 use crate::relic::device::usb::UsbDeviceReader;
 use flecsd_axum_server::apis::system::SystemDevicesUsbPortGetResponse as GetResponse;
 use flecsd_axum_server::models;
-use flecsd_axum_server::models::GetPathParams;
+use flecsd_axum_server::models::SystemDevicesUsbPortGetPathParams as GetPathParams;
 use std::sync::Arc;
 
 pub fn get<U: UsbDeviceReader>(
