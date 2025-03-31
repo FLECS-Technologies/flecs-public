@@ -1,3 +1,4 @@
+pub mod volume_name;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::manifest::VolumeMount;
 use crate::sorcerer::instancius::Instancius;

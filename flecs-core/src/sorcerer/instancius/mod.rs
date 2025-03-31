@@ -8,6 +8,7 @@ use crate::jeweler::gem::manifest::{
 };
 use crate::jeweler::instance::Logs;
 use crate::jeweler::network::NetworkId;
+use crate::jeweler::volume::VolumeId;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 pub use crate::sorcerer::spell::instance::DisconnectInstanceError;
@@ -22,6 +23,7 @@ use mockall::automock;
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU16;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 pub type UsbDevices = Vec<(UsbPathConfig, Option<UsbDevice>)>;
@@ -57,6 +59,22 @@ pub enum GetInstanceConfigNetworkResult {
     InstanceNotFound,
     UnknownNetwork,
     Network { name: String, address: IpAddr },
+}
+
+#[derive(thiserror::Error, Debug, Clone, PartialEq)]
+pub enum GetInstanceConfigBindMountError {
+    #[error("Instance not found {0}")]
+    InstanceNotFound(InstanceId),
+    #[error("No bind mound with container path {0} found")]
+    BindMountNotFound(PathBuf),
+}
+
+#[derive(thiserror::Error, Debug, Clone, PartialEq)]
+pub enum GetInstanceConfigVolumeMountError {
+    #[error("Instance not found {0}")]
+    InstanceNotFound(InstanceId),
+    #[error("No volume with name {0} found")]
+    VolumeMountNotFound(String),
 }
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -330,11 +348,25 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
     ) -> Option<Vec<VolumeMount>>;
 
+    async fn get_instance_config_volume_mount(
+        &self,
+        vault: Arc<Vault>,
+        instance_id: InstanceId,
+        volume_id: VolumeId,
+    ) -> Result<VolumeMount, GetInstanceConfigVolumeMountError>;
+
     async fn get_instance_config_bind_mounts(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
     ) -> Option<Vec<BindMount>>;
+
+    async fn get_instance_config_bind_mount(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        container_path: PathBuf,
+    ) -> Result<BindMount, GetInstanceConfigBindMountError>;
 
     async fn disconnect_instance_from_network(
         &self,

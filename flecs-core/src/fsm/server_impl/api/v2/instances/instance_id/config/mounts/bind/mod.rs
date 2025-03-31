@@ -1,3 +1,4 @@
+pub mod container_path;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::manifest::BindMount;
 use crate::sorcerer::instancius::Instancius;

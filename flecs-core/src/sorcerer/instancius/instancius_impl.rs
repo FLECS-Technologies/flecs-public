@@ -11,13 +11,14 @@ use crate::jeweler::gem::manifest::{
 };
 use crate::jeweler::instance::Logs;
 use crate::jeweler::network::{Network, NetworkId};
+use crate::jeweler::volume::VolumeId;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::instancius::{
-    ConnectInstanceConfigNetworkError, DisconnectInstanceError, GetInstanceConfigNetworkResult,
-    GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult,
-    RedirectEditorRequestResult,
+    ConnectInstanceConfigNetworkError, DisconnectInstanceError, GetInstanceConfigBindMountError,
+    GetInstanceConfigNetworkResult, GetInstanceConfigVolumeMountError, GetInstanceUsbDeviceResult,
+    Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
 };
 use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::{AppKey, Pouch};
@@ -27,6 +28,7 @@ use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response}
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU16;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -684,12 +686,55 @@ impl Instancius for InstanciusImpl {
         .await
     }
 
+    async fn get_instance_config_volume_mount(
+        &self,
+        vault: Arc<Vault>,
+        instance_id: InstanceId,
+        volume_id: VolumeId,
+    ) -> Result<VolumeMount, GetInstanceConfigVolumeMountError> {
+        match self
+            .get_instance_config_volume_mounts(vault, instance_id)
+            .await
+            .map(|volumes| volumes.into_iter().find(|volume| volume.name == volume_id))
+        {
+            None => Err(GetInstanceConfigVolumeMountError::InstanceNotFound(
+                instance_id,
+            )),
+            Some(None) => Err(GetInstanceConfigVolumeMountError::VolumeMountNotFound(
+                volume_id,
+            )),
+            Some(Some(volume)) => Ok(volume),
+        }
+    }
+
     async fn get_instance_config_bind_mounts(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
     ) -> Option<Vec<BindMount>> {
         spell::instance::query_instance(vault, id, |instance| instance.manifest.bind_mounts()).await
+    }
+
+    async fn get_instance_config_bind_mount(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        container_path: PathBuf,
+    ) -> Result<BindMount, GetInstanceConfigBindMountError> {
+        match self
+            .get_instance_config_bind_mounts(vault, id)
+            .await
+            .map(|binds| {
+                binds
+                    .into_iter()
+                    .find(|bind| bind.container_path == container_path)
+            }) {
+            None => Err(GetInstanceConfigBindMountError::InstanceNotFound(id)),
+            Some(None) => Err(GetInstanceConfigBindMountError::BindMountNotFound(
+                container_path,
+            )),
+            Some(Some(volume)) => Ok(volume),
+        }
     }
 
     async fn disconnect_instance_from_network(
@@ -4221,6 +4266,50 @@ pub mod tests {
     }
 
     #[tokio::test]
+    async fn get_instance_config_volume_mount_none() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_volume_mount(vault, UNKNOWN_INSTANCE_3, "volume-1".to_string())
+                .await,
+            Err(GetInstanceConfigVolumeMountError::InstanceNotFound(
+                UNKNOWN_INSTANCE_3
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_volume_mount_some_none() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_volume_mount(
+                    vault,
+                    MOUNT_INSTANCE,
+                    "unknown-volume".to_string()
+                )
+                .await,
+            Err(GetInstanceConfigVolumeMountError::VolumeMountNotFound(
+                "unknown-volume".to_string()
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_volume_mount_some_some() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_volume_mount(vault, MOUNT_INSTANCE, "volume-1".to_string())
+                .await,
+            Ok(VolumeMount {
+                name: "volume-1".to_string(),
+                container_path: PathBuf::from("/config/v1"),
+            })
+        );
+    }
+
+    #[tokio::test]
     async fn get_instance_config_bind_mounts_none() {
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         assert!(InstanciusImpl::default()
@@ -4245,6 +4334,46 @@ pub mod tests {
             host_path: PathBuf::from("/log/app-logs"),
             container_path: PathBuf::from("/log"),
         }));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_bind_mount_none() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_bind_mount(vault, UNKNOWN_INSTANCE_3, PathBuf::from("/log"))
+                .await,
+            Err(GetInstanceConfigBindMountError::InstanceNotFound(
+                UNKNOWN_INSTANCE_3
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_bind_mount_some_none() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_bind_mount(vault, MOUNT_INSTANCE, PathBuf::from("/unknown"))
+                .await,
+            Err(GetInstanceConfigBindMountError::BindMountNotFound(
+                PathBuf::from("/unknown")
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_bind_mount_some_some() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert_eq!(
+            InstanciusImpl::default()
+                .get_instance_config_bind_mount(vault, MOUNT_INSTANCE, PathBuf::from("/log"))
+                .await,
+            Ok(BindMount {
+                host_path: PathBuf::from("/log/app-logs"),
+                container_path: PathBuf::from("/log"),
+            })
+        );
     }
 
     #[tokio::test]
