@@ -206,6 +206,18 @@ pub enum InstancesInstanceIdConfigLabelsLabelNameGetResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigMountsBindContainerPathGetResponse {
+    /// Success
+    Status200_Success(models::BindMount),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdConfigMountsBindGetResponse {
     /// Success
     Status200_Success(Vec<models::BindMount>),
@@ -237,6 +249,18 @@ pub enum InstancesInstanceIdConfigMountsVolumesGetResponse {
     Status400_MalformedRequest(models::AdditionalInfo),
     /// Instance not found
     Status404_InstanceNotFound,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigMountsVolumesVolumeNameGetResponse {
+    /// Success
+    Status200_Success(models::InstanceDetailVolume),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -661,6 +685,17 @@ pub trait Instances {
         path_params: models::InstancesInstanceIdConfigLabelsLabelNameGetPathParams,
     ) -> Result<InstancesInstanceIdConfigLabelsLabelNameGetResponse, ()>;
 
+    /// Retrieve bind mount of an instance.
+    ///
+    /// InstancesInstanceIdConfigMountsBindContainerPathGet - GET /v2/instances/{instance_id}/config/mounts/bind/{container_path}
+    async fn instances_instance_id_config_mounts_bind_container_path_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigMountsBindContainerPathGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigMountsBindContainerPathGetResponse, ()>;
+
     /// Retrieve bind mounts of an instance.
     ///
     /// InstancesInstanceIdConfigMountsBindGet - GET /v2/instances/{instance_id}/config/mounts/bind
@@ -693,6 +728,17 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigMountsVolumesGetPathParams,
     ) -> Result<InstancesInstanceIdConfigMountsVolumesGetResponse, ()>;
+
+    /// Retrieve volume mount of an instance.
+    ///
+    /// InstancesInstanceIdConfigMountsVolumesVolumeNameGet - GET /v2/instances/{instance_id}/config/mounts/volumes/{volume_name}
+    async fn instances_instance_id_config_mounts_volumes_volume_name_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigMountsVolumesVolumeNameGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigMountsVolumesVolumeNameGetResponse, ()>;
 
     /// Retrieve connected networks of instance.
     ///

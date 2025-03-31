@@ -31,8 +31,10 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigGetResponse,
     InstancesInstanceIdConfigLabelsGetResponse as GetLabelsResponse,
     InstancesInstanceIdConfigLabelsLabelNameGetResponse as GetLabelResponse,
+    InstancesInstanceIdConfigMountsBindContainerPathGetResponse,
     InstancesInstanceIdConfigMountsBindGetResponse, InstancesInstanceIdConfigMountsGetResponse,
     InstancesInstanceIdConfigMountsVolumesGetResponse,
+    InstancesInstanceIdConfigMountsVolumesVolumeNameGetResponse,
     InstancesInstanceIdConfigNetworksGetResponse,
     InstancesInstanceIdConfigNetworksNetworkIdDeleteResponse,
     InstancesInstanceIdConfigNetworksNetworkIdGetResponse,
@@ -68,8 +70,10 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdConfigGetPathParams,
     InstancesInstanceIdConfigLabelsGetPathParams as GetLabelsParams,
     InstancesInstanceIdConfigLabelsLabelNameGetPathParams as GetLabelParams,
+    InstancesInstanceIdConfigMountsBindContainerPathGetPathParams,
     InstancesInstanceIdConfigMountsBindGetPathParams, InstancesInstanceIdConfigMountsGetPathParams,
     InstancesInstanceIdConfigMountsVolumesGetPathParams,
+    InstancesInstanceIdConfigMountsVolumesVolumeNameGetPathParams,
     InstancesInstanceIdConfigNetworksGetPathParams,
     InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams,
     InstancesInstanceIdConfigNetworksNetworkIdGetPathParams,
@@ -377,6 +381,16 @@ impl<
         )
     }
 
+    async fn instances_instance_id_config_mounts_bind_container_path_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigMountsBindContainerPathGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigMountsBindContainerPathGetResponse, ()> {
+        todo!()
+    }
+
     async fn instances_instance_id_config_mounts_bind_get(
         &self,
         _method: Method,
@@ -424,6 +438,16 @@ impl<
             )
             .await,
         )
+    }
+
+    async fn instances_instance_id_config_mounts_volumes_volume_name_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigMountsVolumesVolumeNameGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigMountsVolumesVolumeNameGetResponse, ()> {
+        todo!()
     }
 
     async fn instances_instance_id_config_networks_get(
