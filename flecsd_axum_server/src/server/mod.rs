@@ -120,6 +120,15 @@ where
         .route("/v2/instances/:instance_id/config/labels/:label_name",
             get(instances_instance_id_config_labels_label_name_get::<I, A>)
         )
+        .route("/v2/instances/:instance_id/config/mounts",
+            get(instances_instance_id_config_mounts_get::<I, A>)
+        )
+        .route("/v2/instances/:instance_id/config/mounts/bind",
+            get(instances_instance_id_config_mounts_bind_get::<I, A>)
+        )
+        .route("/v2/instances/:instance_id/config/mounts/volumes",
+            get(instances_instance_id_config_mounts_volumes_get::<I, A>)
+        )
         .route("/v2/instances/:instance_id/config/networks",
             get(instances_instance_id_config_networks_get::<I, A>).post(instances_instance_id_config_networks_post::<I, A>)
         )
@@ -3463,6 +3472,310 @@ where
                                                         StatusCode::INTERNAL_SERVER_ERROR
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_mounts_bind_get_validation(
+    path_params: models::InstancesInstanceIdConfigMountsBindGetPathParams,
+) -> std::result::Result<
+    (models::InstancesInstanceIdConfigMountsBindGetPathParams,),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigMountsBindGet - GET /v2/instances/{instance_id}/config/mounts/bind
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_mounts_bind_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigMountsBindGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_mounts_bind_get_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_mounts_bind_get(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigMountsBindGetResponse::Status200_Success
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigMountsBindGetResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigMountsBindGetResponse::Status404_InstanceNotFound
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  response.body(Body::empty())
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_mounts_get_validation(
+    path_params: models::InstancesInstanceIdConfigMountsGetPathParams,
+) -> std::result::Result<(models::InstancesInstanceIdConfigMountsGetPathParams,), ValidationErrors>
+{
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigMountsGet - GET /v2/instances/{instance_id}/config/mounts
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_mounts_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigMountsGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_mounts_get_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_mounts_get(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigMountsGetResponse::Status200_Success
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigMountsGetResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigMountsGetResponse::Status404_InstanceNotFound
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  response.body(Body::empty())
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_mounts_volumes_get_validation(
+    path_params: models::InstancesInstanceIdConfigMountsVolumesGetPathParams,
+) -> std::result::Result<
+    (models::InstancesInstanceIdConfigMountsVolumesGetPathParams,),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigMountsVolumesGet - GET /v2/instances/{instance_id}/config/mounts/volumes
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_mounts_volumes_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigMountsVolumesGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_mounts_volumes_get_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_mounts_volumes_get(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigMountsVolumesGetResponse::Status200_Success
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigMountsVolumesGetResponse::Status400_MalformedRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigMountsVolumesGetResponse::Status404_InstanceNotFound
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  response.body(Body::empty())
                                                 },
                                             },
                                             Err(_) => {

@@ -206,6 +206,42 @@ pub enum InstancesInstanceIdConfigLabelsLabelNameGetResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigMountsBindGetResponse {
+    /// Success
+    Status200_Success(Vec<models::BindMount>),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Instance not found
+    Status404_InstanceNotFound,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigMountsGetResponse {
+    /// Success
+    Status200_Success(models::Mounts),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Instance not found
+    Status404_InstanceNotFound,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigMountsVolumesGetResponse {
+    /// Success
+    Status200_Success(Vec<models::InstanceDetailVolume>),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Instance not found
+    Status404_InstanceNotFound,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdConfigNetworksGetResponse {
     /// Success
     Status200_Success(Vec<models::InstanceConfigNetwork>),
@@ -624,6 +660,39 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigLabelsLabelNameGetPathParams,
     ) -> Result<InstancesInstanceIdConfigLabelsLabelNameGetResponse, ()>;
+
+    /// Retrieve bind mounts of an instance.
+    ///
+    /// InstancesInstanceIdConfigMountsBindGet - GET /v2/instances/{instance_id}/config/mounts/bind
+    async fn instances_instance_id_config_mounts_bind_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigMountsBindGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigMountsBindGetResponse, ()>;
+
+    /// Retrieve volumes of an instance.
+    ///
+    /// InstancesInstanceIdConfigMountsGet - GET /v2/instances/{instance_id}/config/mounts
+    async fn instances_instance_id_config_mounts_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigMountsGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigMountsGetResponse, ()>;
+
+    /// Retrieve volumes mounts of an instance.
+    ///
+    /// InstancesInstanceIdConfigMountsVolumesGet - GET /v2/instances/{instance_id}/config/mounts/volumes
+    async fn instances_instance_id_config_mounts_volumes_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigMountsVolumesGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigMountsVolumesGetResponse, ()>;
 
     /// Retrieve connected networks of instance.
     ///
