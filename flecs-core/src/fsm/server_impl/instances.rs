@@ -382,9 +382,16 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigMountsBindGetPathParams,
+        path_params: InstancesInstanceIdConfigMountsBindGetPathParams,
     ) -> Result<InstancesInstanceIdConfigMountsBindGetResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::mounts::bind::get(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                path_params,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_mounts_get(
@@ -392,9 +399,14 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigMountsGetPathParams,
+        path_params: InstancesInstanceIdConfigMountsGetPathParams,
     ) -> Result<InstancesInstanceIdConfigMountsGetResponse, ()> {
-        todo!()
+        Ok(super::api::v2::instances::instance_id::config::mounts::get(
+            self.vault.clone(),
+            self.sorcerers.instancius.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn instances_instance_id_config_mounts_volumes_get(
@@ -402,9 +414,16 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigMountsVolumesGetPathParams,
+        path_params: InstancesInstanceIdConfigMountsVolumesGetPathParams,
     ) -> Result<InstancesInstanceIdConfigMountsVolumesGetResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::mounts::volumes::get(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                path_params,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_networks_get(

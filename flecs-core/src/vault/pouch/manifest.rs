@@ -131,6 +131,7 @@ pub mod tests {
             label_manifest(),
             editor_manifest(),
             network_manifest(),
+            mount_manifest(),
         ]
     }
 
@@ -266,6 +267,20 @@ pub mod tests {
             "app": "tech.flecs.no-manifest",
             "version": "1.0.0",
             "image": "flecs.azurecr.io/tech.flecs.no-manifest"
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn mount_manifest() -> Arc<AppManifest> {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.mount",
+            "version": "0.4.0",
+            "image": "flecs.azurecr.io/tech.flecs.mount",
+            "volumes": [
+                "/etc/config:/etc/config",
+                "/log/app-logs:/log"
+            ]
         });
         manifest_from_json(&json)
     }
