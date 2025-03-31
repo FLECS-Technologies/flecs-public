@@ -46,6 +46,7 @@ where
         + apis::console::Console
         + apis::deployments::Deployments
         + apis::device::Device
+        + apis::flecsport::Flecsport
         + apis::flunder::Flunder
         + apis::instances::Instances
         + apis::jobs::Jobs
@@ -89,6 +90,12 @@ where
         )
         .route("/v2/device/onboarding",
             post(device_onboarding_post::<I, A>)
+        )
+        .route("/v2/exports",
+            get(exports_get::<I, A>).post(exports_post::<I, A>)
+        )
+        .route("/v2/exports/:export_id",
+            delete(exports_export_id_delete::<I, A>).get(exports_export_id_get::<I, A>)
         )
         .route("/v2/flunder/browse",
             get(flunder_browse_get::<I, A>)
@@ -1659,6 +1666,406 @@ where
             }
             apis::device::DeviceOnboardingPostResponse::Status400_MalformedRequest(body) => {
                 let mut response = response.status(400);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
+        },
+        Err(_) => {
+            // Application code returned an error. This should not happen, as the implementation should
+            // return a valid response.
+            response.status(500).body(Body::empty())
+        }
+    };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn exports_export_id_delete_validation(
+    path_params: models::ExportsExportIdDeletePathParams,
+) -> std::result::Result<(models::ExportsExportIdDeletePathParams,), ValidationErrors> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// ExportsExportIdDelete - DELETE /v2/exports/{export_id}
+#[tracing::instrument(skip_all)]
+async fn exports_export_id_delete<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::ExportsExportIdDeletePathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::flecsport::Flecsport,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation =
+        tokio::task::spawn_blocking(move || exports_export_id_delete_validation(path_params))
+            .await
+            .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .exports_export_id_delete(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+        Ok(rsp) => match rsp {
+            apis::flecsport::ExportsExportIdDeleteResponse::Status200_Success => {
+                let mut response = response.status(200);
+                response.body(Body::empty())
+            }
+            apis::flecsport::ExportsExportIdDeleteResponse::Status400_ExportIdInvalid => {
+                let mut response = response.status(400);
+                response.body(Body::empty())
+            }
+            apis::flecsport::ExportsExportIdDeleteResponse::Status404_ExportNotFound => {
+                let mut response = response.status(404);
+                response.body(Body::empty())
+            }
+            apis::flecsport::ExportsExportIdDeleteResponse::Status500_InternalServerError(body) => {
+                let mut response = response.status(500);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
+        },
+        Err(_) => {
+            // Application code returned an error. This should not happen, as the implementation should
+            // return a valid response.
+            response.status(500).body(Body::empty())
+        }
+    };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn exports_export_id_get_validation(
+    path_params: models::ExportsExportIdGetPathParams,
+) -> std::result::Result<(models::ExportsExportIdGetPathParams,), ValidationErrors> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// ExportsExportIdGet - GET /v2/exports/{export_id}
+#[tracing::instrument(skip_all)]
+async fn exports_export_id_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::ExportsExportIdGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::flecsport::Flecsport,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation =
+        tokio::task::spawn_blocking(move || exports_export_id_get_validation(path_params))
+            .await
+            .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .exports_export_id_get(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+        Ok(rsp) => match rsp {
+            apis::flecsport::ExportsExportIdGetResponse::Status200_Success(body) => {
+                let mut response = response.status(200);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/octet-stream").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = body.0;
+                response.body(Body::from(body_content))
+            }
+            apis::flecsport::ExportsExportIdGetResponse::Status400_ExportIdInvalid => {
+                let mut response = response.status(400);
+                response.body(Body::empty())
+            }
+            apis::flecsport::ExportsExportIdGetResponse::Status404_ExportNotFound => {
+                let mut response = response.status(404);
+                response.body(Body::empty())
+            }
+            apis::flecsport::ExportsExportIdGetResponse::Status500_InternalServerError(body) => {
+                let mut response = response.status(500);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
+        },
+        Err(_) => {
+            // Application code returned an error. This should not happen, as the implementation should
+            // return a valid response.
+            response.status(500).body(Body::empty())
+        }
+    };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn exports_get_validation() -> std::result::Result<(), ValidationErrors> {
+    Ok(())
+}
+/// ExportsGet - GET /v2/exports
+#[tracing::instrument(skip_all)]
+async fn exports_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::flecsport::Flecsport,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || exports_get_validation())
+        .await
+        .unwrap();
+
+    let Ok(()) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl.as_ref().exports_get(method, host, cookies).await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+        Ok(rsp) => match rsp {
+            apis::flecsport::ExportsGetResponse::Status200_Success(body) => {
+                let mut response = response.status(200);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
+            apis::flecsport::ExportsGetResponse::Status500_InternalServerError(body) => {
+                let mut response = response.status(500);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
+        },
+        Err(_) => {
+            // Application code returned an error. This should not happen, as the implementation should
+            // return a valid response.
+            response.status(500).body(Body::empty())
+        }
+    };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[derive(validator::Validate)]
+#[allow(dead_code)]
+struct ExportsPostBodyValidator<'a> {
+    #[validate(nested)]
+    body: &'a models::ExportRequest,
+}
+
+#[tracing::instrument(skip_all)]
+fn exports_post_validation(
+    body: models::ExportRequest,
+) -> std::result::Result<(models::ExportRequest,), ValidationErrors> {
+    let b = ExportsPostBodyValidator { body: &body };
+    b.validate()?;
+
+    Ok((body,))
+}
+/// ExportsPost - POST /v2/exports
+#[tracing::instrument(skip_all)]
+async fn exports_post<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    State(api_impl): State<I>,
+    Json(body): Json<models::ExportRequest>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::flecsport::Flecsport,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || exports_post_validation(body))
+        .await
+        .unwrap();
+
+    let Ok((body,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .exports_post(method, host, cookies, body)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+        Ok(rsp) => match rsp {
+            apis::flecsport::ExportsPostResponse::Status202_Accepted(body) => {
+                let mut response = response.status(202);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
+            apis::flecsport::ExportsPostResponse::Status500_InternalServerError(body) => {
+                let mut response = response.status(500);
                 {
                     let mut response_headers = response.headers_mut().unwrap();
                     response_headers.insert(
