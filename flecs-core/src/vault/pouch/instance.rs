@@ -204,6 +204,7 @@ pub mod tests {
     use crate::vault::pouch::app::tests::{
         EDITOR_APP_NAME, EDITOR_APP_VERSION, LABEL_APP_NAME, LABEL_APP_VERSION, MINIMAL_APP_2_NAME,
         MINIMAL_APP_2_VERSION, MINIMAL_APP_WITH_INSTANCE_NAME, MINIMAL_APP_WITH_INSTANCE_VERSION,
+        MOUNT_APP_NAME, MOUNT_APP_VERSION,
     };
     use crate::vault::pouch::manifest::tests::create_test_manifest;
     use crate::vault::tests::create_test_vault_raw;
@@ -222,6 +223,7 @@ pub mod tests {
     pub const USB_DEV_INSTANCE: InstanceId = InstanceId::new(6);
     pub const EDITOR_INSTANCE: InstanceId = InstanceId::new(7);
     pub const NETWORK_INSTANCE: InstanceId = InstanceId::new(8);
+    pub const MOUNT_INSTANCE: InstanceId = InstanceId::new(9);
 
     fn default_deployment() -> Arc<dyn crate::jeweler::deployment::Deployment> {
         let mut default_deployment = MockedDeployment::default();
@@ -447,6 +449,39 @@ pub mod tests {
         }
     }
 
+    pub fn mount_instance() -> InstanceDeserializable {
+        InstanceDeserializable {
+            hostname: format!("flecs-{MOUNT_INSTANCE}"),
+            name: "Running instance".to_string(),
+            id: MOUNT_INSTANCE,
+            config: InstanceConfig {
+                volume_mounts: HashMap::from([
+                    (
+                        "12345".to_string(),
+                        VolumeMount {
+                            name: "volume-1".to_string(),
+                            container_path: PathBuf::from("/config/v1"),
+                        },
+                    ),
+                    (
+                        "abcde".to_string(),
+                        VolumeMount {
+                            name: "volume-2".to_string(),
+                            container_path: PathBuf::from("/data/v2"),
+                        },
+                    ),
+                ]),
+                ..InstanceConfig::default()
+            },
+            desired: InstanceStatus::Running,
+            app_key: AppKey {
+                name: MOUNT_APP_NAME.to_string(),
+                version: MOUNT_APP_VERSION.to_string(),
+            },
+            deployment_id: format!("deployment-{MOUNT_INSTANCE}"),
+        }
+    }
+
     pub fn test_instances() -> Vec<InstanceDeserializable> {
         vec![
             minimal_instance(),
@@ -457,6 +492,7 @@ pub mod tests {
             usb_dev_instance(),
             editor_instance(),
             network_instance(),
+            mount_instance(),
         ]
     }
 

@@ -404,6 +404,22 @@ where
     ))
 }
 
+pub async fn query_instance<F, T>(vault: Arc<Vault>, instance_id: InstanceId, f: F) -> Option<T>
+where
+    F: FnOnce(&Instance) -> T,
+{
+    Some(f(vault
+        .reservation()
+        .reserve_instance_pouch()
+        .grab()
+        .await
+        .instance_pouch
+        .as_ref()
+        .expect("Reservations should never fail")
+        .gems()
+        .get(&instance_id)?))
+}
+
 pub async fn disconnect_instance_from_network(
     vault: Arc<Vault>,
     id: InstanceId,
@@ -442,9 +458,9 @@ pub mod tests {
     use crate::relic::network::Ipv4Network;
     use crate::vault;
     use crate::vault::pouch::instance::tests::{
-        EDITOR_INSTANCE, ENV_INSTANCE, LABEL_INSTANCE, MINIMAL_INSTANCE, NETWORK_INSTANCE,
-        PORT_MAPPING_INSTANCE, RUNNING_INSTANCE, UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2,
-        UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
+        EDITOR_INSTANCE, ENV_INSTANCE, LABEL_INSTANCE, MINIMAL_INSTANCE, MOUNT_INSTANCE,
+        NETWORK_INSTANCE, PORT_MAPPING_INSTANCE, RUNNING_INSTANCE, UNKNOWN_INSTANCE_1,
+        UNKNOWN_INSTANCE_2, UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
     };
     use mockall::predicate;
     use mockall::predicate::eq;
@@ -870,7 +886,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_all_instances_as_desired_ok() {
-        const INSTANCES_TO_START: [InstanceId; 7] = [
+        const INSTANCES_TO_START: [InstanceId; 8] = [
             RUNNING_INSTANCE,
             PORT_MAPPING_INSTANCE,
             LABEL_INSTANCE,
@@ -878,6 +894,7 @@ pub mod tests {
             USB_DEV_INSTANCE,
             EDITOR_INSTANCE,
             NETWORK_INSTANCE,
+            MOUNT_INSTANCE,
         ];
         const RUNNING_INSTANCES: [InstanceId; 3] =
             [RUNNING_INSTANCE, EDITOR_INSTANCE, NETWORK_INSTANCE];
@@ -920,7 +937,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_all_instances_as_desired_err() {
-        const INSTANCES_TO_START: [InstanceId; 7] = [
+        const INSTANCES_TO_START: [InstanceId; 8] = [
             RUNNING_INSTANCE,
             PORT_MAPPING_INSTANCE,
             LABEL_INSTANCE,
@@ -928,6 +945,7 @@ pub mod tests {
             USB_DEV_INSTANCE,
             EDITOR_INSTANCE,
             NETWORK_INSTANCE,
+            MOUNT_INSTANCE,
         ];
         const RUNNING_INSTANCES: [InstanceId; 3] =
             [RUNNING_INSTANCE, EDITOR_INSTANCE, NETWORK_INSTANCE];

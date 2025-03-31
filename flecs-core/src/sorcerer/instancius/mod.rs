@@ -3,7 +3,9 @@ pub use super::Result;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem;
 use crate::jeweler::gem::instance::{InstanceId, TransportProtocol, UsbPathConfig};
-use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
+use crate::jeweler::gem::manifest::{
+    BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
+};
 use crate::jeweler::instance::Logs;
 use crate::jeweler::network::NetworkId;
 use crate::quest::SyncQuest;
@@ -315,6 +317,24 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         network_id: NetworkId,
     ) -> GetInstanceConfigNetworkResult;
+
+    async fn get_instance_config_mounts(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Option<(Vec<VolumeMount>, Vec<BindMount>)>;
+
+    async fn get_instance_config_volume_mounts(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Option<Vec<VolumeMount>>;
+
+    async fn get_instance_config_bind_mounts(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Option<Vec<BindMount>>;
 
     async fn disconnect_instance_from_network(
         &self,

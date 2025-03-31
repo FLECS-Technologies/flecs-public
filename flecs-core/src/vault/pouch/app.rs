@@ -138,6 +138,7 @@ pub mod tests {
             label_app(),
             editor_app(),
             network_app(),
+            mount_app(),
         ]
     }
 
@@ -288,6 +289,22 @@ pub mod tests {
                 id: Some("aabbaaccddee".to_string()),
                 deployment_id: "".to_string(),
                 desired: AppStatus::NotInstalled,
+            }],
+        }
+    }
+
+    pub const MOUNT_APP_NAME: &str = "tech.flecs.mount";
+    pub const MOUNT_APP_VERSION: &str = "0.4.0";
+    fn mount_app() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: MOUNT_APP_NAME.to_string(),
+                version: MOUNT_APP_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("34c6af34572".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
             }],
         }
     }

@@ -6,7 +6,9 @@ use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::instance::{
     InstanceConfig, InstanceId, InstancePortMapping, TransportProtocol, UsbPathConfig,
 };
-use crate::jeweler::gem::manifest::{EnvironmentVariable, Label, PortMapping, PortRange};
+use crate::jeweler::gem::manifest::{
+    BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
+};
 use crate::jeweler::instance::Logs;
 use crate::jeweler::network::{Network, NetworkId};
 use crate::quest::SyncQuest;
@@ -657,6 +659,39 @@ impl Instancius for InstanciusImpl {
         }
     }
 
+    async fn get_instance_config_mounts(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Option<(Vec<VolumeMount>, Vec<BindMount>)> {
+        spell::instance::query_instance(vault, id, |instance| {
+            (
+                instance.config.volume_mounts.values().cloned().collect(),
+                instance.manifest.bind_mounts(),
+            )
+        })
+        .await
+    }
+
+    async fn get_instance_config_volume_mounts(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Option<Vec<VolumeMount>> {
+        spell::instance::get_instance_config_part_with(vault, id, |config| {
+            config.volume_mounts.values().cloned().collect()
+        })
+        .await
+    }
+
+    async fn get_instance_config_bind_mounts(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Option<Vec<BindMount>> {
+        spell::instance::query_instance(vault, id, |instance| instance.manifest.bind_mounts()).await
+    }
+
     async fn disconnect_instance_from_network(
         &self,
         vault: Arc<Vault>,
@@ -909,7 +944,7 @@ pub mod tests {
     };
     use crate::vault::pouch::instance::tests::{
         network_instance, test_instances, test_port_mapping, EDITOR_INSTANCE, ENV_INSTANCE,
-        LABEL_INSTANCE, NETWORK_INSTANCE, PORT_MAPPING_INSTANCE, RUNNING_INSTANCE,
+        LABEL_INSTANCE, MOUNT_INSTANCE, NETWORK_INSTANCE, PORT_MAPPING_INSTANCE, RUNNING_INSTANCE,
         UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2, UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
     };
     use crate::vault::pouch::Pouch;
@@ -919,6 +954,7 @@ pub mod tests {
     use std::collections::{HashMap, HashSet};
     use std::io::ErrorKind;
     use std::net::{Ipv4Addr, Ipv6Addr};
+    use std::path::PathBuf;
     use std::str::FromStr;
     use std::sync::Arc;
 
@@ -4155,5 +4191,95 @@ pub mod tests {
                 NETWORK_NAME.to_string()
             ))
         );
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_volume_mounts_none() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert!(InstanciusImpl::default()
+            .get_instance_config_volume_mounts(vault, UNKNOWN_INSTANCE_3)
+            .await
+            .is_none())
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_volume_mounts_some() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        let volumes = InstanciusImpl::default()
+            .get_instance_config_volume_mounts(vault, MOUNT_INSTANCE)
+            .await
+            .unwrap();
+        assert_eq!(volumes.len(), 2);
+        assert!(volumes.contains(&VolumeMount {
+            name: "volume-1".to_string(),
+            container_path: PathBuf::from("/config/v1"),
+        }));
+        assert!(volumes.contains(&VolumeMount {
+            name: "volume-2".to_string(),
+            container_path: PathBuf::from("/data/v2"),
+        }));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_bind_mounts_none() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert!(InstanciusImpl::default()
+            .get_instance_config_bind_mounts(vault, UNKNOWN_INSTANCE_2)
+            .await
+            .is_none())
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_bind_mounts_some() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        let binds = InstanciusImpl::default()
+            .get_instance_config_bind_mounts(vault, MOUNT_INSTANCE)
+            .await
+            .unwrap();
+        assert_eq!(binds.len(), 2);
+        assert!(binds.contains(&BindMount {
+            host_path: PathBuf::from("/etc/config"),
+            container_path: PathBuf::from("/etc/config"),
+        }));
+        assert!(binds.contains(&BindMount {
+            host_path: PathBuf::from("/log/app-logs"),
+            container_path: PathBuf::from("/log"),
+        }));
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_mounts_none() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert!(InstanciusImpl::default()
+            .get_instance_config_mounts(vault, UNKNOWN_INSTANCE_2)
+            .await
+            .is_none())
+    }
+
+    #[tokio::test]
+    async fn get_instance_config_mounts_some() {
+        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
+        let (volumes, binds) = InstanciusImpl::default()
+            .get_instance_config_mounts(vault, MOUNT_INSTANCE)
+            .await
+            .unwrap();
+        assert_eq!(volumes.len(), 2);
+        assert!(volumes.contains(&VolumeMount {
+            name: "volume-1".to_string(),
+            container_path: PathBuf::from("/config/v1"),
+        }));
+        assert!(volumes.contains(&VolumeMount {
+            name: "volume-2".to_string(),
+            container_path: PathBuf::from("/data/v2"),
+        }));
+        assert_eq!(binds.len(), 2);
+        assert!(binds.contains(&BindMount {
+            host_path: PathBuf::from("/etc/config"),
+            container_path: PathBuf::from("/etc/config"),
+        }));
+        assert!(binds.contains(&BindMount {
+            host_path: PathBuf::from("/log/app-logs"),
+            container_path: PathBuf::from("/log"),
+        }));
     }
 }
