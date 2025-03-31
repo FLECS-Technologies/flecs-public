@@ -589,7 +589,7 @@ pub struct JobsJobIdGetPathParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct GetPathParams {
+pub struct SystemDevicesUsbPortGetPathParams {
     #[validate(
                           regex(path = *RE_SYSTEMDEVICESUSBPORTGETPATHPARAMS_PORT),
                     )]

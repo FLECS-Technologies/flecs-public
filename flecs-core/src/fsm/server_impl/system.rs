@@ -21,7 +21,7 @@ use flecsd_axum_server::apis::system::{
     SystemVersionGetResponse,
 };
 use flecsd_axum_server::models::{
-    GetPathParams, SystemNetworkAdaptersNetworkAdapterIdGetPathParams,
+    SystemDevicesUsbPortGetPathParams, SystemNetworkAdaptersNetworkAdapterIdGetPathParams,
 };
 use http::Method;
 
@@ -68,7 +68,7 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        path_params: GetPathParams,
+        path_params: SystemDevicesUsbPortGetPathParams,
     ) -> Result<SystemDevicesUsbPortGetResponse, ()> {
         Ok(super::api::v2::system::devices::usb::port::get(
             self.usb_reader.clone(),
