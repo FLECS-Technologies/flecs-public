@@ -177,6 +177,23 @@ components:
           $ref: "#/components/schemas/jwt"
         feature_flags:
           $ref: "#/components/schemas/featureFlags"
+    # Export related schemas
+    export_id:
+      type: string
+      pattern: "^[a-zA-Z0-9_\\-\\.#]+$"
+    export_request:
+      type: object
+      properties:
+        apps:
+          type: array
+          items:
+            $ref: "#/components/schemas/app_key"
+        instances:
+          type: array
+          items:
+            $ref: "#/components/schemas/instance_id"
+      required:
+        - apps
     # Instance related schemas
     instance_id:
       type: string
@@ -819,6 +836,8 @@ tags:
     x-displayName: "Device"
   - name: "Console"
     x-displayName: "Console"
+  - name: "Flecsport"
+    x-displayName: "Flecsport"
 
 paths:
   # App related paths
@@ -1064,6 +1083,78 @@ paths:
           $ref: "#/components/responses/response_400"
         "404":
           $ref: "#/components/responses/response_404"
+        "500":
+          $ref: "#/components/responses/response_500"
+  # Flecsport related paths
+  /exports:
+    get:
+      tags: [ "Flecsport" ]
+      summary: Query all existing exports
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/export_id"
+        "500":
+          $ref: "#/components/responses/response_500"
+    post:
+      tags: [ "Flecsport" ]
+      summary: Create an export
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/export_request"
+      responses:
+        "202":
+          $ref: "#/components/responses/response_202"
+        "500":
+          $ref: "#/components/responses/response_500"
+  /exports/{export_id}:
+    get:
+      tags: [ "Flecsport" ]
+      summary: Download specified export
+      parameters:
+        - name: export_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/export_id"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Export id invalid
+        "404":
+          description: Export not found
+        "500":
+          $ref: "#/components/responses/response_500"
+    delete:
+      tags: [ "Flecsport" ]
+      summary: Delete specified export
+      parameters:
+        - name: export_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/export_id"
+          required: true
+      responses:
+        "200":
+          description: Success
+        "400":
+          description: Export id invalid
+        "404":
+          description: Export not found
         "500":
           $ref: "#/components/responses/response_500"
   # Instance related paths

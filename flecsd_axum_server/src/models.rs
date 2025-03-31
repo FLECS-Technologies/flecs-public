@@ -64,6 +64,32 @@ pub struct DeploymentsDeploymentIdNetworksNetworkIdPutPathParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ExportsExportIdDeletePathParams {
+    #[validate(
+                          regex(path = *RE_EXPORTSEXPORTIDDELETEPATHPARAMS_EXPORT_ID),
+                    )]
+    pub export_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_EXPORTSEXPORTIDDELETEPATHPARAMS_EXPORT_ID: regex::Regex = regex::Regex::new("^[a-zA-Z0-9_\\-\\.#]+$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ExportsExportIdGetPathParams {
+    #[validate(
+                          regex(path = *RE_EXPORTSEXPORTIDGETPATHPARAMS_EXPORT_ID),
+                    )]
+    pub export_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_EXPORTSEXPORTIDGETPATHPARAMS_EXPORT_ID: regex::Regex = regex::Regex::new("^[a-zA-Z0-9_\\-\\.#]+$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct FlunderBrowseGetQueryParams {
     #[serde(rename = "q")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -3111,6 +3137,218 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<DosschemaApp
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
                         "Unable to convert header value '{}' into DosschemaAppsInner - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ExportId(String);
+
+impl validator::Validate for ExportId {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for ExportId {
+    fn from(x: String) -> Self {
+        ExportId(x)
+    }
+}
+
+impl std::fmt::Display for ExportId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for ExportId {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(ExportId(x.to_string()))
+    }
+}
+
+impl std::convert::From<ExportId> for String {
+    fn from(x: ExportId) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for ExportId {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for ExportId {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ExportRequest {
+    #[serde(rename = "apps")]
+    pub apps: Vec<models::AppKey>,
+
+    #[serde(rename = "instances")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instances: Option<Vec<models::InstanceId>>,
+}
+
+impl ExportRequest {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(apps: Vec<models::AppKey>) -> ExportRequest {
+        ExportRequest {
+            apps,
+            instances: None,
+        }
+    }
+}
+
+/// Converts the ExportRequest value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for ExportRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping apps in query parameter serialization
+            self.instances.as_ref().map(|instances| {
+                [
+                    "instances".to_string(),
+                    instances
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a ExportRequest value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for ExportRequest {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub apps: Vec<Vec<models::AppKey>>,
+            pub instances: Vec<Vec<models::InstanceId>>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing ExportRequest".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    "apps" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in ExportRequest"
+                                .to_string(),
+                        )
+                    }
+                    "instances" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in ExportRequest"
+                                .to_string(),
+                        )
+                    }
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing ExportRequest".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(ExportRequest {
+            apps: intermediate_rep
+                .apps
+                .into_iter()
+                .next()
+                .ok_or_else(|| "apps missing in ExportRequest".to_string())?,
+            instances: intermediate_rep.instances.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<ExportRequest> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<ExportRequest>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<ExportRequest>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for ExportRequest - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<ExportRequest> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <ExportRequest as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into ExportRequest - {}",
                         value, err
                     )),
                 }
