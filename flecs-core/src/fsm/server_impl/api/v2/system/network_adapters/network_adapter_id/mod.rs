@@ -1,3 +1,4 @@
+use crate::forge::vec::VecExtension;
 use crate::relic::device::net::NetDeviceReader;
 use crate::relic::network::{Ipv4Network, Network};
 use crate::relic::network::{Ipv6Network, NetType, NetworkAdapter, NetworkAdapterReader};
@@ -23,14 +24,6 @@ pub fn get(
         Err(e) => {
             GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
         }
-    }
-}
-
-fn empty_vec_to_none<T>(vec: Vec<T>) -> Option<Vec<T>> {
-    if vec.is_empty() {
-        None
-    } else {
-        Some(vec)
     }
 }
 
@@ -68,9 +61,9 @@ pub fn create_network_adapter_model(
     models::NetworkAdapter {
         is_connected,
         name: value.name,
-        ipv4_addresses: empty_vec_to_none(ipv4_addresses),
-        ipv6_addresses: empty_vec_to_none(ipv6_addresses),
-        networks: empty_vec_to_none(networks),
+        ipv4_addresses: ipv4_addresses.empty_to_none(),
+        ipv6_addresses: ipv6_addresses.empty_to_none(),
+        networks: networks.empty_to_none(),
         gateway: value.gateway.as_ref().map(ToString::to_string),
         mac_address: value.mac,
         net_type: value.net_type.into(),
@@ -141,26 +134,6 @@ mod tests {
     use ntest::test_case;
     use std::net::{Ipv4Addr, Ipv6Addr};
     use std::str::FromStr;
-
-    #[test]
-    fn empty_vec_to_none_none() {
-        let vec: Vec<u8> = Vec::new();
-        assert_eq!(empty_vec_to_none(vec), None);
-    }
-
-    #[test]
-    fn empty_vec_to_none_some() {
-        let vec: Vec<u32> = vec![124324, 26, 46, 9, 8, 0, 347, 9, 5];
-        assert_eq!(empty_vec_to_none(vec.clone()), Some(vec));
-        let vec: Vec<u32> = vec![1235, 26, 125123, 9, 57858, 8];
-        assert_eq!(empty_vec_to_none(vec.clone()), Some(vec));
-        let vec: Vec<u32> = vec![754, 457, 45, 74, 57, 4567, 457, 457, 457, 457];
-        assert_eq!(empty_vec_to_none(vec.clone()), Some(vec));
-        let vec: Vec<u32> = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        assert_eq!(empty_vec_to_none(vec.clone()), Some(vec));
-        let vec: Vec<u32> = vec![70];
-        assert_eq!(empty_vec_to_none(vec.clone()), Some(vec));
-    }
 
     fn convert_addresses_test(input: &[&str], expected_ipv4: &[&str], expected_ipv6: &[&str]) {
         let input: Vec<_> = input.iter().map(|s| IpAddr::from_str(s).unwrap()).collect();
