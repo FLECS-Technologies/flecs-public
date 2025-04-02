@@ -652,7 +652,7 @@ pub async fn upload_gzip_file_streamed(
                         stream,
                     )
                     .await?;
-                Ok(())
+                Ok::<(), anyhow::Error>(())
             }
         })
         .await
