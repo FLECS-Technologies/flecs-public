@@ -644,9 +644,11 @@ impl VolumeDeployment for DockerDeployment {
                 .create_sub_quest(
                     "Check if volume already exists".to_string(),
                     |_quest| async move {
-                        Ok(relic::docker::volume::inspect(docker_client, &name)
-                            .await?
-                            .is_some())
+                        Ok::<bool, anyhow::Error>(
+                            relic::docker::volume::inspect(docker_client, &name)
+                                .await?
+                                .is_some(),
+                        )
                     },
                 )
                 .await
@@ -666,7 +668,7 @@ impl VolumeDeployment for DockerDeployment {
                         quest.state = State::Skipped;
                         quest.detail = Some("Volume does not exist".to_string());
                     }
-                    Ok(())
+                    Ok::<(), anyhow::Error>(())
                 })
                 .await
                 .2

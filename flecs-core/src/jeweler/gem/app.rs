@@ -325,8 +325,8 @@ impl App {
                     let id = id.clone();
                     async move {
                         match data.deployment.uninstall_app(quest, id).await {
-                            Ok(()) => Ok(None),
-                            Err(e) => Ok(Some((e, data))),
+                            Ok(()) => Ok::<_, anyhow::Error>(None),
+                            Err(e) => Ok::<_, anyhow::Error>(Some((e, data))),
                         }
                     }
                 },
@@ -362,8 +362,8 @@ impl App {
                     ),
                     |quest| async move {
                         match Self::uninstall_from_deployment(quest, data).await {
-                            Ok(()) => Ok(None),
-                            Err((e, data)) => Ok(Some((e, data))),
+                            Ok(()) => Ok::<_, anyhow::Error>(None),
+                            Err((e, data)) => Ok::<_, anyhow::Error>(Some((e, data))),
                         }
                     },
                 )

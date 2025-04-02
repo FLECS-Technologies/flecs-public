@@ -220,7 +220,7 @@ impl Instancius for InstanciusImpl {
                                 anyhow::anyhow!("No free ip address in default network")
                             })?;
                         quest.lock().await.detail = Some(format!("Reserved {}", address));
-                        Ok(address)
+                        Ok::<Ipv4Addr, anyhow::Error>(address)
                     }
                 },
             )

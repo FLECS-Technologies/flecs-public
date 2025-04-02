@@ -72,7 +72,10 @@ impl Display for State {
     }
 }
 
-pub(crate) async fn finish_quest<T>(quest: &SyncQuest, result: Result<T>) -> Result<T> {
+pub(crate) async fn finish_quest<T, E>(quest: &SyncQuest, result: Result<T, E>) -> Result<T, E>
+where
+    E: Display,
+{
     match result {
         Ok(ok) => {
             let mut quest = quest.lock().await;
@@ -121,15 +124,16 @@ impl Quest {
         Arc::new(Mutex::new(Self::new(description)))
     }
 
-    pub async fn create_sub_quest<F, Fut, T>(
+    pub async fn create_sub_quest<F, Fut, T, E>(
         &mut self,
         description: String,
         f: F,
-    ) -> (QuestId, SyncQuest, BoxFuture<'static, Result<T>>)
+    ) -> (QuestId, SyncQuest, BoxFuture<'static, Result<T, E>>)
     where
         F: FnOnce(SyncQuest) -> Fut,
-        Fut: Future<Output = Result<T>> + Send + 'static,
+        Fut: Future<Output = Result<T, E>> + Send + 'static,
         T: Send + Sync + 'static,
+        E: Display + std::marker::Send + 'static,
     {
         let quest = Quest::new_synced(description);
         let quest_id = quest.lock().await.id;
@@ -159,15 +163,16 @@ impl Quest {
         (quest_id, return_quest, result)
     }
 
-    pub async fn spawn_sub_quest<'a, F, Fut, T>(
+    pub async fn spawn_sub_quest<'a, F, Fut, T, E>(
         &'a mut self,
         description: String,
         f: F,
-    ) -> (QuestId, SyncQuest, JoinHandle<Result<T>>)
+    ) -> (QuestId, SyncQuest, JoinHandle<Result<T, E>>)
     where
         F: FnOnce(SyncQuest) -> Fut,
-        Fut: Future<Output = Result<T>> + Send + 'static,
+        Fut: Future<Output = Result<T, E>> + Send + 'static,
         T: Send + Sync + 'a + 'static,
+        E: Display + Send + 'static,
     {
         let quest = Quest::new_synced(description);
         let quest_id = quest.lock().await.id;
@@ -189,10 +194,11 @@ impl Quest {
         std::time::Instant::now()
     }
 
-    async fn process_sub_quest<Fut, T>(quest: SyncQuest, f: Pin<Box<Fut>>) -> Result<T>
+    async fn process_sub_quest<Fut, T, E>(quest: SyncQuest, f: Pin<Box<Fut>>) -> Result<T, E>
     where
-        Fut: Future<Output = Result<T>> + Send,
+        Fut: Future<Output = Result<T, E>> + Send,
         T: Send + Sync,
+        E: Display,
     {
         let start = Self::start_quest(&quest).await;
         let result = finish_quest(&quest, f.await).await;
@@ -251,7 +257,7 @@ impl Quest {
         }
     }
 
-    pub fn fail_with_error(&mut self, error: &Error) {
+    pub fn fail_with_error<E: Display>(&mut self, error: &E) {
         self.state = State::Failed;
         self.detail = Some(error.to_string());
     }
@@ -381,7 +387,9 @@ mod tests {
         let (id, sub_quest, result) = quest
             .lock()
             .await
-            .create_sub_quest("TestSubQuest".to_string(), |_quest| async { Ok(true) })
+            .create_sub_quest("TestSubQuest".to_string(), |_quest| async {
+                Ok::<bool, anyhow::Error>(true)
+            })
             .await;
         assert_eq!(quest.lock().await.sub_quests.len(), 1);
         assert_eq!(quest.lock().await.sub_quests[0].lock().await.id, id);
@@ -431,7 +439,9 @@ mod tests {
         let (id, sub_quest, result) = quest
             .lock()
             .await
-            .spawn_sub_quest("TestSubQuest".to_string(), |_quest| async { Ok(true) })
+            .spawn_sub_quest("TestSubQuest".to_string(), |_quest| async {
+                Ok::<bool, anyhow::Error>(true)
+            })
             .await;
         assert_eq!(quest.lock().await.sub_quests.len(), 1);
         assert_eq!(quest.lock().await.sub_quests[0].lock().await.id, id);

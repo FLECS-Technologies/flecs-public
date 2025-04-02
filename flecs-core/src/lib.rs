@@ -86,7 +86,7 @@ pub mod lore;
 /// use flecs_core::quest::SyncQuest;
 /// use flecs_core::quest::{Progress, Result};
 ///
-/// async fn print_to_10(quest: SyncQuest) -> Result<()> {
+/// async fn print_to_10(quest: SyncQuest) -> Result<(), String> {
 ///     const N: u64 = 10;
 ///     quest.lock().await.progress = Some(Progress {
 ///         current: 0,
@@ -105,7 +105,7 @@ pub mod lore;
 /// use flecs_core::quest::Result;
 /// use flecs_core::quest::{State, SyncQuest};
 ///
-/// async fn failing(quest: SyncQuest) -> Result<()> {
+/// async fn failing(quest: SyncQuest) -> Result<(), anyhow::Error> {
 ///     let result: Result<()> = Err(anyhow!("Some error"));
 ///     match result {
 ///         Ok(()) => Ok(()),
@@ -125,15 +125,15 @@ pub mod lore;
 /// use flecs_core::quest::{Quest, Result};
 /// use futures::join;
 ///
-/// async fn f1(quest: SyncQuest) -> Result<u64> {
+/// async fn f1(quest: SyncQuest) -> Result<u64, String> {
 ///     Ok(20)
 /// }
 ///
-/// async fn f2(quest: SyncQuest) -> Result<u64> {
+/// async fn f2(quest: SyncQuest) -> Result<u64, String> {
 ///     Ok(27)
 /// }
 ///
-/// async fn compound_f(quest: SyncQuest) -> Result<u64> {
+/// async fn compound_f(quest: SyncQuest) -> Result<u64, String> {
 ///     let (.., result1) = quest
 ///         .lock()
 ///         .await
@@ -165,7 +165,7 @@ pub mod lore;
 /// use flecs_core::quest::{Quest, Result};
 /// use futures::join;
 ///
-/// async fn f1(quest: SyncQuest) -> Result<u64> {
+/// async fn f1(quest: SyncQuest) -> Result<u64, anyhow::Error> {
 ///     let mut n = 0;
 ///     for i in 1..=1000 {
 ///         n += i;
@@ -173,7 +173,7 @@ pub mod lore;
 ///     Ok(n)
 /// }
 ///
-/// async fn f2(quest: SyncQuest) -> Result<u64> {
+/// async fn f2(quest: SyncQuest) -> Result<u64, anyhow::Error> {
 ///     let mut n = 0;
 ///     for i in 1..=200 {
 ///         n += i;
@@ -181,7 +181,7 @@ pub mod lore;
 ///     Ok(n)
 /// }
 ///
-/// async fn compound_f(quest: SyncQuest) -> Result<u64> {
+/// async fn compound_f(quest: SyncQuest) -> Result<u64, anyhow::Error> {
 ///     let (.., result1) = quest
 ///         .lock()
 ///         .await
@@ -211,16 +211,16 @@ pub mod lore;
 /// use flecs_core::quest::SyncQuest;
 /// use flecs_core::quest::{Quest, Result};
 ///
-/// async fn independent_f(quest: SyncQuest) -> Result<u64> {
+/// async fn independent_f(quest: SyncQuest) -> Result<u64, String> {
 ///     let mut n = 12345;
 ///     Ok(n % 100)
 /// }
 ///
-/// async fn dependent_f(quest: SyncQuest, n: u64) -> Result<u64> {
+/// async fn dependent_f(quest: SyncQuest, n: u64) -> Result<u64, String> {
 ///     Ok(n % 10)
 /// }
 ///
-/// async fn compound_f(quest: SyncQuest) -> Result<u64> {
+/// async fn compound_f(quest: SyncQuest) -> Result<u64, String> {
 ///     let (.., result1) = quest
 ///         .lock()
 ///         .await
@@ -248,26 +248,26 @@ pub mod lore;
 /// use flecs_core::quest::{Quest, Result};
 /// use futures::join;
 ///
-/// async fn independent_f1(quest: SyncQuest) -> Result<u64> {
+/// async fn independent_f1(quest: SyncQuest) -> Result<u64, String> {
 ///     let mut n = 12345;
 ///     Ok(n % 100)
 /// }
 ///
-/// async fn independent_f2(quest: SyncQuest) -> Result<u64> {
+/// async fn independent_f2(quest: SyncQuest) -> Result<u64, String> {
 ///     let mut n = 12345;
 ///     Ok(n % 25)
 /// }
 ///
-/// async fn independent_f3(quest: SyncQuest) -> Result<u64> {
+/// async fn independent_f3(quest: SyncQuest) -> Result<u64, String> {
 ///     let mut n = 12345;
 ///     Ok(n % 2)
 /// }
 ///
-/// async fn dependent_f(quest: SyncQuest, a: u64, b: u64, c: u64) -> Result<u64> {
+/// async fn dependent_f(quest: SyncQuest, a: u64, b: u64, c: u64) -> Result<u64, String> {
 ///     Ok((a + b + c) % 10)
 /// }
 ///
-/// async fn compound_f(quest: SyncQuest) -> Result<u64> {
+/// async fn compound_f(quest: SyncQuest) -> Result<u64, String> {
 ///     let (.., result1) = quest
 ///         .lock()
 ///         .await
@@ -309,26 +309,26 @@ pub mod lore;
 /// use futures::join;
 /// use tokio::sync::broadcast;
 ///
-/// async fn dependent_f1(quest: SyncQuest, s: &str) -> Result<()> {
+/// async fn dependent_f1(quest: SyncQuest, s: &str) -> Result<(), anyhow::Error> {
 ///     println!("Hello {s}");
 ///     Ok(())
 /// }
 ///
-/// async fn dependent_f2(quest: SyncQuest, s: &str) -> Result<()> {
+/// async fn dependent_f2(quest: SyncQuest, s: &str) -> Result<(), anyhow::Error> {
 ///     println!("Guten Tag {s}");
 ///     Ok(())
 /// }
 ///
-/// async fn dependent_f3(quest: SyncQuest, s: &str) -> Result<()> {
+/// async fn dependent_f3(quest: SyncQuest, s: &str) -> Result<(), anyhow::Error> {
 ///     println!("こんにちは{s}さん");
 ///     Ok(())
 /// }
 ///
-/// async fn independent_f(quest: SyncQuest) -> Result<String> {
+/// async fn independent_f(quest: SyncQuest) -> Result<String, anyhow::Error> {
 ///     Ok("Peter".to_string())
 /// }
 ///
-/// async fn compound_f(quest: SyncQuest) -> Result<()> {
+/// async fn compound_f(quest: SyncQuest) -> Result<(), anyhow::Error> {
 ///     let (send, mut sub1) = broadcast::channel(1);
 ///     let (mut sub2, mut sub3) = (send.subscribe(), send.subscribe());
 ///     let (.., result) = quest
@@ -336,7 +336,7 @@ pub mod lore;
 ///         .await
 ///         .create_sub_quest("Independent quest".to_string(), |quest| async move {
 ///             send.send(independent_f(quest).await?)?;
-///             Ok(())
+///             Ok::<_, anyhow::Error>(())
 ///         })
 ///         .await;
 ///     let (.., result1) = quest
@@ -377,11 +377,11 @@ pub mod lore;
 /// use flecs_core::quest::{Quest, Result};
 /// use flecs_core::quest::SyncQuest;
 ///
-/// async fn subsubsubquest(quest: SyncQuest) -> Result<u64> {
+/// async fn subsubsubquest(quest: SyncQuest) -> Result<u64, String> {
 ///     Ok(20)
 /// }
 ///
-/// async fn subsubquest(quest: SyncQuest) -> Result<u64> {
+/// async fn subsubquest(quest: SyncQuest) -> Result<u64, String> {
 ///     let result = quest
 ///         .lock()
 ///         .await
@@ -390,7 +390,7 @@ pub mod lore;
 ///     Ok(2* result)
 /// }
 ///
-/// async fn subquest(quest: SyncQuest) -> Result<u64> {
+/// async fn subquest(quest: SyncQuest) -> Result<u64, String> {
 ///     let result = quest
 ///         .lock()
 ///         .await
@@ -399,7 +399,7 @@ pub mod lore;
 ///     Ok(10 + result)
 /// }
 ///
-/// async fn quest(quest: SyncQuest) -> Result<u64> {
+/// async fn quest(quest: SyncQuest) -> Result<u64, String> {
 ///         let result = quest.lock().await.create_sub_quest("SubQuest".to_string(), subquest).await.2.await?;
 ///     Ok(2000 - result)
 /// }
