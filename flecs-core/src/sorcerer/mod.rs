@@ -1,6 +1,7 @@
 pub mod appraiser;
 pub mod authmancer;
 pub mod deploymento;
+pub mod exportius;
 pub mod instancius;
 pub mod licenso;
 pub mod mage_quester;
@@ -12,6 +13,7 @@ pub use super::{Error, Result};
 use crate::sorcerer::appraiser::{AppRaiser, AppraiserImpl};
 use crate::sorcerer::authmancer::{Authmancer, AuthmancerImpl};
 use crate::sorcerer::deploymento::{Deploymento, DeploymentoImpl};
+use crate::sorcerer::exportius::{Exportius, ExportiusImpl};
 use crate::sorcerer::instancius::{Instancius, InstanciusImpl};
 use crate::sorcerer::licenso::{Licenso, LicensoImpl};
 use crate::sorcerer::mage_quester::{MageQuester, MageQuesterImpl};
@@ -28,6 +30,7 @@ pub type FlecsSorcerers = Sorcerers<
     ManifestoImpl,
     SystemusImpl,
     DeploymentoImpl,
+    ExportiusImpl,
 >;
 pub trait Sorcerer: Send + Sync {}
 impl Default for FlecsSorcerers {
@@ -41,6 +44,7 @@ impl Default for FlecsSorcerers {
             manifesto: Default::default(),
             systemus: Default::default(),
             deploymento: Default::default(),
+            exportius: Default::default(),
         }
     }
 }
@@ -54,6 +58,7 @@ pub struct Sorcerers<
     M: Manifesto + ?Sized,
     SYS: Systemus + ?Sized,
     D: Deploymento + ?Sized,
+    E: Exportius + ?Sized,
 > {
     pub app_raiser: Arc<APP>,
     pub authmancer: Arc<AUTH>,
@@ -63,6 +68,7 @@ pub struct Sorcerers<
     pub manifesto: Arc<M>,
     pub systemus: Arc<SYS>,
     pub deploymento: Arc<D>,
+    pub exportius: Arc<E>,
 }
 
 impl<
@@ -74,7 +80,8 @@ impl<
         M: Manifesto + ?Sized,
         SYS: Systemus + ?Sized,
         D: Deploymento + ?Sized,
-    > Clone for Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>
+        E: Exportius + ?Sized,
+    > Clone for Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E>
 {
     fn clone(&self) -> Self {
         Self {
@@ -86,6 +93,7 @@ impl<
             manifesto: self.manifesto.clone(),
             systemus: self.systemus.clone(),
             deploymento: self.deploymento.clone(),
+            exportius: self.exportius.clone(),
         }
     }
 }
@@ -100,6 +108,7 @@ pub type MockSorcerers = Sorcerers<
     crate::sorcerer::manifesto::MockManifesto,
     crate::sorcerer::systemus::MockSystemus,
     crate::sorcerer::deploymento::MockDeploymento,
+    crate::sorcerer::exportius::MockExportius,
 >;
 
 #[cfg(test)]
@@ -114,6 +123,7 @@ impl Default for MockSorcerers {
             manifesto: Arc::new(crate::sorcerer::manifesto::MockManifesto::default()),
             systemus: Arc::new(crate::sorcerer::systemus::MockSystemus::default()),
             deploymento: Arc::new(crate::sorcerer::deploymento::MockDeploymento::default()),
+            exportius: Arc::new(crate::sorcerer::exportius::MockExportius::default()),
         }
     }
 }
