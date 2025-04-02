@@ -6,6 +6,7 @@ use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::deploymento::Deploymento;
+use crate::sorcerer::exportius::Exportius;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
@@ -30,11 +31,12 @@ impl<
         M: Manifesto,
         SYS: Systemus,
         D: Deploymento,
+        E: Exportius,
         F: Floxy,
         T: UsbDeviceReader,
         NET: NetworkAdapterReader,
         NetDev: NetDeviceReader,
-    > Console for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, F, T, NET, NetDev>
+    > Console for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, F, T, NET, NetDev>
 {
     async fn console_authentication_delete(
         &self,

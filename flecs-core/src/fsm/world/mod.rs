@@ -11,6 +11,7 @@ use crate::relic::{FlecsRelics, Relics};
 use crate::sorcerer::appraiser::{AppRaiser, AppraiserImpl};
 use crate::sorcerer::authmancer::{Authmancer, AuthmancerImpl};
 use crate::sorcerer::deploymento::{Deploymento, DeploymentoImpl};
+use crate::sorcerer::exportius::{Exportius, ExportiusImpl};
 use crate::sorcerer::instancius::{Instancius, InstanciusImpl};
 use crate::sorcerer::licenso::{Licenso, LicensoImpl};
 use crate::sorcerer::mage_quester::{MageQuester, MageQuesterImpl};
@@ -32,12 +33,13 @@ pub struct World<
     M: Manifesto + ?Sized,
     SYS: Systemus + ?Sized,
     D: Deploymento + ?Sized,
+    E: Exportius + ?Sized,
     F: Floxy,
     UDR: UsbDeviceReader,
     NAR: NetworkAdapterReader,
     NDR: NetDeviceReader,
 > {
-    pub sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>,
+    pub sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E>,
     pub enchantments: Enchantments<F>,
     pub relics: Relics<UDR, NAR, NDR>,
     pub vault: Arc<Vault>,
@@ -53,6 +55,7 @@ pub type FlecsWorld = World<
     ManifestoImpl,
     SystemusImpl,
     DeploymentoImpl,
+    ExportiusImpl,
     FloxyImpl,
     UsbDeviceReaderImpl,
     NetworkAdapterReaderImpl,
@@ -101,11 +104,12 @@ impl<
         M: Manifesto + 'static,
         SYS: Systemus + 'static,
         D: Deploymento + 'static,
+        E: Exportius + 'static,
         F: Floxy + 'static,
         UDR: UsbDeviceReader,
         NAR: NetworkAdapterReader,
         NDR: NetDeviceReader,
-    > World<APP, AUTH, I, L, Q, M, SYS, D, F, UDR, NAR, NDR>
+    > World<APP, AUTH, I, L, Q, M, SYS, D, E, F, UDR, NAR, NDR>
 {
     pub async fn halt(self) {
         self.server.shutdown().await;
@@ -153,7 +157,7 @@ impl<
     }
 
     pub async fn create(
-        sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D>,
+        sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E>,
         enchantments: Enchantments<F>,
         relics: Relics<UDR, NAR, NDR>,
         vault: Arc<Vault>,
