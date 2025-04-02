@@ -4,7 +4,7 @@ use crate::relic::async_flecstract::{
     archive_single_file_to_memory, archive_to_memory, extract_from_memory,
     extract_single_file_from_memory_as,
 };
-use crate::relic::docker::write_stream_to_memory;
+use crate::relic::docker::{write_stream_to_file, write_stream_to_memory};
 use async_compression::tokio::bufread::{GzipDecoder, GzipEncoder};
 use axum::body::Bytes;
 use bollard::container::{
@@ -19,7 +19,7 @@ use futures_util::stream::StreamExt;
 use serde::Serialize;
 use std::hash::Hash;
 use std::io::Cursor;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
@@ -390,7 +390,7 @@ where
     Ok(())
 }
 
-async fn copy_archive_from(
+pub async fn copy_archive_from(
     quest: SyncQuest,
     docker_client: Arc<Docker>,
     src: &Path,
@@ -408,6 +408,42 @@ async fn copy_archive_from(
             |quest| async move {
                 let result = docker_client.download_from_container(&container_name, options);
                 write_stream_to_memory(quest, result).await
+            },
+        )
+        .await;
+    result.await
+}
+
+/// Copies the content in the container at the given path into an archive at the specified location.
+pub async fn copy_archive_to_file(
+    quest: SyncQuest,
+    docker_client: Arc<Docker>,
+    src: &Path,
+    dst: PathBuf,
+    container_name: &str,
+) -> Result<()> {
+    let options = Some(DownloadFromContainerOptions {
+        path: src.to_string_lossy().to_string(),
+    });
+    let container_name = container_name.to_string();
+    let (.., result) = quest
+        .lock()
+        .await
+        .create_sub_quest(
+            format!("Download archive {src:?} from container {container_name} to {dst:?}"),
+            |quest| async move {
+                let result = docker_client.download_from_container(&container_name, options);
+                match write_stream_to_file(quest, result, &dst).await {
+                    Ok(_) => Ok(()),
+                    Err(e) => {
+                        if let Err(e) = tokio::fs::remove_file(&dst).await {
+                            error!(
+                                "Failed to remove {dst:?} after failing to download archive: {e}"
+                            );
+                        }
+                        Err(e)
+                    }
+                }
             },
         )
         .await;
