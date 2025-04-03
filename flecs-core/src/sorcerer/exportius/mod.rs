@@ -14,7 +14,7 @@ pub use exportius_impl::*;
 #[cfg(test)]
 use mockall::automock;
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
@@ -305,6 +305,12 @@ pub trait Exportius: Sorcerer + 'static {
         deployments_result?;
         Ok(())
     }
+
+    async fn get_export(
+        &self,
+        export_dir: &Path,
+        export_id: String,
+    ) -> Result<Option<tokio::fs::File>, std::io::Error>;
 
     async fn get_exports(&self) -> Result<Vec<String>, std::io::Error> {
         let export_dir = PathBuf::from(crate::lore::flecsport::BASE_PATH);
