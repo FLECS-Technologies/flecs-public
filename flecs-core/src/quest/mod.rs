@@ -120,13 +120,13 @@ impl Quest {
         }
     }
 
-    pub fn new_synced(description: String) -> Arc<Mutex<Self>> {
-        Arc::new(Mutex::new(Self::new(description)))
+    pub fn new_synced(description: impl Into<String>) -> Arc<Mutex<Self>> {
+        Arc::new(Mutex::new(Self::new(description.into())))
     }
 
     pub async fn create_sub_quest<F, Fut, T, E>(
         &mut self,
-        description: String,
+        description: impl Into<String>,
         f: F,
     ) -> (QuestId, SyncQuest, BoxFuture<'static, Result<T, E>>)
     where
@@ -146,7 +146,7 @@ impl Quest {
 
     pub async fn create_infallible_sub_quest<F, Fut, T>(
         &mut self,
-        description: String,
+        description: impl Into<String>,
         f: F,
     ) -> (QuestId, SyncQuest, BoxFuture<'static, T>)
     where
@@ -165,7 +165,7 @@ impl Quest {
 
     pub async fn spawn_sub_quest<'a, F, Fut, T, E>(
         &'a mut self,
-        description: String,
+        description: impl Into<String>,
         f: F,
     ) -> (QuestId, SyncQuest, JoinHandle<Result<T, E>>)
     where
