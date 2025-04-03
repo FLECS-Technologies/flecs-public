@@ -75,8 +75,15 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _body: ExportRequest,
+        body: ExportRequest,
     ) -> Result<ExportsPostResponse, ()> {
-        todo!()
+        Ok(super::api::v2::exports::post(
+            self.vault.clone(),
+            self.sorcerers.exportius.clone(),
+            self.enchantments.floxy.clone(),
+            self.enchantments.quest_master.clone(),
+            body,
+        )
+        .await)
     }
 }
