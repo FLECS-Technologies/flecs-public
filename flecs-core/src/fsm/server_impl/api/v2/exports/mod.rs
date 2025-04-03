@@ -1,3 +1,4 @@
+pub mod export_id;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::quest::QuestResult;

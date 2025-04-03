@@ -56,9 +56,12 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: ExportsExportIdGetPathParams,
+        path_params: ExportsExportIdGetPathParams,
     ) -> Result<ExportsExportIdGetResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::exports::export_id::get(self.sorcerers.exportius.clone(), path_params)
+                .await,
+        )
     }
 
     async fn exports_get(
