@@ -306,6 +306,12 @@ pub trait Exportius: Sorcerer + 'static {
         Ok(())
     }
 
+    async fn delete_export(
+        &self,
+        export_dir: &Path,
+        export_id: String,
+    ) -> Result<bool, std::io::Error>;
+
     async fn get_export(
         &self,
         export_dir: &Path,

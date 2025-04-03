@@ -46,9 +46,13 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: ExportsExportIdDeletePathParams,
+        path_params: ExportsExportIdDeletePathParams,
     ) -> Result<ExportsExportIdDeleteResponse, ()> {
-        todo!()
+        Ok(super::api::v2::exports::export_id::delete(
+            self.sorcerers.exportius.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn exports_export_id_get(

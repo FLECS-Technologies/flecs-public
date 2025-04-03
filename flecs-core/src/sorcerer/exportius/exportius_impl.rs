@@ -19,6 +19,10 @@ impl Sorcerer for ExportiusImpl {}
 
 #[async_trait]
 impl Exportius for ExportiusImpl {
+    async fn delete_export(&self, export_dir: &Path, export_id: String) -> Result<bool, Error> {
+        crate::sorcerer::spell::flecsport::delete_export(export_dir, export_id).await
+    }
+
     async fn get_export(
         &self,
         export_dir: &Path,
