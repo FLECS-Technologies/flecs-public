@@ -1,4 +1,5 @@
 mod exportius_impl;
+
 use crate::jeweler::gem::instance::InstanceId;
 use crate::quest::SyncQuest;
 use crate::relic::async_flecstract::archive_to_file;
@@ -12,6 +13,7 @@ use async_trait::async_trait;
 pub use exportius_impl::*;
 #[cfg(test)]
 use mockall::automock;
+use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
@@ -291,6 +293,23 @@ pub trait Exportius: Sorcerer + 'static {
         instances_result?;
         deployments_result?;
         Ok(())
+    }
+
+    async fn get_exports(&self) -> Result<Vec<String>, std::io::Error> {
+        let export_dir = PathBuf::from(crate::lore::flecsport::BASE_PATH);
+        let mut exports = Vec::new();
+        let mut entries = tokio::fs::read_dir(export_dir).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            if entry.metadata().await?.is_file() {
+                let path = entry.path();
+                if path.extension() == Some(OsStr::new("tar")) {
+                    if let Some(file_name) = path.file_stem() {
+                        exports.push(file_name.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+        Ok(exports)
     }
 
     async fn archive_export(
