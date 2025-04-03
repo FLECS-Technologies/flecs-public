@@ -67,7 +67,7 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ExportsGetResponse, ()> {
-        todo!()
+        Ok(super::api::v2::exports::get(self.sorcerers.exportius.clone()).await)
     }
 
     async fn exports_post(
