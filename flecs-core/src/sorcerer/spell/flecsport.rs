@@ -104,6 +104,15 @@ pub async fn get_export(
     }
 }
 
+pub async fn delete_export(export_dir: &Path, export_id: String) -> Result<bool, std::io::Error> {
+    let path = export_dir.join(format!("{export_id}.tar"));
+    match tokio::fs::remove_file(path).await {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(e),
+    }
+}
+
 pub async fn export_apps(
     quest: SyncQuest,
     vault: Arc<Vault>,
@@ -666,5 +675,32 @@ mod tests {
             get_export(&path, EXPORT_ID.to_string()).await,
             Ok(None)
         ));
+    }
+
+    #[tokio::test]
+    async fn delete_export_ok_exists() {
+        const EXPORT_ID: &str = "1234tasf236zt";
+        const EXPORT_DATA: &[u8; 9] = b"dataaaaaa";
+        let path = testdir!();
+        let expected_file_path = path.join(format!("{EXPORT_ID}.tar"));
+        std::fs::write(&expected_file_path, EXPORT_DATA).unwrap();
+        assert!(delete_export(&path, EXPORT_ID.to_string()).await.unwrap());
+        assert!(!expected_file_path.try_exists().unwrap());
+    }
+
+    #[tokio::test]
+    async fn delete_export_ok_none() {
+        const EXPORT_ID: &str = "1234tasf236zt";
+        let path = testdir!();
+        assert!(!delete_export(&path, EXPORT_ID.to_string()).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn delete_export_err() {
+        const EXPORT_ID: &str = "1234tasf236zt";
+        let path = testdir!();
+        let expected_file_path = path.join(format!("{EXPORT_ID}.tar"));
+        std::fs::create_dir_all(expected_file_path).unwrap();
+        assert!(delete_export(&path, EXPORT_ID.to_string()).await.is_err());
     }
 }
