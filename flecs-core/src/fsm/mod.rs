@@ -10,6 +10,7 @@ use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::deploymento::Deploymento;
 use crate::sorcerer::exportius::Exportius;
+use crate::sorcerer::importius::Importius;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
@@ -95,9 +96,10 @@ async fn create_service<
     SYS: Systemus + 'static,
     D: Deploymento + 'static,
     E: Exportius + 'static,
+    IMP: Importius + 'static,
     F: Floxy + 'static,
 >(
-    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E>,
+    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
 ) -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
@@ -207,9 +209,10 @@ pub fn spawn_server<
     SYS: Systemus + 'static,
     D: Deploymento + 'static,
     E: Exportius + 'static,
+    IMP: Importius + 'static,
     F: Floxy + 'static,
 >(
-    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E>,
+    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
     socket_path: PathBuf,
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
@@ -247,9 +250,10 @@ pub async fn server<
     SYS: Systemus + 'static,
     D: Deploymento + 'static,
     E: Exportius + 'static,
+    IMP: Importius + 'static,
     F: Floxy + 'static,
 >(
-    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E>,
+    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
     socket_path: PathBuf,
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
