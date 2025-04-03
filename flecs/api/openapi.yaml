@@ -1157,6 +1157,34 @@ paths:
           description: Export not found
         "500":
           $ref: "#/components/responses/response_500"
+  /imports:
+    post:
+      tags: [ "Flecsport" ]
+      summary: Upload and import an export file
+      parameters:
+        - name: Content-Disposition
+          description: File name of the export, e.g. my-export.tar
+          in: header
+          required: true
+          schema:
+            $ref: '#/components/schemas/export_id'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "202":
+          $ref: "#/components/responses/response_202"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "500":
+          $ref: "#/components/responses/response_500"
   # Instance related paths
   /instances:
     get:
