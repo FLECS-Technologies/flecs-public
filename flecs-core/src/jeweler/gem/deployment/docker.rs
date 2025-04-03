@@ -16,8 +16,8 @@ use bollard::auth::DockerCredentials;
 use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions};
 use bollard::image::RemoveImageOptions;
 use bollard::models::{
-    ContainerInspectResponse, ContainerState, EndpointIpamConfig, EndpointSettings, Ipam,
-    IpamConfig, MountPointTypeEnum, Network, Volume,
+    ContainerInspectResponse, ContainerState, EndpointIpamConfig, EndpointSettings, HostConfig,
+    Ipam, IpamConfig, Mount, MountPointTypeEnum, MountTypeEnum, Network, Volume,
 };
 use bollard::network::{
     ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions, ListNetworksOptions,
@@ -32,7 +32,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::{fs, join};
-use tracing::{debug, warn};
+use tracing::{debug, error, warn};
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -270,10 +270,10 @@ impl DockerDeployment {
         client: Arc<Docker>,
         id: InstanceId,
         config_files: &[ConfigFile],
+        dst: PathBuf,
     ) -> crate::Result<()> {
         for config_file in config_files {
-            let dst = crate::lore::instance_config_path(&id.to_string())
-                .join(&config_file.host_file_name);
+            let dst = dst.join(&config_file.host_file_name);
             if let Err(e) = Self::copy_from_instance(
                 client.clone(),
                 Quest::new_synced(format!(
@@ -401,6 +401,10 @@ impl AppDeployment for DockerDeployment {
         }
         copy_result
     }
+
+    async fn export_app(&self, quest: SyncQuest, id: String, path: PathBuf) -> anyhow::Result<()> {
+        relic::docker::image::save(quest, self.client()?, &path, &id).await
+    }
 }
 
 impl DockerDeployment {
@@ -440,6 +444,32 @@ impl DockerDeployment {
             .await
     }
 
+    fn temporary_volume_container_config(
+        image: String,
+        volume_id: VolumeId,
+        volume_dst: impl AsRef<Path>,
+    ) -> Config<String> {
+        let volume_dst = volume_dst.as_ref().to_string_lossy().to_string();
+        Config {
+            image: Some(image),
+            volumes: Some(HashMap::from([(
+                format!("{volume_id}:{}", volume_dst),
+                HashMap::new(),
+            )])),
+            network_disabled: Some(true),
+            host_config: Some(HostConfig {
+                mounts: Some(vec![Mount {
+                    typ: Some(MountTypeEnum::VOLUME),
+                    source: Some(volume_id),
+                    target: Some(volume_dst),
+                    ..Default::default()
+                }]),
+                ..HostConfig::default()
+            }),
+            ..Config::default()
+        }
+    }
+
     async fn export_volume_with_client(
         docker_client: Arc<Docker>,
         quest: SyncQuest,
@@ -465,18 +495,12 @@ impl DockerDeployment {
                         if !volume_exists.await? {
                             anyhow::bail!("Volume {id} does not exist");
                         }
+                        let volume_dst = PathBuf::from(format!("/tmp_volumes/{id}/"));
+                        let config = Self::temporary_volume_container_config(image, id, volume_dst);
                         let container_id = relic::docker::container::create::<String, String>(
                             docker_client,
                             None,
-                            Config {
-                                image: Some(image),
-                                volumes: Some(HashMap::from([(
-                                    format!("{id}:/tmp_volumes/{id}/"),
-                                    HashMap::new(),
-                                )])),
-                                network_disabled: Some(true),
-                                ..Config::default()
-                            },
+                            config,
                         )
                         .await?;
                         Ok(container_id)
@@ -494,11 +518,11 @@ impl DockerDeployment {
                 let docker_client = docker_client.clone();
                 async move {
                     let container: String = recv_container_download.await?;
-                    relic::docker::container::download_gzip_streamed(
-                        docker_client,
+                    relic::docker::container::copy_archive_to_file(
                         quest,
+                        docker_client,
                         Path::new(&format!("/tmp_volumes/{id}/")),
-                        &path,
+                        path,
                         &container,
                     )
                     .await
@@ -514,7 +538,6 @@ impl DockerDeployment {
             .create_sub_quest("Remove temporary container".to_string(), |_quest| {
                 let docker_client = docker_client.clone();
                 async move {
-                    download.await?;
                     let container: String = recv_container_remove.await?;
                     relic::docker::container::remove(
                         docker_client,
@@ -532,9 +555,10 @@ impl DockerDeployment {
         match container.await {
             Ok(container) => {
                 let _ = send_container_download.send(container.clone());
+                download.await?;
                 let _ = send_container_remove.send(container.clone());
                 if let Err(e) = remove_container.await {
-                    eprintln!("Could not remove temporary container {container}: {e}");
+                    error!("Could not remove temporary container {container}: {e}");
                 }
                 Ok(())
             }
@@ -1096,7 +1120,13 @@ impl InstanceDeployment for DockerDeployment {
     ) -> anyhow::Result<()> {
         let client = self.client()?;
         relic::docker::container::stop(client.clone(), &id.to_docker_id(), None).await?;
-        Self::copy_config_from_instance(client, id, config_files).await?;
+        Self::copy_config_from_instance(
+            client,
+            id,
+            config_files,
+            crate::lore::instance_config_path(&id.to_string()),
+        )
+        .await?;
         self.delete_instance(id).await?;
         Ok(())
     }
@@ -1144,6 +1174,16 @@ impl InstanceDeployment for DockerDeployment {
         is_dst_file_path: bool,
     ) -> anyhow::Result<()> {
         Self::copy_to_instance(self.client()?, quest, id, src, dst, is_dst_file_path).await
+    }
+
+    async fn copy_configs_from_instance(
+        &self,
+        id: InstanceId,
+        config_files: &[ConfigFile],
+        dst: PathBuf,
+    ) -> anyhow::Result<()> {
+        let client = self.client()?;
+        Self::copy_config_from_instance(client, id, config_files, dst).await
     }
 }
 

@@ -28,7 +28,7 @@ pub struct ByteResult<T> {
     pub handle: JoinHandle<Result<T>>,
 }
 
-async fn write_stream_to_file<T>(quest: SyncQuest, stream: T, path: &Path) -> Result<()>
+async fn write_stream_to_file<T>(quest: SyncQuest, stream: T, path: impl AsRef<Path>) -> Result<()>
 where
     T: Stream<Item = Result<Bytes, bollard::errors::Error>> + Unpin,
 {

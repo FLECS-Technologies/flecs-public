@@ -464,11 +464,14 @@ pub async fn save(
     quest
         .lock()
         .await
-        .create_sub_quest("Writing image to file".to_string(), |quest| async move {
-            let result = docker_client.export_image(&image);
-            write_stream_to_file(quest, result, &path).await?;
-            Ok(())
-        })
+        .create_sub_quest(
+            format!("Writing image {image} to {path:?}"),
+            |quest| async move {
+                let result = docker_client.export_image(&image);
+                write_stream_to_file(quest, result, &path).await?;
+                Ok(())
+            },
+        )
         .await
         .2
         .await

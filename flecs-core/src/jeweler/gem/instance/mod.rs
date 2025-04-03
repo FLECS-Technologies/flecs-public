@@ -6,6 +6,7 @@ use crate::jeweler::instance::Logs;
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
+use crate::quest;
 use crate::quest::{Quest, SyncQuest};
 use crate::vault::pouch::AppKey;
 use bollard::container::Config;
@@ -23,7 +24,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::fs;
-use tracing::{error, warn};
+use tracing::{debug, error, warn};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -701,11 +702,127 @@ impl Instance {
         Ok(())
     }
 
-    pub async fn export(&self, _path: &Path) -> anyhow::Result<()> {
-        // TODO: Export config
-        // TODO: Export config files
-        // TODO: Export volumes
+    pub async fn export(&self, quest: SyncQuest, path: &Path) -> anyhow::Result<()> {
+        tokio::fs::create_dir_all(&path).await?;
+        let instance_config = serde_json::to_vec_pretty(&self)?;
+        quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Export config of instance {}", self.id), |_quest| {
+                tokio::fs::write(path.join("instance.json"), instance_config)
+            })
+            .await
+            .2
+            .await?;
+        let is_running = self.is_running().await?;
+        quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!("Export config files of instance {}", self.id),
+                |quest| {
+                    Self::export_config_files(
+                        quest,
+                        self.deployment.clone(),
+                        self.id,
+                        self.manifest.config_files.clone(),
+                        path.to_path_buf(),
+                        is_running,
+                    )
+                },
+            )
+            .await
+            .2
+            .await?;
+        let mut export_volumes_results = Vec::new();
+        for volume_mount in self.config.volume_mounts.values() {
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!(
+                        "Export volume {} of instance {}",
+                        volume_mount.name, self.id
+                    ),
+                    |quest| {
+                        let volume_name = volume_mount.name.clone();
+                        let path = path.join(format!("{volume_name}.tar"));
+                        let image = self.manifest.image_with_tag();
+                        let deployment = self.deployment.clone();
+                        async move {
+                            deployment
+                                .export_volume(quest, volume_name, &path, &image)
+                                .await
+                        }
+                    },
+                )
+                .await
+                .2;
+            export_volumes_results.push(result);
+        }
+        for volume_result in join_all(export_volumes_results).await {
+            volume_result?;
+        }
         Ok(())
+    }
+
+    pub async fn export_config_files_stopped(
+        id: InstanceId,
+        config_files: Vec<ConfigFile>,
+        path: PathBuf,
+    ) -> anyhow::Result<()> {
+        debug!(
+            "Export config files of stopped instance {} to {}",
+            id,
+            path.display()
+        );
+        let existing_config_path = crate::lore::instance_config_path(&id.to_string());
+        for result in join_all(config_files.iter().map(|config_file| {
+            tokio::fs::copy(
+                existing_config_path.join(&config_file.host_file_name),
+                path.join(&config_file.host_file_name),
+            )
+        }))
+        .await
+        {
+            result?;
+        }
+        Ok(())
+    }
+
+    pub async fn export_config_files_running(
+        deployment: Arc<dyn Deployment>,
+        id: InstanceId,
+        config_files: Vec<ConfigFile>,
+        path: PathBuf,
+    ) -> anyhow::Result<()> {
+        debug!(
+            "Export config files of running instance {} to {}",
+            id,
+            path.display()
+        );
+        deployment
+            .copy_configs_from_instance(id, &config_files, path)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn export_config_files(
+        quest: SyncQuest,
+        deployment: Arc<dyn Deployment>,
+        id: InstanceId,
+        files: Vec<ConfigFile>,
+        path: PathBuf,
+        running: bool,
+    ) -> anyhow::Result<()> {
+        match (files.is_empty(), running) {
+            (true, _) => {
+                quest.lock().await.state = quest::State::Skipped;
+                Ok(())
+            }
+            (_, true) => Self::export_config_files_running(deployment, id, files, path).await,
+            (_, false) => Self::export_config_files_stopped(id, files, path).await,
+        }
     }
 
     pub async fn import(&self, _path: &Path) -> anyhow::Result<()> {

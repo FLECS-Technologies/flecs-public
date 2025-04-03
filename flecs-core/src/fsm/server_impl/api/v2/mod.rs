@@ -2,6 +2,7 @@ pub mod apps;
 pub mod console;
 pub mod deployments;
 pub mod device;
+pub mod exports;
 pub mod instances;
 pub mod jobs;
 pub mod system;

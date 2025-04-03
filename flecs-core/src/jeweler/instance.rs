@@ -5,7 +5,7 @@ use crate::quest::SyncQuest;
 use async_trait::async_trait;
 // TODO: Use more generic struct as soon as the second type of deployment is implemented
 pub use bollard::container::Config;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub struct Logs {
     pub stdout: String,
@@ -58,4 +58,10 @@ pub trait InstanceDeployment {
     async fn is_instance_running(&self, id: InstanceId) -> Result<bool> {
         Ok(self.instance_status(id).await? == InstanceStatus::Running)
     }
+    async fn copy_configs_from_instance(
+        &self,
+        id: InstanceId,
+        config_files: &[ConfigFile],
+        dst: PathBuf,
+    ) -> Result<()>;
 }

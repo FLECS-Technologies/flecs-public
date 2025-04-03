@@ -46,7 +46,7 @@ pub mod tests {
     use serde::{Serialize, Serializer};
     use std::collections::HashMap;
     use std::net::Ipv4Addr;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::sync::Arc;
 
     mock! {
@@ -64,6 +64,7 @@ pub mod tests {
                 dst: &Path,
                 is_dst_file_path: bool,
             ) -> Result<()>;
+            async fn export_app(&self, quest: SyncQuest, id: String, path: PathBuf) -> Result<()>;
         }
         #[async_trait]
         impl InstanceDeployment for edDeployment {
@@ -92,6 +93,12 @@ pub mod tests {
                 src: &Path,
                 dst: &Path,
                 is_dst_file_path: bool,
+            ) -> Result<()>;
+            async fn copy_configs_from_instance(
+                &self,
+                id: InstanceId,
+                config_files: &[ConfigFile],
+                dst: PathBuf,
             ) -> Result<()>;
         }
         #[async_trait]
@@ -158,7 +165,7 @@ pub mod tests {
         where
             S: Serializer,
         {
-            serializer.serialize_str("MockedDeployment")
+            serializer.serialize_str(&self.id())
         }
     }
 }
