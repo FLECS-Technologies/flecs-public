@@ -12,6 +12,13 @@ pub mod tracing {
     }
 }
 
+pub mod flecsport {
+    #[cfg(test)]
+    pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/exports";
+    #[cfg(not(test))]
+    pub const BASE_PATH: &str = "/var/lib/flecs/exports";
+}
+
 pub mod floxy {
     pub const BASE_PATH: &str = "/var/lib/flecs/floxy";
     pub const CONFIG_PATH: &str = "/etc/nginx/floxy.conf";

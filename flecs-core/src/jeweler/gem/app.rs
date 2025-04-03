@@ -10,6 +10,7 @@ use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::mem::swap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::error;
 
@@ -393,6 +394,29 @@ impl App {
                 self,
             ))
         }
+    }
+
+    pub async fn export(&self, quest: SyncQuest, path: PathBuf) -> Result<(), anyhow::Error> {
+        let Some((_, app_data)) = self.deployments.iter().next() else {
+            anyhow::bail!("App {} is not installed in any deployment", self.key);
+        };
+        let Some(manifest) = self.manifest.as_ref() else {
+            anyhow::bail!("App {} has no manifest", self.key);
+        };
+        tokio::fs::create_dir_all(&path).await?;
+        let image_path = path.join(format!("{}_{}.tar", self.key.name, self.key.version));
+        app_data
+            .deployment
+            .export_app(quest, manifest.image_with_tag(), image_path)
+            .await?;
+        let manifest_path = path.join(format!(
+            "{}_{}.manifest.json",
+            self.key.name, self.key.version
+        ));
+        tokio::fs::write(&manifest_path, serde_json::to_vec_pretty(manifest)?).await?;
+        let app_path = path.join(format!("{}_{}.json", self.key.name, self.key.version));
+        tokio::fs::write(&app_path, serde_json::to_vec_pretty(&self)?).await?;
+        Ok(())
     }
 }
 

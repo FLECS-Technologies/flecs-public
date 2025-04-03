@@ -6,7 +6,7 @@ use flecs_console_client::models::{
     PostApiV2Tokens200ResponseData, PostApiV2Tokens200ResponseDataToken,
 };
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub(crate) type AppId = String;
@@ -63,6 +63,8 @@ pub trait AppDeployment {
         dst: &Path,
         is_dst_file_path: bool,
     ) -> Result<()>;
+
+    async fn export_app(&self, quest: SyncQuest, id: String, path: PathBuf) -> Result<()>;
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]
