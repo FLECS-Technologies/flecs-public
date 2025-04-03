@@ -14,13 +14,14 @@ use crate::sorcerer::manifesto::Manifesto;
 use crate::sorcerer::systemus::Systemus;
 use async_trait::async_trait;
 use axum::extract::Host;
-use axum_extra::extract::CookieJar;
+use axum_extra::extract::{CookieJar, Multipart};
 use flecsd_axum_server::apis::flecsport::{
     ExportsExportIdDeleteResponse, ExportsExportIdGetResponse, ExportsGetResponse,
-    ExportsPostResponse, Flecsport,
+    ExportsPostResponse, Flecsport, ImportsPostResponse,
 };
 use flecsd_axum_server::models::{
     ExportRequest, ExportsExportIdDeletePathParams, ExportsExportIdGetPathParams,
+    ImportsPostHeaderParams,
 };
 use http::Method;
 
@@ -92,5 +93,16 @@ impl<
             body,
         )
         .await)
+    }
+
+    async fn imports_post(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _header_params: ImportsPostHeaderParams,
+        _body: Multipart,
+    ) -> Result<ImportsPostResponse, ()> {
+        todo!()
     }
 }
