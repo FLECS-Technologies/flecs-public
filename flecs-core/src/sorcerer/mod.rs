@@ -2,6 +2,7 @@ pub mod appraiser;
 pub mod authmancer;
 pub mod deploymento;
 pub mod exportius;
+pub mod importius;
 pub mod instancius;
 pub mod licenso;
 pub mod mage_quester;
@@ -14,6 +15,7 @@ use crate::sorcerer::appraiser::{AppRaiser, AppraiserImpl};
 use crate::sorcerer::authmancer::{Authmancer, AuthmancerImpl};
 use crate::sorcerer::deploymento::{Deploymento, DeploymentoImpl};
 use crate::sorcerer::exportius::{Exportius, ExportiusImpl};
+use crate::sorcerer::importius::{Importius, ImportiusImpl};
 use crate::sorcerer::instancius::{Instancius, InstanciusImpl};
 use crate::sorcerer::licenso::{Licenso, LicensoImpl};
 use crate::sorcerer::mage_quester::{MageQuester, MageQuesterImpl};
@@ -31,6 +33,7 @@ pub type FlecsSorcerers = Sorcerers<
     SystemusImpl,
     DeploymentoImpl,
     ExportiusImpl,
+    ImportiusImpl,
 >;
 pub trait Sorcerer: Send + Sync {}
 impl Default for FlecsSorcerers {
@@ -45,6 +48,7 @@ impl Default for FlecsSorcerers {
             systemus: Default::default(),
             deploymento: Default::default(),
             exportius: Default::default(),
+            importius: Default::default(),
         }
     }
 }
@@ -59,6 +63,7 @@ pub struct Sorcerers<
     SYS: Systemus + ?Sized,
     D: Deploymento + ?Sized,
     E: Exportius + ?Sized,
+    IMP: Importius + ?Sized,
 > {
     pub app_raiser: Arc<APP>,
     pub authmancer: Arc<AUTH>,
@@ -69,6 +74,7 @@ pub struct Sorcerers<
     pub systemus: Arc<SYS>,
     pub deploymento: Arc<D>,
     pub exportius: Arc<E>,
+    pub importius: Arc<IMP>,
 }
 
 impl<
@@ -81,7 +87,8 @@ impl<
         SYS: Systemus + ?Sized,
         D: Deploymento + ?Sized,
         E: Exportius + ?Sized,
-    > Clone for Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E>
+        IMP: Importius + ?Sized,
+    > Clone for Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>
 {
     fn clone(&self) -> Self {
         Self {
@@ -94,6 +101,7 @@ impl<
             systemus: self.systemus.clone(),
             deploymento: self.deploymento.clone(),
             exportius: self.exportius.clone(),
+            importius: self.importius.clone(),
         }
     }
 }
@@ -109,6 +117,7 @@ pub type MockSorcerers = Sorcerers<
     crate::sorcerer::systemus::MockSystemus,
     crate::sorcerer::deploymento::MockDeploymento,
     crate::sorcerer::exportius::MockExportius,
+    crate::sorcerer::importius::MockImportius,
 >;
 
 #[cfg(test)]
@@ -124,6 +133,7 @@ impl Default for MockSorcerers {
             systemus: Arc::new(crate::sorcerer::systemus::MockSystemus::default()),
             deploymento: Arc::new(crate::sorcerer::deploymento::MockDeploymento::default()),
             exportius: Arc::new(crate::sorcerer::exportius::MockExportius::default()),
+            importius: Arc::new(crate::sorcerer::importius::MockImportius::default()),
         }
     }
 }

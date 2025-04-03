@@ -7,6 +7,7 @@ use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::deploymento::Deploymento;
 use crate::sorcerer::exportius::Exportius;
+use crate::sorcerer::importius::Importius;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
@@ -36,11 +37,12 @@ impl<
         SYS: Systemus,
         D: Deploymento,
         E: Exportius,
+        IMP: Importius,
         F: Floxy + 'static,
         T: UsbDeviceReader,
         NET: NetworkAdapterReader,
         NetDev: NetDeviceReader,
-    > Apps for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, F, T, NET, NetDev>
+    > Apps for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
 {
     async fn apps_app_delete(
         &self,

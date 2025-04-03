@@ -17,6 +17,7 @@ use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::deploymento::Deploymento;
 use crate::sorcerer::exportius::Exportius;
+use crate::sorcerer::importius::Importius;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
@@ -56,6 +57,7 @@ pub struct ServerImpl<
     SYS: Systemus,
     D: Deploymento,
     E: Exportius,
+    IMP: Importius,
     F: Floxy,
     T: UsbDeviceReader,
     NET: NetworkAdapterReader,
@@ -67,7 +69,7 @@ pub struct ServerImpl<
     network_adapter_reader: Arc<NET>,
     net_device_reader: Arc<NetDev>,
     console_client: ConsoleClient,
-    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E>,
+    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
 }
 
 impl<
@@ -80,15 +82,16 @@ impl<
         SYS: Systemus,
         D: Deploymento,
         E: Exportius,
+        IMP: Importius,
         F: Floxy,
         T: UsbDeviceReader,
         NET: NetworkAdapterReader,
         NetDev: NetDeviceReader,
-    > ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, F, T, NET, NetDev>
+    > ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
 {
     pub async fn new(
         vault: Arc<Vault>,
-        sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E>,
+        sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
         enchantments: Enchantments<F>,
         usb_reader: T,
         network_adapter_reader: NET,
@@ -117,11 +120,12 @@ impl<
         SYS: Systemus,
         D: Deploymento,
         E: Exportius,
+        IMP: Importius + 'static,
         F: Floxy,
         T: UsbDeviceReader,
         NET: NetworkAdapterReader,
         NetDev: NetDeviceReader,
-    > Flunder for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, F, T, NET, NetDev>
+    > Flunder for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
 {
     async fn flunder_browse_get(
         &self,
