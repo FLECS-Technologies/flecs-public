@@ -90,6 +90,19 @@ lazy_static::lazy_static! {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ImportsPostHeaderParams {
+    #[validate(
+                      regex(path = *RE_IMPORTSPOSTHEADERPARAMS_CONTENT_DISPOSITION),
+                )]
+    pub content_disposition: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_IMPORTSPOSTHEADERPARAMS_CONTENT_DISPOSITION: regex::Regex = regex::Regex::new("^[a-zA-Z0-9_\\-\\.#]+$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct FlunderBrowseGetQueryParams {
     #[serde(rename = "q")]
     #[serde(skip_serializing_if = "Option::is_none")]

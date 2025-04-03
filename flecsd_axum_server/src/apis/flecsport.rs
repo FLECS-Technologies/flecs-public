@@ -58,6 +58,18 @@ pub enum ExportsPostResponse {
     Status500_InternalServerError(models::AdditionalInfo),
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum ImportsPostResponse {
+    /// Accepted
+    Status202_Accepted(models::JobMeta),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
 /// Flecsport
 #[async_trait]
 #[allow(clippy::ptr_arg)]
@@ -104,4 +116,16 @@ pub trait Flecsport {
         cookies: CookieJar,
         body: models::ExportRequest,
     ) -> Result<ExportsPostResponse, ()>;
+
+    /// Upload and import an export file.
+    ///
+    /// ImportsPost - POST /v2/imports
+    async fn imports_post(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        header_params: models::ImportsPostHeaderParams,
+        body: Multipart,
+    ) -> Result<ImportsPostResponse, ()>;
 }
