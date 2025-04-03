@@ -8,7 +8,8 @@ use crate::sorcerer::Sorcerer;
 use crate::vault::pouch::AppKey;
 use crate::vault::Vault;
 use async_trait::async_trait;
-use std::path::PathBuf;
+use std::io::Error;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -18,6 +19,14 @@ impl Sorcerer for ExportiusImpl {}
 
 #[async_trait]
 impl Exportius for ExportiusImpl {
+    async fn get_export(
+        &self,
+        export_dir: &Path,
+        export_id: String,
+    ) -> Result<Option<tokio::fs::File>, Error> {
+        crate::sorcerer::spell::flecsport::get_export(export_dir, export_id).await
+    }
+
     async fn export_apps(
         quest: SyncQuest,
         vault: Arc<Vault>,

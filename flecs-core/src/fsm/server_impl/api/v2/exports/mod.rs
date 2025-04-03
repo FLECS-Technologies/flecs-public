@@ -1,3 +1,4 @@
+pub mod export_id;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
@@ -12,6 +13,17 @@ use flecsd_axum_server::models;
 use flecsd_axum_server::models::ExportRequest as PostRequest;
 use std::str::FromStr;
 use std::sync::Arc;
+
+pub async fn get<E: Exportius>(exportius: Arc<E>) -> GetResponse {
+    match exportius.get_exports().await {
+        Ok(exports) => GetResponse::Status200_Success(
+            exports.into_iter().map(models::ExportId::from).collect(),
+        ),
+        Err(e) => {
+            GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
+    }
+}
 
 pub async fn post<E: Exportius, F: Floxy + 'static>(
     vault: Arc<Vault>,
