@@ -19,6 +19,7 @@ use crate::sorcerer::systemus::Systemus;
 use crate::sorcerer::Sorcerers;
 use crate::vault::Vault;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
+use axum::extract::DefaultBodyLimit;
 use axum::{
     extract::connect_info::{self},
     extract::MatchedPath,
@@ -112,29 +113,35 @@ async fn create_service<
         NetDeviceReaderImpl,
     )
     .await;
-    let app = flecsd_axum_server::server::new(Arc::new(server)).layer(
-        tower_http::trace::TraceLayer::new_for_http()
-            .make_span_with(|request: &Request<_>| {
-                let matched_path = request
-                    .extensions()
-                    .get::<MatchedPath>()
-                    .map(MatchedPath::as_str);
-                let path = request.uri().path();
-                info_span!(
-                    "http_request",
-                    method = ?request.method(),
-                    matched_path,
-                    path,
-                    error = tracing::field::Empty
+    let app = flecsd_axum_server::server::new(Arc::new(server))
+        // It is not feasible to configure the body limit per route as we would have to manually
+        // generated code (flecsd_axum_server::server::new). We therefore disable the limit for all
+        // routes. As we should always operate behind a nginx which controls the max size per route
+        // this should impose minimal security issues.
+        .layer(DefaultBodyLimit::disable())
+        .layer(
+            tower_http::trace::TraceLayer::new_for_http()
+                .make_span_with(|request: &Request<_>| {
+                    let matched_path = request
+                        .extensions()
+                        .get::<MatchedPath>()
+                        .map(MatchedPath::as_str);
+                    let path = request.uri().path();
+                    info_span!(
+                        "http_request",
+                        method = ?request.method(),
+                        matched_path,
+                        path,
+                        error = tracing::field::Empty
+                    )
+                })
+                .on_failure(
+                    |_error: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
+                        _span.record("error", _error.to_string());
+                    },
                 )
-            })
-            .on_failure(
-                |_error: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
-                    _span.record("error", _error.to_string());
-                },
-            )
-            .on_response(DefaultOnResponse::default().include_headers(true)),
-    );
+                .on_response(DefaultOnResponse::default().include_headers(true)),
+        );
     app.into_make_service_with_connect_info::<UdsConnectInfo>()
 }
 
