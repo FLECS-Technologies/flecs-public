@@ -1,5 +1,5 @@
 use crate::jeweler::network::NetworkKind;
-use crate::relic::network::{Ipv4Network, Network};
+use crate::relic::network::{Ipv4Network, Ipv6Network, Network};
 use crate::Result;
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
@@ -9,8 +9,10 @@ const PARENT_IDENTIFIER: &str = "parent";
 pub trait BollardNetworkExtension {
     fn subnet(&self) -> Option<Result<Network>>;
     fn subnet_ipv4(&self) -> Result<Option<Ipv4Network>>;
+    fn subnet_ipv6(&self) -> Result<Option<Ipv6Network>>;
     fn subnets(&self) -> Result<Vec<Network>>;
     fn subnets_ipv4(&self) -> Result<Vec<Ipv4Network>>;
+    fn subnets_ipv6(&self) -> Result<Vec<Ipv6Network>>;
     fn gateways(&self) -> Result<Vec<IpAddr>>;
     fn gateways_ipv4(&self) -> Result<Vec<Ipv4Addr>>;
     fn gateway_ipv4(&self) -> Result<Option<Ipv4Addr>>;
@@ -38,6 +40,10 @@ impl BollardNetworkExtension for bollard::models::Network {
         Ok(self.subnets_ipv4()?.first().copied())
     }
 
+    fn subnet_ipv6(&self) -> Result<Option<Ipv6Network>> {
+        Ok(self.subnets_ipv6()?.first().copied())
+    }
+
     fn subnets(&self) -> Result<Vec<Network>> {
         if let Some(bollard::models::Ipam {
             config: Some(configs),
@@ -60,6 +66,17 @@ impl BollardNetworkExtension for bollard::models::Network {
             .into_iter()
             .filter_map(|subnet| match subnet {
                 Network::Ipv4(subnet) => Some(subnet),
+                _ => None,
+            })
+            .collect())
+    }
+
+    fn subnets_ipv6(&self) -> Result<Vec<Ipv6Network>> {
+        Ok(self
+            .subnets()?
+            .into_iter()
+            .filter_map(|subnet| match subnet {
+                Network::Ipv6(subnet) => Some(subnet),
                 _ => None,
             })
             .collect())
