@@ -1,21 +1,25 @@
+use crate::forge::bollard::BollardNetworkExtension;
+use crate::forge::ipaddr::BitComplementExt;
 use crate::jeweler::deployment::{Deployment, DeploymentId};
 use crate::jeweler::gem::app::{try_create_app, App, AppDeserializable};
 use crate::jeweler::gem::instance::{
     try_create_instance, Instance, InstanceDeserializable, InstanceId,
 };
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::network::NetworkId;
 use crate::quest::SyncQuest;
 use crate::relic::system::info::try_create_system_info;
 use crate::sorcerer::exportius::manifest::{v3, Manifest};
 use crate::sorcerer::importius::{
     ImportAppError, ImportDeploymentError, ImportError, ImportInstanceError, ImportManifestError,
-    ReadImportManifestError,
+    ReadImportManifestError, TransferIpError,
 };
 use crate::vault::pouch::deployment::Deployment as PouchDeployment;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{pouch, GrabbedPouches, Vault};
 use futures_util::future::{join_all, BoxFuture};
 use std::collections::HashMap;
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -327,7 +331,19 @@ pub async fn import_instance(
     let instance_path = src.join("instance.json");
     let instance = tokio::fs::read(&instance_path).await?;
     let instance: InstanceDeserializable = serde_json::from_slice(&instance)?;
-    let instance = try_create_instance(instance, &manifests, &deployments)?;
+    let mut instance = try_create_instance(instance, &manifests, &deployments)?;
+    let deployment = instance.deployment();
+    for (id, ip) in instance.config.connected_networks.iter_mut() {
+        match deployment.network(id.clone()).await.map_err(|error| {
+            TransferIpError::InspectNetwork {
+                network: id.clone(),
+                error,
+            }
+        })? {
+            None => return Err(TransferIpError::UnknownNetwork(id.clone()).into()),
+            Some(network) => *ip = transfer_ip_address(*ip, &network, id)?,
+        }
+    }
     let mut results = Vec::new();
     {
         for volume in instance.config.volume_mounts.values() {
@@ -350,6 +366,49 @@ pub async fn import_instance(
         tokio::fs::copy(src, dst).await?;
     }
     Ok(instance)
+}
+
+fn transfer_ip_address(
+    current: IpAddr,
+    network: &bollard::models::Network,
+    id: &NetworkId,
+) -> Result<IpAddr, TransferIpError> {
+    match current {
+        IpAddr::V4(ipv4) => match network.subnet_ipv4() {
+            Err(error) => Err(TransferIpError::InspectNetwork {
+                network: id.clone(),
+                error,
+            }),
+            Ok(None) => Err(TransferIpError::NoFittingNetwork {
+                network: id.clone(),
+                ip: current,
+            }),
+            Ok(Some(network)) => {
+                let subnet_mask = network.subnet_mask();
+                // Set network part to 0
+                let ip = ipv4 & subnet_mask.complement();
+                // Use network part from new network
+                Ok(IpAddr::from(network.address() | ip))
+            }
+        },
+        IpAddr::V6(ipv6) => match network.subnet_ipv6() {
+            Err(error) => Err(TransferIpError::InspectNetwork {
+                network: id.clone(),
+                error,
+            }),
+            Ok(None) => Err(TransferIpError::NoFittingNetwork {
+                network: id.clone(),
+                ip: current,
+            }),
+            Ok(Some(network)) => {
+                let subnet_mask = network.subnet_mask();
+                // Set network part to 0
+                let ip = ipv6 & subnet_mask.complement();
+                // Use network part from new network
+                Ok(IpAddr::from(network.address() | ip))
+            }
+        },
+    }
 }
 
 pub async fn validate_import(
@@ -466,4 +525,142 @@ pub async fn import_to_vault(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ntest::test_case;
+    use std::net::{Ipv4Addr, Ipv6Addr};
+
+    #[test_case("192.168.54.23", "192.168.34.0/24", "192.168.34.23")]
+    #[test_case("10.3.72.198", "10.12.0.0/16", "10.12.72.198")]
+    #[test_case("172.16.88.7", "172.20.45.0/24", "172.20.45.7")]
+    #[test_case("203.45.112.9", "8.8.0.0/16", "8.8.112.9")]
+    #[test_case("8.46.219.33", "100.64.12.0/22", "100.64.15.33")]
+    #[test_case("99.120.55.101", "203.0.113.0/24", "203.0.113.101")]
+    #[test_case("45.67.89.10", "198.51.100.0/25", "198.51.100.10")]
+    #[test_case("132.4.78.199", "192.0.2.128/26", "192.0.2.135")]
+    #[test_case("11.254.30.66", "15.35.0.0/20", "15.35.14.66")]
+    #[test_case("63.91.182.240", "185.76.144.0/21", "185.76.150.240")]
+    #[test_case("2001:db8:abcd:1234::1", "2001:db8:abcd::/48", "2001:db8:abcd:1234::1")]
+    #[test_case(
+        "fd12:3456:789a:ffff::dead:beef",
+        "fd12:3456::/32",
+        "fd12:3456:789a:ffff::dead:beef"
+    )]
+    #[test_case("fe80::abcd:1234:5678:9abc", "fe80::/128", "fe80::")]
+    #[test_case(
+        "2606:4700:abcd:ef12::1",
+        "2606:4700:abcd:1200::/56",
+        "2606:4700:abcd:1212::1"
+    )]
+    #[test_case(
+        "2001:4860:dead:beef::42",
+        "2001:4860:feed::/40",
+        "2001:4860:feed:beef::42"
+    )]
+    #[test_case(
+        "2a00:1450:4001:82a::f1",
+        "2a00:1450:4001:800::/61",
+        "2a00:1450:4001:802::f1"
+    )]
+    fn transfer_ip_ok(current: &str, network: &str, expected: &str) {
+        let id = network.to_string();
+        let network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some(network.to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let current = IpAddr::from_str(current).unwrap();
+        let expected = IpAddr::from_str(expected).unwrap();
+        assert_eq!(
+            transfer_ip_address(current, &network, &id).unwrap(),
+            expected
+        )
+    }
+
+    #[test]
+    fn transfer_ipv4_err_ipam() {
+        let id = "TestNetwork".to_string();
+        let ip = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
+        let network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("invalid".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let result = transfer_ip_address(ip, &network, &id);
+        assert!(
+            matches!(result, Err(TransferIpError::InspectNetwork { .. })),
+            "{result:?}"
+        );
+    }
+
+    #[test]
+    fn transfer_ipv4_err_no_fitting_network() {
+        let id = "TestNetwork".to_string();
+        let ip = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
+        let network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("2a00:1450:4001:800::/61".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let result = transfer_ip_address(ip, &network, &id);
+        assert!(
+            matches!(result, Err(TransferIpError::NoFittingNetwork { .. })),
+            "{result:?}"
+        );
+    }
+
+    #[test]
+    fn transfer_ipv6_err_ipam() {
+        let id = "TestNetwork".to_string();
+        let ip = IpAddr::V6(Ipv6Addr::from_str("2a00:1450:4001:800::2").unwrap());
+        let network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("invalid".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let result = transfer_ip_address(ip, &network, &id);
+        assert!(
+            matches!(result, Err(TransferIpError::InspectNetwork { .. })),
+            "{result:?}"
+        );
+    }
+
+    #[test]
+    fn transfer_ipv6_err_no_fitting_network() {
+        let id = "TestNetwork".to_string();
+        let ip = IpAddr::V6(Ipv6Addr::from_str("2a00:1450:4001:800::2").unwrap());
+        let network = bollard::models::Network {
+            ipam: Some(bollard::models::Ipam {
+                config: Some(vec![bollard::models::IpamConfig {
+                    subnet: Some("10.20.30.0/24".to_string()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let result = transfer_ip_address(ip, &network, &id);
+        assert!(
+            matches!(result, Err(TransferIpError::NoFittingNetwork { .. })),
+            "{result:?}"
+        );
+    }
 }
