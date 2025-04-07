@@ -204,20 +204,19 @@ impl Quest {
         let result = finish_quest(&quest, f.await).await;
         {
             let quest = quest.lock().await;
-            if result.is_ok() {
-                debug!(
+            match &result {
+                Ok(_) => debug!(
                     "Sub-quest '{}' with id {} succeeded after {:#?}.",
                     quest.description,
                     quest.id.0,
                     std::time::Instant::now() - start
-                )
-            } else {
-                debug!(
-                    "Sub-quest '{}' with id {} failed after {:#?}.",
+                ),
+                Err(e) => debug!(
+                    "Sub-quest '{}' with id {} failed after {:#?}: {e}",
                     quest.description,
                     quest.id.0,
                     std::time::Instant::now() - start
-                )
+                ),
             }
         }
         result
