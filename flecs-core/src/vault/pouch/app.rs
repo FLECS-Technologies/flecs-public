@@ -11,14 +11,15 @@ use std::sync::Arc;
 use tracing::error;
 
 const APPS_FILE_NAME: &str = "apps.json";
+pub type Gems = HashMap<AppKey, App>;
 
 pub struct AppPouch {
     path: PathBuf,
-    apps: HashMap<AppKey, App>,
+    apps: Gems,
 }
 
 impl Pouch for AppPouch {
-    type Gems = HashMap<AppKey, App>;
+    type Gems = Gems;
 
     fn gems(&self) -> &Self::Gems {
         &self.apps

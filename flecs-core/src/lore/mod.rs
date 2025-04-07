@@ -19,6 +19,13 @@ pub mod flecsport {
     pub const BASE_PATH: &str = "/var/lib/flecs/exports";
 }
 
+pub mod flimport {
+    #[cfg(test)]
+    pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/imports";
+    #[cfg(not(test))]
+    pub const BASE_PATH: &str = "/var/lib/flecs/imports";
+}
+
 pub mod floxy {
     pub const BASE_PATH: &str = "/var/lib/flecs/floxy";
     pub const CONFIG_PATH: &str = "/etc/nginx/floxy.conf";

@@ -65,6 +65,8 @@ pub trait AppDeployment {
     ) -> Result<()>;
 
     async fn export_app(&self, quest: SyncQuest, id: String, path: PathBuf) -> Result<()>;
+
+    async fn import_app(&self, quest: SyncQuest, path: PathBuf) -> Result<()>;
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Copy, Clone, Eq, PartialEq)]

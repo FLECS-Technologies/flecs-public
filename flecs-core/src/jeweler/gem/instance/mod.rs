@@ -11,7 +11,7 @@ use crate::vault::pouch::AppKey;
 use bollard::container::Config;
 use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
 pub use config::*;
-use futures_util::future::join_all;
+use futures_util::future::{join_all, BoxFuture};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -912,6 +912,26 @@ impl Instance {
             .connected_networks
             .insert(network_id, IpAddr::V4(address));
         Ok(previous_address)
+    }
+
+    pub async fn import_volume_quest(
+        &self,
+        quest: &SyncQuest,
+        path: PathBuf,
+        volume_name: String,
+    ) -> BoxFuture<'static, crate::Result<VolumeId>> {
+        let deployment = self.deployment();
+        let image = self.manifest.image_with_tag();
+        quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Import volume {volume_name}"), |quest| async move {
+                deployment
+                    .import_volume(quest, &path, &volume_name, &image)
+                    .await
+            })
+            .await
+            .2
     }
 }
 

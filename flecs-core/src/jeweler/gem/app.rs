@@ -35,6 +35,10 @@ impl AppData {
     pub fn set_id(&mut self, id: AppId) {
         self.id = Some(id);
     }
+
+    pub fn deployment(&self) -> &Arc<dyn Deployment> {
+        &self.deployment
+    }
 }
 
 #[derive(Debug, Serialize)]

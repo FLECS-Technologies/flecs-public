@@ -14,7 +14,7 @@ use crate::{jeweler, relic};
 use async_trait::async_trait;
 use bollard::auth::DockerCredentials;
 use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions};
-use bollard::image::RemoveImageOptions;
+use bollard::image::{ImportImageOptions, RemoveImageOptions};
 use bollard::models::{
     ContainerInspectResponse, ContainerState, EndpointIpamConfig, EndpointSettings, HostConfig,
     Ipam, IpamConfig, Mount, MountPointTypeEnum, MountTypeEnum, Network, Volume,
@@ -405,6 +405,17 @@ impl AppDeployment for DockerDeployment {
     async fn export_app(&self, quest: SyncQuest, id: String, path: PathBuf) -> anyhow::Result<()> {
         relic::docker::image::save(quest, self.client()?, &path, &id).await
     }
+
+    async fn import_app(&self, quest: SyncQuest, path: PathBuf) -> anyhow::Result<()> {
+        relic::docker::image::load(
+            quest,
+            self.client()?,
+            &path,
+            ImportImageOptions::default(),
+            None,
+        )
+        .await
+    }
 }
 
 impl DockerDeployment {
@@ -715,6 +726,7 @@ impl VolumeDeployment for DockerDeployment {
             let docker_client = docker_client.clone();
             let name = name.clone();
             let image = image.to_string();
+            let container_path = PathBuf::from(format!("/tmp_volumes/{name}/"));
             quest
                 .lock()
                 .await
@@ -724,15 +736,7 @@ impl VolumeDeployment for DockerDeployment {
                         let container_id = relic::docker::container::create::<String, String>(
                             docker_client,
                             None,
-                            Config {
-                                image: Some(image),
-                                volumes: Some(HashMap::from([(
-                                    format!("{name}:/tmp_volumes/{name}/"),
-                                    HashMap::new(),
-                                )])),
-                                network_disabled: Some(true),
-                                ..Config::default()
-                            },
+                            Self::temporary_volume_container_config(image, name, container_path),
                         )
                         .await?;
                         Ok(container_id)
@@ -750,11 +754,11 @@ impl VolumeDeployment for DockerDeployment {
                 let docker_client = docker_client.clone();
                 async move {
                     let container: String = recv_container_upload.await?;
-                    relic::docker::container::upload_gzip_file_streamed(
+                    relic::docker::container::copy_archive_file_to(
                         docker_client,
                         quest,
-                        &path,
-                        Path::new(&format!("/tmp_volumes/{name}/")),
+                        path,
+                        PathBuf::from(format!("/tmp_volumes/{name}/")),
                         &container,
                     )
                     .await
@@ -770,7 +774,6 @@ impl VolumeDeployment for DockerDeployment {
             .create_sub_quest("Remove temporary container".to_string(), |_quest| {
                 let docker_client = docker_client.clone();
                 async move {
-                    upload.await?;
                     let container: String = recv_container_remove.await?;
                     relic::docker::container::remove(
                         docker_client,
@@ -788,6 +791,7 @@ impl VolumeDeployment for DockerDeployment {
         match join!(created_volume, container) {
             (Ok(volume_id), Ok(container)) => {
                 let _ = send_container_upload.send(container.clone());
+                upload.await?;
                 let _ = send_container_remove.send(container.clone());
                 if let Err(e) = remove_container.await {
                     eprintln!("Could not remove temporary container {container}: {e}");
