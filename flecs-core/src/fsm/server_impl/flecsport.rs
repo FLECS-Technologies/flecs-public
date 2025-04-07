@@ -38,7 +38,7 @@ impl<
         D: Deploymento,
         E: Exportius,
         IMP: Importius,
-        F: Floxy,
+        F: Floxy + 'static,
         T: UsbDeviceReader,
         NET: NetworkAdapterReader,
         NetDev: NetDeviceReader,
@@ -103,8 +103,15 @@ impl<
         _host: Host,
         _cookies: CookieJar,
         _header_params: ImportsPostHeaderParams,
-        _body: Multipart,
+        body: Multipart,
     ) -> Result<ImportsPostResponse, ()> {
-        todo!()
+        Ok(super::api::v2::imports::post(
+            self.vault.clone(),
+            self.sorcerers.importius.clone(),
+            self.enchantments.floxy.clone(),
+            self.enchantments.quest_master.clone(),
+            body,
+        )
+        .await)
     }
 }

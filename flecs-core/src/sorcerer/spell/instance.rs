@@ -78,6 +78,52 @@ pub async fn stop_instance<F: Floxy>(
     instance.stop(floxy).await
 }
 
+pub async fn stop_instances<F: Floxy + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+    instance_ids: Vec<InstanceId>,
+) -> Result<()> {
+    let mut results = Vec::new();
+    {
+        let mut quest = quest.lock().await;
+        for instance_id in instance_ids {
+            let result = quest
+                .create_sub_quest(format!("Stop instance {instance_id}"), |quest| {
+                    stop_instance(quest, vault.clone(), floxy.clone(), instance_id)
+                })
+                .await
+                .2;
+            results.push(result);
+        }
+    }
+    for result in join_all(results).await {
+        result?;
+    }
+    Ok(())
+}
+
+/// The same as [stop_instances] but all instance_ids not in the vault are ignored
+pub async fn stop_existing_instances<F: Floxy + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+    instance_ids: Vec<InstanceId>,
+) -> Result<()> {
+    let instance_ids: Vec<_> = {
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let instances = grab
+            .instance_pouch
+            .as_ref()
+            .expect("Vault reservations should never fail");
+        instance_ids
+            .into_iter()
+            .filter(|id| instances.gems().contains_key(id))
+            .collect()
+    };
+    stop_instances(quest, vault, floxy, instance_ids).await
+}
+
 pub async fn halt_all_instances<F: Floxy + 'static>(
     quest: SyncQuest,
     vault: Arc<Vault>,

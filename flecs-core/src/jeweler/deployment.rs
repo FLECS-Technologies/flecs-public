@@ -65,6 +65,7 @@ pub mod tests {
                 is_dst_file_path: bool,
             ) -> Result<()>;
             async fn export_app(&self, quest: SyncQuest, id: String, path: PathBuf) -> Result<()>;
+            async fn import_app(&self, quest: SyncQuest, path: PathBuf) -> Result<()>;
         }
         #[async_trait]
         impl InstanceDeployment for edDeployment {

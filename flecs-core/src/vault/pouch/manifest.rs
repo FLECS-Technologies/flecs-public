@@ -10,14 +10,16 @@ use tracing::{debug, warn};
 
 const MANIFEST_FILE_NAME: &str = "manifest.json";
 
+pub type Gems = HashMap<AppKey, Arc<AppManifest>>;
+
 pub struct ManifestPouch {
     path: PathBuf,
-    manifests: HashMap<AppKey, Arc<AppManifest>>,
+    manifests: Gems,
     existing_manifest_keys: HashSet<AppKey>,
 }
 
 impl Pouch for ManifestPouch {
-    type Gems = HashMap<AppKey, Arc<AppManifest>>;
+    type Gems = Gems;
 
     fn gems(&self) -> &Self::Gems {
         &self.manifests

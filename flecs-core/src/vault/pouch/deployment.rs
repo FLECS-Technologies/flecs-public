@@ -34,16 +34,16 @@ impl From<Deployment> for Arc<dyn DeploymentTrait> {
 }
 
 pub type DeploymentId = String;
-
+pub type Gems = HashMap<DeploymentId, Arc<dyn DeploymentTrait>>;
 #[derive(Debug)]
 pub struct DeploymentPouch {
-    deployments: HashMap<DeploymentId, Arc<dyn DeploymentTrait>>,
+    deployments: Gems,
     default_deployment_id: Option<DeploymentId>,
     path: PathBuf,
 }
 
 impl Pouch for DeploymentPouch {
-    type Gems = HashMap<DeploymentId, Arc<dyn DeploymentTrait>>;
+    type Gems = Gems;
 
     fn gems(&self) -> &Self::Gems {
         &self.deployments

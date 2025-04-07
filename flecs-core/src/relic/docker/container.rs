@@ -340,6 +340,28 @@ pub async fn copy_to(
     .await
 }
 
+pub async fn copy_archive_file_to(
+    docker_client: Arc<Docker>,
+    quest: SyncQuest,
+    archive_path: PathBuf,
+    extract_path: PathBuf,
+    container_name: &str,
+) -> Result<()> {
+    let options = Some(UploadToContainerOptions {
+        path: extract_path.to_string_lossy(),
+        ..Default::default()
+    });
+    let file = File::open(archive_path).await?;
+    copy_archive_to(
+        docker_client,
+        quest,
+        options,
+        Data::File(file),
+        container_name,
+    )
+    .await
+}
+
 async fn copy_archive_to<T>(
     docker_client: Arc<Docker>,
     quest: SyncQuest,
