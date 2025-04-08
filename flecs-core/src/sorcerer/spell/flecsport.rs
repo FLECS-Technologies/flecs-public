@@ -94,12 +94,11 @@ pub async fn export_instances<F: Floxy + 'static>(
 pub async fn get_export(
     export_dir: &Path,
     export_id: String,
-) -> Result<Option<tokio::fs::File>, std::io::Error> {
+) -> Result<Option<PathBuf>, std::io::Error> {
     let path = export_dir.join(format!("{export_id}.tar"));
-    match tokio::fs::File::open(path).await {
-        Ok(file) if file.metadata().await?.is_file() => Ok(Some(file)),
-        Ok(_) => Ok(None),
-        Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
+    match tokio::fs::try_exists(&path).await {
+        Ok(true) => Ok(Some(path)),
+        Ok(false) => Ok(None),
         Err(e) => Err(e),
     }
 }
@@ -227,7 +226,6 @@ mod tests {
     use mockall::predicate;
     use std::collections::HashMap;
     use testdir::testdir;
-    use tokio::io::AsyncReadExt;
 
     #[tokio::test]
     async fn export_instances_ok() {
@@ -645,32 +643,20 @@ mod tests {
         const EXPORT_DATA: &[u8; 9] = b"dataaaaaa";
         let path = testdir!();
         let expected_file_path = path.join(format!("{EXPORT_ID}.tar"));
-        std::fs::write(expected_file_path, EXPORT_DATA).unwrap();
-        let mut file = get_export(&path, EXPORT_ID.to_string())
-            .await
-            .unwrap()
-            .unwrap();
-        let mut buf = Vec::new();
-        file.read_to_end(&mut buf).await.unwrap();
-        assert_eq!(buf, EXPORT_DATA);
+        std::fs::write(&expected_file_path, EXPORT_DATA).unwrap();
+        assert_eq!(
+            get_export(&path, EXPORT_ID.to_string())
+                .await
+                .unwrap()
+                .unwrap(),
+            expected_file_path
+        );
     }
 
     #[tokio::test]
     async fn get_export_ok_none() {
         const EXPORT_ID: &str = "1234tasf236zt";
         let path = testdir!();
-        assert!(matches!(
-            get_export(&path, EXPORT_ID.to_string()).await,
-            Ok(None)
-        ));
-    }
-
-    #[tokio::test]
-    async fn get_export_ok_none_dir() {
-        const EXPORT_ID: &str = "1234tasf236zt";
-        let path = testdir!();
-        let expected_file_path = path.join(format!("{EXPORT_ID}.tar"));
-        std::fs::create_dir_all(expected_file_path).unwrap();
         assert!(matches!(
             get_export(&path, EXPORT_ID.to_string()).await,
             Ok(None)
