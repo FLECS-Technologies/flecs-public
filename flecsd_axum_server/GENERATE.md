@@ -16,6 +16,14 @@ Execute the following command from the repository root directory. Adjust the ver
 Format the generated code using [rustfmt](https://github.com/rust-lang/rustfmt). To format doc tests as well, we use
 nightly and an additional config option:  ``cargo +nightly fmt -- --config format_code_in_doc_comments=true``
 
+## Apply patches
+
+Some features are infeasible to implement without making manual adjustments after code generation. We therefore save
+these changes in patch files to be able to apply them after code generation.
+These patches are located in `flecsd_axum_server/patches` and should be applied in order of increasing number.
+e.g.
+``git apply flecsd_axum_server/patches/0-stream-exports.patch``
+
 ## Make necessary manual adjustments
 
 If necessary make manual adjustments to the template files in `flecsd_axum_server/openapi_generator_templates` and

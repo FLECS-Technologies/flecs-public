@@ -1,0 +1,53 @@
+diff --git a/flecsd_axum_server/Cargo.toml b/flecsd_axum_server/Cargo.toml
+index 7826f2c..7dd316b 100644
+--- a/flecsd_axum_server/Cargo.toml
++++ b/flecsd_axum_server/Cargo.toml
+@@ -38,7 +38,9 @@ serde_urlencoded = "0.7"
+ tokio = { version = "1", default-features = false, features = [
+     "signal",
+     "rt-multi-thread",
++    "fs",
+ ] }
++tokio-util = "0.7"
+ tracing = { version = "0.1", features = ["attributes"] }
+ uuid = { version = "1", features = ["serde"] }
+ validator = { version = "0.19", features = ["derive"] }
+diff --git a/flecsd_axum_server/src/apis/flecsport.rs b/flecsd_axum_server/src/apis/flecsport.rs
+index a9ddfaa..fa57864 100644
+--- a/flecsd_axum_server/src/apis/flecsport.rs
++++ b/flecsd_axum_server/src/apis/flecsport.rs
+@@ -26,7 +26,7 @@ pub enum ExportsExportIdDeleteResponse {
+ #[allow(clippy::large_enum_variant)]
+ pub enum ExportsExportIdGetResponse {
+     /// Success
+-    Status200_Success(ByteArray),
++    Status200_Success(std::path::PathBuf),
+     /// Export id invalid
+     Status400_ExportIdInvalid,
+     /// Export not found
+diff --git a/flecsd_axum_server/src/server/mod.rs b/flecsd_axum_server/src/server/mod.rs
+index de1f0b5..266a9e6 100644
+--- a/flecsd_axum_server/src/server/mod.rs
++++ b/flecsd_axum_server/src/server/mod.rs
+@@ -1839,7 +1839,10 @@ where
+ 
+     let resp = match result {
+         Ok(rsp) => match rsp {
+-            apis::flecsport::ExportsExportIdGetResponse::Status200_Success(body) => {
++            apis::flecsport::ExportsExportIdGetResponse::Status200_Success(path) => {
++                let file = tokio::fs::File::open(&path).await.unwrap();
++                let stream = tokio_util::io::ReaderStream::new(file);
++                let body = Body::from_stream(stream);
+                 let mut response = response.status(200);
+                 {
+                     let mut response_headers = response.headers_mut().unwrap();
+@@ -1852,8 +1855,7 @@ where
+                     );
+                 }
+ 
+-                let body_content = body.0;
+-                response.body(Body::from(body_content))
++                response.body(body)
+             }
+             apis::flecsport::ExportsExportIdGetResponse::Status400_ExportIdInvalid => {
+                 let mut response = response.status(400);
