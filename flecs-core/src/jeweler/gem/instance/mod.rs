@@ -798,12 +798,6 @@ impl Instance {
         }
         Ok(())
     }
-    pub async fn import(&self, _path: &Path) -> anyhow::Result<()> {
-        // TODO: Import volumes
-        // TODO: Import config files
-        // TODO: Import config
-        Ok(())
-    }
 
     pub async fn status(&self) -> anyhow::Result<InstanceStatus> {
         self.deployment.instance_status(self.id).await
