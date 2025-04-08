@@ -26,7 +26,7 @@ pub enum ExportsExportIdDeleteResponse {
 #[allow(clippy::large_enum_variant)]
 pub enum ExportsExportIdGetResponse {
     /// Success
-    Status200_Success(ByteArray),
+    Status200_Success(std::path::PathBuf),
     /// Export id invalid
     Status400_ExportIdInvalid,
     /// Export not found

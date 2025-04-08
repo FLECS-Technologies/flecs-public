@@ -316,7 +316,7 @@ pub trait Exportius: Sorcerer + 'static {
         &self,
         export_dir: &Path,
         export_id: String,
-    ) -> Result<Option<tokio::fs::File>, std::io::Error>;
+    ) -> Result<Option<PathBuf>, std::io::Error>;
 
     async fn get_exports(&self) -> Result<Vec<String>, std::io::Error> {
         let export_dir = PathBuf::from(crate::lore::flecsport::BASE_PATH);

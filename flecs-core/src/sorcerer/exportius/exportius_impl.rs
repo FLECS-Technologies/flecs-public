@@ -27,7 +27,7 @@ impl Exportius for ExportiusImpl {
         &self,
         export_dir: &Path,
         export_id: String,
-    ) -> Result<Option<tokio::fs::File>, Error> {
+    ) -> Result<Option<PathBuf>, Error> {
         crate::sorcerer::spell::flecsport::get_export(export_dir, export_id).await
     }
 

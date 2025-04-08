@@ -38,7 +38,9 @@ serde_urlencoded = "0.7"
 tokio = { version = "1", default-features = false, features = [
     "signal",
     "rt-multi-thread",
+    "fs",
 ] }
+tokio-util = "0.7"
 tracing = { version = "0.1", features = ["attributes"] }
 uuid = { version = "1", features = ["serde"] }
 validator = { version = "0.19", features = ["derive"] }

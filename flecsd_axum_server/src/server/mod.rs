@@ -1839,7 +1839,10 @@ where
 
     let resp = match result {
         Ok(rsp) => match rsp {
-            apis::flecsport::ExportsExportIdGetResponse::Status200_Success(body) => {
+            apis::flecsport::ExportsExportIdGetResponse::Status200_Success(path) => {
+                let file = tokio::fs::File::open(&path).await.unwrap();
+                let stream = tokio_util::io::ReaderStream::new(file);
+                let body = Body::from_stream(stream);
                 let mut response = response.status(200);
                 {
                     let mut response_headers = response.headers_mut().unwrap();
@@ -1852,8 +1855,7 @@ where
                     );
                 }
 
-                let body_content = body.0;
-                response.body(Body::from(body_content))
+                response.body(body)
             }
             apis::flecsport::ExportsExportIdGetResponse::Status400_ExportIdInvalid => {
                 let mut response = response.status(400);
