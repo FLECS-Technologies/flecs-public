@@ -750,12 +750,13 @@ impl Instance {
                     ),
                     |quest| {
                         let volume_name = volume_mount.name.clone();
-                        let path = path.join(format!("{volume_name}.tar"));
+                        let dst = path.join(format!("{volume_name}.tar"));
+                        let src = volume_mount.container_path.clone();
                         let image = self.manifest.image_with_tag();
                         let deployment = self.deployment.clone();
                         async move {
                             deployment
-                                .export_volume(quest, volume_name, &path, &image)
+                                .export_volume(quest, volume_name, &dst, &src, &image)
                                 .await
                         }
                     },
@@ -911,7 +912,8 @@ impl Instance {
     pub async fn import_volume_quest(
         &self,
         quest: &SyncQuest,
-        path: PathBuf,
+        src: PathBuf,
+        container_path: PathBuf,
         volume_name: String,
     ) -> BoxFuture<'static, crate::Result<VolumeId>> {
         let deployment = self.deployment();
@@ -921,7 +923,7 @@ impl Instance {
             .await
             .create_sub_quest(format!("Import volume {volume_name}"), |quest| async move {
                 deployment
-                    .import_volume(quest, &path, &volume_name, &image)
+                    .import_volume(quest, &src, &container_path, &volume_name, &image)
                     .await
             })
             .await
