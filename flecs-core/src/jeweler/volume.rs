@@ -16,7 +16,8 @@ pub trait VolumeDeployment {
     async fn import_volume(
         &self,
         _quest: SyncQuest,
-        path: &Path,
+        src: &Path,
+        container_path: &Path,
         name: &str,
         image: &str,
     ) -> Result<VolumeId>;
@@ -24,7 +25,8 @@ pub trait VolumeDeployment {
         &self,
         quest: SyncQuest,
         id: VolumeId,
-        path: &Path,
+        export_path: &Path,
+        container_path: &Path,
         image: &str,
     ) -> Result<()>;
     async fn volumes(

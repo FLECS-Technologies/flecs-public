@@ -350,7 +350,12 @@ pub async fn import_instance(
             let path = src.join(format!("{}.tar", volume.name));
             results.push(
                 instance
-                    .import_volume_quest(&quest, path.clone(), volume.name.clone())
+                    .import_volume_quest(
+                        &quest,
+                        path.clone(),
+                        volume.container_path.clone(),
+                        volume.name.clone(),
+                    )
                     .await,
             )
         }

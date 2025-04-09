@@ -485,7 +485,8 @@ impl DockerDeployment {
         docker_client: Arc<Docker>,
         quest: SyncQuest,
         id: VolumeId,
-        path: &Path,
+        export_path: &Path,
+        container_path: &Path,
         image: &str,
     ) -> anyhow::Result<()> {
         let volume_exists =
@@ -497,6 +498,7 @@ impl DockerDeployment {
             let docker_client = docker_client.clone();
             let id = id.clone();
             let image = image.to_string();
+            let volume_dst = container_path.to_path_buf();
             quest
                 .lock()
                 .await
@@ -506,7 +508,6 @@ impl DockerDeployment {
                         if !volume_exists.await? {
                             anyhow::bail!("Volume {id} does not exist");
                         }
-                        let volume_dst = PathBuf::from(format!("/tmp_volumes/{id}/"));
                         let config = Self::temporary_volume_container_config(image, id, volume_dst);
                         let container_id = relic::docker::container::create::<String, String>(
                             docker_client,
@@ -525,15 +526,16 @@ impl DockerDeployment {
             .lock()
             .await
             .create_sub_quest("Download data".to_string(), |quest| {
-                let path = path.to_path_buf();
+                let dst = export_path.to_path_buf();
+                let src = container_path.to_path_buf();
                 let docker_client = docker_client.clone();
                 async move {
                     let container: String = recv_container_download.await?;
                     relic::docker::container::copy_archive_to_file(
                         quest,
                         docker_client,
-                        Path::new(&format!("/tmp_volumes/{id}/")),
-                        path,
+                        &src,
+                        dst,
                         &container,
                     )
                     .await
@@ -585,7 +587,7 @@ impl DockerDeployment {
         docker_client: Arc<Docker>,
         quest: SyncQuest,
         instance_id: InstanceId,
-    ) -> anyhow::Result<HashMap<VolumeId, Volume>> {
+    ) -> anyhow::Result<HashMap<VolumeId, (Volume, PathBuf)>> {
         let inspect = quest
             .lock()
             .await
@@ -603,12 +605,15 @@ impl DockerDeployment {
             None => Ok(Default::default()),
             Some(mounts) => {
                 let mut results = Vec::new();
-                let mut ids = Vec::new();
-                for volume_id in mounts.into_iter().filter_map(|mount| match mount.typ {
-                    Some(MountPointTypeEnum::VOLUME) => mount.name,
+                let mut id_dst_list = Vec::new();
+                for (volume_id, dst) in mounts.into_iter().filter_map(|mount| match mount.typ {
+                    Some(MountPointTypeEnum::VOLUME) => Some((
+                        mount.name.unwrap_or_default(),
+                        mount.destination.unwrap_or_default(),
+                    )),
                     _ => None,
                 }) {
-                    ids.push(volume_id.clone());
+                    id_dst_list.push((volume_id.clone(), PathBuf::from(dst)));
                     results.push(
                         quest
                             .lock()
@@ -624,16 +629,16 @@ impl DockerDeployment {
                     );
                 }
                 let mut volumes = HashMap::new();
-                for (id, result) in ids.into_iter().zip(join_all(results).await) {
+                for ((id, dst), result) in id_dst_list.into_iter().zip(join_all(results).await) {
                     match result {
                         Ok(Some(volume)) => {
-                            volumes.insert(id, volume);
+                            volumes.insert(id, (volume, dst));
                         }
                         Err(e) => {
-                            eprintln!("Could not inspect volume {id}: {e}");
+                            error!("Could not inspect volume {id}: {e}");
                         }
                         Ok(None) => {
-                            eprintln!("Could not inspect volume {id}: Does not exist");
+                            error!("Could not inspect volume {id}: Does not exist");
                         }
                     }
                 }
@@ -658,15 +663,16 @@ impl VolumeDeployment for DockerDeployment {
     async fn import_volume(
         &self,
         quest: SyncQuest,
-        path: &Path,
+        src: &Path,
+        container_path: &Path,
         name: &str,
         image: &str,
     ) -> anyhow::Result<VolumeId> {
-        if !path.try_exists()? {
-            anyhow::bail!("Could not import volume {name}, path does not exist: {path:?}");
+        if !src.try_exists()? {
+            anyhow::bail!("Could not import volume {name}, path does not exist: {src:?}");
         }
-        if !fs::metadata(path).await?.is_file() {
-            anyhow::bail!("Could not import volume {name}, path is not a regular file: {path:?}");
+        if !fs::metadata(src).await?.is_file() {
+            anyhow::bail!("Could not import volume {name}, path is not a regular file: {src:?}");
         }
         let name = name.to_string();
         let docker_client = self.client()?;
@@ -726,7 +732,7 @@ impl VolumeDeployment for DockerDeployment {
             let docker_client = docker_client.clone();
             let name = name.clone();
             let image = image.to_string();
-            let container_path = PathBuf::from(format!("/tmp_volumes/{name}/"));
+            let container_path = container_path.to_path_buf();
             quest
                 .lock()
                 .await
@@ -750,7 +756,11 @@ impl VolumeDeployment for DockerDeployment {
             .lock()
             .await
             .create_sub_quest("Upload data".to_string(), |quest| {
-                let path = path.to_path_buf();
+                let path = src.to_path_buf();
+                let dst = container_path
+                    .parent()
+                    .unwrap_or(Path::new("/"))
+                    .to_path_buf();
                 let docker_client = docker_client.clone();
                 async move {
                     let container: String = recv_container_upload.await?;
@@ -758,7 +768,7 @@ impl VolumeDeployment for DockerDeployment {
                         docker_client,
                         quest,
                         path,
-                        PathBuf::from(format!("/tmp_volumes/{name}/")),
+                        dst,
                         &container,
                     )
                     .await
@@ -818,11 +828,20 @@ impl VolumeDeployment for DockerDeployment {
         &self,
         quest: SyncQuest,
         id: VolumeId,
-        path: &Path,
+        export_path: &Path,
+        container_path: &Path,
         image: &str,
     ) -> anyhow::Result<()> {
         let docker_client = self.client()?;
-        Self::export_volume_with_client(docker_client, quest, id, path, image).await
+        Self::export_volume_with_client(
+            docker_client,
+            quest,
+            id,
+            export_path,
+            container_path,
+            image,
+        )
+        .await
     }
 
     async fn volumes(
@@ -831,14 +850,18 @@ impl VolumeDeployment for DockerDeployment {
         instance_id: InstanceId,
     ) -> anyhow::Result<HashMap<VolumeId, Volume>> {
         let docker_client = self.client()?;
-        Self::list_volumes(docker_client, quest, instance_id).await
+        Ok(Self::list_volumes(docker_client, quest, instance_id)
+            .await?
+            .into_iter()
+            .map(|(id, (volume, _path))| (id, volume))
+            .collect())
     }
 
     async fn export_volumes(
         &self,
         quest: SyncQuest,
         instance_id: InstanceId,
-        path: &Path,
+        dst: &Path,
         image: &str,
     ) -> anyhow::Result<()> {
         let mut results = Vec::new();
@@ -852,14 +875,15 @@ impl VolumeDeployment for DockerDeployment {
             })
             .await
             .2;
-        for volume_id in volumes.await?.keys() {
+        for (volume_id, (_, container_path)) in volumes.await? {
             results.push(
                 quest
                     .lock()
                     .await
                     .create_sub_quest(format!("Exporting volume {volume_id}"), |quest| {
                         let volume_id = volume_id.clone();
-                        let path = path.to_path_buf();
+                        let dst = dst.to_path_buf();
+                        let src = container_path;
                         let docker_client = docker_client.clone();
                         let image = image.to_string();
                         async move {
@@ -867,7 +891,8 @@ impl VolumeDeployment for DockerDeployment {
                                 docker_client,
                                 quest,
                                 volume_id.clone(),
-                                &path,
+                                &dst,
+                                &src,
                                 &image,
                             )
                             .await
