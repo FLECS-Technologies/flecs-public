@@ -38,7 +38,6 @@ target_link_libraries(daemon PRIVATE
     common
     magic::flecs_core_cxx_bridge
     modules.apps
-    modules.data_layer
     modules.deployments
     modules.factory
     modules.flecsport
@@ -71,10 +70,5 @@ install(FILES ${FLECS_SOURCE_DIR}/pkg/fs/lib/systemd/system/flecs.service
 )
 install(FILES ${FLECS_SOURCE_DIR}/pkg/fs/etc/nginx/floxy.conf
     DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/nginx/
-    COMPONENT native
-)
-install(
-    TARGETS lib flunder.shared LIBRARY
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT native
 )

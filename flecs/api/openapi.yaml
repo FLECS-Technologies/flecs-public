@@ -826,10 +826,6 @@ tags:
   - name: "Jobs"
     x-displayName: "Jobs"
     description: Management of asynchronous jobs
-  - name: "flunder"
-    x-displayName: "Service Mesh"
-    description: |
-      FLECS Service Mesh a.k.a flunder (<b>FL</b>ecs <b>UN</b>ified <b>D</b>ata <b>E</b>xchange and <b>R</b>etention)
   - name: "System"
     x-displayName: "System"
   - name: "Device"
@@ -2213,56 +2209,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/additionalInfo"
-        "500":
-          $ref: "#/components/responses/response_500"
-  # flunder related paths
-  /flunder/browse:
-    get:
-      tags: [ "flunder" ]
-      summary: Retrieve stored flunder topics alongside their values
-      parameters:
-        - name: q
-          in: query
-          schema:
-            type: string
-            example: "/flecs/**"
-          required: false
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - data
-                  - additionalInfo
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - key
-                        - value
-                        - encoding
-                        - timestamp
-                      properties:
-                        key:
-                          type: string
-                          example: "/flecs/app1/heater0/temperature"
-                        value:
-                          type: string
-                          example: "23"
-                        encoding:
-                          type: string
-                          example: "application/integer+s8"
-                        timestamp:
-                          type: string
-                          example:
-                  additionalInfo:
-                    type: string
-                    example: "Explanation what went wrong"
         "500":
           $ref: "#/components/responses/response_500"
   # Job related paths

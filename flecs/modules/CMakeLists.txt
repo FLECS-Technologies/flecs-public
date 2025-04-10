@@ -60,7 +60,6 @@ macro(flecs_add_module)
 endmacro()
 
 add_subdirectory(apps)
-add_subdirectory(data_layer)
 add_subdirectory(deployments)
 add_subdirectory(factory)
 add_subdirectory(flecsport)

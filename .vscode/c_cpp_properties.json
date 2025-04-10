@@ -5,8 +5,7 @@
             "includePath": [
                 "${workspaceFolder}",
                 "${workspaceFolder}/build/amd64/cargo/build/x86_64-unknown-linux-gnu",
-                "${workspaceFolder}/target",
-                "${workspaceFolder}/flunder/include"
+                "${workspaceFolder}/target"
             ],
             "defines": [
                 "FLECS_EXPORT=__attribute__((visibility(\"default\")))",

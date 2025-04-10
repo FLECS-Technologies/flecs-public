@@ -47,7 +47,6 @@ where
         + apis::deployments::Deployments
         + apis::device::Device
         + apis::flecsport::Flecsport
-        + apis::flunder::Flunder
         + apis::instances::Instances
         + apis::jobs::Jobs
         + apis::system::System
@@ -96,9 +95,6 @@ where
         )
         .route("/v2/exports/:export_id",
             delete(exports_export_id_delete::<I, A>).get(exports_export_id_get::<I, A>)
-        )
-        .route("/v2/flunder/browse",
-            get(flunder_browse_get::<I, A>)
         )
         .route("/v2/imports",
             post(imports_post::<I, A>)
@@ -2233,109 +2229,6 @@ where
                 response.body(Body::from(body_content))
             }
             apis::flecsport::ImportsPostResponse::Status500_InternalServerError(body) => {
-                let mut response = response.status(500);
-                {
-                    let mut response_headers = response.headers_mut().unwrap();
-                    response_headers.insert(
-                        CONTENT_TYPE,
-                        HeaderValue::from_str("application/json").map_err(|e| {
-                            error!(error = ?e);
-                            StatusCode::INTERNAL_SERVER_ERROR
-                        })?,
-                    );
-                }
-
-                let body_content = tokio::task::spawn_blocking(move || {
-                    serde_json::to_vec(&body).map_err(|e| {
-                        error!(error = ?e);
-                        StatusCode::INTERNAL_SERVER_ERROR
-                    })
-                })
-                .await
-                .unwrap()?;
-                response.body(Body::from(body_content))
-            }
-        },
-        Err(_) => {
-            // Application code returned an error. This should not happen, as the implementation should
-            // return a valid response.
-            response.status(500).body(Body::empty())
-        }
-    };
-
-    resp.map_err(|e| {
-        error!(error = ?e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })
-}
-
-#[tracing::instrument(skip_all)]
-fn flunder_browse_get_validation(
-    query_params: models::FlunderBrowseGetQueryParams,
-) -> std::result::Result<(models::FlunderBrowseGetQueryParams,), ValidationErrors> {
-    query_params.validate()?;
-
-    Ok((query_params,))
-}
-/// FlunderBrowseGet - GET /v2/flunder/browse
-#[tracing::instrument(skip_all)]
-async fn flunder_browse_get<I, A>(
-    method: Method,
-    host: Host,
-    cookies: CookieJar,
-    Query(query_params): Query<models::FlunderBrowseGetQueryParams>,
-    State(api_impl): State<I>,
-) -> Result<Response, StatusCode>
-where
-    I: AsRef<A> + Send + Sync,
-    A: apis::flunder::Flunder,
-{
-    #[allow(clippy::redundant_closure)]
-    let validation =
-        tokio::task::spawn_blocking(move || flunder_browse_get_validation(query_params))
-            .await
-            .unwrap();
-
-    let Ok((query_params,)) = validation else {
-        return Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(Body::from(validation.unwrap_err().to_string()))
-            .map_err(|_| StatusCode::BAD_REQUEST);
-    };
-
-    let result = api_impl
-        .as_ref()
-        .flunder_browse_get(method, host, cookies, query_params)
-        .await;
-
-    let mut response = Response::builder();
-
-    let resp = match result {
-        Ok(rsp) => match rsp {
-            apis::flunder::FlunderBrowseGetResponse::Status200_Success(body) => {
-                let mut response = response.status(200);
-                {
-                    let mut response_headers = response.headers_mut().unwrap();
-                    response_headers.insert(
-                        CONTENT_TYPE,
-                        HeaderValue::from_str("application/json").map_err(|e| {
-                            error!(error = ?e);
-                            StatusCode::INTERNAL_SERVER_ERROR
-                        })?,
-                    );
-                }
-
-                let body_content = tokio::task::spawn_blocking(move || {
-                    serde_json::to_vec(&body).map_err(|e| {
-                        error!(error = ?e);
-                        StatusCode::INTERNAL_SERVER_ERROR
-                    })
-                })
-                .await
-                .unwrap()?;
-                response.body(Body::from(body_content))
-            }
-            apis::flunder::FlunderBrowseGetResponse::Status500_InternalServerError(body) => {
                 let mut response = response.status(500);
                 {
                     let mut response_headers = response.headers_mut().unwrap();

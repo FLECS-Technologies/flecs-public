@@ -54,12 +54,6 @@ function(stage_docker_fs)
         EXCLUDE_FROM_ALL
     )
     install(
-        TARGETS lib flunder.shared LIBRARY
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib
-        COMPONENT docker
-        EXCLUDE_FROM_ALL
-    )
-    install(
         FILES ${CMAKE_SOURCE_DIR}/flecs/scripts/flecs-update-hosts.sh
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/bin
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
