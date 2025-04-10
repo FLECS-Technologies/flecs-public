@@ -26,13 +26,8 @@ use crate::sorcerer::systemus::Systemus;
 use crate::sorcerer::Sorcerers;
 use crate::vault::Vault;
 use anyhow::Error;
-use axum::async_trait;
-use axum::extract::Host;
-use axum_extra::extract::CookieJar;
 use flecs_console_client::models::SessionId;
-use flecsd_axum_server::apis::flunder::{Flunder, FlunderBrowseGetResponse};
-use flecsd_axum_server::models::{AdditionalInfo, FlunderBrowseGetQueryParams};
-use http::Method;
+use flecsd_axum_server::models::AdditionalInfo;
 use std::sync::Arc;
 
 fn additional_info_from_error(error: Error) -> AdditionalInfo {
@@ -106,35 +101,6 @@ impl<
             network_adapter_reader: Arc::new(network_adapter_reader),
             sorcerers,
         }
-    }
-}
-
-#[async_trait]
-impl<
-        APP: AppRaiser,
-        AUTH: Authmancer,
-        I: Instancius,
-        L: Licenso,
-        Q: MageQuester,
-        M: Manifesto,
-        SYS: Systemus,
-        D: Deploymento,
-        E: Exportius,
-        IMP: Importius + 'static,
-        F: Floxy,
-        T: UsbDeviceReader,
-        NET: NetworkAdapterReader,
-        NetDev: NetDeviceReader,
-    > Flunder for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
-{
-    async fn flunder_browse_get(
-        &self,
-        _method: Method,
-        _host: Host,
-        _cookies: CookieJar,
-        _query_params: FlunderBrowseGetQueryParams,
-    ) -> Result<FlunderBrowseGetResponse, ()> {
-        todo!()
     }
 }
 

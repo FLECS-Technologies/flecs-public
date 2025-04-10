@@ -71,7 +71,6 @@ set(FLECS_NEED_LIBUSB TRUE)
 set(FLECS_NEED_YAMLCPP TRUE)
 set(FLECS_NEED_ZENOHC TRUE)
 add_subdirectory(flecs-external)
-add_subdirectory(flunder)
 add_subdirectory(flecs)
 
 add_custom_target(version

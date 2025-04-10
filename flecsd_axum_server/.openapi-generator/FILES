@@ -6,7 +6,6 @@ src/apis/console.rs
 src/apis/deployments.rs
 src/apis/device.rs
 src/apis/flecsport.rs
-src/apis/flunder.rs
 src/apis/instances.rs
 src/apis/jobs.rs
 src/apis/mod.rs
