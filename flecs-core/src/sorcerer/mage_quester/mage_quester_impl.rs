@@ -15,15 +15,16 @@ impl Sorcerer for MageQuesterImpl {}
 #[async_trait]
 impl MageQuester for MageQuesterImpl {
     async fn get_job(&self, quest_master: QuestMaster, id: u64) -> Option<Job> {
-        match quest_master.lock().await.query_quest(QuestId(id)) {
+        let quest = quest_master.lock().await.query_quest(QuestId(id));
+        match quest {
             None => None,
             Some(quest) => Some(job_from_quest(quest).await),
         }
     }
 
     async fn get_jobs(&self, quest_master: QuestMaster) -> Vec<Job> {
-        let quest_master = quest_master.lock().await;
-        futures::stream::iter(quest_master.get_quests().into_iter())
+        let quests = quest_master.lock().await.get_quests();
+        futures::stream::iter(quests.into_iter())
             .then(|quest| async move { job_from_quest(quest).await })
             .collect::<Vec<models::Job>>()
             .await
