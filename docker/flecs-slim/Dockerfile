@@ -11,15 +11,15 @@ ARG ARCH
 RUN mkdir -p /fs/usr/bin
 RUN case "${ARCH}" in \
     "amd64") \
-    wget https://download.docker.com/linux/static/stable/x86_64/docker-27.3.1.tgz; \
+    wget https://download.docker.com/linux/static/stable/x86_64/docker-28.0.4.tgz; \
     wget -O /fs/usr/bin/docker-compose https://github.com/docker/compose/releases/download/v2.31.0/docker-compose-linux-x86_64; \
     ;; \
     "armhf") \
-    wget https://download.docker.com/linux/static/stable/armhf/docker-27.3.1.tgz; \
+    wget https://download.docker.com/linux/static/stable/armhf/docker-28.0.4.tgz; \
     wget -O /fs/usr/bin/docker-compose https://github.com/docker/compose/releases/download/v2.31.0/docker-compose-linux-armv7; \
     ;; \
     "arm64") \
-    wget https://download.docker.com/linux/static/stable/aarch64/docker-27.3.1.tgz; \
+    wget https://download.docker.com/linux/static/stable/aarch64/docker-28.0.4.tgz; \
     wget -O /fs/usr/bin/docker-compose https://github.com/docker/compose/releases/download/v2.31.0/docker-compose-linux-aarch64; \
     ;; \
     *) \
