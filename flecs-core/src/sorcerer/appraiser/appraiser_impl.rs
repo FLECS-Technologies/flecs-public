@@ -145,7 +145,7 @@ impl AppRaiser for AppraiserImpl {
         config: ConsoleClient,
     ) -> anyhow::Result<()> {
         let app_key = manifest.key.clone();
-        quest
+        let result = quest
             .lock()
             .await
             .create_sub_quest("Create app".to_string(), |_quest| {
@@ -157,8 +157,8 @@ impl AppRaiser for AppraiserImpl {
                 )
             })
             .await
-            .2
-            .await?;
+            .2;
+        result.await?;
         let result = quest
             .lock()
             .await
@@ -166,20 +166,19 @@ impl AppRaiser for AppraiserImpl {
                 install_existing_app(quest, vault.clone(), app_key, config)
             })
             .await
-            .2
-            .await;
-        match result {
+            .2;
+        match result.await {
             Err(e) => Err(e),
             Ok(()) => {
-                quest
+                let result = quest
                     .lock()
                     .await
                     .create_sub_quest(format!("Replace manifest for {}", manifest.key), |quest| {
                         spell::manifest::replace_manifest(quest, vault, manifest)
                     })
                     .await
-                    .2
-                    .await?;
+                    .2;
+                result.await?;
                 Ok(())
             }
         }
@@ -241,8 +240,8 @@ impl AppRaiser for AppraiserImpl {
                 download_manifest(vault.clone(), app_key.clone(), config.clone())
             })
             .await
-            .2
-            .await?;
+            .2;
+        let manifest = manifest.await?;
         self.install_app_from_manifest(quest, vault, manifest, config)
             .await
     }
@@ -310,7 +309,7 @@ async fn install_existing_app(
     app_key: AppKey,
     config: ConsoleClient,
 ) -> anyhow::Result<()> {
-    quest
+    let result = quest
         .lock()
         .await
         .create_sub_quest(format!("Check if {app_key} exists"), |_quest| {
@@ -332,8 +331,8 @@ async fn install_existing_app(
             }
         })
         .await
-        .2
-        .await?;
+        .2;
+    result.await?;
     let token = quest
         .lock()
         .await
@@ -358,7 +357,7 @@ async fn install_existing_app(
         })
         .await
         .2;
-    quest
+    let result = quest
         .lock()
         .await
         .create_sub_quest(format!("Install app {}", app_key), |quest| async move {
@@ -366,8 +365,8 @@ async fn install_existing_app(
             install_app_in_vault(quest, vault.clone(), app_key.clone(), token).await
         })
         .await
-        .2
-        .await
+        .2;
+    result.await
 }
 
 async fn install_app_in_vault(
