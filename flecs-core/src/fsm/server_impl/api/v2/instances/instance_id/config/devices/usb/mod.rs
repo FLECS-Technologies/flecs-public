@@ -1,7 +1,8 @@
 pub mod port;
-use crate::jeweler::gem::instance::{InstanceId, UsbPathConfig};
+use crate::jeweler::gem::instance::docker::config::UsbPathConfig;
+use crate::jeweler::gem::instance::InstanceId;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
-use crate::sorcerer::instancius::Instancius;
+use crate::sorcerer::instancius::{Instancius, QueryInstanceConfigError};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigDevicesUsbDeleteResponse as DeleteResponse,
@@ -25,8 +26,13 @@ pub async fn delete<I: Instancius>(
         .delete_instance_usb_devices(vault, instance_id)
         .await
     {
-        Some(_) => DeleteResponse::Status200_Success,
-        None => DeleteResponse::Status404_NoInstanceWithThisInstance,
+        Ok(_) => DeleteResponse::Status200_Success,
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            DeleteResponse::Status404_NoInstanceWithThisInstance
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            DeleteResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 
@@ -91,7 +97,7 @@ mod tests {
             .expect_delete_instance_usb_devices()
             .withf(move |_, id| id.value == 2)
             .once()
-            .returning(|_, _| Some(HashMap::new()));
+            .returning(|_, _| Ok(HashMap::new()));
         let vault = crate::vault::tests::create_empty_test_vault();
         assert_eq!(
             delete(
@@ -113,7 +119,11 @@ mod tests {
             .expect_delete_instance_usb_devices()
             .withf(move |_, id| id.value == 0xaabbccdd)
             .once()
-            .returning(|_, _| None);
+            .returning(|_, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0xaabbccdd,
+                )))
+            });
         let vault = crate::vault::tests::create_empty_test_vault();
         assert_eq!(
             delete(

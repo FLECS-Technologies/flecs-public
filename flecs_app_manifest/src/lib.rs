@@ -76,15 +76,38 @@ impl FromStr for AppManifestVersion {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize)]
-pub struct AppManifest {
+#[serde(untagged)]
+pub enum AppManifest {
+    Single(AppManifestSingle),
+    Multi(AppManifestMulti),
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Serialize)]
+pub struct AppManifestMulti {
+    #[serde(skip_serializing)]
+    manifest: manifest_3_1_0::Multi,
+    #[serde(flatten)]
+    original: AppManifestVersion,
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Serialize)]
+pub struct AppManifestSingle {
     #[serde(skip_serializing)]
     manifest: manifest_3_1_0::Single,
     #[serde(flatten)]
     original: AppManifestVersion,
 }
 
-impl Deref for AppManifest {
+impl Deref for AppManifestSingle {
     type Target = manifest_3_1_0::Single;
+
+    fn deref(&self) -> &Self::Target {
+        &self.manifest
+    }
+}
+
+impl Deref for AppManifestMulti {
+    type Target = manifest_3_1_0::Multi;
 
     fn deref(&self) -> &Self::Target {
         &self.manifest
@@ -95,19 +118,28 @@ impl TryFrom<AppManifestVersion> for AppManifest {
     type Error = ManifestError;
 
     fn try_from(value: AppManifestVersion) -> Result<Self, Self::Error> {
-        Ok(AppManifest {
-            manifest: match &value {
-                AppManifestVersion::V2_0_0(val) => val.try_into()?,
-                AppManifestVersion::V3_0_0(val) => val.try_into()?,
-                AppManifestVersion::V3_1_0(manifest_3_1_0::FlecsAppManifest::Single(val)) => {
-                    val.clone()
-                }
-                AppManifestVersion::V3_1_0(manifest_3_1_0::FlecsAppManifest::Multi(..)) => {
-                    Err(ManifestError::MultiAppManifestNotSupported)?
-                }
-            },
-            original: value,
-        })
+        match &value {
+            AppManifestVersion::V2_0_0(val) => Ok(Self::Single(AppManifestSingle {
+                manifest: val.try_into()?,
+                original: value,
+            })),
+            AppManifestVersion::V3_0_0(val) => Ok(Self::Single(AppManifestSingle {
+                manifest: val.try_into()?,
+                original: value,
+            })),
+            AppManifestVersion::V3_1_0(manifest_3_1_0::FlecsAppManifest::Single(val)) => {
+                Ok(Self::Single(AppManifestSingle {
+                    manifest: val.clone(),
+                    original: value,
+                }))
+            }
+            AppManifestVersion::V3_1_0(manifest_3_1_0::FlecsAppManifest::Multi(val)) => {
+                Ok(Self::Multi(AppManifestMulti {
+                    manifest: val.clone(),
+                    original: value,
+                }))
+            }
+        }
     }
 }
 

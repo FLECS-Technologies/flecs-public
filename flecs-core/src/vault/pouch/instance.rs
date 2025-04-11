@@ -1,16 +1,12 @@
 use crate::jeweler;
-use crate::jeweler::deployment::Deployment;
-use crate::jeweler::gem::instance::{try_create_instance, Instance, InstanceDeserializable};
-use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::gem::instance::{CreateInstanceError, Instance, InstanceDeserializable};
 use crate::relic::network::Ipv4NetworkAccess;
-use crate::vault::pouch::deployment::DeploymentId;
 use crate::vault::pouch::{AppKey, Pouch};
 pub use crate::Result;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use tracing::error;
 
 const INSTANCES_FILE_NAME: &str = "instances.json";
@@ -44,8 +40,8 @@ impl InstancePouch {
 
     pub(in super::super) fn open(
         &mut self,
-        manifests: &HashMap<AppKey, Arc<AppManifest>>,
-        deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
+        manifests: &super::manifest::Gems,
+        deployments: &super::deployment::Gems,
     ) -> Result<()> {
         self.instances = Self::create_instances(self.read_instances()?, manifests, deployments);
         Ok(())
@@ -58,15 +54,16 @@ impl InstancePouch {
 
     fn try_create_instances(
         instances: Vec<InstanceDeserializable>,
-        manifests: &HashMap<AppKey, Arc<AppManifest>>,
-        deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
-    ) -> core::result::Result<InstancesMap, (InstancesMap, Vec<(InstanceId, anyhow::Error)>)> {
+        manifests: &super::manifest::Gems,
+        deployments: &super::deployment::Gems,
+    ) -> core::result::Result<InstancesMap, (InstancesMap, Vec<(InstanceId, CreateInstanceError)>)>
+    {
         let mut errors = Vec::new();
         let instances: HashMap<InstanceId, Instance> = instances
             .into_iter()
             .filter_map(|instance| {
-                let id = instance.id;
-                match try_create_instance(instance, manifests, deployments) {
+                let id = instance.id();
+                match Instance::try_create_with_state(instance, manifests, deployments) {
                     Ok(instance) => Some((id, instance)),
                     Err(e) => {
                         errors.push((id, e));
@@ -84,8 +81,8 @@ impl InstancePouch {
 
     fn create_instances(
         instances: Vec<InstanceDeserializable>,
-        manifests: &HashMap<AppKey, Arc<AppManifest>>,
-        deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
+        manifests: &super::manifest::Gems,
+        deployments: &super::deployment::Gems,
     ) -> HashMap<InstanceId, Instance> {
         Self::try_create_instances(instances, manifests, deployments).unwrap_or_else(
             |(instances, errors)| {
@@ -101,7 +98,7 @@ impl InstancePouch {
         self.instances
             .iter()
             .filter_map(|(id, instance)| {
-                if instance.app_key() == app_key {
+                if *instance.app_key() == app_key {
                     Some(*id)
                 } else {
                     None
@@ -137,24 +134,18 @@ impl InstancePouch {
     }
 
     pub fn unavailable_ipv4_addresses(&self) -> HashSet<Ipv4Addr> {
-        let instance_ips = self.instances.values().flat_map(|instance| {
-            instance
-                .config
-                .connected_networks
-                .values()
-                .filter_map(|ip_addr| match ip_addr {
-                    IpAddr::V4(address) => Some(address),
-                    _ => None,
-                })
-        });
+        let instance_ips = self
+            .instances
+            .values()
+            .flat_map(|instance| instance.taken_ipv4_addresses().into_iter());
         self.reserved_ip_addresses
             .iter()
             .filter_map(|address| match address {
                 IpAddr::V4(address) => Some(address),
                 _ => None,
             })
+            .copied()
             .chain(instance_ips)
-            .cloned()
             .collect()
     }
 
@@ -194,11 +185,18 @@ impl InstancePouch {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::gem::instance::{
-        InstanceConfig, InstancePortMapping, InstanceStatus, UsbPathConfig,
+    use crate::jeweler::deployment::DeploymentId;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::instance::docker::config::{
+        InstanceConfig, InstancePortMapping, UsbPathConfig,
     };
-    use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange, VolumeMount};
+    use crate::jeweler::gem::instance::docker::DockerInstanceDeserializable;
+    use crate::jeweler::gem::instance::status::InstanceStatus;
+    use crate::jeweler::gem::manifest::single::{
+        EnvironmentVariable, PortMapping, PortRange, VolumeMount,
+    };
+    use crate::jeweler::gem::manifest::AppManifest;
     use crate::relic::network::{Ipv4Iterator, Ipv4Network};
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::app::tests::{
@@ -210,6 +208,7 @@ pub mod tests {
     use crate::vault::tests::create_test_vault_raw;
     use serde_json::Value;
     use std::net::Ipv6Addr;
+    use std::sync::Arc;
     use testdir::testdir;
 
     pub const UNKNOWN_INSTANCE_1: InstanceId = InstanceId::new(0xffff0001);
@@ -225,12 +224,15 @@ pub mod tests {
     pub const NETWORK_INSTANCE: InstanceId = InstanceId::new(8);
     pub const MOUNT_INSTANCE: InstanceId = InstanceId::new(9);
 
-    fn default_deployment() -> Arc<dyn crate::jeweler::deployment::Deployment> {
-        let mut default_deployment = MockedDeployment::default();
+    fn default_deployment() -> Deployment {
+        let mut default_deployment = MockedDockerDeployment::default();
         default_deployment
             .expect_id()
-            .returning(move || "DefaultMockedDeployment".to_string());
-        Arc::new(default_deployment)
+            .return_const("DefaultMockedDeployment".to_string());
+        default_deployment
+            .expect_deployment_id()
+            .return_const("DefaultMockedDeployment".to_string());
+        Deployment::Docker(Arc::new(default_deployment))
     }
 
     pub fn get_test_instance(id: InstanceId) -> Instance {
@@ -244,21 +246,26 @@ pub mod tests {
     }
 
     pub fn test_instance_pouch(
-        manifests: &HashMap<AppKey, Arc<AppManifest>>,
-        mut deployments: HashMap<InstanceId, Arc<dyn crate::jeweler::deployment::Deployment>>,
-        fallback_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
+        manifests: &HashMap<AppKey, AppManifest>,
+        mut deployments: HashMap<InstanceId, Deployment>,
+        fallback_deployment: Option<Deployment>,
     ) -> InstancePouch {
-        let default_deployment = fallback_deployment.unwrap_or_else(|| default_deployment());
+        let default_deployment = fallback_deployment.unwrap_or_else(default_deployment);
         let mut instances = test_instances();
         for instance in instances.iter_mut() {
             let entry = deployments
-                .entry(instance.id)
+                .entry(instance.id())
                 .or_insert(default_deployment.clone());
-            instance.deployment_id = entry.id();
+            match instance {
+                InstanceDeserializable::Compose(compose) => {
+                    compose.deployment_id = entry.id().clone()
+                }
+                InstanceDeserializable::Docker(docker) => docker.deployment_id = entry.id().clone(),
+            }
         }
         let deployments = deployments
             .into_values()
-            .map(|deployment| (deployment.id(), deployment))
+            .map(|deployment| (deployment.id().clone(), deployment))
             .collect();
         InstancePouch {
             path: testdir!().join("instances"),
@@ -269,7 +276,7 @@ pub mod tests {
     }
 
     fn minimal_instance() -> InstanceDeserializable {
-        InstanceDeserializable {
+        InstanceDeserializable::Docker(DockerInstanceDeserializable {
             hostname: format!("flecs-{MINIMAL_INSTANCE}"),
             name: "Minimal instance".to_string(),
             id: MINIMAL_INSTANCE,
@@ -280,11 +287,11 @@ pub mod tests {
                 version: MINIMAL_APP_WITH_INSTANCE_VERSION.to_string(),
             },
             deployment_id: format!("deployment-{MINIMAL_INSTANCE}"),
-        }
+        })
     }
 
     fn running_instance() -> InstanceDeserializable {
-        InstanceDeserializable {
+        InstanceDeserializable::Docker(DockerInstanceDeserializable {
             hostname: format!("flecs-{RUNNING_INSTANCE}"),
             name: "Running instance".to_string(),
             id: RUNNING_INSTANCE,
@@ -295,7 +302,7 @@ pub mod tests {
                 version: MINIMAL_APP_2_VERSION.to_string(),
             },
             deployment_id: format!("deployment-{RUNNING_INSTANCE}"),
-        }
+        })
     }
 
     pub fn test_port_mapping() -> InstancePortMapping {
@@ -310,7 +317,7 @@ pub mod tests {
     }
 
     fn port_mapping_instance() -> InstanceDeserializable {
-        InstanceDeserializable {
+        InstanceDeserializable::Docker(DockerInstanceDeserializable {
             hostname: format!("flecs-{PORT_MAPPING_INSTANCE}"),
             name: "Running instance".to_string(),
             id: PORT_MAPPING_INSTANCE,
@@ -324,11 +331,11 @@ pub mod tests {
                 version: MINIMAL_APP_2_VERSION.to_string(),
             },
             deployment_id: format!("deployment-{PORT_MAPPING_INSTANCE}"),
-        }
+        })
     }
 
     fn label_instance() -> InstanceDeserializable {
-        InstanceDeserializable {
+        InstanceDeserializable::Docker(DockerInstanceDeserializable {
             hostname: format!("flecs-{LABEL_INSTANCE}"),
             name: "Running instance".to_string(),
             id: LABEL_INSTANCE,
@@ -339,11 +346,11 @@ pub mod tests {
                 version: LABEL_APP_VERSION.to_string(),
             },
             deployment_id: format!("deployment-{LABEL_INSTANCE}"),
-        }
+        })
     }
 
     fn env_instance() -> InstanceDeserializable {
-        InstanceDeserializable {
+        InstanceDeserializable::Docker(DockerInstanceDeserializable {
             hostname: format!("flecs-{ENV_INSTANCE}"),
             name: "Running instance".to_string(),
             id: ENV_INSTANCE,
@@ -366,11 +373,11 @@ pub mod tests {
                 version: MINIMAL_APP_2_VERSION.to_string(),
             },
             deployment_id: format!("deployment-{ENV_INSTANCE}"),
-        }
+        })
     }
 
     fn usb_dev_instance() -> InstanceDeserializable {
-        InstanceDeserializable {
+        InstanceDeserializable::Docker(DockerInstanceDeserializable {
             hostname: format!("flecs-{USB_DEV_INSTANCE}"),
             name: "Running instance".to_string(),
             id: USB_DEV_INSTANCE,
@@ -391,11 +398,11 @@ pub mod tests {
                 version: MINIMAL_APP_2_VERSION.to_string(),
             },
             deployment_id: format!("deployment-{USB_DEV_INSTANCE}"),
-        }
+        })
     }
 
     fn editor_instance() -> InstanceDeserializable {
-        InstanceDeserializable {
+        InstanceDeserializable::Docker(DockerInstanceDeserializable {
             hostname: format!("flecs-{EDITOR_INSTANCE}"),
             name: "Running instance".to_string(),
             id: EDITOR_INSTANCE,
@@ -413,11 +420,11 @@ pub mod tests {
                 version: EDITOR_APP_VERSION.to_string(),
             },
             deployment_id: format!("deployment-{EDITOR_INSTANCE}"),
-        }
+        })
     }
 
     pub fn network_instance() -> InstanceDeserializable {
-        InstanceDeserializable {
+        InstanceDeserializable::Docker(DockerInstanceDeserializable {
             hostname: format!("flecs-{NETWORK_INSTANCE}"),
             name: "Running instance".to_string(),
             id: NETWORK_INSTANCE,
@@ -446,11 +453,11 @@ pub mod tests {
                 version: EDITOR_APP_VERSION.to_string(),
             },
             deployment_id: format!("deployment-{NETWORK_INSTANCE}"),
-        }
+        })
     }
 
     pub fn mount_instance() -> InstanceDeserializable {
-        InstanceDeserializable {
+        InstanceDeserializable::Docker(DockerInstanceDeserializable {
             hostname: format!("flecs-{MOUNT_INSTANCE}"),
             name: "Running instance".to_string(),
             id: MOUNT_INSTANCE,
@@ -479,7 +486,7 @@ pub mod tests {
                 version: MOUNT_APP_VERSION.to_string(),
             },
             deployment_id: format!("deployment-{MOUNT_INSTANCE}"),
-        }
+        })
     }
 
     pub fn test_instances() -> Vec<InstanceDeserializable> {
@@ -498,27 +505,28 @@ pub mod tests {
 
     pub fn create_manifest_for_instance(
         instance: &InstanceDeserializable,
-    ) -> (AppKey, Arc<AppManifest>) {
+    ) -> (AppKey, AppManifest) {
         (
-            instance.app_key.clone(),
-            Arc::new(create_test_manifest(
-                instance.app_key.name.as_str(),
-                instance.app_key.version.as_str(),
-            )),
+            instance.app_key().clone(),
+            create_test_manifest(
+                instance.app_key().name.as_str(),
+                instance.app_key().version.as_str(),
+            ),
         )
     }
 
     fn create_deployment_for_instance(
         instance: &InstanceDeserializable,
-    ) -> (DeploymentId, Arc<dyn Deployment>) {
-        let mut deployment = MockedDeployment::new();
-        let deployment_id = instance.deployment_id.clone();
+    ) -> (DeploymentId, Deployment) {
+        let mut deployment = MockedDockerDeployment::new();
+        let deployment_id = instance.deployment_id().clone();
+        deployment.expect_id().return_const(deployment_id.clone());
         deployment
-            .expect_id()
-            .returning(move || deployment_id.clone());
+            .expect_deployment_id()
+            .return_const(deployment_id.clone());
         (
-            instance.deployment_id.clone(),
-            Arc::new(deployment) as Arc<dyn Deployment>,
+            instance.deployment_id().clone(),
+            Deployment::Docker(Arc::new(deployment)),
         )
     }
 
@@ -627,7 +635,7 @@ pub mod tests {
 
     pub fn create_test_instances_deserializable() -> Vec<InstanceDeserializable> {
         vec![
-            InstanceDeserializable {
+            InstanceDeserializable::Docker(DockerInstanceDeserializable {
                 config: InstanceConfig::default(),
                 name: "test-instance-1".to_string(),
                 hostname: format!("flecs-{}", InstanceId::new(1)),
@@ -638,8 +646,8 @@ pub mod tests {
                     version: "1.2.3".to_string(),
                 },
                 deployment_id: "test-deployment-1".to_string(),
-            },
-            InstanceDeserializable {
+            }),
+            InstanceDeserializable::Docker(DockerInstanceDeserializable {
                 config: InstanceConfig::default(),
                 name: "test-instance-2".to_string(),
                 hostname: format!("flecs-{}", InstanceId::new(2)),
@@ -650,8 +658,8 @@ pub mod tests {
                     version: "1.2.4".to_string(),
                 },
                 deployment_id: "test-deployment-2".to_string(),
-            },
-            InstanceDeserializable {
+            }),
+            InstanceDeserializable::Docker(DockerInstanceDeserializable {
                 config: InstanceConfig::default(),
                 name: "test-instance-3".to_string(),
                 hostname: format!("flecs-{}", InstanceId::new(3)),
@@ -662,8 +670,8 @@ pub mod tests {
                     version: "1.2.4".to_string(),
                 },
                 deployment_id: "test-deployment-3".to_string(),
-            },
-            InstanceDeserializable {
+            }),
+            InstanceDeserializable::Docker(DockerInstanceDeserializable {
                 config: InstanceConfig::default(),
                 name: "test-instance-4".to_string(),
                 hostname: format!("flecs-{}", InstanceId::new(4)),
@@ -674,8 +682,8 @@ pub mod tests {
                     version: "1.2.4".to_string(),
                 },
                 deployment_id: "test-deployment-4".to_string(),
-            },
-            InstanceDeserializable {
+            }),
+            InstanceDeserializable::Docker(DockerInstanceDeserializable {
                 config: InstanceConfig::default(),
                 name: "test-instance-5".to_string(),
                 hostname: format!("flecs-{}", InstanceId::new(5)),
@@ -686,8 +694,8 @@ pub mod tests {
                     version: "1.2.4".to_string(),
                 },
                 deployment_id: "test-deployment-4".to_string(),
-            },
-            InstanceDeserializable {
+            }),
+            InstanceDeserializable::Docker(DockerInstanceDeserializable {
                 config: test_config(),
                 name: "test-instance-6".to_string(),
                 hostname: format!("flecs-{}", InstanceId::new(6)),
@@ -698,14 +706,14 @@ pub mod tests {
                     version: "1.2.6".to_string(),
                 },
                 deployment_id: "test-deployment-4".to_string(),
-            },
+            }),
         ]
     }
 
     pub type TestData = (
         Vec<InstanceDeserializable>,
-        HashMap<AppKey, Arc<AppManifest>>,
-        HashMap<DeploymentId, Arc<dyn Deployment>>,
+        HashMap<AppKey, AppManifest>,
+        HashMap<DeploymentId, Deployment>,
     );
 
     fn create_test_data() -> TestData {
@@ -713,17 +721,18 @@ pub mod tests {
         let manifests = instances
             .iter()
             .map(create_manifest_for_instance)
-            .collect::<HashMap<AppKey, Arc<AppManifest>>>();
+            .collect::<HashMap<AppKey, AppManifest>>();
         let deployments = instances
             .iter()
             .map(create_deployment_for_instance)
-            .collect::<HashMap<DeploymentId, Arc<dyn Deployment>>>();
+            .collect::<HashMap<DeploymentId, Deployment>>();
         (instances, manifests, deployments)
     }
 
     fn create_test_json() -> Value {
         serde_json::json!([
             {
+                "type": "Docker",
                 "name": "test-instance-1",
                 "hostname": "flecs-00000001",
                 "id": 1,
@@ -736,6 +745,7 @@ pub mod tests {
                 "config": {}
             },
             {
+                "type": "Docker",
                 "name": "test-instance-2",
                 "hostname": "flecs-00000002",
                 "id": 2,
@@ -748,6 +758,7 @@ pub mod tests {
                 "config": {}
             },
             {
+                "type": "Docker",
                 "name": "test-instance-3",
                 "hostname": "flecs-00000003",
                 "id": 3,
@@ -760,6 +771,7 @@ pub mod tests {
                 "config": {}
             },
             {
+                "type": "Docker",
                 "name": "test-instance-4",
                 "hostname": "flecs-00000004",
                 "id": 4,
@@ -772,6 +784,7 @@ pub mod tests {
                 "config": {}
             },
             {
+                "type": "Docker",
                 "name": "test-instance-5",
                 "hostname": "flecs-00000005",
                 "id": 5,
@@ -784,6 +797,7 @@ pub mod tests {
                 "config": {}
             },
             {
+                "type": "Docker",
                 "name": "test-instance-6",
                 "hostname": "flecs-00000006",
                 "id": 6,
@@ -804,8 +818,11 @@ pub mod tests {
         let json = create_test_json();
         let instance_pouch = InstancePouch::new(path.parent().unwrap());
         let mut expected_instances = create_test_instances_deserializable();
+        let InstanceDeserializable::Docker(ref mut instance) = &mut expected_instances[5] else {
+            panic!()
+        };
         // mapped ports should not be serialized / deserialized
-        expected_instances[5].config.mapped_editor_ports.clear();
+        instance.config.mapped_editor_ports.clear();
         fs::write(path, serde_json::to_string_pretty(&json).unwrap()).unwrap();
         let instances = instance_pouch.read_instances().unwrap();
         assert_eq!(instances, expected_instances);
@@ -844,12 +861,12 @@ pub mod tests {
             .iter()
             .take(1)
             .map(create_manifest_for_instance)
-            .collect::<HashMap<AppKey, Arc<AppManifest>>>();
+            .collect::<HashMap<AppKey, AppManifest>>();
         let deployments = instances
             .iter()
             .take(1)
             .map(create_deployment_for_instance)
-            .collect::<HashMap<DeploymentId, Arc<dyn Deployment>>>();
+            .collect::<HashMap<DeploymentId, Deployment>>();
         assert_eq!(
             InstancePouch::create_instances(instances, &manifests, &deployments).len(),
             1
@@ -897,7 +914,7 @@ pub mod tests {
         assert!(pouch.reserved_ip_addresses.is_empty());
         assert_eq!(pouch.instances.len(), instances.len());
         for instance in instances {
-            assert!(pouch.instances.contains_key(&instance.id));
+            assert!(pouch.instances.contains_key(&instance.id()));
         }
     }
 
@@ -1015,21 +1032,22 @@ pub mod tests {
             reserved_ip_addresses: HashSet::default(),
         };
         for instance in pouch.instances.values_mut() {
+            let Instance::Docker(ref mut instance) = instance else {
+                panic!()
+            };
             instance.config.connected_networks.insert(
                 format!("TestNetwork-{}", instance.id),
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
             );
         }
-        pouch
-            .instances
-            .get_mut(&InstanceId::new(1))
-            .unwrap()
-            .config
-            .connected_networks
-            .insert(
-                "DoubleTestNetwork".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40)),
-            );
+        let Some(Instance::Docker(ref mut instance)) = pouch.instances.get_mut(&InstanceId::new(1))
+        else {
+            panic!()
+        };
+        instance.config.connected_networks.insert(
+            "DoubleTestNetwork".to_string(),
+            IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40)),
+        );
         let expected_ipv4_addresses = HashSet::from([
             Ipv4Addr::new(1, 2, 3, 1),
             Ipv4Addr::new(1, 2, 3, 2),
@@ -1070,21 +1088,22 @@ pub mod tests {
             Ipv4Addr::new(50, 60, 70, 80),
         ]);
         for instance in pouch.instances.values_mut() {
+            let Instance::Docker(ref mut instance) = instance else {
+                panic!()
+            };
             instance.config.connected_networks.insert(
                 format!("TestNetwork-{}", instance.id),
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
             );
         }
-        pouch
-            .instances
-            .get_mut(&InstanceId::new(1))
-            .unwrap()
-            .config
-            .connected_networks
-            .insert(
-                "DoubleTestNetwork".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40)),
-            );
+        let Some(Instance::Docker(ref mut instance)) = pouch.instances.get_mut(&InstanceId::new(1))
+        else {
+            panic!()
+        };
+        instance.config.connected_networks.insert(
+            "DoubleTestNetwork".to_string(),
+            IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40)),
+        );
         assert_eq!(pouch.unavailable_ipv4_addresses(), expected_ipv4_addresses);
     }
 
@@ -1108,23 +1127,24 @@ pub mod tests {
             ]),
         };
         for instance in pouch.instances.values_mut() {
+            let Instance::Docker(ref mut instance) = instance else {
+                panic!()
+            };
             instance.config.connected_networks.insert(
                 format!("TestNetwork-{}", instance.id),
                 IpAddr::V6(Ipv6Addr::new(1, 2, 3, 4, 5, 6, 7, instance.id.value as u16)),
             );
         }
-        pouch
-            .instances
-            .get_mut(&InstanceId::new(1))
-            .unwrap()
-            .config
-            .connected_networks
-            .insert(
-                "DoubleTestNetwork".to_string(),
-                IpAddr::V6(Ipv6Addr::new(
-                    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x84,
-                )),
-            );
+        let Some(Instance::Docker(ref mut instance)) = pouch.instances.get_mut(&InstanceId::new(1))
+        else {
+            panic!()
+        };
+        instance.config.connected_networks.insert(
+            "DoubleTestNetwork".to_string(),
+            IpAddr::V6(Ipv6Addr::new(
+                0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x84,
+            )),
+        );
         assert_eq!(
             pouch.unavailable_ipv4_addresses(),
             HashSet::from([Ipv4Addr::new(50, 60, 70, 80),])
@@ -1177,6 +1197,9 @@ pub mod tests {
         };
         let expected_new_address = Ipv4Addr::new(20, 30, 40, 6 + pouch.instances.len() as u8);
         for (i, instance) in pouch.instances.values_mut().enumerate() {
+            let Instance::Docker(ref mut instance) = instance else {
+                panic!()
+            };
             instance.config.connected_networks.insert(
                 format!("TestNetwork-{}", instance.id),
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, (6 + i) as u8)),

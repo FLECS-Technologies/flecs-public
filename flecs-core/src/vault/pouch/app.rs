@@ -1,13 +1,9 @@
-use crate::jeweler::deployment::Deployment;
 use crate::jeweler::gem::app::{try_create_app, App, AppDeserializable};
-use crate::jeweler::gem::manifest::AppManifest;
-use crate::vault::pouch::deployment::DeploymentId;
 use crate::vault::pouch::{AppKey, Pouch};
 pub use crate::Result;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use tracing::error;
 
 const APPS_FILE_NAME: &str = "apps.json";
@@ -41,8 +37,8 @@ impl AppPouch {
 
     pub(in super::super) fn open(
         &mut self,
-        manifests: &HashMap<AppKey, Arc<AppManifest>>,
-        deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
+        manifests: &super::manifest::Gems,
+        deployments: &super::deployment::Gems,
     ) -> Result<()> {
         self.apps = Self::create_apps(self.read_apps()?, manifests, deployments);
         Ok(())
@@ -55,8 +51,8 @@ impl AppPouch {
 
     fn create_apps(
         apps: Vec<AppDeserializable>,
-        manifests: &HashMap<AppKey, Arc<AppManifest>>,
-        deployments: &HashMap<DeploymentId, Arc<dyn Deployment>>,
+        manifests: &super::manifest::Gems,
+        deployments: &super::deployment::Gems,
     ) -> HashMap<AppKey, App> {
         apps.into_iter()
             .filter_map(|app| {
@@ -87,40 +83,41 @@ pub mod tests {
     use super::*;
     use crate::jeweler;
     use crate::jeweler::app::AppStatus;
-    use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::gem::app::AppDataDeserializable;
-    use crate::jeweler::gem::deployment::docker::DockerDeployment;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
+    use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::manifest::AppManifest;
     use crate::tests::prepare_test_path;
-    use crate::vault::pouch;
-    use flecs_app_manifest::AppManifestVersion;
     use serde_json::Value;
     use std::fs;
+    use std::sync::Arc;
     use testdir::testdir;
 
-    fn default_deployment() -> Arc<dyn crate::jeweler::deployment::Deployment> {
-        let mut default_deployment = MockedDeployment::default();
+    fn default_deployment() -> Deployment {
+        let mut default_deployment = MockedDockerDeployment::default();
         default_deployment
             .expect_id()
-            .returning(move || "DefaultMockedDeployment".to_string());
-        Arc::new(default_deployment)
+            .return_const("DefaultMockedDeployment".to_string());
+        Deployment::Docker(Arc::new(default_deployment))
     }
 
     pub fn test_app_pouch(
-        manifests: &HashMap<AppKey, Arc<AppManifest>>,
-        mut deployments: HashMap<AppKey, Arc<dyn crate::jeweler::deployment::Deployment>>,
-        fallback_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
+        manifests: &super::super::manifest::Gems,
+        mut deployments: HashMap<AppKey, Deployment>,
+        fallback_deployment: Option<Deployment>,
     ) -> AppPouch {
-        let default_deployment = fallback_deployment.unwrap_or_else(|| default_deployment());
+        let default_deployment = fallback_deployment.unwrap_or_else(default_deployment);
         let mut apps = test_apps();
         for app in apps.iter_mut() {
             let entry = deployments
                 .entry(app.key.clone())
                 .or_insert(default_deployment.clone());
-            app.deployments.first_mut().unwrap().deployment_id = entry.id();
+            app.deployments.first_mut().unwrap().deployment_id = entry.id().clone();
         }
         let deployments = deployments
             .into_values()
-            .map(|deployment| (deployment.id(), deployment))
+            .map(|deployment| (deployment.id().clone(), deployment))
             .collect();
         AppPouch {
             apps: AppPouch::create_apps(apps, manifests, &deployments),
@@ -133,7 +130,6 @@ pub mod tests {
             minimal_app(),
             single_instance_app(),
             multi_instance_app(),
-            no_manifest_app(),
             minimal_app_with_instance(),
             minimal_app_2(),
             label_app(),
@@ -280,19 +276,6 @@ pub mod tests {
 
     pub const NO_MANIFEST_APP_NAME: &str = "tech.flecs.no-manifest";
     pub const NO_MANIFEST_APP_VERSION: &str = "1.0.0";
-    fn no_manifest_app() -> AppDeserializable {
-        AppDeserializable {
-            key: AppKey {
-                name: NO_MANIFEST_APP_NAME.to_string(),
-                version: NO_MANIFEST_APP_VERSION.to_string(),
-            },
-            deployments: vec![AppDataDeserializable {
-                id: Some("aabbaaccddee".to_string()),
-                deployment_id: "".to_string(),
-                desired: AppStatus::NotInstalled,
-            }],
-        }
-    }
 
     pub const MOUNT_APP_NAME: &str = "tech.flecs.mount";
     pub const MOUNT_APP_VERSION: &str = "0.4.0";
@@ -326,7 +309,7 @@ pub mod tests {
         ])
     }
 
-    fn create_test_manifests() -> HashMap<AppKey, Arc<AppManifest>> {
+    fn create_test_manifests() -> HashMap<AppKey, AppManifest> {
         let manifest: flecs_app_manifest::generated::manifest_3_1_0::Single =
             flecs_app_manifest::generated::manifest_3_1_0::builder::Single::default()
                 .app("test-app-1")
@@ -334,32 +317,20 @@ pub mod tests {
                 .version("1.2.3".to_string())
                 .try_into()
                 .unwrap();
-        HashMap::from([(
-            AppKey {
-                name: manifest.app.to_string(),
-                version: manifest.version.to_string(),
-            },
-            Arc::new(
-                AppManifestVersion::V3_1_0(
-                    flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(
-                        manifest,
-                    ),
-                )
-                .try_into()
-                .unwrap(),
-            ),
-        )])
+        let manifest =
+            flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(manifest);
+        let manifest = flecs_app_manifest::AppManifestVersion::V3_1_0(manifest);
+        let manifest = flecs_app_manifest::AppManifest::try_from(manifest).unwrap();
+        let manifest = AppManifest::try_from(manifest).unwrap();
+        HashMap::from([(manifest.key().clone(), manifest)])
     }
 
-    fn create_test_deployments() -> HashMap<jeweler::deployment::DeploymentId, Arc<dyn Deployment>>
-    {
-        let deployment: Arc<dyn Deployment> =
-            pouch::deployment::Deployment::Docker(DockerDeployment::new(
-                "test-deployment-id-1".to_string(),
-                PathBuf::from("/var/run/docker.sock"),
-            ))
-            .into();
-        HashMap::from([(deployment.id(), deployment)])
+    fn create_test_deployments() -> HashMap<jeweler::deployment::DeploymentId, Deployment> {
+        let deployment = Deployment::Docker(Arc::new(DockerDeploymentImpl::new(
+            "test-deployment-id-1".to_string(),
+            PathBuf::from("/var/run/docker.sock"),
+        )));
+        HashMap::from([(deployment.id().clone(), deployment)])
     }
 
     fn create_test_app() -> App {

@@ -1,6 +1,6 @@
 use crate::jeweler::gem::instance::InstanceId;
-use crate::jeweler::gem::manifest::EnvironmentVariable;
-use crate::sorcerer::instancius::Instancius;
+use crate::jeweler::gem::manifest::single::EnvironmentVariable;
+use crate::sorcerer::instancius::{Instancius, QueryInstanceConfigError};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse as DeleteResponse,
@@ -32,16 +32,21 @@ pub async fn delete<I: Instancius>(
         )
         .await
     {
-        None => DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
-            additional_info: Some(format!("No instance with id {instance_id}")),
-        }),
-        Some(None) => DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
+                additional_info: Some(format!("No instance with id {instance_id}")),
+            })
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            DeleteResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(None) => DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
             additional_info: Some(format!(
                 "No environment variable with name {}",
                 path_params.variable_name
             )),
         }),
-        Some(Some(_)) => DeleteResponse::Status200_EnvironmentVariableOfInstanceWithThisInstance,
+        Ok(Some(_)) => DeleteResponse::Status200_EnvironmentVariableOfInstanceWithThisInstance,
     }
 }
 
@@ -59,16 +64,21 @@ pub async fn get<I: Instancius>(
         )
         .await
     {
-        None => GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
-            additional_info: Some(format!("No instance with id {instance_id}")),
-        }),
-        Some(None) => GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
+                additional_info: Some(format!("No instance with id {instance_id}")),
+            })
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            GetResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(None) => GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
             additional_info: Some(format!(
                 "No environment variable with name {}",
                 path_params.variable_name
             )),
         }),
-        Some(Some(value)) => GetResponse::Status200_Success(GetResponse200 { value }),
+        Ok(Some(value)) => GetResponse::Status200_Success(GetResponse200 { value }),
     }
 }
 
@@ -90,9 +100,14 @@ pub async fn put<I: Instancius>(
         )
         .await
     {
-        None => PutResponse::Status404_NoInstanceWithThisInstance,
-        Some(None) => PutResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated,
-        Some(Some(_)) => PutResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet,
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            PutResponse::Status404_NoInstanceWithThisInstance
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            PutResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(None) => PutResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated,
+        Ok(Some(_)) => PutResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet,
     }
 }
 
@@ -108,7 +123,11 @@ mod tests {
             .expect_get_instance_config_environment_variable_value()
             .withf(move |_, id, name| id.value == 0x99887766 && name == "variable_name")
             .once()
-            .returning(|_, _, _| None);
+            .returning(|_, _, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0x99887766,
+                )))
+            });
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
             get(
@@ -131,7 +150,7 @@ mod tests {
             .expect_get_instance_config_environment_variable_value()
             .withf(move |_, id, name| id.value == 6 && name == "variable_name")
             .once()
-            .returning(|_, _, _| Some(None));
+            .returning(|_, _, _| Ok(None));
 
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
@@ -155,12 +174,12 @@ mod tests {
             .expect_get_instance_config_environment_variable_value()
             .withf(move |_, id, name| id.value == 6 && name == "VAR_1")
             .once()
-            .returning(|_, _, _| Some(Some(None)));
+            .returning(|_, _, _| Ok(Some(None)));
         instancius
             .expect_get_instance_config_environment_variable_value()
             .withf(move |_, id, name| id.value == 6 && name == "VAR_2")
             .once()
-            .returning(|_, _, _| Some(Some(Some("value".to_string()))));
+            .returning(|_, _, _| Ok(Some(Some("value".to_string()))));
 
         let vault = crate::vault::tests::create_empty_test_vault();
         let instancius = Arc::new(instancius);
@@ -199,7 +218,11 @@ mod tests {
             .expect_delete_instance_config_environment_variable_value()
             .withf(move |_, id, name| id.value == 0x99887766 && name == "variable_name")
             .once()
-            .returning(|_, _, _| None);
+            .returning(|_, _, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0x99887766,
+                )))
+            });
 
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
@@ -223,7 +246,7 @@ mod tests {
             .expect_delete_instance_config_environment_variable_value()
             .withf(move |_, id, name| id.value == 6 && name == "variable_name")
             .once()
-            .returning(|_, _, _| Some(None));
+            .returning(|_, _, _| Ok(None));
 
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
@@ -248,7 +271,7 @@ mod tests {
             .withf(move |_, id, name| id.value == 6 && name == "VAR_1")
             .once()
             .returning(|_, _, _| {
-                Some(Some(EnvironmentVariable {
+                Ok(Some(EnvironmentVariable {
                     name: "VAR_1".to_string(),
                     value: Some("value".to_string()),
                 }))
@@ -283,7 +306,11 @@ mod tests {
                         }
             })
             .once()
-            .returning(|_, _, _| None);
+            .returning(|_, _, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0x12341234,
+                )))
+            });
 
         let vault = crate::vault::tests::create_empty_test_vault();
         assert_eq!(
@@ -317,7 +344,7 @@ mod tests {
                         }
             })
             .once()
-            .returning(|_, _, _| Some(None));
+            .returning(|_, _, _| Ok(None));
 
         let vault = crate::vault::tests::create_empty_test_vault();
         assert_eq!(
@@ -351,7 +378,7 @@ mod tests {
                         }
             })
             .once()
-            .returning(|_, _, _| Some(Some("previous_value".to_string())));
+            .returning(|_, _, _| Ok(Some("previous_value".to_string())));
 
         let vault = crate::vault::tests::create_empty_test_vault();
         assert_eq!(

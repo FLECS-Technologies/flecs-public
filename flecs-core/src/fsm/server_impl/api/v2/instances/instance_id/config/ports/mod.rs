@@ -1,7 +1,7 @@
 pub mod transport_protocol;
 use crate::jeweler::gem::instance::InstanceId;
-use crate::jeweler::gem::manifest::PortMapping;
-use crate::sorcerer::instancius::Instancius;
+use crate::jeweler::gem::manifest::single::PortMapping;
+use crate::sorcerer::instancius::{Instancius, QueryInstanceConfigError};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigPortsDeleteResponse as DeleteResponse,
@@ -21,13 +21,17 @@ pub async fn delete<I: Instancius>(
     path_params: DeletePathParams,
 ) -> DeleteResponse {
     let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-    if instancius
+    match instancius
         .delete_instance_config_port_mappings(vault, instance_id)
         .await
     {
-        DeleteResponse::Status200_ExposedPortsOfInstanceWithThisInstance
-    } else {
-        DeleteResponse::Status404_NoInstanceWithThisInstance
+        Ok(_) => DeleteResponse::Status200_ExposedPortsOfInstanceWithThisInstance,
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            DeleteResponse::Status404_NoInstanceWithThisInstance
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            DeleteResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 
@@ -41,8 +45,13 @@ pub async fn get<I: Instancius>(
         .get_instance_config_port_mappings(vault, instance_id)
         .await
     {
-        None => GetResponse::Status404_NoInstanceWithThisInstance,
-        Some(mapping) => GetResponse::Status200_Success(models::InstancePorts {
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            GetResponse::Status404_NoInstanceWithThisInstance
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            GetResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(mapping) => GetResponse::Status200_Success(models::InstancePorts {
             tcp: port_mappings_to_instance_ports(&mapping.tcp),
             udp: port_mappings_to_instance_ports(&mapping.udp),
             sctp: port_mappings_to_instance_ports(&mapping.sctp),
@@ -91,8 +100,8 @@ impl From<&PortMapping> for models::InstancePortMapping {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::gem::instance::InstancePortMapping;
-    use crate::jeweler::gem::manifest::PortRange;
+    use crate::jeweler::gem::instance::docker::config::InstancePortMapping;
+    use crate::jeweler::gem::manifest::single::PortRange;
     use crate::sorcerer::instancius::MockInstancius;
 
     #[tokio::test]
@@ -102,7 +111,11 @@ mod tests {
             .expect_delete_instance_config_port_mappings()
             .withf(move |_, id| id.value == 0x12341234)
             .once()
-            .returning(|_, _| false);
+            .returning(|_, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0x12341234,
+                )))
+            });
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
             delete(
@@ -124,7 +137,7 @@ mod tests {
             .expect_delete_instance_config_port_mappings()
             .withf(move |_, id| id.value == 6)
             .once()
-            .returning(|_, _| true);
+            .returning(|_, _| Ok(()));
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
             delete(
@@ -146,7 +159,11 @@ mod tests {
             .expect_get_instance_config_port_mappings()
             .withf(move |_, id| id.value == 0x12341234)
             .once()
-            .returning(|_, _| None);
+            .returning(|_, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0x12341234,
+                )))
+            });
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
             get(
@@ -169,7 +186,7 @@ mod tests {
             .withf(move |_, id| id.value == 6)
             .once()
             .returning(|_, _| {
-                Some(InstancePortMapping {
+                Ok(InstancePortMapping {
                     tcp: vec![PortMapping::Single(80, 8080)],
                     udp: vec![PortMapping::Range {
                         from: PortRange::new(50..=100),

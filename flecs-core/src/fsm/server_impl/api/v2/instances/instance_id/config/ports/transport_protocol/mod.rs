@@ -1,8 +1,9 @@
 pub mod host_port_range;
 use crate::fsm::server_impl::api::v2::instances::instance_id::config::ports::port_mappings_to_instance_ports;
-use crate::jeweler::gem::instance::{InstanceId, TransportProtocol};
-use crate::jeweler::gem::manifest::{PortMapping, PortRange};
-use crate::sorcerer::instancius::Instancius;
+use crate::jeweler::gem::instance::docker::config::TransportProtocol;
+use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::manifest::single::{PortMapping, PortRange};
+use crate::sorcerer::instancius::{Instancius, QueryInstanceConfigError};
 use crate::vault::Vault;
 use anyhow::Error;
 use flecsd_axum_server::apis::instances::{
@@ -35,8 +36,13 @@ pub async fn delete<I: Instancius>(
         )
         .await
     {
-        Some(_) => DeleteResponse::Status200_RemovedAllPublishedPortsOfInstanceWithThisInstance,
-        None => DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo::new()),
+        Ok(_) => DeleteResponse::Status200_RemovedAllPublishedPortsOfInstanceWithThisInstance,
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo::new())
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            DeleteResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 
@@ -46,7 +52,7 @@ pub async fn get<I: Instancius>(
     path_params: GetPathParams,
 ) -> GetResponse {
     let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-    if let Some(port_mapping) = instancius
+    match instancius
         .get_instance_config_protocol_port_mappings(
             vault,
             instance_id,
@@ -54,11 +60,15 @@ pub async fn get<I: Instancius>(
         )
         .await
     {
-        GetResponse::Status200_PublishedPortsForInstanceWithThisInstance(
+        Ok(port_mapping) => GetResponse::Status200_PublishedPortsForInstanceWithThisInstance(
             port_mappings_to_instance_ports(&port_mapping),
-        )
-    } else {
-        GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo::new())
+        ),
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo::new())
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            GetResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 
@@ -87,18 +97,22 @@ pub async fn put<I: Instancius>(
             errors.join("\n")
         )));
     }
-    let instance_found = instancius
+    match instancius
         .put_instance_config_protocol_port_mappings(
             vault,
             instance_id,
             port_mapping,
             path_params.transport_protocol.into(),
         )
-        .await;
-    if instance_found {
-        PutResponse::Status200_PublishedPortsOfInstanceWithThisInstance
-    } else {
-        PutResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo::new())
+        .await
+    {
+        Ok(_) => PutResponse::Status200_PublishedPortsOfInstanceWithThisInstance,
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            PutResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo::new())
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            PutResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 
@@ -158,8 +172,7 @@ impl From<models::TransportProtocol> for TransportProtocol {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::gem::instance::TransportProtocol;
-    use crate::jeweler::gem::manifest::{PortMapping, PortRange};
+    use crate::jeweler::gem::manifest::single::{PortMapping, PortRange};
     use crate::sorcerer::instancius::MockInstancius;
     use flecsd_axum_server::models;
 
@@ -170,7 +183,7 @@ mod tests {
             .expect_delete_instance_config_protocol_port_mappings()
             .withf(move |_, id, protocol| id.value == 6 && *protocol == TransportProtocol::Tcp)
             .once()
-            .returning(|_, _, _| Some(Vec::new()));
+            .returning(|_, _, _| Ok(Vec::new()));
         let vault = crate::vault::tests::create_empty_test_vault();
         assert_eq!(
             delete(
@@ -195,7 +208,11 @@ mod tests {
                 id.value == 0xaaaaaaaa && *protocol == TransportProtocol::Tcp
             })
             .once()
-            .returning(|_, _, _| None);
+            .returning(|_, _, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0xaaaaaaaa,
+                )))
+            });
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
             delete(
@@ -220,7 +237,11 @@ mod tests {
                 id.value == 0xabcdabcd && *protocol == TransportProtocol::Tcp
             })
             .once()
-            .returning(|_, _, _| None);
+            .returning(|_, _, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0xabcdabcd,
+                )))
+            });
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
             get(
@@ -243,7 +264,7 @@ mod tests {
             .expect_get_instance_config_protocol_port_mappings()
             .withf(move |_, id, protocol| id.value == 6 && *protocol == TransportProtocol::Tcp)
             .once()
-            .returning(|_, _, _| Some(vec![PortMapping::Single(80, 8080)]));
+            .returning(|_, _, _| Ok(vec![PortMapping::Single(80, 8080)]));
         let vault = crate::vault::tests::create_empty_test_vault();
         assert_eq!(
             get(
@@ -344,7 +365,11 @@ mod tests {
                 id.value == 0x77778888 && *protocol == TransportProtocol::Udp && mapping.is_empty()
             })
             .once()
-            .returning(|_, _, _, _| false);
+            .returning(|_, _, _, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0x77778888,
+                )))
+            });
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
             put(
@@ -380,7 +405,7 @@ mod tests {
                         ]
             })
             .once()
-            .returning(|_, _, _, _| true);
+            .returning(|_, _, _, _| Ok(()));
         let vault = crate::vault::tests::create_empty_test_vault();
         let port_mappings = vec![
             models::InstancePortMapping::InstancePortMappingSingle(Box::new(

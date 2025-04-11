@@ -84,7 +84,7 @@ struct OsReleaseInfo(HashMap<String, String>);
 
 impl OsReleaseInfo {
     pub fn get_value(&self, key: &str) -> Option<String> {
-        self.0.get(&key.to_string()).cloned()
+        self.0.get(key).cloned()
     }
 }
 
