@@ -23,6 +23,9 @@ pub async fn get<I: Instancius>(
                 additional_info: Some(e.to_string()),
             })
         }
+        Err(e @ GetInstanceConfigVolumeMountError::NotSupported(_)) => {
+            GetResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
         Ok(volume) => GetResponse::Status200_Success(models::InstanceDetailVolume::from(volume)),
     }
 }
@@ -30,7 +33,7 @@ pub async fn get<I: Instancius>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::gem::manifest::VolumeMount;
+    use crate::jeweler::gem::manifest::single::VolumeMount;
     use crate::sorcerer::instancius::MockInstancius;
     use crate::vault::tests::create_empty_test_vault;
     use mockall::predicate;

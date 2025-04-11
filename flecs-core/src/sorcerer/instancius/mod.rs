@@ -2,8 +2,11 @@ mod instancius_impl;
 pub use super::Result;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem;
-use crate::jeweler::gem::instance::{InstanceId, TransportProtocol, UsbPathConfig};
-use crate::jeweler::gem::manifest::{
+use crate::jeweler::gem::instance::docker::config::{
+    InstancePortMapping, TransportProtocol, UsbPathConfig,
+};
+use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::manifest::single::{
     BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
 };
 use crate::jeweler::instance::Logs;
@@ -12,6 +15,7 @@ use crate::jeweler::volume::VolumeId;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 pub use crate::sorcerer::spell::instance::DisconnectInstanceError;
+pub use crate::sorcerer::spell::instance::QueryInstanceConfigError;
 use crate::sorcerer::Sorcerer;
 use crate::vault::pouch::AppKey;
 use crate::vault::Vault;
@@ -35,6 +39,7 @@ pub enum GetInstanceUsbDeviceResult {
     InstanceNotFound,
     DeviceInactive(UsbPathConfig),
     DeviceActive(UsbPathConfig, UsbDevice),
+    NotSupported,
 }
 #[derive(Eq, PartialEq, Debug)]
 pub enum PutInstanceUsbDeviceResult {
@@ -42,6 +47,7 @@ pub enum PutInstanceUsbDeviceResult {
     InstanceNotFound,
     DeviceMappingCreated,
     DeviceMappingUpdated(UsbPathConfig),
+    NotSupported,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -59,6 +65,7 @@ pub enum GetInstanceConfigNetworkResult {
     InstanceNotFound,
     UnknownNetwork,
     Network { name: String, address: IpAddr },
+    NotSupported,
 }
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq)]
@@ -73,8 +80,19 @@ pub enum GetInstanceConfigBindMountError {
 pub enum GetInstanceConfigVolumeMountError {
     #[error("Instance not found {0}")]
     InstanceNotFound(InstanceId),
+    #[error("Instance {0} does not support volume mounts")]
+    NotSupported(InstanceId),
     #[error("No volume with name {0} found")]
     VolumeMountNotFound(String),
+}
+
+impl From<QueryInstanceConfigError> for GetInstanceConfigVolumeMountError {
+    fn from(value: QueryInstanceConfigError) -> Self {
+        match value {
+            QueryInstanceConfigError::NotFound(id) => Self::InstanceNotFound(id),
+            QueryInstanceConfigError::NotSupported(id) => Self::NotSupported(id),
+        }
+    }
 }
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -91,6 +109,8 @@ pub enum ConnectInstanceConfigNetworkError {
     NetworkNotFound(NetworkId),
     #[error("Instance already connected to network '{0}'")]
     NetworkAlreadyConnected(NetworkId),
+    #[error("Instance {0} does not support connecting to networks")]
+    Unsupported(InstanceId),
     #[error("Failed to connect instance: {0}")]
     Other(String),
 }
@@ -174,7 +194,7 @@ pub trait Instancius: Sorcerer {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<gem::instance::config::InstanceConfig>;
+    ) -> Result<gem::instance::docker::config::InstanceConfig, QueryInstanceConfigError>;
 
     async fn get_instance_usb_devices<U: UsbDeviceReader + 'static>(
         &self,
@@ -187,14 +207,14 @@ pub trait Instancius: Sorcerer {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<HashMap<String, UsbPathConfig>>;
+    ) -> Result<HashMap<String, UsbPathConfig>, QueryInstanceConfigError>;
 
     async fn delete_instance_usb_device(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
         port: String,
-    ) -> Option<Option<UsbPathConfig>>;
+    ) -> std::result::Result<Option<UsbPathConfig>, QueryInstanceConfigError>;
 
     async fn get_instance_usb_device<U: UsbDeviceReader + 'static>(
         &self,
@@ -218,27 +238,27 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         host_port: u16,
         transport_protocol: TransportProtocol,
-    ) -> Option<Option<PortMapping>>;
+    ) -> std::result::Result<Option<PortMapping>, QueryInstanceConfigError>;
 
     async fn get_instance_config_port_mappings(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<gem::instance::config::InstancePortMapping>;
+    ) -> std::result::Result<InstancePortMapping, QueryInstanceConfigError>;
 
     async fn get_instance_config_protocol_port_mappings(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
         transport_protocol: TransportProtocol,
-    ) -> Option<Vec<PortMapping>>;
+    ) -> std::result::Result<Vec<PortMapping>, QueryInstanceConfigError>;
 
     async fn delete_instance_config_protocol_port_mappings(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
         transport_protocol: TransportProtocol,
-    ) -> Option<Vec<PortMapping>>;
+    ) -> std::result::Result<Vec<PortMapping>, QueryInstanceConfigError>;
 
     async fn delete_instance_config_port_mapping(
         &self,
@@ -246,7 +266,7 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         host_port: u16,
         transport_protocol: TransportProtocol,
-    ) -> Option<bool>;
+    ) -> std::result::Result<bool, QueryInstanceConfigError>;
 
     async fn delete_instance_config_port_mapping_range(
         &self,
@@ -254,7 +274,7 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         host_port_range: PortRange,
         transport_protocol: TransportProtocol,
-    ) -> Option<bool>;
+    ) -> Result<bool, QueryInstanceConfigError>;
 
     async fn get_instance_config_port_mapping_range(
         &self,
@@ -262,7 +282,7 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         host_port_range: PortRange,
         transport_protocol: TransportProtocol,
-    ) -> Option<Option<PortMapping>>;
+    ) -> std::result::Result<Option<PortMapping>, QueryInstanceConfigError>;
 
     async fn put_instance_config_port_mapping(
         &self,
@@ -278,56 +298,59 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
         port_mapping: Vec<PortMapping>,
         transport_protocol: TransportProtocol,
-    ) -> bool;
+    ) -> std::result::Result<(), QueryInstanceConfigError>;
 
-    async fn delete_instance_config_port_mappings(&self, vault: Arc<Vault>, id: InstanceId)
-        -> bool;
+    async fn delete_instance_config_port_mappings(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> std::result::Result<(), QueryInstanceConfigError>;
 
     async fn get_instance_config_environment_variable_value(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
         variable_name: String,
-    ) -> Option<Option<Option<String>>>;
+    ) -> std::result::Result<Option<Option<String>>, QueryInstanceConfigError>;
 
     async fn put_instance_config_environment_variable_value(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
         environment_variable: EnvironmentVariable,
-    ) -> Option<Option<String>>;
+    ) -> std::result::Result<Option<String>, QueryInstanceConfigError>;
 
     async fn delete_instance_config_environment_variable_value(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
         variable_name: String,
-    ) -> Option<Option<EnvironmentVariable>>;
+    ) -> std::result::Result<Option<EnvironmentVariable>, QueryInstanceConfigError>;
 
     async fn get_instance_config_environment(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<Vec<EnvironmentVariable>>;
+    ) -> std::result::Result<Vec<EnvironmentVariable>, QueryInstanceConfigError>;
 
     async fn put_instance_config_environment(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
         environment: Vec<EnvironmentVariable>,
-    ) -> Option<Vec<EnvironmentVariable>>;
+    ) -> std::result::Result<Vec<EnvironmentVariable>, QueryInstanceConfigError>;
 
     async fn delete_instance_config_environment(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<Vec<EnvironmentVariable>>;
+    ) -> std::result::Result<Vec<EnvironmentVariable>, QueryInstanceConfigError>;
 
     async fn get_instance_config_networks(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<HashMap<String, IpAddr>>;
+    ) -> std::result::Result<HashMap<String, IpAddr>, QueryInstanceConfigError>;
 
     async fn get_instance_config_network(
         &self,
@@ -346,7 +369,7 @@ pub trait Instancius: Sorcerer {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<Vec<VolumeMount>>;
+    ) -> std::result::Result<Vec<VolumeMount>, QueryInstanceConfigError>;
 
     async fn get_instance_config_volume_mount(
         &self,

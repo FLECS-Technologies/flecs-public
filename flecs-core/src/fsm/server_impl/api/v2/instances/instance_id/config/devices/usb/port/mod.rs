@@ -2,7 +2,7 @@ use crate::fsm::server_impl::api::v2::instances::instance_id::config::devices::u
 use crate::jeweler::gem::instance::InstanceId;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::sorcerer::instancius::{
-    GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult,
+    GetInstanceUsbDeviceResult, Instancius, PutInstanceUsbDeviceResult, QueryInstanceConfigError,
 };
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::{
@@ -29,11 +29,16 @@ pub async fn delete<I: Instancius>(
         .delete_instance_usb_device(vault, instance_id, path_params.port.clone())
         .await
     {
-        Some(Some(_)) => DeleteResponse::Status200_Success,
-        Some(None) => DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
-            additional_info: Some(format!("No instance with id {instance_id}")),
-        }),
-        None => DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
+        Ok(Some(_)) => DeleteResponse::Status200_Success,
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
+                additional_info: Some(format!("No instance with id {instance_id}")),
+            })
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            DeleteResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(None) => DeleteResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
             additional_info: Some(format!(
                 "Usb port '{}' not mapped to instance {instance_id}",
                 path_params.port
@@ -61,19 +66,20 @@ pub async fn get<I: Instancius, U: UsbDeviceReader + 'static>(
             GetResponse::Status200_Success(
                 instance_config_usb_device_from((config, Some(device))),
             ),
-
         Ok(GetInstanceUsbDeviceResult::DeviceInactive(config)) =>
             GetResponse::Status200_Success(
                 instance_config_usb_device_from((config, None)),
             ),
-
+        Ok(GetInstanceUsbDeviceResult::NotSupported) =>
+            GetResponse::Status400_MalformedRequest(models::AdditionalInfo {
+                additional_info: format!("Instance {instance_id} does not support usb devices"),
+            }),
         Ok(GetInstanceUsbDeviceResult::InstanceNotFound) =>
             GetResponse::Status404_ResourceNotFound(
                 models::OptionalAdditionalInfo {
                     additional_info: Some(format!("No instance with id {instance_id}")),
                 },
             ),
-
         Ok(GetInstanceUsbDeviceResult::DeviceNotMapped) =>
             GetResponse::Status404_ResourceNotFound(
                 models::OptionalAdditionalInfo {
@@ -83,7 +89,6 @@ pub async fn get<I: Instancius, U: UsbDeviceReader + 'static>(
                     )),
                 },
             ),
-
         Ok(GetInstanceUsbDeviceResult::UnknownDevice) =>
             GetResponse::Status404_ResourceNotFound(
                 models::OptionalAdditionalInfo {
@@ -93,7 +98,6 @@ pub async fn get<I: Instancius, U: UsbDeviceReader + 'static>(
                     )),
                 },
             ),
-
         Err(e) =>
             GetResponse::Status500_InternalServerError(
                 models::AdditionalInfo::new(e.to_string()),
@@ -122,17 +126,19 @@ pub async fn put<I: Instancius, U: UsbDeviceReader + 'static>(
                 additional_info: Some(format!("No instance with id {instance_id}")),
             })
         }
-
+        Ok(PutInstanceUsbDeviceResult::NotSupported) => {
+            PutResponse::Status400_MalformedRequest(models::AdditionalInfo {
+                additional_info: format!("Instance {instance_id} does not support usb devices"),
+            })
+        }
         Ok(PutInstanceUsbDeviceResult::DeviceNotFound) => {
             PutResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
                 additional_info: Some(format!("No usb device with port {}", path_params.port)),
             })
         }
-
         Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated) => {
             PutResponse::Status201_UsbDeviceWasPassedThrough
         }
-
         Ok(PutInstanceUsbDeviceResult::DeviceMappingUpdated(_)) => {
             PutResponse::Status200_AlreadyPassedThrough
         }
@@ -145,7 +151,7 @@ pub async fn put<I: Instancius, U: UsbDeviceReader + 'static>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::gem::instance::UsbPathConfig;
+    use crate::jeweler::gem::instance::docker::config::UsbPathConfig;
     use crate::relic::device::usb::{MockUsbDeviceReader, UsbDevice};
     use crate::sorcerer::instancius::MockInstancius;
     use flecsd_axum_server::models;
@@ -158,7 +164,7 @@ mod tests {
             .withf(move |_, id, port| id.value == 6 && port == "test_port")
             .once()
             .returning(|_, _, _| {
-                Some(Some(UsbPathConfig {
+                Ok(Some(UsbPathConfig {
                     port: "test_port".to_string(),
                     bus_num: 100,
                     dev_num: 200,
@@ -186,7 +192,11 @@ mod tests {
             .expect_delete_instance_usb_device()
             .withf(move |_, id, port| id.value == 0xabcddcba && port == "test_port")
             .once()
-            .returning(|_, _, _| None);
+            .returning(|_, _, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0xabcddcba,
+                )))
+            });
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
             delete(
@@ -209,7 +219,7 @@ mod tests {
             .expect_delete_instance_usb_device()
             .withf(move |_, id, port| id.value == 6 && port == "unknown port")
             .once()
-            .returning(|_, _, _| Some(None));
+            .returning(|_, _, _| Ok(None));
         let vault = crate::vault::tests::create_empty_test_vault();
         assert!(matches!(
             delete(

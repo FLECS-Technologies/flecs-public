@@ -1,6 +1,7 @@
 mod importius_impl;
 
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::jeweler::gem::instance::CreateInstanceError;
 use crate::jeweler::network::NetworkId;
 use crate::quest::SyncQuest;
 use crate::sorcerer::Sorcerer;
@@ -79,6 +80,8 @@ pub enum ImportInstanceError {
     RecvError(#[from] RecvError),
     #[error(transparent)]
     TransferIp(#[from] TransferIpError),
+    #[error(transparent)]
+    Create(#[from] CreateInstanceError),
 }
 
 #[derive(thiserror::Error, Debug)]

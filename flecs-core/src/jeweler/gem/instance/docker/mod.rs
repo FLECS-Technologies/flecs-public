@@ -1,0 +1,2649 @@
+pub mod config;
+use super::{InstanceCommon, InstanceId};
+use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::jeweler::deployment::DeploymentId;
+use crate::jeweler::gem::deployment::docker::DockerDeployment;
+use crate::jeweler::gem::deployment::Deployment;
+use crate::jeweler::gem::instance::docker::config::InstancePortMapping;
+use crate::jeweler::gem::instance::status::InstanceStatus;
+use crate::jeweler::gem::manifest::single::{
+    AppManifestSingle, BindMount, ConfigFile, Mount, VolumeMount,
+};
+use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::instance::Logs;
+use crate::jeweler::network::NetworkId;
+use crate::jeweler::serialize_deployment_id;
+use crate::jeweler::serialize_manifest_key;
+use crate::jeweler::volume::VolumeId;
+use crate::quest::{Quest, SyncQuest};
+use crate::vault;
+use crate::vault::pouch::AppKey;
+use async_trait::async_trait;
+use bollard::container::Config;
+use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
+use config::InstanceConfig;
+use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
+use futures_util::future::{join_all, BoxFuture};
+use serde::{Deserialize, Serialize};
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
+use std::mem::swap;
+use std::net::{IpAddr, Ipv4Addr};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use tokio::fs;
+use tracing::{debug, error, warn};
+
+#[derive(Debug, Serialize)]
+pub struct DockerInstance {
+    pub id: InstanceId,
+    #[serde(serialize_with = "serialize_manifest_key", rename = "app_key")]
+    pub manifest: Arc<AppManifestSingle>,
+    #[serde(serialize_with = "serialize_deployment_id", rename = "deployment_id")]
+    pub deployment: Arc<dyn DockerDeployment>,
+    pub name: String,
+    pub hostname: String,
+    pub config: InstanceConfig,
+    desired: InstanceStatus,
+}
+
+#[async_trait]
+impl InstanceCommon for DockerInstance {
+    fn id(&self) -> InstanceId {
+        self.id
+    }
+
+    fn app_key(&self) -> &AppKey {
+        &self.manifest.key
+    }
+
+    fn manifest(&self) -> AppManifest {
+        AppManifest::Single(self.manifest.clone())
+    }
+
+    fn replace_manifest(&mut self, manifest: AppManifest) -> AppManifest {
+        let AppManifest::Single(mut manifest) = manifest else {
+            panic!("Can not replace manifest of DockerInstance with {manifest:?}");
+        };
+        swap(&mut manifest, &mut self.manifest);
+        AppManifest::Single(manifest)
+    }
+
+    async fn generate_info(&self) -> anyhow::Result<AppInstance> {
+        let status = self.status().await?;
+        Ok(flecsd_axum_server::models::AppInstance {
+            instance_id: format!("{}", self.id),
+            instance_name: self.name.clone(),
+            app_key: self.app_key().into(),
+            status: status.into(),
+            desired: self.desired.into(),
+            editors: None,
+        })
+    }
+
+    async fn generate_detailed_info(&self) -> anyhow::Result<InstancesInstanceIdGet200Response> {
+        let status = self.status().await?;
+        let config_files = self
+            .manifest
+            .config_files
+            .iter()
+            .map(Into::into)
+            .collect::<Vec<_>>()
+            .into();
+        let ports = self.manifest.ports.iter().map(Into::into).collect();
+        let volumes = self
+            .manifest
+            .mounts
+            .iter()
+            .filter_map(|mount| match mount {
+                Mount::Volume(volume) => Some(flecsd_axum_server::models::InstanceDetailVolume {
+                    name: volume.name.clone(),
+                    path: volume.container_path.to_string_lossy().to_string(),
+                }),
+                _ => None,
+            })
+            .collect();
+        Ok(
+            flecsd_axum_server::models::InstancesInstanceIdGet200Response {
+                instance_id: format!("{}", self.id),
+                instance_name: self.name.clone(),
+                app_key: self.app_key().into(),
+                status: status.into(),
+                desired: self.desired.into(),
+                config_files,
+                hostname: self.hostname.clone(),
+                ip_address: self
+                    .config
+                    .connected_networks
+                    .values()
+                    .next()
+                    .map(ToString::to_string)
+                    .unwrap_or_default(),
+                ports,
+                volumes,
+                // TODO: Fill editors
+                editors: None,
+            },
+        )
+    }
+
+    async fn status(&self) -> anyhow::Result<InstanceStatus> {
+        self.deployment.instance_status(self.id).await
+    }
+
+    fn desired_status(&self) -> InstanceStatus {
+        self.desired
+    }
+
+    fn taken_ipv4_addresses(&self) -> Vec<Ipv4Addr> {
+        self.config
+            .connected_networks
+            .values()
+            .filter_map(|ip_addr| match ip_addr {
+                IpAddr::V4(address) => Some(address),
+                _ => None,
+            })
+            .copied()
+            .collect()
+    }
+}
+
+fn bind_mounts_to_bollard_mounts(bind_mounts: &[BindMount]) -> Vec<bollard::models::Mount> {
+    bind_mounts
+        .iter()
+        .map(|bind_mount| bollard::models::Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some(bind_mount.host_path.to_string_lossy().to_string()),
+            target: Some(bind_mount.container_path.to_string_lossy().to_string()),
+            ..Default::default()
+        })
+        .collect()
+}
+
+impl From<&DockerInstance> for Config<String> {
+    fn from(instance: &DockerInstance) -> Self {
+        let mut bind_mounts = instance.manifest.bind_mounts();
+        let mut capabilities = instance.manifest.capabilities();
+        if capabilities
+            .remove(&flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::Docker)
+        {
+            bind_mounts.push(BindMount::default_docker_socket_bind_mount());
+        }
+        let mut mounts = bind_mounts_to_bollard_mounts(bind_mounts.as_slice());
+        mounts.extend(instance.config.generate_volume_mounts());
+        let arguments = instance.manifest.arguments();
+        let cmd = if arguments.is_empty() {
+            None
+        } else {
+            Some(arguments.clone())
+        };
+        let port_bindings = instance.config.generate_port_bindings();
+        let exposed_ports = Some(
+            port_bindings
+                .keys()
+                .cloned()
+                .map(|key| (key, HashMap::new()))
+                .collect(),
+        );
+        let host_config = Some(HostConfig {
+            port_bindings: Some(port_bindings),
+            mounts: Some(mounts),
+            cap_add: Some(capabilities.iter().map(ToString::to_string).collect()),
+            devices: Some(instance.generate_device_mappings()),
+            ..HostConfig::default()
+        });
+        let mut network_config = instance.config.generate_network_config();
+        if let Some(hostname) = instance.manifest.hostname() {
+            for endpoint in network_config.endpoints_config.values_mut() {
+                let alias = hostname.clone();
+                match &mut endpoint.aliases {
+                    Some(aliases) => {
+                        aliases.push(alias);
+                    }
+                    None => endpoint.aliases = Some(vec![alias]),
+                }
+            }
+        }
+        Config {
+            image: Some(instance.manifest.image_with_tag().to_string()),
+            hostname: Some(instance.hostname.clone()),
+            env: Some(
+                instance
+                    .config
+                    .environment_variables
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect(),
+            ),
+            labels: Some(
+                instance
+                    .manifest
+                    .labels
+                    .iter()
+                    .map(|label| (label.label.clone(), label.value.clone().unwrap_or_default()))
+                    .collect(),
+            ),
+            host_config,
+            cmd,
+            exposed_ports,
+            networking_config: Some(network_config),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<ContainerStateStatusEnum> for InstanceStatus {
+    fn from(value: ContainerStateStatusEnum) -> Self {
+        // TBD
+        match value {
+            ContainerStateStatusEnum::EMPTY => Self::Stopped,
+            ContainerStateStatusEnum::CREATED => Self::Stopped,
+            ContainerStateStatusEnum::RUNNING => Self::Running,
+            ContainerStateStatusEnum::PAUSED => Self::Running,
+            ContainerStateStatusEnum::RESTARTING => Self::Running,
+            ContainerStateStatusEnum::REMOVING => Self::Running,
+            ContainerStateStatusEnum::EXITED => Self::Stopped,
+            ContainerStateStatusEnum::DEAD => Self::Stopped,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
+pub struct DockerInstanceDeserializable {
+    pub hostname: String,
+    pub name: String,
+    pub id: InstanceId,
+    pub config: InstanceConfig,
+    pub desired: InstanceStatus,
+    pub app_key: AppKey,
+    pub deployment_id: DeploymentId,
+}
+
+impl DockerInstance {
+    pub fn app_key(&self) -> AppKey {
+        self.manifest.key.clone()
+    }
+
+    pub async fn get_default_network_address(&self) -> crate::Result<Option<IpAddr>> {
+        match self.deployment.default_network().await?.name {
+            None => anyhow::bail!("Default network has no name"),
+            Some(network_id) => Ok(self.config.connected_networks.get(&network_id).cloned()),
+        }
+    }
+
+    pub fn generate_device_mappings(&self) -> Vec<DeviceMapping> {
+        self.manifest
+            .devices
+            .iter()
+            .map(|device| DeviceMapping {
+                path_on_host: Some(device.path.to_string_lossy().to_string()),
+                path_in_container: Some(device.path.to_string_lossy().to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            })
+            .chain(self.config.generate_usb_device_mappings())
+            .collect()
+    }
+
+    pub async fn create_config_file(
+        quest: SyncQuest,
+        deployment: Arc<dyn DockerDeployment>,
+        config_path: PathBuf,
+        config_file: ConfigFile,
+        manifest: Arc<AppManifestSingle>,
+    ) -> crate::Result<()> {
+        deployment
+            .copy_from_app_image(
+                quest,
+                manifest.image_with_tag(),
+                &config_file.container_file_path,
+                &config_path.join(config_file.host_file_name),
+                true,
+            )
+            .await
+    }
+
+    pub async fn create_config_files(
+        quest: SyncQuest,
+        deployment: Arc<dyn DockerDeployment>,
+        config_path: PathBuf,
+        config_files: Vec<ConfigFile>,
+        manifest: Arc<AppManifestSingle>,
+    ) -> crate::Result<()> {
+        tokio::fs::create_dir_all(&config_path).await?;
+        let mut results = Vec::new();
+        for config_file in config_files {
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!("Create config file {:?}", config_file.container_file_path),
+                    |quest| {
+                        Self::create_config_file(
+                            quest,
+                            deployment.clone(),
+                            config_path.clone(),
+                            config_file,
+                            manifest.clone(),
+                        )
+                    },
+                )
+                .await
+                .2;
+            results.push(result);
+        }
+        if let Some(error) = join_all(results)
+            .await
+            .into_iter()
+            .filter_map(|result| result.err())
+            .next()
+        {
+            tokio::fs::remove_dir_all(&config_path).await?;
+            Err(error)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub async fn create_volumes(
+        quest: SyncQuest,
+        deployment: Arc<dyn DockerDeployment>,
+        volume_mounts: Vec<VolumeMount>,
+        instance_id: InstanceId,
+    ) -> crate::Result<HashMap<VolumeId, VolumeMount>> {
+        let mut results = Vec::new();
+        for mut volume_mount in volume_mounts {
+            volume_mount.name = format!("{}-{}", instance_id.to_docker_id(), volume_mount.name);
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!(
+                        "Create volume {} for instance {instance_id}",
+                        volume_mount.name
+                    ),
+                    |quest| {
+                        let deployment = deployment.clone();
+                        async move {
+                            match deployment
+                                .create_volume(quest, volume_mount.name.as_str())
+                                .await
+                            {
+                                Ok(id) => Ok((id, volume_mount)),
+                                Err(e) => Err(e),
+                            }
+                        }
+                    },
+                )
+                .await
+                .2;
+            results.push(result)
+        }
+        let results = join_all(results).await;
+        let result_count = results.len();
+        let volumes: HashMap<VolumeId, VolumeMount> = results
+            .into_iter()
+            .filter_map(|result| result.ok())
+            .collect();
+        if volumes.len() != result_count {
+            let volume_ids = volumes.keys().cloned().collect();
+            quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    "Delete all created volumes, as an error occurred".to_string(),
+                    |quest| {
+                        crate::jeweler::extension::delete_volumes(
+                            quest,
+                            deployment.clone(),
+                            volume_ids,
+                        )
+                    },
+                )
+                .await
+                .2
+                .await?;
+            anyhow::bail!("Could not create all volumes for instance {}", instance_id);
+        } else {
+            Ok(volumes)
+        }
+    }
+
+    pub async fn try_create_new(
+        quest: SyncQuest,
+        deployment: Arc<dyn DockerDeployment>,
+        manifest: Arc<AppManifestSingle>,
+        name: String,
+        address: IpAddr,
+    ) -> anyhow::Result<Self> {
+        let instance_id = InstanceId::new_random();
+        let tcp_port_mapping = manifest.ports.clone();
+        let environment_variables = manifest.environment_variables.clone();
+        let config_path = crate::lore::instance_config_path(&instance_id.to_string());
+        let default_network_id = deployment
+            .default_network()
+            .await?
+            .name
+            .ok_or_else(|| anyhow::anyhow!("Default network has no name"))?;
+        quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!(
+                    "Create config files for instance {instance_id} of {}",
+                    manifest.key
+                ),
+                |quest| {
+                    Self::create_config_files(
+                        quest,
+                        deployment.clone(),
+                        config_path.clone(),
+                        manifest.config_files.clone(),
+                        manifest.clone(),
+                    )
+                },
+            )
+            .await
+            .2
+            .await?;
+        let volume_mounts = quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Create volumes for {instance_id}"), |quest| {
+                Self::create_volumes(
+                    quest,
+                    deployment.clone(),
+                    manifest.volume_mounts(),
+                    instance_id,
+                )
+            })
+            .await
+            .2
+            .await;
+        let volume_mounts = match volume_mounts {
+            Ok(volume_mounts) => volume_mounts,
+            Err(e) => {
+                fs::remove_dir_all(config_path).await?;
+                return Err(e);
+            }
+        };
+        let config = InstanceConfig {
+            environment_variables,
+            port_mapping: InstancePortMapping {
+                tcp: tcp_port_mapping,
+                udp: vec![],
+                sctp: vec![],
+            },
+            volume_mounts,
+            connected_networks: HashMap::from([(default_network_id, address)]),
+            usb_devices: HashMap::new(),
+            mapped_editor_ports: Default::default(),
+        };
+        Ok(Self {
+            hostname: format!("flecs-{instance_id}"),
+            id: instance_id,
+            deployment,
+            name,
+            manifest,
+            config,
+            desired: InstanceStatus::Stopped,
+        })
+    }
+
+    pub async fn start<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+        self.desired = InstanceStatus::Running;
+        if self.is_running().await? {
+            return Ok(());
+        }
+        self.load_reverse_proxy_config(floxy).await?;
+        self.id = self
+            .deployment
+            .start_instance((&*self).into(), Some(self.id), &self.manifest.config_files)
+            .await?;
+        Ok(())
+    }
+
+    fn get_reverse_proxy_editor_ports(&self) -> Vec<u16> {
+        self.manifest
+            .editors()
+            .iter()
+            .filter_map(|editor| {
+                if editor.supports_reverse_proxy {
+                    Some(editor.port.get())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    async fn load_reverse_proxy_config<F: Floxy>(
+        &self,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<()> {
+        let editor_ports = self.get_reverse_proxy_editor_ports();
+        if !editor_ports.is_empty() {
+            if let Some(instance_ip) = self.get_default_network_address().await? {
+                floxy.add_instance_reverse_proxy_config(
+                    &self.app_key().name,
+                    self.id,
+                    instance_ip,
+                    &editor_ports,
+                )?;
+            }
+        }
+        Ok(())
+    }
+
+    fn delete_reverse_proxy_config<F: Floxy>(
+        &self,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<bool> {
+        if !self.get_reverse_proxy_editor_ports().is_empty() {
+            floxy.delete_reverse_proxy_config(&self.app_key().name, self.id)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn delete_server_proxy_configs<F: Floxy>(
+        &self,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<bool> {
+        let editor_ports: Vec<_> = self.config.mapped_editor_ports.keys().cloned().collect();
+        if !editor_ports.is_empty() {
+            floxy.delete_server_proxy_configs(&self.app_key().name, self.id, &editor_ports)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    pub async fn stop_and_delete<F: Floxy + 'static>(
+        mut self,
+        quest: SyncQuest,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<(), (anyhow::Error, Self)> {
+        let result = quest
+            .lock()
+            .await
+            .create_infallible_sub_quest(
+                format!(
+                    "Stop instance {} of app {} before deleting it",
+                    self.id,
+                    self.app_key()
+                ),
+                |_quest| {
+                    let floxy = floxy.clone();
+                    async move {
+                        match self.stop(floxy).await {
+                            Ok(()) => (self, None),
+                            Err(e) => {
+                                _quest.lock().await.fail_with_error(&e);
+                                (self, Some(e))
+                            }
+                        }
+                    }
+                },
+            )
+            .await
+            .2
+            .await;
+        match result {
+            (instance, None) => {
+                quest
+                    .lock()
+                    .await
+                    .create_infallible_sub_quest(
+                        format!(
+                            "Delete instance {} of app {}",
+                            instance.id,
+                            instance.app_key()
+                        ),
+                        |quest| async move { instance.delete(quest, floxy.clone()).await },
+                    )
+                    .await
+                    .2
+                    .await
+            }
+            (mut instance, Some(e)) => {
+                instance.desired = InstanceStatus::NotCreated;
+                Err((e, instance))
+            }
+        }
+    }
+
+    pub async fn stop<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+        self.desired = InstanceStatus::Stopped;
+        self.halt(floxy).await
+    }
+
+    pub async fn halt<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+        // TODO: Disconnect networks
+        match self.deployment.instance_status(self.id).await? {
+            InstanceStatus::Running | InstanceStatus::Unknown | InstanceStatus::Orphaned => {
+                if let Err(e) = self.delete_server_proxy_configs(floxy) {
+                    warn!("Instance {}: {e}", self.id);
+                }
+                self.deployment
+                    .stop_instance(self.id, &self.manifest.config_files)
+                    .await
+            }
+            _ => Ok(()),
+        }
+    }
+
+    pub async fn delete<F: Floxy>(
+        mut self,
+        quest: SyncQuest,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<(), (anyhow::Error, Self)> {
+        self.desired = InstanceStatus::NotCreated;
+        let mut volume_ids = Vec::new();
+        let mut delete_results = Vec::new();
+        for volume_id in self.config.volume_mounts.keys() {
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(format!("Delete volume {volume_id}"), |quest| {
+                    let deployment = self.deployment.clone();
+                    let volume_id = volume_id.clone();
+                    async move { deployment.clone().delete_volume(quest, volume_id).await }
+                })
+                .await
+                .2;
+            volume_ids.push(volume_id.clone());
+            delete_results.push(result);
+        }
+        if let Err(e) = self.delete_reverse_proxy_config(floxy) {
+            warn!("Instance {}: {e}", self.id);
+        }
+        for (id, result) in volume_ids.into_iter().zip(join_all(delete_results).await) {
+            if let Err(e) = result {
+                warn!("Could not delete volume {id} of instance {}: {e}", self.id);
+            }
+        }
+        quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Delete instance {}", self.id), |_quest| {
+                let deployment = self.deployment.clone();
+                async move { deployment.clone().delete_instance(self.id).await }
+            })
+            .await
+            .2
+            .await
+            .map_err(|e| (e, self))?;
+        Ok(())
+    }
+
+    pub async fn export_config_files(
+        id: InstanceId,
+        config_files: Vec<ConfigFile>,
+        path: PathBuf,
+    ) -> anyhow::Result<()> {
+        debug!(
+            "Export config files of stopped instance {} to {}",
+            id,
+            path.display()
+        );
+        let existing_config_path = crate::lore::instance_config_path(&id.to_string());
+        for result in join_all(config_files.iter().map(|config_file| {
+            tokio::fs::copy(
+                existing_config_path.join(&config_file.host_file_name),
+                path.join(&config_file.host_file_name),
+            )
+        }))
+        .await
+        {
+            result?;
+        }
+        Ok(())
+    }
+
+    pub async fn copy_from(
+        &self,
+        quest: SyncQuest,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
+        self.deployment
+            .copy_from_instance(quest, self.id, src, dst, is_dst_file_path)
+            .await
+    }
+
+    pub async fn copy_to(
+        &self,
+        quest: SyncQuest,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
+        self.deployment
+            .copy_to_instance(quest, self.id, src, dst, is_dst_file_path)
+            .await
+    }
+
+    pub async fn is_running(&self) -> anyhow::Result<bool> {
+        self.deployment.is_instance_running(self.id).await
+    }
+
+    pub async fn get_logs(&self) -> anyhow::Result<Logs> {
+        self.deployment
+            .instance_logs(
+                Quest::new_synced(format!("Get logs of instance {}", self.id)),
+                self.id,
+            )
+            .await
+    }
+
+    pub fn deployment(&self) -> Arc<dyn DockerDeployment> {
+        self.deployment.clone()
+    }
+
+    pub async fn disconnect_network(
+        &mut self,
+        network_id: NetworkId,
+    ) -> crate::Result<Option<IpAddr>> {
+        let disconnect_result = if self.is_running().await? {
+            self.deployment
+                .disconnect_network(
+                    Quest::new_synced(format!("Disconnect {} from network {network_id}", self.id)),
+                    network_id.clone(),
+                    self.id,
+                )
+                .await
+        } else {
+            Ok(())
+        };
+        match (
+            disconnect_result,
+            self.config.connected_networks.entry(network_id),
+        ) {
+            (_, Entry::Vacant(_)) => Ok(None),
+            (Ok(()), Entry::Occupied(entry)) => Ok(Some(entry.remove())),
+            (Err(e), Entry::Occupied(_)) => Err(e),
+        }
+    }
+
+    pub async fn connect_network(
+        &mut self,
+        network_id: NetworkId,
+        address: Ipv4Addr,
+    ) -> crate::Result<Option<IpAddr>> {
+        let previous_address = if self.is_running().await? {
+            let previous_address = match self.disconnect_network(network_id.clone()).await {
+                Err(e) => {
+                    error!("Failed to disconnect {} from {network_id}: {e}", self.id);
+                    None
+                }
+                Ok(previous_address) => previous_address,
+            };
+            self.deployment
+                .connect_network(
+                    Quest::new_synced(format!("Connect {} to network {network_id}", self.id)),
+                    network_id.clone(),
+                    address,
+                    self.id,
+                )
+                .await?;
+            previous_address
+        } else {
+            self.config.connected_networks.get(&network_id).copied()
+        };
+        self.config
+            .connected_networks
+            .insert(network_id, IpAddr::V4(address));
+        Ok(previous_address)
+    }
+
+    pub async fn import_volume_quest(
+        &self,
+        quest: &SyncQuest,
+        src: PathBuf,
+        container_path: PathBuf,
+        volume_name: String,
+    ) -> BoxFuture<'static, crate::Result<VolumeId>> {
+        let deployment = self.deployment();
+        let image = self.manifest.image_with_tag();
+        quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Import volume {volume_name}"), |quest| async move {
+                deployment
+                    .import_volume(quest, &src, &container_path, &volume_name, &image)
+                    .await
+            })
+            .await
+            .2
+    }
+
+    pub fn try_create_with_state(
+        instance: DockerInstanceDeserializable,
+        manifests: &vault::pouch::manifest::Gems,
+        deployments: &vault::pouch::deployment::Gems,
+    ) -> anyhow::Result<DockerInstance> {
+        let manifest = manifests
+            .get(&instance.app_key)
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "No manifest for instance {} of {} found",
+                    instance.id,
+                    instance.app_key
+                )
+            })?
+            .clone();
+        let AppManifest::Single(manifest) = manifest else {
+            anyhow::bail!("DockerInstances can only be created with AppManifestSingle");
+        };
+        let deployment = deployments
+            .get(&instance.deployment_id)
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Deployment {} of instance {} for app {} does not exist",
+                    instance.deployment_id,
+                    instance.id,
+                    instance.app_key
+                )
+            })?
+            .clone();
+        let Deployment::Docker(deployment) = deployment else {
+            anyhow::bail!("DockerInstances can only be created with DockerDeployments");
+        };
+        Ok(Self {
+            manifest,
+            deployment,
+            desired: instance.desired,
+            id: instance.id,
+            config: instance.config,
+            name: instance.name,
+            hostname: instance.hostname,
+        })
+    }
+
+    pub async fn export<F: Floxy>(
+        &mut self,
+        quest: SyncQuest,
+        floxy: Arc<FloxyOperation<F>>,
+        path: &Path,
+    ) -> anyhow::Result<()> {
+        tokio::fs::create_dir_all(&path).await?;
+        let instance_config = serde_json::to_vec_pretty(&self)?;
+        quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Export config of instance {}", self.id), |_quest| {
+                tokio::fs::write(path.join("instance.json"), instance_config)
+            })
+            .await
+            .2
+            .await?;
+        let is_running = self.is_running().await?;
+        if is_running {
+            self.halt(floxy.clone()).await?;
+        }
+        let export_config_files_result = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!("Export config files of instance {}", self.id),
+                |_quest| {
+                    Self::export_config_files(
+                        self.id,
+                        self.manifest.config_files.clone(),
+                        path.to_path_buf(),
+                    )
+                },
+            )
+            .await
+            .2
+            .await;
+        let mut export_volumes_results = Vec::new();
+        for volume_mount in self.config.volume_mounts.values() {
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!(
+                        "Export volume {} of instance {}",
+                        volume_mount.name, self.id
+                    ),
+                    |quest| {
+                        let volume_name = volume_mount.name.clone();
+                        let dst = path.join(format!("{volume_name}.tar"));
+                        let src = volume_mount.container_path.clone();
+                        let image = self.manifest.image_with_tag();
+                        let deployment = self.deployment.clone();
+                        async move {
+                            deployment
+                                .export_volume(quest, volume_name, &dst, &src, &image)
+                                .await
+                        }
+                    },
+                )
+                .await
+                .2;
+            export_volumes_results.push(result);
+        }
+        let export_volumes_result = join_all(export_volumes_results).await;
+        if is_running {
+            self.start(floxy).await?;
+        }
+        export_config_files_result?;
+        for result in export_volumes_result {
+            result?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use crate::enchantment::floxy::MockFloxy;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::jeweler::gem::instance::docker::config::UsbPathConfig;
+    use crate::jeweler::gem::instance::Instance;
+    use crate::jeweler::gem::manifest::single::tests::{
+        create_test_manifest, create_test_manifest_full, create_test_manifest_numbered,
+    };
+    use crate::jeweler::gem::manifest::single::{EnvironmentVariable, PortMapping, PortRange};
+    use crate::quest::Quest;
+    use crate::relic::device::usb::tests::prepare_usb_device_test_path;
+    use crate::tests::prepare_test_path;
+    use crate::vault::pouch::instance::tests::{get_test_instance, NETWORK_INSTANCE};
+    use bollard::secret::Network;
+    use flecsd_axum_server::models::{
+        InstanceDetailConfigFile, InstanceDetailConfigFiles, InstanceDetailPort,
+        InstanceDetailVolume,
+    };
+    use mockall::predicate;
+    use std::fs::File;
+    use std::io::Write;
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+    use std::num::IntErrorKind;
+    use std::path::PathBuf;
+    use std::str::FromStr;
+
+    #[test]
+    fn try_create_ok() {
+        let manifest = create_test_manifest(None);
+        let app_key = manifest.key().clone();
+        let manifests = HashMap::from([(app_key.clone(), manifest)]);
+        let deployment_id = "TestDeployment".to_string();
+        let deployment = Deployment::Docker(Arc::new(MockedDockerDeployment::new()));
+        let deployments = HashMap::from([(deployment_id.clone(), deployment)]);
+        let instance_id = InstanceId::new(10);
+        let instance = DockerInstanceDeserializable {
+            deployment_id,
+            id: instance_id,
+            app_key,
+            name: "TestInstance".to_string(),
+            desired: InstanceStatus::Running,
+            config: InstanceConfig::default(),
+            hostname: format!("flecs-{instance_id}"),
+        };
+        DockerInstance::try_create_with_state(instance, &manifests, &deployments).unwrap();
+    }
+
+    #[test]
+    fn try_create_no_deployment() {
+        let manifest = create_test_manifest(None);
+        let app_key = manifest.key().clone();
+        let manifests = HashMap::from([(app_key.clone(), manifest)]);
+        let deployment_id = "TestDeployment".to_string();
+        let deployments = HashMap::new();
+        let instance_id = InstanceId::new(10);
+        let instance = DockerInstanceDeserializable {
+            deployment_id,
+            id: instance_id,
+            app_key,
+            name: "TestInstance".to_string(),
+            desired: InstanceStatus::Running,
+            config: InstanceConfig::default(),
+            hostname: format!("flecs-{instance_id}"),
+        };
+        assert!(DockerInstance::try_create_with_state(instance, &manifests, &deployments).is_err());
+    }
+
+    #[test]
+    fn try_create_no_manifest() {
+        let manifest = create_test_manifest(None);
+        let app_key = manifest.key().clone();
+        let manifests = HashMap::new();
+        let deployment_id = "TestDeployment".to_string();
+        let deployment = Deployment::Docker(Arc::new(MockedDockerDeployment::new()));
+        let deployments = HashMap::from([(deployment_id.clone(), deployment)]);
+        let instance_id = InstanceId::new(10);
+        let instance = DockerInstanceDeserializable {
+            deployment_id,
+            id: instance_id,
+            app_key,
+            name: "TestInstance".to_string(),
+            desired: InstanceStatus::Running,
+            config: InstanceConfig::default(),
+            hostname: format!("flecs-{instance_id}"),
+        };
+        assert!(DockerInstance::try_create_with_state(instance, &manifests, &deployments).is_err());
+    }
+
+    pub fn test_instance(
+        id: u32,
+        deployment: Arc<dyn DockerDeployment>,
+        manifest: Arc<AppManifestSingle>,
+    ) -> DockerInstance {
+        DockerInstance {
+            id: InstanceId::new(id),
+            desired: InstanceStatus::Stopped,
+            name: "TestInstance".to_string(),
+            hostname: format!("flecs-{id:08x}"),
+            config: InstanceConfig {
+                volume_mounts: HashMap::from([
+                    (
+                        format!("Instance#{id}Volume#1"),
+                        VolumeMount {
+                            name: format!("{id}-Volume#1"),
+                            container_path: PathBuf::from("/volume1"),
+                        },
+                    ),
+                    (
+                        format!("Instance#{id}Volume#2"),
+                        VolumeMount {
+                            name: format!("{id}-Volume#2"),
+                            container_path: PathBuf::from("/volume2"),
+                        },
+                    ),
+                    (
+                        format!("Instance#{id}Volume#3"),
+                        VolumeMount {
+                            name: format!("{id}-Volume#3"),
+                            container_path: PathBuf::from("/volume3"),
+                        },
+                    ),
+                    (
+                        format!("Instance#{id}Volume#4"),
+                        VolumeMount {
+                            name: format!("{id}-Volume#4"),
+                            container_path: PathBuf::from("/volume4"),
+                        },
+                    ),
+                ]),
+                environment_variables: vec![
+                    EnvironmentVariable::from_str("variable-1=value1").unwrap(),
+                    EnvironmentVariable::from_str("variable-2=").unwrap(),
+                    EnvironmentVariable::from_str("variable-3").unwrap(),
+                ],
+                port_mapping: InstancePortMapping {
+                    tcp: vec![
+                        PortMapping::Single(1002, 2002),
+                        PortMapping::Range {
+                            from: PortRange::try_new(8000, 9000).unwrap(),
+                            to: PortRange::try_new(9500, 10500).unwrap(),
+                        },
+                    ],
+                    udp: vec![
+                        PortMapping::Single(1004, 2004),
+                        PortMapping::Range {
+                            from: PortRange::try_new(9000, 10000).unwrap(),
+                            to: PortRange::try_new(10500, 11500).unwrap(),
+                        },
+                    ],
+                    sctp: vec![
+                        PortMapping::Single(1003, 2003),
+                        PortMapping::Range {
+                            from: PortRange::try_new(10000, 11000).unwrap(),
+                            to: PortRange::try_new(11500, 12500).unwrap(),
+                        },
+                    ],
+                },
+                connected_networks: HashMap::new(),
+                usb_devices: HashMap::from([
+                    (
+                        "test_instance_dev_1".to_string(),
+                        UsbPathConfig {
+                            port: "test_instance_dev_1".to_string(),
+                            bus_num: 456,
+                            dev_num: 789,
+                        },
+                    ),
+                    (
+                        "test_instance_dev_2".to_string(),
+                        UsbPathConfig {
+                            port: "test_instance_dev_2".to_string(),
+                            bus_num: 200,
+                            dev_num: 300,
+                        },
+                    ),
+                ]),
+                mapped_editor_ports: Default::default(),
+            },
+            deployment,
+            manifest,
+        }
+    }
+
+    #[tokio::test]
+    async fn delete_ok() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .once()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_delete_instance()
+            .times(1)
+            .returning(|_| Ok(true));
+        deployment
+            .expect_delete_volume()
+            .times(4)
+            .returning(|_, _| Ok(()));
+        test_instance(1, Arc::new(deployment), create_test_manifest_full(None))
+            .delete(Quest::new_synced("TestQuest".to_string()), floxy)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn delete_volume_err() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_delete_instance()
+            .times(1)
+            .returning(|_| Ok(true));
+        deployment
+            .expect_delete_volume()
+            .times(4)
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        test_instance(2, Arc::new(deployment), manifest)
+            .delete(Quest::new_synced("TestQuest".to_string()), floxy)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn delete_err() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_delete_instance()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_delete_volume()
+            .times(4)
+            .returning(|_, _| Ok(()));
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        let (_error, instance) = test_instance(3, Arc::new(deployment), manifest)
+            .delete(Quest::new_synced("TestQuest".to_string()), floxy)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(instance.desired, InstanceStatus::NotCreated);
+    }
+
+    #[tokio::test]
+    async fn halt_err() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_stop_instance()
+            .times(1)
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Running));
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        let mut instance = test_instance(4, Arc::new(deployment), manifest);
+        instance.desired = InstanceStatus::Running;
+        assert!(instance.halt(floxy).await.is_err());
+        assert_eq!(instance.desired, InstanceStatus::Running);
+    }
+
+    #[tokio::test]
+    async fn halt_ok() {
+        let mut deployment = MockedDockerDeployment::new();
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_server_proxy_configs()
+            .once()
+            .returning(|_, _, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        deployment
+            .expect_stop_instance()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Running));
+        let mut instance = test_instance(5, Arc::new(deployment), create_test_manifest_full(None));
+        instance.config.mapped_editor_ports = HashMap::from([(10, 100)]);
+        instance.desired = InstanceStatus::Running;
+        assert!(instance.halt(floxy).await.is_ok());
+        assert_eq!(instance.desired, InstanceStatus::Running);
+    }
+
+    #[tokio::test]
+    async fn halt_stopped_ok() {
+        let mut deployment = MockedDockerDeployment::new();
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        deployment.expect_stop_instance().times(0);
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        let mut instance = test_instance(6, Arc::new(deployment), manifest);
+        instance.desired = InstanceStatus::Running;
+        assert!(instance.halt(floxy).await.is_ok());
+        assert_eq!(instance.desired, InstanceStatus::Running);
+    }
+
+    #[tokio::test]
+    async fn stop_sets_desired() {
+        let mut deployment = MockedDockerDeployment::new();
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        deployment.expect_stop_instance().times(0);
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        let mut instance = test_instance(6, Arc::new(deployment), manifest);
+        instance.desired = InstanceStatus::Running;
+        assert!(instance.stop(floxy).await.is_ok());
+        assert_eq!(instance.desired, InstanceStatus::Stopped);
+    }
+
+    #[tokio::test]
+    async fn stop_and_delete_ok() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_stop_instance()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_delete_instance()
+            .times(1)
+            .returning(|_| Ok(true));
+        deployment
+            .expect_delete_volume()
+            .times(4)
+            .returning(|_, _| Ok(()));
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        assert!(test_instance(7, Arc::new(deployment), manifest)
+            .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
+            .await
+            .is_ok());
+    }
+
+    #[tokio::test]
+    async fn stop_and_delete_delete_err() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_stop_instance()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_delete_instance()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_delete_volume()
+            .times(4)
+            .returning(|_, _| Ok(()));
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        let mut instance = test_instance(8, Arc::new(deployment), manifest);
+        instance.desired = InstanceStatus::Running;
+        let (_error, instance) = instance
+            .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(instance.desired, InstanceStatus::NotCreated);
+    }
+
+    #[tokio::test]
+    async fn stop_and_delete_stop_err() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_stop_instance()
+            .times(1)
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment.expect_delete_instance().times(0);
+        deployment.expect_delete_volume().times(0);
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        let mut instance = test_instance(9, Arc::new(deployment), manifest);
+        instance.desired = InstanceStatus::Running;
+        let (_error, instance) = instance
+            .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(instance.desired, InstanceStatus::NotCreated);
+    }
+
+    #[test]
+    fn instance_id_from_str() {
+        assert_eq!(Ok(InstanceId::new(0)), InstanceId::from_str("0"));
+        assert_eq!(
+            Ok(InstanceId::new(0x01a55555)),
+            InstanceId::from_str("01a55555")
+        );
+        assert_eq!(
+            &IntErrorKind::InvalidDigit,
+            InstanceId::from_str("invalid").err().unwrap().kind()
+        );
+        assert_eq!(
+            &IntErrorKind::PosOverflow,
+            InstanceId::from_str("1a2b3c4d5e6f").err().unwrap().kind()
+        );
+        assert_eq!(
+            &IntErrorKind::Empty,
+            InstanceId::from_str("").err().unwrap().kind()
+        );
+    }
+
+    #[tokio::test]
+    async fn create_config_file_ok() {
+        let path = prepare_test_path(module_path!(), "create_config_file_ok").join("config");
+        let manifest = create_test_manifest_full(None);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        let config_file = ConfigFile {
+            host_file_name: "test.config".to_string(),
+            container_file_path: PathBuf::from("/tmp/flecs-test.config"),
+            read_only: false,
+        };
+        DockerInstance::create_config_file(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path,
+            config_file,
+            manifest,
+        )
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn create_config_file_err() {
+        let path = prepare_test_path(module_path!(), "create_config_file_err").join("config");
+        let manifest = create_test_manifest_full(None);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(1)
+            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        let config_file = ConfigFile {
+            host_file_name: "test.config".to_string(),
+            container_file_path: PathBuf::from("/tmp/flecs-test.config"),
+            read_only: false,
+        };
+        assert!(DockerInstance::create_config_file(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path,
+            config_file,
+            manifest,
+        )
+        .await
+        .is_err())
+    }
+
+    #[tokio::test]
+    async fn create_config_files_ok() {
+        let path = prepare_test_path(module_path!(), "create_config_files_ok").join("config");
+        let manifest = create_test_manifest_full(None);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(3)
+            .returning(|_, _, _, _, _| Ok(()));
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        DockerInstance::create_config_files(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path.clone(),
+            manifest.config_files.clone(),
+            manifest,
+        )
+        .await
+        .unwrap();
+        assert!(path.try_exists().unwrap());
+    }
+
+    #[tokio::test]
+    async fn create_config_files_can_not_create_path() {
+        let path = prepare_test_path(module_path!(), "create_config_files_can_not_create_path")
+            .join("config");
+        {
+            let mut file = File::create(&path).unwrap();
+            file.write_all(b"TestData").unwrap();
+        }
+        assert!(path.try_exists().unwrap());
+        let manifest = create_test_manifest_full(None);
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(MockedDockerDeployment::new());
+        assert!(DockerInstance::create_config_files(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path.clone(),
+            manifest.config_files.clone(),
+            manifest,
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn create_config_files_err() {
+        let path = prepare_test_path(module_path!(), "create_config_files_err").join("config");
+        let manifest = create_test_manifest_full(None);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(3)
+            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        assert!(DockerInstance::create_config_files(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            path.clone(),
+            manifest.config_files.clone(),
+            manifest,
+        )
+        .await
+        .is_err());
+        assert!(!path.try_exists().unwrap());
+    }
+
+    #[tokio::test]
+    async fn create_ok() {
+        let manifest = create_test_manifest_full(None);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(3)
+            .returning(|_, _, _, _, _| Ok(()));
+        deployment.expect_default_network().times(1).returning(|| {
+            Ok(Network {
+                name: Some("DefaultTestNetworkId".to_string()),
+                ..Network::default()
+            })
+        });
+        deployment
+            .expect_create_volume()
+            .times(1)
+            .returning(|_, _| Ok("TestVolumeId".to_string()));
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        let address = IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123));
+        let instance = DockerInstance::try_create_new(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            manifest.clone(),
+            "TestInstance".to_string(),
+            address,
+        )
+        .await
+        .unwrap();
+        assert_eq!(&instance.config.port_mapping.tcp, &manifest.ports);
+        assert_eq!(instance.desired, InstanceStatus::Stopped);
+        assert_eq!(
+            &instance.config.environment_variables,
+            &manifest.environment_variables
+        );
+        assert_eq!(
+            &instance.config.connected_networks,
+            &HashMap::from([("DefaultTestNetworkId".to_string(), address)])
+        );
+        assert_eq!(
+            &instance.config.volume_mounts,
+            &HashMap::from([(
+                "TestVolumeId".to_string(),
+                VolumeMount {
+                    name: format!("flecs-{}-my-app-etc", instance.id),
+                    container_path: PathBuf::from("/etc/my-app")
+                }
+            )])
+        )
+    }
+
+    #[tokio::test]
+    async fn create_create_config_fails() {
+        let manifest = create_test_manifest_full(None);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_copy_from_app_image()
+            .times(3)
+            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
+        deployment.expect_default_network().times(1).returning(|| {
+            Ok(Network {
+                name: Some("DefaultTestNetworkId".to_string()),
+                ..Network::default()
+            })
+        });
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        assert!(DockerInstance::try_create_new(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            manifest.clone(),
+            "TestInstance".to_string(),
+            IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn create_default_network_without_id() {
+        let manifest = create_test_manifest_full(None);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_default_network()
+            .times(1)
+            .returning(|| Ok(Network::default()));
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        assert!(DockerInstance::try_create_new(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            manifest.clone(),
+            "TestInstance".to_string(),
+            IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn create_default_network_err() {
+        let manifest = create_test_manifest_full(None);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_default_network()
+            .times(1)
+            .returning(|| Err(anyhow::anyhow!("TestError").into()));
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        assert!(DockerInstance::try_create_new(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            manifest.clone(),
+            "TestInstance".to_string(),
+            IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+        )
+        .await
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn create_instance_info_ok() {
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Running));
+        let deployment = Arc::new(deployment);
+        let manifest = create_test_manifest_full(Some(true));
+        let instance_id = InstanceId::new(0x123);
+        let instance = DockerInstance {
+            name: "TestInstance".to_string(),
+            hostname: format!("flecs-{instance_id}"),
+            id: instance_id,
+            manifest,
+            deployment,
+            config: Default::default(),
+            desired: InstanceStatus::Running,
+        };
+        let expected_info = flecsd_axum_server::models::AppInstance {
+            instance_id: "00000123".to_string(),
+            instance_name: "TestInstance".to_string(),
+            app_key: flecsd_axum_server::models::AppKey {
+                name: "some.test.app".to_string(),
+                version: "1.2.1".to_string(),
+            },
+            status: flecsd_axum_server::models::InstanceStatus::Running,
+            desired: flecsd_axum_server::models::InstanceStatus::Running,
+            editors: None,
+        };
+        assert_eq!(instance.generate_info().await.unwrap(), expected_info);
+    }
+
+    #[tokio::test]
+    async fn create_instance_info_err() {
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let deployment = Arc::new(deployment);
+        let manifest = create_test_manifest_full(Some(true));
+        let instance_id = InstanceId::new(0x123);
+        let instance = DockerInstance {
+            name: "TestInstance".to_string(),
+            hostname: format!("flecs-{instance_id}"),
+            id: instance_id,
+            manifest,
+            deployment,
+            config: Default::default(),
+            desired: InstanceStatus::Running,
+        };
+        assert!(instance.generate_info().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn create_instance_info_details_ok() {
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Ok(InstanceStatus::Running));
+        let deployment = Arc::new(deployment);
+        let manifest = create_test_manifest_full(Some(true));
+        let instance_id = InstanceId::new(0x123);
+        let instance = DockerInstance {
+            name: "TestInstance".to_string(),
+            hostname: format!("flecs-{instance_id}"),
+            id: instance_id,
+            manifest,
+            deployment,
+            config: InstanceConfig {
+                connected_networks: HashMap::from([(
+                    "TestNetwork".to_string(),
+                    IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+                )]),
+                ..Default::default()
+            },
+            desired: InstanceStatus::Running,
+        };
+        let expected_info = flecsd_axum_server::models::InstancesInstanceIdGet200Response {
+            instance_id: "00000123".to_string(),
+            instance_name: "TestInstance".to_string(),
+            app_key: flecsd_axum_server::models::AppKey {
+                name: "some.test.app".to_string(),
+                version: "1.2.1".to_string(),
+            },
+            status: flecsd_axum_server::models::InstanceStatus::Running,
+            desired: flecsd_axum_server::models::InstanceStatus::Running,
+            config_files: InstanceDetailConfigFiles::from(vec![
+                InstanceDetailConfigFile {
+                    host: "default.conf".to_string(),
+                    container: "/etc/my-app/default.conf".to_string(),
+                },
+                InstanceDetailConfigFile {
+                    host: "default.conf".to_string(),
+                    container: "/etc/my-app/default.conf".to_string(),
+                },
+                InstanceDetailConfigFile {
+                    host: "default.conf".to_string(),
+                    container: "/etc/my-app/default.conf".to_string(),
+                },
+            ]),
+            hostname: "flecs-00000123".to_string(),
+            ip_address: "123.123.123.123".to_string(),
+            ports: vec![
+                InstanceDetailPort {
+                    host: "8001".to_string(),
+                    container: "8001".to_string(),
+                },
+                InstanceDetailPort {
+                    host: "5000".to_string(),
+                    container: "5000".to_string(),
+                },
+                InstanceDetailPort {
+                    host: "5001-5008".to_string(),
+                    container: "6001-6008".to_string(),
+                },
+                InstanceDetailPort {
+                    host: "6001-6008".to_string(),
+                    container: "6001-6008".to_string(),
+                },
+            ],
+            volumes: vec![InstanceDetailVolume {
+                name: "my-app-etc".to_string(),
+                path: "/etc/my-app".to_string(),
+            }],
+            editors: None,
+        };
+        assert_eq!(
+            instance.generate_detailed_info().await.unwrap(),
+            expected_info
+        );
+    }
+
+    #[tokio::test]
+    async fn create_instance_info_details_err() {
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let deployment = Arc::new(deployment);
+        let manifest = create_test_manifest_full(Some(true));
+        let instance_id = InstanceId::new(0x123);
+        let instance = DockerInstance {
+            name: "TestInstance".to_string(),
+            hostname: format!("flecs-{instance_id}"),
+            id: instance_id,
+            manifest,
+            deployment,
+            config: Default::default(),
+            desired: InstanceStatus::Running,
+        };
+        assert!(instance.generate_detailed_info().await.is_err());
+    }
+
+    #[test]
+    fn to_docker_id() {
+        assert_eq!(
+            InstanceId::new(0x2468).to_docker_id(),
+            "flecs-00002468".to_string()
+        );
+    }
+
+    #[test]
+    fn config_from_instance() {
+        prepare_usb_device_test_path("test_instance_dev_1");
+        prepare_usb_device_test_path("test_instance_dev_2");
+        let deployment = MockedDockerDeployment::new();
+        let deployment = Arc::new(deployment);
+        let manifest = create_test_manifest_full(Some(true));
+        let mut instance = test_instance(123, deployment, manifest);
+        instance.config.connected_networks.insert(
+            "Ipv4Network".to_string(),
+            IpAddr::V4(Ipv4Addr::new(20, 22, 24, 26)),
+        );
+        instance.config.connected_networks.insert(
+            "Ipv6Network".to_string(),
+            IpAddr::V6(Ipv6Addr::new(
+                0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+            )),
+        );
+        let config: Config<String> = (&instance).into();
+        assert_eq!(
+            config.image,
+            Some("flecs.azurecr.io/some.test.app:1.2.1".to_string())
+        );
+        let host_config = config.host_config.unwrap();
+        assert_eq!(host_config.port_bindings.unwrap().len(), 3006);
+        let mounts = host_config.mounts.unwrap();
+        assert_eq!(mounts.len(), 6);
+        assert!(mounts.contains(&bollard::models::Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some("/etc/my-app".to_string()),
+            target: Some("/etc/my-app".to_string()),
+            ..Default::default()
+        }));
+        assert!(mounts.contains(&bollard::models::Mount {
+            typ: Some(MountTypeEnum::BIND),
+            source: Some("/run/docker.sock".to_string()),
+            target: Some("/run/docker.sock".to_string()),
+            ..Default::default()
+        }));
+        for i in 1..=4 {
+            assert!(mounts.contains(&bollard::models::Mount {
+                typ: Some(MountTypeEnum::VOLUME),
+                source: Some(format!("Instance#123Volume#{i}")),
+                target: Some(format!("/volume{i}")),
+                ..Default::default()
+            }));
+        }
+        let caps = host_config.cap_add.unwrap();
+        assert_eq!(caps.len(), 2);
+        assert!(caps.contains(&"SYS_NICE".to_string()));
+        assert!(caps.contains(&"NET_ADMIN".to_string()));
+        assert_eq!(
+            config.cmd,
+            Some(vec![
+                "--launch-arg1".to_string(),
+                "--launch-arg2=value".to_string(),
+            ])
+        );
+        assert_eq!(config.hostname, Some("flecs-0000007b".to_string()));
+        assert_eq!(
+            config.env,
+            Some(vec![
+                "variable-1=value1".to_string(),
+                "variable-2=".to_string(),
+                "variable-3".to_string()
+            ])
+        );
+        assert_eq!(
+            config.labels,
+            Some(HashMap::from([
+                ("my.label-one".to_string(), "value-1".to_string()),
+                ("my.label-two".to_string(), String::new()),
+                ("my.label-three".to_string(), String::new()),
+            ]))
+        );
+        let expected_device_mappings = vec![
+            DeviceMapping {
+                path_on_host: Some("/dev/dev1".to_string()),
+                path_in_container: Some("/dev/dev1".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+            DeviceMapping {
+                path_on_host: Some("/dev/usb/dev1".to_string()),
+                path_in_container: Some("/dev/usb/dev1".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+            DeviceMapping {
+                path_on_host: Some("/dev/bus/usb/456/789".to_string()),
+                path_in_container: Some("/dev/bus/usb/456/789".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+            DeviceMapping {
+                path_on_host: Some("/dev/bus/usb/200/300".to_string()),
+                path_in_container: Some("/dev/bus/usb/200/300".to_string()),
+                cgroup_permissions: Some("rwm".to_string()),
+            },
+        ];
+        let resulting_device_mappings = host_config.devices.unwrap();
+        assert_eq!(
+            resulting_device_mappings.len(),
+            expected_device_mappings.len()
+        );
+        for expected_device_mapping in expected_device_mappings {
+            assert!(
+                resulting_device_mappings.contains(&expected_device_mapping),
+                "{resulting_device_mappings:#?} does not contain {expected_device_mapping:#?}"
+            );
+        }
+        assert_eq!(
+            config.networking_config,
+            Some(bollard::container::NetworkingConfig {
+                endpoints_config: HashMap::from([
+                    (
+                        "Ipv6Network".to_string(),
+                        bollard::models::EndpointSettings {
+                            ip_address: Some("11:22:33:44:55:66:77:88".to_string()),
+                            ipam_config: Some(bollard::models::EndpointIpamConfig {
+                                ipv6_address: Some("11:22:33:44:55:66:77:88".to_string()),
+                                ..Default::default()
+                            }),
+                            aliases: Some(vec!["TestHostName".to_string()]),
+                            ..Default::default()
+                        }
+                    ),
+                    (
+                        "Ipv4Network".to_string(),
+                        bollard::models::EndpointSettings {
+                            ip_address: Some("20.22.24.26".to_string()),
+                            ipam_config: Some(bollard::models::EndpointIpamConfig {
+                                ipv4_address: Some("20.22.24.26".to_string()),
+                                ..Default::default()
+                            }),
+                            aliases: Some(vec!["TestHostName".to_string()]),
+                            ..Default::default()
+                        }
+                    ),
+                ]),
+            })
+        )
+    }
+
+    #[test]
+    fn instance_status_from_container_status() {
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::EMPTY),
+            InstanceStatus::Stopped
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::CREATED),
+            InstanceStatus::Stopped
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::RUNNING),
+            InstanceStatus::Running
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::PAUSED),
+            InstanceStatus::Running
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::RESTARTING),
+            InstanceStatus::Running
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::REMOVING),
+            InstanceStatus::Running
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::EXITED),
+            InstanceStatus::Stopped
+        );
+        assert_eq!(
+            InstanceStatus::from(ContainerStateStatusEnum::DEAD),
+            InstanceStatus::Stopped
+        );
+    }
+
+    #[test]
+    fn server_status_from_instance_status() {
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::NotCreated,
+            InstanceStatus::NotCreated.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Requested,
+            InstanceStatus::Requested.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::ResourcesReady,
+            InstanceStatus::ResourcesReady.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Stopped,
+            InstanceStatus::Stopped.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Running,
+            InstanceStatus::Running.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Orphaned,
+            InstanceStatus::Orphaned.into()
+        );
+        assert_eq!(
+            flecsd_axum_server::models::InstanceStatus::Unknown,
+            InstanceStatus::Unknown.into()
+        );
+    }
+
+    #[tokio::test]
+    async fn create_volumes_ok() {
+        let instance_id = InstanceId::new(0x1234);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_create_volume()
+            .times(3)
+            .returning(|_, name| Ok(name.to_string()));
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        let volumes = vec![
+            VolumeMount {
+                name: "Volume1".to_string(),
+                container_path: PathBuf::from("/Volume1"),
+            },
+            VolumeMount {
+                name: "Volume2".to_string(),
+                container_path: PathBuf::from("/Volume2"),
+            },
+            VolumeMount {
+                name: "Volume3".to_string(),
+                container_path: PathBuf::from("/Volume3"),
+            },
+        ];
+        let expected_volumes = HashMap::from([
+            (
+                format!("flecs-{instance_id}-Volume1"),
+                VolumeMount {
+                    name: format!("flecs-{instance_id}-Volume1"),
+                    container_path: PathBuf::from("/Volume1"),
+                },
+            ),
+            (
+                format!("flecs-{instance_id}-Volume2"),
+                VolumeMount {
+                    name: format!("flecs-{instance_id}-Volume2"),
+                    container_path: PathBuf::from("/Volume2"),
+                },
+            ),
+            (
+                format!("flecs-{instance_id}-Volume3"),
+                VolumeMount {
+                    name: format!("flecs-{instance_id}-Volume3"),
+                    container_path: PathBuf::from("/Volume3"),
+                },
+            ),
+        ]);
+        assert_eq!(
+            DockerInstance::create_volumes(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                volumes,
+                instance_id,
+            )
+            .await
+            .unwrap(),
+            expected_volumes
+        );
+    }
+
+    #[tokio::test]
+    async fn create_volumes_err() {
+        let mut deployment = MockedDockerDeployment::new();
+        let instance_id = InstanceId::new(0x1234);
+        deployment
+            .expect_create_volume()
+            .times(1)
+            .withf(move |_, name| name == format!("flecs-{instance_id}-Volume1"))
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_create_volume()
+            .times(2)
+            .returning(|_, name| Ok(name.to_string()));
+        deployment
+            .expect_delete_volume()
+            .times(1)
+            .withf(move |_, id| id == &format!("flecs-{instance_id}-Volume2"))
+            .returning(|_, _| Ok(()));
+        deployment
+            .expect_delete_volume()
+            .times(1)
+            .withf(move |_, id| id == &format!("flecs-{instance_id}-Volume3"))
+            .returning(|_, _| Ok(()));
+        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
+        let volumes = vec![
+            VolumeMount {
+                name: "Volume1".to_string(),
+                container_path: PathBuf::from("/Volume1"),
+            },
+            VolumeMount {
+                name: "Volume2".to_string(),
+                container_path: PathBuf::from("/Volume2"),
+            },
+            VolumeMount {
+                name: "Volume3".to_string(),
+                container_path: PathBuf::from("/Volume3"),
+            },
+        ];
+        assert!(DockerInstance::create_volumes(
+            Quest::new_synced("TestQuest".to_string()),
+            deployment,
+            volumes,
+            instance_id,
+        )
+        .await
+        .is_err());
+    }
+
+    #[test]
+    fn replace_manifest() {
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        let mut instance = test_instance(2, Arc::new(MockedDockerDeployment::new()), manifest);
+        let manifest = create_test_manifest(Some("#2".to_string()));
+        assert_eq!(instance.manifest.revision(), None);
+        let old_manifest = instance.replace_manifest(manifest);
+        assert_eq!(old_manifest.revision(), None);
+        assert_eq!(instance.manifest.revision(), Some(&"#2".to_string()));
+    }
+
+    #[tokio::test]
+    async fn instance_start_ok_already_running() {
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .once()
+            .withf(|id| id.value == 2)
+            .returning(|_| Ok(InstanceStatus::Running));
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        let mut instance = test_instance(2, Arc::new(deployment), manifest);
+        instance.desired = InstanceStatus::Stopped;
+        instance.start(floxy).await.unwrap();
+        assert_eq!(instance.desired, InstanceStatus::Running);
+    }
+
+    #[tokio::test]
+    async fn instance_start_ok() {
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .once()
+            .withf(|id| id.value == 2)
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        deployment
+            .expect_start_instance()
+            .once()
+            .withf(|_, id, _| id == &Some(InstanceId::new(2)))
+            .returning(|_, _, _| Ok(InstanceId::new(2)));
+        let AppManifest::Single(manifest) = create_test_manifest(None) else {
+            panic!()
+        };
+        let mut instance = test_instance(2, Arc::new(deployment), manifest);
+        instance.desired = InstanceStatus::Stopped;
+        instance.start(floxy).await.unwrap();
+        assert_eq!(instance.desired, InstanceStatus::Running);
+    }
+
+    #[tokio::test]
+    async fn instance_load_reverse_proxy_config_ok() {
+        let mut deployment = MockedDockerDeployment::new();
+        deployment.expect_default_network().returning(|| {
+            Ok(Network {
+                name: Some("flecs".to_string()),
+                ..Default::default()
+            })
+        });
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_add_instance_reverse_proxy_config()
+            .once()
+            .withf(|app, id, ip, ports| {
+                app == "some.test.app"
+                    && id == &InstanceId::new(2)
+                    && ip == &IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20))
+                    && ports == [789]
+            })
+            .returning(|_, _, _, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut instance = test_instance(2, Arc::new(deployment), create_test_manifest_full(None));
+        instance.config.connected_networks.insert(
+            "flecs".to_string(),
+            IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20)),
+        );
+        instance.load_reverse_proxy_config(floxy).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn instance_load_reverse_proxy_config_err() {
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_default_network()
+            .returning(|| Err(anyhow::anyhow!("TestError").into()));
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let instance = test_instance(2, Arc::new(deployment), create_test_manifest_full(None));
+        assert!(instance.load_reverse_proxy_config(floxy).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn instance_load_reverse_proxy_config_ok_no_editors() {
+        let AppManifest::Single(manifest) = create_test_manifest_numbered(1, 2, None) else {
+            panic!()
+        };
+        let instance = test_instance(2, Arc::new(MockedDockerDeployment::new()), manifest);
+        instance
+            .load_reverse_proxy_config(FloxyOperation::new_arc(Arc::new(MockFloxy::new())))
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn instance_load_reverse_proxy_config_ok_no_address() {
+        let mut deployment = MockedDockerDeployment::new();
+        deployment.expect_default_network().returning(|| {
+            Ok(Network {
+                name: Some("flecs".to_string()),
+                ..Default::default()
+            })
+        });
+        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let instance = test_instance(2, Arc::new(deployment), create_test_manifest_full(None));
+        instance.load_reverse_proxy_config(floxy).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn instance_delete_reverse_proxy_config_ok() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .once()
+            .withf(|app, id| app == "some.test.app" && id == &InstanceId::new(2))
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let instance = test_instance(
+            2,
+            Arc::new(MockedDockerDeployment::new()),
+            create_test_manifest_full(None),
+        );
+        assert!(instance.delete_reverse_proxy_config(floxy).unwrap());
+    }
+
+    #[tokio::test]
+    async fn instance_delete_server_proxy_configs_ok() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_server_proxy_configs()
+            .once()
+            .withf(|app, id, ports| {
+                app == "some.test.app"
+                    && id == &InstanceId::new(2)
+                    && ports.contains(&10)
+                    && ports.contains(&100)
+            })
+            .returning(|_, _, _| Ok(false));
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut instance = test_instance(
+            2,
+            Arc::new(MockedDockerDeployment::new()),
+            create_test_manifest_full(None),
+        );
+        instance.config.mapped_editor_ports = HashMap::from([(10, 20), (100, 1000)]);
+        assert!(instance.delete_server_proxy_configs(floxy).unwrap());
+    }
+
+    #[tokio::test]
+    async fn instance_delete_server_proxy_configs_ok_no_mapped_ports() {
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let mut instance = test_instance(
+            2,
+            Arc::new(MockedDockerDeployment::new()),
+            create_test_manifest_full(None),
+        );
+        instance.config.mapped_editor_ports.clear();
+        assert!(!instance.delete_server_proxy_configs(floxy).unwrap());
+    }
+
+    fn disconnect_test_instance(
+        disconnect_mock_result: Option<crate::Result<()>>,
+        status_mock_result: Option<crate::Result<InstanceStatus>>,
+        connected_networks: HashMap<String, IpAddr>,
+    ) -> DockerInstance {
+        const INSTANCE_ID: InstanceId = InstanceId::new(10);
+        let AppManifest::Single(manifest) =
+            crate::vault::pouch::manifest::tests::min_app_1_1_0_manifest()
+        else {
+            panic!()
+        };
+        let mut deployment = MockedDockerDeployment::new();
+        if let Some(mock_result) = disconnect_mock_result {
+            deployment
+                .expect_disconnect_network()
+                .once()
+                .with(
+                    predicate::always(),
+                    predicate::eq("TestNetwork".to_string()),
+                    predicate::eq(INSTANCE_ID),
+                )
+                .return_once(|_, _, _| mock_result);
+        }
+        if let Some(mock_result) = status_mock_result {
+            deployment
+                .expect_instance_status()
+                .with(predicate::eq(INSTANCE_ID))
+                .return_once(|_| mock_result);
+        }
+        DockerInstance {
+            name: "TestInstance".to_string(),
+            hostname: INSTANCE_ID.to_docker_id(),
+            id: INSTANCE_ID,
+            config: InstanceConfig {
+                connected_networks,
+                ..Default::default()
+            },
+            deployment: Arc::new(deployment),
+            manifest,
+            desired: InstanceStatus::Running,
+        }
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_unknown_ok() {
+        let mut instance = disconnect_test_instance(
+            Some(Ok(())),
+            Some(Ok(InstanceStatus::Running)),
+            HashMap::new(),
+        );
+        assert_eq!(
+            instance
+                .disconnect_network("TestNetwork".to_string())
+                .await
+                .unwrap(),
+            None
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_unknown_err() {
+        let mut instance = disconnect_test_instance(
+            Some(Err(anyhow::anyhow!("TestError"))),
+            Some(Ok(InstanceStatus::Running)),
+            HashMap::new(),
+        );
+        assert_eq!(
+            instance
+                .disconnect_network("TestNetwork".to_string())
+                .await
+                .unwrap(),
+            None
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_ok() {
+        let ip_address = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
+        let mut instance = disconnect_test_instance(
+            Some(Ok(())),
+            Some(Ok(InstanceStatus::Running)),
+            HashMap::from([("TestNetwork".to_string(), ip_address)]),
+        );
+        assert_eq!(
+            instance
+                .disconnect_network("TestNetwork".to_string())
+                .await
+                .unwrap(),
+            Some(ip_address)
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_err_disconnect() {
+        let ip_address = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
+        let mut instance = disconnect_test_instance(
+            Some(Err(anyhow::anyhow!("TestError"))),
+            Some(Ok(InstanceStatus::Running)),
+            HashMap::from([("TestNetwork".to_string(), ip_address)]),
+        );
+        assert!(instance
+            .disconnect_network("TestNetwork".to_string())
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn instance_disconnect_network_err_status() {
+        let ip_address = IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40));
+        let mut instance = disconnect_test_instance(
+            None,
+            Some(Err(anyhow::anyhow!("TestError"))),
+            HashMap::from([("TestNetwork".to_string(), ip_address)]),
+        );
+        assert!(instance
+            .disconnect_network("TestNetwork".to_string())
+            .await
+            .is_err());
+    }
+
+    #[test]
+    fn get_instance_deployment() {
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("GetMockedDeployment".to_string());
+        let instance = test_instance(2, Arc::new(deployment), create_test_manifest_full(None));
+        assert_eq!(instance.deployment().id(), "GetMockedDeployment");
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_running_ok() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "TestNet";
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Ok(()));
+        let Instance::Docker(mut instance) = get_test_instance(NETWORK_INSTANCE) else {
+            panic!()
+        };
+        instance.deployment = Arc::new(deployment);
+        assert!(matches!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await,
+            Ok(None)
+        ));
+        assert_eq!(
+            instance.config.connected_networks.get(NETWORK_NAME),
+            Some(&IpAddr::V4(ip_address))
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_stopped_ok() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "TestNet";
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Stopped));
+        let Instance::Docker(mut instance) = get_test_instance(NETWORK_INSTANCE) else {
+            panic!()
+        };
+        instance.deployment = Arc::new(deployment);
+        assert!(matches!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await,
+            Ok(None)
+        ));
+        assert_eq!(
+            instance.config.connected_networks.get(NETWORK_NAME),
+            Some(&IpAddr::V4(ip_address))
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_err_connect() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "TestNet";
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
+        let Instance::Docker(mut instance) = get_test_instance(NETWORK_INSTANCE) else {
+            panic!()
+        };
+        instance.deployment = Arc::new(deployment);
+        assert!(instance
+            .connect_network(NETWORK_NAME.to_string(), ip_address)
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_err_status() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "TestNet";
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Err(anyhow::anyhow!("TestError")));
+        let Instance::Docker(mut instance) = get_test_instance(NETWORK_INSTANCE) else {
+            panic!()
+        };
+        instance.deployment = Arc::new(deployment);
+        assert!(instance
+            .connect_network(NETWORK_NAME.to_string(), ip_address)
+            .await
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_reconnect() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        let old_ip_address = IpAddr::V4(Ipv4Addr::new(120, 20, 40, 50));
+        const NETWORK_NAME: &str = "flecs";
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Ok(()));
+        let Instance::Docker(mut instance) = get_test_instance(NETWORK_INSTANCE) else {
+            panic!()
+        };
+        instance.deployment = Arc::new(deployment);
+        assert_eq!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await
+                .unwrap(),
+            Some(old_ip_address)
+        );
+        assert_eq!(
+            instance.config.connected_networks.get(NETWORK_NAME),
+            Some(&IpAddr::V4(ip_address))
+        );
+    }
+
+    #[tokio::test]
+    async fn instance_connect_network_reconnect_failed_disconnect() {
+        let ip_address = Ipv4Addr::new(10, 20, 30, 40);
+        const NETWORK_NAME: &str = "flecs";
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_instance_status()
+            .with(predicate::eq(NETWORK_INSTANCE))
+            .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_disconnect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
+        deployment
+            .expect_connect_network()
+            .once()
+            .with(
+                predicate::always(),
+                predicate::eq(NETWORK_NAME.to_string()),
+                predicate::eq(ip_address),
+                predicate::eq(NETWORK_INSTANCE),
+            )
+            .returning(|_, _, _, _| Ok(()));
+        let Instance::Docker(mut instance) = get_test_instance(NETWORK_INSTANCE) else {
+            panic!()
+        };
+        instance.deployment = Arc::new(deployment);
+        assert_eq!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await
+                .unwrap(),
+            None
+        );
+        assert_eq!(
+            instance.config.connected_networks.get(NETWORK_NAME),
+            Some(&IpAddr::V4(ip_address))
+        );
+    }
+}

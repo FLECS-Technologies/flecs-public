@@ -1,5 +1,7 @@
 use crate::forge::vec::VecExtension;
-use crate::jeweler::gem::manifest::{EnvironmentVariable, PortMapping, PortRange, VolumeMount};
+use crate::jeweler::gem::manifest::single::{
+    EnvironmentVariable, PortMapping, PortRange, VolumeMount,
+};
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader, UsbDeviceReaderExtension};
@@ -332,7 +334,7 @@ impl From<&UsbPathConfig> for DeviceMapping {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::jeweler::gem::manifest::PortRange;
+    use crate::jeweler::gem::manifest::single::PortRange;
     use crate::relic::device::usb::tests::prepare_usb_device_test_path;
     use crate::relic::device::usb::MockUsbDeviceReader;
     use bollard::models::Mount;

@@ -35,7 +35,7 @@ pub async fn get<I: Instancius>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::gem::manifest::BindMount;
+    use crate::jeweler::gem::manifest::single::BindMount;
     use crate::sorcerer::instancius::MockInstancius;
     use crate::vault::tests::create_empty_test_vault;
     use mockall::predicate;

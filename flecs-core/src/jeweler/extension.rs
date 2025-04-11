@@ -1,12 +1,12 @@
-use crate::jeweler::deployment::Deployment;
+use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::volume::VolumeId;
 use crate::quest::SyncQuest;
 use futures_util::future::join_all;
 use std::sync::Arc;
 
-pub async fn delete_volumes(
+pub async fn delete_volumes<T: CommonDeployment + 'static + ?Sized>(
     quest: SyncQuest,
-    deployment: Arc<dyn Deployment>,
+    deployment: Arc<T>,
     volume_ids: Vec<VolumeId>,
 ) -> anyhow::Result<()> {
     let mut results = Vec::new();
@@ -28,19 +28,18 @@ pub async fn delete_volumes(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::deployment::Deployment;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::quest::Quest;
     use std::sync::Arc;
 
     #[tokio::test]
     async fn delete_volumes_ok() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_delete_volume()
             .times(3)
             .returning(|_, _| Ok(()));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Arc::new(deployment);
         delete_volumes(
             Quest::new_synced("TestQuest".to_string()),
             deployment,
@@ -56,7 +55,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_volumes_err() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_delete_volume()
             .withf(|_, id| id == "TestVolumeId1")
@@ -66,7 +65,7 @@ mod tests {
             .expect_delete_volume()
             .times(2)
             .returning(|_, _| Ok(()));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Arc::new(deployment);
         assert!(delete_volumes(
             Quest::new_synced("TestQuest".to_string()),
             deployment,

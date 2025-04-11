@@ -40,7 +40,7 @@ pub trait AppRaiser: Sorcerer {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        manifest: Arc<AppManifest>,
+        manifest: AppManifest,
         config: ConsoleClient,
     ) -> Result<()>;
 

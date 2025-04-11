@@ -1,8 +1,11 @@
 pub use super::{Error, Result};
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
-use crate::jeweler::deployment::Deployment;
-use crate::jeweler::gem::instance::{Instance, InstanceConfig, InstanceId, InstanceStatus};
-use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::gem::deployment::docker::DockerDeployment;
+use crate::jeweler::gem::instance::docker::config::InstanceConfig;
+use crate::jeweler::gem::instance::docker::DockerInstance;
+use crate::jeweler::gem::instance::status::InstanceStatus;
+use crate::jeweler::gem::instance::{Instance, InstanceId};
+use crate::jeweler::gem::manifest::single::AppManifestSingle;
 use crate::jeweler::network::NetworkId;
 use crate::quest::{State, SyncQuest};
 use crate::relic::network::Ipv4NetworkAccess;
@@ -22,18 +25,20 @@ pub enum DisconnectInstanceError {
         network: NetworkId,
         instance: InstanceId,
     },
+    #[error("Instance {0} does not support disconnecting from networks")]
+    Unsupported(InstanceId),
     #[error("Failed to disconnect instance: {0}")]
     Other(String),
 }
 
-pub async fn create_instance(
+pub async fn create_docker_instance(
     quest: SyncQuest,
-    deployment: Arc<dyn Deployment>,
-    manifest: Arc<AppManifest>,
+    deployment: Arc<dyn DockerDeployment>,
+    manifest: Arc<AppManifestSingle>,
     name: String,
     address: IpAddr,
-) -> Result<Instance> {
-    Instance::create(quest, deployment, manifest, name, address).await
+) -> Result<DockerInstance> {
+    DockerInstance::try_create_new(quest, deployment, manifest, name, address).await
 }
 
 pub async fn start_instance<F: Floxy>(
@@ -54,7 +59,10 @@ pub async fn start_instance<F: Floxy>(
         .gems_mut()
         .get_mut(&instance_id)
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
-    instance.start(floxy).await
+    match instance {
+        Instance::Docker(instance) => instance.start(floxy).await,
+        Instance::Compose(_instance) => todo!(),
+    }
 }
 
 pub async fn stop_instance<F: Floxy>(
@@ -75,7 +83,10 @@ pub async fn stop_instance<F: Floxy>(
         .gems_mut()
         .get_mut(&instance_id)
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
-    instance.stop(floxy).await
+    match instance {
+        Instance::Docker(instance) => instance.stop(floxy).await,
+        Instance::Compose(_instance) => todo!(),
+    }
 }
 
 pub async fn stop_instances<F: Floxy + 'static>(
@@ -143,8 +154,8 @@ pub async fn halt_all_instances<F: Floxy + 'static>(
             .expect("Vault reservations should never fail");
         let mut quest = quest.lock().await;
         for (id, instance) in instances.gems() {
-            match instance.is_running().await {
-                Ok(false) => {}
+            match instance.status().await {
+                Ok(InstanceStatus::Stopped) => {}
                 _ => {
                     instances_to_halt.push(id);
                     let result = quest
@@ -216,7 +227,10 @@ pub async fn halt_instance<F: Floxy>(
         .gems_mut()
         .get_mut(&instance_id)
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
-    instance.halt(floxy).await
+    match instance {
+        Instance::Docker(instance) => instance.halt(floxy).await,
+        Instance::Compose(_instance) => todo!(),
+    }
 }
 
 pub async fn get_instances_info(
@@ -366,7 +380,14 @@ pub async fn delete_instance<F: Floxy + 'static>(
         .gems_mut();
     match instances.remove(&id) {
         Some(instance) => {
-            if let Err((e, instance)) = instance.stop_and_delete(quest, floxy).await {
+            let result = match instance {
+                Instance::Docker(instance) => instance
+                    .stop_and_delete(quest, floxy)
+                    .await
+                    .map_err(|(e, instance)| (e, Instance::Docker(instance))),
+                Instance::Compose(_instance) => todo!(),
+            };
+            if let Err((e, instance)) = result {
                 instances.insert(id, instance);
                 Err(e)
             } else {
@@ -404,50 +425,62 @@ pub async fn make_ipv4_reservation(
         .reserve_free_ipv4_address(network)
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum QueryInstanceConfigError {
+    #[error("Instance {0} not found")]
+    NotFound(InstanceId),
+    #[error("Instance {0} does not support configuring")]
+    NotSupported(InstanceId),
+}
+
 pub async fn modify_instance_config_with<F, T>(
     vault: Arc<Vault>,
     instance_id: InstanceId,
     with: F,
-) -> Option<T>
+) -> Result<T, QueryInstanceConfigError>
 where
     F: FnOnce(&mut InstanceConfig) -> T,
 {
-    Some(with(
-        &mut vault
-            .reservation()
-            .reserve_instance_pouch_mut()
-            .grab()
-            .await
-            .instance_pouch_mut
-            .as_mut()
-            .expect("Reservations should never fail")
-            .gems_mut()
-            .get_mut(&instance_id)?
-            .config,
-    ))
+    match vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Reservations should never fail")
+        .gems_mut()
+        .get_mut(&instance_id)
+    {
+        None => Err(QueryInstanceConfigError::NotFound(instance_id)),
+        Some(Instance::Compose(_)) => Err(QueryInstanceConfigError::NotSupported(instance_id)),
+        Some(Instance::Docker(instance)) => Ok(with(&mut instance.config)),
+    }
 }
 
 pub async fn get_instance_config_part_with<F, T>(
     vault: Arc<Vault>,
     instance_id: InstanceId,
     with: F,
-) -> Option<T>
+) -> Result<T, QueryInstanceConfigError>
 where
     F: FnOnce(&InstanceConfig) -> T,
 {
-    Some(with(
-        &vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .expect("Reservations should never fail")
-            .gems()
-            .get(&instance_id)?
-            .config,
-    ))
+    match vault
+        .reservation()
+        .reserve_instance_pouch()
+        .grab()
+        .await
+        .instance_pouch
+        .as_ref()
+        .expect("Reservations should never fail")
+        .gems()
+        .get(&instance_id)
+    {
+        None => Err(QueryInstanceConfigError::NotFound(instance_id)),
+        Some(Instance::Compose(_)) => Err(QueryInstanceConfigError::NotSupported(instance_id)),
+        Some(Instance::Docker(instance)) => Ok(with(&instance.config)),
+    }
 }
 
 pub async fn query_instance<F, T>(vault: Arc<Vault>, instance_id: InstanceId, f: F) -> Option<T>
@@ -483,6 +516,9 @@ pub async fn disconnect_instance_from_network(
         .gems_mut()
         .get_mut(&id)
         .ok_or(DisconnectInstanceError::InstanceNotFound(id))?;
+    let Instance::Docker(instance) = instance else {
+        return Err(DisconnectInstanceError::Unsupported(id));
+    };
     match instance.disconnect_network(network_id.clone()).await {
         Ok(Some(address)) => Ok(address),
         Ok(None) => Err(DisconnectInstanceError::InstanceNotConnected {
@@ -497,9 +533,9 @@ pub async fn disconnect_instance_from_network(
 pub mod tests {
     use super::*;
     use crate::enchantment::floxy::MockFloxy;
-    use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::gem::instance::InstanceStatus;
-    use crate::jeweler::gem::manifest::EnvironmentVariable;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::manifest::single::EnvironmentVariable;
     use crate::quest::Quest;
     use crate::relic::network::Ipv4Network;
     use crate::vault;
@@ -514,14 +550,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_details_ok() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -544,14 +580,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_details_err() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Err(anyhow::anyhow!("TestError")));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -564,14 +600,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_ok() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -594,14 +630,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_info_err() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Err(anyhow::anyhow!("TestError")));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -612,14 +648,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_info_ok() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault =
             vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let instance_ids = vec![
@@ -644,14 +680,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_info_part_not_found() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault =
             vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let unknown_instance_ids = [UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2];
@@ -681,14 +717,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_info_err() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Err(anyhow::anyhow!("TestError")));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault =
             vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let instance_ids = vec![MINIMAL_INSTANCE, LABEL_INSTANCE, USB_DEV_INSTANCE];
@@ -703,10 +739,10 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_ok() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .once()
@@ -717,7 +753,7 @@ pub mod tests {
             .once()
             .withf(|_, id, _| *id == Some(RUNNING_INSTANCE))
             .returning(|_, _, _| Ok(RUNNING_INSTANCE));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -736,16 +772,16 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_err() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .once()
             .with(eq(RUNNING_INSTANCE))
             .returning(|_| Err(anyhow::anyhow!("TestError")));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -854,11 +890,10 @@ pub mod tests {
     #[tokio::test]
     async fn modify_instance_config_with_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(
-            modify_instance_config_with(vault, UNKNOWN_INSTANCE_3, |_| true)
-                .await
-                .is_none()
-        );
+        assert!(matches!(
+            modify_instance_config_with(vault, UNKNOWN_INSTANCE_3, |_| true).await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_3))
+        ));
     }
 
     #[tokio::test]
@@ -873,31 +908,30 @@ pub mod tests {
                 config.environment_variables.push(test_env_var.clone());
                 "test_value"
             })
-            .await,
-            Some("test_value")
+            .await
+            .unwrap(),
+            "test_value"
         );
         let grab = vault.reservation().reserve_instance_pouch().grab().await;
-        assert_eq!(
-            grab.instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&RUNNING_INSTANCE)
-                .unwrap()
-                .config
-                .environment_variables,
-            vec![test_env_var]
-        )
+        let Some(Instance::Docker(instance)) = grab
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&RUNNING_INSTANCE)
+        else {
+            panic!()
+        };
+        assert_eq!(instance.config.environment_variables, vec![test_env_var])
     }
 
     #[tokio::test]
     async fn get_instance_config_part_with_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(
-            get_instance_config_part_with(vault, UNKNOWN_INSTANCE_1, |_| true)
-                .await
-                .is_none()
-        );
+        assert!(matches!(
+            get_instance_config_part_with(vault, UNKNOWN_INSTANCE_1, |_| true).await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_1))
+        ));
     }
 
     #[tokio::test]
@@ -907,26 +941,30 @@ pub mod tests {
             name: "TestVar".to_string(),
             value: None,
         };
-        vault
-            .reservation()
-            .reserve_instance_pouch_mut()
-            .grab()
-            .await
-            .instance_pouch_mut
-            .as_mut()
-            .unwrap()
-            .gems_mut()
-            .get_mut(&RUNNING_INSTANCE)
-            .unwrap()
-            .config
-            .environment_variables
-            .push(test_env_var.clone());
+        {
+            let mut grab = vault
+                .reservation()
+                .reserve_instance_pouch_mut()
+                .grab()
+                .await;
+            let instance_pouch = grab.instance_pouch_mut.as_mut().unwrap();
+            let Some(Instance::Docker(ref mut instance)) =
+                instance_pouch.gems_mut().get_mut(&RUNNING_INSTANCE)
+            else {
+                panic!()
+            };
+            instance
+                .config
+                .environment_variables
+                .push(test_env_var.clone());
+        }
         assert_eq!(
             get_instance_config_part_with(vault.clone(), RUNNING_INSTANCE, |config| {
                 config.environment_variables.clone()
             })
-            .await,
-            Some(vec![test_env_var])
+            .await
+            .unwrap(),
+            vec![test_env_var]
         );
     }
 
@@ -945,7 +983,7 @@ pub mod tests {
         const RUNNING_INSTANCES: [InstanceId; 3] =
             [RUNNING_INSTANCE, EDITOR_INSTANCE, NETWORK_INSTANCE];
         let instance_deployments = HashMap::from_iter(INSTANCES_TO_START.map(|instance_id| {
-            let mut deployment = MockedDeployment::new();
+            let mut deployment = MockedDockerDeployment::new();
             deployment
                 .expect_id()
                 .return_const(format!("MockDeployment-{instance_id}"));
@@ -971,7 +1009,7 @@ pub mod tests {
                     )
                     .returning(move |_, _, _| Ok(instance_id));
             }
-            let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+            let deployment = Deployment::Docker(Arc::new(deployment));
             (instance_id, deployment)
         }));
         let vault = vault::tests::create_test_vault(instance_deployments, HashMap::new(), None);
@@ -997,7 +1035,7 @@ pub mod tests {
             [RUNNING_INSTANCE, EDITOR_INSTANCE, NETWORK_INSTANCE];
         const ERROR_INSTANCE: InstanceId = PORT_MAPPING_INSTANCE;
         let instance_deployments = HashMap::from_iter(INSTANCES_TO_START.map(|instance_id| {
-            let mut deployment = MockedDeployment::new();
+            let mut deployment = MockedDockerDeployment::new();
             deployment
                 .expect_id()
                 .return_const(format!("MockDeployment-{instance_id}"));
@@ -1029,7 +1067,7 @@ pub mod tests {
                         }
                     });
             }
-            let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+            let deployment = Deployment::Docker(Arc::new(deployment));
             (instance_id, deployment)
         }));
         let vault = vault::tests::create_test_vault(instance_deployments, HashMap::new(), None);

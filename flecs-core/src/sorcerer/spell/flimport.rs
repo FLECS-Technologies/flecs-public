@@ -1,10 +1,11 @@
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::ipaddr::BitComplementExt;
-use crate::jeweler::deployment::{Deployment, DeploymentId};
+use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::app::{try_create_app, App, AppDeserializable};
-use crate::jeweler::gem::instance::{
-    try_create_instance, Instance, InstanceDeserializable, InstanceId,
-};
+use crate::jeweler::gem::deployment::{Deployment, SerializedDeployment};
+use crate::jeweler::gem::instance::compose::{ComposeInstance, ComposeInstanceDeserializable};
+use crate::jeweler::gem::instance::docker::{DockerInstance, DockerInstanceDeserializable};
+use crate::jeweler::gem::instance::{Instance, InstanceDeserializable, InstanceId};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::network::NetworkId;
 use crate::quest::SyncQuest;
@@ -14,7 +15,6 @@ use crate::sorcerer::importius::{
     ImportAppError, ImportDeploymentError, ImportError, ImportInstanceError, ImportManifestError,
     ReadImportManifestError, TransferIpError,
 };
-use crate::vault::pouch::deployment::Deployment as PouchDeployment;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{pouch, GrabbedPouches, Vault};
 use futures_util::future::{join_all, BoxFuture};
@@ -124,7 +124,7 @@ pub async fn import_deployments(
         join_all(results)
             .await
             .into_iter()
-            .map(|result| result.map(|deployment| (deployment.id(), deployment)))
+            .map(|result| result.map(|deployment| (deployment.id().clone(), deployment)))
             .collect()
     }
 }
@@ -133,11 +133,11 @@ pub async fn import_deployment(
     _quest: SyncQuest,
     deployment: DeploymentId,
     path: PathBuf,
-) -> Result<Arc<dyn Deployment>, ImportDeploymentError> {
+) -> Result<Deployment, ImportDeploymentError> {
     let deployment_path = path.join(format!("{deployment}.json"));
     let deployment = tokio::fs::read(&deployment_path).await?;
-    let PouchDeployment::Docker(deployment) = serde_json::from_slice(&deployment)?;
-    Ok(Arc::new(deployment))
+    let deployment: SerializedDeployment = serde_json::from_slice(&deployment)?;
+    Ok(deployment.into())
 }
 
 pub async fn import_manifests(
@@ -160,7 +160,7 @@ pub async fn import_manifests(
         join_all(results)
             .await
             .into_iter()
-            .map(|result| result.map(|manifest| (manifest.key.clone(), manifest)))
+            .map(|result| result.map(|manifest| (manifest.key().clone(), manifest)))
             .collect()
     }
 }
@@ -169,7 +169,7 @@ pub async fn import_manifest(
     _quest: SyncQuest,
     app_key: AppKey,
     path: PathBuf,
-) -> Result<Arc<AppManifest>, ImportManifestError> {
+) -> Result<AppManifest, ImportManifestError> {
     let manifest_path = path.join(format!(
         "{}_{}.manifest.json",
         app_key.name, app_key.version
@@ -178,7 +178,7 @@ pub async fn import_manifest(
     let manifest = flecs_app_manifest::AppManifestVersion::from_str(&manifest)?;
     let manifest = flecs_app_manifest::AppManifest::try_from(manifest)?;
     let manifest = AppManifest::try_from(manifest)?;
-    Ok(Arc::new(manifest))
+    Ok(manifest)
 }
 
 async fn import_apps_quest(
@@ -251,10 +251,11 @@ pub async fn import_app(
     for data in app.deployments.values() {
         let deployment = data.deployment().clone();
         let path = path.clone();
+        let manifest = app.manifest().clone();
         let result = quest
             .create_sub_quest(
                 format!("Import {app_key} to {}", deployment.id()),
-                move |quest| async move { deployment.import_app(quest, path).await },
+                move |quest| async move { deployment.import_app(quest, manifest, path).await },
             )
             .await
             .2;
@@ -316,7 +317,7 @@ pub async fn import_instances(
         join_all(results)
             .await
             .into_iter()
-            .map(|result| result.map(|instance| (instance.id, instance)))
+            .map(|result| result.map(|instance| (instance.id(), instance)))
             .collect()
     }
 }
@@ -331,7 +332,25 @@ pub async fn import_instance(
     let instance_path = src.join("instance.json");
     let instance = tokio::fs::read(&instance_path).await?;
     let instance: InstanceDeserializable = serde_json::from_slice(&instance)?;
-    let mut instance = try_create_instance(instance, &manifests, &deployments)?;
+    match instance {
+        InstanceDeserializable::Docker(instance) => {
+            Ok(import_docker_instance(quest, instance, manifests, deployments, src, dst).await?)
+        }
+        InstanceDeserializable::Compose(instance) => {
+            Ok(import_compose_instance(quest, instance, manifests, deployments, src, dst).await?)
+        }
+    }
+}
+
+pub async fn import_docker_instance(
+    quest: SyncQuest,
+    instance: DockerInstanceDeserializable,
+    manifests: Arc<pouch::manifest::Gems>,
+    deployments: Arc<pouch::deployment::Gems>,
+    src: PathBuf,
+    dst: PathBuf,
+) -> Result<Instance, ImportInstanceError> {
+    let mut instance = DockerInstance::try_create_with_state(instance, &manifests, &deployments)?;
     let deployment = instance.deployment();
     for (id, ip) in instance.config.connected_networks.iter_mut() {
         match deployment.network(id.clone()).await.map_err(|error| {
@@ -370,7 +389,19 @@ pub async fn import_instance(
         let dst = dst.join(&config_file.host_file_name);
         tokio::fs::copy(src, dst).await?;
     }
-    Ok(instance)
+    Ok(Instance::Docker(instance))
+}
+
+pub async fn import_compose_instance(
+    _quest: SyncQuest,
+    instance: ComposeInstanceDeserializable,
+    manifests: Arc<pouch::manifest::Gems>,
+    deployments: Arc<pouch::deployment::Gems>,
+    _src: PathBuf,
+    _dst: PathBuf,
+) -> Result<Instance, ImportInstanceError> {
+    let _instance = ComposeInstance::try_create_with_state(instance, &manifests, &deployments)?;
+    todo!("Import compose instances")
 }
 
 fn transfer_ip_address(
@@ -420,6 +451,7 @@ pub async fn validate_import(
     manifest: v3::Manifest,
     path: PathBuf,
 ) -> Result<v3::Manifest, ReadImportManifestError> {
+    // TODO: Check that everything has unique ids (manifest -> AppKey, app -> AppKey, instance -> InstanceId, deployment -> DeploymentId
     let sys_info = try_create_system_info()?;
     if sys_info.arch != manifest.device.sysinfo.arch {
         return Err(ReadImportManifestError::ArchitectureMismatch {
@@ -502,17 +534,17 @@ pub async fn import_to_vault(
     }
     for (key, manifest) in manifests {
         if let Some(app) = app_pouch.gems_mut().get_mut(&key) {
-            app.set_manifest(manifest.clone())
+            app.replace_manifest(manifest.clone());
         }
         for instance in instance_pouch
             .gems_mut()
             .values_mut()
-            .filter(|instance| instance.app_key() == manifest.key)
+            .filter(|instance| instance.app_key() == manifest.key())
         {
             instance.replace_manifest(manifest.clone());
         }
         if let Some(manifest) = manifest_pouch.gems_mut().insert(key, manifest) {
-            debug!("Replaced manifest {}", manifest.key);
+            debug!("Replaced manifest {}", manifest.key());
         }
     }
     for (key, app) in apps {
@@ -522,7 +554,7 @@ pub async fn import_to_vault(
     }
     for (id, instance) in instances {
         if let Some(instance) = instance_pouch.gems_mut().insert(id, instance) {
-            debug!("Replaced instance {}", instance.id);
+            debug!("Replaced instance {}", instance.id());
         }
     }
 }
