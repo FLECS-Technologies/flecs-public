@@ -3,7 +3,6 @@ use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
-use flecs_app_manifest::AppManifestVersion;
 use flecsd_axum_server::apis::apps::AppsSideloadPostResponse as PostResponse;
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::AppsSideloadPostRequest as PostRequest;
@@ -16,7 +15,9 @@ pub async fn post<A: AppRaiser + 'static>(
     console_client: ConsoleClient,
     request: PostRequest,
 ) -> Result<PostResponse, ()> {
-    match serde_json::from_str::<AppManifestVersion>(&request.manifest).map(AppManifest::try_from) {
+    match serde_json::from_str::<flecs_app_manifest::AppManifestVersion>(&request.manifest)
+        .map(flecs_app_manifest::AppManifest::try_from)
+    {
         Err(e) => Ok(PostResponse::Status400_MalformedRequest(
             models::AdditionalInfo::new(e.to_string()),
         )),
@@ -24,19 +25,22 @@ pub async fn post<A: AppRaiser + 'static>(
             models::AdditionalInfo::new(e.to_string()),
         )),
         Ok(Ok(manifest)) => {
+            let manifest = match AppManifest::try_from(manifest) {
+                Err(e) => {
+                    return Ok(PostResponse::Status400_MalformedRequest(
+                        models::AdditionalInfo::new(e.to_string()),
+                    ))
+                }
+                Ok(manifest) => manifest,
+            };
             match quest_master
                 .lock()
                 .await
                 .schedule_quest(
-                    format!("Sideloading {}", manifest.key),
+                    format!("Sideloading {}", manifest.key()),
                     move |quest| async move {
                         appraiser
-                            .install_app_from_manifest(
-                                quest,
-                                vault,
-                                Arc::new(manifest),
-                                console_client,
-                            )
+                            .install_app_from_manifest(quest, vault, manifest, console_client)
                             .await
                     },
                 )

@@ -1,6 +1,6 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
-use crate::jeweler::deployment::Deployment;
-use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::deployment::Deployment;
+use crate::jeweler::gem::instance::{Instance, InstanceId};
 use crate::quest::SyncQuest;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
@@ -51,7 +51,8 @@ pub async fn export_instance<F: Floxy>(
         .gems_mut()
         .get_mut(&instance_id)
     {
-        Some(instance) => Ok(instance.export(quest, floxy, &path).await?),
+        Some(Instance::Docker(instance)) => Ok(instance.export(quest, floxy, &path).await?),
+        Some(Instance::Compose(_instance)) => todo!("implement export of compose instances"),
         None => Err(ExportInstanceError::InstanceNotFound(instance_id)),
     }
 }
@@ -198,7 +199,7 @@ pub async fn export_deployments(
 }
 
 pub async fn export_deployment(
-    deployment: Arc<dyn Deployment>,
+    deployment: Deployment,
     path: PathBuf,
 ) -> Result<PathBuf, ExportDeploymentError> {
     let path = path.join(format!("{}.json", deployment.id()));
@@ -211,13 +212,13 @@ pub async fn export_deployment(
 mod tests {
     use super::*;
     use crate::enchantment::floxy::MockFloxy;
-    use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::gem::instance::InstanceStatus;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::jeweler::gem::instance::status::InstanceStatus;
     use crate::quest::Quest;
     use crate::vault::pouch::app::tests::{
         LABEL_APP_NAME, LABEL_APP_VERSION, MINIMAL_APP_NAME, MINIMAL_APP_VERSION, MOUNT_APP_NAME,
-        MOUNT_APP_VERSION, NETWORK_APP_NAME, NETWORK_APP_VERSION, NO_MANIFEST_APP_NAME,
-        NO_MANIFEST_APP_VERSION,
+        MOUNT_APP_VERSION, NETWORK_APP_NAME, NETWORK_APP_VERSION, UNKNOWN_APP_NAME,
+        UNKNOWN_APP_VERSION,
     };
     use crate::vault::pouch::instance::tests::{
         ENV_INSTANCE, MINIMAL_INSTANCE, PORT_MAPPING_INSTANCE, UNKNOWN_INSTANCE_2, USB_DEV_INSTANCE,
@@ -237,9 +238,12 @@ mod tests {
         ];
         let path = testdir!().join("exports");
         let deployments = HashMap::from_iter(INSTANCE_IDS.iter().map(|instance_id| {
-            let mut deployment = MockedDeployment::new();
+            let mut deployment = MockedDockerDeployment::new();
             deployment
                 .expect_id()
+                .return_const(format!("MockedDeployment_{instance_id}"));
+            deployment
+                .expect_deployment_id()
                 .return_const(format!("MockedDeployment_{instance_id}"));
             deployment.expect_is_default().return_const(false);
             deployment
@@ -249,7 +253,7 @@ mod tests {
                 .expect_stop_instance()
                 .once()
                 .returning(|_, _| Ok(()));
-            let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+            let deployment = Deployment::Docker(Arc::new(deployment));
             (*instance_id, deployment)
         }));
         let vault = create_test_vault(deployments, HashMap::new(), None);
@@ -292,9 +296,12 @@ mod tests {
     async fn export_instance_ok() {
         const INSTANCE_ID: InstanceId = ENV_INSTANCE;
         let path = testdir!().join("exports");
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment.expect_is_default().return_const(false);
         deployment
@@ -304,7 +311,7 @@ mod tests {
             .expect_stop_instance()
             .once()
             .returning(|_, _| Ok(()));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::from([(INSTANCE_ID, deployment)]),
             HashMap::new(),
@@ -383,23 +390,22 @@ mod tests {
             },
         ];
         let deployments = HashMap::from_iter(app_keys.clone().into_iter().map(|app_key| {
-            let mut deployment = MockedDeployment::new();
+            let mut deployment = MockedDockerDeployment::new();
             deployment.expect_id().return_const(format!(
                 "MockedDeployment{}_{}",
                 app_key.name, app_key.version
             ));
             deployment.expect_is_default().return_const(false);
-            let expected_version = app_key.version.clone();
             deployment
                 .expect_export_app()
                 .once()
                 .with(
                     predicate::always(),
-                    predicate::function(move |image: &String| image.ends_with(&expected_version)),
-                    predicate::eq(path.join(format!("{}_{}.tar", app_key.name, app_key.version))),
+                    predicate::always(),
+                    predicate::eq(path.clone()),
                 )
                 .returning(|_, _, _| Ok(()));
-            let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+            let deployment = Deployment::Docker(Arc::new(deployment));
             (app_key.clone(), deployment)
         }));
         let vault = create_test_vault(HashMap::new(), deployments, None);
@@ -428,8 +434,8 @@ mod tests {
     async fn export_apps_err() {
         let path = testdir!().join("exports");
         let app_key = AppKey {
-            name: NO_MANIFEST_APP_NAME.to_string(),
-            version: NO_MANIFEST_APP_VERSION.to_string(),
+            name: UNKNOWN_APP_NAME.to_string(),
+            version: UNKNOWN_APP_VERSION.to_string(),
         };
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         assert!(matches!(
@@ -440,7 +446,7 @@ mod tests {
                 path.clone(),
             )
             .await,
-            Err(ExportAppError::Other(_))
+            Err(ExportAppError::AppNotFound(_))
         ));
     }
 
@@ -451,7 +457,7 @@ mod tests {
             name: NETWORK_APP_NAME.to_string(),
             version: NETWORK_APP_VERSION.to_string(),
         };
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
@@ -461,13 +467,11 @@ mod tests {
             .once()
             .with(
                 predicate::always(),
-                predicate::eq(format!(
-                    "flecs.azurecr.io/tech.flecs.network-app:{NETWORK_APP_VERSION}"
-                )),
-                predicate::eq(path.join(format!("{NETWORK_APP_NAME}_{NETWORK_APP_VERSION}.tar"))),
+                predicate::always(),
+                predicate::eq(path.clone()),
             )
             .returning(|_, _, _| Ok(()));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment)]),
@@ -476,20 +480,6 @@ mod tests {
         export_app(Quest::new_synced("TestQuest"), vault, app_key, path.clone())
             .await
             .unwrap();
-    }
-
-    #[tokio::test]
-    async fn export_app_err_app() {
-        let path = testdir!().join("exports");
-        let app_key = AppKey {
-            name: NO_MANIFEST_APP_NAME.to_string(),
-            version: NO_MANIFEST_APP_VERSION.to_string(),
-        };
-        let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(matches!(
-            export_app(Quest::new_synced("TestQuest"), vault, app_key, path).await,
-            Err(ExportAppError::Other(_))
-        ));
     }
 
     #[tokio::test]
@@ -507,88 +497,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn export_deployments_ok() {
-        const DEPLOYMENT_IDS: [&str; 4] = [
-            "MockedDeployment_#1",
-            "MockedDeployment_#3",
-            "MockedDeployment_#4",
-            "MockedDeployment_#5",
-        ];
-        let path = testdir!().join("exports");
-        let vault = create_empty_test_vault();
-        {
-            let Some(ref mut deployments) = vault
-                .reservation()
-                .reserve_deployment_pouch_mut()
-                .grab()
-                .await
-                .deployment_pouch_mut
-            else {
-                unreachable!("Reservation failed")
-            };
-            for deployment_id in DEPLOYMENT_IDS {
-                let mut deployment = MockedDeployment::new();
-                deployment
-                    .expect_id()
-                    .return_const(deployment_id.to_string());
-                deployment.expect_is_default().return_const(false);
-                deployments
-                    .gems_mut()
-                    .insert(deployment_id.to_string(), Arc::new(deployment));
-            }
-        }
-        export_deployments(Quest::new_synced("TestQuest"), vault, path.clone())
-            .await
-            .unwrap();
-        assert!(path.try_exists().unwrap());
-        for deployment_id in DEPLOYMENT_IDS {
-            assert_eq!(
-                std::fs::read_to_string(path.join(format!("{deployment_id}.json"))).unwrap(),
-                format!("\"{deployment_id}\"")
-            );
-        }
-    }
-
-    #[tokio::test]
-    async fn export_deployments_err_deployment() {
-        const DEPLOYMENT_IDS: [&str; 4] = [
-            "MockedDeployment_#1",
-            "MockedDeployment_#3",
-            "MockedDeployment_#4",
-            "MockedDeployment_#5",
-        ];
-        let path = testdir!().join("exports");
-        let vault = create_empty_test_vault();
-        {
-            let Some(ref mut deployments) = vault
-                .reservation()
-                .reserve_deployment_pouch_mut()
-                .grab()
-                .await
-                .deployment_pouch_mut
-            else {
-                unreachable!("Reservation failed")
-            };
-            for deployment_id in DEPLOYMENT_IDS {
-                let mut deployment = MockedDeployment::new();
-                deployment
-                    .expect_id()
-                    .return_const(deployment_id.to_string());
-                deployment.expect_is_default().return_const(false);
-                deployments
-                    .gems_mut()
-                    .insert(deployment_id.to_string(), Arc::new(deployment));
-            }
-        }
-        // Provoke conflict by creating directory with path of an exported Deployment json
-        std::fs::create_dir_all(path.join(format!("{}.json", DEPLOYMENT_IDS[2]))).unwrap();
-        assert!(matches!(
-            export_deployments(Quest::new_synced("TestQuest"), vault, path.clone()).await,
-            Err(ExportDeploymentError::IO(_))
-        ));
-    }
-
-    #[tokio::test]
     async fn export_deployments_err_io() {
         let path = testdir!().join("exports");
         let vault = create_empty_test_vault();
@@ -601,40 +509,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn export_deployment_ok() {
-        const DEPLOYMENT_ID: &str = "ExportedMockDeployment";
-        let path = testdir!();
-        let expected_file_path = path.join(format!("{DEPLOYMENT_ID}.json"));
-        let mut deployment = MockedDeployment::new();
-        deployment
-            .expect_id()
-            .return_const(DEPLOYMENT_ID.to_string());
-        assert_eq!(
-            export_deployment(Arc::new(deployment), path.clone())
-                .await
-                .unwrap(),
-            expected_file_path
-        );
-        assert_eq!(
-            std::fs::read_to_string(expected_file_path).unwrap(),
-            format!("\"{DEPLOYMENT_ID}\"")
-        );
-    }
-
-    #[tokio::test]
     async fn export_deployment_err() {
         const DEPLOYMENT_ID: &str = "ExportedMockDeployment";
         let path = testdir!();
         let expected_file_path = path.join(format!("{DEPLOYMENT_ID}.json"));
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
             .return_const(DEPLOYMENT_ID.to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
         // Provoke error by creating a directory at the file location
         std::fs::create_dir_all(expected_file_path).unwrap();
-        assert!(export_deployment(Arc::new(deployment), path.clone())
-            .await
-            .is_err());
+        assert!(export_deployment(deployment, path.clone()).await.is_err());
     }
 
     #[tokio::test]

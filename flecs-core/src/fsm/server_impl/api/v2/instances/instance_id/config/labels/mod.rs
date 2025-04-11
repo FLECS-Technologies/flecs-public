@@ -1,6 +1,6 @@
 pub mod label_name;
 use crate::jeweler::gem::instance::InstanceId;
-use crate::jeweler::gem::manifest::Label;
+use crate::jeweler::gem::manifest::single::Label;
 use crate::sorcerer::instancius::Instancius;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::InstancesInstanceIdConfigLabelsGetResponse as GetResponse;

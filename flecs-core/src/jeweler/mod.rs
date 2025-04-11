@@ -6,32 +6,43 @@ pub mod instance;
 pub mod network;
 pub mod volume;
 pub use super::Result;
-use crate::jeweler::deployment::Deployment;
-use crate::jeweler::gem::manifest::AppManifest;
+use crate::vault::pouch::deployment::DeploymentId;
+use crate::vault::pouch::AppKey;
 use serde::ser::SerializeSeq;
 use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 use std::result;
-use std::sync::Arc;
 
-fn serialize_deployment_id<S>(
-    deployment: &Arc<dyn Deployment>,
-    serializer: S,
-) -> std::result::Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(deployment.id().as_str())
+pub trait GetDeploymentId {
+    fn deployment_id(&self) -> &DeploymentId;
 }
 
-fn serialize_manifest_key<S>(
-    manifest: &Arc<AppManifest>,
+fn serialize_deployment_id<S, D, R>(
+    deployment_id_provider: R,
     serializer: S,
 ) -> std::result::Result<S::Ok, S::Error>
 where
+    D: GetDeploymentId + ?Sized,
     S: Serializer,
+    R: AsRef<D>,
 {
-    manifest.key.serialize(serializer)
+    serializer.serialize_str(deployment_id_provider.as_ref().deployment_id().as_str())
+}
+
+pub trait GetAppKey {
+    fn app_key(&self) -> &AppKey;
+}
+
+fn serialize_manifest_key<S, A, R>(
+    manifest: R,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
+where
+    A: GetAppKey,
+    S: Serializer,
+    R: AsRef<A>,
+{
+    manifest.as_ref().app_key().serialize(serializer)
 }
 
 fn serialize_hashmap_values<K, T, S>(

@@ -1,12 +1,17 @@
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
-use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
-use crate::jeweler::gem::manifest::{AppManifest, ConfigFile};
+use crate::jeweler::deployment::CommonDeployment;
+use crate::jeweler::gem::deployment::docker::DockerDeployment;
+use crate::jeweler::gem::instance::status::InstanceStatus;
+use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::manifest::single::ConfigFile;
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::instance::{InstanceDeployment, Logs};
 use crate::jeweler::network::{
     CreateNetworkError, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
 };
-use crate::jeweler::volume::{VolumeDeployment, VolumeId};
+use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
+use crate::jeweler::GetDeploymentId;
 use crate::quest::{Quest, QuestId, State, SyncQuest};
 use crate::relic::network::{Ipv4Network, NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
@@ -17,7 +22,7 @@ use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions}
 use bollard::image::{ImportImageOptions, RemoveImageOptions};
 use bollard::models::{
     ContainerInspectResponse, ContainerState, EndpointIpamConfig, EndpointSettings, HostConfig,
-    Ipam, IpamConfig, Mount, MountPointTypeEnum, MountTypeEnum, Network, Volume,
+    Ipam, IpamConfig, Mount, MountPointTypeEnum, MountTypeEnum, Network,
 };
 use bollard::network::{
     ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions, ListNetworksOptions,
@@ -35,10 +40,8 @@ use tokio::{fs, join};
 use tracing::{debug, error, warn};
 
 #[derive(Serialize, Deserialize)]
-#[serde(tag = "type")]
-#[serde(rename = "Docker")]
-pub struct DockerDeployment {
-    id: DeploymentId,
+pub struct DockerDeploymentImpl {
+    pub id: DeploymentId,
     path: PathBuf,
     #[serde(default)]
     is_default: bool,
@@ -46,11 +49,36 @@ pub struct DockerDeployment {
     network_adapter_reader: Box<dyn NetworkAdapterReader>,
 }
 
-impl std::fmt::Debug for DockerDeployment {
+impl GetDeploymentId for DockerDeploymentImpl {
+    fn deployment_id(&self) -> &DeploymentId {
+        &self.id
+    }
+}
+
+impl Default for DockerDeploymentImpl {
+    fn default() -> Self {
+        Self::new_default(
+            "DefaultDockerDeploymentImpl".to_string(),
+            PathBuf::from("/var/run/docker.sock"),
+        )
+    }
+}
+
+impl CommonDeployment for DockerDeploymentImpl {
+    fn id(&self) -> &jeweler::deployment::DeploymentId {
+        &self.id
+    }
+
+    fn is_default(&self) -> bool {
+        self.is_default
+    }
+}
+
+impl std::fmt::Debug for DockerDeploymentImpl {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         #[derive(Debug)]
         #[allow(dead_code)]
-        struct DockerDeployment<'a> {
+        struct DockerDeploymentImpl<'a> {
             id: &'a DeploymentId,
             path: &'a PathBuf,
             is_default: &'a bool,
@@ -63,7 +91,7 @@ impl std::fmt::Debug for DockerDeployment {
             network_adapter_reader: _,
         } = self;
         std::fmt::Debug::fmt(
-            &DockerDeployment {
+            &DockerDeploymentImpl {
                 id,
                 path,
                 is_default,
@@ -73,19 +101,19 @@ impl std::fmt::Debug for DockerDeployment {
     }
 }
 
-impl PartialEq for DockerDeployment {
+impl PartialEq for DockerDeploymentImpl {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id && self.path == other.path
     }
 }
 
-impl Eq for DockerDeployment {}
+impl Eq for DockerDeploymentImpl {}
 
 fn default_network_adapter_reader() -> Box<dyn NetworkAdapterReader> {
     Box::new(NetworkAdapterReaderImpl)
 }
 
-impl DockerDeployment {
+impl DockerDeploymentImpl {
     fn client(&self) -> anyhow::Result<Arc<Docker>> {
         Ok(Arc::new(Docker::connect_with_unix(
             &self.path.to_string_lossy(),
@@ -98,7 +126,9 @@ impl DockerDeployment {
         Self {
             id,
             path,
-            network_adapter_reader: default_network_adapter_reader(),
+            network_adapter_reader:
+                crate::jeweler::gem::deployment::docker::docker_impl::default_network_adapter_reader(
+                ),
             is_default: false,
         }
     }
@@ -107,34 +137,12 @@ impl DockerDeployment {
         Self {
             id,
             path,
-            network_adapter_reader: default_network_adapter_reader(),
+            network_adapter_reader:
+                crate::jeweler::gem::deployment::docker::docker_impl::default_network_adapter_reader(
+                ),
             is_default: true,
         }
     }
-
-    pub fn default_network_name() -> &'static str {
-        "flecs"
-    }
-
-    pub fn default_cidr_subnet() -> relic::network::Ipv4Network {
-        Default::default()
-    }
-
-    pub fn default_gateway() -> Ipv4Addr {
-        Ipv4Addr::new(172, 21, 0, 1)
-    }
-
-    pub fn default_network_config() -> NetworkConfig {
-        NetworkConfig {
-            kind: NetworkKind::Bridge,
-            name: Self::default_network_name().to_string(),
-            cidr_subnet: Some(Self::default_cidr_subnet()),
-            gateway: Some(Self::default_gateway()),
-            parent_adapter: None,
-            options: Default::default(),
-        }
-    }
-
     fn network_config_fits_network(
         config: &NetworkConfig,
         network: &Network,
@@ -185,16 +193,6 @@ impl DockerDeployment {
                 .iter()
                 .all(|(key, value)| existing_options.get(key) == Some(value)),
         }
-    }
-
-    pub async fn create_default_network(
-        &self,
-    ) -> crate::Result<jeweler::network::Network, CreateNetworkError> {
-        self.create_network(
-            Quest::new_synced("Create default network".to_string()),
-            Self::default_network_config(),
-        )
-        .await
     }
 
     async fn copy_to_instance(
@@ -295,130 +293,6 @@ impl DockerDeployment {
         }
         Ok(())
     }
-}
-
-#[async_trait]
-impl AppDeployment for DockerDeployment {
-    async fn install_app(
-        &self,
-        quest: SyncQuest,
-        manifest: Arc<AppManifest>,
-        token: Option<Token>,
-    ) -> anyhow::Result<AppId> {
-        let docker_client = self.client()?;
-        let (.., id) = quest
-            .lock()
-            .await
-            .create_sub_quest(
-                format!("Download image {}", manifest.image()),
-                |quest| async move {
-                    relic::docker::image::pull(
-                        quest,
-                        docker_client,
-                        token.map(|token| DockerCredentials {
-                            username: Some(token.username),
-                            password: Some(token.password),
-                            ..DockerCredentials::default()
-                        }),
-                        manifest.image(),
-                        manifest.key.version.as_str(),
-                    )
-                    .await
-                },
-            )
-            .await;
-        id.await
-    }
-
-    async fn uninstall_app(&self, quest: SyncQuest, id: AppId) -> anyhow::Result<()> {
-        let docker_client = self.client()?;
-        quest
-            .lock()
-            .await
-            .create_sub_quest(format!("Removing image of {id}"), |_quest| async move {
-                let _ = relic::docker::image::remove(
-                    docker_client,
-                    &id,
-                    Some(RemoveImageOptions {
-                        force: true,
-                        ..RemoveImageOptions::default()
-                    }),
-                    None,
-                )
-                .await?;
-                Ok(())
-            })
-            .await
-            .2
-            .await
-    }
-
-    async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<AppInfo> {
-        let docker_client = self.client()?;
-        relic::docker::image::inspect(docker_client, &id).await
-    }
-
-    async fn copy_from_app_image(
-        &self,
-        quest: SyncQuest,
-        image: String,
-        src: &Path,
-        dst: &Path,
-        is_dst_file_path: bool,
-    ) -> anyhow::Result<()> {
-        let client = self.client()?;
-        let container = relic::docker::container::create(
-            client.clone(),
-            Option::<CreateContainerOptions<&str>>::None,
-            Config {
-                image: Some(image.clone()),
-                network_disabled: Some(true),
-                ..Config::default()
-            },
-        )
-        .await?;
-        let copy_result = relic::docker::container::copy_from(
-            quest,
-            client.clone(),
-            src,
-            dst,
-            &container,
-            is_dst_file_path,
-        )
-        .await;
-
-        if let Err(e) = relic::docker::container::remove(
-            client.clone(),
-            Some(RemoveContainerOptions {
-                force: true,
-                ..RemoveContainerOptions::default()
-            }),
-            &container,
-        )
-        .await
-        {
-            warn!("Could not remove temporary container '{container}' of image {image} which was created to copy {src:?} to {dst:?}: {e}");
-        }
-        copy_result
-    }
-
-    async fn export_app(&self, quest: SyncQuest, id: String, path: PathBuf) -> anyhow::Result<()> {
-        relic::docker::image::save(quest, self.client()?, &path, &id).await
-    }
-
-    async fn import_app(&self, quest: SyncQuest, path: PathBuf) -> anyhow::Result<()> {
-        relic::docker::image::load(
-            quest,
-            self.client()?,
-            &path,
-            ImportImageOptions::default(),
-            None,
-        )
-        .await
-    }
-}
-
-impl DockerDeployment {
     async fn create_volume_with_client(
         docker_client: Arc<Docker>,
         _quest: SyncQuest,
@@ -649,7 +523,317 @@ impl DockerDeployment {
 }
 
 #[async_trait]
-impl VolumeDeployment for DockerDeployment {
+impl DockerDeployment for DockerDeploymentImpl {
+    async fn create_default_network(
+        &self,
+    ) -> crate::Result<jeweler::network::Network, CreateNetworkError> {
+        self.create_network(
+            Quest::new_synced("Create default network".to_string()),
+            self.default_network_config(),
+        )
+        .await
+    }
+    async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<AppInfo> {
+        let docker_client = self.client()?;
+        relic::docker::image::inspect(docker_client, &id).await
+    }
+
+    async fn copy_from_app_image(
+        &self,
+        quest: SyncQuest,
+        image: String,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
+        let client = self.client()?;
+        let container = relic::docker::container::create(
+            client.clone(),
+            Option::<CreateContainerOptions<&str>>::None,
+            Config {
+                image: Some(image.clone()),
+                network_disabled: Some(true),
+                ..Config::default()
+            },
+        )
+        .await?;
+        let copy_result = relic::docker::container::copy_from(
+            quest,
+            client.clone(),
+            src,
+            dst,
+            &container,
+            is_dst_file_path,
+        )
+        .await;
+
+        if let Err(e) = relic::docker::container::remove(
+            client.clone(),
+            Some(RemoveContainerOptions {
+                force: true,
+                ..RemoveContainerOptions::default()
+            }),
+            &container,
+        )
+        .await
+        {
+            warn!(
+                "Could not remove temporary container '{container}' \
+            of image {image} which was created to copy {src:?} to {dst:?}: {e}"
+            );
+        }
+        copy_result
+    }
+
+    async fn connect_network(
+        &self,
+        _quest: SyncQuest,
+        id: NetworkId,
+        address: Ipv4Addr,
+        instance_id: InstanceId,
+    ) -> anyhow::Result<()> {
+        let docker_client = self.client()?;
+        let options = ConnectNetworkOptions {
+            container: instance_id.to_docker_id(),
+            endpoint_config: EndpointSettings {
+                ip_address: Some(address.to_string()),
+                ipam_config: Some(EndpointIpamConfig {
+                    ipv4_address: Some(address.to_string()),
+                    ..EndpointIpamConfig::default()
+                }),
+                ..EndpointSettings::default()
+            },
+        };
+        relic::docker::network::connect(docker_client, &id, options).await
+    }
+
+    async fn disconnect_network(
+        &self,
+        _quest: SyncQuest,
+        id: NetworkId,
+        instance_id: InstanceId,
+    ) -> anyhow::Result<()> {
+        let docker_client = self.client()?;
+        let options = DisconnectNetworkOptions {
+            container: instance_id.to_docker_id(),
+            force: false,
+        };
+        relic::docker::network::disconnect(docker_client, &id, options).await
+    }
+
+    async fn copy_from_instance(
+        &self,
+        quest: SyncQuest,
+        id: InstanceId,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
+        Self::copy_from_instance(self.client()?, quest, id, src, dst, is_dst_file_path).await
+    }
+
+    async fn copy_to_instance(
+        &self,
+        quest: SyncQuest,
+        id: InstanceId,
+        src: &Path,
+        dst: &Path,
+        is_dst_file_path: bool,
+    ) -> anyhow::Result<()> {
+        Self::copy_to_instance(self.client()?, quest, id, src, dst, is_dst_file_path).await
+    }
+
+    async fn copy_configs_from_instance(
+        &self,
+        id: InstanceId,
+        config_files: &[ConfigFile],
+        dst: PathBuf,
+    ) -> anyhow::Result<()> {
+        let client = self.client()?;
+        Self::copy_config_from_instance(client, id, config_files, dst).await
+    }
+
+    async fn start_instance(
+        &self,
+        config: Config<String>,
+        id: Option<InstanceId>,
+        config_files: &[ConfigFile],
+    ) -> anyhow::Result<InstanceId> {
+        let client = self.client()?;
+        let id = id.unwrap_or_else(InstanceId::new_random);
+        let docker_id = id.to_docker_id();
+        relic::docker::container::remove(
+            client.clone(),
+            Some(RemoveContainerOptions {
+                force: true,
+                ..Default::default()
+            }),
+            &docker_id,
+        )
+        .await?;
+        let options = Some(CreateContainerOptions {
+            name: docker_id,
+            platform: None,
+        });
+        let docker_id = relic::docker::container::create(client.clone(), options, config).await?;
+        debug!("Created container {}/{}", id, docker_id);
+        if let Err(e) = Self::copy_config_to_instance(client.clone(), id, config_files).await {
+            let _ = relic::docker::container::remove(
+                client.clone(),
+                Some(RemoveContainerOptions {
+                    force: true,
+                    ..Default::default()
+                }),
+                &docker_id,
+            )
+            .await;
+            return Err(e);
+        }
+        relic::docker::container::start(client, &id.to_docker_id()).await?;
+        Ok(id)
+    }
+
+    async fn stop_instance(
+        &self,
+        id: InstanceId,
+        config_files: &[ConfigFile],
+    ) -> anyhow::Result<()> {
+        let client = self.client()?;
+        relic::docker::container::stop(client.clone(), &id.to_docker_id(), None).await?;
+        Self::copy_config_from_instance(
+            client,
+            id,
+            config_files,
+            crate::lore::instance_config_path(&id.to_string()),
+        )
+        .await?;
+        self.delete_instance(id).await?;
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl AppDeployment for DockerDeploymentImpl {
+    async fn install_app(
+        &self,
+        quest: SyncQuest,
+        manifest: AppManifest,
+        token: Option<Token>,
+    ) -> anyhow::Result<AppId> {
+        let AppManifest::Single(manifest) = manifest else {
+            panic!("Docker deployment can not be called with multi app manifests")
+        };
+        let docker_client = self.client()?;
+        let (.., id) = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!("Download image {}", manifest.image()),
+                |quest| async move {
+                    relic::docker::image::pull(
+                        quest,
+                        docker_client,
+                        token.map(|token| DockerCredentials {
+                            username: Some(token.username),
+                            password: Some(token.password),
+                            ..DockerCredentials::default()
+                        }),
+                        manifest.image(),
+                        manifest.key.version.as_str(),
+                    )
+                    .await
+                },
+            )
+            .await;
+        id.await
+    }
+
+    async fn uninstall_app(
+        &self,
+        quest: SyncQuest,
+        _manifest: AppManifest,
+        id: AppId,
+    ) -> anyhow::Result<()> {
+        let docker_client = self.client()?;
+        quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Removing image of {id}"), |_quest| async move {
+                let _ = relic::docker::image::remove(
+                    docker_client,
+                    &id,
+                    Some(RemoveImageOptions {
+                        force: true,
+                        ..RemoveImageOptions::default()
+                    }),
+                    None,
+                )
+                .await?;
+                Ok(())
+            })
+            .await
+            .2
+            .await
+    }
+
+    async fn is_app_installed(
+        &self,
+        quest: SyncQuest,
+        _manifest: AppManifest,
+        id: AppId,
+    ) -> anyhow::Result<bool> {
+        Ok(self.app_info(quest, id).await.is_ok())
+    }
+
+    async fn installed_app_size(
+        &self,
+        quest: SyncQuest,
+        _manifest: AppManifest,
+        id: AppId,
+    ) -> anyhow::Result<usize> {
+        Ok(self
+            .app_info(quest, id)
+            .await?
+            .size
+            .ok_or_else(|| anyhow::anyhow!("Size was not specified"))? as usize)
+    }
+
+    async fn export_app(
+        &self,
+        quest: SyncQuest,
+        manifest: AppManifest,
+        path: PathBuf,
+    ) -> anyhow::Result<()> {
+        let AppManifest::Single(manifest) = manifest else {
+            anyhow::bail!("DockerDeploymentImpl supports only AppManifest::Single");
+        };
+        let image = manifest.image_with_tag();
+        let path = path.join(format!(
+            "{}_{}.tar",
+            manifest.key.name, manifest.key.version
+        ));
+        relic::docker::image::save(quest, self.client()?, &path, &image).await
+    }
+
+    async fn import_app(
+        &self,
+        quest: SyncQuest,
+        _manifest: AppManifest,
+        path: PathBuf,
+    ) -> anyhow::Result<()> {
+        relic::docker::image::load(
+            quest,
+            self.client()?,
+            &path,
+            ImportImageOptions::default(),
+            None,
+        )
+        .await
+    }
+}
+
+#[async_trait]
+impl VolumeDeployment for DockerDeploymentImpl {
     async fn create_volume(&self, quest: SyncQuest, name: &str) -> anyhow::Result<VolumeId> {
         let docker_client = self.client()?;
         Self::create_volume_with_client(docker_client, quest, name).await
@@ -922,7 +1106,7 @@ impl VolumeDeployment for DockerDeployment {
 }
 
 #[async_trait]
-impl NetworkDeployment for DockerDeployment {
+impl NetworkDeployment for DockerDeploymentImpl {
     async fn create_network(
         &self,
         _quest: SyncQuest,
@@ -1019,7 +1203,7 @@ impl NetworkDeployment for DockerDeployment {
 
     async fn default_network(&self) -> Result<jeweler::network::Network, CreateNetworkError> {
         let docker_client = self.client()?;
-        let default_network_name = Self::default_network_name();
+        let default_network_name = self.default_network_name();
         let network = relic::docker::network::list(
             docker_client.clone(),
             Some(ListNetworksOptions {
@@ -1049,46 +1233,10 @@ impl NetworkDeployment for DockerDeployment {
         let docker_client = self.client()?;
         relic::docker::network::list::<String>(docker_client, None).await
     }
-
-    async fn connect_network(
-        &self,
-        _quest: SyncQuest,
-        id: NetworkId,
-        address: Ipv4Addr,
-        instance_id: InstanceId,
-    ) -> anyhow::Result<()> {
-        let docker_client = self.client()?;
-        let options = ConnectNetworkOptions {
-            container: instance_id.to_docker_id(),
-            endpoint_config: EndpointSettings {
-                ip_address: Some(address.to_string()),
-                ipam_config: Some(EndpointIpamConfig {
-                    ipv4_address: Some(address.to_string()),
-                    ..EndpointIpamConfig::default()
-                }),
-                ..EndpointSettings::default()
-            },
-        };
-        relic::docker::network::connect(docker_client, &id, options).await
-    }
-
-    async fn disconnect_network(
-        &self,
-        _quest: SyncQuest,
-        id: NetworkId,
-        instance_id: InstanceId,
-    ) -> anyhow::Result<()> {
-        let docker_client = self.client()?;
-        let options = DisconnectNetworkOptions {
-            container: instance_id.to_docker_id(),
-            force: false,
-        };
-        relic::docker::network::disconnect(docker_client, &id, options).await
-    }
 }
 
 #[async_trait]
-impl InstanceDeployment for DockerDeployment {
+impl InstanceDeployment for DockerDeploymentImpl {
     async fn delete_instance(&self, id: InstanceId) -> anyhow::Result<bool> {
         let docker_client = self.client()?;
         relic::docker::container::remove(
@@ -1100,64 +1248,6 @@ impl InstanceDeployment for DockerDeployment {
             &id.to_docker_id(),
         )
         .await
-    }
-
-    async fn start_instance(
-        &self,
-        config: Config<String>,
-        id: Option<InstanceId>,
-        config_files: &[ConfigFile],
-    ) -> anyhow::Result<InstanceId> {
-        let client = self.client()?;
-        let id = id.unwrap_or_else(InstanceId::new_random);
-        let docker_id = id.to_docker_id();
-        relic::docker::container::remove(
-            client.clone(),
-            Some(RemoveContainerOptions {
-                force: true,
-                ..Default::default()
-            }),
-            &docker_id,
-        )
-        .await?;
-        let options = Some(CreateContainerOptions {
-            name: docker_id,
-            platform: None,
-        });
-        let docker_id = relic::docker::container::create(client.clone(), options, config).await?;
-        debug!("Created container {}/{}", id, docker_id);
-        if let Err(e) = Self::copy_config_to_instance(client.clone(), id, config_files).await {
-            let _ = relic::docker::container::remove(
-                client.clone(),
-                Some(RemoveContainerOptions {
-                    force: true,
-                    ..Default::default()
-                }),
-                &docker_id,
-            )
-            .await;
-            return Err(e);
-        }
-        relic::docker::container::start(client, &id.to_docker_id()).await?;
-        Ok(id)
-    }
-
-    async fn stop_instance(
-        &self,
-        id: InstanceId,
-        config_files: &[ConfigFile],
-    ) -> anyhow::Result<()> {
-        let client = self.client()?;
-        relic::docker::container::stop(client.clone(), &id.to_docker_id(), None).await?;
-        Self::copy_config_from_instance(
-            client,
-            id,
-            config_files,
-            crate::lore::instance_config_path(&id.to_string()),
-        )
-        .await?;
-        self.delete_instance(id).await?;
-        Ok(())
     }
 
     async fn instance_status(&self, id: InstanceId) -> anyhow::Result<InstanceStatus> {
@@ -1182,121 +1272,17 @@ impl InstanceDeployment for DockerDeployment {
             relic::docker::container::logs(docker_client, quest, &id.to_docker_id()).await?;
         Ok(Logs { stderr, stdout })
     }
-
-    async fn copy_from_instance(
-        &self,
-        quest: SyncQuest,
-        id: InstanceId,
-        src: &Path,
-        dst: &Path,
-        is_dst_file_path: bool,
-    ) -> anyhow::Result<()> {
-        Self::copy_from_instance(self.client()?, quest, id, src, dst, is_dst_file_path).await
-    }
-
-    async fn copy_to_instance(
-        &self,
-        quest: SyncQuest,
-        id: InstanceId,
-        src: &Path,
-        dst: &Path,
-        is_dst_file_path: bool,
-    ) -> anyhow::Result<()> {
-        Self::copy_to_instance(self.client()?, quest, id, src, dst, is_dst_file_path).await
-    }
-
-    async fn copy_configs_from_instance(
-        &self,
-        id: InstanceId,
-        config_files: &[ConfigFile],
-        dst: PathBuf,
-    ) -> anyhow::Result<()> {
-        let client = self.client()?;
-        Self::copy_config_from_instance(client, id, config_files, dst).await
-    }
-}
-
-#[async_trait]
-impl jeweler::deployment::Deployment for DockerDeployment {
-    fn id(&self) -> jeweler::deployment::DeploymentId {
-        self.id.clone()
-    }
-
-    fn is_default(&self) -> bool {
-        self.is_default
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::jeweler::gem::deployment::docker::DockerDeployment;
-    use crate::jeweler::network::{NetworkConfig, NetworkKind};
+    use super::*;
+
+    use crate::jeweler::network::{Network, NetworkConfig, NetworkKind};
     use crate::relic::network::Ipv4Network;
-    use crate::vault::pouch::deployment::Deployment;
-    use bollard::models::Network;
     use std::collections::HashMap;
     use std::net::Ipv4Addr;
-    use std::path::PathBuf;
     use std::str::FromStr;
-
-    const TEST_DEPLOYMENT_ID: &str = "some-deployment-id";
-    const TEST_DEPLOYMENT_SOCK_PATH: &str = "/path/to/docker.sock";
-
-    #[test]
-    fn deployment_id() {
-        let deployment = Deployment::Docker(DockerDeployment::new(
-            TEST_DEPLOYMENT_ID.to_string(),
-            PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-        ));
-        assert_eq!(deployment.id(), TEST_DEPLOYMENT_ID);
-    }
-
-    #[test]
-    fn default_deployment() {
-        let deployment = Deployment::default();
-        #[allow(unreachable_patterns)]
-        match deployment {
-            Deployment::Docker(deployment) => {
-                assert_eq!(deployment.id, "DefaultDockerDeployment");
-                assert_eq!(deployment.path, PathBuf::from("/var/run/docker.sock"));
-            }
-            _ => panic!("Expected default deployment to be of type Docker"),
-        }
-    }
-
-    #[test]
-    fn default_network_config() {
-        let config = DockerDeployment::default_network_config();
-        assert_eq!(config.name, DockerDeployment::default_network_name());
-        assert_eq!(
-            config.cidr_subnet,
-            Some(DockerDeployment::default_cidr_subnet())
-        );
-        assert_eq!(config.gateway, Some(DockerDeployment::default_gateway()));
-        assert_eq!(config.kind, NetworkKind::Bridge);
-        assert_eq!(config.parent_adapter, None);
-    }
-
-    #[test]
-    fn default_network_name() {
-        assert_eq!(DockerDeployment::default_network_name(), "flecs");
-    }
-
-    #[test]
-    fn default_network_gateway() {
-        assert_eq!(
-            DockerDeployment::default_gateway(),
-            Ipv4Addr::new(172, 21, 0, 1)
-        );
-    }
-
-    #[test]
-    fn default_network_cidr_subnet() {
-        assert_eq!(
-            DockerDeployment::default_cidr_subnet(),
-            Ipv4Network::try_new(Ipv4Addr::new(172, 21, 0, 0), 16).unwrap()
-        );
-    }
 
     fn fitting_network_config_data() -> (Network, NetworkConfig) {
         let config = NetworkConfig {
@@ -1336,42 +1322,42 @@ mod tests {
     #[test]
     fn network_config_fits_network_everything_fits() {
         let (network, config) = fitting_network_config_data();
-        assert!(DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+        assert!(DockerDeploymentImpl::network_config_fits_network(&config, &network).unwrap())
     }
 
     #[test]
     fn network_config_fits_network_false_name() {
         let (network, mut config) = fitting_network_config_data();
         config.name = "Other".to_string();
-        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+        assert!(!DockerDeploymentImpl::network_config_fits_network(&config, &network).unwrap())
     }
 
     #[test]
     fn network_config_fits_network_false_kind() {
         let (network, mut config) = fitting_network_config_data();
         config.kind = NetworkKind::MACVLAN;
-        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+        assert!(!DockerDeploymentImpl::network_config_fits_network(&config, &network).unwrap())
     }
 
     #[test]
     fn network_config_fits_network_false_subnet() {
         let (network, mut config) = fitting_network_config_data();
         config.cidr_subnet = Some(Ipv4Network::from_str("10.20.30.0/24").unwrap());
-        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+        assert!(!DockerDeploymentImpl::network_config_fits_network(&config, &network).unwrap())
     }
 
     #[test]
     fn network_config_fits_network_false_gateway() {
         let (network, mut config) = fitting_network_config_data();
         config.gateway = Some(Ipv4Addr::from_str("10.20.30.40").unwrap());
-        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+        assert!(!DockerDeploymentImpl::network_config_fits_network(&config, &network).unwrap())
     }
 
     #[test]
     fn network_config_fits_network_false_parent() {
         let (network, mut config) = fitting_network_config_data();
         config.parent_adapter = Some("Other".to_string());
-        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+        assert!(!DockerDeploymentImpl::network_config_fits_network(&config, &network).unwrap())
     }
 
     #[test]
@@ -1382,7 +1368,7 @@ mod tests {
             .as_mut()
             .unwrap()
             .insert("Custom Option".to_string(), "unexpected".to_string());
-        assert!(!DockerDeployment::network_config_fits_network(&config, &network).unwrap())
+        assert!(!DockerDeploymentImpl::network_config_fits_network(&config, &network).unwrap())
     }
 
     #[test]
@@ -1399,7 +1385,7 @@ mod tests {
                 subnet: Some("invalid".to_string()),
                 ..Default::default()
             });
-        assert!(DockerDeployment::network_config_fits_network(&config, &network).is_err())
+        assert!(DockerDeploymentImpl::network_config_fits_network(&config, &network).is_err())
     }
 
     #[test]
@@ -1416,7 +1402,7 @@ mod tests {
                 gateway: Some("invalid".to_string()),
                 ..Default::default()
             });
-        assert!(DockerDeployment::network_config_fits_network(&config, &network).is_err())
+        assert!(DockerDeploymentImpl::network_config_fits_network(&config, &network).is_err())
     }
 
     #[test]
@@ -1425,7 +1411,7 @@ mod tests {
             name: Some("TestNetwork".to_string()),
             ..Network::default()
         };
-        assert!(DockerDeployment::name_fits_network(
+        assert!(DockerDeploymentImpl::name_fits_network(
             &"TestNetwork".to_string(),
             &network
         ));
@@ -1437,7 +1423,7 @@ mod tests {
             name: Some("OtherTestNetwork".to_string()),
             ..Network::default()
         };
-        assert!(!DockerDeployment::name_fits_network(
+        assert!(!DockerDeploymentImpl::name_fits_network(
             &"TestNetwork".to_string(),
             &network
         ));
@@ -1449,7 +1435,7 @@ mod tests {
             name: None,
             ..Network::default()
         };
-        assert!(!DockerDeployment::name_fits_network(
+        assert!(!DockerDeploymentImpl::name_fits_network(
             &"TestNetwork".to_string(),
             &network
         ));
@@ -1461,7 +1447,7 @@ mod tests {
             driver: Some("bridge".to_string()),
             ..Network::default()
         };
-        assert!(DockerDeployment::kind_fits_network(
+        assert!(DockerDeploymentImpl::kind_fits_network(
             NetworkKind::Bridge,
             &network
         ));
@@ -1473,7 +1459,7 @@ mod tests {
             driver: None,
             ..Network::default()
         };
-        assert!(!DockerDeployment::kind_fits_network(
+        assert!(!DockerDeploymentImpl::kind_fits_network(
             NetworkKind::Bridge,
             &network
         ));
@@ -1505,7 +1491,7 @@ mod tests {
     #[test]
     fn subnet_fits_network_true_some() {
         let network = subnet_network_data();
-        assert!(DockerDeployment::subnet_fits_network(
+        assert!(DockerDeploymentImpl::subnet_fits_network(
             Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
             &network
         )
@@ -1515,13 +1501,13 @@ mod tests {
     #[test]
     fn subnet_fits_network_true_none() {
         let network = subnet_network_data();
-        assert!(DockerDeployment::subnet_fits_network(None, &network).unwrap());
+        assert!(DockerDeploymentImpl::subnet_fits_network(None, &network).unwrap());
     }
 
     #[test]
     fn subnet_fits_network_false() {
         let network = subnet_network_data();
-        assert!(!DockerDeployment::subnet_fits_network(
+        assert!(!DockerDeploymentImpl::subnet_fits_network(
             Some(Ipv4Network::from_str("44.21.0.0/16").unwrap()),
             &network
         )
@@ -1542,7 +1528,7 @@ mod tests {
                 subnet: Some("invalid".to_string()),
                 ..Default::default()
             });
-        assert!(DockerDeployment::subnet_fits_network(
+        assert!(DockerDeploymentImpl::subnet_fits_network(
             Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
             &network
         )
@@ -1575,7 +1561,7 @@ mod tests {
     #[test]
     fn gateway_fits_network_true_some() {
         let network = gateway_network_data();
-        assert!(DockerDeployment::gateway_fits_network(
+        assert!(DockerDeploymentImpl::gateway_fits_network(
             Some(Ipv4Addr::from_str("44.11.24.12").unwrap()),
             &network
         )
@@ -1585,7 +1571,7 @@ mod tests {
     #[test]
     fn gateway_fits_network_true_none() {
         let network = gateway_network_data();
-        assert!(DockerDeployment::gateway_fits_network(None, &network).unwrap());
+        assert!(DockerDeploymentImpl::gateway_fits_network(None, &network).unwrap());
     }
 
     #[test]
@@ -1602,7 +1588,7 @@ mod tests {
                 gateway: Some("invalid".to_string()),
                 ..Default::default()
             });
-        assert!(DockerDeployment::gateway_fits_network(
+        assert!(DockerDeploymentImpl::gateway_fits_network(
             Some(Ipv4Addr::from_str("44.11.24.12").unwrap()),
             &network
         )
@@ -1630,7 +1616,7 @@ mod tests {
             ("Option2".to_string(), "value 2".to_string()),
             ("Option3".to_string(), "value 3".to_string()),
         ]));
-        assert!(DockerDeployment::options_fit_network(
+        assert!(DockerDeploymentImpl::options_fit_network(
             options.as_ref(),
             &network
         ));
@@ -1643,7 +1629,7 @@ mod tests {
             ("Option1".to_string(), "value 1".to_string()),
             ("Option3".to_string(), "value 3".to_string()),
         ]));
-        assert!(DockerDeployment::options_fit_network(
+        assert!(DockerDeploymentImpl::options_fit_network(
             options.as_ref(),
             &network
         ));
@@ -1653,7 +1639,7 @@ mod tests {
     fn options_fit_network_true_empty() {
         let network = options_network_data();
         let options = Some(HashMap::new());
-        assert!(DockerDeployment::options_fit_network(
+        assert!(DockerDeploymentImpl::options_fit_network(
             options.as_ref(),
             &network
         ));
@@ -1663,7 +1649,7 @@ mod tests {
     fn options_fit_network_true_none_some() {
         let network = options_network_data();
         let options = None;
-        assert!(DockerDeployment::options_fit_network(
+        assert!(DockerDeploymentImpl::options_fit_network(
             options.as_ref(),
             &network
         ));
@@ -1673,7 +1659,7 @@ mod tests {
     fn options_fit_network_true_none_none() {
         let network = Network::default();
         let options = None;
-        assert!(DockerDeployment::options_fit_network(
+        assert!(DockerDeploymentImpl::options_fit_network(
             options.as_ref(),
             &network
         ));
@@ -1683,7 +1669,7 @@ mod tests {
     fn options_fit_network_true_empty_none() {
         let network = Network::default();
         let options = Some(HashMap::new());
-        assert!(DockerDeployment::options_fit_network(
+        assert!(DockerDeploymentImpl::options_fit_network(
             options.as_ref(),
             &network
         ));
@@ -1696,7 +1682,7 @@ mod tests {
             ("Option1".to_string(), "different".to_string()),
             ("Option3".to_string(), "value 3".to_string()),
         ]));
-        assert!(!DockerDeployment::options_fit_network(
+        assert!(!DockerDeploymentImpl::options_fit_network(
             options.as_ref(),
             &network
         ));
@@ -1709,7 +1695,7 @@ mod tests {
             "DifferentOption".to_string(),
             "value 3".to_string(),
         )]));
-        assert!(!DockerDeployment::options_fit_network(
+        assert!(!DockerDeploymentImpl::options_fit_network(
             options.as_ref(),
             &network
         ));
@@ -1722,7 +1708,7 @@ mod tests {
             "Option 1".to_string(),
             "value 1".to_string(),
         )]));
-        assert!(!DockerDeployment::options_fit_network(
+        assert!(!DockerDeploymentImpl::options_fit_network(
             options.as_ref(),
             &network
         ));

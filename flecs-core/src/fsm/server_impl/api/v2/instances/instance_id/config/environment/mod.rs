@@ -1,7 +1,7 @@
 pub mod variable_name;
 use crate::jeweler::gem::instance::InstanceId;
-use crate::jeweler::gem::manifest::EnvironmentVariable;
-use crate::sorcerer::instancius::Instancius;
+use crate::jeweler::gem::manifest::single::EnvironmentVariable;
+use crate::sorcerer::instancius::{Instancius, QueryInstanceConfigError};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigEnvironmentDeleteResponse as DeleteResponse,
@@ -29,8 +29,13 @@ pub async fn delete<I: Instancius>(
         .delete_instance_config_environment(vault, instance_id)
         .await
     {
-        None => DeleteResponse::Status404_NoInstanceWithThisInstance,
-        Some(_) => DeleteResponse::Status200_EnvironmentOfInstanceWithThisInstance,
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            DeleteResponse::Status404_NoInstanceWithThisInstance
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            DeleteResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(_) => DeleteResponse::Status200_EnvironmentOfInstanceWithThisInstance,
     }
 }
 
@@ -44,8 +49,13 @@ pub async fn get<I: Instancius>(
         .get_instance_config_environment(vault, instance_id)
         .await
     {
-        None => GetResponse::Status404_NoInstanceWithThisInstance,
-        Some(environment) => GetResponse::Status200_Success(models::InstanceEnvironment::from(
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            GetResponse::Status404_NoInstanceWithThisInstance
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            GetResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(environment) => GetResponse::Status200_Success(models::InstanceEnvironment::from(
             environment
                 .into_iter()
                 .map(models::InstanceEnvironmentVariable::from)
@@ -71,11 +81,16 @@ pub async fn put<I: Instancius>(
         .put_instance_config_environment(vault, instance_id, environment)
         .await
     {
-        None => PutResponse::Status404_NoInstanceWithThisInstance,
-        Some(previous_environment) if previous_environment.is_empty() => {
+        Err(QueryInstanceConfigError::NotFound(_)) => {
+            PutResponse::Status404_NoInstanceWithThisInstance
+        }
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            PutResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(previous_environment) if previous_environment.is_empty() => {
             PutResponse::Status201_EnvironmentForInstanceWithThisInstanceIdWasCreated
         }
-        Some(_) => PutResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet,
+        Ok(_) => PutResponse::Status200_EnvironmentForInstanceWithThisInstanceIdIsSet,
     }
 }
 
@@ -130,7 +145,11 @@ mod tests {
             .expect_delete_instance_config_environment()
             .withf(move |_, id| id.value == 0x12341234)
             .once()
-            .returning(|_, _| None);
+            .returning(|_, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0x12341234,
+                )))
+            });
         let vault = create_empty_test_vault();
         assert!(matches!(
             delete(
@@ -152,7 +171,7 @@ mod tests {
             .expect_delete_instance_config_environment()
             .withf(move |_, id| id.value == 6)
             .once()
-            .returning(|_, _| Some(Vec::new()));
+            .returning(|_, _| Ok(Vec::new()));
         let vault = create_empty_test_vault();
         assert!(matches!(
             delete(
@@ -174,7 +193,11 @@ mod tests {
             .expect_get_instance_config_environment()
             .withf(move |_, id| id.value == 0x12341234)
             .once()
-            .returning(|_, _| None);
+            .returning(|_, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0x12341234,
+                )))
+            });
         let vault = create_empty_test_vault();
         assert!(matches!(
             get(
@@ -197,7 +220,7 @@ mod tests {
             .withf(move |_, id| id.value == 6)
             .once()
             .returning(|_, _| {
-                Some(vec![
+                Ok(vec![
                     EnvironmentVariable {
                         name: "VAR_1".to_string(),
                         value: None,
@@ -265,7 +288,11 @@ mod tests {
             .expect_put_instance_config_environment()
             .withf(move |_, id, envs| id.value == 0x78907890 && envs.is_empty())
             .once()
-            .returning(|_, _, _| None);
+            .returning(|_, _, _| {
+                Err(QueryInstanceConfigError::NotFound(InstanceId::new(
+                    0x78907890,
+                )))
+            });
         let vault = create_empty_test_vault();
         assert!(matches!(
             put(
@@ -301,7 +328,7 @@ mod tests {
                         ]
             })
             .once()
-            .returning(|_, _, _| Some(Vec::new()));
+            .returning(|_, _, _| Ok(Vec::new()));
         let vault = create_empty_test_vault();
         assert!(matches!(
             put(
@@ -347,7 +374,7 @@ mod tests {
             })
             .once()
             .returning(|_, _, _| {
-                Some(vec![EnvironmentVariable {
+                Ok(vec![EnvironmentVariable {
                     name: "previous_var".to_string(),
                     value: None,
                 }])

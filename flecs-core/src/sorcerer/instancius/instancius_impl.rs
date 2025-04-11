@@ -2,13 +2,15 @@ use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::vec::VecExtension;
 use crate::jeweler::app::AppStatus;
-use crate::jeweler::deployment::Deployment;
-use crate::jeweler::gem::instance::{
-    InstanceConfig, InstanceId, InstancePortMapping, TransportProtocol, UsbPathConfig,
+use crate::jeweler::gem::deployment::Deployment;
+use crate::jeweler::gem::instance::docker::config::{
+    InstanceConfig, InstancePortMapping, TransportProtocol, UsbPathConfig,
 };
-use crate::jeweler::gem::manifest::{
+use crate::jeweler::gem::instance::{Instance, InstanceId};
+use crate::jeweler::gem::manifest::single::{
     BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
 };
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::instance::Logs;
 use crate::jeweler::network::{Network, NetworkId};
 use crate::jeweler::volume::VolumeId;
@@ -20,6 +22,7 @@ use crate::sorcerer::instancius::{
     GetInstanceConfigNetworkResult, GetInstanceConfigVolumeMountError, GetInstanceUsbDeviceResult,
     Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
 };
+use crate::sorcerer::spell::instance::QueryInstanceConfigError;
 use crate::sorcerer::{spell, Sorcerer};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
@@ -140,7 +143,7 @@ impl Instancius for InstanciusImpl {
         app_key: AppKey,
         name: String,
     ) -> anyhow::Result<InstanceId> {
-        let (manifest, deployments) = quest
+        let (manifest, deployment) = quest
             .lock()
             .await
             .create_sub_quest(
@@ -177,6 +180,9 @@ impl Instancius for InstanciusImpl {
                             .get(&app_key)
                             .ok_or_else(|| anyhow::anyhow!("No manifest for {app_key} present"))?
                             .clone();
+                        let AppManifest::Single(manifest) = manifest else {
+                            todo!("Support multi image apps");
+                        };
                         if !manifest.multi_instance()
                             && !instances
                                 .instance_ids_by_app_key(app_key.clone())
@@ -184,23 +190,20 @@ impl Instancius for InstanciusImpl {
                         {
                             anyhow::bail!("Can not create multiple instances for {app_key}");
                         }
-                        let deployments = deployments
-                            .gems()
-                            .values()
-                            .cloned()
-                            .collect::<Vec<Arc<dyn Deployment>>>();
-                        Ok((manifest, deployments))
+                        let deployment =
+                            deployments.default_docker_deployment().ok_or_else(|| {
+                                anyhow::anyhow!("No deployment present to create instance in")
+                            })?;
+                        let Deployment::Docker(deployment) = deployment else {
+                            todo!("Support multi image apps");
+                        };
+                        Ok((manifest, deployment))
                     }
                 },
             )
             .await
             .2
             .await?;
-        // TODO: In which deployment(s) should an instance be created? All?
-        let deployment = deployments
-            .first()
-            .ok_or_else(|| anyhow::anyhow!("No deployment present to create instance in"))?
-            .clone();
         let address = quest
             .lock()
             .await
@@ -232,7 +235,7 @@ impl Instancius for InstanciusImpl {
             .lock()
             .await
             .create_sub_quest(format!("Create instance '{name}' for {app_key}"), |quest| {
-                spell::instance::create_instance(quest, deployment, manifest, name, address)
+                spell::instance::create_docker_instance(quest, deployment, manifest, name, address)
             })
             .await
             .2
@@ -260,7 +263,9 @@ impl Instancius for InstanciusImpl {
                         .instance_pouch_mut
                         .as_mut()
                         .expect("Vault reservations should never fail");
-                    pouch.gems_mut().insert(instance_id, instance);
+                    pouch
+                        .gems_mut()
+                        .insert(instance_id, Instance::Docker(instance));
                     pouch.clear_ip_address_reservation(address)
                 },
             )
@@ -287,7 +292,7 @@ impl Instancius for InstanciusImpl {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<InstanceConfig> {
+    ) -> Result<InstanceConfig, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| config.clone()).await
     }
 
@@ -297,14 +302,18 @@ impl Instancius for InstanciusImpl {
         id: InstanceId,
         usb_reader: Arc<U>,
     ) -> anyhow::Result<Option<Vec<(UsbPathConfig, Option<UsbDevice>)>>> {
-        let Some(mapped_devices) =
-            spell::instance::get_instance_config_part_with(vault, id, |config| {
+        let mapped_devices =
+            match spell::instance::get_instance_config_part_with(vault, id, |config| {
                 config.usb_devices.clone()
             })
             .await
-        else {
-            return Ok(None);
-        };
+            {
+                Err(QueryInstanceConfigError::NotFound(_)) => return Ok(None),
+                Err(QueryInstanceConfigError::NotSupported(_)) => {
+                    anyhow::bail!("Instance {id} does not support usb devices")
+                }
+                Ok(mapped_devices) => mapped_devices,
+            };
         let existing_devices = usb_reader.read_usb_devices()?;
         Ok(Some(
             mapped_devices
@@ -321,7 +330,7 @@ impl Instancius for InstanciusImpl {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<HashMap<String, UsbPathConfig>> {
+    ) -> Result<HashMap<String, UsbPathConfig>, QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| {
             std::mem::take(&mut config.usb_devices)
         })
@@ -333,7 +342,7 @@ impl Instancius for InstanciusImpl {
         vault: Arc<Vault>,
         id: InstanceId,
         port: String,
-    ) -> Option<Option<UsbPathConfig>> {
+    ) -> Result<Option<UsbPathConfig>, QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| {
             config.usb_devices.remove(&port)
         })
@@ -347,14 +356,21 @@ impl Instancius for InstanciusImpl {
         port: String,
         usb_reader: Arc<U>,
     ) -> anyhow::Result<GetInstanceUsbDeviceResult> {
-        let Some(mapped_device) =
-            spell::instance::get_instance_config_part_with(vault, id, |config| {
+        let mapped_device =
+            match spell::instance::get_instance_config_part_with(vault, id, |config| {
                 config.usb_devices.get(&port).cloned()
             })
             .await
-        else {
-            return Ok(GetInstanceUsbDeviceResult::InstanceNotFound);
-        };
+            {
+                Err(QueryInstanceConfigError::NotFound(_)) => {
+                    return Ok(GetInstanceUsbDeviceResult::InstanceNotFound)
+                }
+                Err(QueryInstanceConfigError::NotSupported(_)) => {
+                    return Ok(GetInstanceUsbDeviceResult::NotSupported)
+                }
+                Ok(mapped_device) => mapped_device,
+            };
+
         match (mapped_device, usb_reader.read_usb_devices()?.remove(&port)) {
             (Some(config), Some(usb_device)) => {
                 Ok(GetInstanceUsbDeviceResult::DeviceActive(config, usb_device))
@@ -382,12 +398,17 @@ impl Instancius for InstanciusImpl {
         })
         .await;
         match result {
-            None => Ok(PutInstanceUsbDeviceResult::InstanceNotFound),
-            Some(Ok(Some(previous_mapping))) => Ok(
-                PutInstanceUsbDeviceResult::DeviceMappingUpdated(previous_mapping),
-            ),
-            Some(Ok(None)) => Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated),
-            Some(Err(e)) => Err(e),
+            Err(QueryInstanceConfigError::NotFound(_)) => {
+                Ok(PutInstanceUsbDeviceResult::InstanceNotFound)
+            }
+            Err(QueryInstanceConfigError::NotSupported(_)) => {
+                Ok(PutInstanceUsbDeviceResult::NotSupported)
+            }
+            Ok(Ok(Some(previous_mapping))) => Ok(PutInstanceUsbDeviceResult::DeviceMappingUpdated(
+                previous_mapping,
+            )),
+            Ok(Ok(None)) => Ok(PutInstanceUsbDeviceResult::DeviceMappingCreated),
+            Ok(Err(e)) => Err(e),
         }
     }
 
@@ -397,7 +418,7 @@ impl Instancius for InstanciusImpl {
         id: InstanceId,
         host_port: u16,
         transport_protocol: TransportProtocol,
-    ) -> Option<Option<PortMapping>> {
+    ) -> Result<Option<PortMapping>, QueryInstanceConfigError> {
         self.get_instance_config_port_mapping_range(
             vault,
             id,
@@ -411,7 +432,7 @@ impl Instancius for InstanciusImpl {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<InstancePortMapping> {
+    ) -> Result<InstancePortMapping, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| {
             config.port_mapping.clone()
         })
@@ -423,7 +444,7 @@ impl Instancius for InstanciusImpl {
         vault: Arc<Vault>,
         id: InstanceId,
         transport_protocol: TransportProtocol,
-    ) -> Option<Vec<PortMapping>> {
+    ) -> Result<Vec<PortMapping>, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| match transport_protocol
         {
             TransportProtocol::Tcp => config.port_mapping.tcp.clone(),
@@ -438,7 +459,7 @@ impl Instancius for InstanciusImpl {
         vault: Arc<Vault>,
         id: InstanceId,
         transport_protocol: TransportProtocol,
-    ) -> Option<Vec<PortMapping>> {
+    ) -> Result<Vec<PortMapping>, QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| match transport_protocol {
             TransportProtocol::Tcp => std::mem::take(&mut config.port_mapping.tcp),
             TransportProtocol::Udp => std::mem::take(&mut config.port_mapping.udp),
@@ -453,7 +474,7 @@ impl Instancius for InstanciusImpl {
         id: InstanceId,
         host_port: u16,
         transport_protocol: TransportProtocol,
-    ) -> Option<bool> {
+    ) -> Result<bool, QueryInstanceConfigError> {
         self.delete_instance_config_port_mapping_range(
             vault,
             id,
@@ -469,7 +490,7 @@ impl Instancius for InstanciusImpl {
         id: InstanceId,
         host_port_range: PortRange,
         transport_protocol: TransportProtocol,
-    ) -> Option<bool> {
+    ) -> Result<bool, QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| {
             config
                 .port_mapping
@@ -485,7 +506,7 @@ impl Instancius for InstanciusImpl {
         id: InstanceId,
         host_port_range: PortRange,
         transport_protocol: TransportProtocol,
-    ) -> Option<Option<PortMapping>> {
+    ) -> Result<Option<PortMapping>, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| {
             config
                 .port_mapping
@@ -508,8 +529,11 @@ impl Instancius for InstanciusImpl {
         })
         .await
         {
-            None => Ok(None),
-            Some(result) => Ok(Some(result?)),
+            Err(QueryInstanceConfigError::NotFound(_)) => Ok(None),
+            Err(QueryInstanceConfigError::NotSupported(_)) => Err(anyhow::anyhow!(
+                "Instance {id} does not support port mappings"
+            )),
+            Ok(result) => Ok(Some(result?)),
         }
     }
 
@@ -519,26 +543,24 @@ impl Instancius for InstanciusImpl {
         id: InstanceId,
         port_mapping: Vec<PortMapping>,
         transport_protocol: TransportProtocol,
-    ) -> bool {
+    ) -> Result<(), QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| match transport_protocol {
             TransportProtocol::Tcp => config.port_mapping.tcp = port_mapping,
             TransportProtocol::Udp => config.port_mapping.udp = port_mapping,
             TransportProtocol::Sctp => config.port_mapping.sctp = port_mapping,
         })
         .await
-        .is_some()
     }
 
     async fn delete_instance_config_port_mappings(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> bool {
+    ) -> Result<(), QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| {
             config.port_mapping.clear();
         })
         .await
-        .is_some()
     }
 
     async fn get_instance_config_environment_variable_value(
@@ -546,7 +568,7 @@ impl Instancius for InstanciusImpl {
         vault: Arc<Vault>,
         id: InstanceId,
         variable_name: String,
-    ) -> Option<Option<Option<String>>> {
+    ) -> Result<Option<Option<String>>, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| {
             config
                 .environment_variables
@@ -562,7 +584,7 @@ impl Instancius for InstanciusImpl {
         vault: Arc<Vault>,
         id: InstanceId,
         mut environment_variable: EnvironmentVariable,
-    ) -> Option<Option<String>> {
+    ) -> Result<Option<String>, QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| {
             for existing_environment_variable in config.environment_variables.iter_mut() {
                 if existing_environment_variable.name == environment_variable.name {
@@ -584,7 +606,7 @@ impl Instancius for InstanciusImpl {
         vault: Arc<Vault>,
         id: InstanceId,
         variable_name: String,
-    ) -> Option<Option<EnvironmentVariable>> {
+    ) -> Result<Option<EnvironmentVariable>, QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| {
             config
                 .environment_variables
@@ -597,7 +619,7 @@ impl Instancius for InstanciusImpl {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<Vec<EnvironmentVariable>> {
+    ) -> Result<Vec<EnvironmentVariable>, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| {
             config.environment_variables.clone()
         })
@@ -609,7 +631,7 @@ impl Instancius for InstanciusImpl {
         vault: Arc<Vault>,
         id: InstanceId,
         mut environment: Vec<EnvironmentVariable>,
-    ) -> Option<Vec<EnvironmentVariable>> {
+    ) -> Result<Vec<EnvironmentVariable>, QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| {
             std::mem::swap(&mut config.environment_variables, &mut environment);
             environment
@@ -621,7 +643,7 @@ impl Instancius for InstanciusImpl {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<Vec<EnvironmentVariable>> {
+    ) -> Result<Vec<EnvironmentVariable>, QueryInstanceConfigError> {
         spell::instance::modify_instance_config_with(vault, id, |config| {
             let mut environment = Vec::default();
             std::mem::swap(&mut config.environment_variables, &mut environment);
@@ -634,7 +656,7 @@ impl Instancius for InstanciusImpl {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<HashMap<String, IpAddr>> {
+    ) -> Result<HashMap<String, IpAddr>, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| {
             config.connected_networks.clone()
         })
@@ -652,9 +674,14 @@ impl Instancius for InstanciusImpl {
         })
         .await
         {
-            None => GetInstanceConfigNetworkResult::InstanceNotFound,
-            Some(None) => GetInstanceConfigNetworkResult::UnknownNetwork,
-            Some(Some(address)) => GetInstanceConfigNetworkResult::Network {
+            Err(QueryInstanceConfigError::NotFound(_)) => {
+                GetInstanceConfigNetworkResult::InstanceNotFound
+            }
+            Err(QueryInstanceConfigError::NotSupported(_)) => {
+                GetInstanceConfigNetworkResult::NotSupported
+            }
+            Ok(None) => GetInstanceConfigNetworkResult::UnknownNetwork,
+            Ok(Some(address)) => GetInstanceConfigNetworkResult::Network {
                 name: network_id,
                 address,
             },
@@ -666,11 +693,12 @@ impl Instancius for InstanciusImpl {
         vault: Arc<Vault>,
         id: InstanceId,
     ) -> Option<(Vec<VolumeMount>, Vec<BindMount>)> {
-        spell::instance::query_instance(vault, id, |instance| {
-            (
+        spell::instance::query_instance(vault, id, |instance| match instance {
+            Instance::Docker(instance) => (
                 instance.config.volume_mounts.values().cloned().collect(),
                 instance.manifest.bind_mounts(),
-            )
+            ),
+            Instance::Compose(_) => (Vec::new(), Vec::new()),
         })
         .await
     }
@@ -679,7 +707,7 @@ impl Instancius for InstanciusImpl {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Option<Vec<VolumeMount>> {
+    ) -> Result<Vec<VolumeMount>, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| {
             config.volume_mounts.values().cloned().collect()
         })
@@ -695,15 +723,12 @@ impl Instancius for InstanciusImpl {
         match self
             .get_instance_config_volume_mounts(vault, instance_id)
             .await
-            .map(|volumes| volumes.into_iter().find(|volume| volume.name == volume_id))
+            .map(|volumes| volumes.into_iter().find(|volume| volume.name == volume_id))?
         {
-            None => Err(GetInstanceConfigVolumeMountError::InstanceNotFound(
-                instance_id,
-            )),
-            Some(None) => Err(GetInstanceConfigVolumeMountError::VolumeMountNotFound(
+            None => Err(GetInstanceConfigVolumeMountError::VolumeMountNotFound(
                 volume_id,
             )),
-            Some(Some(volume)) => Ok(volume),
+            Some(volume) => Ok(volume),
         }
     }
 
@@ -712,7 +737,11 @@ impl Instancius for InstanciusImpl {
         vault: Arc<Vault>,
         id: InstanceId,
     ) -> Option<Vec<BindMount>> {
-        spell::instance::query_instance(vault, id, |instance| instance.manifest.bind_mounts()).await
+        spell::instance::query_instance(vault, id, |instance| match instance {
+            Instance::Docker(instance) => instance.manifest.bind_mounts(),
+            Instance::Compose(_) => Vec::new(),
+        })
+        .await
     }
 
     async fn get_instance_config_bind_mount(
@@ -764,11 +793,21 @@ impl Instancius for InstanciusImpl {
         else {
             panic!("Vault reservations should never fail");
         };
-        let deployment = instances
-            .gems_mut()
-            .get_mut(&id)
-            .ok_or(ConnectInstanceConfigNetworkError::InstanceNotFound(id))?
-            .deployment();
+        let deployment = {
+            let instance = match instances.gems_mut().get_mut(&id) {
+                None => return Err(ConnectInstanceConfigNetworkError::InstanceNotFound(id)),
+                Some(Instance::Compose(_)) => {
+                    return Err(ConnectInstanceConfigNetworkError::Unsupported(id))
+                }
+                Some(Instance::Docker(instance)) => instance,
+            };
+            if instance.config.connected_networks.contains_key(&network_id) {
+                return Err(ConnectInstanceConfigNetworkError::NetworkAlreadyConnected(
+                    network_id,
+                ));
+            }
+            instance.deployment()
+        };
         let network = match deployment.network(network_id.clone()).await {
             Ok(Some(network)) => network,
             Ok(None) => {
@@ -799,14 +838,13 @@ impl Instancius for InstanciusImpl {
                 address
             }
         };
-        let Some(instance) = instances.gems_mut().get_mut(&id) else {
-            return Err(ConnectInstanceConfigNetworkError::InstanceNotFound(id));
+        let instance = match instances.gems_mut().get_mut(&id) {
+            None => return Err(ConnectInstanceConfigNetworkError::InstanceNotFound(id)),
+            Some(Instance::Compose(_)) => {
+                return Err(ConnectInstanceConfigNetworkError::Unsupported(id))
+            }
+            Some(Instance::Docker(instance)) => instance,
         };
-        if instance.config.connected_networks.contains_key(&network_id) {
-            return Err(ConnectInstanceConfigNetworkError::NetworkAlreadyConnected(
-                network_id,
-            ));
-        }
         instance
             .connect_network(network_id, address)
             .await
@@ -838,26 +876,18 @@ impl Instancius for InstanciusImpl {
             .gems()
             .get(&id)
         {
-            Some(instance) => instance.get_logs().await,
+            Some(Instance::Docker(instance)) => instance.get_logs().await,
+            Some(Instance::Compose(_)) => anyhow::bail!("Instance {id} does not support logs"),
             None => anyhow::bail!("Instance {id} not found"),
         }
     }
 
     async fn get_instance_labels(&self, vault: Arc<Vault>, id: InstanceId) -> Option<Vec<Label>> {
-        let labels = vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .expect("Reservations should never fail")
-            .gems()
-            .get(&id)?
-            .manifest
-            .labels
-            .clone();
-        Some(labels)
+        spell::instance::query_instance(vault, id, |instance| match instance {
+            Instance::Docker(instance) => instance.manifest.labels.clone(),
+            Instance::Compose(_) => Vec::new(),
+        })
+        .await
     }
 
     async fn get_instance_label_value(
@@ -866,23 +896,16 @@ impl Instancius for InstanciusImpl {
         id: InstanceId,
         label_name: String,
     ) -> Option<Option<Option<String>>> {
-        Some(
-            vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .expect("Reservations should never fail")
-                .gems()
-                .get(&id)?
+        spell::instance::query_instance(vault, id, |instance| match instance {
+            Instance::Docker(instance) => instance
                 .manifest
                 .labels
                 .iter()
                 .find(|label| label.label == label_name)
                 .map(|label| label.value.clone()),
-        )
+            Instance::Compose(_) => Some(None),
+        })
+        .await
     }
 
     async fn redirect_editor_request<F: Floxy>(
@@ -897,14 +920,18 @@ impl Instancius for InstanciusImpl {
             .reserve_instance_pouch_mut()
             .grab()
             .await;
-        let Some(instance) = grab
+        let instance = match grab
             .instance_pouch_mut
             .as_mut()
             .expect("Reservations should never fail")
             .gems_mut()
             .get_mut(&instance_id)
-        else {
-            return Ok(RedirectEditorRequestResult::InstanceNotFound);
+        {
+            None => return Ok(RedirectEditorRequestResult::InstanceNotFound),
+            Some(Instance::Compose(_)) => {
+                anyhow::bail!("Instance {instance_id} does not support editors")
+            }
+            Some(Instance::Docker(instance)) => instance,
         };
         match instance
             .manifest
@@ -974,9 +1001,9 @@ pub mod tests {
     use super::*;
     use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::app::AppInfo;
-    use crate::jeweler::deployment::tests::MockedDeployment;
-    use crate::jeweler::deployment::Deployment;
-    use crate::jeweler::gem::instance::{InstanceId, InstanceStatus};
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::jeweler::gem::instance::status::InstanceStatus;
+    use crate::jeweler::gem::instance::{InstanceDeserializable, InstanceId};
     use crate::quest::Quest;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
     use crate::relic::network::Ipv4Network;
@@ -1006,10 +1033,10 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_test() {
         const INSTANCE_TO_DELETE: InstanceId = RUNNING_INSTANCE;
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_stop_instance()
             .times(1)
@@ -1021,7 +1048,7 @@ pub mod tests {
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(INSTANCE_TO_DELETE, deployment)]),
@@ -1063,10 +1090,10 @@ pub mod tests {
         const INSTANCE_TO_STOP: InstanceId = vault::pouch::instance::tests::RUNNING_INSTANCE;
         let floxy = MockFloxy::new();
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(move || "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_stop_instance()
             .withf(|id, _| *id == INSTANCE_TO_STOP)
@@ -1076,7 +1103,7 @@ pub mod tests {
             .expect_instance_status()
             .withf(|id| *id == INSTANCE_TO_STOP)
             .returning(|_| Ok(InstanceStatus::Running));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(INSTANCE_TO_STOP, deployment)]),
             HashMap::new(),
@@ -1139,10 +1166,10 @@ pub mod tests {
     #[tokio::test]
     async fn instance_logs_ok() {
         const ID: InstanceId = vault::pouch::instance::tests::MINIMAL_INSTANCE;
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(|| "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_logs()
             .withf(|_, id| *id == ID)
@@ -1153,7 +1180,7 @@ pub mod tests {
                     stderr: "TestError".to_string(),
                 })
             });
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(ID, deployment)]),
             HashMap::new(),
@@ -1170,15 +1197,15 @@ pub mod tests {
     #[tokio::test]
     async fn instance_logs_err() {
         const ID: InstanceId = vault::pouch::instance::tests::MINIMAL_INSTANCE;
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
-            .returning(|| "MockedDeployment".to_string());
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_logs()
             .once()
             .returning(|_, _| Err(anyhow::anyhow!("TestError")));
-        let deployment = Arc::new(deployment) as Arc<dyn Deployment>;
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(ID, deployment)]),
             HashMap::new(),
@@ -1196,11 +1223,13 @@ pub mod tests {
             name: MINIMAL_APP_NAME.to_string(),
             version: MINIMAL_APP_VERSION.to_string(),
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_app_info()
-            .returning(|_, _| Ok(AppInfo::default()));
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_is_app_installed()
+            .returning(|_, _, _| Ok(true));
         deployment.expect_default_network().times(2).returning(|| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
@@ -1215,7 +1244,7 @@ pub mod tests {
                 ..Network::default()
             })
         });
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment.clone())]),
@@ -1239,13 +1268,11 @@ pub mod tests {
             unreachable!("Vault reservations should never fail")
         };
         assert!(instances.gems().contains_key(&instance_id));
+        let Some(Instance::Docker(instance)) = instances.gems().get(&instance_id) else {
+            panic!()
+        };
         assert_eq!(
-            instances
-                .gems()
-                .get(&instance_id)
-                .unwrap()
-                .config
-                .connected_networks,
+            instance.config.connected_networks,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
@@ -1259,16 +1286,18 @@ pub mod tests {
             name: MINIMAL_APP_NAME.to_string(),
             version: MINIMAL_APP_VERSION.to_string(),
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_app_info()
-            .returning(|_, _| Ok(AppInfo::default()));
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_is_app_installed()
+            .returning(|_, _, _| Ok(true));
         deployment
             .expect_default_network()
             .times(1)
             .returning(|| Err(anyhow::anyhow!("TestError").into()));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment.clone())]),
@@ -1326,11 +1355,13 @@ pub mod tests {
             name: MULTI_INSTANCE_APP_NAME.to_string(),
             version: MULTI_INSTANCE_APP_VERSION.to_string(),
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_app_info()
-            .returning(|_, _| Ok(AppInfo::default()));
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_is_app_installed()
+            .returning(|_, _, _| Ok(true));
         deployment.expect_default_network().times(4).returning(|| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
@@ -1345,7 +1376,7 @@ pub mod tests {
                 ..Network::default()
             })
         });
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment.clone())]),
@@ -1379,25 +1410,21 @@ pub mod tests {
         };
         assert!(instances.gems().contains_key(&instance_id_1));
         assert!(instances.gems().contains_key(&instance_id_2));
+        let Some(Instance::Docker(instance)) = instances.gems().get(&instance_id_1) else {
+            panic!()
+        };
         assert_eq!(
-            instances
-                .gems()
-                .get(&instance_id_1)
-                .unwrap()
-                .config
-                .connected_networks,
+            instance.config.connected_networks,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
             )])
         );
+        let Some(Instance::Docker(instance)) = instances.gems().get(&instance_id_2) else {
+            panic!()
+        };
         assert_eq!(
-            instances
-                .gems()
-                .get(&instance_id_2)
-                .unwrap()
-                .config
-                .connected_networks,
+            instance.config.connected_networks,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
@@ -1410,11 +1437,13 @@ pub mod tests {
             name: SINGLE_INSTANCE_APP_NAME.to_string(),
             version: SINGLE_INSTANCE_APP_VERSION.to_string(),
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_app_info()
-            .returning(|_, _| Ok(AppInfo::default()));
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_is_app_installed()
+            .returning(|_, _, _| Ok(true));
         deployment.expect_default_network().times(2).returning(|| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
@@ -1429,7 +1458,7 @@ pub mod tests {
                 ..Network::default()
             })
         });
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment.clone())]),
@@ -1462,13 +1491,11 @@ pub mod tests {
             unreachable!("Vault reservations should never fail")
         };
         assert!(instances.gems().contains_key(&instance_id));
+        let Some(Instance::Docker(instance)) = instances.gems().get(&instance_id) else {
+            panic!()
+        };
         assert_eq!(
-            instances
-                .gems()
-                .get(&instance_id)
-                .unwrap()
-                .config
-                .connected_networks,
+            instance.config.connected_networks,
             HashMap::from([(
                 "DefaultTestNetworkId".to_string(),
                 IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
@@ -1481,12 +1508,14 @@ pub mod tests {
             name: MINIMAL_APP_NAME.to_string(),
             version: MINIMAL_APP_VERSION.to_string(),
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_app_info()
-            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_is_app_installed()
+            .returning(|_, _, _| Ok(false));
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment.clone())]),
@@ -1508,9 +1537,11 @@ pub mod tests {
             name: UNKNOWN_APP_NAME.to_string(),
             version: UNKNOWN_APP_VERSION.to_string(),
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment.clone())]),
@@ -1533,12 +1564,14 @@ pub mod tests {
             name: NO_MANIFEST_APP_NAME.to_string(),
             version: NO_MANIFEST_APP_VERSION.to_string(),
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_app_info()
             .returning(|_, _| Ok(AppInfo::default()));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment.clone())]),
@@ -1561,12 +1594,14 @@ pub mod tests {
             name: MINIMAL_APP_NAME.to_string(),
             version: MINIMAL_APP_VERSION.to_string(),
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_app_info()
-            .returning(|_, _| Ok(AppInfo::default()));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_is_app_installed()
+            .returning(|_, _, _| Ok(true));
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment.clone())]),
@@ -1595,16 +1630,16 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_all_instances_ok() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let vault = vault::tests::create_test_vault(
-            HashMap::new(),
-            HashMap::new(),
-            Some(Arc::new(deployment)),
-        );
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault =
+            vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let instances_infos = InstanciusImpl::default()
             .get_all_instances(Quest::new_synced("TestQuest".to_string()), vault)
             .await;
@@ -1613,16 +1648,16 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_all() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let vault = vault::tests::create_test_vault(
-            HashMap::new(),
-            HashMap::new(),
-            Some(Arc::new(deployment)),
-        );
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault =
+            vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let instances_infos = InstanciusImpl::default()
             .get_instances_filtered(
                 Quest::new_synced("TestQuest".to_string()),
@@ -1636,16 +1671,16 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_name() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let vault = vault::tests::create_test_vault(
-            HashMap::new(),
-            HashMap::new(),
-            Some(Arc::new(deployment)),
-        );
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault =
+            vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let instances_infos = InstanciusImpl::default()
             .get_instances_filtered(
                 Quest::new_synced("TestQuest".to_string()),
@@ -1659,16 +1694,16 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_version() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let vault = vault::tests::create_test_vault(
-            HashMap::new(),
-            HashMap::new(),
-            Some(Arc::new(deployment)),
-        );
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault =
+            vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let instances_infos = InstanciusImpl::default()
             .get_instances_filtered(
                 Quest::new_synced("TestQuest".to_string()),
@@ -1682,16 +1717,16 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instances_filtered_key() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let vault = vault::tests::create_test_vault(
-            HashMap::new(),
-            HashMap::new(),
-            Some(Arc::new(deployment)),
-        );
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault =
+            vault::tests::create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let instances_infos = InstanciusImpl::default()
             .get_instances_filtered(
                 Quest::new_synced("TestQuest".to_string()),
@@ -1705,12 +1740,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_ok() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -1725,12 +1762,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn get_instance_detailed_ok() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -1745,8 +1784,10 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_ok() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .once()
@@ -1756,7 +1797,7 @@ pub mod tests {
             .once()
             .withf(|_, id, _| *id == Some(RUNNING_INSTANCE))
             .returning(|_, _, _| Ok(RUNNING_INSTANCE));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -1776,13 +1817,15 @@ pub mod tests {
 
     #[tokio::test]
     async fn start_instance_err() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .once()
             .returning(|_| Err(anyhow::anyhow!("TestError")));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
             HashMap::new(),
@@ -1806,7 +1849,7 @@ pub mod tests {
         assert!(InstanciusImpl::default()
             .get_instance_config(vault, RUNNING_INSTANCE)
             .await
-            .is_some());
+            .is_ok());
     }
 
     #[tokio::test]
@@ -1815,7 +1858,7 @@ pub mod tests {
         assert!(InstanciusImpl::default()
             .get_instance_config(vault, UNKNOWN_INSTANCE_1)
             .await
-            .is_none());
+            .is_err());
     }
 
     #[tokio::test]
@@ -1830,25 +1873,25 @@ pub mod tests {
                     80,
                     TransportProtocol::Tcp
                 )
-                .await,
-            Some(Some(expected_port_mapping))
+                .await
+                .unwrap(),
+            Some(expected_port_mapping)
         );
     }
 
     #[tokio::test]
     async fn get_instance_config_port_mapping_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert_eq!(
-            InstanciusImpl::default()
-                .get_instance_config_port_mapping(
-                    vault,
-                    PORT_MAPPING_INSTANCE,
-                    1,
-                    TransportProtocol::Sctp
-                )
-                .await,
-            Some(None)
-        );
+        assert!(InstanciusImpl::default()
+            .get_instance_config_port_mapping(
+                vault,
+                PORT_MAPPING_INSTANCE,
+                1,
+                TransportProtocol::Sctp
+            )
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[tokio::test]
@@ -1857,7 +1900,7 @@ pub mod tests {
         assert!(InstanciusImpl::default()
             .get_instance_config_port_mapping(vault, UNKNOWN_INSTANCE_3, 1, TransportProtocol::Udp)
             .await
-            .is_none());
+            .is_err());
     }
 
     #[tokio::test]
@@ -1867,8 +1910,9 @@ pub mod tests {
         assert_eq!(
             InstanciusImpl::default()
                 .get_instance_config_port_mappings(vault, PORT_MAPPING_INSTANCE)
-                .await,
-            Some(expected_port_mappings)
+                .await
+                .unwrap(),
+            expected_port_mappings
         );
     }
 
@@ -1878,7 +1922,7 @@ pub mod tests {
         assert!(InstanciusImpl::default()
             .get_instance_config_port_mappings(vault, UNKNOWN_INSTANCE_3)
             .await
-            .is_none());
+            .is_err());
     }
 
     #[tokio::test]
@@ -1892,8 +1936,9 @@ pub mod tests {
                     PORT_MAPPING_INSTANCE,
                     TransportProtocol::Tcp
                 )
-                .await,
-            Some(expected_port_mappings.tcp)
+                .await
+                .unwrap(),
+            expected_port_mappings.tcp
         );
         assert_eq!(
             InstanciusImpl::default()
@@ -1902,8 +1947,9 @@ pub mod tests {
                     PORT_MAPPING_INSTANCE,
                     TransportProtocol::Udp
                 )
-                .await,
-            Some(expected_port_mappings.udp)
+                .await
+                .unwrap(),
+            expected_port_mappings.udp
         );
         assert_eq!(
             InstanciusImpl::default()
@@ -1912,8 +1958,9 @@ pub mod tests {
                     PORT_MAPPING_INSTANCE,
                     TransportProtocol::Sctp
                 )
-                .await,
-            Some(expected_port_mappings.sctp)
+                .await
+                .unwrap(),
+            expected_port_mappings.sctp
         );
     }
 
@@ -1927,7 +1974,7 @@ pub mod tests {
                 TransportProtocol::Tcp
             )
             .await
-            .is_none());
+            .is_err());
         assert!(InstanciusImpl::default()
             .get_instance_config_protocol_port_mappings(
                 vault.clone(),
@@ -1935,7 +1982,7 @@ pub mod tests {
                 TransportProtocol::Udp
             )
             .await
-            .is_none());
+            .is_err());
         assert!(InstanciusImpl::default()
             .get_instance_config_protocol_port_mappings(
                 vault.clone(),
@@ -1943,7 +1990,7 @@ pub mod tests {
                 TransportProtocol::Sctp
             )
             .await
-            .is_none());
+            .is_err());
     }
 
     #[tokio::test]
@@ -1957,23 +2004,23 @@ pub mod tests {
                     PORT_MAPPING_INSTANCE,
                     TransportProtocol::Sctp
                 )
-                .await,
-            Some(expected_port_mappings.sctp)
+                .await
+                .unwrap(),
+            expected_port_mappings.sctp
         );
-        let port_mappings = vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&PORT_MAPPING_INSTANCE)
-            .unwrap()
-            .config
-            .port_mapping
-            .clone();
+        let port_mappings = {
+            let grab = vault.reservation().reserve_instance_pouch().grab().await;
+            let Some(Instance::Docker(instance)) = grab
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&PORT_MAPPING_INSTANCE)
+            else {
+                panic!()
+            };
+            instance.config.port_mapping.clone()
+        };
         assert!(port_mappings.sctp.is_empty());
         assert!(!port_mappings.udp.is_empty());
         assert!(!port_mappings.tcp.is_empty());
@@ -1984,23 +2031,23 @@ pub mod tests {
                     PORT_MAPPING_INSTANCE,
                     TransportProtocol::Tcp
                 )
-                .await,
-            Some(expected_port_mappings.tcp)
+                .await
+                .unwrap(),
+            expected_port_mappings.tcp
         );
-        let port_mappings = vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&PORT_MAPPING_INSTANCE)
-            .unwrap()
-            .config
-            .port_mapping
-            .clone();
+        let port_mappings = {
+            let grab = vault.reservation().reserve_instance_pouch().grab().await;
+            let Some(Instance::Docker(instance)) = grab
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&PORT_MAPPING_INSTANCE)
+            else {
+                panic!()
+            };
+            instance.config.port_mapping.clone()
+        };
         assert!(port_mappings.sctp.is_empty());
         assert!(!port_mappings.udp.is_empty());
         assert!(port_mappings.tcp.is_empty());
@@ -2011,23 +2058,23 @@ pub mod tests {
                     PORT_MAPPING_INSTANCE,
                     TransportProtocol::Udp
                 )
-                .await,
-            Some(expected_port_mappings.udp)
+                .await
+                .unwrap(),
+            expected_port_mappings.udp
         );
-        let port_mappings = vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .get(&PORT_MAPPING_INSTANCE)
-            .unwrap()
-            .config
-            .port_mapping
-            .clone();
+        let port_mappings = {
+            let grab = vault.reservation().reserve_instance_pouch().grab().await;
+            let Some(Instance::Docker(instance)) = grab
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&PORT_MAPPING_INSTANCE)
+            else {
+                panic!()
+            };
+            instance.config.port_mapping.clone()
+        };
         assert!(port_mappings.sctp.is_empty());
         assert!(port_mappings.udp.is_empty());
         assert!(port_mappings.tcp.is_empty());
@@ -2043,7 +2090,7 @@ pub mod tests {
                 TransportProtocol::Tcp
             )
             .await
-            .is_none());
+            .is_err());
         assert!(InstanciusImpl::default()
             .delete_instance_config_protocol_port_mappings(
                 vault.clone(),
@@ -2051,7 +2098,7 @@ pub mod tests {
                 TransportProtocol::Udp
             )
             .await
-            .is_none());
+            .is_err());
         assert!(InstanciusImpl::default()
             .delete_instance_config_protocol_port_mappings(
                 vault.clone(),
@@ -2059,7 +2106,7 @@ pub mod tests {
                 TransportProtocol::Sctp
             )
             .await
-            .is_none());
+            .is_err());
     }
 
     #[tokio::test]
@@ -2073,39 +2120,35 @@ pub mod tests {
                 TransportProtocol::Sctp
             )
             .await
-            .is_none());
+            .is_err());
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_true() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert_eq!(
-            InstanciusImpl::default()
-                .delete_instance_config_port_mapping(
-                    vault.clone(),
-                    PORT_MAPPING_INSTANCE,
-                    80,
-                    TransportProtocol::Tcp
-                )
-                .await,
-            Some(true)
-        );
+        assert!(InstanciusImpl::default()
+            .delete_instance_config_port_mapping(
+                vault.clone(),
+                PORT_MAPPING_INSTANCE,
+                80,
+                TransportProtocol::Tcp
+            )
+            .await
+            .unwrap());
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_false() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert_eq!(
-            InstanciusImpl::default()
-                .delete_instance_config_port_mapping(
-                    vault.clone(),
-                    PORT_MAPPING_INSTANCE,
-                    80,
-                    TransportProtocol::Udp
-                )
-                .await,
-            Some(false)
-        );
+        assert!(!InstanciusImpl::default()
+            .delete_instance_config_port_mapping(
+                vault.clone(),
+                PORT_MAPPING_INSTANCE,
+                80,
+                TransportProtocol::Udp
+            )
+            .await
+            .unwrap());
     }
 
     #[tokio::test]
@@ -2119,53 +2162,51 @@ pub mod tests {
                 TransportProtocol::Sctp
             )
             .await
-            .is_none());
+            .is_err());
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_range_true() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert_eq!(
-            InstanciusImpl::default()
-                .delete_instance_config_port_mapping_range(
-                    vault.clone(),
-                    PORT_MAPPING_INSTANCE,
-                    PortRange::new(50..=100),
-                    TransportProtocol::Udp
-                )
-                .await,
-            Some(true)
-        );
+        assert!(InstanciusImpl::default()
+            .delete_instance_config_port_mapping_range(
+                vault.clone(),
+                PORT_MAPPING_INSTANCE,
+                PortRange::new(50..=100),
+                TransportProtocol::Udp
+            )
+            .await
+            .unwrap());
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_range_false() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert_eq!(
-            InstanciusImpl::default()
-                .delete_instance_config_port_mapping_range(
-                    vault.clone(),
-                    PORT_MAPPING_INSTANCE,
-                    PortRange::new(50..=60),
-                    TransportProtocol::Udp
-                )
-                .await,
-            Some(false)
-        );
+        assert!(!InstanciusImpl::default()
+            .delete_instance_config_port_mapping_range(
+                vault.clone(),
+                PORT_MAPPING_INSTANCE,
+                PortRange::new(50..=60),
+                TransportProtocol::Udp
+            )
+            .await
+            .unwrap());
     }
 
     #[tokio::test]
     async fn get_instance_config_port_mapping_range_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_port_mapping_range(
-                vault.clone(),
-                UNKNOWN_INSTANCE_2,
-                PortRange::new(20..=30),
-                TransportProtocol::Sctp
-            )
-            .await
-            .is_none());
+        assert!(matches!(
+            InstanciusImpl::default()
+                .get_instance_config_port_mapping_range(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_2,
+                    PortRange::new(20..=30),
+                    TransportProtocol::Sctp
+                )
+                .await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_2))
+        ));
     }
 
     #[tokio::test]
@@ -2179,28 +2220,28 @@ pub mod tests {
                     PortRange::new(50..=100),
                     TransportProtocol::Udp
                 )
-                .await,
-            Some(Some(PortMapping::Range {
+                .await
+                .unwrap(),
+            Some(PortMapping::Range {
                 from: PortRange::new(50..=100),
                 to: PortRange::new(150..=200)
-            }))
+            })
         );
     }
 
     #[tokio::test]
     async fn get_instance_config_port_mapping_range_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert_eq!(
-            InstanciusImpl::default()
-                .get_instance_config_port_mapping_range(
-                    vault.clone(),
-                    PORT_MAPPING_INSTANCE,
-                    PortRange::new(50..=60),
-                    TransportProtocol::Udp
-                )
-                .await,
-            Some(None)
-        );
+        assert!(InstanciusImpl::default()
+            .get_instance_config_port_mapping_range(
+                vault.clone(),
+                PORT_MAPPING_INSTANCE,
+                PortRange::new(50..=60),
+                TransportProtocol::Udp
+            )
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[tokio::test]
@@ -2269,106 +2310,95 @@ pub mod tests {
     async fn put_instance_config_protocol_port_mappings_true() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let mappings = vec![PortMapping::Single(60, 2)];
-        assert!(
-            InstanciusImpl::default()
-                .put_instance_config_protocol_port_mappings(
-                    vault.clone(),
-                    PORT_MAPPING_INSTANCE,
-                    mappings.clone(),
-                    TransportProtocol::Tcp
-                )
-                .await
-        );
-        assert!(
-            InstanciusImpl::default()
-                .put_instance_config_protocol_port_mappings(
-                    vault.clone(),
-                    PORT_MAPPING_INSTANCE,
-                    mappings.clone(),
-                    TransportProtocol::Udp
-                )
-                .await
-        );
-        assert!(
-            InstanciusImpl::default()
-                .put_instance_config_protocol_port_mappings(
-                    vault.clone(),
-                    PORT_MAPPING_INSTANCE,
-                    mappings.clone(),
-                    TransportProtocol::Sctp
-                )
-                .await
-        );
+        assert!(InstanciusImpl::default()
+            .put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                PORT_MAPPING_INSTANCE,
+                mappings.clone(),
+                TransportProtocol::Tcp
+            )
+            .await
+            .is_ok());
+        assert!(InstanciusImpl::default()
+            .put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                PORT_MAPPING_INSTANCE,
+                mappings.clone(),
+                TransportProtocol::Udp
+            )
+            .await
+            .is_ok());
+        assert!(InstanciusImpl::default()
+            .put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                PORT_MAPPING_INSTANCE,
+                mappings.clone(),
+                TransportProtocol::Sctp
+            )
+            .await
+            .is_ok());
     }
 
     #[tokio::test]
     async fn put_instance_config_protocol_port_mappings_false() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let mappings = vec![PortMapping::Single(60, 2)];
-        assert!(
-            !InstanciusImpl::default()
-                .put_instance_config_protocol_port_mappings(
-                    vault.clone(),
-                    UNKNOWN_INSTANCE_1,
-                    mappings.clone(),
-                    TransportProtocol::Tcp
-                )
-                .await
-        );
-        assert!(
-            !InstanciusImpl::default()
-                .put_instance_config_protocol_port_mappings(
-                    vault.clone(),
-                    UNKNOWN_INSTANCE_2,
-                    mappings.clone(),
-                    TransportProtocol::Udp
-                )
-                .await
-        );
-        assert!(
-            !InstanciusImpl::default()
-                .put_instance_config_protocol_port_mappings(
-                    vault.clone(),
-                    UNKNOWN_INSTANCE_3,
-                    mappings.clone(),
-                    TransportProtocol::Sctp
-                )
-                .await
-        );
+        assert!(InstanciusImpl::default()
+            .put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                UNKNOWN_INSTANCE_1,
+                mappings.clone(),
+                TransportProtocol::Tcp
+            )
+            .await
+            .is_err());
+        assert!(InstanciusImpl::default()
+            .put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                UNKNOWN_INSTANCE_2,
+                mappings.clone(),
+                TransportProtocol::Udp
+            )
+            .await
+            .is_err());
+        assert!(InstanciusImpl::default()
+            .put_instance_config_protocol_port_mappings(
+                vault.clone(),
+                UNKNOWN_INSTANCE_3,
+                mappings.clone(),
+                TransportProtocol::Sctp
+            )
+            .await
+            .is_err());
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mappings_false() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(
-            !InstanciusImpl::default()
-                .delete_instance_config_port_mappings(vault, UNKNOWN_INSTANCE_2)
-                .await
-        )
+        assert!(InstanciusImpl::default()
+            .delete_instance_config_port_mappings(vault, UNKNOWN_INSTANCE_2)
+            .await
+            .is_err())
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mappings_true() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(
-            InstanciusImpl::default()
-                .delete_instance_config_port_mappings(vault.clone(), PORT_MAPPING_INSTANCE)
-                .await
-        );
-        assert!(vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
+        assert!(InstanciusImpl::default()
+            .delete_instance_config_port_mappings(vault.clone(), PORT_MAPPING_INSTANCE)
             .await
+            .is_ok());
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
             .instance_pouch
             .as_ref()
             .unwrap()
             .gems()
             .get(&PORT_MAPPING_INSTANCE)
-            .unwrap()
-            .config
-            .port_mapping
-            .is_empty())
+        else {
+            panic!()
+        };
+        assert!(instance.config.port_mapping.is_empty())
     }
 
     #[tokio::test]
@@ -2381,22 +2411,21 @@ pub mod tests {
                 "".to_string()
             )
             .await
-            .is_none());
+            .is_err());
     }
 
     #[tokio::test]
     async fn get_instance_config_environment_variable_value_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(matches!(
-            InstanciusImpl::default()
-                .get_instance_config_environment_variable_value(
-                    vault,
-                    ENV_INSTANCE,
-                    "VAR_3".to_string()
-                )
-                .await,
-            Some(None)
-        ));
+        assert!(InstanciusImpl::default()
+            .get_instance_config_environment_variable_value(
+                vault,
+                ENV_INSTANCE,
+                "VAR_3".to_string()
+            )
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[tokio::test]
@@ -2409,8 +2438,9 @@ pub mod tests {
                     ENV_INSTANCE,
                     "VAR_2".to_string()
                 )
-                .await,
-            Some(Some(Some("value".to_string())))
+                .await
+                .unwrap(),
+            Some(Some("value".to_string()))
         );
         assert_eq!(
             InstanciusImpl::default()
@@ -2419,8 +2449,9 @@ pub mod tests {
                     ENV_INSTANCE,
                     "VAR_1".to_string()
                 )
-                .await,
-            Some(Some(None))
+                .await
+                .unwrap(),
+            Some(None)
         );
     }
 
@@ -2437,7 +2468,7 @@ pub mod tests {
                 }
             )
             .await
-            .is_none());
+            .is_err());
     }
 
     #[tokio::test]
@@ -2447,32 +2478,27 @@ pub mod tests {
             name: "VAR_3".to_string(),
             value: Some("test-value".to_string()),
         };
-        assert!(matches!(
-            InstanciusImpl::default()
-                .put_instance_config_environment_variable_value(
-                    vault.clone(),
-                    ENV_INSTANCE,
-                    new_environment_variable.clone(),
-                )
-                .await,
-            Some(None)
-        ));
+        assert!(InstanciusImpl::default()
+            .put_instance_config_environment_variable_value(
+                vault.clone(),
+                ENV_INSTANCE,
+                new_environment_variable.clone(),
+            )
+            .await
+            .unwrap()
+            .is_none());
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&ENV_INSTANCE)
+        else {
+            panic!()
+        };
         assert_eq!(
-            vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&ENV_INSTANCE)
-                .unwrap()
-                .config
-                .environment_variables
-                .get(2)
-                .cloned(),
+            instance.config.environment_variables.get(2).cloned(),
             Some(new_environment_variable),
         );
     }
@@ -2491,25 +2517,22 @@ pub mod tests {
                     ENV_INSTANCE,
                     new_environment_variable.clone(),
                 )
-                .await,
-            Some(Some("value".to_string()))
-        );
-        assert_eq!(
-            vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
                 .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&ENV_INSTANCE)
-                .unwrap()
-                .config
-                .environment_variables
-                .get(1)
-                .cloned(),
+                .unwrap(),
+            Some("value".to_string())
+        );
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&ENV_INSTANCE)
+        else {
+            panic!()
+        };
+        assert_eq!(
+            instance.config.environment_variables.get(1).cloned(),
             Some(new_environment_variable),
         );
     }
@@ -2517,14 +2540,16 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_environment_variable_value_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_environment_variable_value(
-                vault,
-                UNKNOWN_INSTANCE_1,
-                "".to_string()
-            )
-            .await
-            .is_none());
+        assert!(matches!(
+            InstanciusImpl::default()
+                .delete_instance_config_environment_variable_value(
+                    vault,
+                    UNKNOWN_INSTANCE_1,
+                    "".to_string()
+                )
+                .await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_1))
+        ));
     }
 
     #[tokio::test]
@@ -2538,7 +2563,7 @@ pub mod tests {
                     "VAR_3".to_string()
                 )
                 .await,
-            Some(None)
+            Ok(None)
         ));
     }
 
@@ -2556,8 +2581,9 @@ pub mod tests {
                     ENV_INSTANCE,
                     "VAR_2".to_string()
                 )
-                .await,
-            Some(Some(expected_environment_variable))
+                .await
+                .unwrap(),
+            Some(expected_environment_variable)
         );
         let expected_environment_variable = EnvironmentVariable {
             name: "VAR_1".to_string(),
@@ -2570,32 +2596,32 @@ pub mod tests {
                     ENV_INSTANCE,
                     "VAR_1".to_string()
                 )
-                .await,
-            Some(Some(expected_environment_variable))
+                .await
+                .unwrap(),
+            Some(expected_environment_variable)
         );
-        assert!(vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
             .instance_pouch
             .as_ref()
             .unwrap()
             .gems()
             .get(&ENV_INSTANCE)
-            .unwrap()
-            .config
-            .environment_variables
-            .is_empty());
+        else {
+            panic!()
+        };
+        assert!(instance.config.environment_variables.is_empty());
     }
 
     #[tokio::test]
     async fn get_instance_config_environment_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_environment(vault.clone(), UNKNOWN_INSTANCE_1)
-            .await
-            .is_none());
+        assert!(matches!(
+            InstanciusImpl::default()
+                .get_instance_config_environment(vault.clone(), UNKNOWN_INSTANCE_1)
+                .await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_1))
+        ));
     }
 
     #[tokio::test]
@@ -2604,34 +2630,31 @@ pub mod tests {
         let result = InstanciusImpl::default()
             .get_instance_config_environment(vault.clone(), ENV_INSTANCE)
             .await;
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&ENV_INSTANCE)
+        else {
+            panic!()
+        };
         assert_eq!(
-            result,
-            Some(
-                vault
-                    .reservation()
-                    .reserve_instance_pouch()
-                    .grab()
-                    .await
-                    .instance_pouch
-                    .as_ref()
-                    .unwrap()
-                    .gems()
-                    .get(&ENV_INSTANCE)
-                    .unwrap()
-                    .config
-                    .environment_variables
-                    .clone()
-            )
+            result.unwrap(),
+            instance.config.environment_variables.clone()
         );
     }
 
     #[tokio::test]
     async fn put_instance_config_environment_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .put_instance_config_environment(vault.clone(), UNKNOWN_INSTANCE_1, Vec::new())
-            .await
-            .is_none());
+        assert!(matches!(
+            InstanciusImpl::default()
+                .put_instance_config_environment(vault.clone(), UNKNOWN_INSTANCE_1, Vec::new())
+                .await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_1))
+        ));
     }
 
     #[tokio::test]
@@ -2641,22 +2664,19 @@ pub mod tests {
             name: "Test".to_string(),
             value: None,
         }];
-        let expected_result = Some(
-            vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
+        let expected_result = {
+            let grab = vault.reservation().reserve_instance_pouch().grab().await;
+            let Some(Instance::Docker(instance)) = grab
                 .instance_pouch
                 .as_ref()
                 .unwrap()
                 .gems()
                 .get(&ENV_INSTANCE)
-                .unwrap()
-                .config
-                .environment_variables
-                .clone(),
-        );
+            else {
+                panic!()
+            };
+            instance.config.environment_variables.clone()
+        };
         assert_eq!(
             InstanciusImpl::default()
                 .put_instance_config_environment(
@@ -2664,95 +2684,92 @@ pub mod tests {
                     ENV_INSTANCE,
                     new_environment.clone()
                 )
-                .await,
+                .await
+                .unwrap(),
             expected_result
         );
-        assert_eq!(
-            vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&ENV_INSTANCE)
-                .unwrap()
-                .config
-                .environment_variables,
-            new_environment
-        );
-    }
-
-    #[tokio::test]
-    async fn delete_instance_config_environment_none() {
-        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_environment(vault.clone(), UNKNOWN_INSTANCE_1)
-            .await
-            .is_none());
-    }
-
-    #[tokio::test]
-    async fn delete_instance_config_environment_some() {
-        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        let expected_result = Some(
-            vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&ENV_INSTANCE)
-                .unwrap()
-                .config
-                .environment_variables
-                .clone(),
-        );
-        assert_eq!(
-            InstanciusImpl::default()
-                .delete_instance_config_environment(vault.clone(), ENV_INSTANCE)
-                .await,
-            expected_result
-        );
-        assert!(vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
             .instance_pouch
             .as_ref()
             .unwrap()
             .gems()
             .get(&ENV_INSTANCE)
+        else {
+            panic!()
+        };
+        assert_eq!(instance.config.environment_variables, new_environment);
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_none() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        assert!(matches!(
+            InstanciusImpl::default()
+                .delete_instance_config_environment(vault.clone(), UNKNOWN_INSTANCE_1)
+                .await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_1))
+        ));
+    }
+
+    #[tokio::test]
+    async fn delete_instance_config_environment_some() {
+        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        let expected_result = {
+            let grab = vault.reservation().reserve_instance_pouch().grab().await;
+            let Some(Instance::Docker(instance)) = grab
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(&ENV_INSTANCE)
+            else {
+                panic!()
+            };
+            instance.config.environment_variables.clone()
+        };
+        assert_eq!(
+            InstanciusImpl::default()
+                .delete_instance_config_environment(vault.clone(), ENV_INSTANCE)
+                .await
+                .unwrap(),
+            expected_result
+        );
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
+            .instance_pouch
+            .as_ref()
             .unwrap()
-            .config
-            .environment_variables
-            .is_empty());
+            .gems()
+            .get(&ENV_INSTANCE)
+        else {
+            panic!()
+        };
+        assert!(instance.config.environment_variables.is_empty());
     }
 
     #[tokio::test]
     async fn get_instance_config_networks_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_networks(vault, UNKNOWN_INSTANCE_2)
-            .await
-            .is_none());
+        assert!(matches!(
+            InstanciusImpl::default()
+                .get_instance_config_networks(vault, UNKNOWN_INSTANCE_2)
+                .await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_2))
+        ));
     }
 
     #[tokio::test]
     async fn get_instance_config_networks_some() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert_eq!(
-            InstanciusImpl::default()
-                .get_instance_config_networks(vault, NETWORK_INSTANCE)
-                .await,
-            Some(network_instance().config.connected_networks)
-        );
+        let result = InstanciusImpl::default()
+            .get_instance_config_networks(vault, NETWORK_INSTANCE)
+            .await
+            .unwrap();
+        let InstanceDeserializable::Docker(instance) = network_instance() else {
+            panic!()
+        };
+        assert_eq!(result, instance.config.connected_networks);
     }
 
     #[tokio::test]
@@ -2818,7 +2835,7 @@ pub mod tests {
     #[tokio::test]
     async fn disconnect_instance_from_network_unknown_network() {
         let network = "unknown-net".to_string();
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
             .with(predicate::eq(NETWORK_INSTANCE))
@@ -2832,8 +2849,10 @@ pub mod tests {
                 predicate::eq(NETWORK_INSTANCE),
             )
             .returning(|_, _, _| Ok(()));
-        deployment.expect_id().return_const("MockedDeployment");
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(NETWORK_INSTANCE, deployment)]),
             HashMap::new(),
@@ -2852,7 +2871,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn disconnect_instance_from_network_some() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
             .with(predicate::eq(NETWORK_INSTANCE))
@@ -2875,8 +2894,10 @@ pub mod tests {
                 predicate::eq(NETWORK_INSTANCE),
             )
             .returning(|_, _, _| Ok(()));
-        deployment.expect_id().return_const("MockedDeployment");
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(NETWORK_INSTANCE, deployment)]),
             HashMap::new(),
@@ -3089,21 +3110,22 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_usb_devices_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_usb_devices(vault, UNKNOWN_INSTANCE_1)
-            .await
-            .is_none(),);
+        assert!(matches!(
+            InstanciusImpl::default()
+                .delete_instance_usb_devices(vault, UNKNOWN_INSTANCE_1)
+                .await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_1))
+        ));
     }
 
     #[tokio::test]
     async fn delete_instance_usb_devices_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(matches!(
-            InstanciusImpl::default()
-                .delete_instance_usb_device(vault, USB_DEV_INSTANCE, "unknown_port".to_string())
-                .await,
-            Some(None)
-        ));
+        assert!(InstanciusImpl::default()
+            .delete_instance_usb_device(vault, USB_DEV_INSTANCE, "unknown_port".to_string())
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[tokio::test]
@@ -3112,30 +3134,28 @@ pub mod tests {
         assert_eq!(
             InstanciusImpl::default()
                 .delete_instance_usb_devices(vault.clone(), USB_DEV_INSTANCE)
-                .await,
-            Some(HashMap::from([(
+                .await
+                .unwrap(),
+            HashMap::from([(
                 "test_port".to_string(),
                 UsbPathConfig {
                     port: "test_port".to_string(),
                     bus_num: 10,
                     dev_num: 20,
                 }
-            )]))
+            )])
         );
-        assert!(vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
             .instance_pouch
             .as_ref()
             .unwrap()
             .gems()
             .get(&USB_DEV_INSTANCE)
-            .unwrap()
-            .config
-            .usb_devices
-            .is_empty());
+        else {
+            panic!()
+        };
+        assert!(instance.config.usb_devices.is_empty());
     }
 
     #[tokio::test]
@@ -3144,18 +3164,17 @@ pub mod tests {
         assert!(InstanciusImpl::default()
             .delete_instance_usb_device(vault, UNKNOWN_INSTANCE_1, "test_port".to_string())
             .await
-            .is_none(),);
+            .is_err());
     }
 
     #[tokio::test]
     async fn delete_instance_usb_device_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(matches!(
-            InstanciusImpl::default()
-                .delete_instance_usb_device(vault, USB_DEV_INSTANCE, "unknown_port".to_string())
-                .await,
-            Some(None)
-        ));
+        assert!(InstanciusImpl::default()
+            .delete_instance_usb_device(vault, USB_DEV_INSTANCE, "unknown_port".to_string())
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[tokio::test]
@@ -3168,27 +3187,25 @@ pub mod tests {
                     USB_DEV_INSTANCE,
                     "test_port".to_string()
                 )
-                .await,
-            Some(Some(UsbPathConfig {
+                .await
+                .unwrap(),
+            Some(UsbPathConfig {
                 port: "test_port".to_string(),
                 bus_num: 10,
                 dev_num: 20,
-            }))
+            })
         );
-        assert!(vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
             .instance_pouch
             .as_ref()
             .unwrap()
             .gems()
             .get(&USB_DEV_INSTANCE)
-            .unwrap()
-            .config
-            .usb_devices
-            .is_empty());
+        else {
+            panic!()
+        };
+        assert!(instance.config.usb_devices.is_empty());
     }
 
     #[tokio::test]
@@ -3492,18 +3509,18 @@ pub mod tests {
             PutInstanceUsbDeviceResult::DeviceMappingCreated
         );
 
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&USB_DEV_INSTANCE)
+        else {
+            panic!()
+        };
         assert_eq!(
-            vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&USB_DEV_INSTANCE)
-                .unwrap()
+            instance
                 .config
                 .usb_devices
                 .get(&"new_port".to_string())
@@ -3558,21 +3575,18 @@ pub mod tests {
                 dev_num: 20
             })
         );
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let Some(Instance::Docker(instance)) = grab
+            .instance_pouch
+            .as_ref()
+            .unwrap()
+            .gems()
+            .get(&USB_DEV_INSTANCE)
+        else {
+            panic!()
+        };
         assert_eq!(
-            vault
-                .reservation()
-                .reserve_instance_pouch()
-                .grab()
-                .await
-                .instance_pouch
-                .as_ref()
-                .unwrap()
-                .gems()
-                .get(&USB_DEV_INSTANCE)
-                .unwrap()
-                .config
-                .usb_devices
-                .clone(),
+            instance.config.usb_devices.clone(),
             HashMap::from([(
                 "test_port".to_string(),
                 UsbPathConfig {
@@ -3620,8 +3634,10 @@ pub mod tests {
 
     #[tokio::test]
     async fn redirect_editor_request_no_reverse_proxy_support() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .once()
@@ -3632,7 +3648,7 @@ pub mod tests {
                 ..Network::default()
             })
         });
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(EDITOR_INSTANCE, deployment)]),
             HashMap::new(),
@@ -3678,13 +3694,15 @@ pub mod tests {
 
     #[tokio::test]
     async fn redirect_editor_request_instance_stopped() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .once()
             .returning(|_| Ok(InstanceStatus::Stopped));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(EDITOR_INSTANCE, deployment)]),
             HashMap::new(),
@@ -3707,8 +3725,10 @@ pub mod tests {
 
     #[tokio::test]
     async fn redirect_editor_request_not_connected_to_network() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .once()
@@ -3719,7 +3739,7 @@ pub mod tests {
                 ..Network::default()
             })
         });
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(EDITOR_INSTANCE, deployment)]),
             HashMap::new(),
@@ -3760,13 +3780,15 @@ pub mod tests {
 
     #[tokio::test]
     async fn redirect_editor_request_err() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .once()
             .returning(|_| Err(anyhow::anyhow!("TestError")));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(EDITOR_INSTANCE, deployment)]),
             HashMap::new(),
@@ -3886,8 +3908,10 @@ pub mod tests {
             ..Default::default()
         };
         let expected_network = network.clone();
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .with(predicate::eq(NETWORK_INSTANCE))
@@ -3916,7 +3940,7 @@ pub mod tests {
                 predicate::eq(NETWORK_INSTANCE),
             )
             .returning(|_, _, _, _| Ok(()));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::from([(NETWORK_INSTANCE, deployment)]),
             HashMap::new(),
@@ -3994,8 +4018,9 @@ pub mod tests {
 
     #[tokio::test]
     async fn connect_instance_to_network_err_address_out_of_range() {
-        const NETWORK_NAME: &str = "test-network";
+        const NETWORK_NAME: &str = "new-test-network";
         let ip_address = Ipv4Addr::new(10, 4, 0, 2);
+        let mut deployment = MockedDockerDeployment::new();
         let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
         let gateway = Ipv4Addr::new(10, 20, 124, 1);
         let network = Network {
@@ -4010,7 +4035,6 @@ pub mod tests {
             }),
             ..Default::default()
         };
-        let mut deployment = MockedDeployment::new();
         deployment
             .expect_id()
             .return_const("MockDeployment".to_string());
@@ -4019,7 +4043,7 @@ pub mod tests {
             .once()
             .with(predicate::eq(NETWORK_NAME.to_string()))
             .returning(move |_| Ok(Some(network.clone())));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::from([(NETWORK_INSTANCE, deployment)]),
             HashMap::new(),
@@ -4043,7 +4067,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn connect_instance_to_network_err_no_free_address() {
-        const NETWORK_NAME: &str = "test-network";
+        const NETWORK_NAME: &str = "new-test-network";
         let network = Ipv4Network::from_str("10.20.0.0/28").unwrap();
         let gateway = Ipv4Addr::new(10, 20, 0, 2);
         let network = Network {
@@ -4059,7 +4083,7 @@ pub mod tests {
             ..Default::default()
         };
         let network_access = network_access_from_network(&network).unwrap();
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
             .return_const("MockDeployment".to_string());
@@ -4068,7 +4092,7 @@ pub mod tests {
             .once()
             .with(predicate::eq(NETWORK_NAME.to_string()))
             .returning(move |_| Ok(Some(network.clone())));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::from([(NETWORK_INSTANCE, deployment)]),
             HashMap::new(),
@@ -4148,8 +4172,10 @@ pub mod tests {
             }),
             ..Default::default()
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
             .with(predicate::eq(NETWORK_INSTANCE))
@@ -4178,7 +4204,7 @@ pub mod tests {
                 predicate::eq(NETWORK_INSTANCE),
             )
             .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::from([(NETWORK_INSTANCE, deployment)]),
             HashMap::new(),
@@ -4196,32 +4222,11 @@ pub mod tests {
     #[tokio::test]
     async fn connect_instance_to_network_err_already_connected() {
         const NETWORK_NAME: &str = "test-network";
-        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
-        let gateway = Ipv4Addr::new(10, 20, 0, 1);
-        let network = Network {
-            name: Some(NETWORK_NAME.to_string()),
-            ipam: Some(Ipam {
-                config: Some(vec![IpamConfig {
-                    subnet: Some(network.to_string()),
-                    gateway: Some(gateway.to_string()),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_instance_status()
-            .with(predicate::eq(NETWORK_INSTANCE))
-            .returning(|_| Ok(InstanceStatus::Running));
-        deployment
-            .expect_network()
-            .once()
-            .with(predicate::eq(NETWORK_NAME.to_string()))
-            .returning(move |_| Ok(Some(network.clone())));
-        let deployment: Arc<dyn Deployment> = Arc::new(deployment);
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::from([(NETWORK_INSTANCE, deployment)]),
             HashMap::new(),
@@ -4241,10 +4246,12 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_volume_mounts_none() {
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_volume_mounts(vault, UNKNOWN_INSTANCE_3)
-            .await
-            .is_none())
+        assert!(matches!(
+            InstanciusImpl::default()
+                .get_instance_config_volume_mounts(vault, UNKNOWN_INSTANCE_3)
+                .await,
+            Err(QueryInstanceConfigError::NotFound(UNKNOWN_INSTANCE_3))
+        ))
     }
 
     #[tokio::test]

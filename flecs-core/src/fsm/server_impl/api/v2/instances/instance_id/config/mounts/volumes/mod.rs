@@ -1,7 +1,7 @@
 pub mod volume_name;
 use crate::jeweler::gem::instance::InstanceId;
-use crate::jeweler::gem::manifest::VolumeMount;
-use crate::sorcerer::instancius::Instancius;
+use crate::jeweler::gem::manifest::single::VolumeMount;
+use crate::sorcerer::instancius::{Instancius, QueryInstanceConfigError};
 use crate::vault::Vault;
 pub use flecsd_axum_server::apis::instances::InstancesInstanceIdConfigMountsVolumesGetResponse as GetResponse;
 use flecsd_axum_server::models;
@@ -19,8 +19,11 @@ pub async fn get<I: Instancius>(
         .get_instance_config_volume_mounts(vault, instance_id)
         .await
     {
-        None => GetResponse::Status404_InstanceNotFound,
-        Some(volumes) => GetResponse::Status200_Success(
+        Err(QueryInstanceConfigError::NotFound(_)) => GetResponse::Status404_InstanceNotFound,
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            GetResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(volumes) => GetResponse::Status200_Success(
             volumes
                 .into_iter()
                 .map(models::InstanceDetailVolume::from)
@@ -55,7 +58,7 @@ mod tests {
             .expect_get_instance_config_volume_mounts()
             .once()
             .with(predicate::always(), predicate::eq(INSTANCE_ID))
-            .returning(|_, _| None);
+            .returning(|_, _| Err(QueryInstanceConfigError::NotFound(INSTANCE_ID)));
         assert_eq!(
             get(
                 vault,
@@ -79,7 +82,7 @@ mod tests {
             .once()
             .with(predicate::always(), predicate::eq(INSTANCE_ID))
             .returning(|_, _| {
-                Some(vec![
+                Ok(vec![
                     VolumeMount {
                         name: "volume-1".to_string(),
                         container_path: PathBuf::from("/config/v1"),

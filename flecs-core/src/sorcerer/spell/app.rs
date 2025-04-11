@@ -36,10 +36,11 @@ pub async fn uninstall_app(quest: SyncQuest, vault: Arc<Vault>, key: AppKey) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::app::AppInfo;
-    use crate::jeweler::deployment::tests::MockedDeployment;
     use crate::jeweler::gem::app::{App, AppData};
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::jeweler::gem::deployment::Deployment;
     use crate::quest::Quest;
+    use crate::vault::pouch::manifest::tests::min_app_1_0_0_manifest;
     use crate::vault::tests::create_empty_test_vault;
 
     #[tokio::test]
@@ -58,25 +59,24 @@ mod tests {
 
     #[tokio::test]
     async fn uninstall_app_error() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_app_info()
-            .times(1)
-            .returning(|_, _| Ok(AppInfo::default()));
+            .expect_is_app_installed()
+            .once()
+            .returning(|_, _, _| Ok(true));
         deployment
             .expect_uninstall_app()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
         deployment
             .expect_id()
-            .returning(|| "MockedDeployment".to_string());
-        let mut app_data = AppData::new(Arc::new(deployment));
+            .return_const("MockedDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let manifest = min_app_1_0_0_manifest();
+        let mut app_data = AppData::new(deployment);
         app_data.set_id("TestAppId".to_string());
-        let key = AppKey {
-            name: "TestApp".to_string(),
-            version: "1.2.3".to_string(),
-        };
-        let mut app = App::new(key.clone(), Vec::new());
+        let key = manifest.key().clone();
+        let mut app = App::new(key.clone(), Vec::new(), manifest);
         app.deployments
             .insert("Mocked_deployment".to_string(), app_data);
         let vault = create_empty_test_vault();
@@ -96,25 +96,24 @@ mod tests {
 
     #[tokio::test]
     async fn uninstall_app_ok() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_app_info()
-            .times(1)
-            .returning(|_, _| Ok(AppInfo::default()));
+            .expect_is_app_installed()
+            .once()
+            .returning(|_, _, _| Ok(true));
         deployment
             .expect_uninstall_app()
             .times(1)
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         deployment
             .expect_id()
-            .returning(|| "MockedDeployment".to_string());
-        let mut app_data = AppData::new(Arc::new(deployment));
+            .return_const("MockedDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let manifest = min_app_1_0_0_manifest();
+        let mut app_data = AppData::new(deployment);
         app_data.set_id("TestAppId".to_string());
-        let key = AppKey {
-            name: "TestApp".to_string(),
-            version: "1.2.3".to_string(),
-        };
-        let mut app = App::new(key.clone(), Vec::new());
+        let key = manifest.key().clone();
+        let mut app = App::new(key.clone(), Vec::new(), manifest);
         app.deployments
             .insert("Mocked_deployment".to_string(), app_data);
         let vault = create_empty_test_vault();

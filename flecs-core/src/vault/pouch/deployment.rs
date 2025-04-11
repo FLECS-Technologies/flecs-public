@@ -1,44 +1,21 @@
 pub use super::Result;
-use crate::jeweler;
-use crate::jeweler::deployment::Deployment as DeploymentTrait;
-use crate::jeweler::gem::deployment::docker::DockerDeployment;
+use crate::jeweler::gem::deployment::Deployment;
+use crate::jeweler::gem::deployment::SerializedDeployment;
 use crate::relic::serde::SerdeIteratorAdapter;
 use crate::vault::pouch::Pouch;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-#[serde(tag = "type")]
-pub enum Deployment {
-    Docker(DockerDeployment),
-}
-
-impl Default for Deployment {
-    fn default() -> Self {
-        Self::Docker(DockerDeployment::new_default(
-            "DefaultDockerDeployment".to_string(),
-            PathBuf::from("/var/run/docker.sock"),
-        ))
-    }
-}
-
-impl From<Deployment> for Arc<dyn DeploymentTrait> {
-    fn from(value: Deployment) -> Self {
-        match value {
-            Deployment::Docker(d) => Arc::new(d),
-        }
-    }
-}
+use tracing::error;
 
 pub type DeploymentId = String;
-pub type Gems = HashMap<DeploymentId, Arc<dyn DeploymentTrait>>;
+pub type Gems = HashMap<DeploymentId, Deployment>;
+
 #[derive(Debug)]
 pub struct DeploymentPouch {
     deployments: Gems,
-    default_deployment_id: Option<DeploymentId>,
+    default_docker_deployment_id: Option<DeploymentId>,
+    default_compose_deployment_id: Option<DeploymentId>,
     path: PathBuf,
 }
 
@@ -56,7 +33,7 @@ impl Pouch for DeploymentPouch {
 
 impl DeploymentPouch {
     pub(in super::super) fn close(&mut self) -> Result<()> {
-        self.set_default_deployment();
+        self.set_default_deployments();
         fs::create_dir_all(&self.path)?;
         let file = fs::File::create(self.deployments_path())?;
         serde_json::to_writer_pretty(file, &SerdeIteratorAdapter::new(self.deployments.values()))?;
@@ -64,52 +41,90 @@ impl DeploymentPouch {
     }
 
     pub(in super::super) fn open(&mut self) -> Result<()> {
-        let deployments = Self::read_deployments(&self.deployments_path())?;
+        let path = self.deployments_path();
+        let deployments = match Self::read_deployments(&path) {
+            Ok(deployments) => deployments,
+            Err(e) => {
+                error!("Failed to read deployments from {path:?}: {e}");
+                return Err(e);
+            }
+        };
         self.deployments = deployments
             .into_iter()
-            .map(|d| {
-                let id = d.id();
-                let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(match d {
-                    Deployment::Docker(d) => d,
-                });
-                (id, deployment)
-            })
+            .map(|d| (d.id().clone(), d))
             .collect();
-        self.set_default_deployment();
+        self.set_default_deployments();
         Ok(())
     }
-}
 
-impl Deployment {
-    pub fn id(&self) -> DeploymentId {
-        match self {
-            Self::Docker(deployment) => deployment.id().clone(),
-        }
-    }
-}
-
-impl DeploymentPouch {
     pub fn new(path: &Path) -> DeploymentPouch {
         Self {
             deployments: Default::default(),
             path: path.to_path_buf(),
-            default_deployment_id: Default::default(),
+            default_docker_deployment_id: Default::default(),
+            default_compose_deployment_id: Default::default(),
         }
     }
 
-    pub fn default_deployment(&self) -> Option<Arc<dyn DeploymentTrait>> {
+    pub fn default_compose_deployment(&self) -> Option<Deployment> {
         self.deployments
-            .get(self.default_deployment_id.as_ref()?)
+            .get(self.default_compose_deployment_id.as_ref()?)
             .cloned()
     }
 
-    pub fn set_default_deployment(&mut self) {
-        self.default_deployment_id = self
+    pub fn default_docker_deployment(&self) -> Option<Deployment> {
+        self.deployments
+            .get(self.default_docker_deployment_id.as_ref()?)
+            .cloned()
+    }
+
+    pub fn set_default_deployments(&mut self) {
+        self.set_default_docker_deployment();
+        self.set_default_compose_deployment();
+    }
+
+    pub fn set_default_docker_deployment(&mut self) {
+        let mut docker_deployments = self
             .deployments
             .values()
-            .find(|deployment| deployment.is_default())
-            .or_else(|| self.deployments.values().next())
-            .map(|deployment| deployment.id())
+            .filter_map(|deployment| match deployment {
+                Deployment::Docker(docker) => Some(docker),
+                _ => None,
+            })
+            .peekable();
+        let mut id = docker_deployments.peek().map(|deployment| deployment.id());
+        if let Some(default_id) = docker_deployments.find_map(|deployment| {
+            if deployment.is_default() {
+                Some(deployment.id())
+            } else {
+                None
+            }
+        }) {
+            id = Some(default_id);
+        }
+        self.default_docker_deployment_id = id.cloned();
+    }
+
+    pub fn set_default_compose_deployment(&mut self) {
+        let mut compose_deployments = self
+            .deployments
+            .values()
+            .filter_map(|deployment| match deployment {
+                Deployment::Compose(compose) => Some(compose),
+                _ => None,
+            })
+            .peekable();
+        let mut id = compose_deployments.peek().map(|deployment| deployment.id());
+        if let Some(default_id) = compose_deployments.find_map(|deployment| {
+            if deployment.is_default() {
+                Some(deployment.id())
+            } else {
+                None
+            }
+        }) {
+            id = Some(default_id);
+        }
+        self.default_compose_deployment_id = id.cloned();
     }
 
     fn deployments_path(&self) -> PathBuf {
@@ -119,7 +134,12 @@ impl DeploymentPouch {
     fn read_deployments(path: &Path) -> Result<Vec<Deployment>> {
         match path.try_exists() {
             Ok(false) => Ok(Vec::new()),
-            _ => Ok(serde_json::from_reader(fs::File::open(path)?)?),
+            _ => {
+                let deployments: Vec<SerializedDeployment> =
+                    serde_json::from_reader(fs::File::open(path)?)?;
+                let deployments = deployments.into_iter().map(Into::into).collect();
+                Ok(deployments)
+            }
         }
     }
 }
@@ -127,30 +147,31 @@ impl DeploymentPouch {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::jeweler::deployment::tests::MockedDeployment;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
     use crate::tests::prepare_test_path;
     use serde_json::json;
     use std::path::Path;
+    use std::sync::Arc;
     use testdir::testdir;
 
-    pub fn test_deployment_pouch(
-        default_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
-    ) -> DeploymentPouch {
+    pub fn test_deployment_pouch(default_deployment: Option<Deployment>) -> DeploymentPouch {
         let deployment = default_deployment.unwrap_or_else(|| {
-            let mut deployment = MockedDeployment::new();
+            let mut deployment = MockedDockerDeployment::new();
             deployment
                 .expect_id()
-                .returning(|| "DefaultMockedDeploymentId".to_string());
+                .return_const("DefaultMockedDeploymentId".to_string());
             deployment.expect_is_default().return_const(true);
-            Arc::new(deployment)
+            Deployment::Docker(Arc::new(deployment))
         });
-        let default_deployment_id = Some(deployment.id());
-        let deployments: HashMap<String, Arc<dyn crate::jeweler::deployment::Deployment>> =
-            HashMap::from([(deployment.id(), deployment)]);
+        let default_docker_deployment_id = Some(deployment.id().clone());
+        let deployments: HashMap<String, Deployment> =
+            HashMap::from([(deployment.id().clone(), deployment)]);
         DeploymentPouch {
             path: testdir!().join("deployments"),
             deployments,
-            default_deployment_id,
+            default_docker_deployment_id,
+            default_compose_deployment_id: None,
         }
     }
 
@@ -198,16 +219,17 @@ pub mod tests {
 
     #[test]
     fn deployment_gems() {
-        let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(DockerDeployment::new(
+        let deployment = Deployment::Docker(Arc::new(DockerDeploymentImpl::new(
             TEST_DEPLOYMENT_ID.to_string(),
             PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-        ));
-        let default_deployment_id = Some(deployment.id());
+        )));
+        let default_docker_deployment_id = Some(deployment.id().clone());
         let gems = HashMap::from([(TEST_DEPLOYMENT_ID.to_string(), deployment)]);
         let mut deployment_pouch = DeploymentPouch {
             deployments: gems,
             path: prepare_test_path(module_path!(), "gems"),
-            default_deployment_id,
+            default_docker_deployment_id,
+            default_compose_deployment_id: None,
         };
         assert_eq!(deployment_pouch.gems().len(), 1);
         assert_eq!(
@@ -259,15 +281,16 @@ pub mod tests {
     async fn close_deployment_pouch() {
         let path = prepare_test_path(module_path!(), "close_pouch").join("deployments.json");
         let json = test_deployment_json();
-        let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(DockerDeployment::new(
+        let deployment = Deployment::Docker(Arc::new(DockerDeploymentImpl::new(
             TEST_DEPLOYMENT_ID.to_string(),
             PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-        ));
-        let default_deployment_id = Some(deployment.id());
+        )));
+        let default_docker_deployment_id = Some(deployment.id().clone());
         let mut deployment_pouch = DeploymentPouch {
             deployments: HashMap::from([(TEST_DEPLOYMENT_ID.to_string(), deployment)]),
             path: path.parent().unwrap().to_path_buf(),
-            default_deployment_id,
+            default_docker_deployment_id,
+            default_compose_deployment_id: None,
         };
         deployment_pouch.close().unwrap();
         let file_content: serde_json::Value =
@@ -281,51 +304,37 @@ pub mod tests {
 
         let json = serde_json::to_string(&test_deployments_json()).unwrap();
         fs::write(&path, json).unwrap();
-        assert_eq!(
-            DeploymentPouch::read_deployments(&path).unwrap(),
-            vec![
-                Deployment::Docker(DockerDeployment::new(
-                    "test1".to_string(),
-                    PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                )),
-                Deployment::Docker(DockerDeployment::new(
-                    "test2".to_string(),
-                    PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                )),
-                Deployment::Docker(DockerDeployment::new(
-                    "test3".to_string(),
-                    PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                )),
-                Deployment::Docker(DockerDeployment::new(
-                    "test4".to_string(),
-                    PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
-                ))
-            ]
-        );
+        let deployments = DeploymentPouch::read_deployments(&path).unwrap();
+        assert_eq!(deployments.len(), 4);
+        for (i, deployment) in deployments.iter().enumerate() {
+            assert_eq!(deployment.id(), &format!("test{}", i + 1));
+        }
     }
 
     #[test]
     fn get_default_deployment_no_id() {
-        let deployment: Arc<dyn jeweler::deployment::Deployment> =
-            Arc::new(MockedDeployment::new());
+        let deployment = Deployment::Docker(Arc::new(MockedDockerDeployment::new()));
         let pouch = DeploymentPouch {
             path: testdir!(),
-            default_deployment_id: None,
+            default_docker_deployment_id: None,
+            default_compose_deployment_id: None,
             deployments: HashMap::from([("MockDeployment".to_string(), deployment)]),
         };
-        assert!(pouch.default_deployment().is_none());
+        assert!(pouch.default_docker_deployment().is_none());
+        assert!(pouch.default_compose_deployment().is_none());
     }
 
     #[test]
     fn get_default_deployment_no_deployment() {
-        let deployment: Arc<dyn jeweler::deployment::Deployment> =
-            Arc::new(MockedDeployment::new());
+        let deployment = Deployment::Docker(Arc::new(MockedDockerDeployment::new()));
         let pouch = DeploymentPouch {
             path: testdir!(),
-            default_deployment_id: Some("DefaultDeployment".to_string()),
+            default_docker_deployment_id: Some("DefaultDockerDeployment".to_string()),
+            default_compose_deployment_id: Some("DefaultComposeDeployment".to_string()),
             deployments: HashMap::from([("MockDeployment".to_string(), deployment)]),
         };
-        assert!(pouch.default_deployment().is_none());
+        assert!(pouch.default_docker_deployment().is_none());
+        assert!(pouch.default_compose_deployment().is_none());
     }
 
     #[test]
@@ -338,19 +347,20 @@ pub mod tests {
                 "DefaultDeployment",
             ]
             .map(|name| {
-                let mut deployment = MockedDeployment::new();
-                deployment.expect_id().return_const(name);
-                let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(deployment);
-                (deployment.id(), deployment)
+                let mut deployment = MockedDockerDeployment::new();
+                deployment.expect_id().return_const(name.to_string());
+                let deployment = Deployment::Docker(Arc::new(deployment));
+                (deployment.id().clone(), deployment)
             }),
         );
         let pouch = DeploymentPouch {
             path: testdir!(),
-            default_deployment_id: Some("DefaultDeployment".to_string()),
+            default_docker_deployment_id: Some("DefaultDeployment".to_string()),
+            default_compose_deployment_id: None,
             deployments,
         };
         assert_eq!(
-            pouch.default_deployment().unwrap().id(),
+            pouch.default_docker_deployment().unwrap().id(),
             "DefaultDeployment"
         );
     }
@@ -359,29 +369,31 @@ pub mod tests {
     fn set_default_deployment_no_deployment() {
         let mut pouch = DeploymentPouch {
             path: testdir!(),
-            default_deployment_id: Some("DefaultDeployment".to_string()),
+            default_docker_deployment_id: Some("DefaultDeployment".to_string()),
+            default_compose_deployment_id: None,
             deployments: HashMap::new(),
         };
-        pouch.set_default_deployment();
-        assert!(pouch.default_deployment_id.is_none());
+        pouch.set_default_deployments();
+        assert!(pouch.default_docker_deployment_id.is_none());
     }
 
     #[test]
     fn set_default_deployment_no_default_deployment() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment.expect_is_default().return_const(false);
-        let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(deployment);
+        let deployment = Deployment::Docker(Arc::new(deployment));
         let mut pouch = DeploymentPouch {
             path: testdir!(),
-            default_deployment_id: None,
+            default_docker_deployment_id: None,
+            default_compose_deployment_id: None,
             deployments: HashMap::from([("MockedDeployment".to_string(), deployment)]),
         };
-        pouch.set_default_deployment();
+        pouch.set_default_deployments();
         assert_eq!(
-            pouch.default_deployment_id,
+            pouch.default_docker_deployment_id,
             Some("MockedDeployment".to_string())
         );
     }
@@ -397,23 +409,24 @@ pub mod tests {
                 DEFAULT_DEPLOYMENT_ID,
             ]
             .map(|name| {
-                let mut deployment = MockedDeployment::new();
-                deployment.expect_id().return_const(name);
+                let mut deployment = MockedDockerDeployment::new();
+                deployment.expect_id().return_const(name.to_string());
                 deployment
                     .expect_is_default()
                     .return_const(name == DEFAULT_DEPLOYMENT_ID);
-                let deployment: Arc<dyn jeweler::deployment::Deployment> = Arc::new(deployment);
-                (deployment.id(), deployment)
+                let deployment = Deployment::Docker(Arc::new(deployment));
+                (deployment.id().to_string(), deployment)
             }),
         );
         let mut pouch = DeploymentPouch {
             path: testdir!(),
-            default_deployment_id: None,
+            default_docker_deployment_id: None,
+            default_compose_deployment_id: None,
             deployments,
         };
-        pouch.set_default_deployment();
+        pouch.set_default_deployments();
         assert_eq!(
-            pouch.default_deployment_id,
+            pouch.default_docker_deployment_id,
             Some(DEFAULT_DEPLOYMENT_ID.to_string())
         );
     }

@@ -1,7 +1,10 @@
 pub mod pouch;
 
+use crate::jeweler::gem::deployment::compose::ComposeDeploymentImpl;
+use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
+use crate::jeweler::gem::deployment::Deployment;
 use crate::vault::pouch::app::AppPouch;
-use crate::vault::pouch::deployment::{Deployment, DeploymentPouch};
+use crate::vault::pouch::deployment::DeploymentPouch;
 use crate::vault::pouch::instance::InstancePouch;
 use crate::vault::pouch::manifest::ManifestPouch;
 use crate::vault::pouch::secret::{SecretPouch, Secrets};
@@ -230,15 +233,20 @@ impl Vault {
             Ok(_) => {
                 let deployments = deployment_pouch_mut.gems_mut();
                 if deployments.is_empty() {
-                    let default_deployment = Deployment::default();
+                    let default_docker_deployment =
+                        Deployment::Docker(Arc::new(DockerDeploymentImpl::default()));
+                    let default_compose_deployment =
+                        Deployment::Compose(Arc::new(ComposeDeploymentImpl::default()));
                     deployments.insert(
-                        default_deployment.id(),
-                        Arc::new(match default_deployment {
-                            Deployment::Docker(default) => default,
-                        }),
+                        default_docker_deployment.id().clone(),
+                        default_docker_deployment,
                     );
-                    deployment_pouch_mut.set_default_deployment();
-                    info!("No deployments configured, added default Docker deployment");
+                    deployments.insert(
+                        default_compose_deployment.id().clone(),
+                        default_compose_deployment,
+                    );
+                    deployment_pouch_mut.set_default_deployments();
+                    info!("No deployments configured, added default Docker deployment and default Compose deployments");
                 }
             }
             Err(e) => {
@@ -489,9 +497,9 @@ pub mod tests {
     use testdir::testdir;
 
     pub fn create_test_vault(
-        instance_deployments: HashMap<InstanceId, Arc<dyn crate::jeweler::deployment::Deployment>>,
-        app_deployments: HashMap<AppKey, Arc<dyn crate::jeweler::deployment::Deployment>>,
-        default_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
+        instance_deployments: HashMap<InstanceId, Deployment>,
+        app_deployments: HashMap<AppKey, Deployment>,
+        default_deployment: Option<Deployment>,
     ) -> Arc<Vault> {
         Arc::new(create_test_vault_raw(
             instance_deployments,
@@ -501,9 +509,9 @@ pub mod tests {
     }
 
     pub fn create_test_vault_raw(
-        instance_deployments: HashMap<InstanceId, Arc<dyn crate::jeweler::deployment::Deployment>>,
-        app_deployments: HashMap<AppKey, Arc<dyn crate::jeweler::deployment::Deployment>>,
-        default_deployment: Option<Arc<dyn crate::jeweler::deployment::Deployment>>,
+        instance_deployments: HashMap<InstanceId, Deployment>,
+        app_deployments: HashMap<AppKey, Deployment>,
+        default_deployment: Option<Deployment>,
     ) -> Vault {
         let manifest_pouch = test_manifest_pouch();
         let instance_pouch = test_instance_pouch(
@@ -529,15 +537,15 @@ pub mod tests {
         }))
     }
 
-    pub fn create_test_vault_with_deployment(
-        deployment: Arc<dyn crate::jeweler::deployment::Deployment>,
-    ) -> Arc<Vault> {
+    pub fn create_test_vault_with_deployment(deployment: Deployment) -> Arc<Vault> {
         let mut vault = Vault::new(VaultConfig {
             path: testdir!().join("vault"),
         });
         let deployments = vault.deployment_pouch.get_mut();
-        deployments.gems_mut().insert(deployment.id(), deployment);
-        deployments.set_default_deployment();
+        deployments
+            .gems_mut()
+            .insert(deployment.id().clone(), deployment);
+        deployments.set_default_deployments();
         Arc::new(vault)
     }
 
@@ -571,14 +579,25 @@ pub mod tests {
         let vault = Vault::new(VaultConfig { path });
         vault.open().await;
         let grab = vault.reservation().reserve_deployment_pouch().grab().await;
-        let expected = Deployment::default();
-        assert_eq!(grab.deployment_pouch.as_ref().unwrap().gems().len(), 1);
+        assert_eq!(grab.deployment_pouch.as_ref().unwrap().gems().len(), 2);
+        let expected = Deployment::Docker(Arc::new(DockerDeploymentImpl::default()));
         assert_eq!(
             grab.deployment_pouch
                 .as_ref()
                 .unwrap()
                 .gems()
-                .get(&expected.id())
+                .get(expected.id())
+                .unwrap()
+                .id(),
+            expected.id()
+        );
+        let expected = Deployment::Compose(Arc::new(ComposeDeploymentImpl::default()));
+        assert_eq!(
+            grab.deployment_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .get(expected.id())
                 .unwrap()
                 .id(),
             expected.id()

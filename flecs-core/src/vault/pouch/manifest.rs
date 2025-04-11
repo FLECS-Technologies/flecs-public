@@ -5,12 +5,11 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::sync::Arc;
 use tracing::{debug, warn};
 
 const MANIFEST_FILE_NAME: &str = "manifest.json";
 
-pub type Gems = HashMap<AppKey, Arc<AppManifest>>;
+pub type Gems = HashMap<AppKey, AppManifest>;
 
 pub struct ManifestPouch {
     path: PathBuf,
@@ -79,9 +78,8 @@ impl ManifestPouch {
                     warn!("Could not read manifest from {entry:?}: {e}");
                 }
                 Ok(manifest) => {
-                    self.existing_manifest_keys.insert(manifest.key.clone());
-                    self.manifests
-                        .insert(manifest.key.clone(), Arc::new(manifest));
+                    self.existing_manifest_keys.insert(manifest.key().clone());
+                    self.manifests.insert(manifest.key().clone(), manifest);
                     debug!("Successful read manifest from {entry:?}");
                 }
             }
@@ -117,12 +115,13 @@ pub mod tests {
     use std::io::Write;
     use testdir::testdir;
 
-    fn manifest_from_json(json: &Value) -> Arc<AppManifest> {
+    fn manifest_from_json(json: &Value) -> AppManifest {
         let manifest = AppManifestVersion::from_str(&serde_json::to_string(json).unwrap()).unwrap();
-        Arc::new(manifest.try_into().unwrap())
+        let manifest = flecs_app_manifest::AppManifest::try_from(manifest).unwrap();
+        manifest.try_into().unwrap()
     }
 
-    pub fn test_manifests() -> Vec<Arc<AppManifest>> {
+    pub fn test_manifests() -> Vec<AppManifest> {
         vec![
             min_app_1_1_0_manifest(),
             min_app_1_0_0_manifest(),
@@ -141,7 +140,7 @@ pub mod tests {
         let manifests = HashMap::from_iter(
             test_manifests()
                 .into_iter()
-                .map(|manifest| (manifest.key.clone(), manifest)),
+                .map(|manifest| (manifest.key().clone(), manifest)),
         );
         ManifestPouch {
             path: testdir!().join("manifests"),
@@ -150,7 +149,7 @@ pub mod tests {
         }
     }
 
-    pub fn single_instance_app_manifest() -> Arc<AppManifest> {
+    pub fn single_instance_app_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.single-instance",
@@ -161,7 +160,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn multi_instance_app_manifest() -> Arc<AppManifest> {
+    pub fn multi_instance_app_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.multi-instance",
@@ -172,7 +171,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn min_app_1_0_0_manifest() -> Arc<AppManifest> {
+    pub fn min_app_1_0_0_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.min-app",
@@ -182,7 +181,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn min_app_1_1_0_manifest() -> Arc<AppManifest> {
+    pub fn min_app_1_1_0_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.min-app",
@@ -192,7 +191,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn min_app_1_1_4_manifest() -> Arc<AppManifest> {
+    pub fn min_app_1_1_4_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.min-app",
@@ -202,7 +201,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn min_app_2_4_5_manifest() -> Arc<AppManifest> {
+    pub fn min_app_2_4_5_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.min-app",
@@ -212,7 +211,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn label_manifest() -> Arc<AppManifest> {
+    pub fn label_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.label-app",
@@ -226,7 +225,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn editor_manifest() -> Arc<AppManifest> {
+    pub fn editor_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.editor-app",
@@ -253,7 +252,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn network_manifest() -> Arc<AppManifest> {
+    pub fn network_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.network-app",
@@ -263,7 +262,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn no_manifest() -> Arc<AppManifest> {
+    pub fn no_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.no-manifest",
@@ -273,7 +272,7 @@ pub mod tests {
         manifest_from_json(&json)
     }
 
-    pub fn mount_manifest() -> Arc<AppManifest> {
+    pub fn mount_manifest() -> AppManifest {
         let json = serde_json::json!({
             "_schemaVersion": "3.0.0",
             "app": "tech.flecs.mount",
@@ -292,6 +291,7 @@ pub mod tests {
             &serde_json::to_string(&create_test_json_v3(app_name, app_version)).unwrap(),
         )
         .unwrap();
+        let manifest = flecs_app_manifest::AppManifest::try_from(manifest).unwrap();
         manifest.try_into().unwrap()
     }
     fn create_test_json_v3(app_name: &str, app_version: &str) -> Value {
@@ -376,8 +376,8 @@ pub mod tests {
         let manifest2 = create_test_manifest(&name, &version);
 
         let manifests = HashMap::from([
-            (manifest1.key.clone(), Arc::new(manifest1)),
-            (manifest2.key.clone(), Arc::new(manifest2)),
+            (manifest1.key().clone(), manifest1),
+            (manifest2.key().clone(), manifest2),
         ]);
         let existing_manifest_keys = manifests.keys().cloned().collect();
         let mut manifest_pouch = ManifestPouch {
@@ -417,8 +417,8 @@ pub mod tests {
         let manifest2 = create_test_manifest(&name, &version);
 
         let manifests = HashMap::from([
-            (manifest1.key.clone(), Arc::new(manifest1)),
-            (manifest2.key.clone(), Arc::new(manifest2)),
+            (manifest1.key().clone(), manifest1),
+            (manifest2.key().clone(), manifest2),
         ]);
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
@@ -450,7 +450,7 @@ pub mod tests {
         let json = create_test_json_v3(&name, &version);
         let manifest = create_test_manifest(&name, &version);
 
-        let manifests = HashMap::from([(manifest.key.clone(), Arc::new(manifest))]);
+        let manifests = HashMap::from([(manifest.key().clone(), manifest)]);
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
             path,
@@ -504,8 +504,8 @@ pub mod tests {
         let manifest2 = create_test_manifest("tamble", "10.23.1");
 
         let gems = HashMap::from([
-            (manifest1.key.clone(), Arc::new(manifest1)),
-            (manifest2.key.clone(), Arc::new(manifest2)),
+            (manifest1.key().clone(), manifest1),
+            (manifest2.key().clone(), manifest2),
         ]);
         let mut manifest_pouch = ManifestPouch {
             manifests: gems.clone(),
