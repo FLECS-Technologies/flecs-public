@@ -5,6 +5,7 @@ use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::instance::{InstanceDeployment, Logs};
 use crate::jeweler::network::{
     CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
@@ -20,7 +21,7 @@ use std::path::{Path, PathBuf};
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct ComposeDeploymentImpl {
     pub id: DeploymentId,
-    path: PathBuf,
+    docker_socket_path: PathBuf,
     #[serde(default)]
     is_default: bool,
 }
@@ -31,16 +32,41 @@ impl GetDeploymentId for ComposeDeploymentImpl {
     }
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum ExecuteCompose {
+    #[error("Compose is not valid: {0}")]
+    Serde(#[from] serde_json::Error),
+    #[error(transparent)]
+    CommandExecute(#[from] ExecuteCommandError),
+}
+
 impl ComposeDeploymentImpl {
-    pub fn is_default(&self) -> bool {
-        self.is_default
+    fn docker_cli(&self) -> DockerCli {
+        DockerCli::new_with_unix_socket(self.docker_socket_path.clone())
+    }
+
+    async fn docker_login(&self, token: Token) -> Result<(), ExecuteCommandError> {
+        self.docker_cli().login(token).await
+    }
+
+    async fn docker_logout(&self) -> Result<(), ExecuteCommandError> {
+        self.docker_cli().logout().await
+    }
+
+    async fn compose_pull(&self, manifest: &AppManifestMulti) -> Result<AppId, ExecuteCompose> {
+        let compose = serde_json::to_string(&manifest.compose)?;
+        let project_name = manifest.key.name.replace('.', "-");
+        self.docker_cli()
+            .compose_pull(&project_name, &compose)
+            .await?;
+        Ok(project_name)
     }
 }
 
 impl Default for ComposeDeploymentImpl {
     fn default() -> Self {
         Self {
-            path: PathBuf::from("/var/run/docker.sock"),
+            docker_socket_path: PathBuf::from("/var/run/docker.sock"),
             id: "DefaultComposeDeployment".to_string(),
             is_default: true,
         }
@@ -68,10 +94,21 @@ impl AppDeployment for ComposeDeploymentImpl {
     async fn install_app(
         &self,
         _quest: SyncQuest,
-        _manifest: AppManifest,
-        _token: Option<Token>,
+        manifest: AppManifest,
+        token: Option<Token>,
     ) -> anyhow::Result<AppId> {
-        todo!()
+        let AppManifest::Multi(manifest) = manifest else {
+            panic!("Compose deployment can not be called with single app manifests");
+        };
+        let logout_needed = token.is_some();
+        if let Some(token) = token {
+            self.docker_login(token).await?;
+        }
+        let pull_result = self.compose_pull(&manifest).await;
+        if logout_needed {
+            self.docker_logout().await?;
+        }
+        Ok(pull_result?)
     }
 
     async fn uninstall_app(
