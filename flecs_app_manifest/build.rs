@@ -38,6 +38,9 @@ fn generate_code(version: &str) -> Result<(), Error> {
     out_file
         .write_all(b"#![allow(clippy::clone_on_copy)]")
         .unwrap();
+    out_file
+        .write_all(b"#![allow(clippy::to_string_trait_impl)]")
+        .unwrap();
     let schema =
         download_app_manifest_schema(version).map_err(|e| Error(format!("{e}"), file_exists))?;
     let mut schema: RootSchema =

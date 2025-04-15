@@ -1028,7 +1028,7 @@ pub mod tests {
         let mut keys = Vec::new();
         for manifest in manifests.iter() {
             manifest_mocks
-                .push(manifest_mock_ok(&mut server, manifest.clone(), &manifest.key()).await);
+                .push(manifest_mock_ok(&mut server, manifest.clone(), manifest.key()).await);
             keys.push(manifest.key().clone());
         }
         let quest = Quest::new_synced("TestQuest".to_string());
@@ -1112,11 +1112,11 @@ pub mod tests {
         let mut keys = Vec::new();
         for manifest in installed_manifests.iter() {
             manifest_mocks
-                .push(manifest_mock_ok(&mut server, manifest.clone(), &manifest.key()).await);
+                .push(manifest_mock_ok(&mut server, manifest.clone(), manifest.key()).await);
             keys.push(manifest.key().clone());
         }
         for manifest in failing_manifests.iter() {
-            manifest_mocks.push(manifest_mock_err(&mut server, 404, &manifest.key()).await);
+            manifest_mocks.push(manifest_mock_err(&mut server, 404, manifest.key()).await);
             keys.push(manifest.key().clone());
         }
         let quest = Quest::new_synced("TestQuest".to_string());

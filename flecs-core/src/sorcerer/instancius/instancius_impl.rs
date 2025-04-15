@@ -3634,7 +3634,7 @@ pub mod tests {
             instance
                 .config
                 .usb_devices
-                .get(&"new_port".to_string())
+                .get("new_port")
                 .cloned()
                 .unwrap(),
             UsbPathConfig {
