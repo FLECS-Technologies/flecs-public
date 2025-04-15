@@ -310,7 +310,7 @@ pub mod tests {
         where
             S: Serializer,
         {
-            serializer.serialize_str(&self.id())
+            serializer.serialize_str(self.id())
         }
     }
 

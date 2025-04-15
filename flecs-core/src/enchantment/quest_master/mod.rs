@@ -475,7 +475,7 @@ mod tests {
         let deleted = master.delete_quest(QuestId(1)).await.unwrap();
         assert_eq!(deleted.lock().await.id.0, 1);
 
-        assert!(master.quests.get(&QuestId(1)).is_none());
+        assert!(!master.quests.contains_key(&QuestId(1)));
 
         // Delete missing quest
         match master.delete_quest(QuestId(1)).await {
