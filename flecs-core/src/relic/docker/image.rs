@@ -189,6 +189,7 @@ pub async fn pull(
             let id = format!("{image}:{tag}");
             let image = inspect(docker_client, &id).await?;
             image
+                .ok_or_else(|| anyhow::anyhow!("Could not get image for {id}"))?
                 .id
                 .ok_or_else(|| anyhow::anyhow!("Could not get image id for {id}"))
         }
@@ -211,8 +212,14 @@ pub async fn pull(
 /// }
 /// # )
 /// ```
-pub async fn inspect(docker_client: Arc<Docker>, image: &str) -> Result<ImageInspect> {
-    Ok(docker_client.inspect_image(image).await?)
+pub async fn inspect(docker_client: Arc<Docker>, image: &str) -> Result<Option<ImageInspect>> {
+    match docker_client.inspect_image(image).await {
+        Ok(image) => Ok(Some(image)),
+        Err(bollard::errors::Error::DockerResponseServerError {
+            status_code: 404, ..
+        }) => Ok(None),
+        Err(e) => Err(anyhow::anyhow!(e)),
+    }
 }
 
 /// # Example
