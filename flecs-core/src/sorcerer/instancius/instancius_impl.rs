@@ -1586,7 +1586,7 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_app_info()
-            .returning(|_, _| Ok(AppInfo::default()));
+            .returning(|_, _| Ok(Some(AppInfo::default())));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
