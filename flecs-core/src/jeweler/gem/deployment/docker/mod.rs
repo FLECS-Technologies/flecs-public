@@ -42,7 +42,7 @@ pub trait DockerDeployment: CommonDeployment {
         &self,
     ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
 
-    async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<AppInfo>;
+    async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<Option<AppInfo>>;
 
     async fn copy_from_app_image(
         &self,
@@ -245,7 +245,7 @@ pub mod tests {
             async fn create_default_network(
                 &self,
             ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
-            async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<AppInfo>;
+            async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<Option<AppInfo>>;
             async fn copy_from_app_image(
                 &self,
                 quest: SyncQuest,

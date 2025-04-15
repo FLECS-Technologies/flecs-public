@@ -533,7 +533,7 @@ impl DockerDeployment for DockerDeploymentImpl {
         )
         .await
     }
-    async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<AppInfo> {
+    async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<Option<AppInfo>> {
         let docker_client = self.client()?;
         relic::docker::image::inspect(docker_client, &id).await
     }
@@ -794,6 +794,7 @@ impl AppDeployment for DockerDeploymentImpl {
         Ok(self
             .app_info(quest, id)
             .await?
+            .ok_or_else(|| anyhow::anyhow!("App not installed"))?
             .size
             .ok_or_else(|| anyhow::anyhow!("Size was not specified"))? as usize)
     }
