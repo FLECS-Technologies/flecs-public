@@ -168,10 +168,32 @@ impl AppDeployment for ComposeDeploymentImpl {
     async fn installed_app_size(
         &self,
         _quest: SyncQuest,
-        _manifest: AppManifest,
+        manifest: AppManifest,
         _id: AppId,
     ) -> anyhow::Result<usize> {
-        todo!()
+        let AppManifest::Multi(manifest) = manifest else {
+            panic!("Compose deployment can not be called with single app manifests");
+        };
+        let docker_client = self.docker_client()?;
+        let mut size = 0;
+        for (_, service) in &manifest.compose.services.0 {
+            // TODO: Subquests
+            if let Some(Service {
+                image: Some(image), ..
+            }) = service
+            {
+                match crate::relic::docker::image::inspect(docker_client.clone(), image).await? {
+                    None => anyhow::bail!("App not installed"),
+                    Some(info) => {
+                        size += info
+                            .size
+                            .ok_or_else(|| anyhow::anyhow!("Size was not specified"))?
+                            as usize;
+                    }
+                }
+            }
+        }
+        Ok(size)
     }
 
     async fn export_app(
