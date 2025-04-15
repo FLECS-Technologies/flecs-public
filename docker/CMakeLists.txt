@@ -72,7 +72,6 @@ function(stage_docker_fs)
     install_external(OpenSSL::Crypto ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
     install_external(OpenSSL::SSL ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
     install_external(yaml-cpp::yaml-cpp ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
-    install_external(zenohc::lib ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib docker)
 
     # Installing LibArchive this way won't work, as:
     #   lrwxrwxrwx libarchive.so -> libarchive.so.13.x.y

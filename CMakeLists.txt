@@ -69,7 +69,6 @@ set(FLECS_NEED_JSON TRUE)
 set(FLECS_NEED_LIBARCHIVE TRUE)
 set(FLECS_NEED_LIBUSB TRUE)
 set(FLECS_NEED_YAMLCPP TRUE)
-set(FLECS_NEED_ZENOHC TRUE)
 add_subdirectory(flecs-external)
 add_subdirectory(flecs)
 
