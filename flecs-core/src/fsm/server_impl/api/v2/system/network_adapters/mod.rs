@@ -54,11 +54,13 @@ mod tests {
                         name: "TestNet".to_string(),
                         mac: Some("D7:62:A1:BB:35:80".to_string()),
                         net_type: NetType::Wired,
-                        ipv4_networks: vec![Ipv4Network::new_from_address_and_subnet_mask(
-                            Ipv4Addr::new(192, 168, 0, 0),
-                            Ipv4Addr::new(255, 255, 0, 0),
-                        )
-                        .unwrap()],
+                        ipv4_networks: vec![
+                            Ipv4Network::new_from_address_and_subnet_mask(
+                                Ipv4Addr::new(192, 168, 0, 0),
+                                Ipv4Addr::new(255, 255, 0, 0),
+                            )
+                            .unwrap(),
+                        ],
                         ipv6_networks: vec![Ipv6Network::new(
                             Ipv6Addr::new(0x1234, 0x5678, 0x90ab, 0xcdef, 0xaabb, 0xccdd, 0, 0),
                             96,
@@ -88,10 +90,9 @@ mod tests {
             GetResponse::Status200_Success(vec![models::NetworkAdapter {
                 name: "TestNet".to_string(),
                 ipv4_addresses: Some(vec![models::Ipv4Address::from_str("192.168.1.20").unwrap()]),
-                ipv6_addresses: Some(vec![models::Ipv6Address::from_str(
-                    "1234:5678:90ab:cdef:aabb:ccdd:0:1111"
-                )
-                .unwrap()]),
+                ipv6_addresses: Some(vec![
+                    models::Ipv6Address::from_str("1234:5678:90ab:cdef:aabb:ccdd:0:1111").unwrap()
+                ]),
                 networks: Some(vec![
                     models::Network::Ipv4Network(Box::new(models::Ipv4Network::new(
                         "192.168.0.0".to_string(),

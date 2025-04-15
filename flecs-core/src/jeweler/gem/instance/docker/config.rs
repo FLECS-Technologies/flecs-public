@@ -45,7 +45,9 @@ impl InstancePortMapping {
                 return Ok(true);
             }
             if port_mapping.do_host_ports_overlap(existing_port_mapping) {
-                return Err(anyhow::anyhow!("New port mapping {port_mapping} overlaps with existing port mapping {existing_port_mapping}"));
+                return Err(anyhow::anyhow!(
+                    "New port mapping {port_mapping} overlaps with existing port mapping {existing_port_mapping}"
+                ));
             }
         }
         existing_port_mappings.push(port_mapping);
@@ -335,8 +337,8 @@ impl From<&UsbPathConfig> for DeviceMapping {
 pub(crate) mod tests {
     use super::*;
     use crate::jeweler::gem::manifest::single::PortRange;
-    use crate::relic::device::usb::tests::prepare_usb_device_test_path;
     use crate::relic::device::usb::MockUsbDeviceReader;
+    use crate::relic::device::usb::tests::prepare_usb_device_test_path;
     use bollard::models::Mount;
     use std::net::{Ipv4Addr, Ipv6Addr};
     use std::path::{Path, PathBuf};
@@ -718,45 +720,51 @@ pub(crate) mod tests {
         }
         .generate_usb_device_mappings();
         assert_eq!(device_mappings.len(), 3);
-        assert!(device_mappings.contains(&DeviceMapping {
-            cgroup_permissions: Some("rwm".to_string()),
-            path_on_host: Some(
-                Path::new(&format!("{USB_DEVICE_PATH}111/999"))
-                    .to_string_lossy()
-                    .to_string()
-            ),
-            path_in_container: Some(
-                Path::new(&format!("{USB_DEVICE_PATH}111/999"))
-                    .to_string_lossy()
-                    .to_string()
-            ),
-        }));
-        assert!(device_mappings.contains(&DeviceMapping {
-            cgroup_permissions: Some("rwm".to_string()),
-            path_on_host: Some(
-                Path::new(&format!("{USB_DEVICE_PATH}222/888"))
-                    .to_string_lossy()
-                    .to_string()
-            ),
-            path_in_container: Some(
-                Path::new(&format!("{USB_DEVICE_PATH}222/888"))
-                    .to_string_lossy()
-                    .to_string()
-            ),
-        }));
-        assert!(device_mappings.contains(&DeviceMapping {
-            cgroup_permissions: Some("rwm".to_string()),
-            path_on_host: Some(
-                Path::new(&format!("{USB_DEVICE_PATH}333/777"))
-                    .to_string_lossy()
-                    .to_string()
-            ),
-            path_in_container: Some(
-                Path::new(&format!("{USB_DEVICE_PATH}333/777"))
-                    .to_string_lossy()
-                    .to_string()
-            ),
-        }));
+        assert!(
+            device_mappings.contains(&DeviceMapping {
+                cgroup_permissions: Some("rwm".to_string()),
+                path_on_host: Some(
+                    Path::new(&format!("{USB_DEVICE_PATH}111/999"))
+                        .to_string_lossy()
+                        .to_string()
+                ),
+                path_in_container: Some(
+                    Path::new(&format!("{USB_DEVICE_PATH}111/999"))
+                        .to_string_lossy()
+                        .to_string()
+                ),
+            })
+        );
+        assert!(
+            device_mappings.contains(&DeviceMapping {
+                cgroup_permissions: Some("rwm".to_string()),
+                path_on_host: Some(
+                    Path::new(&format!("{USB_DEVICE_PATH}222/888"))
+                        .to_string_lossy()
+                        .to_string()
+                ),
+                path_in_container: Some(
+                    Path::new(&format!("{USB_DEVICE_PATH}222/888"))
+                        .to_string_lossy()
+                        .to_string()
+                ),
+            })
+        );
+        assert!(
+            device_mappings.contains(&DeviceMapping {
+                cgroup_permissions: Some("rwm".to_string()),
+                path_on_host: Some(
+                    Path::new(&format!("{USB_DEVICE_PATH}333/777"))
+                        .to_string_lossy()
+                        .to_string()
+                ),
+                path_in_container: Some(
+                    Path::new(&format!("{USB_DEVICE_PATH}333/777"))
+                        .to_string_lossy()
+                        .to_string()
+                ),
+            })
+        );
     }
 
     #[test]
@@ -999,34 +1007,42 @@ pub(crate) mod tests {
 
     #[test]
     fn instance_port_mapping_is_empty_true() {
-        assert!(InstancePortMapping {
-            tcp: vec![],
-            sctp: vec![],
-            udp: vec![],
-        }
-        .is_empty());
+        assert!(
+            InstancePortMapping {
+                tcp: vec![],
+                sctp: vec![],
+                udp: vec![],
+            }
+            .is_empty()
+        );
     }
 
     #[test]
     fn instance_port_mapping_is_empty_false() {
-        assert!(!InstancePortMapping {
-            tcp: vec![PortMapping::Single(1, 2)],
-            sctp: vec![],
-            udp: vec![],
-        }
-        .is_empty());
-        assert!(!InstancePortMapping {
-            tcp: vec![],
-            sctp: vec![PortMapping::Single(1, 2)],
-            udp: vec![],
-        }
-        .is_empty());
-        assert!(!InstancePortMapping {
-            tcp: vec![],
-            sctp: vec![],
-            udp: vec![PortMapping::Single(1, 2)],
-        }
-        .is_empty());
+        assert!(
+            !InstancePortMapping {
+                tcp: vec![PortMapping::Single(1, 2)],
+                sctp: vec![],
+                udp: vec![],
+            }
+            .is_empty()
+        );
+        assert!(
+            !InstancePortMapping {
+                tcp: vec![],
+                sctp: vec![PortMapping::Single(1, 2)],
+                udp: vec![],
+            }
+            .is_empty()
+        );
+        assert!(
+            !InstancePortMapping {
+                tcp: vec![],
+                sctp: vec![],
+                udp: vec![PortMapping::Single(1, 2)],
+            }
+            .is_empty()
+        );
     }
 
     #[test]
@@ -1083,11 +1099,10 @@ pub(crate) mod tests {
             PortMapping::Single(100, 20),
         ];
         let mut vec = original.clone();
-        assert!(InstancePortMapping::update_port_mapping_vec(
-            &mut vec,
-            PortMapping::Single(60, 100)
-        )
-        .is_err());
+        assert!(
+            InstancePortMapping::update_port_mapping_vec(&mut vec, PortMapping::Single(60, 100))
+                .is_err()
+        );
         assert_eq!(vec, original);
     }
 
@@ -1230,32 +1245,37 @@ pub(crate) mod tests {
             PortMapping::Single(100, 20),
         ];
         let mut vec = original.clone();
-        assert!(InstancePortMapping::delete_port_mapping_range_vec(
-            &mut vec,
-            PortRange::new(50..=80)
-        )
-        .is_none());
+        assert!(
+            InstancePortMapping::delete_port_mapping_range_vec(&mut vec, PortRange::new(50..=80))
+                .is_none()
+        );
         assert_eq!(vec, original);
     }
 
     #[test]
     fn instance_port_mapping_update_port_mapping() {
         let mut instance_port_mapping = InstancePortMapping::default();
-        assert!(!instance_port_mapping
-            .update_port_mapping(PortMapping::Single(20, 30), TransportProtocol::Tcp)
-            .unwrap());
+        assert!(
+            !instance_port_mapping
+                .update_port_mapping(PortMapping::Single(20, 30), TransportProtocol::Tcp)
+                .unwrap()
+        );
         assert_eq!(instance_port_mapping.tcp, vec![PortMapping::Single(20, 30)]);
         assert!(instance_port_mapping.udp.is_empty());
         assert!(instance_port_mapping.sctp.is_empty());
-        assert!(!instance_port_mapping
-            .update_port_mapping(PortMapping::Single(40, 50), TransportProtocol::Udp)
-            .unwrap());
+        assert!(
+            !instance_port_mapping
+                .update_port_mapping(PortMapping::Single(40, 50), TransportProtocol::Udp)
+                .unwrap()
+        );
         assert_eq!(instance_port_mapping.tcp, vec![PortMapping::Single(20, 30)]);
         assert_eq!(instance_port_mapping.udp, vec![PortMapping::Single(40, 50)]);
         assert!(instance_port_mapping.sctp.is_empty());
-        assert!(!instance_port_mapping
-            .update_port_mapping(PortMapping::Single(99, 77), TransportProtocol::Sctp)
-            .unwrap());
+        assert!(
+            !instance_port_mapping
+                .update_port_mapping(PortMapping::Single(99, 77), TransportProtocol::Sctp)
+                .unwrap()
+        );
         assert_eq!(instance_port_mapping.tcp, vec![PortMapping::Single(20, 30)]);
         assert_eq!(instance_port_mapping.udp, vec![PortMapping::Single(40, 50)]);
         assert_eq!(

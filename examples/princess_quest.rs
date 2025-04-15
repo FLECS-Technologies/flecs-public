@@ -6,7 +6,7 @@ use tokio::time::sleep;
 pub mod save_princess {
     use flecs_core::quest::{Progress, Result, State, SyncQuest};
     use std::fmt::{Display, Formatter};
-    use tokio::time::{sleep, Duration};
+    use tokio::time::{Duration, sleep};
 
     enum Enemy {
         Rat,

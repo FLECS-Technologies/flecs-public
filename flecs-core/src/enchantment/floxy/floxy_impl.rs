@@ -1,5 +1,5 @@
-use crate::enchantment::floxy::Floxy;
 use crate::enchantment::Enchantment;
+use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::relic::network::get_random_free_port;
 use crate::relic::nginx::Nginx;
@@ -79,7 +79,9 @@ impl Floxy for FloxyImpl {
         }
         match std::fs::remove_file(&config_path) {
             Ok(()) => {
-                debug!("Removed server config for instance {instance_id} and port {host_port} at {config_path:?}.");
+                debug!(
+                    "Removed server config for instance {instance_id} and port {host_port} at {config_path:?}."
+                );
                 Ok(true)
             }
             Err(e) => Err(anyhow::anyhow!("Error deleting {config_path:?}: {e}")),
@@ -128,7 +130,9 @@ impl Floxy for FloxyImpl {
         let config_content = Self::create_server_config(instance_ip, free_port, dest_port);
         let config_path = self.build_server_config_path(app_name, instance_id, free_port);
         let config_changed = self.add_reverse_proxy_config(&config_content, &config_path)?;
-        debug!("Added editor redirect for instance {instance_id} at {config_path:?}: host:{free_port} -> {instance_ip}:{dest_port}");
+        debug!(
+            "Added editor redirect for instance {instance_id} at {config_path:?}: host:{free_port} -> {instance_ip}:{dest_port}"
+        );
         Ok((config_changed, free_port))
     }
 
@@ -331,7 +335,10 @@ mod tests {
             nginx: Nginx::default(),
             base_path: base_path.clone(),
         };
-        assert_eq!(floxy.to_string(), "(Floxy: (base_path = /some/test/dir, nginx = (pid /var/run/nginx.pid, config Default))");
+        assert_eq!(
+            floxy.to_string(),
+            "(Floxy: (base_path = /some/test/dir, nginx = (pid /var/run/nginx.pid, config Default))"
+        );
     }
 
     #[test]
@@ -710,9 +717,11 @@ location /v2/instances/12345678/editor/7799 {
             .join(INSTANCE_CONFIGS_DIR_NAME)
             .join("test_app-abcd1234.conf");
         std::fs::create_dir_all(config_path).unwrap();
-        assert!(floxy
-            .delete_reverse_proxy_config("test_app", InstanceId::new(0xabcd1234))
-            .is_err());
+        assert!(
+            floxy
+                .delete_reverse_proxy_config("test_app", InstanceId::new(0xabcd1234))
+                .is_err()
+        );
     }
 
     #[test]
@@ -744,9 +753,11 @@ location /v2/instances/12345678/editor/7799 {
             .join(SERVER_CONFIGS_DIR_NAME)
             .join("test_app-abcd1234_1234.conf");
         std::fs::create_dir_all(config_path).unwrap();
-        assert!(floxy
-            .delete_server_config("test_app", InstanceId::new(0xabcd1234), 1234)
-            .is_err());
+        assert!(
+            floxy
+                .delete_server_config("test_app", InstanceId::new(0xabcd1234), 1234)
+                .is_err()
+        );
     }
 
     #[test]
@@ -940,9 +951,11 @@ location /v2/instances/12345678/editor/7799 {
             base_path: test_dir.clone(),
         };
         let ports = [1234, 5678, 910];
-        assert!(floxy
-            .delete_server_proxy_configs("test_app", InstanceId::new(0xcdab3412), &ports)
-            .is_err());
+        assert!(
+            floxy
+                .delete_server_proxy_configs("test_app", InstanceId::new(0xcdab3412), &ports)
+                .is_err()
+        );
         assert!(matches!(
             server_dir.join("test_app-cdab3412_1234.conf").try_exists(),
             Ok(false)
@@ -1027,9 +1040,11 @@ location /v2/instances/12345678/editor/7799 {
             nginx: Nginx::default(),
             base_path: base_dir,
         };
-        assert!(floxy
-            .add_reverse_proxy_config("test content", &config_path)
-            .is_err());
+        assert!(
+            floxy
+                .add_reverse_proxy_config("test content", &config_path)
+                .is_err()
+        );
         assert!(matches!(config_path.try_exists(), Ok(false)));
     }
 

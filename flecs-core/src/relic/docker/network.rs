@@ -1,10 +1,10 @@
 pub use super::Result;
+use bollard::Docker;
 use bollard::models::Network;
 use bollard::network::{
     ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions, InspectNetworkOptions,
     ListNetworksOptions,
 };
-use bollard::Docker;
 use std::hash::Hash;
 use std::sync::Arc;
 

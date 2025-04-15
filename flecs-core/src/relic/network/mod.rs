@@ -4,9 +4,9 @@ mod network_adapter;
 pub use ipv4::*;
 pub use ipv6::*;
 #[cfg(test)]
-pub use network_adapter::tests::*;
-#[cfg(test)]
 pub use network_adapter::MockNetworkAdapterReader;
+#[cfg(test)]
+pub use network_adapter::tests::*;
 pub use network_adapter::{NetworkAdapter, NetworkAdapterReader, NetworkAdapterReaderImpl};
 use procfs::ProcError;
 use std::fmt::{Display, Formatter};
@@ -116,20 +116,24 @@ mod tests {
 
     #[test]
     fn test_ip_to_network() {
-        assert!(ip_to_network(
-            std::net::IpAddr::V6(
-                Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap()
-            ),
-            std::net::IpAddr::V4(Ipv4Addr::from_str("169.254.52.1").unwrap())
-        )
-        .is_err());
-        assert!(ip_to_network(
-            std::net::IpAddr::V4(Ipv4Addr::from_str("169.254.52.1").unwrap()),
-            std::net::IpAddr::V6(
-                Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap()
+        assert!(
+            ip_to_network(
+                std::net::IpAddr::V6(
+                    Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap()
+                ),
+                std::net::IpAddr::V4(Ipv4Addr::from_str("169.254.52.1").unwrap())
             )
-        )
-        .is_err());
+            .is_err()
+        );
+        assert!(
+            ip_to_network(
+                std::net::IpAddr::V4(Ipv4Addr::from_str("169.254.52.1").unwrap()),
+                std::net::IpAddr::V6(
+                    Ipv6Addr::from_str("aaaa:bbbb:cccc:dddd:eeee:1111:2222:3333").unwrap()
+                )
+            )
+            .is_err()
+        );
         assert_eq!(
             ip_to_network(
                 std::net::IpAddr::V6(

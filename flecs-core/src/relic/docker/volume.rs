@@ -1,7 +1,7 @@
 pub use super::Result;
+use bollard::Docker;
 use bollard::models::Volume;
 use bollard::volume::{CreateVolumeOptions, RemoveVolumeOptions};
-use bollard::Docker;
 use std::hash::Hash;
 use std::sync::Arc;
 

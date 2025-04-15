@@ -1,6 +1,6 @@
 use crate::relic::network::{NetworkAdapter, NetworkAdapterReader};
-use crate::sorcerer::systemus::Systemus;
 use crate::sorcerer::Sorcerer;
+use crate::sorcerer::systemus::Systemus;
 use async_trait::async_trait;
 use std::collections::HashMap;
 
@@ -33,7 +33,7 @@ impl Systemus for SystemusImpl {
 mod tests {
     use super::*;
     use crate::relic::network::{
-        full_network_adapter, minimal_network_adapter, test_adapters, MockNetworkAdapterReader,
+        MockNetworkAdapterReader, full_network_adapter, minimal_network_adapter, test_adapters,
     };
 
     #[tokio::test]
@@ -66,9 +66,11 @@ mod tests {
                     "TestError".to_string(),
                 ))
             });
-        assert!(systemus
-            .read_network_adapters(&network_adapter_reader)
-            .is_err());
+        assert!(
+            systemus
+                .read_network_adapters(&network_adapter_reader)
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -121,8 +123,10 @@ mod tests {
                     "TestError".to_string(),
                 ))
             });
-        assert!(systemus
-            .read_network_adapter(&network_adapter_reader, "TestAdapterFull")
-            .is_err());
+        assert!(
+            systemus
+                .read_network_adapter(&network_adapter_reader, "TestAdapterFull")
+                .is_err()
+        );
     }
 }

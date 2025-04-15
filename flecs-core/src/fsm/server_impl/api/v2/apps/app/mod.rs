@@ -1,8 +1,8 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::enchantment::quest_master::QuestMaster;
 use crate::sorcerer::appraiser::AppRaiser;
-use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
+use crate::vault::pouch::{AppKey, Pouch};
 use flecsd_axum_server::apis::apps::{
     AppsAppDeleteResponse as DeleteResponse, AppsAppDeleteResponse,
     AppsAppGetResponse as GetResponse,
@@ -92,18 +92,20 @@ mod tests {
         let vault = create_empty_test_vault();
         let appraiser = Arc::new(MockAppRaiser::default());
         let floxy = Arc::new(MockFloxy::default());
-        assert!(delete(
-            vault,
-            floxy,
-            appraiser,
-            QuestMaster::default(),
-            DeletePathParams {
-                app: "app".to_string(),
-            },
-            DeleteQueryParams { version: None },
+        assert!(
+            delete(
+                vault,
+                floxy,
+                appraiser,
+                QuestMaster::default(),
+                DeletePathParams {
+                    app: "app".to_string(),
+                },
+                DeleteQueryParams { version: None },
+            )
+            .await
+            .is_err()
         )
-        .await
-        .is_err())
     }
 
     #[tokio::test]

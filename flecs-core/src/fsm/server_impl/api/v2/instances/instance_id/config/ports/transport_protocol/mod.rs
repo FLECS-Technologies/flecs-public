@@ -1,7 +1,7 @@
 pub mod host_port_range;
 use crate::fsm::server_impl::api::v2::instances::instance_id::config::ports::port_mappings_to_instance_ports;
-use crate::jeweler::gem::instance::docker::config::TransportProtocol;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::instance::docker::config::TransportProtocol;
 use crate::jeweler::gem::manifest::single::{PortMapping, PortRange};
 use crate::sorcerer::instancius::{Instancius, QueryInstanceConfigError};
 use crate::vault::Vault;
@@ -87,7 +87,7 @@ pub async fn put<I: Instancius>(
         Err(e) => {
             return PutResponse::Status400_MalformedRequest(models::AdditionalInfo::new(format!(
                 "Invalid port mapping: {e}"
-            )))
+            )));
         }
         Ok(port_mapping) => port_mapping,
     };
@@ -456,23 +456,27 @@ mod tests {
     #[test]
     fn validate_port_mappings_ok() {
         assert!(validate_port_mappings(&[PortMapping::Single(10, 20)]).is_ok());
-        assert!(validate_port_mappings(&[PortMapping::Range {
-            from: PortRange::new(10..=20),
-            to: PortRange::new(70..=80)
-        }])
-        .is_ok());
-        assert!(validate_port_mappings(&[
-            PortMapping::Range {
-                from: PortRange::new(600..=700),
-                to: PortRange::new(800..=900)
-            },
-            PortMapping::Range {
+        assert!(
+            validate_port_mappings(&[PortMapping::Range {
                 from: PortRange::new(10..=20),
                 to: PortRange::new(70..=80)
-            },
-            PortMapping::Single(1, 20),
-        ])
-        .is_ok());
+            }])
+            .is_ok()
+        );
+        assert!(
+            validate_port_mappings(&[
+                PortMapping::Range {
+                    from: PortRange::new(600..=700),
+                    to: PortRange::new(800..=900)
+                },
+                PortMapping::Range {
+                    from: PortRange::new(10..=20),
+                    to: PortRange::new(70..=80)
+                },
+                PortMapping::Single(1, 20),
+            ])
+            .is_ok()
+        );
     }
 
     #[test]

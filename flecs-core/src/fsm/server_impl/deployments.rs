@@ -32,21 +32,21 @@ use http::Method;
 
 #[async_trait]
 impl<
-        APP: AppRaiser,
-        AUTH: Authmancer,
-        I: Instancius,
-        L: Licenso,
-        Q: MageQuester,
-        M: Manifesto,
-        SYS: Systemus,
-        D: Deploymento,
-        E: Exportius,
-        IMP: Importius,
-        F: Floxy,
-        T: UsbDeviceReader,
-        NET: NetworkAdapterReader,
-        NetDev: NetDeviceReader,
-    > Deployments for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
+    APP: AppRaiser,
+    AUTH: Authmancer,
+    I: Instancius,
+    L: Licenso,
+    Q: MageQuester,
+    M: Manifesto,
+    SYS: Systemus,
+    D: Deploymento,
+    E: Exportius,
+    IMP: Importius,
+    F: Floxy,
+    T: UsbDeviceReader,
+    NET: NetworkAdapterReader,
+    NetDev: NetDeviceReader,
+> Deployments for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
 {
     async fn deployments_deployment_id_networks_get(
         &self,

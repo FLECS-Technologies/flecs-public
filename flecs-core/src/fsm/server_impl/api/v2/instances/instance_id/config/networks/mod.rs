@@ -3,8 +3,8 @@ pub mod network_id;
 use crate::sorcerer::instancius::{
     ConnectInstanceConfigNetworkError, Instancius, QueryInstanceConfigError,
 };
-use crate::vault::pouch::instance::InstanceId;
 use crate::vault::Vault;
+use crate::vault::pouch::instance::InstanceId;
 use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigNetworksGetResponse as GetResponse,
     InstancesInstanceIdConfigNetworksPostResponse as PostResponse,
@@ -59,7 +59,7 @@ pub async fn post<T: Instancius>(
         Err(e) => {
             return PostResponse::Status400_MalformedRequest(AdditionalInfo::new(format!(
                 "Failed to parse ip from body: {e}"
-            )))
+            )));
         }
     };
     let network_id = body.network_id;

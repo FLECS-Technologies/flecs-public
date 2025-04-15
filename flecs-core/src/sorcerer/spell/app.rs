@@ -1,6 +1,6 @@
 use crate::quest::SyncQuest;
-use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
+use crate::vault::pouch::{AppKey, Pouch};
 use std::sync::Arc;
 
 pub async fn uninstall_app(quest: SyncQuest, vault: Arc<Vault>, key: AppKey) -> crate::Result<()> {
@@ -37,24 +37,26 @@ pub async fn uninstall_app(quest: SyncQuest, vault: Arc<Vault>, key: AppKey) -> 
 mod tests {
     use super::*;
     use crate::jeweler::gem::app::{App, AppData};
-    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::quest::Quest;
     use crate::vault::pouch::manifest::tests::min_app_1_0_0_manifest;
     use crate::vault::tests::create_empty_test_vault;
 
     #[tokio::test]
     async fn uninstall_app_not_found() {
-        assert!(uninstall_app(
-            Quest::new_synced("TestQuest".to_string()),
-            create_empty_test_vault(),
-            AppKey {
-                name: "not_found".to_string(),
-                version: "1.0.0".to_string(),
-            }
-        )
-        .await
-        .is_err());
+        assert!(
+            uninstall_app(
+                Quest::new_synced("TestQuest".to_string()),
+                create_empty_test_vault(),
+                AppKey {
+                    name: "not_found".to_string(),
+                    version: "1.0.0".to_string(),
+                }
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]

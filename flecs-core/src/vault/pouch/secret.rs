@@ -1,5 +1,5 @@
 use super::Result;
-use super::{combine_results, Pouch};
+use super::{Pouch, combine_results};
 use flecs_console_client::models::SessionId;
 use flecsd_axum_server::models::AuthResponseData;
 use std::fs;
@@ -280,12 +280,16 @@ pub mod tests {
             },
         };
         secrets.close().unwrap();
-        assert!(fs::read_to_string(test_path.join(LICENSE_FILE_NAME))
-            .unwrap()
-            .is_empty());
-        assert!(fs::read_to_string(test_path.join(SESSION_FILE_NAME))
-            .unwrap()
-            .is_empty());
+        assert!(
+            fs::read_to_string(test_path.join(LICENSE_FILE_NAME))
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            fs::read_to_string(test_path.join(SESSION_FILE_NAME))
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

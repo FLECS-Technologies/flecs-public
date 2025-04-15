@@ -29,7 +29,7 @@ pub async fn post<A: AppRaiser + 'static>(
                 Err(e) => {
                     return Ok(PostResponse::Status400_MalformedRequest(
                         models::AdditionalInfo::new(e.to_string()),
-                    ))
+                    ));
                 }
                 Ok(manifest) => manifest,
             };

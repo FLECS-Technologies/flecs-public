@@ -618,11 +618,13 @@ mod tests {
 
     #[test]
     fn try_new_ipv4_network_access_err() {
-        assert!(Ipv4NetworkAccess::try_new(
-            Ipv4Network::try_new(Ipv4Addr::new(10, 20, 0, 0), 16).unwrap(),
-            Ipv4Addr::new(10, 10, 20, 100),
-        )
-        .is_err());
+        assert!(
+            Ipv4NetworkAccess::try_new(
+                Ipv4Network::try_new(Ipv4Addr::new(10, 20, 0, 0), 16).unwrap(),
+                Ipv4Addr::new(10, 10, 20, 100),
+            )
+            .is_err()
+        );
     }
 
     #[test]

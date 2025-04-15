@@ -112,25 +112,25 @@ serialize_trait_object!(DockerDeployment);
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::Result;
+    use crate::jeweler::GetDeploymentId;
     use crate::jeweler::app::AppDeployment;
     use crate::jeweler::app::{AppId, Token};
     use crate::jeweler::deployment::{CommonDeployment, DeploymentId};
-    use crate::jeweler::gem::deployment::docker::DockerDeployment;
     use crate::jeweler::gem::deployment::Deployment;
-    use crate::jeweler::gem::instance::status::InstanceStatus;
+    use crate::jeweler::gem::deployment::docker::DockerDeployment;
     use crate::jeweler::gem::instance::InstanceId;
-    use crate::jeweler::gem::manifest::single::ConfigFile;
+    use crate::jeweler::gem::instance::status::InstanceStatus;
     use crate::jeweler::gem::manifest::AppManifest;
+    use crate::jeweler::gem::manifest::single::ConfigFile;
     use crate::jeweler::instance::{InstanceDeployment, Logs};
     use crate::jeweler::network::{
         CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
     };
     use crate::jeweler::volume::VolumeDeployment;
     use crate::jeweler::volume::{Volume, VolumeId};
-    use crate::jeweler::GetDeploymentId;
     use crate::quest::SyncQuest;
     use crate::relic::network::Ipv4Network;
-    use crate::Result;
     use mockall::mock;
     use serde::{Serialize, Serializer};
     use std::collections::HashMap;

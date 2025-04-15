@@ -122,7 +122,7 @@ pub async fn put<I: Instancius>(
         Err(e) => {
             return PutResponse::Status400_MalformedRequest(models::AdditionalInfo::new(format!(
                 "Invalid container port range: {e}"
-            )))
+            )));
         }
         Ok(host_port_range) => host_port_range,
     };

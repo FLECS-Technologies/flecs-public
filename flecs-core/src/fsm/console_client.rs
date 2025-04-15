@@ -1,5 +1,5 @@
-use crate::vault::pouch::Pouch;
 use crate::vault::Vault;
+use crate::vault::pouch::Pouch;
 use flecs_console_client::apis::configuration::Configuration;
 use flecs_console_client::models::SessionId;
 use http::Extensions;

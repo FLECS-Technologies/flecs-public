@@ -1,7 +1,7 @@
 use crate::ffi::Token;
 use crate::get_server;
-use flecs_core::sorcerer::authmancer::Authmancer;
 use flecs_core::Result;
+use flecs_core::sorcerer::authmancer::Authmancer;
 
 impl From<flecs_core::jeweler::app::Token> for Token {
     fn from(value: flecs_core::jeweler::app::Token) -> Self {

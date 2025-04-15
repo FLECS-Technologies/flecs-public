@@ -1,13 +1,13 @@
-use crate::quest::{finish_quest, Quest, QuestId, QuestResult, State, SyncQuest};
+use crate::quest::{Quest, QuestId, QuestResult, State, SyncQuest, finish_quest};
 use anyhow::Result;
 use futures::future::BoxFuture;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt::{Display, Formatter};
 use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::mpsc::error::SendError;
-use tokio::sync::mpsc::{channel, error::TrySendError, Receiver, Sender};
+use tokio::sync::mpsc::{Receiver, Sender, channel, error::TrySendError};
 use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinError;
 use tracing::{debug, error, info, warn};
@@ -286,7 +286,7 @@ impl QuestMasterInner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::quest::{create_test_quest, State};
+    use crate::quest::{State, create_test_quest};
     use crate::vault::pouch::instance::InstanceId;
     use ntest::timeout;
     use std::time::Duration;

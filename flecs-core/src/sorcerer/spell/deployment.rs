@@ -1,7 +1,7 @@
 use crate::jeweler::gem::deployment::Deployment;
-use crate::vault::pouch::deployment::DeploymentId;
-use crate::vault::pouch::Pouch;
 use crate::vault::Vault;
+use crate::vault::pouch::Pouch;
+use crate::vault::pouch::deployment::DeploymentId;
 use std::future::Future;
 use std::sync::Arc;
 
@@ -64,9 +64,11 @@ mod tests {
             .return_const("SomeDeployment".to_string());
         deployment.expect_is_default().return_const(true);
         let vault = create_test_vault_with_deployment(Deployment::Docker(Arc::new(deployment)));
-        assert!(get_deployment(vault, "OtherDeployment".to_string())
-            .await
-            .is_none());
+        assert!(
+            get_deployment(vault, "OtherDeployment".to_string())
+                .await
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -114,12 +116,14 @@ mod tests {
             .return_const("SomeDeployment".to_string());
         deployment.expect_is_default().return_const(true);
         let vault = create_test_vault_with_deployment(Deployment::Docker(Arc::new(deployment)));
-        assert!(query_deployment(
-            vault,
-            "OtherDeployment".to_string(),
-            |deployment| async move { deployment.id().clone() }
-        )
-        .await
-        .is_none());
+        assert!(
+            query_deployment(
+                vault,
+                "OtherDeployment".to_string(),
+                |deployment| async move { deployment.id().clone() }
+            )
+            .await
+            .is_none()
+        );
     }
 }

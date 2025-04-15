@@ -1,7 +1,7 @@
 use crate::ffi;
+use flecs_core::Result;
 use flecs_core::relic::network;
 use flecs_core::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
-use flecs_core::Result;
 
 pub fn read_network_adapters() -> Result<Vec<ffi::NetAdapter>> {
     Ok(NetworkAdapterReaderImpl
