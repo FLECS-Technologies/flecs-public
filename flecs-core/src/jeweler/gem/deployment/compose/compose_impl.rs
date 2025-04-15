@@ -159,10 +159,28 @@ impl AppDeployment for ComposeDeploymentImpl {
     async fn is_app_installed(
         &self,
         _quest: SyncQuest,
-        _manifest: AppManifest,
+        manifest: AppManifest,
         _id: AppId,
     ) -> anyhow::Result<bool> {
-        todo!()
+        let AppManifest::Multi(manifest) = manifest else {
+            panic!("Compose deployment can not be called with single app manifests");
+        };
+        let docker_client = self.docker_client()?;
+        for (_, service) in &manifest.compose.services.0 {
+            // TODO: Subquests
+            if let Some(Service {
+                image: Some(image), ..
+            }) = service
+            {
+                if crate::relic::docker::image::inspect(docker_client.clone(), image)
+                    .await?
+                    .is_none()
+                {
+                    return Ok(false);
+                }
+            }
+        }
+        Ok(true)
     }
 
     async fn installed_app_size(
