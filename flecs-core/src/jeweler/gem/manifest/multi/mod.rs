@@ -19,12 +19,28 @@ impl GetAppKey for AppManifestMulti {
     }
 }
 
+#[derive(thiserror::Error, Debug, Clone, PartialEq)]
+pub enum ComposeValidationError {
+    #[error("Invalid app manifest: Network name 'flecs' is reserved")]
+    FlecsNetworkReserved,
+}
+
+fn validate_compose(compose: &Compose) -> Result<(), ComposeValidationError> {
+    for network_name in compose.networks.0.keys() {
+        if network_name == "flecs" {
+            return Err(ComposeValidationError::FlecsNetworkReserved);
+        }
+    }
+    Ok(())
+}
+
 impl TryFrom<flecs_app_manifest::AppManifestMulti> for AppManifestMulti {
     type Error = anyhow::Error;
 
     fn try_from(value: flecs_app_manifest::AppManifestMulti) -> Result<Self, Self::Error> {
         let json_value = serde_json::Value::Object(value.deployment.compose.yaml.clone());
         let compose = serde_json::from_value(json_value)?;
+        validate_compose(&compose)?;
         Ok(Self {
             compose,
             key: AppKey {

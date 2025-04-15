@@ -12,6 +12,7 @@ use crate::jeweler::network::{
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
 use crate::quest::SyncQuest;
+use crate::relic::docker_cli::{DockerCli, ExecuteCommandError};
 use crate::vault::pouch::deployment::DeploymentId;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
