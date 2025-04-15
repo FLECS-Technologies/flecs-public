@@ -10,6 +10,7 @@ use std::sync::Arc;
 /// Helper functions that provide async versions of [flecstract::tar::extract] and [flecstract::tar::archive]
 pub mod async_flecstract;
 pub mod docker;
+pub mod docker_cli;
 pub mod nginx;
 pub mod process;
 pub mod serde;
