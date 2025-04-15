@@ -3,7 +3,7 @@ resolver = "2"
 members = ["flecs-core", "flecsdaemon", "flecsd_axum_server", "flecstract", "flecs-console-api/flecs_console_client", "flecs_app_manifest", "flecs_core_cxx_bridge", "examples"]
 
 [workspace.package]
-rust-version = "1.76.0"
-edition = "2021"
+rust-version = "1.86.0"
+edition = "2024"
 license = "Apache-2.0"
 authors = ["FLECS Technologies GmbH"]

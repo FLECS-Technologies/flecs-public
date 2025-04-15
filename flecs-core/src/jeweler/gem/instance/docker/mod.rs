@@ -331,17 +331,17 @@ impl DockerInstance {
                 .2;
             results.push(result);
         }
-        if let Some(error) = join_all(results)
+        match join_all(results)
             .await
             .into_iter()
             .filter_map(|result| result.err())
             .next()
-        {
+        { Some(error) => {
             tokio::fs::remove_dir_all(&config_path).await?;
             Err(error)
-        } else {
+        } _ => {
             Ok(())
-        }
+        }}
     }
 
     pub async fn create_volumes(
