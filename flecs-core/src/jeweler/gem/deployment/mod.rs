@@ -1,10 +1,10 @@
 pub mod compose;
 pub mod docker;
 
+use crate::jeweler::GetDeploymentId;
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeploymentImpl;
 use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
-use crate::jeweler::GetDeploymentId;
 use crate::vault::pouch::deployment::DeploymentId;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;

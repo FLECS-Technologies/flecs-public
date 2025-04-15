@@ -1,6 +1,6 @@
 pub mod port;
-use crate::jeweler::gem::instance::docker::config::UsbPathConfig;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::instance::docker::config::UsbPathConfig;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::sorcerer::instancius::{Instancius, QueryInstanceConfigError};
 use crate::vault::Vault;

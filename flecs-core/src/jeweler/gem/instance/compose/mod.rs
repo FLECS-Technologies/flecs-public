@@ -2,7 +2,7 @@ use super::{CreateInstanceError, InstanceCommon, InstanceId};
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::instance::status::InstanceStatus;
-use crate::jeweler::gem::manifest::{multi, AppManifest};
+use crate::jeweler::gem::manifest::{AppManifest, multi};
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
 use crate::vault;
 use crate::vault::pouch::AppKey;

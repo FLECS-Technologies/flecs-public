@@ -7,10 +7,10 @@ use crate::jeweler::gem::instance::docker::config::{
     InstanceConfig, InstancePortMapping, TransportProtocol, UsbPathConfig,
 };
 use crate::jeweler::gem::instance::{Instance, InstanceId};
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::single::{
     BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
 };
-use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::instance::Logs;
 use crate::jeweler::network::{Network, NetworkId};
 use crate::jeweler::volume::VolumeId;
@@ -23,7 +23,7 @@ use crate::sorcerer::instancius::{
     Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
 };
 use crate::sorcerer::spell::instance::QueryInstanceConfigError;
-use crate::sorcerer::{spell, Sorcerer};
+use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
 use async_trait::async_trait;
@@ -363,10 +363,10 @@ impl Instancius for InstanciusImpl {
             .await
             {
                 Err(QueryInstanceConfigError::NotFound(_)) => {
-                    return Ok(GetInstanceUsbDeviceResult::InstanceNotFound)
+                    return Ok(GetInstanceUsbDeviceResult::InstanceNotFound);
                 }
                 Err(QueryInstanceConfigError::NotSupported(_)) => {
-                    return Ok(GetInstanceUsbDeviceResult::NotSupported)
+                    return Ok(GetInstanceUsbDeviceResult::NotSupported);
                 }
                 Ok(mapped_device) => mapped_device,
             };
@@ -797,7 +797,7 @@ impl Instancius for InstanciusImpl {
             let instance = match instances.gems_mut().get_mut(&id) {
                 None => return Err(ConnectInstanceConfigNetworkError::InstanceNotFound(id)),
                 Some(Instance::Compose(_)) => {
-                    return Err(ConnectInstanceConfigNetworkError::Unsupported(id))
+                    return Err(ConnectInstanceConfigNetworkError::Unsupported(id));
                 }
                 Some(Instance::Docker(instance)) => instance,
             };
@@ -813,7 +813,7 @@ impl Instancius for InstanciusImpl {
             Ok(None) => {
                 return Err(ConnectInstanceConfigNetworkError::NetworkNotFound(
                     network_id,
-                ))
+                ));
             }
             Err(e) => return Err(ConnectInstanceConfigNetworkError::Other(e.to_string())),
         };
@@ -841,7 +841,7 @@ impl Instancius for InstanciusImpl {
         let instance = match instances.gems_mut().get_mut(&id) {
             None => return Err(ConnectInstanceConfigNetworkError::InstanceNotFound(id)),
             Some(Instance::Compose(_)) => {
-                return Err(ConnectInstanceConfigNetworkError::Unsupported(id))
+                return Err(ConnectInstanceConfigNetworkError::Unsupported(id));
             }
             Some(Instance::Docker(instance)) => instance,
         };
@@ -1008,6 +1008,7 @@ pub mod tests {
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
     use crate::relic::network::Ipv4Network;
     use crate::vault;
+    use crate::vault::pouch::Pouch;
     use crate::vault::pouch::app::tests::{
         MINIMAL_APP_NAME, MINIMAL_APP_VERSION, MINIMAL_APP_WITH_INSTANCE_NAME,
         MINIMAL_APP_WITH_INSTANCE_VERSION, MULTI_INSTANCE_APP_NAME, MULTI_INSTANCE_APP_VERSION,
@@ -1015,11 +1016,10 @@ pub mod tests {
         SINGLE_INSTANCE_APP_VERSION, UNKNOWN_APP_NAME, UNKNOWN_APP_VERSION,
     };
     use crate::vault::pouch::instance::tests::{
-        network_instance, test_instances, test_port_mapping, EDITOR_INSTANCE, ENV_INSTANCE,
-        LABEL_INSTANCE, MOUNT_INSTANCE, NETWORK_INSTANCE, PORT_MAPPING_INSTANCE, RUNNING_INSTANCE,
-        UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2, UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
+        EDITOR_INSTANCE, ENV_INSTANCE, LABEL_INSTANCE, MOUNT_INSTANCE, NETWORK_INSTANCE,
+        PORT_MAPPING_INSTANCE, RUNNING_INSTANCE, UNKNOWN_INSTANCE_1, UNKNOWN_INSTANCE_2,
+        UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE, network_instance, test_instances, test_port_mapping,
     };
-    use crate::vault::pouch::Pouch;
     use crate::vault::tests::create_test_vault;
     use bollard::models::{Ipam, IpamConfig, Network};
     use mockall::predicate;
@@ -1064,25 +1064,29 @@ pub mod tests {
             )
             .await
             .unwrap();
-        assert!(!vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .contains_key(&INSTANCE_TO_DELETE));
-        assert!(InstanciusImpl::default()
-            .delete_instance(
-                Quest::new_synced("TestQuest".to_string()),
-                vault.clone(),
-                floxy,
-                INSTANCE_TO_DELETE,
-            )
-            .await
-            .is_err());
+        assert!(
+            !vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .contains_key(&INSTANCE_TO_DELETE)
+        );
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance(
+                    Quest::new_synced("TestQuest".to_string()),
+                    vault.clone(),
+                    floxy,
+                    INSTANCE_TO_DELETE,
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1127,15 +1131,17 @@ pub mod tests {
             )
             .await
             .unwrap();
-        assert!(InstanciusImpl::default()
-            .stop_instance(
-                Quest::new_synced("TestQuest".to_string()),
-                vault.clone(),
-                floxy.clone(),
-                vault::pouch::instance::tests::UNKNOWN_INSTANCE_1,
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .stop_instance(
+                    Quest::new_synced("TestQuest".to_string()),
+                    vault.clone(),
+                    floxy.clone(),
+                    vault::pouch::instance::tests::UNKNOWN_INSTANCE_1,
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1211,10 +1217,12 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        assert!(InstanciusImpl::default()
-            .get_instance_logs(vault, ID)
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_logs(vault, ID)
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1324,15 +1332,17 @@ pub mod tests {
             .keys()
             .cloned()
             .collect();
-        assert!(InstanciusImpl::default()
-            .create_instance(
-                Quest::new_synced("TestQuest".to_string()),
-                vault.clone(),
-                app_key,
-                "TestInstance".to_string(),
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .create_instance(
+                    Quest::new_synced("TestQuest".to_string()),
+                    vault.clone(),
+                    app_key,
+                    "TestInstance".to_string(),
+                )
+                .await
+                .is_err()
+        );
 
         let GrabbedPouches {
             instance_pouch: Some(ref instances),
@@ -1473,15 +1483,17 @@ pub mod tests {
             )
             .await
             .unwrap();
-        assert!(InstanciusImpl::default()
-            .create_instance(
-                Quest::new_synced("TestQuest".to_string()),
-                vault.clone(),
-                app_key,
-                "TestInstance2".to_string(),
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .create_instance(
+                    Quest::new_synced("TestQuest".to_string()),
+                    vault.clone(),
+                    app_key,
+                    "TestInstance2".to_string(),
+                )
+                .await
+                .is_err()
+        );
 
         let GrabbedPouches {
             instance_pouch: Some(ref instances),
@@ -1521,15 +1533,17 @@ pub mod tests {
             HashMap::from([(app_key.clone(), deployment.clone())]),
             Some(deployment.clone()),
         );
-        assert!(InstanciusImpl::default()
-            .create_instance(
-                Quest::new_synced("TestQuest".to_string()),
-                vault.clone(),
-                app_key,
-                "TestInstance".to_string(),
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .create_instance(
+                    Quest::new_synced("TestQuest".to_string()),
+                    vault.clone(),
+                    app_key,
+                    "TestInstance".to_string(),
+                )
+                .await
+                .is_err()
+        );
     }
     #[tokio::test]
     async fn create_instance_app_not_created() {
@@ -1547,15 +1561,17 @@ pub mod tests {
             HashMap::from([(app_key.clone(), deployment.clone())]),
             Some(deployment.clone()),
         );
-        assert!(InstanciusImpl::default()
-            .create_instance(
-                Quest::new_synced("TestQuest".to_string()),
-                vault.clone(),
-                app_key,
-                "TestInstance".to_string(),
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .create_instance(
+                    Quest::new_synced("TestQuest".to_string()),
+                    vault.clone(),
+                    app_key,
+                    "TestInstance".to_string(),
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1577,15 +1593,17 @@ pub mod tests {
             HashMap::from([(app_key.clone(), deployment.clone())]),
             Some(deployment.clone()),
         );
-        assert!(InstanciusImpl::default()
-            .create_instance(
-                Quest::new_synced("TestQuest".to_string()),
-                vault.clone(),
-                app_key,
-                "TestInstance".to_string(),
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .create_instance(
+                    Quest::new_synced("TestQuest".to_string()),
+                    vault.clone(),
+                    app_key,
+                    "TestInstance".to_string(),
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1617,15 +1635,17 @@ pub mod tests {
             .unwrap()
             .gems_mut()
             .clear();
-        assert!(InstanciusImpl::default()
-            .create_instance(
-                Quest::new_synced("TestQuest".to_string()),
-                vault,
-                app_key,
-                "TestInstance".to_string(),
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .create_instance(
+                    Quest::new_synced("TestQuest".to_string()),
+                    vault,
+                    app_key,
+                    "TestInstance".to_string(),
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1753,11 +1773,13 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        assert!(InstanciusImpl::default()
-            .get_instance(vault, RUNNING_INSTANCE)
-            .await
-            .unwrap()
-            .is_some());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance(vault, RUNNING_INSTANCE)
+                .await
+                .unwrap()
+                .is_some()
+        );
     }
 
     #[tokio::test]
@@ -1775,11 +1797,13 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        assert!(InstanciusImpl::default()
-            .get_instance_detailed(vault, RUNNING_INSTANCE)
-            .await
-            .unwrap()
-            .is_some());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_detailed(vault, RUNNING_INSTANCE)
+                .await
+                .unwrap()
+                .is_some()
+        );
     }
 
     #[tokio::test]
@@ -1832,33 +1856,39 @@ pub mod tests {
             None,
         );
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        assert!(InstanciusImpl::default()
-            .start_instance(
-                Quest::new_synced("TestQuest".to_string()),
-                vault,
-                floxy,
-                RUNNING_INSTANCE,
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .start_instance(
+                    Quest::new_synced("TestQuest".to_string()),
+                    vault,
+                    floxy,
+                    RUNNING_INSTANCE,
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
     async fn get_instance_config_some() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config(vault, RUNNING_INSTANCE)
-            .await
-            .is_ok());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config(vault, RUNNING_INSTANCE)
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]
     async fn get_instance_config_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config(vault, UNKNOWN_INSTANCE_1)
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config(vault, UNKNOWN_INSTANCE_1)
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1882,25 +1912,34 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mapping_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_port_mapping(
-                vault,
-                PORT_MAPPING_INSTANCE,
-                1,
-                TransportProtocol::Sctp
-            )
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_port_mapping(
+                    vault,
+                    PORT_MAPPING_INSTANCE,
+                    1,
+                    TransportProtocol::Sctp
+                )
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
     async fn get_instance_config_port_mapping_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_port_mapping(vault, UNKNOWN_INSTANCE_3, 1, TransportProtocol::Udp)
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_port_mapping(
+                    vault,
+                    UNKNOWN_INSTANCE_3,
+                    1,
+                    TransportProtocol::Udp
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1919,10 +1958,12 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mappings_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_port_mappings(vault, UNKNOWN_INSTANCE_3)
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_port_mappings(vault, UNKNOWN_INSTANCE_3)
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1967,30 +2008,36 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_protocol_port_mappings_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_protocol_port_mappings(
-                vault.clone(),
-                UNKNOWN_INSTANCE_1,
-                TransportProtocol::Tcp
-            )
-            .await
-            .is_err());
-        assert!(InstanciusImpl::default()
-            .get_instance_config_protocol_port_mappings(
-                vault.clone(),
-                UNKNOWN_INSTANCE_2,
-                TransportProtocol::Udp
-            )
-            .await
-            .is_err());
-        assert!(InstanciusImpl::default()
-            .get_instance_config_protocol_port_mappings(
-                vault.clone(),
-                UNKNOWN_INSTANCE_3,
-                TransportProtocol::Sctp
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_1,
+                    TransportProtocol::Tcp
+                )
+                .await
+                .is_err()
+        );
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_2,
+                    TransportProtocol::Udp
+                )
+                .await
+                .is_err()
+        );
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_3,
+                    TransportProtocol::Sctp
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -2083,114 +2130,132 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_config_protocol_port_mappings_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_protocol_port_mappings(
-                vault.clone(),
-                UNKNOWN_INSTANCE_1,
-                TransportProtocol::Tcp
-            )
-            .await
-            .is_err());
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_protocol_port_mappings(
-                vault.clone(),
-                UNKNOWN_INSTANCE_2,
-                TransportProtocol::Udp
-            )
-            .await
-            .is_err());
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_protocol_port_mappings(
-                vault.clone(),
-                UNKNOWN_INSTANCE_3,
-                TransportProtocol::Sctp
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_1,
+                    TransportProtocol::Tcp
+                )
+                .await
+                .is_err()
+        );
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_2,
+                    TransportProtocol::Udp
+                )
+                .await
+                .is_err()
+        );
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_3,
+                    TransportProtocol::Sctp
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_port_mapping(
-                vault.clone(),
-                UNKNOWN_INSTANCE_3,
-                10,
-                TransportProtocol::Sctp
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_config_port_mapping(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_3,
+                    10,
+                    TransportProtocol::Sctp
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_true() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_port_mapping(
-                vault.clone(),
-                PORT_MAPPING_INSTANCE,
-                80,
-                TransportProtocol::Tcp
-            )
-            .await
-            .unwrap());
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_config_port_mapping(
+                    vault.clone(),
+                    PORT_MAPPING_INSTANCE,
+                    80,
+                    TransportProtocol::Tcp
+                )
+                .await
+                .unwrap()
+        );
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_false() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(!InstanciusImpl::default()
-            .delete_instance_config_port_mapping(
-                vault.clone(),
-                PORT_MAPPING_INSTANCE,
-                80,
-                TransportProtocol::Udp
-            )
-            .await
-            .unwrap());
+        assert!(
+            !InstanciusImpl::default()
+                .delete_instance_config_port_mapping(
+                    vault.clone(),
+                    PORT_MAPPING_INSTANCE,
+                    80,
+                    TransportProtocol::Udp
+                )
+                .await
+                .unwrap()
+        );
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_range_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_port_mapping_range(
-                vault.clone(),
-                UNKNOWN_INSTANCE_3,
-                PortRange::new(20..=30),
-                TransportProtocol::Sctp
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_config_port_mapping_range(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_3,
+                    PortRange::new(20..=30),
+                    TransportProtocol::Sctp
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_range_true() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_port_mapping_range(
-                vault.clone(),
-                PORT_MAPPING_INSTANCE,
-                PortRange::new(50..=100),
-                TransportProtocol::Udp
-            )
-            .await
-            .unwrap());
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_config_port_mapping_range(
+                    vault.clone(),
+                    PORT_MAPPING_INSTANCE,
+                    PortRange::new(50..=100),
+                    TransportProtocol::Udp
+                )
+                .await
+                .unwrap()
+        );
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mapping_range_false() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(!InstanciusImpl::default()
-            .delete_instance_config_port_mapping_range(
-                vault.clone(),
-                PORT_MAPPING_INSTANCE,
-                PortRange::new(50..=60),
-                TransportProtocol::Udp
-            )
-            .await
-            .unwrap());
+        assert!(
+            !InstanciusImpl::default()
+                .delete_instance_config_port_mapping_range(
+                    vault.clone(),
+                    PORT_MAPPING_INSTANCE,
+                    PortRange::new(50..=60),
+                    TransportProtocol::Udp
+                )
+                .await
+                .unwrap()
+        );
     }
 
     #[tokio::test]
@@ -2232,16 +2297,18 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_port_mapping_range_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_port_mapping_range(
-                vault.clone(),
-                PORT_MAPPING_INSTANCE,
-                PortRange::new(50..=60),
-                TransportProtocol::Udp
-            )
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_port_mapping_range(
+                    vault.clone(),
+                    PORT_MAPPING_INSTANCE,
+                    PortRange::new(50..=60),
+                    TransportProtocol::Udp
+                )
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -2295,99 +2362,117 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_port_mapping_err() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .put_instance_config_port_mapping(
-                vault.clone(),
-                PORT_MAPPING_INSTANCE,
-                PortMapping::Single(60, 2),
-                TransportProtocol::Udp
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_config_port_mapping(
+                    vault.clone(),
+                    PORT_MAPPING_INSTANCE,
+                    PortMapping::Single(60, 2),
+                    TransportProtocol::Udp
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
     async fn put_instance_config_protocol_port_mappings_true() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let mappings = vec![PortMapping::Single(60, 2)];
-        assert!(InstanciusImpl::default()
-            .put_instance_config_protocol_port_mappings(
-                vault.clone(),
-                PORT_MAPPING_INSTANCE,
-                mappings.clone(),
-                TransportProtocol::Tcp
-            )
-            .await
-            .is_ok());
-        assert!(InstanciusImpl::default()
-            .put_instance_config_protocol_port_mappings(
-                vault.clone(),
-                PORT_MAPPING_INSTANCE,
-                mappings.clone(),
-                TransportProtocol::Udp
-            )
-            .await
-            .is_ok());
-        assert!(InstanciusImpl::default()
-            .put_instance_config_protocol_port_mappings(
-                vault.clone(),
-                PORT_MAPPING_INSTANCE,
-                mappings.clone(),
-                TransportProtocol::Sctp
-            )
-            .await
-            .is_ok());
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    PORT_MAPPING_INSTANCE,
+                    mappings.clone(),
+                    TransportProtocol::Tcp
+                )
+                .await
+                .is_ok()
+        );
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    PORT_MAPPING_INSTANCE,
+                    mappings.clone(),
+                    TransportProtocol::Udp
+                )
+                .await
+                .is_ok()
+        );
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    PORT_MAPPING_INSTANCE,
+                    mappings.clone(),
+                    TransportProtocol::Sctp
+                )
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]
     async fn put_instance_config_protocol_port_mappings_false() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let mappings = vec![PortMapping::Single(60, 2)];
-        assert!(InstanciusImpl::default()
-            .put_instance_config_protocol_port_mappings(
-                vault.clone(),
-                UNKNOWN_INSTANCE_1,
-                mappings.clone(),
-                TransportProtocol::Tcp
-            )
-            .await
-            .is_err());
-        assert!(InstanciusImpl::default()
-            .put_instance_config_protocol_port_mappings(
-                vault.clone(),
-                UNKNOWN_INSTANCE_2,
-                mappings.clone(),
-                TransportProtocol::Udp
-            )
-            .await
-            .is_err());
-        assert!(InstanciusImpl::default()
-            .put_instance_config_protocol_port_mappings(
-                vault.clone(),
-                UNKNOWN_INSTANCE_3,
-                mappings.clone(),
-                TransportProtocol::Sctp
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_1,
+                    mappings.clone(),
+                    TransportProtocol::Tcp
+                )
+                .await
+                .is_err()
+        );
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_2,
+                    mappings.clone(),
+                    TransportProtocol::Udp
+                )
+                .await
+                .is_err()
+        );
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_config_protocol_port_mappings(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_3,
+                    mappings.clone(),
+                    TransportProtocol::Sctp
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mappings_false() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_port_mappings(vault, UNKNOWN_INSTANCE_2)
-            .await
-            .is_err())
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_config_port_mappings(vault, UNKNOWN_INSTANCE_2)
+                .await
+                .is_err()
+        )
     }
 
     #[tokio::test]
     async fn delete_instance_config_port_mappings_true() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_config_port_mappings(vault.clone(), PORT_MAPPING_INSTANCE)
-            .await
-            .is_ok());
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_config_port_mappings(vault.clone(), PORT_MAPPING_INSTANCE)
+                .await
+                .is_ok()
+        );
         let grab = vault.reservation().reserve_instance_pouch().grab().await;
         let Some(Instance::Docker(instance)) = grab
             .instance_pouch
@@ -2404,28 +2489,32 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_environment_variable_value_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_environment_variable_value(
-                vault,
-                UNKNOWN_INSTANCE_3,
-                "".to_string()
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_environment_variable_value(
+                    vault,
+                    UNKNOWN_INSTANCE_3,
+                    "".to_string()
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
     async fn get_instance_config_environment_variable_value_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_environment_variable_value(
-                vault,
-                ENV_INSTANCE,
-                "VAR_3".to_string()
-            )
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_environment_variable_value(
+                    vault,
+                    ENV_INSTANCE,
+                    "VAR_3".to_string()
+                )
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -2458,17 +2547,19 @@ pub mod tests {
     #[tokio::test]
     async fn put_instance_config_environment_variable_value_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .put_instance_config_environment_variable_value(
-                vault.clone(),
-                UNKNOWN_INSTANCE_1,
-                EnvironmentVariable {
-                    name: "VAR_3".to_string(),
-                    value: None
-                }
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_config_environment_variable_value(
+                    vault.clone(),
+                    UNKNOWN_INSTANCE_1,
+                    EnvironmentVariable {
+                        name: "VAR_3".to_string(),
+                        value: None
+                    }
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -2478,15 +2569,17 @@ pub mod tests {
             name: "VAR_3".to_string(),
             value: Some("test-value".to_string()),
         };
-        assert!(InstanciusImpl::default()
-            .put_instance_config_environment_variable_value(
-                vault.clone(),
-                ENV_INSTANCE,
-                new_environment_variable.clone(),
-            )
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_config_environment_variable_value(
+                    vault.clone(),
+                    ENV_INSTANCE,
+                    new_environment_variable.clone(),
+                )
+                .await
+                .unwrap()
+                .is_none()
+        );
         let grab = vault.reservation().reserve_instance_pouch().grab().await;
         let Some(Instance::Docker(instance)) = grab
             .instance_pouch
@@ -2946,10 +3039,12 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_labels_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_labels(vault, UNKNOWN_INSTANCE_2)
-            .await
-            .is_none());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_labels(vault, UNKNOWN_INSTANCE_2)
+                .await
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -2975,10 +3070,12 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_label_value_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_label_value(vault, UNKNOWN_INSTANCE_3, "label".to_string())
-            .await
-            .is_none());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_label_value(vault, UNKNOWN_INSTANCE_3, "label".to_string())
+                .await
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -3023,10 +3120,12 @@ pub mod tests {
                 "test error",
             )))
         });
-        assert!(InstanciusImpl::default()
-            .get_instance_usb_devices(vault, USB_DEV_INSTANCE, Arc::new(usb_reader))
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_usb_devices(vault, USB_DEV_INSTANCE, Arc::new(usb_reader))
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -3121,11 +3220,13 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_usb_devices_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_usb_device(vault, USB_DEV_INSTANCE, "unknown_port".to_string())
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_usb_device(vault, USB_DEV_INSTANCE, "unknown_port".to_string())
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -3161,20 +3262,24 @@ pub mod tests {
     #[tokio::test]
     async fn delete_instance_usb_device_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_usb_device(vault, UNKNOWN_INSTANCE_1, "test_port".to_string())
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_usb_device(vault, UNKNOWN_INSTANCE_1, "test_port".to_string())
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
     async fn delete_instance_usb_device_some_none() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .delete_instance_usb_device(vault, USB_DEV_INSTANCE, "unknown_port".to_string())
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            InstanciusImpl::default()
+                .delete_instance_usb_device(vault, USB_DEV_INSTANCE, "unknown_port".to_string())
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -3350,15 +3455,17 @@ pub mod tests {
                 "test error",
             )))
         });
-        assert!(InstanciusImpl::default()
-            .get_instance_usb_device(
-                vault,
-                USB_DEV_INSTANCE,
-                "test_port".to_string(),
-                Arc::new(reader)
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_usb_device(
+                    vault,
+                    USB_DEV_INSTANCE,
+                    "test_port".to_string(),
+                    Arc::new(reader)
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -3371,15 +3478,17 @@ pub mod tests {
                 "test error",
             )))
         });
-        assert!(InstanciusImpl::default()
-            .put_instance_usb_device(
-                vault,
-                UNKNOWN_INSTANCE_1,
-                "test_port".to_string(),
-                Arc::new(reader)
-            )
-            .await
-            .is_err(),);
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_usb_device(
+                    vault,
+                    UNKNOWN_INSTANCE_1,
+                    "test_port".to_string(),
+                    Arc::new(reader)
+                )
+                .await
+                .is_err(),
+        );
     }
 
     #[tokio::test]
@@ -3411,15 +3520,17 @@ pub mod tests {
             .expect_get_usb_value()
             .withf(|value_name, port| value_name == "busnum" && port == "test_port")
             .returning(|_, _| Ok("10".to_string()));
-        assert!(InstanciusImpl::default()
-            .put_instance_usb_device(
-                vault.clone(),
-                USB_DEV_INSTANCE,
-                "test_port".to_string(),
-                Arc::new(reader)
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .put_instance_usb_device(
+                    vault.clone(),
+                    USB_DEV_INSTANCE,
+                    "test_port".to_string(),
+                    Arc::new(reader)
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -3795,15 +3906,17 @@ pub mod tests {
             None,
         );
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        assert!(InstanciusImpl::default()
-            .redirect_editor_request(
-                vault,
-                floxy,
-                EDITOR_INSTANCE,
-                NonZeroU16::new(1234).unwrap()
-            )
-            .await
-            .is_err());
+        assert!(
+            InstanciusImpl::default()
+                .redirect_editor_request(
+                    vault,
+                    floxy,
+                    EDITOR_INSTANCE,
+                    NonZeroU16::new(1234).unwrap()
+                )
+                .await
+                .is_err()
+        );
     }
 
     #[test]
@@ -3992,16 +4105,18 @@ pub mod tests {
                 .await,
             Ok(IpAddr::V4(ip_address))
         );
-        assert!(!vault
-            .reservation()
-            .reserve_instance_pouch()
-            .grab()
-            .await
-            .instance_pouch
-            .as_ref()
-            .expect("Vault reservations should never fail")
-            .reserved_ip_addresses()
-            .contains(&IpAddr::V4(ip_address)))
+        assert!(
+            !vault
+                .reservation()
+                .reserve_instance_pouch()
+                .grab()
+                .await
+                .instance_pouch
+                .as_ref()
+                .expect("Vault reservations should never fail")
+                .reserved_ip_addresses()
+                .contains(&IpAddr::V4(ip_address))
+        )
     }
 
     #[tokio::test]
@@ -4319,10 +4434,12 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_bind_mounts_none() {
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_bind_mounts(vault, UNKNOWN_INSTANCE_2)
-            .await
-            .is_none())
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_bind_mounts(vault, UNKNOWN_INSTANCE_2)
+                .await
+                .is_none()
+        )
     }
 
     #[tokio::test]
@@ -4386,10 +4503,12 @@ pub mod tests {
     #[tokio::test]
     async fn get_instance_config_mounts_none() {
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(InstanciusImpl::default()
-            .get_instance_config_mounts(vault, UNKNOWN_INSTANCE_2)
-            .await
-            .is_none())
+        assert!(
+            InstanciusImpl::default()
+                .get_instance_config_mounts(vault, UNKNOWN_INSTANCE_2)
+                .await
+                .is_none()
+        )
     }
 
     #[tokio::test]

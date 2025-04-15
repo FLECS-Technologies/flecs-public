@@ -1,7 +1,7 @@
 use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::instance::InstanceId;
 use std::net::IpAddr;
-use std::sync::{atomic, Arc};
+use std::sync::{Arc, atomic};
 use tracing::error;
 
 pub struct FloxyOperation<F: Floxy> {
@@ -138,7 +138,7 @@ mod tests {
     use std::net::IpAddr;
     use std::str::FromStr;
     use std::sync::atomic::AtomicBool;
-    use std::sync::{atomic, Arc};
+    use std::sync::{Arc, atomic};
 
     #[test]
     fn floxy_operation_drop_reload() {
@@ -230,14 +230,16 @@ mod tests {
             floxy: Arc::new(floxy),
             reload: AtomicBool::new(false),
         };
-        assert!(operation
-            .add_instance_reverse_proxy_config(
-                "",
-                InstanceId::new(1),
-                IpAddr::from_str("172.10.10.10").unwrap(),
-                &[],
-            )
-            .is_err());
+        assert!(
+            operation
+                .add_instance_reverse_proxy_config(
+                    "",
+                    InstanceId::new(1),
+                    IpAddr::from_str("172.10.10.10").unwrap(),
+                    &[],
+                )
+                .is_err()
+        );
         assert!(!operation.reload.load(atomic::Ordering::Relaxed));
     }
 
@@ -287,9 +289,11 @@ mod tests {
             floxy: Arc::new(floxy),
             reload: AtomicBool::new(false),
         };
-        assert!(operation
-            .delete_reverse_proxy_config("", InstanceId::new(1),)
-            .is_err());
+        assert!(
+            operation
+                .delete_reverse_proxy_config("", InstanceId::new(1),)
+                .is_err()
+        );
         assert!(!operation.reload.load(atomic::Ordering::Relaxed));
     }
 
@@ -339,9 +343,11 @@ mod tests {
             floxy: Arc::new(floxy),
             reload: AtomicBool::new(false),
         };
-        assert!(operation
-            .delete_server_config("", InstanceId::new(1), 100)
-            .is_err());
+        assert!(
+            operation
+                .delete_server_config("", InstanceId::new(1), 100)
+                .is_err()
+        );
         assert!(!operation.reload.load(atomic::Ordering::Relaxed));
     }
 
@@ -392,9 +398,11 @@ mod tests {
             floxy: Arc::new(floxy),
             reload: AtomicBool::new(false),
         };
-        assert!(operation
-            .delete_server_proxy_configs("", InstanceId::new(1), &[])
-            .is_err());
+        assert!(
+            operation
+                .delete_server_proxy_configs("", InstanceId::new(1), &[])
+                .is_err()
+        );
         assert!(operation.reload.load(atomic::Ordering::Relaxed));
     }
 
@@ -409,9 +417,11 @@ mod tests {
             floxy: Arc::new(floxy),
             reload: AtomicBool::new(false),
         };
-        assert!(operation
-            .delete_server_proxy_configs("", InstanceId::new(1), &[])
-            .is_err());
+        assert!(
+            operation
+                .delete_server_proxy_configs("", InstanceId::new(1), &[])
+                .is_err()
+        );
         assert!(!operation.reload.load(atomic::Ordering::Relaxed));
     }
 
@@ -477,14 +487,16 @@ mod tests {
             floxy: Arc::new(floxy),
             reload: AtomicBool::new(false),
         };
-        assert!(operation
-            .add_instance_editor_redirect_to_free_port(
-                "",
-                InstanceId::new(1),
-                IpAddr::from_str("172.10.10.10").unwrap(),
-                100
-            )
-            .is_err());
+        assert!(
+            operation
+                .add_instance_editor_redirect_to_free_port(
+                    "",
+                    InstanceId::new(1),
+                    IpAddr::from_str("172.10.10.10").unwrap(),
+                    100
+                )
+                .is_err()
+        );
         assert!(!operation.reload.load(atomic::Ordering::Relaxed));
     }
 }

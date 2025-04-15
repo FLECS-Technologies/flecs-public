@@ -7,7 +7,7 @@ mod usb;
 
 pub use crate::manifest::download_manifest;
 use flecs_core::enchantment::floxy::FloxyImpl;
-use flecs_core::fsm::console_client::{create_default, ConsoleClient};
+use flecs_core::fsm::console_client::{ConsoleClient, create_default};
 use flecs_core::fsm::world::{Config as WorldConfig, FlecsWorld};
 use flecs_core::sorcerer::FlecsSorcerers;
 use flecs_core::vault::Vault;
@@ -106,7 +106,7 @@ mod ffi {
             dest_port: u16,
         ) -> Result<u16>;
         fn delete_reverse_proxy_configs(app: &str, instance_id: u32, ports: Vec<u16>)
-            -> Result<()>;
+        -> Result<()>;
         fn delete_server_proxy_configs(app: &str, instance_id: u32, ports: Vec<u16>);
         fn load_instance_reverse_proxy_config(
             app: &str,

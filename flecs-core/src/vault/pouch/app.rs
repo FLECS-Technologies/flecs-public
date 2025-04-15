@@ -1,6 +1,6 @@
-use crate::jeweler::gem::app::{try_create_app, App, AppDeserializable};
-use crate::vault::pouch::{AppKey, Pouch};
 pub use crate::Result;
+use crate::jeweler::gem::app::{App, AppDeserializable, try_create_app};
+use crate::vault::pouch::{AppKey, Pouch};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -84,9 +84,9 @@ pub mod tests {
     use crate::jeweler;
     use crate::jeweler::app::AppStatus;
     use crate::jeweler::gem::app::AppDataDeserializable;
-    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
-    use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
     use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::manifest::AppManifest;
     use crate::tests::prepare_test_path;
     use serde_json::Value;

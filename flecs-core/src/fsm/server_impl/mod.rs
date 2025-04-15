@@ -7,12 +7,13 @@ mod flecsport;
 mod instances;
 mod jobs;
 mod system;
-use crate::enchantment::floxy::Floxy;
 use crate::enchantment::Enchantments;
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::console_client::ConsoleClient;
 use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::relic::network::NetworkAdapterReader;
+use crate::sorcerer::Sorcerers;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::deploymento::Deploymento;
@@ -23,7 +24,6 @@ use crate::sorcerer::licenso::Licenso;
 use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::manifesto::Manifesto;
 use crate::sorcerer::systemus::Systemus;
-use crate::sorcerer::Sorcerers;
 use crate::vault::Vault;
 use anyhow::Error;
 use flecs_console_client::models::SessionId;
@@ -68,21 +68,21 @@ pub struct ServerImpl<
 }
 
 impl<
-        APP: AppRaiser,
-        AUTH: Authmancer,
-        I: Instancius,
-        L: Licenso,
-        Q: MageQuester,
-        M: Manifesto,
-        SYS: Systemus,
-        D: Deploymento,
-        E: Exportius,
-        IMP: Importius,
-        F: Floxy,
-        T: UsbDeviceReader,
-        NET: NetworkAdapterReader,
-        NetDev: NetDeviceReader,
-    > ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
+    APP: AppRaiser,
+    AUTH: Authmancer,
+    I: Instancius,
+    L: Licenso,
+    Q: MageQuester,
+    M: Manifesto,
+    SYS: Systemus,
+    D: Deploymento,
+    E: Exportius,
+    IMP: Importius,
+    F: Floxy,
+    T: UsbDeviceReader,
+    NET: NetworkAdapterReader,
+    NetDev: NetDeviceReader,
+> ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
 {
     pub async fn new(
         vault: Arc<Vault>,

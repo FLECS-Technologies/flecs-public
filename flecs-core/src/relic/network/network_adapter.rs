@@ -2,8 +2,8 @@ use crate::relic::device::net::{NetDeviceReader, NetDeviceReaderExt};
 use crate::relic::network::ipv4::Ipv4Network;
 use crate::relic::network::{Error, Ipv6Network, NetType};
 use libc::{
-    freeifaddrs, getifaddrs, ifaddrs, sockaddr_in, sockaddr_in6, sockaddr_ll, AF_INET, AF_INET6,
-    AF_PACKET,
+    AF_INET, AF_INET6, AF_PACKET, freeifaddrs, getifaddrs, ifaddrs, sockaddr_in, sockaddr_in6,
+    sockaddr_ll,
 };
 #[cfg(test)]
 use mockall::automock;

@@ -1,7 +1,7 @@
 mod config;
+use crate::enchantment::Enchantments;
 use crate::enchantment::floxy::{Floxy, FloxyImpl, FloxyOperation};
 use crate::enchantment::quest_master::QuestMaster;
-use crate::enchantment::Enchantments;
 use crate::fsm::ServerHandle;
 use crate::quest::QuestResult;
 use crate::relic::device::net::{NetDeviceReader, NetDeviceReaderImpl};
@@ -99,21 +99,21 @@ impl FlecsWorld {
 }
 
 impl<
-        APP: AppRaiser + 'static,
-        AUTH: Authmancer + 'static,
-        I: Instancius + 'static,
-        L: Licenso + 'static,
-        Q: MageQuester + 'static,
-        M: Manifesto + 'static,
-        SYS: Systemus + 'static,
-        D: Deploymento + 'static,
-        E: Exportius + 'static,
-        IMP: Importius + 'static,
-        F: Floxy + 'static,
-        UDR: UsbDeviceReader,
-        NAR: NetworkAdapterReader,
-        NDR: NetDeviceReader,
-    > World<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, UDR, NAR, NDR>
+    APP: AppRaiser + 'static,
+    AUTH: Authmancer + 'static,
+    I: Instancius + 'static,
+    L: Licenso + 'static,
+    Q: MageQuester + 'static,
+    M: Manifesto + 'static,
+    SYS: Systemus + 'static,
+    D: Deploymento + 'static,
+    E: Exportius + 'static,
+    IMP: Importius + 'static,
+    F: Floxy + 'static,
+    UDR: UsbDeviceReader,
+    NAR: NetworkAdapterReader,
+    NDR: NetDeviceReader,
+> World<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, UDR, NAR, NDR>
 {
     pub async fn halt(self) {
         self.server.shutdown().await;

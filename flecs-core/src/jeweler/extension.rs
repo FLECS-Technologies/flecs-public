@@ -66,16 +66,18 @@ mod tests {
             .times(2)
             .returning(|_, _| Ok(()));
         let deployment = Arc::new(deployment);
-        assert!(delete_volumes(
-            Quest::new_synced("TestQuest".to_string()),
-            deployment,
-            vec![
-                "TestVolumeId1".to_string(),
-                "TestVolumeId2".to_string(),
-                "TestVolumeId3".to_string(),
-            ],
+        assert!(
+            delete_volumes(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                vec![
+                    "TestVolumeId1".to_string(),
+                    "TestVolumeId2".to_string(),
+                    "TestVolumeId3".to_string(),
+                ],
+            )
+            .await
+            .is_err()
         )
-        .await
-        .is_err())
     }
 }

@@ -54,54 +54,50 @@ pub async fn get<I: Instancius, U: UsbDeviceReader + 'static>(
     path_params: GetPathParams,
 ) -> GetResponse {
     let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-    match instancius.get_instance_usb_device(
-        vault,
-        instance_id,
-        path_params.port.clone(),
-        usb_device_reader,
-    )
+    match instancius
+        .get_instance_usb_device(
+            vault,
+            instance_id,
+            path_params.port.clone(),
+            usb_device_reader,
+        )
         .await
     {
-        Ok(GetInstanceUsbDeviceResult::DeviceActive(config, device)) =>
-            GetResponse::Status200_Success(
-                instance_config_usb_device_from((config, Some(device))),
-            ),
-        Ok(GetInstanceUsbDeviceResult::DeviceInactive(config)) =>
-            GetResponse::Status200_Success(
-                instance_config_usb_device_from((config, None)),
-            ),
-        Ok(GetInstanceUsbDeviceResult::NotSupported) =>
+        Ok(GetInstanceUsbDeviceResult::DeviceActive(config, device)) => {
+            GetResponse::Status200_Success(instance_config_usb_device_from((config, Some(device))))
+        }
+        Ok(GetInstanceUsbDeviceResult::DeviceInactive(config)) => {
+            GetResponse::Status200_Success(instance_config_usb_device_from((config, None)))
+        }
+        Ok(GetInstanceUsbDeviceResult::NotSupported) => {
             GetResponse::Status400_MalformedRequest(models::AdditionalInfo {
                 additional_info: format!("Instance {instance_id} does not support usb devices"),
-            }),
-        Ok(GetInstanceUsbDeviceResult::InstanceNotFound) =>
-            GetResponse::Status404_ResourceNotFound(
-                models::OptionalAdditionalInfo {
-                    additional_info: Some(format!("No instance with id {instance_id}")),
-                },
-            ),
-        Ok(GetInstanceUsbDeviceResult::DeviceNotMapped) =>
-            GetResponse::Status404_ResourceNotFound(
-                models::OptionalAdditionalInfo {
-                    additional_info: Some(format!(
-                        "Usb port '{}' not mapped to instance {instance_id}",
-                        path_params.port
-                    )),
-                },
-            ),
-        Ok(GetInstanceUsbDeviceResult::UnknownDevice) =>
-            GetResponse::Status404_ResourceNotFound(
-                models::OptionalAdditionalInfo {
-                    additional_info: Some(format!(
-                        "Usb port '{}' not mapped to instance {instance_id} and not corresponding to any known device",
-                        path_params.port
-                    )),
-                },
-            ),
-        Err(e) =>
-            GetResponse::Status500_InternalServerError(
-                models::AdditionalInfo::new(e.to_string()),
-            ),
+            })
+        }
+        Ok(GetInstanceUsbDeviceResult::InstanceNotFound) => {
+            GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
+                additional_info: Some(format!("No instance with id {instance_id}")),
+            })
+        }
+        Ok(GetInstanceUsbDeviceResult::DeviceNotMapped) => {
+            GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
+                additional_info: Some(format!(
+                    "Usb port '{}' not mapped to instance {instance_id}",
+                    path_params.port
+                )),
+            })
+        }
+        Ok(GetInstanceUsbDeviceResult::UnknownDevice) => {
+            GetResponse::Status404_ResourceNotFound(models::OptionalAdditionalInfo {
+                additional_info: Some(format!(
+                    "Usb port '{}' not mapped to instance {instance_id} and not corresponding to any known device",
+                    path_params.port
+                )),
+            })
+        }
+        Err(e) => {
+            GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 

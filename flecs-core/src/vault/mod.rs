@@ -1,14 +1,14 @@
 pub mod pouch;
 
+use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeploymentImpl;
 use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
-use crate::jeweler::gem::deployment::Deployment;
+use crate::vault::pouch::Pouch;
 use crate::vault::pouch::app::AppPouch;
 use crate::vault::pouch::deployment::DeploymentPouch;
 use crate::vault::pouch::instance::InstancePouch;
 use crate::vault::pouch::manifest::ManifestPouch;
 use crate::vault::pouch::secret::{SecretPouch, Secrets};
-use crate::vault::pouch::Pouch;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -246,7 +246,9 @@ impl Vault {
                         default_compose_deployment,
                     );
                     deployment_pouch_mut.set_default_deployments();
-                    info!("No deployments configured, added default Docker deployment and default Compose deployments");
+                    info!(
+                        "No deployments configured, added default Docker deployment and default Compose deployments"
+                    );
                 }
             }
             Err(e) => {
@@ -484,12 +486,12 @@ impl Drop for GrabbedPouches<'_> {
 pub mod tests {
     use super::*;
     use crate::jeweler::gem::instance::InstanceId;
+    use crate::vault::pouch::AppKey;
     use crate::vault::pouch::app::tests::test_app_pouch;
     use crate::vault::pouch::deployment::tests::test_deployment_pouch;
     use crate::vault::pouch::instance::tests::test_instance_pouch;
     use crate::vault::pouch::manifest::tests::test_manifest_pouch;
     use crate::vault::pouch::secret::tests::test_secret_pouch;
-    use crate::vault::pouch::AppKey;
     use flecs_console_client::models::SessionId;
     use ntest::timeout;
     use std::collections::HashMap;

@@ -3,7 +3,7 @@ use crate::quest::SyncQuest;
 use crate::relic::async_flecstract::extract_from_file;
 use crate::sorcerer::importius::{ImportError, Importius};
 use crate::sorcerer::spell::instance::start_all_instances_as_desired;
-use crate::sorcerer::{spell, Sorcerer};
+use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::Vault;
 use async_trait::async_trait;
 use std::path::PathBuf;
