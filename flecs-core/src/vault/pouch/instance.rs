@@ -818,7 +818,7 @@ pub mod tests {
         let json = create_test_json();
         let instance_pouch = InstancePouch::new(path.parent().unwrap());
         let mut expected_instances = create_test_instances_deserializable();
-        let InstanceDeserializable::Docker(ref mut instance) = &mut expected_instances[5] else {
+        let InstanceDeserializable::Docker(instance) = &mut expected_instances[5] else {
             panic!()
         };
         // mapped ports should not be serialized / deserialized
@@ -1032,7 +1032,7 @@ pub mod tests {
             reserved_ip_addresses: HashSet::default(),
         };
         for instance in pouch.instances.values_mut() {
-            let Instance::Docker(ref mut instance) = instance else {
+            let Instance::Docker(instance) = instance else {
                 panic!()
             };
             instance.config.connected_networks.insert(
@@ -1040,7 +1040,7 @@ pub mod tests {
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
             );
         }
-        let Some(Instance::Docker(ref mut instance)) = pouch.instances.get_mut(&InstanceId::new(1))
+        let Some(Instance::Docker(instance)) = pouch.instances.get_mut(&InstanceId::new(1))
         else {
             panic!()
         };
@@ -1088,7 +1088,7 @@ pub mod tests {
             Ipv4Addr::new(50, 60, 70, 80),
         ]);
         for instance in pouch.instances.values_mut() {
-            let Instance::Docker(ref mut instance) = instance else {
+            let Instance::Docker(instance) = instance else {
                 panic!()
             };
             instance.config.connected_networks.insert(
@@ -1096,7 +1096,7 @@ pub mod tests {
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
             );
         }
-        let Some(Instance::Docker(ref mut instance)) = pouch.instances.get_mut(&InstanceId::new(1))
+        let Some(Instance::Docker(instance)) = pouch.instances.get_mut(&InstanceId::new(1))
         else {
             panic!()
         };
@@ -1127,7 +1127,7 @@ pub mod tests {
             ]),
         };
         for instance in pouch.instances.values_mut() {
-            let Instance::Docker(ref mut instance) = instance else {
+            let Instance::Docker(instance) = instance else {
                 panic!()
             };
             instance.config.connected_networks.insert(
@@ -1135,7 +1135,7 @@ pub mod tests {
                 IpAddr::V6(Ipv6Addr::new(1, 2, 3, 4, 5, 6, 7, instance.id.value as u16)),
             );
         }
-        let Some(Instance::Docker(ref mut instance)) = pouch.instances.get_mut(&InstanceId::new(1))
+        let Some(Instance::Docker(instance)) = pouch.instances.get_mut(&InstanceId::new(1))
         else {
             panic!()
         };
@@ -1197,7 +1197,7 @@ pub mod tests {
         };
         let expected_new_address = Ipv4Addr::new(20, 30, 40, 6 + pouch.instances.len() as u8);
         for (i, instance) in pouch.instances.values_mut().enumerate() {
-            let Instance::Docker(ref mut instance) = instance else {
+            let Instance::Docker(instance) = instance else {
                 panic!()
             };
             instance.config.connected_networks.insert(

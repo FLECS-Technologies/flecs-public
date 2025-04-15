@@ -948,7 +948,7 @@ pub mod tests {
                 .grab()
                 .await;
             let instance_pouch = grab.instance_pouch_mut.as_mut().unwrap();
-            let Some(Instance::Docker(ref mut instance)) =
+            let Some(Instance::Docker(instance)) =
                 instance_pouch.gems_mut().get_mut(&RUNNING_INSTANCE)
             else {
                 panic!()

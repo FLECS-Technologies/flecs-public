@@ -75,7 +75,7 @@ pub fn init_backtracing() {
         const BT_VALUE: &str = "1";
         #[cfg(not(debug_assertions))]
         const BT_VALUE: &str = "0";
-        std::env::set_var("RUST_BACKTRACE", BT_VALUE);
+        unsafe { std::env::set_var("RUST_BACKTRACE", BT_VALUE) };
     }
 }
 

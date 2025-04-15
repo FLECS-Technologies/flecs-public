@@ -44,35 +44,35 @@ impl Licenso for LicensoImpl {
         };
         match activation_result? {
             ActivationResult::Activated(activation_data) => {
-                if let GrabbedPouches {
+                match vault.reservation().reserve_secret_pouch_mut().grab().await
+                { GrabbedPouches {
                     secret_pouch_mut: Some(ref mut secret_pouch),
                     ..
-                } = vault.reservation().reserve_secret_pouch_mut().grab().await
-                {
+                } => {
                     secret_pouch.gems_mut().license_key = Some(activation_data.license_key);
                     secret_pouch
                         .gems_mut()
                         .set_session_id(*activation_data.session_id);
                     Ok(())
-                } else {
+                } _ => {
                     panic!("Failed to reserve secret pouch mut");
-                }
+                }}
             }
             ActivationResult::AlreadyActive => {
-                if let GrabbedPouches {
+                match vault.reservation().reserve_secret_pouch().grab().await
+                { GrabbedPouches {
                     secret_pouch: Some(ref secret_pouch),
                     ..
-                } = vault.reservation().reserve_secret_pouch().grab().await
-                {
+                } => {
                     match (&secret_pouch.gems().license_key, secret_pouch.gems().get_session_id().id) {
                         (None, None) => Err(anyhow!("Console responded with already active, but license and session id are not set")),
                         (None, Some(_)) => Err(anyhow!("Console responded with already active, but license is not set")),
                         (Some(_), None)=> Err(anyhow!("Console responded with already active, but session id is not set")),
                         _ => Ok(()),
                     }
-                } else {
+                } _ => {
                     panic!("Failed to reserve secret pouch");
-                }
+                }}
             }
         }.context("Could not activate license")
     }

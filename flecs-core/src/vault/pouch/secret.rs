@@ -89,11 +89,11 @@ impl SecretPouch {
     fn save_session(&self) -> crate::vault::Result<()> {
         let content = match &self.secrets.session_id {
             SessionId {
-                id: Some(ref id),
-                timestamp: Some(ref timestamp),
+                id: Some(id),
+                timestamp: Some(timestamp),
             } => format!("{id}\n{timestamp}"),
             SessionId {
-                id: Some(ref id),
+                id: Some(id),
                 timestamp: None,
             } => id.clone(),
             _ => String::new(),
