@@ -1,15 +1,15 @@
+use crate::jeweler::GetDeploymentId;
 use crate::jeweler::app::{AppDeployment, AppId, Token};
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
-use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::instance::{InstanceDeployment, Logs};
 use crate::jeweler::network::{
     CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
-use crate::jeweler::GetDeploymentId;
 use crate::quest::SyncQuest;
 use crate::vault::pouch::deployment::DeploymentId;
 use async_trait::async_trait;

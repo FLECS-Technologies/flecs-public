@@ -2,10 +2,10 @@ use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
 use crate::quest::Quest;
 use crate::relic::network::Ipv4NetworkAccess;
+use crate::sorcerer::Sorcerer;
 use crate::sorcerer::deploymento::{
     CreateNetworkError, Deploymento, GetDeploymentNetworkError, ReserveIpv4AddressError,
 };
-use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
 use async_trait::async_trait;
 use std::net::Ipv4Addr;
@@ -110,7 +110,7 @@ impl Deploymento for DeploymentoImpl {
                 return Err(ReserveIpv4AddressError::Other {
                     network_id,
                     reason: e.to_string(),
-                })
+                });
             }
         };
         match crate::sorcerer::spell::instance::make_ipv4_reservation(vault, network).await {
@@ -125,8 +125,8 @@ impl Sorcerer for DeploymentoImpl {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::network::NetworkKind;
     use crate::vault::tests::{create_empty_test_vault, create_test_vault_with_deployment};
     use mockall::predicate;
@@ -134,11 +134,13 @@ mod tests {
     #[tokio::test]
     async fn get_deployment_networks_unknown_deployment() {
         let vault = create_empty_test_vault();
-        assert!(DeploymentoImpl
-            .get_deployment_networks(vault, "UnknownDeployment".to_string())
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            DeploymentoImpl
+                .get_deployment_networks(vault, "UnknownDeployment".to_string())
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -154,10 +156,12 @@ mod tests {
             .return_const("TestDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault_with_deployment(deployment);
-        assert!(DeploymentoImpl
-            .get_deployment_networks(vault, "TestDeployment".to_string())
-            .await
-            .is_err());
+        assert!(
+            DeploymentoImpl
+                .get_deployment_networks(vault, "TestDeployment".to_string())
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]

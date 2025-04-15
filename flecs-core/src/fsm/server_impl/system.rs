@@ -29,21 +29,21 @@ use http::Method;
 
 #[async_trait]
 impl<
-        APP: AppRaiser,
-        AUTH: Authmancer,
-        I: Instancius,
-        L: Licenso,
-        Q: MageQuester,
-        M: Manifesto,
-        SYS: Systemus + 'static,
-        D: Deploymento,
-        E: Exportius,
-        IMP: Importius,
-        F: Floxy,
-        T: UsbDeviceReader,
-        NET: NetworkAdapterReader + 'static,
-        NetDev: NetDeviceReader + 'static,
-    > System for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
+    APP: AppRaiser,
+    AUTH: Authmancer,
+    I: Instancius,
+    L: Licenso,
+    Q: MageQuester,
+    M: Manifesto,
+    SYS: Systemus + 'static,
+    D: Deploymento,
+    E: Exportius,
+    IMP: Importius,
+    F: Floxy,
+    T: UsbDeviceReader,
+    NET: NetworkAdapterReader + 'static,
+    NetDev: NetDeviceReader + 'static,
+> System for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
 {
     async fn system_devices_get(
         &self,

@@ -1,8 +1,8 @@
 use crate::fsm::console_client::ConsoleClient;
 use crate::sorcerer::manifesto::Manifesto;
-use crate::sorcerer::{spell, Sorcerer};
-use crate::vault::pouch::{AppKey, Pouch};
+use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::Vault;
+use crate::vault::pouch::{AppKey, Pouch};
 use anyhow::Error;
 use async_trait::async_trait;
 use flecs_app_manifest::AppManifestVersion;

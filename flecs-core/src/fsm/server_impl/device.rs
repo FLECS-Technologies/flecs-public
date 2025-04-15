@@ -25,21 +25,21 @@ use http::Method;
 
 #[async_trait]
 impl<
-        APP: AppRaiser + 'static,
-        AUTH: Authmancer,
-        I: Instancius,
-        L: Licenso,
-        Q: MageQuester,
-        M: Manifesto,
-        SYS: Systemus,
-        D: Deploymento,
-        E: Exportius,
-        IMP: Importius,
-        F: Floxy,
-        T: UsbDeviceReader,
-        NET: NetworkAdapterReader,
-        NetDev: NetDeviceReader,
-    > Device for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
+    APP: AppRaiser + 'static,
+    AUTH: Authmancer,
+    I: Instancius,
+    L: Licenso,
+    Q: MageQuester,
+    M: Manifesto,
+    SYS: Systemus,
+    D: Deploymento,
+    E: Exportius,
+    IMP: Importius,
+    F: Floxy,
+    T: UsbDeviceReader,
+    NET: NetworkAdapterReader,
+    NetDev: NetDeviceReader,
+> Device for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
 {
     async fn device_license_activation_post(
         &self,

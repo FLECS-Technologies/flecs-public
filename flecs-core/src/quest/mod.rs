@@ -1,7 +1,7 @@
 pub use super::{Error, Result};
 use crate::vault::pouch::instance::InstanceId;
-use futures_util::future::BoxFuture;
 use futures_util::StreamExt;
+use futures_util::future::BoxFuture;
 use std::fmt::{Display, Formatter};
 use std::future::Future;
 use std::pin::Pin;

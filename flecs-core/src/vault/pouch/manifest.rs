@@ -1,6 +1,6 @@
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Error;
+use crate::vault::pouch::{AppKey, Pouch};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};

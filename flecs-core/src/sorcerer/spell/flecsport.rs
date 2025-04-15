@@ -2,8 +2,8 @@ use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::instance::{Instance, InstanceId};
 use crate::quest::SyncQuest;
-use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
+use crate::vault::pouch::{AppKey, Pouch};
 use futures_util::future::join_all;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -269,10 +269,11 @@ mod tests {
         .unwrap();
         assert_eq!(std::fs::read_dir(&path).unwrap().count(), 4);
         for instance_id in INSTANCE_IDS {
-            assert!(path
-                .join(instance_id.to_string())
-                .join("instance.json")
-                .is_file());
+            assert!(
+                path.join(instance_id.to_string())
+                    .join("instance.json")
+                    .is_file()
+            );
         }
     }
     #[tokio::test]
@@ -281,15 +282,17 @@ mod tests {
         let path = testdir!().join("exports");
         let vault = create_empty_test_vault();
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        assert!(export_instances(
-            Quest::new_synced("TestQuest"),
-            vault,
-            floxy,
-            vec![INSTANCE_ID],
-            path.clone(),
-        )
-        .await
-        .is_err());
+        assert!(
+            export_instances(
+                Quest::new_synced("TestQuest"),
+                vault,
+                floxy,
+                vec![INSTANCE_ID],
+                path.clone(),
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]
@@ -357,15 +360,17 @@ mod tests {
         std::fs::create_dir_all(path.join("instance.json")).unwrap();
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        assert!(export_instance(
-            Quest::new_synced("TestQuest"),
-            vault,
-            floxy,
-            INSTANCE_ID,
-            path.clone(),
-        )
-        .await
-        .is_err());
+        assert!(
+            export_instance(
+                Quest::new_synced("TestQuest"),
+                vault,
+                floxy,
+                INSTANCE_ID,
+                path.clone(),
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]

@@ -40,7 +40,7 @@ pub trait AppDeployment {
         token: Option<Token>,
     ) -> Result<AppId>;
     async fn uninstall_app(&self, quest: SyncQuest, manifest: AppManifest, id: AppId)
-        -> Result<()>;
+    -> Result<()>;
 
     async fn is_app_installed(
         &self,

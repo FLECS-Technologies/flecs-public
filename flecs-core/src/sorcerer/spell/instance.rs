@@ -1,16 +1,16 @@
 pub use super::{Error, Result};
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
-use crate::jeweler::gem::instance::docker::config::InstanceConfig;
 use crate::jeweler::gem::instance::docker::DockerInstance;
+use crate::jeweler::gem::instance::docker::config::InstanceConfig;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{Instance, InstanceId};
 use crate::jeweler::gem::manifest::single::AppManifestSingle;
 use crate::jeweler::network::NetworkId;
 use crate::quest::{State, SyncQuest};
 use crate::relic::network::Ipv4NetworkAccess;
-use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::Vault;
+use crate::vault::pouch::{AppKey, Pouch};
 use futures_util::future::join_all;
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
@@ -533,8 +533,8 @@ pub async fn disconnect_instance_from_network(
 pub mod tests {
     use super::*;
     use crate::enchantment::floxy::MockFloxy;
-    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::manifest::single::EnvironmentVariable;
     use crate::quest::Quest;
     use crate::relic::network::Ipv4Network;
@@ -563,19 +563,23 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        assert!(get_instance_detailed_info(vault, RUNNING_INSTANCE)
-            .await
-            .unwrap()
-            .is_some());
+        assert!(
+            get_instance_detailed_info(vault, RUNNING_INSTANCE)
+                .await
+                .unwrap()
+                .is_some()
+        );
     }
 
     #[tokio::test]
     async fn get_instance_info_details_not_found() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(get_instance_detailed_info(vault, UNKNOWN_INSTANCE_2)
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            get_instance_detailed_info(vault, UNKNOWN_INSTANCE_2)
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -593,9 +597,11 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        assert!(get_instance_detailed_info(vault, RUNNING_INSTANCE)
-            .await
-            .is_err());
+        assert!(
+            get_instance_detailed_info(vault, RUNNING_INSTANCE)
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -613,19 +619,23 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        assert!(get_instance_info(vault, RUNNING_INSTANCE)
-            .await
-            .unwrap()
-            .is_some());
+        assert!(
+            get_instance_info(vault, RUNNING_INSTANCE)
+                .await
+                .unwrap()
+                .is_some()
+        );
     }
 
     #[tokio::test]
     async fn get_instance_info_not_found() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        assert!(get_instance_info(vault, UNKNOWN_INSTANCE_2)
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            get_instance_info(vault, UNKNOWN_INSTANCE_2)
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -672,9 +682,11 @@ pub mod tests {
         .await;
         assert_eq!(instance_infos.len(), instance_ids.len());
         for instance_id in instance_ids {
-            assert!(instance_infos
-                .iter()
-                .any(|instance| instance.instance_id == instance_id.to_string()));
+            assert!(
+                instance_infos
+                    .iter()
+                    .any(|instance| instance.instance_id == instance_id.to_string())
+            );
         }
     }
 
@@ -704,14 +716,18 @@ pub mod tests {
         .await;
         assert_eq!(instance_infos.len(), known_instance_ids.len());
         for known_instance_id in known_instance_ids {
-            assert!(instance_infos
-                .iter()
-                .any(|instance| instance.instance_id == known_instance_id.to_string()));
+            assert!(
+                instance_infos
+                    .iter()
+                    .any(|instance| instance.instance_id == known_instance_id.to_string())
+            );
         }
         for unknown_instance_id in unknown_instance_ids {
-            assert!(!instance_infos
-                .iter()
-                .any(|instance| instance.instance_id == unknown_instance_id.to_string()));
+            assert!(
+                !instance_infos
+                    .iter()
+                    .any(|instance| instance.instance_id == unknown_instance_id.to_string())
+            );
         }
     }
 
@@ -788,42 +804,48 @@ pub mod tests {
             None,
         );
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        assert!(start_instance(
-            Quest::new_synced("TestQuest".to_string()),
-            vault,
-            floxy,
-            RUNNING_INSTANCE,
-        )
-        .await
-        .is_err());
+        assert!(
+            start_instance(
+                Quest::new_synced("TestQuest".to_string()),
+                vault,
+                floxy,
+                RUNNING_INSTANCE,
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]
     async fn start_instance_not_found() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        assert!(start_instance(
-            Quest::new_synced("TestQuest".to_string()),
-            vault,
-            floxy,
-            UNKNOWN_INSTANCE_1,
-        )
-        .await
-        .is_err());
+        assert!(
+            start_instance(
+                Quest::new_synced("TestQuest".to_string()),
+                vault,
+                floxy,
+                UNKNOWN_INSTANCE_1,
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]
     async fn stop_instance_not_found() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        assert!(stop_instance(
-            Quest::new_synced("TestQuest".to_string()),
-            vault,
-            floxy,
-            UNKNOWN_INSTANCE_1,
-        )
-        .await
-        .is_err());
+        assert!(
+            stop_instance(
+                Quest::new_synced("TestQuest".to_string()),
+                vault,
+                floxy,
+                UNKNOWN_INSTANCE_1,
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1072,12 +1094,14 @@ pub mod tests {
         }));
         let vault = vault::tests::create_test_vault(instance_deployments, HashMap::new(), None);
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        assert!(start_all_instances_as_desired(
-            Quest::new_synced("TestQuest".to_string()),
-            vault,
-            floxy
-        )
-        .await
-        .is_err());
+        assert!(
+            start_all_instances_as_desired(
+                Quest::new_synced("TestQuest".to_string()),
+                vault,
+                floxy
+            )
+            .await
+            .is_err()
+        );
     }
 }

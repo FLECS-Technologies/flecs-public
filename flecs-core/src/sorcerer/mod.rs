@@ -78,17 +78,17 @@ pub struct Sorcerers<
 }
 
 impl<
-        APP: AppRaiser + ?Sized,
-        AUTH: Authmancer + ?Sized,
-        I: Instancius + ?Sized,
-        L: Licenso + ?Sized,
-        Q: MageQuester + ?Sized,
-        M: Manifesto + ?Sized,
-        SYS: Systemus + ?Sized,
-        D: Deploymento + ?Sized,
-        E: Exportius + ?Sized,
-        IMP: Importius + ?Sized,
-    > Clone for Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>
+    APP: AppRaiser + ?Sized,
+    AUTH: Authmancer + ?Sized,
+    I: Instancius + ?Sized,
+    L: Licenso + ?Sized,
+    Q: MageQuester + ?Sized,
+    M: Manifesto + ?Sized,
+    SYS: Systemus + ?Sized,
+    D: Deploymento + ?Sized,
+    E: Exportius + ?Sized,
+    IMP: Importius + ?Sized,
+> Clone for Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>
 {
     fn clone(&self) -> Self {
         Self {

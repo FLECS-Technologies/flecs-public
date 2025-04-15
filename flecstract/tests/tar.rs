@@ -17,19 +17,25 @@ fn test_sym_links(archive: &[u8], test_path: &Path) {
     extract(archive, test_path).unwrap();
     // Check level 0
     assert_eq!(std::fs::read_dir(test_path).unwrap().count(), 5);
-    assert!(std::fs::metadata(test_path.join("level_1"))
-        .unwrap()
-        .is_dir());
-    assert!(std::fs::symlink_metadata(test_path.join("link_0_to_2_0"))
-        .unwrap()
-        .is_symlink());
+    assert!(
+        std::fs::metadata(test_path.join("level_1"))
+            .unwrap()
+            .is_dir()
+    );
+    assert!(
+        std::fs::symlink_metadata(test_path.join("link_0_to_2_0"))
+            .unwrap()
+            .is_symlink()
+    );
     assert_eq!(
         std::fs::read_link(test_path.join("link_0_to_2_0")).unwrap(),
         Path::new("level_1/level_2/file_0")
     );
-    assert!(std::fs::symlink_metadata(test_path.join("link_1_to_1_1"))
-        .unwrap()
-        .is_symlink());
+    assert!(
+        std::fs::symlink_metadata(test_path.join("link_1_to_1_1"))
+            .unwrap()
+            .is_symlink()
+    );
     assert_eq!(
         std::fs::read_link(test_path.join("link_1_to_1_1")).unwrap(),
         Path::new("level_1/file_1")
@@ -49,9 +55,11 @@ fn test_sym_links(archive: &[u8], test_path: &Path) {
             .count(),
         3
     );
-    assert!(std::fs::metadata(test_path.join("level_1/level_2"))
-        .unwrap()
-        .is_dir());
+    assert!(
+        std::fs::metadata(test_path.join("level_1/level_2"))
+            .unwrap()
+            .is_dir()
+    );
     assert_eq!(
         std::fs::read_to_string(test_path.join("level_1/file_0")).unwrap(),
         "level 1 file 0\n"
@@ -67,9 +75,11 @@ fn test_sym_links(archive: &[u8], test_path: &Path) {
             .count(),
         3
     );
-    assert!(std::fs::metadata(test_path.join("level_1/level_2/level_3"))
-        .unwrap()
-        .is_dir());
+    assert!(
+        std::fs::metadata(test_path.join("level_1/level_2/level_3"))
+            .unwrap()
+            .is_dir()
+    );
     assert_eq!(
         std::fs::read_to_string(test_path.join("level_1/level_2/file_0")).unwrap(),
         "level 2 file 0\n"
@@ -118,19 +128,25 @@ fn test_hard_links(archive: &[u8], test_path: &Path) {
     extract(archive, test_path).unwrap();
     // Check level 0
     assert_eq!(std::fs::read_dir(test_path).unwrap().count(), 5);
-    assert!(std::fs::metadata(test_path.join("level_1"))
-        .unwrap()
-        .is_dir());
-    assert!(!std::fs::symlink_metadata(test_path.join("link_0_to_2_0"))
-        .unwrap()
-        .is_symlink());
+    assert!(
+        std::fs::metadata(test_path.join("level_1"))
+            .unwrap()
+            .is_dir()
+    );
+    assert!(
+        !std::fs::symlink_metadata(test_path.join("link_0_to_2_0"))
+            .unwrap()
+            .is_symlink()
+    );
     assert_eq!(
         std::fs::read_to_string(test_path.join("link_0_to_2_0")).unwrap(),
         "level 2 file 0\n"
     );
-    assert!(!std::fs::symlink_metadata(test_path.join("link_1_to_1_1"))
-        .unwrap()
-        .is_symlink());
+    assert!(
+        !std::fs::symlink_metadata(test_path.join("link_1_to_1_1"))
+            .unwrap()
+            .is_symlink()
+    );
     assert_eq!(
         std::fs::read_to_string(test_path.join("link_1_to_1_1")).unwrap(),
         "level 1 file 1\n"
@@ -150,9 +166,11 @@ fn test_hard_links(archive: &[u8], test_path: &Path) {
             .count(),
         3
     );
-    assert!(std::fs::metadata(test_path.join("level_1/level_2"))
-        .unwrap()
-        .is_dir());
+    assert!(
+        std::fs::metadata(test_path.join("level_1/level_2"))
+            .unwrap()
+            .is_dir()
+    );
     assert_eq!(
         std::fs::read_to_string(test_path.join("level_1/file_0")).unwrap(),
         "level 1 file 0\n"
@@ -168,9 +186,11 @@ fn test_hard_links(archive: &[u8], test_path: &Path) {
             .count(),
         3
     );
-    assert!(std::fs::metadata(test_path.join("level_1/level_2/level_3"))
-        .unwrap()
-        .is_dir());
+    assert!(
+        std::fs::metadata(test_path.join("level_1/level_2/level_3"))
+            .unwrap()
+            .is_dir()
+    );
     assert_eq!(
         std::fs::read_to_string(test_path.join("level_1/level_2/file_0")).unwrap(),
         "level 2 file 0\n"

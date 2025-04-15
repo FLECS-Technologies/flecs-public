@@ -1,17 +1,17 @@
 use crate::forge::bollard::BollardNetworkExtension;
+use crate::jeweler::GetDeploymentId;
 use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
-use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::InstanceId;
-use crate::jeweler::gem::manifest::single::ConfigFile;
+use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::gem::manifest::single::ConfigFile;
 use crate::jeweler::instance::{InstanceDeployment, Logs};
 use crate::jeweler::network::{
     CreateNetworkError, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
-use crate::jeweler::GetDeploymentId;
 use crate::quest::{Quest, QuestId, State, SyncQuest};
 use crate::relic::network::{Ipv4Network, NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
@@ -28,8 +28,8 @@ use bollard::network::{
     ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions, ListNetworksOptions,
 };
 use bollard::volume::CreateVolumeOptions;
-use bollard::{Docker, API_DEFAULT_VERSION};
-use futures_util::future::{join_all, BoxFuture};
+use bollard::{API_DEFAULT_VERSION, Docker};
+use futures_util::future::{BoxFuture, join_all};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Formatter;
@@ -1178,7 +1178,7 @@ impl NetworkDeployment for DockerDeploymentImpl {
                 return Err(CreateNetworkError::NetworkConfigInvalid {
                     location: "kind".to_string(),
                     reason: format!("Invalid network type {x}"),
-                })
+                });
             }
         };
         if let Some(parent_adapter) = config.parent_adapter {
@@ -1491,11 +1491,13 @@ mod tests {
     #[test]
     fn subnet_fits_network_true_some() {
         let network = subnet_network_data();
-        assert!(DockerDeploymentImpl::subnet_fits_network(
-            Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
-            &network
-        )
-        .unwrap());
+        assert!(
+            DockerDeploymentImpl::subnet_fits_network(
+                Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
+                &network
+            )
+            .unwrap()
+        );
     }
 
     #[test]
@@ -1507,11 +1509,13 @@ mod tests {
     #[test]
     fn subnet_fits_network_false() {
         let network = subnet_network_data();
-        assert!(!DockerDeploymentImpl::subnet_fits_network(
-            Some(Ipv4Network::from_str("44.21.0.0/16").unwrap()),
-            &network
-        )
-        .unwrap());
+        assert!(
+            !DockerDeploymentImpl::subnet_fits_network(
+                Some(Ipv4Network::from_str("44.21.0.0/16").unwrap()),
+                &network
+            )
+            .unwrap()
+        );
     }
 
     #[test]
@@ -1528,11 +1532,13 @@ mod tests {
                 subnet: Some("invalid".to_string()),
                 ..Default::default()
             });
-        assert!(DockerDeploymentImpl::subnet_fits_network(
-            Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
-            &network
-        )
-        .is_err());
+        assert!(
+            DockerDeploymentImpl::subnet_fits_network(
+                Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
+                &network
+            )
+            .is_err()
+        );
     }
 
     fn gateway_network_data() -> Network {
@@ -1561,11 +1567,13 @@ mod tests {
     #[test]
     fn gateway_fits_network_true_some() {
         let network = gateway_network_data();
-        assert!(DockerDeploymentImpl::gateway_fits_network(
-            Some(Ipv4Addr::from_str("44.11.24.12").unwrap()),
-            &network
-        )
-        .unwrap());
+        assert!(
+            DockerDeploymentImpl::gateway_fits_network(
+                Some(Ipv4Addr::from_str("44.11.24.12").unwrap()),
+                &network
+            )
+            .unwrap()
+        );
     }
 
     #[test]
@@ -1588,11 +1596,13 @@ mod tests {
                 gateway: Some("invalid".to_string()),
                 ..Default::default()
             });
-        assert!(DockerDeploymentImpl::gateway_fits_network(
-            Some(Ipv4Addr::from_str("44.11.24.12").unwrap()),
-            &network
-        )
-        .is_err());
+        assert!(
+            DockerDeploymentImpl::gateway_fits_network(
+                Some(Ipv4Addr::from_str("44.11.24.12").unwrap()),
+                &network
+            )
+            .is_err()
+        );
     }
 
     fn options_network_data() -> Network {

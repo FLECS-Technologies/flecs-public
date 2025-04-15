@@ -7,13 +7,13 @@ use crate::relic::async_flecstract::{
 use crate::relic::docker::{write_stream_to_file, write_stream_to_memory};
 use async_compression::tokio::bufread::{GzipDecoder, GzipEncoder};
 use axum::body::Bytes;
+use bollard::Docker;
 use bollard::container::{
     Config, CreateContainerOptions, DownloadFromContainerOptions, ListContainersOptions, LogOutput,
     LogsOptions, RemoveContainerOptions, StopContainerOptions, UploadToContainerOptions,
 };
 use bollard::exec::{CreateExecOptions, StartExecOptions, StartExecResults};
 use bollard::models::{ContainerInspectResponse, ContainerSummary};
-use bollard::Docker;
 use futures::Stream;
 use futures_util::stream::StreamExt;
 use serde::Serialize;
@@ -1460,13 +1460,15 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert!(create(
-            client,
-            Option::<CreateContainerOptions<&str>>::None,
-            Config::<&str>::default(),
-        )
-        .await
-        .is_err());
+        assert!(
+            create(
+                client,
+                Option::<CreateContainerOptions<&str>>::None,
+                Config::<&str>::default(),
+            )
+            .await
+            .is_err()
+        );
         mock.assert_async().await;
     }
 
@@ -1500,9 +1502,11 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert!(list(client, Option::<ListContainersOptions<&str>>::None,)
-            .await
-            .is_err());
+        assert!(
+            list(client, Option::<ListContainersOptions<&str>>::None,)
+                .await
+                .is_err()
+        );
         mock.assert_async().await;
     }
 

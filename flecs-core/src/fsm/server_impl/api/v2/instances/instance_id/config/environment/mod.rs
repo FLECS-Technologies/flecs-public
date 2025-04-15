@@ -410,21 +410,23 @@ mod tests {
 
     #[test]
     fn validate_environment_variables_ok() {
-        assert!(validate_environment_variables(&[
-            EnvironmentVariable {
-                name: "Variable1".to_string(),
-                value: None,
-            },
-            EnvironmentVariable {
-                name: "Variable2".to_string(),
-                value: Some("Value".to_string()),
-            },
-            EnvironmentVariable {
-                name: "TEST_VAR".to_string(),
-                value: None,
-            }
-        ])
-        .is_ok());
+        assert!(
+            validate_environment_variables(&[
+                EnvironmentVariable {
+                    name: "Variable1".to_string(),
+                    value: None,
+                },
+                EnvironmentVariable {
+                    name: "Variable2".to_string(),
+                    value: Some("Value".to_string()),
+                },
+                EnvironmentVariable {
+                    name: "TEST_VAR".to_string(),
+                    value: None,
+                }
+            ])
+            .is_ok()
+        );
     }
 
     #[test]

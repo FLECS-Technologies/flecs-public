@@ -1,6 +1,6 @@
 pub use super::Result;
 use crate::fsm::console_client::ConsoleClient;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use flecs_console_client::apis::device_api::{
     PostApiV2DeviceLicenseActivateError, PostApiV2DeviceLicenseActivateSuccess,
     PostApiV2DeviceLicenseValidateSuccess,
@@ -121,8 +121,8 @@ pub async fn activate_via_user_license(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flecs_console_client::apis::device_api::PostApiV2DeviceLicenseActivateSuccess;
     use flecs_console_client::apis::ResponseContent;
+    use flecs_console_client::apis::device_api::PostApiV2DeviceLicenseActivateSuccess;
     use flecs_console_client::models::{
         ActivationData, ErrorDescription, PostApiV2DeviceLicenseActivate200Response, SessionId,
     };
@@ -293,13 +293,15 @@ mod tests {
                 unknown_value.clone(),
             )),
         });
-        assert!(handle_activation_response(response)
-            .err()
-            .unwrap()
-            .to_string()
-            .contains(&format!(
-                "Received unknown value from console: {unknown_value:?}"
-            )));
+        assert!(
+            handle_activation_response(response)
+                .err()
+                .unwrap()
+                .to_string()
+                .contains(&format!(
+                    "Received unknown value from console: {unknown_value:?}"
+                ))
+        );
     }
     #[test]
     fn handle_invalid_response_test() {
@@ -309,14 +311,16 @@ mod tests {
             content: invalid_content.to_string(),
             entity: None,
         });
-        assert!(handle_activation_response(response)
-            .err()
-            .unwrap()
-            .to_string()
-            .contains(&format!(
-                "Received invalid data from console: {}",
-                invalid_content
-            )));
+        assert!(
+            handle_activation_response(response)
+                .err()
+                .unwrap()
+                .to_string()
+                .contains(&format!(
+                    "Received invalid data from console: {}",
+                    invalid_content
+                ))
+        );
     }
     #[test]
     fn handle_error_response_test() {
@@ -332,11 +336,13 @@ mod tests {
             )),
         };
         let response = Err(Error::ResponseError(error_content.clone()));
-        assert!(handle_activation_response(response)
-            .err()
-            .unwrap()
-            .to_string()
-            .contains(&Error::ResponseError(error_content).to_string()));
+        assert!(
+            handle_activation_response(response)
+                .err()
+                .unwrap()
+                .to_string()
+                .contains(&Error::ResponseError(error_content).to_string())
+        );
     }
 
     #[tokio::test]
@@ -416,13 +422,15 @@ mod tests {
             .with_body(&body)
             .create_async()
             .await;
-        assert!(format!(
-            "{:#}",
-            validate_license(session_id, config).await.err().unwrap()
-        )
-        .contains(&format!(
-            "Received unknown value from console: {body_json:?}"
-        )));
+        assert!(
+            format!(
+                "{:#}",
+                validate_license(session_id, config).await.err().unwrap()
+            )
+            .contains(&format!(
+                "Received unknown value from console: {body_json:?}"
+            ))
+        );
         mock.assert();
     }
     #[tokio::test]
@@ -434,11 +442,13 @@ mod tests {
             .with_status(200)
             .create_async()
             .await;
-        assert!(format!(
-            "{:#}",
-            validate_license(session_id, config).await.err().unwrap()
-        )
-        .contains("Received no data from console"));
+        assert!(
+            format!(
+                "{:#}",
+                validate_license(session_id, config).await.err().unwrap()
+            )
+            .contains("Received no data from console")
+        );
         mock.assert();
     }
     #[tokio::test]

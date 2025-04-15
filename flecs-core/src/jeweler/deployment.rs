@@ -1,8 +1,8 @@
+use crate::jeweler::GetDeploymentId;
 use crate::jeweler::app::AppDeployment;
 use crate::jeweler::instance::InstanceDeployment;
 use crate::jeweler::network::NetworkDeployment;
 use crate::jeweler::volume::VolumeDeployment;
-use crate::jeweler::GetDeploymentId;
 use async_trait::async_trait;
 use erased_serde::serialize_trait_object;
 use std::fmt::Debug;

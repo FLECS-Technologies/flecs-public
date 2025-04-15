@@ -2,10 +2,10 @@ mod instancius_impl;
 pub use super::Result;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem;
+use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::instance::docker::config::{
     InstancePortMapping, TransportProtocol, UsbPathConfig,
 };
-use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::manifest::single::{
     BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
 };
@@ -14,11 +14,11 @@ use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+use crate::sorcerer::Sorcerer;
 pub use crate::sorcerer::spell::instance::DisconnectInstanceError;
 pub use crate::sorcerer::spell::instance::QueryInstanceConfigError;
-use crate::sorcerer::Sorcerer;
-use crate::vault::pouch::AppKey;
 use crate::vault::Vault;
+use crate::vault::pouch::AppKey;
 use anyhow::Error;
 use async_trait::async_trait;
 pub use instancius_impl::InstanciusImpl;

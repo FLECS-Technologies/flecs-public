@@ -1,6 +1,6 @@
 use super::Result;
-use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
 

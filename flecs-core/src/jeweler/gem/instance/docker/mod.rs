@@ -2,14 +2,14 @@ pub mod config;
 use super::{InstanceCommon, InstanceId};
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::DeploymentId;
-use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::deployment::Deployment;
+use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::instance::docker::config::InstancePortMapping;
 use crate::jeweler::gem::instance::status::InstanceStatus;
+use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::single::{
     AppManifestSingle, BindMount, ConfigFile, Mount, VolumeMount,
 };
-use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::instance::Logs;
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::serialize_deployment_id;
@@ -23,10 +23,10 @@ use bollard::container::Config;
 use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
 use config::InstanceConfig;
 use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
-use futures_util::future::{join_all, BoxFuture};
+use futures_util::future::{BoxFuture, join_all};
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::mem::swap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
@@ -336,12 +336,13 @@ impl DockerInstance {
             .into_iter()
             .filter_map(|result| result.err())
             .next()
-        { Some(error) => {
-            tokio::fs::remove_dir_all(&config_path).await?;
-            Err(error)
-        } _ => {
-            Ok(())
-        }}
+        {
+            Some(error) => {
+                tokio::fs::remove_dir_all(&config_path).await?;
+                Err(error)
+            }
+            _ => Ok(()),
+        }
     }
 
     pub async fn create_volumes(
@@ -943,8 +944,8 @@ pub mod tests {
     use super::*;
     use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
-    use crate::jeweler::gem::instance::docker::config::UsbPathConfig;
     use crate::jeweler::gem::instance::Instance;
+    use crate::jeweler::gem::instance::docker::config::UsbPathConfig;
     use crate::jeweler::gem::manifest::single::tests::{
         create_test_manifest, create_test_manifest_full, create_test_manifest_numbered,
     };
@@ -952,7 +953,7 @@ pub mod tests {
     use crate::quest::Quest;
     use crate::relic::device::usb::tests::prepare_usb_device_test_path;
     use crate::tests::prepare_test_path;
-    use crate::vault::pouch::instance::tests::{get_test_instance, NETWORK_INSTANCE};
+    use crate::vault::pouch::instance::tests::{NETWORK_INSTANCE, get_test_instance};
     use bollard::secret::Network;
     use flecsd_axum_server::models::{
         InstanceDetailConfigFile, InstanceDetailConfigFiles, InstanceDetailPort,
@@ -1310,10 +1311,12 @@ pub mod tests {
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        assert!(test_instance(7, Arc::new(deployment), manifest)
-            .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
-            .await
-            .is_ok());
+        assert!(
+            test_instance(7, Arc::new(deployment), manifest)
+                .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]
@@ -1446,15 +1449,17 @@ pub mod tests {
             container_file_path: PathBuf::from("/tmp/flecs-test.config"),
             read_only: false,
         };
-        assert!(DockerInstance::create_config_file(
-            Quest::new_synced("TestQuest".to_string()),
-            deployment,
-            path,
-            config_file,
-            manifest,
+        assert!(
+            DockerInstance::create_config_file(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                path,
+                config_file,
+                manifest,
+            )
+            .await
+            .is_err()
         )
-        .await
-        .is_err())
     }
 
     #[tokio::test]
@@ -1490,15 +1495,17 @@ pub mod tests {
         assert!(path.try_exists().unwrap());
         let manifest = create_test_manifest_full(None);
         let deployment: Arc<dyn DockerDeployment> = Arc::new(MockedDockerDeployment::new());
-        assert!(DockerInstance::create_config_files(
-            Quest::new_synced("TestQuest".to_string()),
-            deployment,
-            path.clone(),
-            manifest.config_files.clone(),
-            manifest,
-        )
-        .await
-        .is_err());
+        assert!(
+            DockerInstance::create_config_files(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                path.clone(),
+                manifest.config_files.clone(),
+                manifest,
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1511,15 +1518,17 @@ pub mod tests {
             .times(3)
             .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
         let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
-        assert!(DockerInstance::create_config_files(
-            Quest::new_synced("TestQuest".to_string()),
-            deployment,
-            path.clone(),
-            manifest.config_files.clone(),
-            manifest,
-        )
-        .await
-        .is_err());
+        assert!(
+            DockerInstance::create_config_files(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                path.clone(),
+                manifest.config_files.clone(),
+                manifest,
+            )
+            .await
+            .is_err()
+        );
         assert!(!path.try_exists().unwrap());
     }
 
@@ -1589,15 +1598,17 @@ pub mod tests {
             })
         });
         let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
-        assert!(DockerInstance::try_create_new(
-            Quest::new_synced("TestQuest".to_string()),
-            deployment,
-            manifest.clone(),
-            "TestInstance".to_string(),
-            IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
-        )
-        .await
-        .is_err());
+        assert!(
+            DockerInstance::try_create_new(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                manifest.clone(),
+                "TestInstance".to_string(),
+                IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1609,15 +1620,17 @@ pub mod tests {
             .times(1)
             .returning(|| Ok(Network::default()));
         let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
-        assert!(DockerInstance::try_create_new(
-            Quest::new_synced("TestQuest".to_string()),
-            deployment,
-            manifest.clone(),
-            "TestInstance".to_string(),
-            IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
-        )
-        .await
-        .is_err());
+        assert!(
+            DockerInstance::try_create_new(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                manifest.clone(),
+                "TestInstance".to_string(),
+                IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]
@@ -1629,15 +1642,17 @@ pub mod tests {
             .times(1)
             .returning(|| Err(anyhow::anyhow!("TestError").into()));
         let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
-        assert!(DockerInstance::try_create_new(
-            Quest::new_synced("TestQuest".to_string()),
-            deployment,
-            manifest.clone(),
-            "TestInstance".to_string(),
-            IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
-        )
-        .await
-        .is_err());
+        assert!(
+            DockerInstance::try_create_new(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                manifest.clone(),
+                "TestInstance".to_string(),
+                IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]
@@ -2111,14 +2126,16 @@ pub mod tests {
                 container_path: PathBuf::from("/Volume3"),
             },
         ];
-        assert!(DockerInstance::create_volumes(
-            Quest::new_synced("TestQuest".to_string()),
-            deployment,
-            volumes,
-            instance_id,
-        )
-        .await
-        .is_err());
+        assert!(
+            DockerInstance::create_volumes(
+                Quest::new_synced("TestQuest".to_string()),
+                deployment,
+                volumes,
+                instance_id,
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[test]
@@ -2400,10 +2417,12 @@ pub mod tests {
             Some(Ok(InstanceStatus::Running)),
             HashMap::from([("TestNetwork".to_string(), ip_address)]),
         );
-        assert!(instance
-            .disconnect_network("TestNetwork".to_string())
-            .await
-            .is_err());
+        assert!(
+            instance
+                .disconnect_network("TestNetwork".to_string())
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -2414,10 +2433,12 @@ pub mod tests {
             Some(Err(anyhow::anyhow!("TestError"))),
             HashMap::from([("TestNetwork".to_string(), ip_address)]),
         );
-        assert!(instance
-            .disconnect_network("TestNetwork".to_string())
-            .await
-            .is_err());
+        assert!(
+            instance
+                .disconnect_network("TestNetwork".to_string())
+                .await
+                .is_err()
+        );
     }
 
     #[test]
@@ -2531,10 +2552,12 @@ pub mod tests {
             panic!()
         };
         instance.deployment = Arc::new(deployment);
-        assert!(instance
-            .connect_network(NETWORK_NAME.to_string(), ip_address)
-            .await
-            .is_err());
+        assert!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -2550,10 +2573,12 @@ pub mod tests {
             panic!()
         };
         instance.deployment = Arc::new(deployment);
-        assert!(instance
-            .connect_network(NETWORK_NAME.to_string(), ip_address)
-            .await
-            .is_err());
+        assert!(
+            instance
+                .connect_network(NETWORK_NAME.to_string(), ip_address)
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]

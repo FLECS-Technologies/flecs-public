@@ -1,12 +1,12 @@
+pub use crate::Result;
 use crate::jeweler::app::{AppId, AppStatus, Token};
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::jeweler::{serialize_hashmap_values, GetDeploymentId};
+use crate::jeweler::{GetDeploymentId, serialize_hashmap_values};
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
-pub use crate::Result;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize, Serializer};
@@ -441,8 +441,8 @@ impl App {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::manifest::single::tests::{
         create_test_manifest, create_test_manifest_raw,
     };
@@ -856,9 +856,10 @@ pub mod tests {
         let (_error, app) = result.err().unwrap();
         assert_eq!(app.deployments.len(), ERR_DEPLOYMENT_COUNT);
         for i in DEPLOYMENT_COUNT..DEPLOYMENT_COUNT + ERR_DEPLOYMENT_COUNT {
-            assert!(app
-                .deployments
-                .contains_key(&format!("MockedDeployment-{}", i)));
+            assert!(
+                app.deployments
+                    .contains_key(&format!("MockedDeployment-{}", i))
+            );
         }
     }
 }

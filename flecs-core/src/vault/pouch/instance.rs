@@ -1,8 +1,8 @@
+pub use crate::Result;
 use crate::jeweler;
 use crate::jeweler::gem::instance::{CreateInstanceError, Instance, InstanceDeserializable};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::vault::pouch::{AppKey, Pouch};
-pub use crate::Result;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::net::{IpAddr, Ipv4Addr};
@@ -186,17 +186,17 @@ impl InstancePouch {
 pub mod tests {
     use super::*;
     use crate::jeweler::deployment::DeploymentId;
-    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::jeweler::gem::instance::docker::DockerInstanceDeserializable;
     use crate::jeweler::gem::instance::docker::config::{
         InstanceConfig, InstancePortMapping, UsbPathConfig,
     };
-    use crate::jeweler::gem::instance::docker::DockerInstanceDeserializable;
     use crate::jeweler::gem::instance::status::InstanceStatus;
+    use crate::jeweler::gem::manifest::AppManifest;
     use crate::jeweler::gem::manifest::single::{
         EnvironmentVariable, PortMapping, PortRange, VolumeMount,
     };
-    use crate::jeweler::gem::manifest::AppManifest;
     use crate::relic::network::{Ipv4Iterator, Ipv4Network};
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::app::tests::{
@@ -1040,8 +1040,7 @@ pub mod tests {
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
             );
         }
-        let Some(Instance::Docker(instance)) = pouch.instances.get_mut(&InstanceId::new(1))
-        else {
+        let Some(Instance::Docker(instance)) = pouch.instances.get_mut(&InstanceId::new(1)) else {
             panic!()
         };
         instance.config.connected_networks.insert(
@@ -1096,8 +1095,7 @@ pub mod tests {
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, instance.id.value as u8)),
             );
         }
-        let Some(Instance::Docker(instance)) = pouch.instances.get_mut(&InstanceId::new(1))
-        else {
+        let Some(Instance::Docker(instance)) = pouch.instances.get_mut(&InstanceId::new(1)) else {
             panic!()
         };
         instance.config.connected_networks.insert(
@@ -1135,8 +1133,7 @@ pub mod tests {
                 IpAddr::V6(Ipv6Addr::new(1, 2, 3, 4, 5, 6, 7, instance.id.value as u16)),
             );
         }
-        let Some(Instance::Docker(instance)) = pouch.instances.get_mut(&InstanceId::new(1))
-        else {
+        let Some(Instance::Docker(instance)) = pouch.instances.get_mut(&InstanceId::new(1)) else {
             panic!()
         };
         instance.config.connected_networks.insert(
@@ -1209,16 +1206,20 @@ pub mod tests {
             pouch.get_free_ipv4_address(network),
             Some(expected_new_address)
         );
-        assert!(!pouch
-            .reserved_ip_addresses
-            .contains(&IpAddr::V4(expected_new_address)));
+        assert!(
+            !pouch
+                .reserved_ip_addresses
+                .contains(&IpAddr::V4(expected_new_address))
+        );
         assert_eq!(
             pouch.reserve_free_ipv4_address(network),
             Some(expected_new_address)
         );
-        assert!(pouch
-            .reserved_ip_addresses
-            .contains(&IpAddr::V4(expected_new_address)));
+        assert!(
+            pouch
+                .reserved_ip_addresses
+                .contains(&IpAddr::V4(expected_new_address))
+        );
     }
 
     #[test]

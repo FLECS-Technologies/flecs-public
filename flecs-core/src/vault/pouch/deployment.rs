@@ -147,8 +147,8 @@ impl DeploymentPouch {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::tests::prepare_test_path;
     use serde_json::json;
     use std::path::Path;

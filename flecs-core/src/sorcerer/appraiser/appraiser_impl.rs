@@ -6,13 +6,13 @@ use crate::jeweler::gem::app::App;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
-use crate::sorcerer::{spell, Sorcerer};
+use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
 use async_trait::async_trait;
 use flecsd_axum_server::models::InstalledApp;
-use futures_util::future::join_all;
 use futures_util::TryFutureExt;
+use futures_util::future::join_all;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use tracing::error;
@@ -39,11 +39,15 @@ impl AppRaiser for AppraiserImpl {
             .create_sub_quest(format!("Remove instances of {app_key}"), |quest| {
                 spell::instance::delete_instances(quest, vault.clone(), floxy, instances_to_delete)
                     .map_err(|errors| {
-                        anyhow::anyhow!(errors
-                            .into_iter()
-                            .map(|(error, id)| format!("Failed to delete instance {id}: {error}"))
-                            .collect::<Vec<String>>()
-                            .join(","))
+                        anyhow::anyhow!(
+                            errors
+                                .into_iter()
+                                .map(|(error, id)| format!(
+                                    "Failed to delete instance {id}: {error}"
+                                ))
+                                .collect::<Vec<String>>()
+                                .join(",")
+                        )
                     })
             })
             .await
@@ -408,15 +412,15 @@ pub mod tests {
     use crate::jeweler::app::AppStatus;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::quest::{Progress, Quest};
+    use crate::vault::GrabbedPouches;
+    use crate::vault::pouch::Pouch;
     use crate::vault::pouch::app::tests::{
-        existing_app_keys, EDITOR_APP_NAME, LABEL_APP_NAME, MINIMAL_APP_NAME, MINIMAL_APP_VERSION,
+        EDITOR_APP_NAME, LABEL_APP_NAME, MINIMAL_APP_NAME, MINIMAL_APP_VERSION,
         MULTI_INSTANCE_APP_NAME, NO_MANIFEST_APP_NAME, NO_MANIFEST_APP_VERSION,
-        SINGLE_INSTANCE_APP_NAME, UNKNOWN_APP_NAME, UNKNOWN_APP_VERSION,
+        SINGLE_INSTANCE_APP_NAME, UNKNOWN_APP_NAME, UNKNOWN_APP_VERSION, existing_app_keys,
     };
     use crate::vault::pouch::manifest::tests::{editor_manifest, no_manifest, test_manifests};
-    use crate::vault::pouch::Pouch;
     use crate::vault::tests::{create_empty_test_vault, create_test_vault};
-    use crate::vault::GrabbedPouches;
     use flecs_console_client::models::{
         GetApiV2ManifestsAppVersion200Response, PostApiV2Tokens200Response,
         PostApiV2Tokens200ResponseData, PostApiV2Tokens200ResponseDataToken,
@@ -534,15 +538,17 @@ pub mod tests {
                 1
             );
         }
-        assert!(appraiser
-            .get_app(
-                vault.clone(),
-                UNKNOWN_APP_NAME.to_string(),
-                Some(UNKNOWN_APP_VERSION.to_string())
-            )
-            .await
-            .unwrap()
-            .is_empty());
+        assert!(
+            appraiser
+                .get_app(
+                    vault.clone(),
+                    UNKNOWN_APP_NAME.to_string(),
+                    Some(UNKNOWN_APP_VERSION.to_string())
+                )
+                .await
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[tokio::test]
@@ -608,11 +614,13 @@ pub mod tests {
                 .len(),
             1
         );
-        assert!(appraiser
-            .get_app(vault.clone(), NO_MANIFEST_APP_NAME.to_string(), None)
-            .await
-            .unwrap()
-            .is_empty());
+        assert!(
+            appraiser
+                .get_app(vault.clone(), NO_MANIFEST_APP_NAME.to_string(), None)
+                .await
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[tokio::test]
@@ -635,14 +643,18 @@ pub mod tests {
             .into_iter()
             .filter(|app_key| app_key.name != NO_MANIFEST_APP_NAME)
         {
-            assert!(result
-                .iter()
-                .any(|info| AppKey::from(info.app_key.clone()) == app_key));
+            assert!(
+                result
+                    .iter()
+                    .any(|info| AppKey::from(info.app_key.clone()) == app_key)
+            );
         }
-        assert!(!result
-            .iter()
-            .any(|info| info.app_key.name == NO_MANIFEST_APP_NAME
-                && info.app_key.version == NO_MANIFEST_APP_VERSION));
+        assert!(
+            !result
+                .iter()
+                .any(|info| info.app_key.name == NO_MANIFEST_APP_NAME
+                    && info.app_key.version == NO_MANIFEST_APP_VERSION)
+        );
     }
 
     #[tokio::test]
@@ -700,14 +712,16 @@ pub mod tests {
             name: UNKNOWN_APP_NAME.to_string(),
             version: UNKNOWN_APP_VERSION.to_string(),
         };
-        assert!(install_existing_app(
-            Quest::new_synced("TestQuest".to_string()),
-            vault,
-            key,
-            config,
-        )
-        .await
-        .is_err());
+        assert!(
+            install_existing_app(
+                Quest::new_synced("TestQuest".to_string()),
+                vault,
+                key,
+                config,
+            )
+            .await
+            .is_err()
+        );
     }
 
     #[tokio::test]
@@ -756,14 +770,16 @@ pub mod tests {
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = token_mock_err(&mut server, 500).await;
-        assert!(install_existing_app(
-            Quest::new_synced("TestQuest".to_string()),
-            vault,
-            key,
-            config,
-        )
-        .await
-        .is_err());
+        assert!(
+            install_existing_app(
+                Quest::new_synced("TestQuest".to_string()),
+                vault,
+                key,
+                config,
+            )
+            .await
+            .is_err()
+        );
         mock.assert();
     }
 
@@ -811,10 +827,12 @@ pub mod tests {
         let token_mock = token_mock_err(&mut server, 500).await;
         let manifest_mock = manifest_mock_ok(&mut server, manifest.clone(), &key).await;
         let quest = Quest::new_synced("TestQuest".to_string());
-        assert!(AppraiserImpl::default()
-            .install_app(quest.clone(), vault, key, config)
-            .await
-            .is_err());
+        assert!(
+            AppraiserImpl::default()
+                .install_app(quest.clone(), vault, key, config)
+                .await
+                .is_err()
+        );
         let quest = quest.lock().await;
         assert_eq!(
             quest.sub_quest_progress().await,
@@ -852,10 +870,12 @@ pub mod tests {
         let manifest_mock = manifest_mock_ok(&mut server, manifest.clone(), &key).await;
         let token_mock = token_mock_ok(&mut server).await;
         let quest = Quest::new_synced("TestQuest".to_string());
-        assert!(AppraiserImpl::default()
-            .install_app(quest.clone(), vault, key, config)
-            .await
-            .is_ok());
+        assert!(
+            AppraiserImpl::default()
+                .install_app(quest.clone(), vault, key, config)
+                .await
+                .is_ok()
+        );
         let quest = quest.lock().await;
         assert_eq!(
             quest.sub_quest_progress().await,
@@ -875,10 +895,12 @@ pub mod tests {
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let token_mock = token_mock_err(&mut server, 500).await;
         let quest = Quest::new_synced("TestQuest".to_string());
-        assert!(AppraiserImpl::default()
-            .install_app_from_manifest(quest.clone(), vault, manifest, config)
-            .await
-            .is_err());
+        assert!(
+            AppraiserImpl::default()
+                .install_app_from_manifest(quest.clone(), vault, manifest, config)
+                .await
+                .is_err()
+        );
         let quest = quest.lock().await;
         assert_eq!(
             quest.sub_quest_progress().await,
@@ -917,10 +939,12 @@ pub mod tests {
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let token_mock = token_mock_ok(&mut server).await;
         let quest = Quest::new_synced("TestQuest".to_string());
-        assert!(AppraiserImpl::default()
-            .install_app_from_manifest(quest.clone(), vault.clone(), manifest.clone(), config)
-            .await
-            .is_ok());
+        assert!(
+            AppraiserImpl::default()
+                .install_app_from_manifest(quest.clone(), vault.clone(), manifest.clone(), config)
+                .await
+                .is_ok()
+        );
         let quest = quest.lock().await;
         assert_eq!(
             quest.sub_quest_progress().await,
@@ -956,10 +980,12 @@ pub mod tests {
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let token_mock = token_mock_uncalled(&mut server).await;
         let quest = Quest::new_synced("TestQuest".to_string());
-        assert!(AppraiserImpl::default()
-            .install_apps(quest.clone(), vault, Vec::new(), config)
-            .await
-            .is_ok());
+        assert!(
+            AppraiserImpl::default()
+                .install_apps(quest.clone(), vault, Vec::new(), config)
+                .await
+                .is_ok()
+        );
         let quest = quest.lock().await;
         assert_eq!(
             quest.sub_quest_progress().await,
@@ -1006,10 +1032,12 @@ pub mod tests {
             keys.push(manifest.key().clone());
         }
         let quest = Quest::new_synced("TestQuest".to_string());
-        assert!(AppraiserImpl::default()
-            .install_apps(quest.clone(), vault.clone(), keys.clone(), config)
-            .await
-            .is_ok());
+        assert!(
+            AppraiserImpl::default()
+                .install_apps(quest.clone(), vault.clone(), keys.clone(), config)
+                .await
+                .is_ok()
+        );
         {
             let quest = quest.lock().await;
             assert_eq!(
@@ -1092,10 +1120,12 @@ pub mod tests {
             keys.push(manifest.key().clone());
         }
         let quest = Quest::new_synced("TestQuest".to_string());
-        assert!(AppraiserImpl::default()
-            .install_apps(quest.clone(), vault.clone(), keys, config)
-            .await
-            .is_err());
+        assert!(
+            AppraiserImpl::default()
+                .install_apps(quest.clone(), vault.clone(), keys, config)
+                .await
+                .is_err()
+        );
         {
             let quest = quest.lock().await;
             assert_eq!(

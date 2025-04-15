@@ -1,7 +1,7 @@
 use crate::ffi;
+use flecs_core::Result;
 use flecs_core::relic::device::usb;
 use flecs_core::relic::device::usb::UsbDeviceReader;
-use flecs_core::Result;
 
 impl From<usb::UsbDevice> for ffi::UsbDevice {
     fn from(value: usb::UsbDevice) -> Self {

@@ -1,12 +1,12 @@
 pub use super::Result;
 use crate::quest::{Progress, State, SyncQuest};
 use crate::relic::docker::write_stream_to_file;
+use bollard::Docker;
 use bollard::auth::DockerCredentials;
 use bollard::image::{CreateImageOptions, ImportImageOptions, RemoveImageOptions};
 use bollard::models::{
     BuildInfo, CreateImageInfo, ErrorDetail, ImageDeleteResponseItem, ImageInspect, ProgressDetail,
 };
-use bollard::Docker;
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
 use std::default::Default;

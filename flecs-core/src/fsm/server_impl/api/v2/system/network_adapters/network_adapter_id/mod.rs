@@ -127,7 +127,7 @@ mod tests {
     use super::*;
     use crate::relic::device::net::MockNetDeviceReader;
     use crate::relic::network::{
-        full_network_adapter, minimal_network_adapter, MockNetworkAdapterReader,
+        MockNetworkAdapterReader, full_network_adapter, minimal_network_adapter,
     };
     use crate::sorcerer::systemus::MockSystemus;
     use mockall::predicate::eq;

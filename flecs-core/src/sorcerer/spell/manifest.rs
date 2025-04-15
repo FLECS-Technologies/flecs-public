@@ -8,7 +8,7 @@ use crate::vault::{GrabbedPouches, Vault};
 use anyhow::anyhow;
 use flecs_app_manifest::AppManifestVersion;
 use flecs_console_client::apis::default_api::{
-    get_api_v2_manifests_app_version, GetApiV2ManifestsAppVersionSuccess,
+    GetApiV2ManifestsAppVersionSuccess, get_api_v2_manifests_app_version,
 };
 use http::StatusCode;
 use std::sync::Arc;
@@ -209,7 +209,10 @@ mod tests {
                 assert!(e.to_string().contains("Unexpected response (status"))
             }
             x => {
-                panic!("Expected Error::UnexpectedResponse {{status: StatusCode::ACCEPTED, ..}}, got {:?}", x)
+                panic!(
+                    "Expected Error::UnexpectedResponse {{status: StatusCode::ACCEPTED, ..}}, got {:?}",
+                    x
+                )
             }
         }
     }

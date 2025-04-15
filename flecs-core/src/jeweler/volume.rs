@@ -1,5 +1,5 @@
-use super::gem::instance::InstanceId;
 use super::Result;
+use super::gem::instance::InstanceId;
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
 // TODO: Use more generic struct as soon as the second type of deployment is implemented
