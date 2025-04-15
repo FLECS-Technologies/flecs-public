@@ -15,9 +15,13 @@ use crate::quest::SyncQuest;
 use crate::relic::docker_cli::{DockerCli, ExecuteCommandError};
 use crate::vault::pouch::deployment::DeploymentId;
 use async_trait::async_trait;
+use bollard::image::RemoveImageOptions;
+use bollard::{API_DEFAULT_VERSION, Docker};
+use docker_compose_types::Service;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct ComposeDeploymentImpl {
@@ -42,6 +46,14 @@ pub enum ExecuteCompose {
 }
 
 impl ComposeDeploymentImpl {
+    fn docker_client(&self) -> anyhow::Result<Arc<Docker>> {
+        Ok(Arc::new(Docker::connect_with_unix(
+            &self.docker_socket_path.to_string_lossy(),
+            120,
+            API_DEFAULT_VERSION,
+        )?))
+    }
+
     fn docker_cli(&self) -> DockerCli {
         DockerCli::new_with_unix_socket(self.docker_socket_path.clone())
     }
@@ -115,10 +127,33 @@ impl AppDeployment for ComposeDeploymentImpl {
     async fn uninstall_app(
         &self,
         _quest: SyncQuest,
-        _manifest: AppManifest,
+        manifest: AppManifest,
         _id: AppId,
     ) -> anyhow::Result<()> {
-        todo!()
+        let AppManifest::Multi(manifest) = manifest else {
+            panic!("Compose deployment can not be called with single app manifests");
+        };
+        let docker_client = self.docker_client()?;
+        for (_, service) in &manifest.compose.services.0 {
+            // TODO: Subquests
+            if let Some(Service {
+                image: Some(image), ..
+            }) = service
+            {
+                // TODO: Check if Docker::delete_service can be used
+                crate::relic::docker::image::remove(
+                    docker_client.clone(),
+                    image,
+                    Some(RemoveImageOptions {
+                        force: true,
+                        noprune: false,
+                    }),
+                    None,
+                )
+                .await?;
+            }
+        }
+        Ok(())
     }
 
     async fn is_app_installed(
