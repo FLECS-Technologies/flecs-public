@@ -1,15 +1,19 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::vec::VecExtension;
+use crate::jeweler::GetAppKey;
 use crate::jeweler::app::AppStatus;
 use crate::jeweler::gem::deployment::Deployment;
+use crate::jeweler::gem::deployment::compose::ComposeDeployment;
+use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::instance::docker::config::{
     InstanceConfig, InstancePortMapping, TransportProtocol, UsbPathConfig,
 };
 use crate::jeweler::gem::instance::{Instance, InstanceId};
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::single::{
-    BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
+    AppManifestSingle, BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
 };
 use crate::jeweler::instance::Logs;
 use crate::jeweler::network::{Network, NetworkId};
@@ -38,6 +42,173 @@ use std::sync::Arc;
 pub struct InstanciusImpl {}
 
 impl Sorcerer for InstanciusImpl {}
+
+impl InstanciusImpl {
+    async fn create_docker_instance(
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        deployment: Arc<dyn DockerDeployment>,
+        manifest: Arc<AppManifestSingle>,
+        instance_name: String,
+    ) -> anyhow::Result<Instance> {
+        let address = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!(
+                    "Reserve ip address in default network of deployment {}",
+                    deployment.id()
+                ),
+                |quest| {
+                    let (vault, deployment) = (vault.clone(), deployment.clone());
+                    async move {
+                        let network =
+                            Ipv4NetworkAccess::try_from(deployment.default_network().await?)?;
+                        let address = spell::instance::make_ipv4_reservation(vault, network)
+                            .await
+                            .ok_or_else(|| {
+                                anyhow::anyhow!("No free ip address in default network")
+                            })?;
+                        quest.lock().await.detail = Some(format!("Reserved {}", address));
+                        Ok::<Ipv4Addr, anyhow::Error>(address)
+                    }
+                },
+            )
+            .await
+            .2;
+
+        let address = IpAddr::V4(address.await?);
+        let instance = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!(
+                    "Create instance '{instance_name}' for {}",
+                    manifest.app_key()
+                ),
+                |quest| {
+                    spell::instance::create_docker_instance(
+                        quest,
+                        deployment,
+                        manifest,
+                        instance_name,
+                        address,
+                    )
+                },
+            )
+            .await
+            .2;
+        let instance = instance.await;
+        spell::instance::clear_ip_reservation(vault.clone(), address).await;
+        Ok(Instance::Docker(instance?))
+    }
+    async fn create_compose_instance(
+        quest: SyncQuest,
+        deployment: Arc<dyn ComposeDeployment>,
+        manifest: Arc<AppManifestMulti>,
+        instance_name: String,
+    ) -> anyhow::Result<Instance> {
+        let instance = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!(
+                    "Create instance '{instance_name}' for {}",
+                    manifest.app_key()
+                ),
+                |quest| {
+                    spell::instance::create_compose_instance(
+                        quest,
+                        deployment,
+                        manifest,
+                        instance_name,
+                    )
+                },
+            )
+            .await
+            .2;
+        Ok(Instance::Compose(instance.await?))
+    }
+
+    async fn validate_instance_creation(
+        _quest: SyncQuest,
+        vault: Arc<Vault>,
+        app_key: AppKey,
+    ) -> anyhow::Result<(
+        Option<(Arc<AppManifestSingle>, Arc<dyn DockerDeployment>)>,
+        Option<(Arc<AppManifestMulti>, Arc<dyn ComposeDeployment>)>,
+    )> {
+        let vault = vault.clone();
+        let app_key = app_key.clone();
+        let GrabbedPouches {
+            deployment_pouch: Some(deployments),
+            manifest_pouch: Some(manifests),
+            instance_pouch: Some(instances),
+            app_pouch: Some(apps),
+            ..
+        } = &vault
+            .reservation()
+            .reserve_deployment_pouch()
+            .reserve_manifest_pouch()
+            .reserve_instance_pouch()
+            .reserve_app_pouch()
+            .grab()
+            .await
+        else {
+            unreachable!("Vault reservations should never fail")
+        };
+        let is_app_installed = match apps.gems().get(&app_key) {
+            None => false,
+            Some(app) => app.status().await? == AppStatus::Installed,
+        };
+        anyhow::ensure!(is_app_installed, "App {app_key} is not installed");
+
+        let manifest = manifests
+            .gems()
+            .get(&app_key)
+            .ok_or_else(|| anyhow::anyhow!("No manifest for {app_key} present"))?
+            .clone();
+        match manifest {
+            AppManifest::Single(manifest) => {
+                if !manifest.multi_instance()
+                    && !instances
+                        .instance_ids_by_app_key(app_key.clone())
+                        .is_empty()
+                {
+                    anyhow::bail!("Can not create multiple instances for {app_key}");
+                }
+                let deployment = deployments.default_docker_deployment().ok_or_else(|| {
+                    anyhow::anyhow!("No deployment present to create instance in")
+                })?;
+                let Deployment::Docker(deployment) = deployment else {
+                    anyhow::bail!(
+                        "Can only create single image app ({app_key}) with DockerDeployment, not with {}",
+                        deployment.id()
+                    );
+                };
+                Ok((Some((manifest, deployment)), None))
+            }
+            AppManifest::Multi(manifest) => {
+                anyhow::ensure!(
+                    instances
+                        .instance_ids_by_app_key(app_key.clone())
+                        .is_empty(),
+                    "Can not create multiple instances for {app_key}"
+                );
+                let deployment = deployments.default_compose_deployment().ok_or_else(|| {
+                    anyhow::anyhow!("No deployment present to create instance in")
+                })?;
+                let Deployment::Compose(deployment) = deployment else {
+                    anyhow::bail!(
+                        "Can only create multi image app ({app_key}) with ComposeDeployment, not with {}",
+                        deployment.id()
+                    );
+                };
+                Ok((None, Some((manifest, deployment))))
+            }
+        }
+    }
+}
 
 #[async_trait]
 impl Instancius for InstanciusImpl {
@@ -143,115 +314,54 @@ impl Instancius for InstanciusImpl {
         app_key: AppKey,
         name: String,
     ) -> anyhow::Result<InstanceId> {
-        let (manifest, deployment) = quest
+        let result = quest
             .lock()
             .await
             .create_sub_quest(
                 format!("Validate request for creation of instance '{name}' of {app_key}"),
-                |_quest| {
-                    let vault = vault.clone();
-                    let app_key = app_key.clone();
-                    async move {
-                        let GrabbedPouches {
-                            deployment_pouch: Some(deployments),
-                            manifest_pouch: Some(manifests),
-                            instance_pouch: Some(instances),
-                            app_pouch: Some(apps),
-                            ..
-                        } = &vault
-                            .reservation()
-                            .reserve_deployment_pouch()
-                            .reserve_manifest_pouch()
-                            .reserve_instance_pouch()
-                            .reserve_app_pouch()
-                            .grab()
-                            .await
-                        else {
-                            unreachable!("Vault reservations should never fail")
-                        };
-                        let is_app_installed = match apps.gems().get(&app_key) {
-                            None => false,
-                            Some(app) => app.status().await? == AppStatus::Installed,
-                        };
-                        anyhow::ensure!(is_app_installed, "App {app_key} is not installed");
-
-                        let manifest = manifests
-                            .gems()
-                            .get(&app_key)
-                            .ok_or_else(|| anyhow::anyhow!("No manifest for {app_key} present"))?
-                            .clone();
-                        let AppManifest::Single(manifest) = manifest else {
-                            todo!("Support multi image apps");
-                        };
-                        if !manifest.multi_instance()
-                            && !instances
-                                .instance_ids_by_app_key(app_key.clone())
-                                .is_empty()
-                        {
-                            anyhow::bail!("Can not create multiple instances for {app_key}");
-                        }
-                        let deployment =
-                            deployments.default_docker_deployment().ok_or_else(|| {
-                                anyhow::anyhow!("No deployment present to create instance in")
-                            })?;
-                        let Deployment::Docker(deployment) = deployment else {
-                            todo!("Support multi image apps");
-                        };
-                        Ok((manifest, deployment))
-                    }
-                },
+                |quest| Self::validate_instance_creation(quest, vault.clone(), app_key.clone()),
             )
             .await
-            .2
-            .await?;
-        let address = quest
-            .lock()
-            .await
-            .create_sub_quest(
-                format!(
-                    "Reserve ip address in default network of deployment {}",
-                    deployment.id()
-                ),
-                |quest| {
-                    let (vault, deployment) = (vault.clone(), deployment.clone());
-                    async move {
-                        let network =
-                            Ipv4NetworkAccess::try_from(deployment.default_network().await?)?;
-                        let address = spell::instance::make_ipv4_reservation(vault, network)
-                            .await
-                            .ok_or_else(|| {
-                                anyhow::anyhow!("No free ip address in default network")
-                            })?;
-                        quest.lock().await.detail = Some(format!("Reserved {}", address));
-                        Ok::<Ipv4Addr, anyhow::Error>(address)
-                    }
-                },
-            )
-            .await
-            .2
-            .await?;
-        let address = IpAddr::V4(address);
-        let instance = quest
-            .lock()
-            .await
-            .create_sub_quest(format!("Create instance '{name}' for {app_key}"), |quest| {
-                spell::instance::create_docker_instance(quest, deployment, manifest, name, address)
-            })
-            .await
-            .2
-            .await;
-        if instance.is_err() {
-            spell::instance::clear_ip_reservation(vault.clone(), address).await;
-        }
-        let instance = instance?;
-        let instance_id = instance.id;
-        quest
+            .2;
+        let result = match result.await? {
+            (Some((manifest, deployment)), _) => {
+                quest
+                    .lock()
+                    .await
+                    .create_sub_quest(format!("Create docker instance {name}"), |quest| {
+                        Self::create_docker_instance(
+                            quest,
+                            vault.clone(),
+                            deployment,
+                            manifest,
+                            name,
+                        )
+                    })
+                    .await
+                    .2
+            }
+            (_, Some((manifest, deployment))) => {
+                quest
+                    .lock()
+                    .await
+                    .create_sub_quest(format!("Create compose instance {name}"), |quest| {
+                        Self::create_compose_instance(quest, deployment, manifest, name)
+                    })
+                    .await
+                    .2
+            }
+            (None, None) => anyhow::bail!("Unexpected failure validation instance creation"),
+        };
+        let instance = result.await?;
+        let instance_id = instance.id();
+        let result = quest
             .lock()
             .await
             .create_infallible_sub_quest(
                 format!(
                     "Saving new instance {} with id {}",
-                    instance.name, instance_id
+                    instance.name(),
+                    instance_id
                 ),
                 |_quest| async move {
                     let mut grab = vault
@@ -263,15 +373,12 @@ impl Instancius for InstanciusImpl {
                         .instance_pouch_mut
                         .as_mut()
                         .expect("Vault reservations should never fail");
-                    pouch
-                        .gems_mut()
-                        .insert(instance_id, Instance::Docker(instance));
-                    pouch.clear_ip_address_reservation(address)
+                    pouch.gems_mut().insert(instance_id, instance);
                 },
             )
             .await
-            .2
-            .await;
+            .2;
+        result.await;
         Ok(instance_id)
     }
 

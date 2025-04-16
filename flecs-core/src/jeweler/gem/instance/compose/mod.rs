@@ -2,8 +2,10 @@ use super::{CreateInstanceError, InstanceCommon, InstanceId};
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::instance::status::InstanceStatus;
+use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::{AppManifest, multi};
 use crate::jeweler::{serialize_deployment_id, serialize_manifest_key};
+use crate::quest::SyncQuest;
 use crate::vault;
 use crate::vault::pouch::AppKey;
 use async_trait::async_trait;
@@ -42,6 +44,10 @@ impl InstanceCommon for ComposeInstance {
 
     fn app_key(&self) -> &AppKey {
         &self.manifest.key
+    }
+
+    fn name(&self) -> &str {
+        self.name.as_str()
     }
 
     fn manifest(&self) -> AppManifest {
@@ -107,5 +113,25 @@ impl ComposeInstance {
         _deployments: &vault::pouch::deployment::Gems,
     ) -> Result<Self, CreateInstanceError> {
         todo!()
+    }
+
+    pub async fn try_create_new(
+        _quest: SyncQuest,
+        deployment: Arc<dyn ComposeDeployment>,
+        manifest: Arc<AppManifestMulti>,
+        name: String,
+    ) -> Result<Self, CreateInstanceError> {
+        // TODO: Create volumes?
+        let instance_id = InstanceId::new_random();
+        tokio::fs::create_dir_all(crate::lore::instance_workdir_path(&instance_id.to_string()))
+            .await?;
+        Ok(Self {
+            deployment,
+            app_key: manifest.key.clone(),
+            name,
+            manifest,
+            desired: InstanceStatus::Stopped,
+            id: InstanceId::new_random(),
+        })
     }
 }

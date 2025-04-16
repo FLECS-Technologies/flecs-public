@@ -48,6 +48,14 @@ pub fn instance_config_path(instance_id: &impl AsRef<str>) -> PathBuf {
         .join(instance_id.as_ref())
         .join("conf")
 }
+
+pub fn instance_workdir_path(instance_id: &impl AsRef<str>) -> PathBuf {
+    Path::new(BASE_PATH)
+        .join("instances")
+        .join(instance_id.as_ref())
+        .join("work")
+}
+
 #[cfg(test)]
 pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/";
 #[cfg(not(test))]
