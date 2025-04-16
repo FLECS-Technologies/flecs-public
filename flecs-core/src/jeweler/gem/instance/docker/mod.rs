@@ -57,6 +57,10 @@ impl InstanceCommon for DockerInstance {
         &self.manifest.key
     }
 
+    fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
     fn manifest(&self) -> AppManifest {
         AppManifest::Single(self.manifest.clone())
     }

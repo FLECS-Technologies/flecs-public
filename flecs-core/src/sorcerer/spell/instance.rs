@@ -1,10 +1,13 @@
 pub use super::{Error, Result};
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
+use crate::jeweler::gem::instance::compose::ComposeInstance;
 use crate::jeweler::gem::instance::docker::DockerInstance;
 use crate::jeweler::gem::instance::docker::config::InstanceConfig;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{Instance, InstanceId};
+use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::single::AppManifestSingle;
 use crate::jeweler::network::NetworkId;
 use crate::quest::{State, SyncQuest};
@@ -39,6 +42,15 @@ pub async fn create_docker_instance(
     address: IpAddr,
 ) -> Result<DockerInstance> {
     DockerInstance::try_create_new(quest, deployment, manifest, name, address).await
+}
+
+pub async fn create_compose_instance(
+    quest: SyncQuest,
+    deployment: Arc<dyn ComposeDeployment>,
+    manifest: Arc<AppManifestMulti>,
+    name: String,
+) -> Result<ComposeInstance> {
+    Ok(ComposeInstance::try_create_new(quest, deployment, manifest, name).await?)
 }
 
 pub async fn start_instance<F: Floxy>(
