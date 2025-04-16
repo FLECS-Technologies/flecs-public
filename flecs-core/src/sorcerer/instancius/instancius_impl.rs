@@ -1106,7 +1106,7 @@ fn network_access_from_network(
 pub mod tests {
     use super::*;
     use crate::enchantment::floxy::MockFloxy;
-    use crate::jeweler::app::AppInfo;
+    use crate::jeweler::gem::deployment::docker::AppInfo;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::instance::status::InstanceStatus;
     use crate::jeweler::gem::instance::{InstanceDeserializable, InstanceId};
