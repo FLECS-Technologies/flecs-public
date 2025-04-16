@@ -1,8 +1,8 @@
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::jeweler::GetDeploymentId;
-use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
+use crate::jeweler::app::{AppDeployment, AppId, Token};
 use crate::jeweler::deployment::CommonDeployment;
-use crate::jeweler::gem::deployment::docker::DockerDeployment;
+use crate::jeweler::gem::deployment::docker::{AppInfo, DockerDeployment};
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::AppManifest;
