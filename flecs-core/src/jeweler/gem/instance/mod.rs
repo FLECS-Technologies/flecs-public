@@ -78,6 +78,7 @@ pub trait InstanceCommon {
     async fn status(&self) -> anyhow::Result<InstanceStatus>;
     fn desired_status(&self) -> InstanceStatus;
     fn taken_ipv4_addresses(&self) -> Vec<Ipv4Addr>;
+    async fn logs(&self) -> anyhow::Result<Logs>;
 }
 
 impl Deref for Instance {

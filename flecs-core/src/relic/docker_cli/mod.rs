@@ -196,4 +196,23 @@ impl DockerCli {
         let stdout = String::from_utf8_lossy(&stdout);
         Ok(stdout.split_whitespace().map(str::to_string).collect())
     }
+
+    pub async fn compose_logs<T: AsRef<[u8]>>(
+        &self,
+        project_name: &str,
+        compose: &T,
+    ) -> Result<String, ExecuteCommandError> {
+        let mut command = self.command();
+        command.args([
+            "compose",
+            "--project-name",
+            project_name,
+            "--file",
+            "-",
+            "logs",
+        ]);
+        let stdout = Self::spawn_with_stdout(command, Some(compose)).await?;
+        let stdout = String::from_utf8_lossy(&stdout);
+        Ok(stdout.to_string())
+    }
 }

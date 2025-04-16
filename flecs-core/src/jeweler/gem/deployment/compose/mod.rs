@@ -1,6 +1,7 @@
 mod compose_impl;
 
 use crate::jeweler::deployment::CommonDeployment;
+use crate::jeweler::gem::instance::Logs;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use async_trait::async_trait;
@@ -20,6 +21,7 @@ pub trait ComposeDeployment: CommonDeployment {
         &self,
         manifest: &AppManifestMulti,
     ) -> anyhow::Result<Vec<InstanceStatus>>;
+    async fn instance_logs(&self, manifest: &AppManifestMulti) -> anyhow::Result<Logs>;
 }
 
 serialize_trait_object!(ComposeDeployment);

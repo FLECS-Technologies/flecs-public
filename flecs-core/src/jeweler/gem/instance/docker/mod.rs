@@ -149,6 +149,15 @@ impl InstanceCommon for DockerInstance {
             .copied()
             .collect()
     }
+
+    async fn logs(&self) -> anyhow::Result<Logs> {
+        self.deployment
+            .instance_logs(
+                Quest::new_synced(format!("Get logs of instance {}", self.id)),
+                self.id,
+            )
+            .await
+    }
 }
 
 fn bind_mounts_to_bollard_mounts(bind_mounts: &[BindMount]) -> Vec<bollard::models::Mount> {
@@ -731,15 +740,6 @@ impl DockerInstance {
 
     pub async fn is_running(&self) -> anyhow::Result<bool> {
         Ok(self.deployment.instance_status(self.id).await? == InstanceStatus::Running)
-    }
-
-    pub async fn get_logs(&self) -> anyhow::Result<Logs> {
-        self.deployment
-            .instance_logs(
-                Quest::new_synced(format!("Get logs of instance {}", self.id)),
-                self.id,
-            )
-            .await
     }
 
     pub fn deployment(&self) -> Arc<dyn DockerDeployment> {
