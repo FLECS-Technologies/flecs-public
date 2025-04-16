@@ -3,11 +3,10 @@ use crate::jeweler::GetDeploymentId;
 use crate::jeweler::app::{AppDeployment, AppId, AppInfo, Token};
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
-use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::instance::status::InstanceStatus;
+use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::single::ConfigFile;
-use crate::jeweler::instance::{InstanceDeployment, Logs};
 use crate::jeweler::network::{
     CreateNetworkError, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
 };
@@ -710,6 +709,41 @@ impl DockerDeployment for DockerDeploymentImpl {
         self.delete_instance(id).await?;
         Ok(())
     }
+    async fn delete_instance(&self, id: InstanceId) -> anyhow::Result<bool> {
+        let docker_client = self.client()?;
+        relic::docker::container::remove(
+            docker_client,
+            Some(RemoveContainerOptions {
+                force: true,
+                ..Default::default()
+            }),
+            &id.to_docker_id(),
+        )
+        .await
+    }
+
+    async fn instance_status(&self, id: InstanceId) -> anyhow::Result<InstanceStatus> {
+        let docker_client = self.client()?;
+        match relic::docker::container::inspect(docker_client, &id.to_docker_id()).await? {
+            None => Ok(InstanceStatus::Stopped),
+            Some(ContainerInspectResponse {
+                state:
+                    Some(ContainerState {
+                        status: Some(state),
+                        ..
+                    }),
+                ..
+            }) => Ok(state.into()),
+            _ => Ok(InstanceStatus::Unknown),
+        }
+    }
+
+    async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> anyhow::Result<Logs> {
+        let docker_client = self.client()?;
+        let (stdout, stderr) =
+            relic::docker::container::logs(docker_client, quest, &id.to_docker_id()).await?;
+        Ok(Logs { stderr, stdout })
+    }
 }
 
 #[async_trait]
@@ -1233,45 +1267,6 @@ impl NetworkDeployment for DockerDeploymentImpl {
     async fn networks(&self, _quest: SyncQuest) -> anyhow::Result<Vec<Network>> {
         let docker_client = self.client()?;
         relic::docker::network::list::<String>(docker_client, None).await
-    }
-}
-
-#[async_trait]
-impl InstanceDeployment for DockerDeploymentImpl {
-    async fn delete_instance(&self, id: InstanceId) -> anyhow::Result<bool> {
-        let docker_client = self.client()?;
-        relic::docker::container::remove(
-            docker_client,
-            Some(RemoveContainerOptions {
-                force: true,
-                ..Default::default()
-            }),
-            &id.to_docker_id(),
-        )
-        .await
-    }
-
-    async fn instance_status(&self, id: InstanceId) -> anyhow::Result<InstanceStatus> {
-        let docker_client = self.client()?;
-        match relic::docker::container::inspect(docker_client, &id.to_docker_id()).await? {
-            None => Ok(InstanceStatus::Stopped),
-            Some(ContainerInspectResponse {
-                state:
-                    Some(ContainerState {
-                        status: Some(state),
-                        ..
-                    }),
-                ..
-            }) => Ok(state.into()),
-            _ => Ok(InstanceStatus::Unknown),
-        }
-    }
-
-    async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> anyhow::Result<Logs> {
-        let docker_client = self.client()?;
-        let (stdout, stderr) =
-            relic::docker::container::logs(docker_client, quest, &id.to_docker_id()).await?;
-        Ok(Logs { stderr, stdout })
     }
 }
 

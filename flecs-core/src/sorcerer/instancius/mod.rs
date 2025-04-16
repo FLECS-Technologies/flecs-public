@@ -2,14 +2,13 @@ mod instancius_impl;
 pub use super::Result;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem;
-use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::instance::docker::config::{
     InstancePortMapping, TransportProtocol, UsbPathConfig,
 };
+use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::single::{
     BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
 };
-use crate::jeweler::instance::Logs;
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
 use crate::quest::SyncQuest;

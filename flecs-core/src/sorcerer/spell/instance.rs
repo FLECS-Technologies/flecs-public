@@ -73,7 +73,7 @@ pub async fn start_instance<F: Floxy>(
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
     match instance {
         Instance::Docker(instance) => instance.start(floxy).await,
-        Instance::Compose(_instance) => todo!(),
+        Instance::Compose(instance) => instance.start().await,
     }
 }
 
@@ -97,7 +97,7 @@ pub async fn stop_instance<F: Floxy>(
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
     match instance {
         Instance::Docker(instance) => instance.stop(floxy).await,
-        Instance::Compose(_instance) => todo!(),
+        Instance::Compose(instance) => instance.stop().await,
     }
 }
 
@@ -241,7 +241,7 @@ pub async fn halt_instance<F: Floxy>(
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
     match instance {
         Instance::Docker(instance) => instance.halt(floxy).await,
-        Instance::Compose(_instance) => todo!(),
+        Instance::Compose(instance) => instance.halt().await,
     }
 }
 
@@ -397,7 +397,10 @@ pub async fn delete_instance<F: Floxy + 'static>(
                     .stop_and_delete(quest, floxy)
                     .await
                     .map_err(|(e, instance)| (e, Instance::Docker(instance))),
-                Instance::Compose(_instance) => todo!(),
+                Instance::Compose(instance) => instance
+                    .stop_and_delete()
+                    .await
+                    .map_err(|(e, instance)| (e, Instance::Compose(instance))),
             };
             if let Err((e, instance)) = result {
                 instances.insert(id, instance);

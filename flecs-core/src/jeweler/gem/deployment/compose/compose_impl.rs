@@ -6,16 +6,17 @@ use crate::jeweler::gem::instance::InstanceId;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
-use crate::jeweler::instance::{InstanceDeployment, Logs};
 use crate::jeweler::network::{
     CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
 use crate::quest::SyncQuest;
+use crate::relic;
 use crate::relic::docker_cli::{DockerCli, ExecuteCommandError};
 use crate::vault::pouch::deployment::DeploymentId;
 use async_trait::async_trait;
 use bollard::image::RemoveImageOptions;
+use bollard::models::{ContainerInspectResponse, ContainerState};
 use bollard::{API_DEFAULT_VERSION, Docker};
 use docker_compose_types::Service;
 use serde::{Deserialize, Serialize};
@@ -67,12 +68,55 @@ impl ComposeDeploymentImpl {
     }
 
     async fn compose_pull(&self, manifest: &AppManifestMulti) -> Result<AppId, ExecuteCompose> {
-        let compose = serde_json::to_string(&manifest.compose)?;
-        let project_name = manifest.key.name.replace('.', "-");
+        let compose = manifest.compose_json()?;
+        let project_name = manifest.project_name();
         self.docker_cli()
             .compose_pull(&project_name, &compose)
             .await?;
         Ok(project_name)
+    }
+
+    async fn compose_up(
+        &self,
+        manifest: &AppManifestMulti,
+        workdir: &Path,
+    ) -> Result<AppId, ExecuteCompose> {
+        let compose = manifest.compose_json()?;
+        let project_name = manifest.project_name();
+        self.docker_cli()
+            .compose_up(&project_name, workdir, &compose)
+            .await?;
+        Ok(project_name)
+    }
+
+    async fn compose_stop(&self, manifest: &AppManifestMulti) -> Result<AppId, ExecuteCompose> {
+        let compose = manifest.compose_json()?;
+        let project_name = manifest.project_name();
+        self.docker_cli()
+            .compose_stop(&project_name, &compose)
+            .await?;
+        Ok(project_name)
+    }
+
+    async fn compose_remove(&self, manifest: &AppManifestMulti) -> Result<AppId, ExecuteCompose> {
+        let compose = manifest.compose_json()?;
+        let project_name = manifest.project_name();
+        self.docker_cli()
+            .compose_remove(&project_name, &compose)
+            .await?;
+        Ok(project_name)
+    }
+
+    async fn compose_container(
+        &self,
+        manifest: &AppManifestMulti,
+    ) -> Result<Vec<String>, ExecuteCompose> {
+        let compose = manifest.compose_json()?;
+        let project_name = manifest.project_name();
+        Ok(self
+            .docker_cli()
+            .compose_containers(&project_name, &compose)
+            .await?)
     }
 }
 
@@ -86,9 +130,46 @@ impl Default for ComposeDeploymentImpl {
     }
 }
 
+#[async_trait]
 impl ComposeDeployment for ComposeDeploymentImpl {
-    fn dummy(&self) {
-        todo!()
+    async fn start_instance(
+        &self,
+        manifest: &AppManifestMulti,
+        workdir: &Path,
+    ) -> Result<(), ExecuteCompose> {
+        self.compose_up(manifest, workdir).await?;
+        Ok(())
+    }
+
+    async fn stop_instance(&self, manifest: &AppManifestMulti) -> Result<(), ExecuteCompose> {
+        self.compose_stop(manifest).await?;
+        self.compose_remove(manifest).await?;
+        Ok(())
+    }
+
+    async fn instance_status(
+        &self,
+        manifest: &AppManifestMulti,
+    ) -> anyhow::Result<Vec<InstanceStatus>> {
+        let containers = self.compose_container(manifest).await?;
+        let mut status_vec = Vec::with_capacity(containers.len());
+        for container in containers {
+            let docker_client = self.docker_client()?;
+            let status = match relic::docker::container::inspect(docker_client, &container).await? {
+                None => InstanceStatus::Stopped,
+                Some(ContainerInspectResponse {
+                    state:
+                        Some(ContainerState {
+                            status: Some(state),
+                            ..
+                        }),
+                    ..
+                }) => state.into(),
+                _ => InstanceStatus::Unknown,
+            };
+            status_vec.push(status);
+        }
+        Ok(status_vec)
     }
 }
 
@@ -229,21 +310,6 @@ impl AppDeployment for ComposeDeploymentImpl {
         _manifest: AppManifest,
         _path: PathBuf,
     ) -> anyhow::Result<()> {
-        todo!()
-    }
-}
-
-#[async_trait]
-impl InstanceDeployment for ComposeDeploymentImpl {
-    async fn delete_instance(&self, _id: InstanceId) -> anyhow::Result<bool> {
-        todo!()
-    }
-
-    async fn instance_status(&self, _id: InstanceId) -> anyhow::Result<InstanceStatus> {
-        todo!()
-    }
-
-    async fn instance_logs(&self, _quest: SyncQuest, _id: InstanceId) -> anyhow::Result<Logs> {
         todo!()
     }
 }

@@ -9,13 +9,12 @@ use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::instance::docker::config::{
     InstanceConfig, InstancePortMapping, TransportProtocol, UsbPathConfig,
 };
-use crate::jeweler::gem::instance::{Instance, InstanceId};
+use crate::jeweler::gem::instance::{Instance, InstanceId, Logs};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::single::{
     AppManifestSingle, BindMount, EnvironmentVariable, Label, PortMapping, PortRange, VolumeMount,
 };
-use crate::jeweler::instance::Logs;
 use crate::jeweler::network::{Network, NetworkId};
 use crate::jeweler::volume::VolumeId;
 use crate::quest::SyncQuest;

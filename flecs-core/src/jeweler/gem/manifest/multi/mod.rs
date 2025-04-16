@@ -56,4 +56,12 @@ impl AppManifestMulti {
     pub fn revision(&self) -> Option<&String> {
         self.original.revision.as_deref()
     }
+
+    pub fn project_name(&self) -> String {
+        self.key.name.replace('.', "-")
+    }
+
+    pub fn compose_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(&self.compose)
+    }
 }

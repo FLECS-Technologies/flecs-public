@@ -1,5 +1,5 @@
 pub mod config;
-use super::{InstanceCommon, InstanceId};
+use super::{InstanceCommon, InstanceId, Logs};
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
@@ -10,7 +10,6 @@ use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::single::{
     AppManifestSingle, BindMount, ConfigFile, Mount, VolumeMount,
 };
-use crate::jeweler::instance::Logs;
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::serialize_deployment_id;
 use crate::jeweler::serialize_manifest_key;
@@ -731,7 +730,7 @@ impl DockerInstance {
     }
 
     pub async fn is_running(&self) -> anyhow::Result<bool> {
-        self.deployment.is_instance_running(self.id).await
+        Ok(self.deployment.instance_status(self.id).await? == InstanceStatus::Running)
     }
 
     pub async fn get_logs(&self) -> anyhow::Result<Logs> {

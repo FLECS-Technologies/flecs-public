@@ -1,7 +1,8 @@
 mod docker_impl;
 use crate::jeweler::app::{AppId, AppInfo};
 use crate::jeweler::deployment::CommonDeployment;
-use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::instance::status::InstanceStatus;
+use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::single::ConfigFile;
 use crate::jeweler::network::{CreateNetworkError, NetworkConfig, NetworkId, NetworkKind};
 use crate::quest::SyncQuest;
@@ -105,6 +106,12 @@ pub trait DockerDeployment: CommonDeployment {
         id: InstanceId,
         config_files: &[ConfigFile],
     ) -> anyhow::Result<()>;
+
+    async fn delete_instance(&self, id: InstanceId) -> anyhow::Result<bool>;
+
+    async fn instance_status(&self, id: InstanceId) -> anyhow::Result<InstanceStatus>;
+
+    async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> anyhow::Result<Logs>;
 }
 
 serialize_trait_object!(DockerDeployment);
@@ -120,10 +127,8 @@ pub mod tests {
     use crate::jeweler::gem::deployment::Deployment;
     use crate::jeweler::gem::deployment::docker::DockerDeployment;
     use crate::jeweler::gem::instance::InstanceId;
-    use crate::jeweler::gem::instance::status::InstanceStatus;
     use crate::jeweler::gem::manifest::AppManifest;
     use crate::jeweler::gem::manifest::single::ConfigFile;
-    use crate::jeweler::instance::{InstanceDeployment, Logs};
     use crate::jeweler::network::{
         CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
     };
@@ -180,12 +185,6 @@ pub mod tests {
                 manifest: AppManifest,
                 path: PathBuf
             ) -> Result<()>;
-        }
-        #[async_trait]
-        impl InstanceDeployment for edDockerDeployment {
-            async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
-            async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
-            async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> Result<Logs>;
         }
         #[async_trait]
         impl NetworkDeployment for edDockerDeployment {
@@ -296,6 +295,9 @@ pub mod tests {
                 config_files: &[ConfigFile],
             ) -> Result<InstanceId>;
             async fn stop_instance(&self, id: InstanceId, config_files: &[ConfigFile]) -> Result<()>;
+            async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
+            async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
+            async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> Result<Logs>;
         }
     }
 
