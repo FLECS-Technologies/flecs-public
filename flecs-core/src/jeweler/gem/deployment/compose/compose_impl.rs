@@ -2,9 +2,9 @@ use crate::jeweler::GetDeploymentId;
 use crate::jeweler::app::{AppDeployment, AppId, Token};
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
-use crate::jeweler::gem::instance::InstanceId;
-use crate::jeweler::gem::instance::Logs;
+use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
 use crate::jeweler::gem::instance::status::InstanceStatus;
+use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::network::{
@@ -14,6 +14,7 @@ use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
 use crate::quest::SyncQuest;
 use crate::relic;
 use crate::relic::docker_cli::{DockerCli, ExecuteCommandError};
+use crate::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
 use async_trait::async_trait;
 use bollard::image::{ImportImageOptions, RemoveImageOptions};
@@ -23,20 +24,54 @@ use docker_compose_types::Service;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Formatter;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct ComposeDeploymentImpl {
     pub id: DeploymentId,
     docker_socket_path: PathBuf,
     #[serde(default)]
     is_default: bool,
+    #[serde(skip, default = "default_network_adapter_reader")]
+    network_adapter_reader: Box<dyn NetworkAdapterReader>,
+}
+
+fn default_network_adapter_reader() -> Box<dyn NetworkAdapterReader> {
+    Box::new(NetworkAdapterReaderImpl)
 }
 
 impl GetDeploymentId for ComposeDeploymentImpl {
     fn deployment_id(&self) -> &DeploymentId {
         &self.id
+    }
+}
+
+impl std::fmt::Debug for ComposeDeploymentImpl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        #[derive(Debug)]
+        #[allow(dead_code)]
+        struct ComposeDeploymentImpl<'a> {
+            id: &'a DeploymentId,
+            docker_socket_path: &'a PathBuf,
+            is_default: &'a bool,
+        }
+
+        let Self {
+            id,
+            docker_socket_path,
+            is_default,
+            network_adapter_reader: _,
+        } = self;
+        std::fmt::Debug::fmt(
+            &ComposeDeploymentImpl {
+                id,
+                docker_socket_path,
+                is_default,
+            },
+            f,
+        )
     }
 }
 
@@ -141,6 +176,7 @@ impl Default for ComposeDeploymentImpl {
             docker_socket_path: PathBuf::from("/var/run/docker.sock"),
             id: "DefaultComposeDeployment".to_string(),
             is_default: true,
+            network_adapter_reader: default_network_adapter_reader(),
         }
     }
 }
@@ -392,26 +428,41 @@ impl AppDeployment for ComposeDeploymentImpl {
 impl NetworkDeployment for ComposeDeploymentImpl {
     async fn create_network(
         &self,
-        _quest: SyncQuest,
-        _config: NetworkConfig,
+        quest: SyncQuest,
+        config: NetworkConfig,
     ) -> anyhow::Result<Network, CreateNetworkError> {
-        todo!()
+        let docker_client = self.docker_client()?;
+        DockerDeploymentImpl::create_network_with_client(
+            docker_client,
+            quest,
+            config,
+            self.network_adapter_reader.as_ref(),
+        )
+        .await
     }
 
     async fn default_network(&self) -> anyhow::Result<Network, CreateNetworkError> {
-        todo!()
+        let docker_client = self.docker_client()?;
+        DockerDeploymentImpl::default_network_with_client(
+            docker_client,
+            self.network_adapter_reader.as_ref(),
+        )
+        .await
     }
 
-    async fn delete_network(&self, _id: NetworkId) -> anyhow::Result<()> {
-        todo!()
+    async fn delete_network(&self, id: NetworkId) -> anyhow::Result<()> {
+        let docker_client = self.docker_client()?;
+        relic::docker::network::remove(docker_client, &id).await
     }
 
-    async fn network(&self, _id: NetworkId) -> anyhow::Result<Option<Network>> {
-        todo!()
+    async fn network(&self, id: NetworkId) -> anyhow::Result<Option<Network>> {
+        let docker_client = self.docker_client()?;
+        relic::docker::network::inspect::<&str>(docker_client, &id, None).await
     }
 
     async fn networks(&self, _quest: SyncQuest) -> anyhow::Result<Vec<Network>> {
-        todo!()
+        let docker_client = self.docker_client()?;
+        relic::docker::network::list::<String>(docker_client, None).await
     }
 }
 
