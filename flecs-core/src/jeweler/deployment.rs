@@ -1,6 +1,5 @@
 use crate::jeweler::GetDeploymentId;
 use crate::jeweler::app::AppDeployment;
-use crate::jeweler::instance::InstanceDeployment;
 use crate::jeweler::network::NetworkDeployment;
 use crate::jeweler::volume::VolumeDeployment;
 use async_trait::async_trait;
@@ -14,7 +13,6 @@ pub trait CommonDeployment:
     Send
     + Sync
     + AppDeployment
-    + InstanceDeployment
     + NetworkDeployment
     + VolumeDeployment
     + GetDeploymentId

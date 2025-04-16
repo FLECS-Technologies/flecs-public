@@ -50,6 +50,20 @@ impl InstanceDeserializable {
     }
 }
 
+pub struct Logs {
+    pub stdout: String,
+    pub stderr: String,
+}
+
+impl From<Logs> for flecsd_axum_server::models::InstancesInstanceIdLogsGet200Response {
+    fn from(logs: Logs) -> Self {
+        Self {
+            stdout: logs.stdout,
+            stderr: logs.stderr,
+        }
+    }
+}
+
 #[async_trait]
 pub trait InstanceCommon {
     fn id(&self) -> InstanceId;
