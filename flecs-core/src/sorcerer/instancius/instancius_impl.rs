@@ -982,8 +982,7 @@ impl Instancius for InstanciusImpl {
             .gems()
             .get(&id)
         {
-            Some(Instance::Docker(instance)) => instance.get_logs().await,
-            Some(Instance::Compose(_)) => anyhow::bail!("Instance {id} does not support logs"),
+            Some(instance) => instance.logs().await,
             None => anyhow::bail!("Instance {id} not found"),
         }
     }

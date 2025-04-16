@@ -3,6 +3,7 @@ use crate::jeweler::app::{AppDeployment, AppId, Token};
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::instance::Logs;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
@@ -118,6 +119,19 @@ impl ComposeDeploymentImpl {
             .compose_containers(&project_name, &compose)
             .await?)
     }
+
+    async fn compose_logs(&self, manifest: &AppManifestMulti) -> Result<Logs, ExecuteCompose> {
+        let compose = manifest.compose_json()?;
+        let project_name = manifest.project_name();
+        let logs = self
+            .docker_cli()
+            .compose_logs(&project_name, &compose)
+            .await?;
+        Ok(Logs {
+            stdout: logs,
+            stderr: String::new(),
+        })
+    }
 }
 
 impl Default for ComposeDeploymentImpl {
@@ -170,6 +184,10 @@ impl ComposeDeployment for ComposeDeploymentImpl {
             status_vec.push(status);
         }
         Ok(status_vec)
+    }
+
+    async fn instance_logs(&self, manifest: &AppManifestMulti) -> anyhow::Result<Logs> {
+        Ok(self.compose_logs(manifest).await?)
     }
 }
 
