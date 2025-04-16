@@ -54,6 +54,7 @@ impl InstanceDeserializable {
 pub trait InstanceCommon {
     fn id(&self) -> InstanceId;
     fn app_key(&self) -> &AppKey;
+    fn name(&self) -> &str;
     fn manifest(&self) -> AppManifest;
     fn replace_manifest(&mut self, manifest: AppManifest) -> AppManifest;
     async fn generate_info(&self) -> crate::Result<flecsd_axum_server::models::AppInstance>;
@@ -89,6 +90,8 @@ impl DerefMut for Instance {
 pub enum CreateInstanceError {
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+    #[error("IO Error during instance creation: {0}")]
+    IO(#[from] std::io::Error),
 }
 
 impl Instance {
