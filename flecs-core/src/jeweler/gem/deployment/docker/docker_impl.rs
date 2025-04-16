@@ -14,7 +14,7 @@ use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
 use crate::quest::{Quest, QuestId, State, SyncQuest};
 use crate::relic::network::{Ipv4Network, NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
-use crate::{jeweler, relic};
+use crate::{jeweler, lore, relic};
 use async_trait::async_trait;
 use bollard::auth::DockerCredentials;
 use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions};
@@ -519,6 +519,132 @@ impl DockerDeploymentImpl {
             }
         }
     }
+
+    pub async fn create_network_with_client(
+        docker_client: Arc<Docker>,
+        _quest: SyncQuest,
+        mut config: NetworkConfig,
+        network_adapter_reader: &dyn NetworkAdapterReader,
+    ) -> Result<Network, CreateNetworkError> {
+        if let Some(existing_network) =
+            relic::docker::network::inspect::<&str>(docker_client.clone(), &config.name, None)
+                .await?
+        {
+            return if Self::network_config_fits_network(&config, &existing_network)? {
+                Err(CreateNetworkError::ExactNetworkExists(existing_network))
+            } else {
+                Err(CreateNetworkError::DifferentNetworkExists(existing_network))
+            };
+        };
+        let mut options = config.options.unwrap_or_default();
+        match &config.kind {
+            NetworkKind::IpvlanL2 => {
+                options.insert("ipvlan_mode".to_string(), "l2".to_string());
+            }
+            NetworkKind::IpvlanL3 => {
+                options.insert("ipvlan_mode".to_string(), "l3".to_string());
+            }
+            _ => {}
+        }
+        let driver = match &config.kind {
+            NetworkKind::Bridge | NetworkKind::MACVLAN | NetworkKind::Internal => {
+                config.kind.to_string()
+            }
+            NetworkKind::IpvlanL2 | NetworkKind::IpvlanL3 => {
+                let Some(parent_adapter) = &config.parent_adapter else {
+                    return Err(CreateNetworkError::NetworkConfigInvalid {
+                        location: "parent_adapter".to_string(),
+                        reason: "Can not create ipvlan network without parent".to_string(),
+                    });
+                };
+                match (config.cidr_subnet, config.gateway) {
+                    (None, _) | (_, None) => {
+                        let (parent_name, parent_adapter) = network_adapter_reader
+                            .try_read_network_adapters()?
+                            .remove_entry(parent_adapter)
+                            .ok_or_else(|| CreateNetworkError::NetworkConfigInvalid {
+                                location: "parent_adapter".to_string(),
+                                reason: format!(
+                                    "Parent network adapter {parent_adapter} does not exist"
+                                ),
+                            })?;
+                        if parent_adapter.ipv4_networks.is_empty() {
+                            return Err(CreateNetworkError::NetworkConfigInvalid {
+                                location: "parent_adapter".to_string(),
+                                reason: format!(
+                                    "Parent network adapter {parent_name} is not ready"
+                                ),
+                            });
+                        }
+                        config.cidr_subnet = Some(relic::network::ipv4_to_network(
+                            *parent_adapter.ipv4_networks[0].address(),
+                            parent_adapter.ipv4_networks[0].subnet_mask(),
+                        ));
+                        config.gateway = parent_adapter.gateway;
+                    }
+                    _ => {}
+                }
+                "ipvlan".to_string()
+            }
+            x => {
+                return Err(CreateNetworkError::NetworkConfigInvalid {
+                    location: "kind".to_string(),
+                    reason: format!("Invalid network type {x}"),
+                });
+            }
+        };
+        if let Some(parent_adapter) = config.parent_adapter {
+            options.insert("parent".to_string(), parent_adapter);
+        }
+        let options = CreateNetworkOptions {
+            name: config.name,
+            driver,
+            options,
+            ipam: Ipam {
+                config: Some(vec![IpamConfig {
+                    gateway: config.gateway.as_ref().map(ToString::to_string),
+                    subnet: config.cidr_subnet.as_ref().map(ToString::to_string),
+                    ..IpamConfig::default()
+                }]),
+                ..Ipam::default()
+            },
+            ..CreateNetworkOptions::default()
+        };
+        Ok(relic::docker::network::create(docker_client, options).await?)
+    }
+
+    pub async fn default_network_with_client(
+        docker_client: Arc<Docker>,
+        network_adapter_reader: &dyn NetworkAdapterReader,
+    ) -> anyhow::Result<Network, CreateNetworkError> {
+        let default_network_name = lore::network::default_network_name();
+        let network = relic::docker::network::list(
+            docker_client.clone(),
+            Some(ListNetworksOptions {
+                filters: HashMap::from([("name", vec![default_network_name])]),
+            }),
+        )
+        .await?
+        .into_iter()
+        .find(|network| network.name.as_deref() == Some(default_network_name));
+        if let Some(network) = network {
+            return Ok(network);
+        };
+        Self::create_default_network_with_client(docker_client, network_adapter_reader).await
+    }
+
+    pub async fn create_default_network_with_client(
+        docker_client: Arc<Docker>,
+        network_adapter_reader: &dyn NetworkAdapterReader,
+    ) -> anyhow::Result<Network, CreateNetworkError> {
+        Self::create_network_with_client(
+            docker_client,
+            Quest::new_synced("Create default network".to_string()),
+            lore::network::default_network_config(),
+            network_adapter_reader,
+        )
+        .await
+    }
 }
 
 #[async_trait]
@@ -528,7 +654,7 @@ impl DockerDeployment for DockerDeploymentImpl {
     ) -> crate::Result<jeweler::network::Network, CreateNetworkError> {
         self.create_network(
             Quest::new_synced("Create default network".to_string()),
-            self.default_network_config(),
+            lore::network::default_network_config(),
         )
         .await
     }
@@ -1144,114 +1270,22 @@ impl VolumeDeployment for DockerDeploymentImpl {
 impl NetworkDeployment for DockerDeploymentImpl {
     async fn create_network(
         &self,
-        _quest: SyncQuest,
-        mut config: NetworkConfig,
+        quest: SyncQuest,
+        config: NetworkConfig,
     ) -> Result<Network, CreateNetworkError> {
         let docker_client = self.client()?;
-        if let Some(existing_network) =
-            relic::docker::network::inspect::<&str>(docker_client.clone(), &config.name, None)
-                .await?
-        {
-            return if Self::network_config_fits_network(&config, &existing_network)? {
-                Err(CreateNetworkError::ExactNetworkExists(existing_network))
-            } else {
-                Err(CreateNetworkError::DifferentNetworkExists(existing_network))
-            };
-        };
-        let mut options = config.options.unwrap_or_default();
-        match &config.kind {
-            NetworkKind::IpvlanL2 => {
-                options.insert("ipvlan_mode".to_string(), "l2".to_string());
-            }
-            NetworkKind::IpvlanL3 => {
-                options.insert("ipvlan_mode".to_string(), "l3".to_string());
-            }
-            _ => {}
-        }
-        let driver = match &config.kind {
-            NetworkKind::Bridge | NetworkKind::MACVLAN | NetworkKind::Internal => {
-                config.kind.to_string()
-            }
-            NetworkKind::IpvlanL2 | NetworkKind::IpvlanL3 => {
-                let Some(parent_adapter) = &config.parent_adapter else {
-                    return Err(CreateNetworkError::NetworkConfigInvalid {
-                        location: "parent_adapter".to_string(),
-                        reason: "Can not create ipvlan network without parent".to_string(),
-                    });
-                };
-                match (config.cidr_subnet, config.gateway) {
-                    (None, _) | (_, None) => {
-                        let (parent_name, parent_adapter) = self
-                            .network_adapter_reader
-                            .try_read_network_adapters()?
-                            .remove_entry(parent_adapter)
-                            .ok_or_else(|| CreateNetworkError::NetworkConfigInvalid {
-                                location: "parent_adapter".to_string(),
-                                reason: format!(
-                                    "Parent network adapter {parent_adapter} does not exist"
-                                ),
-                            })?;
-                        if parent_adapter.ipv4_networks.is_empty() {
-                            return Err(CreateNetworkError::NetworkConfigInvalid {
-                                location: "parent_adapter".to_string(),
-                                reason: format!(
-                                    "Parent network adapter {parent_name} is not ready"
-                                ),
-                            });
-                        }
-                        config.cidr_subnet = Some(relic::network::ipv4_to_network(
-                            *parent_adapter.ipv4_networks[0].address(),
-                            parent_adapter.ipv4_networks[0].subnet_mask(),
-                        ));
-                        config.gateway = parent_adapter.gateway;
-                    }
-                    _ => {}
-                }
-                "ipvlan".to_string()
-            }
-            x => {
-                return Err(CreateNetworkError::NetworkConfigInvalid {
-                    location: "kind".to_string(),
-                    reason: format!("Invalid network type {x}"),
-                });
-            }
-        };
-        if let Some(parent_adapter) = config.parent_adapter {
-            options.insert("parent".to_string(), parent_adapter);
-        }
-        let options = CreateNetworkOptions {
-            name: config.name,
-            driver,
-            options,
-            ipam: Ipam {
-                config: Some(vec![IpamConfig {
-                    gateway: config.gateway.as_ref().map(ToString::to_string),
-                    subnet: config.cidr_subnet.as_ref().map(ToString::to_string),
-                    ..IpamConfig::default()
-                }]),
-                ..Ipam::default()
-            },
-            ..CreateNetworkOptions::default()
-        };
-        Ok(relic::docker::network::create(docker_client, options).await?)
+        Self::create_network_with_client(
+            docker_client,
+            quest,
+            config,
+            self.network_adapter_reader.as_ref(),
+        )
+        .await
     }
 
     async fn default_network(&self) -> Result<jeweler::network::Network, CreateNetworkError> {
         let docker_client = self.client()?;
-        let default_network_name = self.default_network_name();
-        let network = relic::docker::network::list(
-            docker_client.clone(),
-            Some(ListNetworksOptions {
-                filters: HashMap::from([("name", vec![default_network_name])]),
-            }),
-        )
-        .await?
-        .into_iter()
-        .find(|network| network.name.as_deref() == Some(default_network_name));
-        if let Some(network) = network {
-            return Ok(network);
-        };
-        self.create_default_network().await
+        Self::default_network_with_client(docker_client, self.network_adapter_reader.as_ref()).await
     }
 
     async fn delete_network(&self, id: NetworkId) -> anyhow::Result<()> {

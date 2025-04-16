@@ -1,12 +1,12 @@
 mod docker_impl;
+use crate::jeweler;
 use crate::jeweler::app::AppId;
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::single::ConfigFile;
-use crate::jeweler::network::{CreateNetworkError, NetworkConfig, NetworkId, NetworkKind};
+use crate::jeweler::network::{CreateNetworkError, NetworkId};
 use crate::quest::SyncQuest;
-use crate::{jeweler, relic};
 use async_trait::async_trait;
 use bollard::container::Config;
 pub use docker_impl::*;
@@ -16,29 +16,6 @@ use std::path::{Path, PathBuf};
 pub type AppInfo = bollard::models::ImageInspect;
 #[async_trait]
 pub trait DockerDeployment: CommonDeployment {
-    fn default_network_name(&self) -> &'static str {
-        "flecs"
-    }
-
-    fn default_cidr_subnet(&self) -> relic::network::Ipv4Network {
-        Default::default()
-    }
-
-    fn default_gateway(&self) -> Ipv4Addr {
-        Ipv4Addr::new(172, 21, 0, 1)
-    }
-
-    fn default_network_config(&self) -> NetworkConfig {
-        NetworkConfig {
-            kind: NetworkKind::Bridge,
-            name: self.default_network_name().to_string(),
-            cidr_subnet: Some(self.default_cidr_subnet()),
-            gateway: Some(self.default_gateway()),
-            parent_adapter: None,
-            options: Default::default(),
-        }
-    }
-
     async fn create_default_network(
         &self,
     ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
@@ -130,12 +107,11 @@ pub mod tests {
     use crate::jeweler::gem::manifest::AppManifest;
     use crate::jeweler::gem::manifest::single::ConfigFile;
     use crate::jeweler::network::{
-        CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
+        CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
     };
     use crate::jeweler::volume::VolumeDeployment;
     use crate::jeweler::volume::{Volume, VolumeId};
     use crate::quest::SyncQuest;
-    use crate::relic::network::Ipv4Network;
     use mockall::mock;
     use serde::{Serialize, Serializer};
     use std::collections::HashMap;
@@ -237,10 +213,6 @@ pub mod tests {
         }
         #[async_trait]
         impl DockerDeployment for edDockerDeployment {
-            fn default_network_name(&self) -> &'static str;
-            fn default_cidr_subnet(&self) -> relic::network::Ipv4Network;
-            fn default_gateway(&self) -> Ipv4Addr;
-            fn default_network_config(&self) -> NetworkConfig;
             async fn create_default_network(
                 &self,
             ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
@@ -326,37 +298,5 @@ pub mod tests {
             PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
         )));
         assert_eq!(deployment.id(), TEST_DEPLOYMENT_ID);
-    }
-
-    #[test]
-    fn default_network_config() {
-        let deployment = DockerDeploymentImpl::default();
-        let config = deployment.default_network_config();
-        assert_eq!(config.name, deployment.default_network_name());
-        assert_eq!(config.cidr_subnet, Some(deployment.default_cidr_subnet()));
-        assert_eq!(config.gateway, Some(deployment.default_gateway()));
-        assert_eq!(config.kind, NetworkKind::Bridge);
-        assert_eq!(config.parent_adapter, None);
-    }
-
-    #[test]
-    fn default_network_name() {
-        let deployment = DockerDeploymentImpl::default();
-        assert_eq!(deployment.default_network_name(), "flecs");
-    }
-
-    #[test]
-    fn default_network_gateway() {
-        let deployment = DockerDeploymentImpl::default();
-        assert_eq!(deployment.default_gateway(), Ipv4Addr::new(172, 21, 0, 1));
-    }
-
-    #[test]
-    fn default_network_cidr_subnet() {
-        let deployment = DockerDeploymentImpl::default();
-        assert_eq!(
-            deployment.default_cidr_subnet(),
-            Ipv4Network::try_new(Ipv4Addr::new(172, 21, 0, 0), 16).unwrap()
-        );
     }
 }

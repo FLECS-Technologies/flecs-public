@@ -38,6 +38,35 @@ pub mod console {
     pub const BASE_PATH: &str = "https://console.flecs.tech";
 }
 
+pub mod network {
+    use crate::jeweler::network::{NetworkConfig, NetworkKind};
+    use crate::relic;
+    use std::net::Ipv4Addr;
+
+    pub fn default_network_name() -> &'static str {
+        "flecs"
+    }
+
+    pub fn default_cidr_subnet() -> relic::network::Ipv4Network {
+        Default::default()
+    }
+
+    pub fn default_gateway() -> Ipv4Addr {
+        Ipv4Addr::new(172, 21, 0, 1)
+    }
+
+    pub fn default_network_config() -> NetworkConfig {
+        NetworkConfig {
+            kind: NetworkKind::Bridge,
+            name: default_network_name().to_string(),
+            cidr_subnet: Some(default_cidr_subnet()),
+            gateway: Some(default_gateway()),
+            parent_adapter: None,
+            options: Default::default(),
+        }
+    }
+}
+
 pub fn base_path() -> &'static Path {
     Path::new(BASE_PATH)
 }
