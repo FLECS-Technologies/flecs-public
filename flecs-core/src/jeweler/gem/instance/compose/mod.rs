@@ -1,4 +1,4 @@
-use super::{CreateInstanceError, InstanceCommon, InstanceId};
+use super::{CreateInstanceError, InstanceCommon, InstanceId, Logs};
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
@@ -106,6 +106,10 @@ impl InstanceCommon for ComposeInstance {
     fn taken_ipv4_addresses(&self) -> Vec<Ipv4Addr> {
         // TODO
         Vec::new()
+    }
+
+    async fn logs(&self) -> anyhow::Result<Logs> {
+        self.deployment.instance_logs(&self.manifest).await
     }
 }
 
