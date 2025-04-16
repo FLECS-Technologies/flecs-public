@@ -9,8 +9,6 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 pub(crate) type AppId = String;
-// TODO: Change to a custom general type as soon as the second Deployment implementation is created
-pub(crate) type AppInfo = bollard::models::ImageInspect;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Token {
     pub username: String,

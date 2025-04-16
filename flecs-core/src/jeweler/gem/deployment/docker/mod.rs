@@ -1,5 +1,5 @@
 mod docker_impl;
-use crate::jeweler::app::{AppId, AppInfo};
+use crate::jeweler::app::AppId;
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, Logs};
@@ -13,7 +13,7 @@ pub use docker_impl::*;
 use erased_serde::serialize_trait_object;
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
-
+pub type AppInfo = bollard::models::ImageInspect;
 #[async_trait]
 pub trait DockerDeployment: CommonDeployment {
     fn default_network_name(&self) -> &'static str {
