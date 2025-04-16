@@ -16,10 +16,11 @@ use crate::relic;
 use crate::relic::docker_cli::{DockerCli, ExecuteCommandError};
 use crate::vault::pouch::deployment::DeploymentId;
 use async_trait::async_trait;
-use bollard::image::RemoveImageOptions;
+use bollard::image::{ImportImageOptions, RemoveImageOptions};
 use bollard::models::{ContainerInspectResponse, ContainerState};
 use bollard::{API_DEFAULT_VERSION, Docker};
 use docker_compose_types::Service;
+use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -315,20 +316,75 @@ impl AppDeployment for ComposeDeploymentImpl {
 
     async fn export_app(
         &self,
-        _quest: SyncQuest,
-        _manifest: AppManifest,
-        _path: PathBuf,
+        quest: SyncQuest,
+        manifest: AppManifest,
+        path: PathBuf,
     ) -> anyhow::Result<()> {
-        todo!()
+        let AppManifest::Multi(manifest) = manifest else {
+            anyhow::bail!("ComposeDeploymentImpl supports only AppManifest::Multi");
+        };
+        let mut results = Vec::new();
+        let client = self.docker_client()?;
+        for image in manifest.images() {
+            let path = path.join(format!(
+                "{}_{}_{image}.tar",
+                manifest.key.name, manifest.key.version
+            ));
+            let client = client.clone();
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(format!("Export {image}"), |quest| async move {
+                    relic::docker::image::save(quest, client, &path, &image).await
+                })
+                .await
+                .2;
+            results.push(result);
+        }
+        for result in join_all(results).await {
+            result?;
+        }
+        Ok(())
     }
 
     async fn import_app(
         &self,
-        _quest: SyncQuest,
-        _manifest: AppManifest,
-        _path: PathBuf,
+        quest: SyncQuest,
+        manifest: AppManifest,
+        path: PathBuf,
     ) -> anyhow::Result<()> {
-        todo!()
+        let AppManifest::Multi(manifest) = manifest else {
+            anyhow::bail!("ComposeDeploymentImpl supports only AppManifest::Multi");
+        };
+        let mut results = Vec::new();
+        let client = self.docker_client()?;
+        for image in manifest.images() {
+            let path = path.join(format!(
+                "{}_{}_{image}.tar",
+                manifest.key.name, manifest.key.version
+            ));
+            let client = client.clone();
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(format!("Export {image}"), |quest| async move {
+                    relic::docker::image::load(
+                        quest,
+                        client,
+                        &path,
+                        ImportImageOptions::default(),
+                        None,
+                    )
+                    .await
+                })
+                .await
+                .2;
+            results.push(result);
+        }
+        for result in join_all(results).await {
+            result?;
+        }
+        Ok(())
     }
 }
 

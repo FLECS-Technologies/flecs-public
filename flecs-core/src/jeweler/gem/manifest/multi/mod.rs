@@ -64,4 +64,13 @@ impl AppManifestMulti {
     pub fn compose_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(&self.compose)
     }
+
+    pub fn images(&self) -> Vec<String> {
+        self.compose
+            .services
+            .0
+            .values()
+            .filter_map(|service| service.as_ref().and_then(|service| service.image.clone()))
+            .collect()
+    }
 }
