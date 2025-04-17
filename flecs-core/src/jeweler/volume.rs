@@ -1,10 +1,8 @@
 use super::Result;
-use super::gem::instance::InstanceId;
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
 // TODO: Use more generic struct as soon as the second type of deployment is implemented
 pub use bollard::models::Volume;
-use std::collections::HashMap;
 use std::path::Path;
 
 pub(crate) type VolumeId = String;
@@ -27,18 +25,6 @@ pub trait VolumeDeployment {
         id: VolumeId,
         export_path: &Path,
         container_path: &Path,
-        image: &str,
-    ) -> Result<()>;
-    async fn volumes(
-        &self,
-        quest: SyncQuest,
-        instance_id: InstanceId,
-    ) -> Result<HashMap<VolumeId, Volume>>;
-    async fn export_volumes(
-        &self,
-        quest: SyncQuest,
-        instance_id: InstanceId,
-        path: &Path,
         image: &str,
     ) -> Result<()>;
 }
