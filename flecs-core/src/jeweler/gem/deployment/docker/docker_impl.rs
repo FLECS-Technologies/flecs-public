@@ -820,6 +820,13 @@ impl DockerDeploymentImpl {
         )
         .await
     }
+
+    pub async fn inspect_volume_with_client(
+        docker_client: Arc<Docker>,
+        volume_id: VolumeId,
+    ) -> anyhow::Result<Option<Volume>> {
+        relic::docker::volume::inspect(docker_client, &volume_id).await
+    }
 }
 
 #[async_trait]
@@ -1154,9 +1161,11 @@ impl AppDeployment for DockerDeploymentImpl {
     async fn import_app(
         &self,
         quest: SyncQuest,
-        _manifest: AppManifest,
+        manifest: AppManifest,
         path: PathBuf,
     ) -> anyhow::Result<()> {
+        let key = manifest.key();
+        let path = path.join(format!("{}_{}.tar", key.name, key.version));
         relic::docker::image::load(
             quest,
             self.client()?,
@@ -1210,6 +1219,10 @@ impl VolumeDeployment for DockerDeploymentImpl {
             image,
         )
         .await
+    }
+
+    async fn inspect_volume(&self, id: VolumeId) -> anyhow::Result<Option<Volume>> {
+        Self::inspect_volume_with_client(self.client()?, id).await
     }
 }
 

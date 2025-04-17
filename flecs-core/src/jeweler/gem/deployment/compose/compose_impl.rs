@@ -10,7 +10,7 @@ use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::network::{
     CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
 };
-use crate::jeweler::volume::{VolumeDeployment, VolumeId};
+use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
 use crate::quest::SyncQuest;
 use crate::relic;
 use crate::relic::docker_cli::{DockerCli, ExecuteCommandError};
@@ -344,10 +344,8 @@ impl AppDeployment for ComposeDeploymentImpl {
         let mut results = Vec::new();
         let client = self.docker_client()?;
         for image in manifest.images() {
-            let path = path.join(format!(
-                "{}_{}_{image}.tar",
-                manifest.key.name, manifest.key.version
-            ));
+            let (_, image_name) = image.split_once('/').unwrap_or(("", &image));
+            let path = path.join(format!("{image_name}.tar"));
             let client = client.clone();
             let result = quest
                 .lock()
@@ -377,24 +375,25 @@ impl AppDeployment for ComposeDeploymentImpl {
         let mut results = Vec::new();
         let client = self.docker_client()?;
         for image in manifest.images() {
-            let path = path.join(format!(
-                "{}_{}_{image}.tar",
-                manifest.key.name, manifest.key.version
-            ));
+            let (_, image_name) = image.split_once('/').unwrap_or(("", &image));
+            let path = path.join(format!("{image_name}.tar"));
             let client = client.clone();
             let result = quest
                 .lock()
                 .await
-                .create_sub_quest(format!("Export {image}"), |quest| async move {
-                    relic::docker::image::load(
-                        quest,
-                        client,
-                        &path,
-                        ImportImageOptions::default(),
-                        None,
-                    )
-                    .await
-                })
+                .create_sub_quest(
+                    format!("Import {image} from {path:?}"),
+                    |quest| async move {
+                        relic::docker::image::load(
+                            quest,
+                            client,
+                            &path,
+                            ImportImageOptions::default(),
+                            None,
+                        )
+                        .await
+                    },
+                )
                 .await
                 .2;
             results.push(result);
@@ -498,5 +497,10 @@ impl VolumeDeployment for ComposeDeploymentImpl {
             image,
         )
         .await
+    }
+
+    async fn inspect_volume(&self, id: VolumeId) -> anyhow::Result<Option<Volume>> {
+        let client = self.docker_client()?;
+        DockerDeploymentImpl::inspect_volume_with_client(client, id).await
     }
 }

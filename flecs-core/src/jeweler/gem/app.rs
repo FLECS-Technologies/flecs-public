@@ -422,6 +422,7 @@ impl App {
         let Some((_, app_data)) = self.deployments.iter().next() else {
             anyhow::bail!("App {} is not installed in any deployment", self.key);
         };
+        let path = path.join(format!("{}_{}", self.key.name, self.key.version));
         tokio::fs::create_dir_all(&path).await?;
         app_data
             .deployment
@@ -434,6 +435,33 @@ impl App {
         tokio::fs::write(&manifest_path, serde_json::to_vec_pretty(&self.manifest)?).await?;
         let app_path = path.join(format!("{}_{}.json", self.key.name, self.key.version));
         tokio::fs::write(&app_path, serde_json::to_vec_pretty(&self)?).await?;
+        Ok(())
+    }
+
+    pub async fn import(&self, quest: SyncQuest, path: PathBuf) -> Result<(), anyhow::Error> {
+        let mut results = Vec::new();
+        {
+            let mut quest = quest.lock().await;
+            for data in self.deployments.values() {
+                let deployment = data.deployment().clone();
+                let path = path.clone();
+                let manifest = self.manifest().clone();
+                let result =
+                    quest
+                        .create_sub_quest(
+                            format!("Import {} to {}", self.key, deployment.id()),
+                            move |quest| async move {
+                                deployment.import_app(quest, manifest, path).await
+                            },
+                        )
+                        .await
+                        .2;
+                results.push(result);
+            }
+        }
+        for result in join_all(results).await {
+            result?;
+        }
         Ok(())
     }
 }

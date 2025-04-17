@@ -165,8 +165,8 @@ pub async fn import_manifest(
     path: PathBuf,
 ) -> Result<AppManifest, ImportManifestError> {
     let manifest_path = path.join(format!(
-        "{}_{}.manifest.json",
-        app_key.name, app_key.version
+        "{}_{}/{}_{}.manifest.json",
+        app_key.name, app_key.version, app_key.name, app_key.version
     ));
     let manifest = tokio::fs::read_to_string(&manifest_path).await?;
     let manifest = flecs_app_manifest::AppManifestVersion::from_str(&manifest)?;
@@ -235,29 +235,12 @@ pub async fn import_app(
     deployments: Arc<pouch::deployment::Gems>,
     path: PathBuf,
 ) -> Result<App, ImportAppError> {
+    let path = path.join(format!("{}_{}", app_key.name, app_key.version));
     let app_path = path.join(format!("{}_{}.json", app_key.name, app_key.version));
     let app = tokio::fs::read(&app_path).await?;
     let app: AppDeserializable = serde_json::from_slice(&app)?;
     let app = try_create_app(app, &manifests, &deployments)?;
-    let mut results = Vec::new();
-    let path = path.join(format!("{}_{}.tar", app_key.name, app_key.version));
-    let mut quest = quest.lock().await;
-    for data in app.deployments.values() {
-        let deployment = data.deployment().clone();
-        let path = path.clone();
-        let manifest = app.manifest().clone();
-        let result = quest
-            .create_sub_quest(
-                format!("Import {app_key} to {}", deployment.id()),
-                move |quest| async move { deployment.import_app(quest, manifest, path).await },
-            )
-            .await
-            .2;
-        results.push(result);
-    }
-    for result in join_all(results).await {
-        result?;
-    }
+    app.import(quest, path).await?;
     Ok(app)
 }
 
@@ -351,20 +334,20 @@ pub async fn validate_import(
         }
     }
     for app_key in &manifest.contents.apps {
-        let app_path = path.join(format!("apps/{}_{}.json", app_key.name, app_key.version));
-        if !tokio::fs::try_exists(app_path).await? {
+        let app_path = path.join(format!("apps/{}_{}", app_key.name, app_key.version));
+        if !tokio::fs::try_exists(&app_path).await? {
+            return Err(ReadImportManifestError::Invalid(anyhow::anyhow!(
+                "App {app_key} is listed in import manifest but directory {app_path:?} was not found"
+            )));
+        }
+        let app_json = app_path.join(format!("{}_{}.json", app_key.name, app_key.version));
+        if !tokio::fs::try_exists(app_json).await? {
             return Err(ReadImportManifestError::Invalid(anyhow::anyhow!(
                 "App {app_key} is listed in import manifest but was not found"
             )));
         }
-        let image_path = path.join(format!("apps/{}_{}.tar", app_key.name, app_key.version));
-        if !tokio::fs::try_exists(image_path).await? {
-            return Err(ReadImportManifestError::Invalid(anyhow::anyhow!(
-                "App {app_key} is listed in import manifest but no image was found"
-            )));
-        }
-        let manifest_path = path.join(format!(
-            "apps/{}_{}.manifest.json",
+        let manifest_path = app_path.join(format!(
+            "{}_{}.manifest.json",
             app_key.name, app_key.version
         ));
         if !tokio::fs::try_exists(manifest_path).await? {

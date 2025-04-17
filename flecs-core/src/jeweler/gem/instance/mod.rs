@@ -156,9 +156,7 @@ impl Instance {
             .2;
         result.await?;
         match self {
-            Instance::Compose(instance) => {
-                todo!()
-            }
+            Instance::Compose(instance) => instance.export(quest, path).await?,
             Instance::Docker(instance) => instance.export(quest, floxy, path).await?,
         }
         Ok(())

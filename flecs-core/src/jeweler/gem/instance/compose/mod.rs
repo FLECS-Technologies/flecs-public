@@ -6,15 +6,16 @@ use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::{AppManifest, multi};
 use crate::jeweler::{GetAppKey, serialize_deployment_id, serialize_manifest_key};
-use crate::quest::SyncQuest;
+use crate::quest::{State, SyncQuest};
 use crate::vault;
 use crate::vault::pouch::AppKey;
 use async_trait::async_trait;
 use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
+use futures_util::future::{BoxFuture, join_all};
 use serde::{Deserialize, Serialize};
 use std::mem::swap;
 use std::net::Ipv4Addr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
@@ -113,8 +114,30 @@ impl InstanceCommon for ComposeInstance {
         self.deployment.instance_logs(&self.manifest).await
     }
 
-    async fn import(&mut self, quest: SyncQuest, src: PathBuf, dst: PathBuf) -> anyhow::Result<()> {
-        todo!()
+    async fn import(
+        &mut self,
+        quest: SyncQuest,
+        src: PathBuf,
+        _dst: PathBuf,
+    ) -> anyhow::Result<()> {
+        let image = self
+            .manifest
+            .images()
+            .first()
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("Manifest contains no image"))?;
+        let src = src.join("volumes");
+        let mut results = Vec::new();
+        for volume_name in self.manifest.volume_names() {
+            let result = self
+                .import_volume_quest(&quest, volume_name, src.clone(), image.clone())
+                .await;
+            results.push(result);
+        }
+        for result in join_all(results).await {
+            result?;
+        }
+        Ok(())
     }
 }
 
@@ -183,15 +206,31 @@ impl ComposeInstance {
     }
 
     pub async fn try_create_new(
-        _quest: SyncQuest,
+        quest: SyncQuest,
         deployment: Arc<dyn ComposeDeployment>,
         manifest: Arc<AppManifestMulti>,
         name: String,
     ) -> Result<Self, CreateInstanceError> {
-        // TODO: Create volumes?
         let instance_id = InstanceId::new_random();
         tokio::fs::create_dir_all(crate::lore::instance_workdir_path(&instance_id.to_string()))
             .await?;
+        let mut results = Vec::new();
+        for volume_name in manifest.external_volume_names() {
+            let deployment = deployment.clone();
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!("Create external volume {volume_name}"),
+                    |quest| async move { deployment.create_volume(quest, &volume_name).await },
+                )
+                .await
+                .2;
+            results.push(result);
+        }
+        for result in join_all(results).await {
+            result?;
+        }
         Ok(Self {
             deployment,
             name,
@@ -237,6 +276,93 @@ impl ComposeInstance {
                 return Err((e.into(), self));
             }
         };
+        Ok(())
+    }
+
+    async fn import_volume_quest(
+        &self,
+        quest: &SyncQuest,
+        volume_name: String,
+        src: PathBuf,
+        image: String,
+    ) -> BoxFuture<'static, crate::Result<()>> {
+        let deployment = self.deployment.clone();
+        let container_path = PathBuf::from("/flecs_tmp_volume");
+        quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!("Import volume {volume_name} from {src:?}"),
+                |quest| async move {
+                    if !tokio::fs::try_exists(&src).await? {
+                        let mut quest = quest.lock().await;
+                        quest.state = State::Skipped;
+                        quest.detail = Some("Directory does not exist".to_string());
+                    } else {
+                        deployment
+                            .import_volume(quest, &src, &container_path, &volume_name, &image)
+                            .await?;
+                    }
+                    Ok(())
+                },
+            )
+            .await
+            .2
+    }
+
+    async fn export_volume_quest(
+        &self,
+        quest: &SyncQuest,
+        volume_name: String,
+        dst: PathBuf,
+        image: String,
+    ) -> BoxFuture<'static, crate::Result<()>> {
+        let deployment = self.deployment.clone();
+        let container_path = PathBuf::from("/flecs_tmp_volume");
+        quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!("Export volume {volume_name} to {dst:?}"),
+                |quest| async move {
+                    if deployment
+                        .inspect_volume(volume_name.clone())
+                        .await?
+                        .is_none()
+                    {
+                        let mut quest = quest.lock().await;
+                        quest.state = State::Skipped;
+                        quest.detail = Some("Volume does not exist".to_string());
+                        Ok(())
+                    } else {
+                        deployment
+                            .export_volume(quest, volume_name, &dst, &container_path, &image)
+                            .await
+                    }
+                },
+            )
+            .await
+            .2
+    }
+
+    pub async fn export(&mut self, quest: SyncQuest, path: &Path) -> anyhow::Result<()> {
+        let image = self
+            .manifest
+            .images()
+            .first()
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("Manifest contains no image"))?;
+        let path = path.join("volumes");
+        let mut results = Vec::new();
+        for volume_name in self.manifest.volume_names() {
+            let result = self
+                .export_volume_quest(&quest, volume_name, path.clone(), image.clone())
+                .await;
+            results.push(result);
+        }
+        for result in join_all(results).await {
+            result?;
+        }
         Ok(())
     }
 }
