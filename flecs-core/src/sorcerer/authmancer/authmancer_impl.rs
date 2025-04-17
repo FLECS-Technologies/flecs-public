@@ -1,9 +1,9 @@
 use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::app::Token;
 use crate::sorcerer::authmancer::Authmancer;
-use crate::sorcerer::{spell, Sorcerer};
-use crate::vault::pouch::Pouch;
+use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::Vault;
+use crate::vault::pouch::Pouch;
 use async_trait::async_trait;
 use flecsd_axum_server::models::AuthResponseData;
 
@@ -102,33 +102,37 @@ mod tests {
         AuthmancerImpl::default()
             .delete_authentication(&vault)
             .await;
-        assert!(vault
-            .reservation()
-            .reserve_secret_pouch()
-            .grab()
-            .await
-            .secret_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .authentication
-            .is_none())
+        assert!(
+            vault
+                .reservation()
+                .reserve_secret_pouch()
+                .grab()
+                .await
+                .secret_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .authentication
+                .is_none()
+        )
     }
 
     #[tokio::test]
     async fn store_authentication_test() {
         let vault = create_empty_test_vault();
-        assert!(vault
-            .reservation()
-            .reserve_secret_pouch()
-            .grab()
-            .await
-            .secret_pouch
-            .as_ref()
-            .unwrap()
-            .gems()
-            .authentication
-            .is_none());
+        assert!(
+            vault
+                .reservation()
+                .reserve_secret_pouch()
+                .grab()
+                .await
+                .secret_pouch
+                .as_ref()
+                .unwrap()
+                .gems()
+                .authentication
+                .is_none()
+        );
         AuthmancerImpl::default()
             .store_authentication(create_test_auth(), &vault)
             .await;

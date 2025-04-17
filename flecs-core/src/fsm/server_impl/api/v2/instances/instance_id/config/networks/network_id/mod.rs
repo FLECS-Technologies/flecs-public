@@ -9,7 +9,7 @@ use flecsd_axum_server::apis::instances::{
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
-    AdditionalInfo, InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams as DeletePathParams,
+    InstancesInstanceIdConfigNetworksNetworkIdDeletePathParams as DeletePathParams,
     InstancesInstanceIdConfigNetworksNetworkIdGetPathParams as GetPathParams,
 };
 use std::str::FromStr;
@@ -37,6 +37,11 @@ pub async fn get<T: Instancius>(
                 ip_address: address.to_string(),
             })
         }
+        GetInstanceConfigNetworkResult::NotSupported => {
+            GetResponse::Status400_MalformedRequest(models::AdditionalInfo::new(format!(
+                "Instance {instance_id} does not support networks"
+            )))
+        }
     }
 }
 
@@ -55,8 +60,11 @@ pub async fn delete<T: Instancius>(
         | Err(DisconnectInstanceError::InstanceNotConnected { .. }) => {
             DeleteResponse::Status404_InstanceIdOrNetworkNotFound
         }
+        Err(e @ DisconnectInstanceError::Unsupported(_)) => {
+            DeleteResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
         Err(DisconnectInstanceError::Other(reason)) => {
-            DeleteResponse::Status500_InternalServerError(AdditionalInfo::new(reason))
+            DeleteResponse::Status500_InternalServerError(models::AdditionalInfo::new(reason))
         }
     }
 }

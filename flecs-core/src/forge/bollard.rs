@@ -1,6 +1,6 @@
+use crate::Result;
 use crate::jeweler::network::NetworkKind;
 use crate::relic::network::{Ipv4Network, Ipv6Network, Network};
-use crate::Result;
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 

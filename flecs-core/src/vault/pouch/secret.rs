@@ -1,5 +1,5 @@
 use super::Result;
-use super::{combine_results, Pouch};
+use super::{Pouch, combine_results};
 use flecs_console_client::models::SessionId;
 use flecsd_axum_server::models::AuthResponseData;
 use std::fs;
@@ -89,11 +89,11 @@ impl SecretPouch {
     fn save_session(&self) -> crate::vault::Result<()> {
         let content = match &self.secrets.session_id {
             SessionId {
-                id: Some(ref id),
-                timestamp: Some(ref timestamp),
+                id: Some(id),
+                timestamp: Some(timestamp),
             } => format!("{id}\n{timestamp}"),
             SessionId {
-                id: Some(ref id),
+                id: Some(id),
                 timestamp: None,
             } => id.clone(),
             _ => String::new(),
@@ -280,12 +280,16 @@ pub mod tests {
             },
         };
         secrets.close().unwrap();
-        assert!(fs::read_to_string(test_path.join(LICENSE_FILE_NAME))
-            .unwrap()
-            .is_empty());
-        assert!(fs::read_to_string(test_path.join(SESSION_FILE_NAME))
-            .unwrap()
-            .is_empty());
+        assert!(
+            fs::read_to_string(test_path.join(LICENSE_FILE_NAME))
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            fs::read_to_string(test_path.join(SESSION_FILE_NAME))
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

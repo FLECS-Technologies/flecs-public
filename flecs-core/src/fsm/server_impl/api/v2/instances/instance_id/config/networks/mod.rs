@@ -1,8 +1,10 @@
 pub mod network_id;
 
-use crate::sorcerer::instancius::{ConnectInstanceConfigNetworkError, Instancius};
-use crate::vault::pouch::instance::InstanceId;
+use crate::sorcerer::instancius::{
+    ConnectInstanceConfigNetworkError, Instancius, QueryInstanceConfigError,
+};
 use crate::vault::Vault;
+use crate::vault::pouch::instance::InstanceId;
 use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigNetworksGetResponse as GetResponse,
     InstancesInstanceIdConfigNetworksPostResponse as PostResponse,
@@ -27,13 +29,16 @@ pub async fn get<T: Instancius>(
         .get_instance_config_networks(vault, instance_id)
         .await
     {
-        Some(networks) => GetResponse::Status200_Success(
+        Ok(networks) => GetResponse::Status200_Success(
             networks
                 .into_iter()
                 .map(|(id, ip)| models::InstanceConfigNetwork::new(id, ip.to_string()))
                 .collect(),
         ),
-        None => GetResponse::Status404_InstanceIdNotFound,
+        Err(QueryInstanceConfigError::NotFound(_)) => GetResponse::Status404_InstanceIdNotFound,
+        Err(e @ QueryInstanceConfigError::NotSupported(_)) => {
+            GetResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 
@@ -54,7 +59,7 @@ pub async fn post<T: Instancius>(
         Err(e) => {
             return PostResponse::Status400_MalformedRequest(AdditionalInfo::new(format!(
                 "Failed to parse ip from body: {e}"
-            )))
+            )));
         }
     };
     let network_id = body.network_id;
@@ -99,7 +104,7 @@ mod tests {
             .once()
             .with(predicate::always(), predicate::eq(INSTANCE_ID))
             .returning(|_, _| {
-                Some(HashMap::from([(
+                Ok(HashMap::from([(
                     "net_1".to_string(),
                     IpAddr::V4(Ipv4Addr::new(10, 20, 30, 40)),
                 )]))
@@ -129,7 +134,7 @@ mod tests {
             .expect_get_instance_config_networks()
             .once()
             .with(predicate::always(), predicate::eq(INSTANCE_ID))
-            .returning(|_, _| None);
+            .returning(|_, _| Err(QueryInstanceConfigError::NotFound(INSTANCE_ID)));
         assert_eq!(
             get(
                 vault,

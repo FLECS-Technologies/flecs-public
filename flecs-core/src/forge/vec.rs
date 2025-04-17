@@ -20,11 +20,7 @@ impl<T> VecExtension<T> for Vec<T> {
     }
 
     fn empty_to_none(self) -> Option<Vec<T>> {
-        if self.is_empty() {
-            None
-        } else {
-            Some(self)
-        }
+        if self.is_empty() { None } else { Some(self) }
     }
 }
 

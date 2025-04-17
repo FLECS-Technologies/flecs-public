@@ -44,6 +44,7 @@ futures = "0.3"
 async-compression = { version = "0.4", features = ["tokio", "gzip"] }
 erased-serde = "0.4"
 rand = "0.8.5"
+docker-compose-types = { version = "0.16.0", default-features = false, features = ["yml"] }
 
 [dev-dependencies]
 mockito = "1.4"

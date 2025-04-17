@@ -1,9 +1,9 @@
 mod manifesto_impl;
-use super::spell::Error;
 use super::Sorcerer;
+use super::spell::Error;
 use crate::fsm::console_client::ConsoleClient;
-use crate::vault::pouch::AppKey;
 use crate::vault::Vault;
+use crate::vault::pouch::AppKey;
 use async_trait::async_trait;
 use flecs_app_manifest::AppManifestVersion;
 pub use manifesto_impl::ManifestoImpl;

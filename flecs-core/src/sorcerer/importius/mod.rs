@@ -1,7 +1,8 @@
 mod importius_impl;
 
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
-use crate::jeweler::network::NetworkId;
+use crate::jeweler::gem::instance::CreateInstanceError;
+use crate::jeweler::gem::instance::docker::TransferIpError;
 use crate::quest::SyncQuest;
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
@@ -9,7 +10,6 @@ use async_trait::async_trait;
 pub use importius_impl::*;
 #[cfg(test)]
 use mockall::automock;
-use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::oneshot::error::RecvError;
@@ -79,19 +79,8 @@ pub enum ImportInstanceError {
     RecvError(#[from] RecvError),
     #[error(transparent)]
     TransferIp(#[from] TransferIpError),
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum TransferIpError {
-    #[error("Unknown network {0}")]
-    UnknownNetwork(String),
-    #[error("Failed to inspect network {network}: {error}")]
-    InspectNetwork {
-        network: NetworkId,
-        error: anyhow::Error,
-    },
-    #[error("No fitting subnet in {network} to transfer {ip} to")]
-    NoFittingNetwork { network: NetworkId, ip: IpAddr },
+    #[error(transparent)]
+    Create(#[from] CreateInstanceError),
 }
 
 #[derive(thiserror::Error, Debug)]

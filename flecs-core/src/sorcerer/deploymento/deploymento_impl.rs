@@ -2,10 +2,10 @@ use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::network::{Network, NetworkConfig, NetworkId};
 use crate::quest::Quest;
 use crate::relic::network::Ipv4NetworkAccess;
+use crate::sorcerer::Sorcerer;
 use crate::sorcerer::deploymento::{
     CreateNetworkError, Deploymento, GetDeploymentNetworkError, ReserveIpv4AddressError,
 };
-use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
 use async_trait::async_trait;
 use std::net::Ipv4Addr;
@@ -110,7 +110,7 @@ impl Deploymento for DeploymentoImpl {
                 return Err(ReserveIpv4AddressError::Other {
                     network_id,
                     reason: e.to_string(),
-                })
+                });
             }
         };
         match crate::sorcerer::spell::instance::make_ipv4_reservation(vault, network).await {
@@ -125,7 +125,8 @@ impl Sorcerer for DeploymentoImpl {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::deployment::tests::MockedDeployment;
+    use crate::jeweler::gem::deployment::Deployment;
+    use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::network::NetworkKind;
     use crate::vault::tests::{create_empty_test_vault, create_test_vault_with_deployment};
     use mockall::predicate;
@@ -133,39 +134,49 @@ mod tests {
     #[tokio::test]
     async fn get_deployment_networks_unknown_deployment() {
         let vault = create_empty_test_vault();
-        assert!(DeploymentoImpl
-            .get_deployment_networks(vault, "UnknownDeployment".to_string())
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            DeploymentoImpl
+                .get_deployment_networks(vault, "UnknownDeployment".to_string())
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
     async fn get_deployment_networks_err() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment.expect_is_default().return_const(true);
         deployment
             .expect_networks()
             .once()
             .returning(|_| Err(anyhow::anyhow!("TestError")));
-        deployment.expect_id().return_const("TestDeployment");
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
-        assert!(DeploymentoImpl
-            .get_deployment_networks(vault, "TestDeployment".to_string())
-            .await
-            .is_err());
+        deployment
+            .expect_id()
+            .return_const("TestDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
+        assert!(
+            DeploymentoImpl
+                .get_deployment_networks(vault, "TestDeployment".to_string())
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
     async fn get_deployment_networks_ok() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment.expect_is_default().return_const(true);
         deployment
             .expect_networks()
             .once()
             .returning(|_| Ok(vec![Network::default(), Network::default()]));
-        deployment.expect_id().return_const("TestDeployment");
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        deployment
+            .expect_id()
+            .return_const("TestDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
         assert_eq!(
             DeploymentoImpl
                 .get_deployment_networks(vault, "TestDeployment".to_string())
@@ -194,15 +205,18 @@ mod tests {
 
     #[tokio::test]
     async fn get_deployment_network_unknown_network() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment.expect_is_default().return_const(true);
         deployment
             .expect_network()
             .once()
             .with(predicate::eq("UnknownNetwork".to_string()))
             .returning(|_| Ok(None));
-        deployment.expect_id().return_const("TestDeployment");
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        deployment
+            .expect_id()
+            .return_const("TestDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
         assert_eq!(
             DeploymentoImpl
                 .get_deployment_network(
@@ -219,15 +233,18 @@ mod tests {
 
     #[tokio::test]
     async fn get_deployment_network_ok() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment.expect_is_default().return_const(true);
         deployment
             .expect_network()
             .once()
             .with(predicate::eq("TestNetwork".to_string()))
             .returning(|_| Ok(Some(Network::default())));
-        deployment.expect_id().return_const("TestDeployment");
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        deployment
+            .expect_id()
+            .return_const("TestDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
         assert_eq!(
             DeploymentoImpl
                 .get_deployment_network(
@@ -242,15 +259,18 @@ mod tests {
 
     #[tokio::test]
     async fn get_deployment_network_err() {
-        let mut deployment = MockedDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
         deployment.expect_is_default().return_const(true);
         deployment
             .expect_network()
             .once()
             .with(predicate::eq("UnknownNetwork".to_string()))
             .returning(|_| Err(anyhow::anyhow!("TestError")));
-        deployment.expect_id().return_const("TestDeployment");
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        deployment
+            .expect_id()
+            .return_const("TestDeployment".to_string());
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
         assert!(matches!(
             DeploymentoImpl
                 .get_deployment_network(
@@ -281,14 +301,17 @@ mod tests {
 
     #[tokio::test]
     async fn reserve_ipv4_address_err_network() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_network()
             .once()
             .returning(|_| Err(anyhow::anyhow!("TestError")));
         deployment.expect_is_default().return_const(true);
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
         assert_eq!(
             DeploymentoImpl
                 .reserve_ipv4_address(
@@ -306,11 +329,14 @@ mod tests {
 
     #[tokio::test]
     async fn reserve_ipv4_address_ok_unknown_network() {
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment.expect_network().once().returning(|_| Ok(None));
         deployment.expect_is_default().return_const(true);
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
         assert_eq!(
             DeploymentoImpl
                 .reserve_ipv4_address(
@@ -338,14 +364,17 @@ mod tests {
             }),
             ..Default::default()
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment
             .expect_network()
             .times(6)
             .returning(move |_| Ok(Some(bollard_network.clone())));
         deployment.expect_is_default().return_const(true);
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
         assert_eq!(
             DeploymentoImpl
                 .reserve_ipv4_address(
@@ -418,15 +447,18 @@ mod tests {
             parent_adapter: None,
             options: None,
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment.expect_is_default().return_const(true);
         deployment
             .expect_create_network()
             .once()
             .with(predicate::always(), predicate::eq(config.clone()))
             .returning(|_, _| Ok(Network::default()));
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
         assert_eq!(
             DeploymentoImpl
                 .create_network(vault, "MockedDeployment".to_string(), config)
@@ -445,8 +477,10 @@ mod tests {
             parent_adapter: None,
             options: None,
         };
-        let mut deployment = MockedDeployment::new();
-        deployment.expect_id().return_const("MockedDeployment");
+        let mut deployment = MockedDockerDeployment::new();
+        deployment
+            .expect_id()
+            .return_const("MockedDeployment".to_string());
         deployment.expect_is_default().return_const(true);
         deployment
             .expect_create_network()
@@ -457,7 +491,8 @@ mod tests {
                     "TestError".to_string(),
                 ))
             });
-        let vault = create_test_vault_with_deployment(Arc::new(deployment));
+        let deployment = Deployment::Docker(Arc::new(deployment));
+        let vault = create_test_vault_with_deployment(deployment);
         assert_eq!(
             DeploymentoImpl
                 .create_network(vault, "MockedDeployment".to_string(), config)

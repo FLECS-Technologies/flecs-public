@@ -63,9 +63,11 @@ mod tests {
     fn net_device_reader_impl_read_property_err() {
         let net_adapter = "net_device_reader_impl_read_property_err";
         prepare_net_device_test_path(net_adapter);
-        assert!(NetDeviceReaderImpl
-            .get_net_property(net_adapter, "test_property")
-            .is_err());
+        assert!(
+            NetDeviceReaderImpl
+                .get_net_property(net_adapter, "test_property")
+                .is_err()
+        );
     }
 
     #[test]

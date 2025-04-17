@@ -1,5 +1,4 @@
 use super::Result;
-use crate::jeweler::gem::instance::InstanceId;
 use crate::quest::SyncQuest;
 use anyhow::Error;
 use async_trait::async_trait;
@@ -101,6 +100,7 @@ impl From<crate::relic::network::Error> for CreateNetworkError {
     }
 }
 
+// TODO: Move to DockerDeployment
 #[async_trait]
 pub trait NetworkDeployment {
     async fn create_network(
@@ -112,19 +112,6 @@ pub trait NetworkDeployment {
     async fn delete_network(&self, id: NetworkId) -> Result<()>;
     async fn network(&self, id: NetworkId) -> Result<Option<Network>>;
     async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;
-    async fn connect_network(
-        &self,
-        quest: SyncQuest,
-        id: NetworkId,
-        address: Ipv4Addr,
-        instance_id: InstanceId,
-    ) -> Result<()>;
-    async fn disconnect_network(
-        &self,
-        quest: SyncQuest,
-        id: NetworkId,
-        instance_id: InstanceId,
-    ) -> Result<()>;
 }
 
 #[cfg(test)]

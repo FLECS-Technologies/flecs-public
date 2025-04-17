@@ -7,7 +7,9 @@ use typify::{TypeSpace, TypeSpaceSettings};
 struct Error(String, bool);
 
 fn download_app_manifest_schema(version: &str) -> Result<String, reqwest::Error> {
-    let url = format!("https://raw.githubusercontent.com/FLECS-Technologies/app-manifest/{version}/manifest.schema.json");
+    let url = format!(
+        "https://raw.githubusercontent.com/FLECS-Technologies/app-manifest/{version}/manifest.schema.json"
+    );
     let content = reqwest::blocking::get(url)?.text()?;
     eprintln!("{}", content);
     Ok(content)
@@ -35,6 +37,9 @@ fn generate_code(version: &str) -> Result<(), Error> {
         .unwrap();
     out_file
         .write_all(b"#![allow(clippy::clone_on_copy)]")
+        .unwrap();
+    out_file
+        .write_all(b"#![allow(clippy::to_string_trait_impl)]")
         .unwrap();
     let schema =
         download_app_manifest_schema(version).map_err(|e| Error(format!("{e}"), file_exists))?;
@@ -85,7 +90,9 @@ fn main() {
             Ok(()) => {}
             Err(Error(message, file_exists)) => {
                 if file_exists {
-                    println!("cargo::warning=Could not generate code for app manifest {version} but previously generated code exists: {message}")
+                    println!(
+                        "cargo::warning=Could not generate code for app manifest {version} but previously generated code exists: {message}"
+                    )
                 } else {
                     panic!("{message}")
                 }

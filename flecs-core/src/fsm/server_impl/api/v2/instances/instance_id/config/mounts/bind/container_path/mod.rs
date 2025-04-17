@@ -1,6 +1,6 @@
 use crate::sorcerer::instancius::{GetInstanceConfigBindMountError, Instancius};
-use crate::vault::pouch::instance::InstanceId;
 use crate::vault::Vault;
+use crate::vault::pouch::instance::InstanceId;
 use flecsd_axum_server::apis::instances::InstancesInstanceIdConfigMountsBindContainerPathGetResponse as GetResponse;
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::InstancesInstanceIdConfigMountsBindContainerPathGetPathParams as GetPathParams;
@@ -35,7 +35,7 @@ pub async fn get<I: Instancius>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jeweler::gem::manifest::BindMount;
+    use crate::jeweler::gem::manifest::single::BindMount;
     use crate::sorcerer::instancius::MockInstancius;
     use crate::vault::tests::create_empty_test_vault;
     use mockall::predicate;

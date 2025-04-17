@@ -1,12 +1,12 @@
 pub use super::Result;
 use crate::quest::{Progress, State, SyncQuest};
 use crate::relic::docker::write_stream_to_file;
+use bollard::Docker;
 use bollard::auth::DockerCredentials;
 use bollard::image::{CreateImageOptions, ImportImageOptions, RemoveImageOptions};
 use bollard::models::{
     BuildInfo, CreateImageInfo, ErrorDetail, ImageDeleteResponseItem, ImageInspect, ProgressDetail,
 };
-use bollard::Docker;
 use futures_util::stream::StreamExt;
 use std::collections::HashMap;
 use std::default::Default;
@@ -189,6 +189,7 @@ pub async fn pull(
             let id = format!("{image}:{tag}");
             let image = inspect(docker_client, &id).await?;
             image
+                .ok_or_else(|| anyhow::anyhow!("Could not get image for {id}"))?
                 .id
                 .ok_or_else(|| anyhow::anyhow!("Could not get image id for {id}"))
         }
@@ -211,8 +212,14 @@ pub async fn pull(
 /// }
 /// # )
 /// ```
-pub async fn inspect(docker_client: Arc<Docker>, image: &str) -> Result<ImageInspect> {
-    Ok(docker_client.inspect_image(image).await?)
+pub async fn inspect(docker_client: Arc<Docker>, image: &str) -> Result<Option<ImageInspect>> {
+    match docker_client.inspect_image(image).await {
+        Ok(image) => Ok(Some(image)),
+        Err(bollard::errors::Error::DockerResponseServerError {
+            status_code: 404, ..
+        }) => Ok(None),
+        Err(e) => Err(anyhow::anyhow!(e)),
+    }
 }
 
 /// # Example

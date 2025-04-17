@@ -1,7 +1,7 @@
 use crate::enchantment::quest_master::{DeleteQuestError, QuestMaster};
 use crate::quest::{QuestId, QuestResult, State, SyncQuest};
-use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::Sorcerer;
+use crate::sorcerer::mage_quester::MageQuester;
 use async_trait::async_trait;
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::Job;

@@ -35,6 +35,7 @@ where
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create(true)
+        .truncate(true)
         .open(&path)
         .await?;
     write_stream_to_writer(quest, stream, &mut file).await?;
