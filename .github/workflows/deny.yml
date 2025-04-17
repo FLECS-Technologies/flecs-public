@@ -28,4 +28,5 @@ jobs:
           path: './deny'
       - uses: EmbarkStudios/cargo-deny-action@v1
         with:
+          rust-version: 1.86.0
           command: check --config ./deny/deny.toml bans licenses sources
