@@ -702,10 +702,9 @@ impl DockerInstance {
         );
         let existing_config_path = crate::lore::instance_config_path(&id.to_string());
         for result in join_all(config_files.iter().map(|config_file| {
-            tokio::fs::copy(
-                existing_config_path.join(&config_file.host_file_name),
-                path.join(&config_file.host_file_name),
-            )
+            let src = existing_config_path.join(&config_file.host_file_name);
+            let dst = path.join(&config_file.host_file_name);
+            tokio::fs::copy(src, dst)
         }))
         .await
         {
@@ -872,17 +871,6 @@ impl DockerInstance {
         floxy: Arc<FloxyOperation<F>>,
         path: &Path,
     ) -> anyhow::Result<()> {
-        tokio::fs::create_dir_all(&path).await?;
-        let instance_config = serde_json::to_vec_pretty(&self)?;
-        quest
-            .lock()
-            .await
-            .create_sub_quest(format!("Export config of instance {}", self.id), |_quest| {
-                tokio::fs::write(path.join("instance.json"), instance_config)
-            })
-            .await
-            .2
-            .await?;
         let is_running = self.is_running().await?;
         if is_running {
             self.halt(floxy.clone()).await?;
@@ -903,6 +891,8 @@ impl DockerInstance {
             .await
             .2
             .await;
+
+        let volumes_dst = path.join("volumes");
         let mut export_volumes_results = Vec::new();
         for volume_mount in self.config.volume_mounts.values() {
             let result = quest
@@ -915,7 +905,7 @@ impl DockerInstance {
                     ),
                     |quest| {
                         let volume_name = volume_mount.name.clone();
-                        let dst = path.join(format!("{volume_name}.tar"));
+                        let dst = volumes_dst.clone();
                         let src = volume_mount.container_path.clone();
                         let image = self.manifest.image_with_tag();
                         let deployment = self.deployment.clone();
