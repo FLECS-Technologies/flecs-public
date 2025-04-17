@@ -14,6 +14,7 @@ use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response}
 use serde::{Deserialize, Serialize};
 use std::mem::swap;
 use std::net::Ipv4Addr;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
@@ -110,6 +111,10 @@ impl InstanceCommon for ComposeInstance {
 
     async fn logs(&self) -> anyhow::Result<Logs> {
         self.deployment.instance_logs(&self.manifest).await
+    }
+
+    async fn import(&mut self, quest: SyncQuest, src: PathBuf, dst: PathBuf) -> anyhow::Result<()> {
+        todo!()
     }
 }
 
