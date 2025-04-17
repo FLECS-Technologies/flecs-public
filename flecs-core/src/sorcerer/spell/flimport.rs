@@ -365,8 +365,8 @@ pub async fn import_docker_instance(
     }
     let mut results = Vec::new();
     {
+        let path = src.join("volumes");
         for volume in instance.config.volume_mounts.values() {
-            let path = src.join(format!("{}.tar", volume.name));
             results.push(
                 instance
                     .import_volume_quest(
