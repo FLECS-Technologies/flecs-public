@@ -3,9 +3,11 @@ pub mod docker;
 mod id;
 pub mod status;
 
+use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::quest::SyncQuest;
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
 use async_trait::async_trait;
@@ -13,6 +15,8 @@ pub use id::*;
 use serde::{Deserialize, Serialize};
 use std::net::Ipv4Addr;
 use std::ops::{Deref, DerefMut};
+use std::path::Path;
+use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "type")]
@@ -130,5 +134,32 @@ impl Instance {
                 Ok(Self::Docker(instance))
             }
         }
+    }
+
+    pub async fn export<F: Floxy>(
+        &mut self,
+        quest: SyncQuest,
+        floxy: Arc<FloxyOperation<F>>,
+        path: &Path,
+    ) -> anyhow::Result<()> {
+        tokio::fs::create_dir_all(&path).await?;
+        let instance_config = serde_json::to_vec_pretty(&self)?;
+        let result = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!("Export config of instance {}", self.id()),
+                |_quest| tokio::fs::write(path.join("instance.json"), instance_config),
+            )
+            .await
+            .2;
+        result.await?;
+        match self {
+            Instance::Compose(instance) => {
+                todo!()
+            }
+            Instance::Docker(instance) => instance.export(quest, floxy, path).await?,
+        }
+        Ok(())
     }
 }
