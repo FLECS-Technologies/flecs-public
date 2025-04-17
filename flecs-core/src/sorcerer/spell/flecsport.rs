@@ -1,6 +1,6 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem::deployment::Deployment;
-use crate::jeweler::gem::instance::{Instance, InstanceId};
+use crate::jeweler::gem::instance::InstanceId;
 use crate::quest::SyncQuest;
 use crate::vault::Vault;
 use crate::vault::pouch::{AppKey, Pouch};
@@ -51,8 +51,7 @@ pub async fn export_instance<F: Floxy>(
         .gems_mut()
         .get_mut(&instance_id)
     {
-        Some(Instance::Docker(instance)) => Ok(instance.export(quest, floxy, &path).await?),
-        Some(Instance::Compose(_instance)) => todo!("implement export of compose instances"),
+        Some(instance) => Ok(instance.export(quest, floxy, &path).await?),
         None => Err(ExportInstanceError::InstanceNotFound(instance_id)),
     }
 }
