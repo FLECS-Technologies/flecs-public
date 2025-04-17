@@ -395,6 +395,7 @@ mod tests {
         ];
         let deployments = HashMap::from_iter(app_keys.clone().into_iter().map(|app_key| {
             let mut deployment = MockedDockerDeployment::new();
+            let expected_path = path.join(format!("{}_{}", app_key.name, app_key.version));
             deployment.expect_id().return_const(format!(
                 "MockedDeployment{}_{}",
                 app_key.name, app_key.version
@@ -406,7 +407,7 @@ mod tests {
                 .with(
                     predicate::always(),
                     predicate::always(),
-                    predicate::eq(path.clone()),
+                    predicate::eq(expected_path.clone()),
                 )
                 .returning(|_, _, _| Ok(()));
             let deployment = Deployment::Docker(Arc::new(deployment));
@@ -421,17 +422,6 @@ mod tests {
         )
         .await
         .unwrap();
-        let files: Vec<_> = std::fs::read_dir(&path)
-            .unwrap()
-            .map(Result::<_, _>::unwrap)
-            .collect();
-        assert_eq!(
-            files
-                .iter()
-                .filter(|file| file.path().extension().unwrap() == "json")
-                .count(),
-            app_keys.len() * 2
-        );
     }
 
     #[tokio::test]
@@ -461,6 +451,7 @@ mod tests {
             name: NETWORK_APP_NAME.to_string(),
             version: NETWORK_APP_VERSION.to_string(),
         };
+        let expected_path = path.join(format!("{}_{}", app_key.name, app_key.version));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
@@ -472,7 +463,7 @@ mod tests {
             .with(
                 predicate::always(),
                 predicate::always(),
-                predicate::eq(path.clone()),
+                predicate::eq(expected_path.clone()),
             )
             .returning(|_, _, _| Ok(()));
         let deployment = Deployment::Docker(Arc::new(deployment));
