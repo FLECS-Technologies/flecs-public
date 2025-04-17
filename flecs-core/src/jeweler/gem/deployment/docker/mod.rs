@@ -110,11 +110,10 @@ pub mod tests {
         CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
     };
     use crate::jeweler::volume::VolumeDeployment;
-    use crate::jeweler::volume::{Volume, VolumeId};
+    use crate::jeweler::volume::VolumeId;
     use crate::quest::SyncQuest;
     use mockall::mock;
     use serde::{Serialize, Serializer};
-    use std::collections::HashMap;
     use std::fmt::{Debug, Formatter};
     use std::net::Ipv4Addr;
     use std::path::Path;
@@ -188,18 +187,6 @@ pub mod tests {
                 id: VolumeId,
                 export_path: &Path,
                 container_path: &Path,
-                image: &str,
-            ) -> Result<()>;
-            async fn volumes(
-                &self,
-                quest: SyncQuest,
-                instance_id: InstanceId,
-            ) -> Result<HashMap<VolumeId, Volume>>;
-            async fn export_volumes(
-                &self,
-                quest: SyncQuest,
-                instance_id: InstanceId,
-                path: &Path,
                 image: &str,
             ) -> Result<()>;
         }

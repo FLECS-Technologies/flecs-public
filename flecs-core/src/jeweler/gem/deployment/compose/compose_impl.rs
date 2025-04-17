@@ -3,14 +3,14 @@ use crate::jeweler::app::{AppDeployment, AppId, Token};
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
+use crate::jeweler::gem::instance::Logs;
 use crate::jeweler::gem::instance::status::InstanceStatus;
-use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::network::{
     CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
 };
-use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
+use crate::jeweler::volume::{VolumeDeployment, VolumeId};
 use crate::quest::SyncQuest;
 use crate::relic;
 use crate::relic::docker_cli::{DockerCli, ExecuteCommandError};
@@ -20,10 +20,8 @@ use async_trait::async_trait;
 use bollard::image::{ImportImageOptions, RemoveImageOptions};
 use bollard::models::{ContainerInspectResponse, ContainerState};
 use bollard::{API_DEFAULT_VERSION, Docker};
-use docker_compose_types::Service;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -452,51 +450,53 @@ impl NetworkDeployment for ComposeDeploymentImpl {
 
 #[async_trait]
 impl VolumeDeployment for ComposeDeploymentImpl {
-    async fn create_volume(&self, _quest: SyncQuest, _name: &str) -> anyhow::Result<VolumeId> {
-        todo!()
+    async fn create_volume(&self, quest: SyncQuest, name: &str) -> anyhow::Result<VolumeId> {
+        let client = self.docker_client()?;
+        DockerDeploymentImpl::create_volume_with_client(client, quest, name).await
     }
 
-    async fn delete_volume(&self, _quest: SyncQuest, _id: VolumeId) -> anyhow::Result<()> {
-        todo!()
+    async fn delete_volume(&self, _quest: SyncQuest, id: VolumeId) -> anyhow::Result<()> {
+        let client = self.docker_client()?;
+        relic::docker::volume::remove(client, None, &id).await
     }
 
     async fn import_volume(
         &self,
-        _quest: SyncQuest,
-        _src: &Path,
-        _container_path: &Path,
-        _name: &str,
-        _image: &str,
+        quest: SyncQuest,
+        src: &Path,
+        container_path: &Path,
+        name: &str,
+        image: &str,
     ) -> anyhow::Result<VolumeId> {
-        todo!()
+        let client = self.docker_client()?;
+        DockerDeploymentImpl::import_volume_with_client(
+            client,
+            quest,
+            src,
+            container_path,
+            name,
+            image,
+        )
+        .await
     }
 
     async fn export_volume(
         &self,
-        _quest: SyncQuest,
-        _id: VolumeId,
-        _export_path: &Path,
-        _container_path: &Path,
-        _image: &str,
+        quest: SyncQuest,
+        id: VolumeId,
+        export_path: &Path,
+        container_path: &Path,
+        image: &str,
     ) -> anyhow::Result<()> {
-        todo!()
-    }
-
-    async fn volumes(
-        &self,
-        _quest: SyncQuest,
-        _instance_id: InstanceId,
-    ) -> anyhow::Result<HashMap<VolumeId, Volume>> {
-        todo!()
-    }
-
-    async fn export_volumes(
-        &self,
-        _quest: SyncQuest,
-        _instance_id: InstanceId,
-        _path: &Path,
-        _image: &str,
-    ) -> anyhow::Result<()> {
-        todo!()
+        let client = self.docker_client()?;
+        DockerDeploymentImpl::export_volume_with_client(
+            client,
+            quest,
+            id,
+            export_path,
+            container_path,
+            image,
+        )
+        .await
     }
 }
