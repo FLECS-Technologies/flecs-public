@@ -362,11 +362,12 @@ impl DockerDeploymentImpl {
         name: &str,
         image: &str,
     ) -> anyhow::Result<VolumeId> {
+        let src = src.join(name);
         if !src.try_exists()? {
             anyhow::bail!("Could not import volume {name}, path does not exist: {src:?}");
         }
-        if !fs::metadata(src).await?.is_file() {
-            anyhow::bail!("Could not import volume {name}, path is not a regular file: {src:?}");
+        if !fs::metadata(&src).await?.is_dir() {
+            anyhow::bail!("Could not import volume {name}, path is not a directory: {src:?}");
         }
         let name = name.to_string();
         let volume_exists = {
@@ -448,25 +449,27 @@ impl DockerDeploymentImpl {
         let upload = quest
             .lock()
             .await
-            .create_sub_quest("Upload data".to_string(), |quest| {
-                let path = src.to_path_buf();
-                let dst = container_path
-                    .parent()
-                    .unwrap_or(Path::new("/"))
-                    .to_path_buf();
-                let docker_client = docker_client.clone();
-                async move {
-                    let container: String = recv_container_upload.await?;
-                    relic::docker::container::copy_archive_file_to(
-                        docker_client,
-                        quest,
-                        path,
-                        dst,
-                        &container,
-                    )
-                    .await
-                }
-            })
+            .create_sub_quest(
+                format!("Uploading volume {name} from {src:?} to {container_path:?} in {image}"),
+                |quest| {
+                    let src = src.to_path_buf();
+                    let dst = container_path.to_path_buf();
+                    let docker_client = docker_client.clone();
+                    async move {
+                        let container: String = recv_container_upload.await?;
+                        relic::docker::container::copy_to(
+                            docker_client,
+                            quest,
+                            &src,
+                            &dst,
+                            &container,
+                            false,
+                            false,
+                        )
+                        .await
+                    }
+                },
+            )
             .await
             .2;
         let (send_container_remove, recv_container_remove) = tokio::sync::oneshot::channel();
@@ -529,7 +532,6 @@ impl DockerDeploymentImpl {
             Self::create_check_volume_existence_subquest(&quest, docker_client.clone(), id.clone())
                 .await
                 .2;
-
         let container = {
             let docker_client = docker_client.clone();
             let id = id.clone();
@@ -538,22 +540,19 @@ impl DockerDeploymentImpl {
             quest
                 .lock()
                 .await
-                .create_sub_quest(
-                    "Create temporary container".to_string(),
-                    |_quest| async move {
-                        if !volume_exists.await? {
-                            anyhow::bail!("Volume {id} does not exist");
-                        }
-                        let config = Self::temporary_volume_container_config(image, id, volume_dst);
-                        let container_id = relic::docker::container::create::<String, String>(
-                            docker_client,
-                            None,
-                            config,
-                        )
-                        .await?;
-                        Ok(container_id)
-                    },
-                )
+                .create_sub_quest("Create temporary container", |_quest| async move {
+                    if !volume_exists.await? {
+                        anyhow::bail!("Volume {id} does not exist");
+                    }
+                    let config = Self::temporary_volume_container_config(image, id, volume_dst);
+                    let container_id = relic::docker::container::create::<String, String>(
+                        docker_client,
+                        None,
+                        config,
+                    )
+                    .await?;
+                    Ok(container_id)
+                })
                 .await
                 .2
         };
@@ -561,20 +560,33 @@ impl DockerDeploymentImpl {
         let download = quest
             .lock()
             .await
-            .create_sub_quest("Download data".to_string(), |quest| {
-                let dst = export_path.to_path_buf();
+            .create_sub_quest(format!("Download volume content of {id}"), |quest| {
+                let tmp_dst = export_path.join(format!("tmp_volume_{id}"));
+                let dst = export_path.join(id);
                 let src = container_path.to_path_buf();
                 let docker_client = docker_client.clone();
                 async move {
                     let container: String = recv_container_download.await?;
-                    relic::docker::container::copy_archive_to_file(
+                    // Copy the directory 'src' into the directory 'tmp_dst'
+                    relic::docker::container::copy_from(
                         quest,
                         docker_client,
                         &src,
-                        dst,
+                        &tmp_dst,
                         &container,
+                        false,
                     )
-                    .await
+                    .await?;
+                    let Some(volume_dir_name) = src.file_name() else {
+                        anyhow::bail!("Container path has no directory name");
+                    };
+                    // Build the path of the copied directory
+                    let volume_dir = tmp_dst.join(volume_dir_name);
+                    // Move the directory with volume content to the correct location
+                    tokio::fs::rename(volume_dir, dst).await?;
+                    // Remove the temporary directory
+                    tokio::fs::remove_dir_all(tmp_dst).await?;
+                    Ok(())
                 }
             })
             .await
