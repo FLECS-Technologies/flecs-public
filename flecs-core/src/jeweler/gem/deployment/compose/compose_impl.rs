@@ -270,24 +270,18 @@ impl AppDeployment for ComposeDeploymentImpl {
             panic!("Compose deployment can not be called with single app manifests");
         };
         let docker_client = self.docker_client()?;
-        for (_, service) in &manifest.compose.services.0 {
+        for image in &manifest.images() {
             // TODO: Subquests
-            if let Some(Service {
-                image: Some(image), ..
-            }) = service
-            {
-                // TODO: Check if Docker::delete_service can be used
-                crate::relic::docker::image::remove(
-                    docker_client.clone(),
-                    image,
-                    Some(RemoveImageOptions {
-                        force: true,
-                        noprune: false,
-                    }),
-                    None,
-                )
-                .await?;
-            }
+            crate::relic::docker::image::remove(
+                docker_client.clone(),
+                image,
+                Some(RemoveImageOptions {
+                    force: true,
+                    noprune: false,
+                }),
+                None,
+            )
+            .await?;
         }
         Ok(())
     }
@@ -302,18 +296,13 @@ impl AppDeployment for ComposeDeploymentImpl {
             panic!("Compose deployment can not be called with single app manifests");
         };
         let docker_client = self.docker_client()?;
-        for (_, service) in &manifest.compose.services.0 {
+        for image in &manifest.images() {
             // TODO: Subquests
-            if let Some(Service {
-                image: Some(image), ..
-            }) = service
+            if crate::relic::docker::image::inspect(docker_client.clone(), image)
+                .await?
+                .is_none()
             {
-                if crate::relic::docker::image::inspect(docker_client.clone(), image)
-                    .await?
-                    .is_none()
-                {
-                    return Ok(false);
-                }
+                return Ok(false);
             }
         }
         Ok(true)
@@ -330,20 +319,15 @@ impl AppDeployment for ComposeDeploymentImpl {
         };
         let docker_client = self.docker_client()?;
         let mut size = 0;
-        for (_, service) in &manifest.compose.services.0 {
+        for image in &manifest.images() {
             // TODO: Subquests
-            if let Some(Service {
-                image: Some(image), ..
-            }) = service
-            {
-                match crate::relic::docker::image::inspect(docker_client.clone(), image).await? {
-                    None => anyhow::bail!("App not installed"),
-                    Some(info) => {
-                        size += info
-                            .size
-                            .ok_or_else(|| anyhow::anyhow!("Size was not specified"))?
-                            as usize;
-                    }
+            match crate::relic::docker::image::inspect(docker_client.clone(), image).await? {
+                None => anyhow::bail!("App not installed"),
+                Some(info) => {
+                    size += info
+                        .size
+                        .ok_or_else(|| anyhow::anyhow!("Size was not specified"))?
+                        as usize;
                 }
             }
         }
