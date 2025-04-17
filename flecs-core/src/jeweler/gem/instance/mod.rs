@@ -15,7 +15,7 @@ pub use id::*;
 use serde::{Deserialize, Serialize};
 use std::net::Ipv4Addr;
 use std::ops::{Deref, DerefMut};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 #[derive(Debug, Serialize)]
@@ -83,6 +83,7 @@ pub trait InstanceCommon {
     fn desired_status(&self) -> InstanceStatus;
     fn taken_ipv4_addresses(&self) -> Vec<Ipv4Addr>;
     async fn logs(&self) -> anyhow::Result<Logs>;
+    async fn import(&mut self, quest: SyncQuest, src: PathBuf, dst: PathBuf) -> anyhow::Result<()>;
 }
 
 impl Deref for Instance {
