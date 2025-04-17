@@ -292,7 +292,7 @@ impl DockerDeploymentImpl {
         }
         Ok(())
     }
-    async fn create_volume_with_client(
+    pub async fn create_volume_with_client(
         docker_client: Arc<Docker>,
         _quest: SyncQuest,
         name: &str,
@@ -354,7 +354,170 @@ impl DockerDeploymentImpl {
         }
     }
 
-    async fn export_volume_with_client(
+    pub async fn import_volume_with_client(
+        docker_client: Arc<Docker>,
+        quest: SyncQuest,
+        src: &Path,
+        container_path: &Path,
+        name: &str,
+        image: &str,
+    ) -> anyhow::Result<VolumeId> {
+        if !src.try_exists()? {
+            anyhow::bail!("Could not import volume {name}, path does not exist: {src:?}");
+        }
+        if !fs::metadata(src).await?.is_file() {
+            anyhow::bail!("Could not import volume {name}, path is not a regular file: {src:?}");
+        }
+        let name = name.to_string();
+        let volume_exists = {
+            let name = name.clone();
+            let docker_client = docker_client.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    "Check if volume already exists".to_string(),
+                    |_quest| async move {
+                        Ok::<bool, anyhow::Error>(
+                            relic::docker::volume::inspect(docker_client, &name)
+                                .await?
+                                .is_some(),
+                        )
+                    },
+                )
+                .await
+                .2
+        };
+        let volume_gone = {
+            let docker_client = docker_client.clone();
+            let name = name.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest("Delete existing volume".to_string(), |quest| async move {
+                    if volume_exists.await? {
+                        relic::docker::volume::remove(docker_client, None, &name).await?;
+                    } else {
+                        let mut quest = quest.lock().await;
+                        quest.state = State::Skipped;
+                        quest.detail = Some("Volume does not exist".to_string());
+                    }
+                    Ok::<(), anyhow::Error>(())
+                })
+                .await
+                .2
+        };
+        let created_volume = {
+            let docker_client = docker_client.clone();
+            let name = name.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest("Create volume".to_string(), |quest| async move {
+                    volume_gone.await?;
+                    Self::create_volume_with_client(docker_client, quest, &name).await
+                })
+                .await
+                .2
+        };
+
+        let container = {
+            let docker_client = docker_client.clone();
+            let name = name.clone();
+            let image = image.to_string();
+            let container_path = container_path.to_path_buf();
+            quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    "Create temporary container".to_string(),
+                    |_quest| async move {
+                        let container_id = relic::docker::container::create::<String, String>(
+                            docker_client,
+                            None,
+                            Self::temporary_volume_container_config(image, name, container_path),
+                        )
+                        .await?;
+                        Ok(container_id)
+                    },
+                )
+                .await
+                .2
+        };
+        let (send_container_upload, recv_container_upload) = tokio::sync::oneshot::channel();
+        let upload = quest
+            .lock()
+            .await
+            .create_sub_quest("Upload data".to_string(), |quest| {
+                let path = src.to_path_buf();
+                let dst = container_path
+                    .parent()
+                    .unwrap_or(Path::new("/"))
+                    .to_path_buf();
+                let docker_client = docker_client.clone();
+                async move {
+                    let container: String = recv_container_upload.await?;
+                    relic::docker::container::copy_archive_file_to(
+                        docker_client,
+                        quest,
+                        path,
+                        dst,
+                        &container,
+                    )
+                    .await
+                }
+            })
+            .await
+            .2;
+        let (send_container_remove, recv_container_remove) = tokio::sync::oneshot::channel();
+
+        let remove_container = quest
+            .lock()
+            .await
+            .create_sub_quest("Remove temporary container".to_string(), |_quest| {
+                let docker_client = docker_client.clone();
+                async move {
+                    let container: String = recv_container_remove.await?;
+                    relic::docker::container::remove(
+                        docker_client,
+                        Some(RemoveContainerOptions {
+                            force: true,
+                            ..Default::default()
+                        }),
+                        &container,
+                    )
+                    .await
+                }
+            })
+            .await
+            .2;
+        match join!(created_volume, container) {
+            (Ok(volume_id), Ok(container)) => {
+                let _ = send_container_upload.send(container.clone());
+                upload.await?;
+                let _ = send_container_remove.send(container.clone());
+                if let Err(e) = remove_container.await {
+                    eprintln!("Could not remove temporary container {container}: {e}");
+                }
+                Ok(volume_id)
+            }
+            (Err(e), Ok(container)) => {
+                drop(send_container_upload);
+                let _ = send_container_remove.send(container.clone());
+                if let Err(e) = remove_container.await {
+                    eprintln!("Could not remove temporary container {container}: {e}");
+                }
+                Err(e)
+            }
+            (_, Err(e)) => {
+                drop(send_container_upload);
+                drop(send_container_remove);
+                Err(e)
+            }
+        }
+    }
+
+    pub async fn export_volume_with_client(
         docker_client: Arc<Docker>,
         quest: SyncQuest,
         id: VolumeId,
@@ -456,7 +619,7 @@ impl DockerDeploymentImpl {
         }
     }
 
-    async fn list_volumes(
+    pub async fn list_volumes(
         docker_client: Arc<Docker>,
         quest: SyncQuest,
         instance_id: InstanceId,
@@ -1013,160 +1176,8 @@ impl VolumeDeployment for DockerDeploymentImpl {
         name: &str,
         image: &str,
     ) -> anyhow::Result<VolumeId> {
-        if !src.try_exists()? {
-            anyhow::bail!("Could not import volume {name}, path does not exist: {src:?}");
-        }
-        if !fs::metadata(src).await?.is_file() {
-            anyhow::bail!("Could not import volume {name}, path is not a regular file: {src:?}");
-        }
-        let name = name.to_string();
-        let docker_client = self.client()?;
-        let volume_exists = {
-            let name = name.clone();
-            let docker_client = docker_client.clone();
-            quest
-                .lock()
-                .await
-                .create_sub_quest(
-                    "Check if volume already exists".to_string(),
-                    |_quest| async move {
-                        Ok::<bool, anyhow::Error>(
-                            relic::docker::volume::inspect(docker_client, &name)
-                                .await?
-                                .is_some(),
-                        )
-                    },
-                )
-                .await
-                .2
-        };
-        let volume_gone = {
-            let docker_client = docker_client.clone();
-            let name = name.clone();
-            quest
-                .lock()
-                .await
-                .create_sub_quest("Delete existing volume".to_string(), |quest| async move {
-                    if volume_exists.await? {
-                        relic::docker::volume::remove(docker_client, None, &name).await?;
-                    } else {
-                        let mut quest = quest.lock().await;
-                        quest.state = State::Skipped;
-                        quest.detail = Some("Volume does not exist".to_string());
-                    }
-                    Ok::<(), anyhow::Error>(())
-                })
-                .await
-                .2
-        };
-        let created_volume = {
-            let docker_client = docker_client.clone();
-            let name = name.clone();
-            quest
-                .lock()
-                .await
-                .create_sub_quest("Create volume".to_string(), |quest| async move {
-                    volume_gone.await?;
-                    Self::create_volume_with_client(docker_client, quest, &name).await
-                })
-                .await
-                .2
-        };
-
-        let container = {
-            let docker_client = docker_client.clone();
-            let name = name.clone();
-            let image = image.to_string();
-            let container_path = container_path.to_path_buf();
-            quest
-                .lock()
-                .await
-                .create_sub_quest(
-                    "Create temporary container".to_string(),
-                    |_quest| async move {
-                        let container_id = relic::docker::container::create::<String, String>(
-                            docker_client,
-                            None,
-                            Self::temporary_volume_container_config(image, name, container_path),
-                        )
-                        .await?;
-                        Ok(container_id)
-                    },
-                )
-                .await
-                .2
-        };
-        let (send_container_upload, recv_container_upload) = tokio::sync::oneshot::channel();
-        let upload = quest
-            .lock()
+        Self::import_volume_with_client(self.client()?, quest, src, container_path, name, image)
             .await
-            .create_sub_quest("Upload data".to_string(), |quest| {
-                let path = src.to_path_buf();
-                let dst = container_path
-                    .parent()
-                    .unwrap_or(Path::new("/"))
-                    .to_path_buf();
-                let docker_client = docker_client.clone();
-                async move {
-                    let container: String = recv_container_upload.await?;
-                    relic::docker::container::copy_archive_file_to(
-                        docker_client,
-                        quest,
-                        path,
-                        dst,
-                        &container,
-                    )
-                    .await
-                }
-            })
-            .await
-            .2;
-        let (send_container_remove, recv_container_remove) = tokio::sync::oneshot::channel();
-
-        let remove_container = quest
-            .lock()
-            .await
-            .create_sub_quest("Remove temporary container".to_string(), |_quest| {
-                let docker_client = docker_client.clone();
-                async move {
-                    let container: String = recv_container_remove.await?;
-                    relic::docker::container::remove(
-                        docker_client,
-                        Some(RemoveContainerOptions {
-                            force: true,
-                            ..Default::default()
-                        }),
-                        &container,
-                    )
-                    .await
-                }
-            })
-            .await
-            .2;
-        match join!(created_volume, container) {
-            (Ok(volume_id), Ok(container)) => {
-                let _ = send_container_upload.send(container.clone());
-                upload.await?;
-                let _ = send_container_remove.send(container.clone());
-                if let Err(e) = remove_container.await {
-                    eprintln!("Could not remove temporary container {container}: {e}");
-                }
-                Ok(volume_id)
-            }
-            (Err(e), Ok(container)) => {
-                drop(send_container_upload);
-                let _ = send_container_remove.send(container.clone());
-                if let Err(e) = remove_container.await {
-                    eprintln!("Could not remove temporary container {container}: {e}");
-                }
-                Err(e)
-            }
-            (_, Err(e)) => {
-                drop(send_container_upload);
-                drop(send_container_remove);
-                Err(e)
-            }
-        }
     }
 
     async fn export_volume(
@@ -1187,82 +1198,6 @@ impl VolumeDeployment for DockerDeploymentImpl {
             image,
         )
         .await
-    }
-
-    async fn volumes(
-        &self,
-        quest: SyncQuest,
-        instance_id: InstanceId,
-    ) -> anyhow::Result<HashMap<VolumeId, Volume>> {
-        let docker_client = self.client()?;
-        Ok(Self::list_volumes(docker_client, quest, instance_id)
-            .await?
-            .into_iter()
-            .map(|(id, (volume, _path))| (id, volume))
-            .collect())
-    }
-
-    async fn export_volumes(
-        &self,
-        quest: SyncQuest,
-        instance_id: InstanceId,
-        dst: &Path,
-        image: &str,
-    ) -> anyhow::Result<()> {
-        let mut results = Vec::new();
-        let docker_client = self.client()?;
-        let volumes = quest
-            .lock()
-            .await
-            .create_sub_quest(format!("Search all volumes of {instance_id}"), |quest| {
-                let docker_client = docker_client.clone();
-                async move { Self::list_volumes(docker_client, quest, instance_id).await }
-            })
-            .await
-            .2;
-        for (volume_id, (_, container_path)) in volumes.await? {
-            results.push(
-                quest
-                    .lock()
-                    .await
-                    .create_sub_quest(format!("Exporting volume {volume_id}"), |quest| {
-                        let volume_id = volume_id.clone();
-                        let dst = dst.to_path_buf();
-                        let src = container_path;
-                        let docker_client = docker_client.clone();
-                        let image = image.to_string();
-                        async move {
-                            Self::export_volume_with_client(
-                                docker_client,
-                                quest,
-                                volume_id.clone(),
-                                &dst,
-                                &src,
-                                &image,
-                            )
-                            .await
-                        }
-                    })
-                    .await
-                    .2,
-            );
-        }
-        let errors = futures::future::join_all(results)
-            .await
-            .into_iter()
-            .filter_map(|result| match result {
-                Ok(_) => None,
-                Err(e) => Some(e.to_string()),
-            })
-            .collect::<Vec<_>>();
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            anyhow::bail!(
-                "At least one volume could not be exported: [{}]",
-                errors.join(", ")
-            )
-        }
     }
 }
 
