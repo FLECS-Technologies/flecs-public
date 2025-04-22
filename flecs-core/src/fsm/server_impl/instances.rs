@@ -758,10 +758,18 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdPatchPathParams,
-        _body: InstancesInstanceIdPatchRequest,
+        path_params: InstancesInstanceIdPatchPathParams,
+        body: InstancesInstanceIdPatchRequest,
     ) -> Result<InstancesInstanceIdPatchResponse, ()> {
-        todo!()
+        super::api::v2::instances::instance_id::patch(
+            self.vault.clone(),
+            self.sorcerers.instancius.clone(),
+            self.enchantments.floxy.clone(),
+            self.enchantments.quest_master.clone(),
+            path_params,
+            body,
+        )
+        .await
     }
 
     async fn instances_instance_id_start_post(

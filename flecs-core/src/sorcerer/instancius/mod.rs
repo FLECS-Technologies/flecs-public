@@ -16,6 +16,7 @@ use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::sorcerer::Sorcerer;
 pub use crate::sorcerer::spell::instance::DisconnectInstanceError;
 pub use crate::sorcerer::spell::instance::QueryInstanceConfigError;
+use crate::sorcerer::spell::instance::UpdateInstanceError;
 use crate::vault::Vault;
 use crate::vault::pouch::AppKey;
 use anyhow::Error;
@@ -431,6 +432,16 @@ pub trait Instancius: Sorcerer {
         instance_id: InstanceId,
         port: NonZeroU16,
     ) -> Result<RedirectEditorRequestResult>;
+
+    async fn update_instance<F: Floxy + 'static>(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+        instance_id: InstanceId,
+        new_version: String,
+        base_path: PathBuf,
+    ) -> Result<(), UpdateInstanceError>;
 }
 
 #[cfg(test)]

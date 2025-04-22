@@ -33,6 +33,19 @@ pub async fn uninstall_app(quest: SyncQuest, vault: Arc<Vault>, key: AppKey) -> 
     }
 }
 
+pub async fn app_exists(vault: Arc<Vault>, key: AppKey) -> bool {
+    vault
+        .reservation()
+        .reserve_app_pouch()
+        .grab()
+        .await
+        .app_pouch
+        .as_ref()
+        .expect("Vault reservations should never fail")
+        .gems()
+        .contains_key(&key)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -25,7 +25,7 @@ use crate::sorcerer::instancius::{
     GetInstanceConfigNetworkResult, GetInstanceConfigVolumeMountError, GetInstanceUsbDeviceResult,
     Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
 };
-use crate::sorcerer::spell::instance::QueryInstanceConfigError;
+use crate::sorcerer::spell::instance::{QueryInstanceConfigError, UpdateInstanceError};
 use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
@@ -1070,6 +1070,48 @@ impl Instancius for InstanciusImpl {
             .mapped_editor_ports
             .insert(host_port, port.get());
         Ok(RedirectEditorRequestResult::Redirected(host_port))
+    }
+
+    async fn update_instance<F: Floxy + 'static>(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+        instance_id: InstanceId,
+        new_version: String,
+        base_path: PathBuf,
+    ) -> Result<(), UpdateInstanceError> {
+        let Some(current_app_key) =
+            spell::instance::query_instance(vault.clone(), instance_id, |instance| {
+                instance.app_key().clone()
+            })
+            .await
+        else {
+            return Err(UpdateInstanceError::NotFound(instance_id));
+        };
+        let new_app_key = AppKey {
+            version: new_version,
+            name: current_app_key.name.clone(),
+        };
+        if !spell::app::app_exists(vault.clone(), new_app_key.clone()).await {
+            return Err(UpdateInstanceError::AppNotInstalled(new_app_key));
+        }
+        let update_result = quest
+            .lock()
+            .await
+            .create_sub_quest(format!("Update instance {instance_id}"), |quest| {
+                spell::instance::update_instance(
+                    quest,
+                    vault.clone(),
+                    floxy,
+                    instance_id,
+                    new_app_key,
+                    base_path,
+                )
+            })
+            .await
+            .2;
+        update_result.await
     }
 }
 

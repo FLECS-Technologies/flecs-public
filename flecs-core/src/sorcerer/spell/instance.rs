@@ -16,6 +16,7 @@ use crate::vault::Vault;
 use crate::vault::pouch::{AppKey, Pouch};
 use futures_util::future::join_all;
 use std::net::{IpAddr, Ipv4Addr};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::error;
 
@@ -32,6 +33,18 @@ pub enum DisconnectInstanceError {
     Unsupported(InstanceId),
     #[error("Failed to disconnect instance: {0}")]
     Other(String),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum UpdateInstanceError {
+    #[error("App {0} is not installed")]
+    AppNotInstalled(AppKey),
+    #[error("No manifest found for {0}")]
+    NoManifest(AppKey),
+    #[error("Instance {0} does not exist")]
+    NotFound(InstanceId),
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
 }
 
 pub async fn create_docker_instance(
@@ -541,6 +554,48 @@ pub async fn disconnect_instance_from_network(
             network: network_id,
         }),
         Err(e) => Err(DisconnectInstanceError::Other(e.to_string())),
+    }
+}
+
+pub async fn update_instance<F: Floxy + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+    instance_id: InstanceId,
+    new_version: AppKey,
+    base_path: PathBuf,
+) -> Result<(), UpdateInstanceError> {
+    let mut grab = vault
+        .reservation()
+        .reserve_manifest_pouch()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await;
+    let Some(new_manifest) = grab
+        .manifest_pouch
+        .as_ref()
+        .expect("Vault reservations should never fail")
+        .gems()
+        .get(&new_version)
+        .cloned()
+    else {
+        return Err(UpdateInstanceError::NoManifest(new_version));
+    };
+    match grab
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Vault reservations should never fail")
+        .gems_mut()
+        .get_mut(&instance_id)
+    {
+        None => Err(UpdateInstanceError::NotFound(instance_id)),
+        Some(instance) => {
+            let base_path = base_path.join(instance_id.to_string());
+            instance
+                .update(quest, floxy, new_manifest, &base_path)
+                .await?;
+            Ok(())
+        }
     }
 }
 

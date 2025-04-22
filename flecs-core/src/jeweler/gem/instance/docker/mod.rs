@@ -32,6 +32,7 @@ use std::mem::swap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::UNIX_EPOCH;
 use tokio::fs;
 use tracing::{debug, error, warn};
 
@@ -920,6 +921,41 @@ impl DockerInstance {
         })
     }
 
+    async fn export_volumes_quest<'a, I: Iterator<Item = &'a VolumeMount>>(
+        quest: &SyncQuest,
+        volume_mounts: I,
+        volumes_dst: PathBuf,
+        image: String,
+        deployment: &Arc<dyn DockerDeployment>,
+        id: InstanceId,
+    ) -> Vec<BoxFuture<'static, crate::Result<()>>> {
+        let mut export_volumes_results = Vec::new();
+        for volume_mount in volume_mounts {
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!("Export volume {} of instance {}", volume_mount.name, id),
+                    |quest| {
+                        let volume_name = volume_mount.name.clone();
+                        let dst = volumes_dst.clone();
+                        let src = volume_mount.container_path.clone();
+                        let image = image.clone();
+                        let deployment = deployment.clone();
+                        async move {
+                            deployment
+                                .export_volume(quest, volume_name, &dst, &src, &image)
+                                .await
+                        }
+                    },
+                )
+                .await
+                .2;
+            export_volumes_results.push(result);
+        }
+        export_volumes_results
+    }
+
     pub async fn export<F: Floxy>(
         &mut self,
         quest: SyncQuest,
@@ -944,37 +980,19 @@ impl DockerInstance {
                 },
             )
             .await
-            .2
-            .await;
+            .2;
+        let export_config_files_result = export_config_files_result.await;
 
         let volumes_dst = path.join("volumes");
-        let mut export_volumes_results = Vec::new();
-        for volume_mount in self.config.volume_mounts.values() {
-            let result = quest
-                .lock()
-                .await
-                .create_sub_quest(
-                    format!(
-                        "Export volume {} of instance {}",
-                        volume_mount.name, self.id
-                    ),
-                    |quest| {
-                        let volume_name = volume_mount.name.clone();
-                        let dst = volumes_dst.clone();
-                        let src = volume_mount.container_path.clone();
-                        let image = self.manifest.image_with_tag();
-                        let deployment = self.deployment.clone();
-                        async move {
-                            deployment
-                                .export_volume(quest, volume_name, &dst, &src, &image)
-                                .await
-                        }
-                    },
-                )
-                .await
-                .2;
-            export_volumes_results.push(result);
-        }
+        let export_volumes_results = Self::export_volumes_quest(
+            &quest,
+            self.config.volume_mounts.values(),
+            volumes_dst,
+            self.manifest.image_with_tag(),
+            &self.deployment,
+            self.id,
+        )
+        .await;
         let export_volumes_result = join_all(export_volumes_results).await;
         if is_running {
             self.start(floxy).await?;
@@ -982,6 +1000,83 @@ impl DockerInstance {
         export_config_files_result?;
         for result in export_volumes_result {
             result?;
+        }
+        Ok(())
+    }
+
+    pub async fn update<F: Floxy>(
+        &mut self,
+        quest: SyncQuest,
+        floxy: Arc<FloxyOperation<F>>,
+        new_manifest: Arc<AppManifestSingle>,
+        base_path: &Path,
+    ) -> anyhow::Result<()> {
+        let is_running = self.is_running().await?;
+        if is_running {
+            self.halt(floxy.clone()).await?;
+        }
+        let now = std::time::SystemTime::now();
+        let backup_path = base_path.join("backup");
+        let new_backup_path = backup_path.join(self.app_key().version).join(
+            now.duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis()
+                .to_string(),
+        );
+        let export_config_files_result = quest
+            .lock()
+            .await
+            .create_sub_quest(
+                format!("Export config files of instance {}", self.id),
+                |_quest| {
+                    Self::export_config_files(
+                        self.id,
+                        self.manifest.config_files.clone(),
+                        new_backup_path.to_path_buf(),
+                    )
+                },
+            )
+            .await
+            .2;
+        let export_config_files_result = export_config_files_result.await;
+        let volumes_dst = new_backup_path.join("volumes");
+        let export_volumes_results = Self::export_volumes_quest(
+            &quest,
+            self.config.volume_mounts.values(),
+            volumes_dst,
+            self.manifest.image_with_tag(),
+            &self.deployment,
+            self.id,
+        )
+        .await;
+        let export_volumes_result = join_all(export_volumes_results).await;
+        export_config_files_result?;
+        for result in export_volumes_result {
+            result?;
+        }
+        let current_version = self.app_key().version;
+        let new_version = new_manifest.key.version.clone();
+        self.manifest = new_manifest;
+        if current_version > new_version {
+            let mut entries = tokio::fs::read_dir(backup_path.join(&new_version)).await?;
+            let mut latest_backup = None;
+            while let Some(entry) = entries.next_entry().await? {
+                match &latest_backup {
+                    None => latest_backup = Some(entry.path()),
+                    Some(current) => {
+                        if entry.path() > *current {
+                            latest_backup = Some(entry.path());
+                        }
+                    }
+                }
+            }
+            if let Some(backup) = latest_backup {
+                self.import(quest, backup, base_path.to_path_buf()).await?;
+            }
+        }
+        // TODO: Prepare/use new objects from manifest (config files, ports, envs)
+        if is_running {
+            self.start(floxy).await?;
         }
         Ok(())
     }
