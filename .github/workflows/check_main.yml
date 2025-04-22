@@ -9,3 +9,5 @@ on:
 jobs:
   check:
     uses: FLECS-Technologies/actions-rs/.github/workflows/check.yml@main
+    with:
+      flecs_build_ref: develop
