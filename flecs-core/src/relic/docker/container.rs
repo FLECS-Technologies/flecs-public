@@ -558,7 +558,7 @@ pub async fn copy_from(
             )
             .await
             .2;
-    quest
+    let result = quest
         .lock()
         .await
         .create_sub_quest(format!("Extract archive to {dst:?}"), |_quest| async move {
@@ -570,8 +570,8 @@ pub async fn copy_from(
             }
         })
         .await
-        .2
-        .await
+        .2;
+    result.await
 }
 
 struct AsyncReadStream<R>(R);

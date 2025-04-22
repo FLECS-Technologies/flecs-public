@@ -455,7 +455,7 @@ impl DockerInstance {
             .collect();
         if volumes.len() != result_count {
             let volume_ids = volumes.keys().cloned().collect();
-            quest
+            let result = quest
                 .lock()
                 .await
                 .create_sub_quest(
@@ -469,8 +469,8 @@ impl DockerInstance {
                     },
                 )
                 .await
-                .2
-                .await?;
+                .2;
+            result.await?;
             anyhow::bail!("Could not create all volumes for instance {}", instance_id);
         } else {
             Ok(volumes)
@@ -493,7 +493,7 @@ impl DockerInstance {
             .await?
             .name
             .ok_or_else(|| anyhow::anyhow!("Default network has no name"))?;
-        quest
+        let result = quest
             .lock()
             .await
             .create_sub_quest(
@@ -512,8 +512,8 @@ impl DockerInstance {
                 },
             )
             .await
-            .2
-            .await?;
+            .2;
+        result.await?;
         let volume_mounts = quest
             .lock()
             .await
@@ -526,8 +526,8 @@ impl DockerInstance {
                 )
             })
             .await
-            .2
-            .await;
+            .2;
+        let volume_mounts = volume_mounts.await;
         let volume_mounts = match volume_mounts {
             Ok(volume_mounts) => volume_mounts,
             Err(e) => {
@@ -732,7 +732,7 @@ impl DockerInstance {
                 warn!("Could not delete volume {id} of instance {}: {e}", self.id);
             }
         }
-        quest
+        let result = quest
             .lock()
             .await
             .create_sub_quest(format!("Delete instance {}", self.id), |_quest| {
@@ -740,9 +740,8 @@ impl DockerInstance {
                 async move { deployment.clone().delete_instance(self.id).await }
             })
             .await
-            .2
-            .await
-            .map_err(|e| (e, self))?;
+            .2;
+        result.await.map_err(|e| (e, self))?;
         Ok(())
     }
 

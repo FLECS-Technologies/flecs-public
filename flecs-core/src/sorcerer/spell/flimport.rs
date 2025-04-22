@@ -26,15 +26,15 @@ pub async fn read_import_manifest(
     let manifest_path = src.join("manifest.json");
     let manifest = tokio::fs::read(&manifest_path).await?;
     let Manifest::V3(manifest) = serde_json::from_slice(&manifest)?;
-    quest
+    let manifest = quest
         .lock()
         .await
         .create_sub_quest("Validate import", |_quest| {
             validate_import(manifest, src.clone())
         })
         .await
-        .2
-        .await
+        .2;
+    manifest.await
 }
 
 pub async fn import_directory(

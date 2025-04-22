@@ -318,8 +318,8 @@ impl App {
                 },
             )
             .await
-            .2
-            .await;
+            .2;
+        let app_installed = app_installed.await;
         match app_installed {
             Ok(false) => {
                 let mut quest = quest.lock().await;
@@ -354,8 +354,8 @@ impl App {
                 },
             )
             .await
-            .2
-            .await;
+            .2;
+        let result = result.await;
         match result {
             Ok(None) => Ok(()),
             Ok(Some((e, data))) => Err((e, data)),

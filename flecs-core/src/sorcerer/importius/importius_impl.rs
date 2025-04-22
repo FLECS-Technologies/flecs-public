@@ -40,17 +40,16 @@ impl Importius for ImportiusImpl {
             let temp_path = temp_path.clone();
             move |_quest: SyncQuest| extract_from_file(archive_path, temp_path)
         };
-        quest
+        let extract_result = quest
             .lock()
             .await
             .create_sub_quest("Extract import archive", extract_closure)
             .await
-            .2
-            .await
-            .map_err(|error| ImportError::Extract {
-                import: archive_path,
-                error,
-            })?;
+            .2;
+        extract_result.await.map_err(|error| ImportError::Extract {
+            import: archive_path,
+            error,
+        })?;
         let manifest = quest
             .lock()
             .await
@@ -58,9 +57,9 @@ impl Importius for ImportiusImpl {
                 spell::flimport::read_import_manifest(quest, temp_path.clone())
             })
             .await
-            .2
-            .await?;
-        quest
+            .2;
+        let manifest = manifest.await?;
+        let stop_result = quest
             .lock()
             .await
             .create_sub_quest("Stop affected instances", |quest| {
@@ -72,9 +71,8 @@ impl Importius for ImportiusImpl {
                 )
             })
             .await
-            .2
-            .await
-            .map_err(ImportError::InstanceStop)?;
+            .2;
+        stop_result.await.map_err(ImportError::InstanceStop)?;
         let import_closure = {
             let temp_path = temp_path.clone();
             let vault = vault.clone();
@@ -87,22 +85,21 @@ impl Importius for ImportiusImpl {
             .await
             .create_sub_quest("Import", import_closure)
             .await
-            .2
-            .await;
+            .2;
+        let result = result.await;
         if let Err(e) = tokio::fs::remove_dir_all(&temp_path).await {
             warn!("Could not remove temporary import directory {temp_path:?}: {e}")
         }
         result?;
-        quest
+        let result = quest
             .lock()
             .await
             .create_sub_quest("Start instances", |quest| {
                 start_all_instances_as_desired(quest, vault, floxy)
             })
             .await
-            .2
-            .await
-            .map_err(ImportError::InstanceStart)?;
+            .2;
+        result.await.map_err(ImportError::InstanceStart)?;
         Ok(())
     }
 }
