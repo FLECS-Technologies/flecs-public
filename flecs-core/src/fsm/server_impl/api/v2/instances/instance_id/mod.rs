@@ -11,11 +11,14 @@ use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdDeleteResponse as DeleteResponse,
     InstancesInstanceIdGetResponse as GetResponse,
+    InstancesInstanceIdPatchResponse as PatchResponse,
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
     InstancesInstanceIdDeletePathParams as DeletePathParams,
     InstancesInstanceIdGetPathParams as GetPathParams,
+    InstancesInstanceIdPatchPathParams as PatchPathParams,
+    InstancesInstanceIdPatchRequest as PatchRequest,
 };
 use std::str::FromStr;
 use std::sync::Arc;
@@ -75,4 +78,48 @@ pub async fn get<I: Instancius>(
             GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
         }
     }
+}
+
+pub async fn patch<I: Instancius + 'static, F: Floxy + 'static>(
+    vault: Arc<Vault>,
+    instancius: Arc<I>,
+    floxy: Arc<F>,
+    quest_master: QuestMaster,
+    path_params: PatchPathParams,
+    request: PatchRequest,
+) -> Result<PatchResponse, ()> {
+    let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
+    if !instancius
+        .does_instance_exist(vault.clone(), instance_id)
+        .await
+    {
+        return Ok(PatchResponse::Status404_NoInstanceWithThisInstance);
+    }
+    let floxy = FloxyOperation::new_arc(floxy);
+    let quest_id = quest_master
+        .lock()
+        .await
+        .schedule_quest(
+            format!("Update instance {instance_id} to {}", request.to),
+            move |quest| async move {
+                instancius
+                    .update_instance(
+                        quest,
+                        vault,
+                        floxy,
+                        instance_id,
+                        request.to,
+                        crate::lore::base_path().join("instances"),
+                    )
+                    .await?;
+                Ok(())
+            },
+        )
+        .await
+        // TODO: Add 500 Response to API
+        .map_err(|_| ())?
+        .0;
+    Ok(PatchResponse::Status202_Accepted(models::JobMeta::new(
+        quest_id.0 as i32,
+    )))
 }

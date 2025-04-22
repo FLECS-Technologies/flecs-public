@@ -17,6 +17,7 @@ use std::mem::swap;
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::UNIX_EPOCH;
 
 #[derive(Debug, Serialize)]
 pub struct ComposeInstance {
@@ -362,6 +363,55 @@ impl ComposeInstance {
         }
         for result in join_all(results).await {
             result?;
+        }
+        Ok(())
+    }
+
+    pub async fn is_running(&self) -> anyhow::Result<bool> {
+        Ok(self.status().await? == InstanceStatus::Running)
+    }
+
+    pub async fn update(
+        &mut self,
+        quest: SyncQuest,
+        new_manifest: Arc<AppManifestMulti>,
+        base_path: &Path,
+    ) -> anyhow::Result<()> {
+        let is_running = self.is_running().await?;
+        if is_running {
+            self.halt().await?;
+        }
+        let now = std::time::SystemTime::now();
+        let backup_path = base_path.join("backup");
+        let current_version = self.manifest.key.version.clone();
+        let new_backup_path = backup_path.join(&current_version).join(
+            now.duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis()
+                .to_string(),
+        );
+        self.export(quest.clone(), &new_backup_path).await?;
+        let new_version = new_manifest.key.version.clone();
+        self.manifest = new_manifest;
+        if current_version > new_version {
+            let mut entries = tokio::fs::read_dir(backup_path.join(&new_version)).await?;
+            let mut latest_backup = None;
+            while let Some(entry) = entries.next_entry().await? {
+                match &latest_backup {
+                    None => latest_backup = Some(entry.path()),
+                    Some(current) => {
+                        if entry.path() > *current {
+                            latest_backup = Some(entry.path());
+                        }
+                    }
+                }
+            }
+            if let Some(backup) = latest_backup {
+                self.import(quest, backup, base_path.to_path_buf()).await?;
+            }
+        }
+        if is_running {
+            self.start().await?;
         }
         Ok(())
     }

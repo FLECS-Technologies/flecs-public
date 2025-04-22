@@ -161,4 +161,22 @@ impl Instance {
         }
         Ok(())
     }
+
+    pub async fn update<F: Floxy>(
+        &mut self,
+        quest: SyncQuest,
+        floxy: Arc<FloxyOperation<F>>,
+        manifest: AppManifest,
+        backup_path: &Path,
+    ) -> anyhow::Result<()> {
+        match (manifest, self) {
+            (AppManifest::Multi(manifest), Instance::Compose(instance)) => {
+                instance.update(quest, manifest, backup_path).await
+            }
+            (AppManifest::Single(manifest), Instance::Docker(instance)) => {
+                instance.update(quest, floxy, manifest, backup_path).await
+            }
+            _ => Err(anyhow::anyhow!("Instance and manifest do not match")),
+        }
+    }
 }
