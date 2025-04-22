@@ -1097,7 +1097,7 @@ impl AppDeployment for DockerDeploymentImpl {
         id: AppId,
     ) -> anyhow::Result<()> {
         let docker_client = self.client()?;
-        quest
+        let result = quest
             .lock()
             .await
             .create_sub_quest(format!("Removing image of {id}"), |_quest| async move {
@@ -1114,8 +1114,8 @@ impl AppDeployment for DockerDeploymentImpl {
                 Ok(())
             })
             .await
-            .2
-            .await
+            .2;
+        result.await
     }
 
     async fn is_app_installed(

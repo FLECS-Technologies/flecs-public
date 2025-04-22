@@ -468,7 +468,7 @@ pub async fn save(
 ) -> Result<()> {
     let image = image.to_string();
     let path = path.to_path_buf();
-    quest
+    let result = quest
         .lock()
         .await
         .create_sub_quest(
@@ -480,6 +480,6 @@ pub async fn save(
             },
         )
         .await
-        .2
-        .await
+        .2;
+    result.await
 }

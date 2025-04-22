@@ -120,8 +120,8 @@ pub trait Exportius: Sorcerer + 'static {
                 Self::create_export(quest, vault, floxy, apps, instances)
             })
             .await
-            .2
-            .await?;
+            .2;
+        let path = path.await?;
         let mut archive_path = path.clone();
         archive_path.set_extension("tar");
         let result = archive_path
@@ -138,8 +138,8 @@ pub trait Exportius: Sorcerer + 'static {
                 Self::archive_export(quest, path.clone(), archive_path)
             })
             .await
-            .2
-            .await;
+            .2;
+        let archive_result = archive_result.await;
         tokio::fs::remove_dir_all(path).await?;
         archive_result?;
         Ok(result)
@@ -169,7 +169,7 @@ pub trait Exportius: Sorcerer + 'static {
                 .as_millis()
                 .to_string(),
         );
-        quest
+        let result = quest
             .lock()
             .await
             .create_sub_quest(
@@ -189,8 +189,8 @@ pub trait Exportius: Sorcerer + 'static {
                 },
             )
             .await
-            .2
-            .await?;
+            .2;
+        result.await?;
         let deployments: Vec<_> = vault
             .reservation()
             .reserve_deployment_pouch()
@@ -229,7 +229,7 @@ pub trait Exportius: Sorcerer + 'static {
             return Err(e.into());
         };
 
-        if let Err(e) = quest
+        let result = quest
             .lock()
             .await
             .create_sub_quest(format!("Export content to {export_dir:?}"), |quest| {
@@ -243,9 +243,8 @@ pub trait Exportius: Sorcerer + 'static {
                 )
             })
             .await
-            .2
-            .await
-        {
+            .2;
+        if let Err(e) = result.await {
             _ = tokio::fs::remove_dir_all(&export_dir).await;
             return Err(e);
         };

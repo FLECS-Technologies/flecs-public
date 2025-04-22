@@ -386,7 +386,8 @@ pub mod lore;
 ///         .lock()
 ///         .await
 ///         .create_sub_quest("SubSubSubQuest".to_string(), subsubsubquest)
-///         .await.2.await?;
+///         .await.2;
+///     let result = result.await?;
 ///     Ok(2* result)
 /// }
 ///
@@ -395,12 +396,14 @@ pub mod lore;
 ///         .lock()
 ///         .await
 ///         .create_sub_quest("SubSubQuest".to_string(), subsubquest)
-///         .await.2.await?;
+///         .await.2;
+///     let result = result.await?;
 ///     Ok(10 + result)
 /// }
 ///
 /// async fn quest(quest: SyncQuest) -> Result<u64, String> {
-///         let result = quest.lock().await.create_sub_quest("SubQuest".to_string(), subquest).await.2.await?;
+///     let result = quest.lock().await.create_sub_quest("SubQuest".to_string(), subquest).await.2;
+///     let result = result.await?;
 ///     Ok(2000 - result)
 /// }
 /// # tokio_test::block_on(
