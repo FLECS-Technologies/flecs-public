@@ -18,7 +18,7 @@ include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
 
 project(
     FLECS
-    VERSION 3.6.1
+    VERSION 3.6.2
     HOMEPAGE_URL https://flecs.tech
     LANGUAGES CXX
 )
