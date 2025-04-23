@@ -18,8 +18,6 @@ use tracing::error;
 #[derive(Debug, Serialize)]
 pub struct AppData {
     pub desired: AppStatus,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    id: Option<AppId>,
     #[serde(serialize_with = "serialize_deployment_id", rename = "deployment_id")]
     deployment: Deployment,
 }
@@ -39,13 +37,8 @@ impl AppData {
     pub fn new(deployment: Deployment) -> Self {
         AppData {
             desired: AppStatus::None,
-            id: None,
             deployment,
         }
-    }
-
-    pub fn set_id(&mut self, id: AppId) {
-        self.id = Some(id);
     }
 
     pub fn deployment(&self) -> &Deployment {
@@ -88,7 +81,6 @@ pub fn try_create_app(
                 data.deployment_id,
                 AppData {
                     desired: data.desired,
-                    id: data.id,
                     deployment: deployment.clone(),
                 },
             )),
@@ -184,9 +176,6 @@ impl App {
             .is_app_installed(
                 Quest::new_synced("Check app installation status".to_string()),
                 manifest,
-                data.id
-                    .clone()
-                    .ok_or_else(|| anyhow::anyhow!("No app id available"))?,
             )
             .await?
         {
@@ -206,9 +195,6 @@ impl App {
             .installed_app_size(
                 Quest::new_synced("Check app installation size".to_string()),
                 manifest,
-                data.id
-                    .clone()
-                    .ok_or_else(|| anyhow::anyhow!("No app id available"))?,
             )
             .await
     }
@@ -220,7 +206,6 @@ impl App {
             data.desired = AppStatus::Installed;
             let deployment = data.deployment.clone();
             let manifest = self.manifest.clone();
-            let id = data.id.clone();
             let token = token.clone();
             let (.., id) = quest
                 .lock()
@@ -233,18 +218,13 @@ impl App {
                         deployment.id()
                     ),
                     |quest| async move {
-                        let is_installed = match &id {
-                            Some(id) => {
-                                deployment
-                                    .is_app_installed(quest.clone(), manifest.clone(), id.clone())
-                                    .await?
-                            }
-                            None => false,
-                        };
+                        let is_installed = deployment
+                            .is_app_installed(quest.clone(), manifest.clone())
+                            .await?;
                         if is_installed {
                             quest.lock().await.state = State::Skipped;
                             quest.lock().await.detail = Some("Already installed".to_string());
-                            Ok(id.unwrap())
+                            Ok(())
                         } else {
                             deployment.install_app(quest, manifest.clone(), token).await
                         }
@@ -266,10 +246,9 @@ impl App {
                         self.key, deployment_id
                     )
                 }
-                Ok(app_id) => {
-                    if let Some(app_data) = self.deployments.get_mut(&deployment_id) {
+                Ok(_) => {
+                    if self.deployments.contains_key(&deployment_id) {
                         success_count += 1;
-                        app_data.id = Some(app_id);
                     } else {
                         error!("No app data for deployment {} found ", deployment_id)
                     }
@@ -293,28 +272,19 @@ impl App {
         manifest: AppManifest,
     ) -> Result<(), (anyhow::Error, AppData)> {
         data.desired = AppStatus::NotInstalled;
-        let Some(id) = data.id.clone() else {
-            let mut quest = quest.lock().await;
-            quest.state = State::Skipped;
-            quest.detail = Some(format!(
-                "App is not installed on deployment {}",
-                data.deployment.id()
-            ));
-            return Ok(());
-        };
+        let app_key = manifest.key().clone();
         let app_installed = quest
             .lock()
             .await
             .create_sub_quest(
                 format!(
-                    "Check if app {id} is installed in deployment {}",
+                    "Check if app {app_key} is installed in deployment {}",
                     data.deployment.id()
                 ),
                 |quest| {
                     let deployment = data.deployment.clone();
-                    let id = id.clone();
                     let manifest = manifest.clone();
-                    async move { deployment.is_app_installed(quest, manifest, id).await }
+                    async move { deployment.is_app_installed(quest, manifest).await }
                 },
             )
             .await
@@ -340,16 +310,13 @@ impl App {
             .await
             .create_sub_quest(
                 format!(
-                    "Uninstall app {id} from deployment {}",
+                    "Uninstall app {app_key} from deployment {}",
                     data.deployment.id()
                 ),
-                |quest| {
-                    let id = id.clone();
-                    async move {
-                        match data.deployment.uninstall_app(quest, manifest, id).await {
-                            Ok(()) => Ok::<_, anyhow::Error>(None),
-                            Err(e) => Ok::<_, anyhow::Error>(Some((e, data))),
-                        }
+                |quest| async move {
+                    match data.deployment.uninstall_app(quest, manifest).await {
+                        Ok(()) => Ok::<_, anyhow::Error>(None),
+                        Err(e) => Ok::<_, anyhow::Error>(Some((e, data))),
                     }
                 },
             )
@@ -360,7 +327,7 @@ impl App {
             Ok(None) => Ok(()),
             Ok(Some((e, data))) => Err((e, data)),
             Err(e) => {
-                error!("Unexpected error during uninstallation of app {}: {e}", id);
+                error!("Unexpected error during uninstallation of app {app_key}: {e}");
                 Ok(())
             }
         }
@@ -520,26 +487,15 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn status_no_id() {
-        let mut deployment = MockedDockerDeployment::new();
-        deployment.expect_app_info().times(0);
-        deployment.expect_id().return_const("id".to_string());
-        let deployment = Deployment::Docker(Arc::new(deployment));
-        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
-        assert!(app.status().await.is_err());
-    }
-
-    #[tokio::test]
     async fn status_installed() {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_is_app_installed()
             .times(1)
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let mut app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
-        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
+        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
         assert_eq!(app.status().await.unwrap(), AppStatus::Installed);
     }
 
@@ -549,11 +505,10 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .times(1)
-            .returning(|_, _, _| Ok(false));
+            .returning(|_, _| Ok(false));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let mut app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
-        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
+        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
         assert_eq!(app.status().await.unwrap(), AppStatus::NotInstalled);
     }
 
@@ -564,26 +519,15 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn size_no_id() {
-        let mut deployment = MockedDockerDeployment::new();
-        deployment.expect_app_info().times(0);
-        deployment.expect_id().return_const("id".to_string());
-        let deployment = Deployment::Docker(Arc::new(deployment));
-        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
-        assert!(app.installed_size().await.is_err());
-    }
-
-    #[tokio::test]
     async fn test_size_installed() {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_installed_app_size()
             .times(1)
-            .returning(|_, _, _| Ok(6520));
+            .returning(|_, _| Ok(6520));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let mut app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
-        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
+        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
         assert_eq!(app.installed_size().await.unwrap(), 6520);
     }
 
@@ -593,11 +537,10 @@ pub mod tests {
         deployment
             .expect_installed_app_size()
             .times(1)
-            .returning(|_, _, _| Err(anyhow::anyhow!("No size")));
+            .returning(|_, _| Err(anyhow::anyhow!("No size")));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let mut app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
-        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
+        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
         assert!(app.installed_size().await.is_err());
     }
 
@@ -611,7 +554,6 @@ pub mod tests {
     async fn create_app_info_defaults() {
         let data = AppData {
             desired: AppStatus::Installed,
-            id: Some("DataId".to_string()),
             deployment: Deployment::Docker(Arc::new(MockedDockerDeployment::new())),
         };
         let info =
@@ -625,7 +567,6 @@ pub mod tests {
     async fn create_app_info() {
         let data = AppData {
             desired: AppStatus::Installed,
-            id: Some("DataId".to_string()),
             deployment: Deployment::Docker(Arc::new(MockedDockerDeployment::new())),
         };
         let info = App::create_installed_info(
@@ -649,15 +590,14 @@ pub mod tests {
         deployment
             .expect_installed_app_size()
             .once()
-            .returning(|_, _, _| Ok(1234));
+            .returning(|_, _| Ok(1234));
         deployment
             .expect_is_app_installed()
             .once()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let mut app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
-        app.deployments.values_mut().next().unwrap().id = Some("DataId".to_string());
         let mut manifest = create_test_manifest_raw(None);
         if let flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(single) =
             &mut manifest
@@ -682,34 +622,17 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn uninstall_app_no_id() {
-        let mut deployment = MockedDockerDeployment::new();
-        deployment
-            .expect_id()
-            .return_const("MockedDeployment".to_string());
-        let deployment = Deployment::Docker(Arc::new(deployment));
-        let app_data = AppData::new(deployment);
-        assert!(app_data.id.is_none());
-        let quest = Quest::new_synced("TestQuest".to_string());
-        App::uninstall_from_deployment(quest.clone(), app_data, min_app_1_0_0_manifest())
-            .await
-            .unwrap();
-        assert_eq!(quest.lock().await.state, State::Skipped);
-    }
-
-    #[tokio::test]
     async fn uninstall_app_not_installed() {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_is_app_installed()
             .times(1)
-            .returning(|_, _, _| Ok(false));
+            .returning(|_, _| Ok(false));
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let mut app_data = AppData::new(deployment);
-        app_data.id = Some("TestAppId".to_string());
+        let app_data = AppData::new(deployment);
         let quest = Quest::new_synced("TestQuest".to_string());
         App::uninstall_from_deployment(quest.clone(), app_data, min_app_1_0_0_manifest())
             .await
@@ -723,17 +646,16 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .times(1)
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment
             .expect_uninstall_app()
             .times(1)
-            .returning(|_, _, _| Ok(()));
+            .returning(|_, _| Ok(()));
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let mut app_data = AppData::new(deployment);
-        app_data.id = Some("TestAppId".to_string());
         app_data.desired = AppStatus::Installed;
         App::uninstall_from_deployment(
             Quest::new_synced("TestQuest".to_string()),
@@ -750,17 +672,16 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .times(1)
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment
             .expect_uninstall_app()
             .times(1)
-            .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let mut app_data = AppData::new(deployment);
-        app_data.id = Some("TestAppId".to_string());
         app_data.desired = AppStatus::Installed;
         let result = App::uninstall_from_deployment(
             Quest::new_synced("TestQuest".to_string()),
@@ -783,11 +704,11 @@ pub mod tests {
             deployment
                 .expect_is_app_installed()
                 .once()
-                .returning(|_, _, _| Ok(true));
+                .returning(|_, _| Ok(true));
             deployment
                 .expect_uninstall_app()
                 .times(1)
-                .returning(|_, _, _| Ok(()));
+                .returning(|_, _| Ok(()));
             let deployment = Deployment::Docker(Arc::new(deployment));
             deployments.insert(deployment_id, deployment);
         }
@@ -828,11 +749,11 @@ pub mod tests {
             deployment
                 .expect_is_app_installed()
                 .times(1)
-                .returning(|_, _, _| Ok(true));
+                .returning(|_, _| Ok(true));
             deployment
                 .expect_uninstall_app()
                 .times(1)
-                .returning(|_, _, _| Ok(()));
+                .returning(|_, _| Ok(()));
             let deployment = deployment;
             deployments.insert(deployment_id, Deployment::Docker(Arc::new(deployment)));
         }
@@ -846,11 +767,11 @@ pub mod tests {
             deployment
                 .expect_is_app_installed()
                 .once()
-                .returning(|_, _, _| Ok(true));
+                .returning(|_, _| Ok(true));
             deployment
                 .expect_uninstall_app()
                 .times(1)
-                .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
+                .returning(|_, _| Err(anyhow::anyhow!("TestError")));
             let deployment = deployment;
             deployments.insert(deployment_id, Deployment::Docker(Arc::new(deployment)));
         }

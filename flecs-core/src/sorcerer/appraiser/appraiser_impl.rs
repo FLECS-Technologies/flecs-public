@@ -518,10 +518,10 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment
             .expect_installed_app_size()
-            .returning(|_, _, _| Ok(200));
+            .returning(|_, _| Ok(200));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let appraiser = AppraiserImpl::default();
@@ -559,10 +559,10 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment
             .expect_installed_app_size()
-            .returning(|_, _, _| Ok(200));
+            .returning(|_, _| Ok(200));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let appraiser = AppraiserImpl::default();
@@ -631,10 +631,10 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment
             .expect_installed_app_size()
-            .returning(|_, _, _| Ok(200));
+            .returning(|_, _| Ok(200));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let result = AppraiserImpl::default().get_apps(vault).await.unwrap();
@@ -737,11 +737,11 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .once()
-            .returning(|_, _, _| Ok(false));
+            .returning(|_, _| Ok(false));
         deployment
             .expect_install_app()
             .once()
-            .returning(|_, _, _| Ok("TestAppId".to_string()));
+            .returning(|_, _, _| Ok(()));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::new(),
@@ -860,11 +860,11 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .once()
-            .returning(|_, _, _| Ok(false));
+            .returning(|_, _| Ok(false));
         deployment
             .expect_install_app()
             .once()
-            .returning(|_, _, _| Ok("TestAppId".to_string()));
+            .returning(|_, _, _| Ok(()));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let manifest_mock = manifest_mock_ok(&mut server, manifest.clone(), &key).await;
@@ -922,7 +922,11 @@ pub mod tests {
         deployment
             .expect_install_app()
             .once()
-            .returning(|_, _, _| Ok("TestAppId".to_string()));
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_is_app_installed()
+            .once()
+            .returning(|_, _| Ok(false));
         deployment.expect_is_default().return_const(true);
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_empty_test_vault();
@@ -1008,7 +1012,11 @@ pub mod tests {
         deployment
             .expect_install_app()
             .times(app_count)
-            .returning(|_, _, _| Ok("TestAppId".to_string()));
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_is_app_installed()
+            .times(app_count)
+            .returning(|_, _| Ok(false));
         deployment.expect_is_default().return_const(true);
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_empty_test_vault();
@@ -1092,7 +1100,11 @@ pub mod tests {
         deployment
             .expect_install_app()
             .times(installed_app_count)
-            .returning(|_, _, _| Ok("TestAppId".to_string()));
+            .returning(|_, _, _| Ok(()));
+        deployment
+            .expect_is_app_installed()
+            .times(installed_app_count)
+            .returning(|_, _| Ok(false));
         deployment.expect_is_default().return_const(true);
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_empty_test_vault();

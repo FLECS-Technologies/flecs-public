@@ -1384,7 +1384,7 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment.expect_default_network().times(2).returning(|| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
@@ -1447,7 +1447,7 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment
             .expect_default_network()
             .times(1)
@@ -1518,7 +1518,7 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment.expect_default_network().times(4).returning(|| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
@@ -1600,7 +1600,7 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment.expect_default_network().times(2).returning(|| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
@@ -1673,7 +1673,7 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
-            .returning(|_, _, _| Ok(false));
+            .returning(|_, _| Ok(false));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
@@ -1765,7 +1765,7 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),

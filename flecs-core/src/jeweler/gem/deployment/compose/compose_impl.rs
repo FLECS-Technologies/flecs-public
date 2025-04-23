@@ -243,7 +243,7 @@ impl AppDeployment for ComposeDeploymentImpl {
         _quest: SyncQuest,
         manifest: AppManifest,
         token: Option<Token>,
-    ) -> anyhow::Result<AppId> {
+    ) -> anyhow::Result<()> {
         let AppManifest::Multi(manifest) = manifest else {
             panic!("Compose deployment can not be called with single app manifests");
         };
@@ -255,15 +255,11 @@ impl AppDeployment for ComposeDeploymentImpl {
         if logout_needed {
             self.docker_logout().await?;
         }
-        Ok(pull_result?)
+        pull_result?;
+        Ok(())
     }
 
-    async fn uninstall_app(
-        &self,
-        _quest: SyncQuest,
-        manifest: AppManifest,
-        _id: AppId,
-    ) -> anyhow::Result<()> {
+    async fn uninstall_app(&self, _quest: SyncQuest, manifest: AppManifest) -> anyhow::Result<()> {
         let AppManifest::Multi(manifest) = manifest else {
             panic!("Compose deployment can not be called with single app manifests");
         };
@@ -288,7 +284,6 @@ impl AppDeployment for ComposeDeploymentImpl {
         &self,
         _quest: SyncQuest,
         manifest: AppManifest,
-        _id: AppId,
     ) -> anyhow::Result<bool> {
         let AppManifest::Multi(manifest) = manifest else {
             panic!("Compose deployment can not be called with single app manifests");
@@ -310,7 +305,6 @@ impl AppDeployment for ComposeDeploymentImpl {
         &self,
         _quest: SyncQuest,
         manifest: AppManifest,
-        _id: AppId,
     ) -> anyhow::Result<usize> {
         let AppManifest::Multi(manifest) = manifest else {
             panic!("Compose deployment can not be called with single app manifests");
