@@ -36,23 +36,12 @@ pub trait AppDeployment {
         quest: SyncQuest,
         manifest: AppManifest,
         token: Option<Token>,
-    ) -> Result<AppId>;
-    async fn uninstall_app(&self, quest: SyncQuest, manifest: AppManifest, id: AppId)
-    -> Result<()>;
+    ) -> Result<()>;
+    async fn uninstall_app(&self, quest: SyncQuest, manifest: AppManifest) -> Result<()>;
 
-    async fn is_app_installed(
-        &self,
-        quest: SyncQuest,
-        manifest: AppManifest,
-        id: AppId,
-    ) -> Result<bool>;
+    async fn is_app_installed(&self, quest: SyncQuest, manifest: AppManifest) -> Result<bool>;
 
-    async fn installed_app_size(
-        &self,
-        quest: SyncQuest,
-        manifest: AppManifest,
-        id: AppId,
-    ) -> Result<usize>;
+    async fn installed_app_size(&self, quest: SyncQuest, manifest: AppManifest) -> Result<usize>;
 
     async fn export_app(
         &self,

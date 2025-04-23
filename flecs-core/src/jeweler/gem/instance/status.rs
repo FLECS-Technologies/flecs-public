@@ -27,3 +27,17 @@ impl From<InstanceStatus> for flecsd_axum_server::models::InstanceStatus {
         }
     }
 }
+
+impl From<&str> for InstanceStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "not created" => InstanceStatus::NotCreated,
+            "orphaned" => InstanceStatus::Orphaned,
+            "requested" => InstanceStatus::Requested,
+            "resources ready" => InstanceStatus::ResourcesReady,
+            "running" => InstanceStatus::Running,
+            "stopped" => InstanceStatus::Stopped,
+            _ => InstanceStatus::Unknown,
+        }
+    }
+}

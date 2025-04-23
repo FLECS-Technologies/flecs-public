@@ -301,7 +301,6 @@ pub mod tests {
                     "version": "1.2.3"
                 },
                 "deployments": [{
-                    "id": "test-app-id-1",
                     "desired": "Installed",
                     "deployment_id": "test-deployment-id-1"
                 }]

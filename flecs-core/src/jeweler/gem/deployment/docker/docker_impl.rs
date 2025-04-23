@@ -1,12 +1,12 @@
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::jeweler::GetDeploymentId;
-use crate::jeweler::app::{AppDeployment, AppId, Token};
+use crate::jeweler::app::{AppDeployment, Token};
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::deployment::docker::{AppInfo, DockerDeployment};
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::jeweler::gem::manifest::single::ConfigFile;
+use crate::jeweler::gem::manifest::single::{AppManifestSingle, ConfigFile};
 use crate::jeweler::network::{
     CreateNetworkError, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
 };
@@ -840,9 +840,13 @@ impl DockerDeployment for DockerDeploymentImpl {
         )
         .await
     }
-    async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<Option<AppInfo>> {
+    async fn app_info(
+        &self,
+        _quest: SyncQuest,
+        manifest: Arc<AppManifestSingle>,
+    ) -> anyhow::Result<Option<AppInfo>> {
         let docker_client = self.client()?;
-        relic::docker::image::inspect(docker_client, &id).await
+        relic::docker::image::inspect(docker_client, &manifest.image_with_tag()).await
     }
 
     async fn copy_from_app_image(
@@ -1061,7 +1065,7 @@ impl AppDeployment for DockerDeploymentImpl {
         quest: SyncQuest,
         manifest: AppManifest,
         token: Option<Token>,
-    ) -> anyhow::Result<AppId> {
+    ) -> anyhow::Result<()> {
         let AppManifest::Single(manifest) = manifest else {
             panic!("Docker deployment can not be called with multi app manifests")
         };
@@ -1087,32 +1091,34 @@ impl AppDeployment for DockerDeploymentImpl {
                 },
             )
             .await;
-        id.await
+        id.await?;
+        Ok(())
     }
 
-    async fn uninstall_app(
-        &self,
-        quest: SyncQuest,
-        _manifest: AppManifest,
-        id: AppId,
-    ) -> anyhow::Result<()> {
+    async fn uninstall_app(&self, quest: SyncQuest, manifest: AppManifest) -> anyhow::Result<()> {
         let docker_client = self.client()?;
+        let AppManifest::Single(manifest) = manifest else {
+            anyhow::bail!("DockerDeploymentImpl supports only AppManifest::Single");
+        };
         let result = quest
             .lock()
             .await
-            .create_sub_quest(format!("Removing image of {id}"), |_quest| async move {
-                let _ = relic::docker::image::remove(
-                    docker_client,
-                    &id,
-                    Some(RemoveImageOptions {
-                        force: true,
-                        ..RemoveImageOptions::default()
-                    }),
-                    None,
-                )
-                .await?;
-                Ok(())
-            })
+            .create_sub_quest(
+                format!("Removing image of {}", manifest.key),
+                |_quest| async move {
+                    let _ = relic::docker::image::remove(
+                        docker_client,
+                        &manifest.image_with_tag(),
+                        Some(RemoveImageOptions {
+                            force: true,
+                            ..RemoveImageOptions::default()
+                        }),
+                        None,
+                    )
+                    .await?;
+                    Ok(())
+                },
+            )
             .await
             .2;
         result.await
@@ -1121,20 +1127,24 @@ impl AppDeployment for DockerDeploymentImpl {
     async fn is_app_installed(
         &self,
         quest: SyncQuest,
-        _manifest: AppManifest,
-        id: AppId,
+        manifest: AppManifest,
     ) -> anyhow::Result<bool> {
-        Ok(self.app_info(quest, id).await.is_ok())
+        let AppManifest::Single(manifest) = manifest else {
+            anyhow::bail!("DockerDeploymentImpl supports only AppManifest::Single");
+        };
+        Ok(self.app_info(quest, manifest).await.is_ok())
     }
 
     async fn installed_app_size(
         &self,
         quest: SyncQuest,
-        _manifest: AppManifest,
-        id: AppId,
+        manifest: AppManifest,
     ) -> anyhow::Result<usize> {
+        let AppManifest::Single(manifest) = manifest else {
+            anyhow::bail!("DockerDeploymentImpl supports only AppManifest::Single");
+        };
         Ok(self
-            .app_info(quest, id)
+            .app_info(quest, manifest)
             .await?
             .ok_or_else(|| anyhow::anyhow!("App not installed"))?
             .size

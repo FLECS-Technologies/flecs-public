@@ -1,10 +1,9 @@
 mod docker_impl;
 use crate::jeweler;
-use crate::jeweler::app::AppId;
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, Logs};
-use crate::jeweler::gem::manifest::single::ConfigFile;
+use crate::jeweler::gem::manifest::single::{AppManifestSingle, ConfigFile};
 use crate::jeweler::network::{CreateNetworkError, NetworkId};
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
@@ -13,6 +12,8 @@ pub use docker_impl::*;
 use erased_serde::serialize_trait_object;
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
 pub type AppInfo = bollard::models::ImageInspect;
 #[async_trait]
 pub trait DockerDeployment: CommonDeployment {
@@ -20,7 +21,11 @@ pub trait DockerDeployment: CommonDeployment {
         &self,
     ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
 
-    async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<Option<AppInfo>>;
+    async fn app_info(
+        &self,
+        _quest: SyncQuest,
+        manifest: Arc<AppManifestSingle>,
+    ) -> anyhow::Result<Option<AppInfo>>;
 
     async fn copy_from_app_image(
         &self,
@@ -99,7 +104,7 @@ pub mod tests {
     use crate::Result;
     use crate::jeweler::GetDeploymentId;
     use crate::jeweler::app::AppDeployment;
-    use crate::jeweler::app::{AppId, Token};
+    use crate::jeweler::app::Token;
     use crate::jeweler::deployment::{CommonDeployment, DeploymentId};
     use crate::jeweler::gem::deployment::Deployment;
     use crate::jeweler::gem::deployment::docker::DockerDeployment;
@@ -130,24 +135,21 @@ pub mod tests {
                 quest: SyncQuest,
                 manifest: AppManifest,
                 token: Option<Token>
-            ) -> Result<AppId>;
+            ) -> Result<()>;
             async fn uninstall_app(
                 &self,
                 quest: SyncQuest,
                 manifest: AppManifest,
-                id: AppId
             ) -> Result<()>;
             async fn is_app_installed(
                 &self,
                 quest: SyncQuest,
                 manifest: AppManifest,
-                id: AppId,
             ) -> Result<bool>;
             async fn installed_app_size(
                 &self,
                 quest: SyncQuest,
                 manifest: AppManifest,
-                id: AppId,
             ) -> Result<usize>;
             async fn export_app(
                 &self,
@@ -205,7 +207,11 @@ pub mod tests {
             async fn create_default_network(
                 &self,
             ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
-            async fn app_info(&self, _quest: SyncQuest, id: AppId) -> anyhow::Result<Option<AppInfo>>;
+            async fn app_info(
+                &self,
+                _quest: SyncQuest,
+                manifest: Arc<AppManifestSingle>
+            ) -> anyhow::Result<Option<AppInfo>>;
             async fn copy_from_app_image(
                 &self,
                 quest: SyncQuest,

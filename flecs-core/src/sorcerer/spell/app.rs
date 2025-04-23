@@ -78,18 +78,17 @@ mod tests {
         deployment
             .expect_is_app_installed()
             .once()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment
             .expect_uninstall_app()
             .times(1)
-            .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let manifest = min_app_1_0_0_manifest();
-        let mut app_data = AppData::new(deployment);
-        app_data.set_id("TestAppId".to_string());
+        let app_data = AppData::new(deployment);
         let key = manifest.key().clone();
         let mut app = App::new(key.clone(), Vec::new(), manifest);
         app.deployments
@@ -115,18 +114,17 @@ mod tests {
         deployment
             .expect_is_app_installed()
             .once()
-            .returning(|_, _, _| Ok(true));
+            .returning(|_, _| Ok(true));
         deployment
             .expect_uninstall_app()
             .times(1)
-            .returning(|_, _, _| Ok(()));
+            .returning(|_, _| Ok(()));
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let manifest = min_app_1_0_0_manifest();
-        let mut app_data = AppData::new(deployment);
-        app_data.set_id("TestAppId".to_string());
+        let app_data = AppData::new(deployment);
         let key = manifest.key().clone();
         let mut app = App::new(key.clone(), Vec::new(), manifest);
         app.deployments

@@ -24,7 +24,13 @@ async fn main() -> flecs_core::fsm::Result<()> {
     flecs_core::fsm::init_backtracing();
     flecs_core::fsm::init_tracing();
     let stop_signal = init_signal_handler()?;
-    let world = FlecsWorld::create_default().await?;
+    let world = if std::env::args().any(|arg| &arg == "--migrate")
+        || FlecsWorld::migration_necessary().await
+    {
+        FlecsWorld::migrate().await?
+    } else {
+        FlecsWorld::create_default().await?
+    };
     stop_signal.await?;
     world.halt().await;
     Ok(())

@@ -4,6 +4,7 @@ mod flecs_rest;
 pub mod forge;
 pub mod fsm;
 pub mod jeweler;
+pub mod legacy;
 pub mod lore;
 /// [quest::Quest]s are our abstraction for long-running processes that need to be tracked and can
 /// depend on each other. They can be scheduled via [quest::quest_master::QuestMaster].
