@@ -319,6 +319,9 @@ pub trait Exportius: Sorcerer + 'static {
 
     async fn get_exports(&self) -> Result<Vec<String>, std::io::Error> {
         let export_dir = PathBuf::from(crate::lore::flecsport::BASE_PATH);
+        if let Ok(false) = tokio::fs::try_exists(&export_dir).await {
+            return Ok(Vec::new());
+        };
         let mut exports = Vec::new();
         let mut entries = tokio::fs::read_dir(export_dir).await?;
         while let Some(entry) = entries.next_entry().await? {
