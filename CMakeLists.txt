@@ -58,10 +58,6 @@ FetchContent_MakeAvailable(Corrosion)
 # workaround for gcc-12 bug
 add_compile_options(-Wno-error=restrict)
 
-if(FLECS_BUILD_TESTS)
-    include(CTest)
-endif()
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(FLECS_NEED_CPR TRUE)
@@ -70,7 +66,8 @@ set(FLECS_NEED_LIBARCHIVE TRUE)
 set(FLECS_NEED_LIBUSB TRUE)
 set(FLECS_NEED_YAMLCPP TRUE)
 add_subdirectory(flecs-external)
-add_subdirectory(flecs)
+
+corrosion_import_crate(MANIFEST_PATH "${CMAKE_SOURCE_DIR}/Cargo.toml")
 
 add_custom_target(version
     COMMAND echo "${FLECS_VERSION_FULL}"

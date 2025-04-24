@@ -15,12 +15,3 @@ jobs:
       arch: ${{ matrix.arch }}
       build_type: Debug
       flecs_build_ref: develop
-
-  test:
-    strategy:
-      matrix:
-        arch: ["amd64"]
-
-    uses: ./.github/workflows/test.yml
-    with:
-      flecs_build_ref: develop
