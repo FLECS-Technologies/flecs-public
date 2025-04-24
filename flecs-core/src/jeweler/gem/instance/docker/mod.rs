@@ -23,7 +23,7 @@ use async_trait::async_trait;
 use bollard::container::Config;
 use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
 use config::InstanceConfig;
-use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
+use flecsd_axum_server::models::{AppInstance, InstanceEditors, InstancesInstanceIdGet200Response};
 use futures_util::future::{BoxFuture, join_all};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -141,7 +141,7 @@ impl InstanceCommon for DockerInstance {
                 ports,
                 volumes,
                 // TODO: Fill editors
-                editors: None,
+                editors: Some(InstanceEditors::from(Vec::new())),
             },
         )
     }
@@ -1968,7 +1968,7 @@ pub mod tests {
                 name: "my-app-etc".to_string(),
                 path: "/etc/my-app".to_string(),
             }],
-            editors: None,
+            editors: Some(InstanceEditors::from(Vec::new())),
         };
         assert_eq!(
             instance.generate_detailed_info().await.unwrap(),
