@@ -830,6 +830,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_status()
             .once()
             .with(eq(RUNNING_INSTANCE))
@@ -861,6 +864,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
@@ -1080,6 +1086,9 @@ pub mod tests {
                 .expect_id()
                 .return_const(format!("MockDeployment-{instance_id}"));
             deployment
+                .expect_deployment_id()
+                .return_const(format!("MockDeployment-{instance_id}"));
+            deployment
                 .expect_instance_status()
                 .once()
                 .with(predicate::eq(instance_id))
@@ -1130,6 +1139,9 @@ pub mod tests {
             let mut deployment = MockedDockerDeployment::new();
             deployment
                 .expect_id()
+                .return_const(format!("MockDeployment-{instance_id}"));
+            deployment
+                .expect_deployment_id()
                 .return_const(format!("MockDeployment-{instance_id}"));
             deployment
                 .expect_instance_status()

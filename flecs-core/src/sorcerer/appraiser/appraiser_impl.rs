@@ -858,6 +858,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_is_app_installed()
             .once()
             .returning(|_, _| Ok(false));

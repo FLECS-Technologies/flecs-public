@@ -32,6 +32,7 @@ impl Pouch for ManifestPouch {
 impl ManifestPouch {
     pub(in super::super) fn close(&mut self) -> crate::vault::Result<()> {
         let mut errors: Vec<String> = Vec::new();
+        fs::create_dir_all(&self.path)?;
         for (key, manifest) in &self.manifests {
             let path = self.path.join(key.name.as_str()).join(key.version.as_str());
             if let Err(e) = fs::create_dir_all(&path) {
