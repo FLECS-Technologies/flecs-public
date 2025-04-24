@@ -44,7 +44,7 @@ components:
       example: "8000-8080"
     transport_protocol:
       type: string
-      enum: [ "tcp", "udp", "sctp" ]
+      enum: [ tcp, udp, sctp ]
     sessionId:
       type: object
       properties:
@@ -379,11 +379,11 @@ components:
     network_kind:
       type: string
       enum: [
-        "Internal",
-        "Bridge",
-        "MACVLAN",
-        "IpvlanL2",
-        "IpvlanL3"
+        internal,
+        bridge,
+        macvlan,
+        ipvlanl2,
+        ipvlanl3
       ]
     ipam:
       type: object
@@ -457,12 +457,12 @@ components:
         - $ref: "#/components/schemas/ipv6_network"
     network_type:
       enum: [
-        "Unknown",
-        "Wired",
-        "Wireless",
-        "Local",
-        "Bridge",
-        "Virtual",
+        unknown,
+        wired,
+        wireless,
+        local,
+        bridge,
+        virtual,
       ]
     network_adapter:
       type: object
