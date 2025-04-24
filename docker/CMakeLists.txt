@@ -48,13 +48,14 @@ endfunction()
 
 function(stage_docker_fs)
     install(
-        TARGETS daemon RUNTIME
+        FILES ${CMAKE_BINARY_DIR}/flecsdaemon
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/bin
+        RENAME flecsd
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
     install(
-        FILES ${CMAKE_SOURCE_DIR}/flecs/scripts/flecs-update-hosts.sh
+        FILES ${CMAKE_SOURCE_DIR}/flecsdaemon/scripts/flecs-update-hosts.sh
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/bin
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
         PERMISSIONS GROUP_READ GROUP_EXECUTE
