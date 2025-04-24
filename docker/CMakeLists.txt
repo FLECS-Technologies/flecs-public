@@ -51,6 +51,10 @@ function(stage_docker_fs)
         FILES ${CMAKE_BINARY_DIR}/flecsdaemon
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/bin
         RENAME flecsd
+        PERMISSIONS
+            OWNER_READ OWNER_WRITE OWNER_EXECUTE
+            GROUP_READ GROUP_EXECUTE
+            WORLD_READ WORLD_EXECUTE
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
