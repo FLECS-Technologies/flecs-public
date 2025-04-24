@@ -27,7 +27,6 @@ impl Pouch for AppPouch {
 }
 
 impl AppPouch {
-    #[allow(dead_code)] // TODO: We currently can not close the pouch as this would overwrite data of C++ core
     pub(in super::super) fn close(&mut self) -> Result<()> {
         let file = fs::File::create(self.path.join(APPS_FILE_NAME))?;
         let content: Vec<_> = self.apps.values().collect();
