@@ -1132,7 +1132,7 @@ impl AppDeployment for DockerDeploymentImpl {
         let AppManifest::Single(manifest) = manifest else {
             anyhow::bail!("DockerDeploymentImpl supports only AppManifest::Single");
         };
-        Ok(self.app_info(quest, manifest).await.is_ok())
+        Ok(self.app_info(quest, manifest).await?.is_some())
     }
 
     async fn installed_app_size(
