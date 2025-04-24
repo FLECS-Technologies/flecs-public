@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["flecs-core", "flecsdaemon", "flecsd_axum_server", "flecstract", "flecs-console-api/flecs_console_client", "flecs_app_manifest", "flecs_core_cxx_bridge", "examples"]
+members = ["flecs-core", "flecsdaemon", "flecsd_axum_server", "flecstract", "flecs-console-api/flecs_console_client", "flecs_app_manifest", "examples"]
 
 [workspace.package]
 rust-version = "1.86.0"
