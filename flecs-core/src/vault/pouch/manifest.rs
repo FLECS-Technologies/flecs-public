@@ -30,7 +30,6 @@ impl Pouch for ManifestPouch {
 }
 
 impl ManifestPouch {
-    #[allow(dead_code)] // TODO: We currently can not close the pouch as this would overwrite data of C++ core
     pub(in super::super) fn close(&mut self) -> crate::vault::Result<()> {
         let mut errors: Vec<String> = Vec::new();
         for (key, manifest) in &self.manifests {
