@@ -1185,6 +1185,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_stop_instance()
             .times(1)
             .returning(|_, _| Ok(()));
@@ -1244,6 +1247,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_stop_instance()
@@ -1324,6 +1330,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_logs()
             .withf(|_, id| *id == ID)
             .once()
@@ -1355,6 +1364,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_logs()
             .once()
             .returning(|_, _| Err(anyhow::anyhow!("TestError")));
@@ -1381,6 +1393,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
@@ -1444,6 +1459,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
@@ -1515,6 +1533,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
@@ -1599,6 +1620,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_is_app_installed()
             .returning(|_, _| Ok(true));
         deployment.expect_default_network().times(2).returning(|| {
@@ -1672,6 +1696,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_is_app_installed()
             .returning(|_, _| Ok(false));
         let deployment = Deployment::Docker(Arc::new(deployment));
@@ -1702,6 +1729,9 @@ pub mod tests {
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
@@ -1730,6 +1760,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_app_info()
@@ -1762,6 +1795,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_is_app_installed()
@@ -1802,6 +1838,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
         let deployment = Deployment::Docker(Arc::new(deployment));
@@ -1818,6 +1857,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
@@ -1843,6 +1885,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
         let deployment = Deployment::Docker(Arc::new(deployment));
@@ -1864,6 +1909,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
@@ -1889,6 +1937,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
         let deployment = Deployment::Docker(Arc::new(deployment));
@@ -1910,6 +1961,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
@@ -1936,6 +1990,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
         let deployment = Deployment::Docker(Arc::new(deployment));
@@ -1958,6 +2015,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
@@ -1991,6 +2051,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
@@ -3092,6 +3155,9 @@ pub mod tests {
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(NETWORK_INSTANCE, deployment)]),
@@ -3136,6 +3202,9 @@ pub mod tests {
             .returning(|_, _, _| Ok(()));
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
@@ -3897,6 +3966,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_status()
             .once()
             .returning(|_| Ok(InstanceStatus::Running));
@@ -3957,6 +4029,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_status()
             .once()
             .returning(|_| Ok(InstanceStatus::Stopped));
@@ -3986,6 +4061,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
@@ -4041,6 +4119,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_instance_status()
@@ -4173,6 +4254,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_status()
             .with(predicate::eq(NETWORK_INSTANCE))
             .returning(|_| Ok(InstanceStatus::Running));
@@ -4301,6 +4385,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockDeployment".to_string());
+        deployment
             .expect_network()
             .once()
             .with(predicate::eq(NETWORK_NAME.to_string()))
@@ -4348,6 +4435,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockDeployment".to_string());
         deployment
             .expect_network()
@@ -4439,6 +4529,9 @@ pub mod tests {
             .expect_id()
             .return_const("MockedDeployment".to_string());
         deployment
+            .expect_deployment_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
             .expect_instance_status()
             .with(predicate::eq(NETWORK_INSTANCE))
             .returning(|_| Ok(InstanceStatus::Running));
@@ -4487,6 +4580,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
+            .return_const("MockedDeployment".to_string());
+        deployment
+            .expect_deployment_id()
             .return_const("MockedDeployment".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(

@@ -32,6 +32,7 @@ impl Pouch for InstancePouch {
 
 impl InstancePouch {
     pub(in super::super) fn close(&mut self) -> Result<()> {
+        fs::create_dir_all(&self.path)?;
         let file = fs::File::create(self.path.join(INSTANCES_FILE_NAME))?;
         let content: Vec<_> = self.instances.values().collect();
         serde_json::to_writer_pretty(file, &content)?;

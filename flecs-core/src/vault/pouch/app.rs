@@ -28,6 +28,7 @@ impl Pouch for AppPouch {
 
 impl AppPouch {
     pub(in super::super) fn close(&mut self) -> Result<()> {
+        fs::create_dir_all(&self.path)?;
         let file = fs::File::create(self.path.join(APPS_FILE_NAME))?;
         let content: Vec<_> = self.apps.values().collect();
         serde_json::to_writer_pretty(file, &content)?;
