@@ -206,7 +206,7 @@ impl InstanceCommon for DockerInstance {
             result?;
         }
         for config_file in &self.manifest.config_files {
-            let src = src.join(&config_file.host_file_name);
+            let src = src.join("conf").join(&config_file.host_file_name);
             let dst = dst.join("conf");
             tokio::fs::create_dir_all(&dst).await?;
             let dst = dst.join(&config_file.host_file_name);
@@ -974,7 +974,7 @@ impl DockerInstance {
                     Self::export_config_files(
                         self.id,
                         self.manifest.config_files.clone(),
-                        path.to_path_buf(),
+                        path.join("conf"),
                     )
                 },
             )
@@ -1031,7 +1031,7 @@ impl DockerInstance {
                     Self::export_config_files(
                         self.id,
                         self.manifest.config_files.clone(),
-                        new_backup_path.to_path_buf(),
+                        new_backup_path.join("conf"),
                     )
                 },
             )
