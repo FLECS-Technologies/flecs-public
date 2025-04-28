@@ -1,4 +1,5 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::forge::time::SystemTimeExt;
 use crate::quest::SyncQuest;
 use crate::relic::async_flecstract::extract_from_file;
 use crate::sorcerer::importius::{ImportError, Importius};
@@ -8,7 +9,6 @@ use crate::vault::Vault;
 use async_trait::async_trait;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::UNIX_EPOCH;
 use tracing::warn;
 
 #[derive(Default)]
@@ -28,12 +28,7 @@ impl Importius for ImportiusImpl {
         base_path: PathBuf,
     ) -> Result<(), ImportError> {
         let now = std::time::SystemTime::now();
-        let temp_path = temp_path.join(
-            now.duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis()
-                .to_string(),
-        );
+        let temp_path = temp_path.join(now.unix_millis().to_string());
         tokio::fs::create_dir_all(&temp_path).await?;
         let extract_closure = {
             let archive_path = archive_path.clone();

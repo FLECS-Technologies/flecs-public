@@ -1,5 +1,6 @@
 mod exportius_impl;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::forge::time::SystemTimeExt;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::quest::SyncQuest;
 use crate::relic::async_flecstract::archive_to_file;
@@ -16,7 +17,6 @@ use mockall::automock;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::UNIX_EPOCH;
 
 pub mod manifest {
     use serde::{Deserialize, Serialize};
@@ -163,12 +163,8 @@ pub trait Exportius: Sorcerer + 'static {
         instances: Vec<InstanceId>,
     ) -> Result<PathBuf, CreateExportError> {
         let now = std::time::SystemTime::now();
-        let export_dir = PathBuf::from(crate::lore::flecsport::BASE_PATH).join(
-            now.duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis()
-                .to_string(),
-        );
+        let export_dir =
+            PathBuf::from(crate::lore::flecsport::BASE_PATH).join(now.unix_millis().to_string());
         let result = quest
             .lock()
             .await
