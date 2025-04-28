@@ -3,6 +3,7 @@ use super::{InstanceCommon, InstanceId, Logs};
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::ipaddr::BitComplementExt;
+use crate::forge::time::SystemTimeExt;
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
@@ -32,7 +33,6 @@ use std::mem::swap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::UNIX_EPOCH;
 use tokio::fs;
 use tracing::{debug, error, warn};
 
@@ -1016,12 +1016,9 @@ impl DockerInstance {
         }
         let now = std::time::SystemTime::now();
         let backup_path = base_path.join("backup");
-        let new_backup_path = backup_path.join(self.app_key().version).join(
-            now.duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis()
-                .to_string(),
-        );
+        let new_backup_path = backup_path
+            .join(self.app_key().version)
+            .join(now.unix_millis().to_string());
         let export_config_files_result = quest
             .lock()
             .await

@@ -1,4 +1,5 @@
 use super::{CreateInstanceError, InstanceCommon, InstanceId, Logs};
+use crate::forge::time::SystemTimeExt;
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
@@ -17,7 +18,6 @@ use std::mem::swap;
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::UNIX_EPOCH;
 
 #[derive(Debug, Serialize)]
 pub struct ComposeInstance {
@@ -384,12 +384,9 @@ impl ComposeInstance {
         let now = std::time::SystemTime::now();
         let backup_path = base_path.join("backup");
         let current_version = self.manifest.key.version.clone();
-        let new_backup_path = backup_path.join(&current_version).join(
-            now.duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis()
-                .to_string(),
-        );
+        let new_backup_path = backup_path
+            .join(&current_version)
+            .join(now.unix_millis().to_string());
         self.export(quest.clone(), &new_backup_path).await?;
         let new_version = new_manifest.key.version.clone();
         self.manifest = new_manifest;
