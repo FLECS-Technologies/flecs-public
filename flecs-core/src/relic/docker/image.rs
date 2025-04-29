@@ -104,7 +104,7 @@ impl crate::quest::StatusUpdate for CreateImageInfo {
 /// use flecs_core::relic::docker::image::pull;
 /// use std::sync::Arc;
 /// use tokio::sync::oneshot;
-/// use tokio::time::{sleep, Duration};
+/// use tokio::time::{Duration, sleep};
 ///
 /// # tokio_test::block_on(
 /// async {
@@ -287,9 +287,9 @@ impl crate::quest::StatusUpdate for BuildInfo {
 }
 /// # Example
 /// ```no_run
+/// use bollard::Docker;
 /// use bollard::auth::DockerCredentials;
 /// use bollard::image::ImportImageOptions;
-/// use bollard::Docker;
 /// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::image::load;
 /// use std::collections::HashMap;
@@ -333,14 +333,14 @@ impl crate::quest::StatusUpdate for BuildInfo {
 /// ```
 /// Await the complete load without accessing any sub results:
 /// ```no_run
-/// use bollard::image::ImportImageOptions;
 /// use bollard::Docker;
+/// use bollard::image::ImportImageOptions;
 /// use flecs_core::enchantment::quest_master::QuestMaster;
 /// use flecs_core::quest::Quest;
 /// use flecs_core::relic::docker::image::load;
 /// use std::path::Path;
 /// use std::sync::Arc;
-/// use tokio::time::{sleep, Duration};
+/// use tokio::time::{Duration, sleep};
 ///
 /// # tokio_test::block_on(
 /// async {
@@ -400,11 +400,11 @@ pub async fn load(
 /// use bollard::Docker;
 /// use flecs_core::enchantment::quest_master::QuestMaster;
 /// use flecs_core::quest::Progress;
-/// use flecs_core::relic::docker::image::save;
 /// use flecs_core::relic::docker::ByteStatus;
+/// use flecs_core::relic::docker::image::save;
 /// use std::path::Path;
 /// use std::sync::Arc;
-/// use tokio::time::{sleep, Duration};
+/// use tokio::time::{Duration, sleep};
 ///
 /// # tokio_test::block_on(
 /// async {

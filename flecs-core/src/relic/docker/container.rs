@@ -31,8 +31,8 @@ use tracing::{error, warn};
 
 /// # Example
 /// ```no_run
-/// use bollard::exec::{CreateExecOptions, StartExecResults};
 /// use bollard::Docker;
+/// use bollard::exec::{CreateExecOptions, StartExecResults};
 /// use flecs_core::relic::docker::container::exec;
 /// use futures_util::StreamExt;
 /// use std::sync::Arc;
@@ -86,8 +86,8 @@ where
 
 /// # Example
 /// ```no_run
-/// use bollard::container::StopContainerOptions;
 /// use bollard::Docker;
+/// use bollard::container::StopContainerOptions;
 /// use flecs_core::relic::docker::container::stop;
 /// use std::sync::Arc;
 ///
@@ -135,9 +135,9 @@ pub async fn start(docker_client: Arc<Docker>, container_name: &str) -> Result<(
 
 /// # Example
 /// ```no_run
+/// use bollard::Docker;
 /// use bollard::container::Config;
 /// use bollard::container::CreateContainerOptions;
-/// use bollard::Docker;
 /// use flecs_core::relic::docker::container::create;
 /// use std::sync::Arc;
 ///
@@ -181,8 +181,8 @@ where
 
 /// # Example
 /// ```no_run
-/// use bollard::container::ListContainersOptions;
 /// use bollard::Docker;
+/// use bollard::container::ListContainersOptions;
 /// use flecs_core::relic::docker::container::list;
 /// use std::sync::Arc;
 ///
@@ -209,8 +209,8 @@ where
 /// and an error otherwise
 /// # Example
 /// ```no_run
-/// use bollard::container::RemoveContainerOptions;
 /// use bollard::Docker;
+/// use bollard::container::RemoveContainerOptions;
 /// use flecs_core::relic::docker::container::remove;
 /// use std::sync::Arc;
 ///
