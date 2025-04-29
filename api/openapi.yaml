@@ -503,47 +503,6 @@ components:
         ipAddress:
           type: string
           format: ipv4
-    instance_config_network_adapter:
-      type: object
-      required:
-        - name
-        - active
-        - connected
-      properties:
-        name:
-          type: string
-        active:
-          type: boolean
-        connected:
-          type: boolean
-        ipAddress:
-          type: string
-          format: ipv4
-        subnetMask:
-          type: string
-          format: ipv4
-        gateway:
-          type: string
-          format: ipv4
-    instance_config:
-      type: object
-      required:
-        - networkAdapters
-        - devices
-      properties:
-        networkAdapters:
-          type: array
-          items:
-            $ref: "#/components/schemas/instance_config_network_adapter"
-        devices:
-          type: object
-          required:
-            - usb
-          properties:
-            usb:
-              type: array
-              items:
-                $ref: "#/components/schemas/instance_config_usb_device"
     instance_environment:
       type: array
       items:
@@ -1350,49 +1309,6 @@ paths:
       responses:
         "202":
           $ref: "#/components/responses/response_202"
-        "404":
-          description: No instance with this instance_id found
-  /instances/{instance_id}/config:
-    get:
-      tags: [ "Instances" ]
-      summary: Get configuration of an Instance
-      parameters:
-        - name: instance_id
-          in: path
-          schema:
-            type: string
-          required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/instance_config"
-        "404":
-          description: No instance with this instance_id found
-    post:
-      tags: [ "Instances" ]
-      summary: Update configuration of an Instance
-      parameters:
-        - name: instance_id
-          in: path
-          schema:
-            type: string
-          required: true
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/instance_config"
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/instance_config"
         "404":
           description: No instance with this instance_id found
   /instances/{instance_id}/logs:

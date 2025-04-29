@@ -172,16 +172,6 @@ pub enum InstancesInstanceIdConfigEnvironmentVariableNamePutResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
-pub enum InstancesInstanceIdConfigGetResponse {
-    /// Success
-    Status200_Success(models::InstanceConfig),
-    /// No instance with this instance_id found
-    Status404_NoInstanceWithThisInstance,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[must_use]
-#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdConfigLabelsGetResponse {
     /// Success
     Status200_Success(Vec<models::InstanceLabel>),
@@ -418,16 +408,6 @@ pub enum InstancesInstanceIdConfigPortsTransportProtocolPutResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
-pub enum InstancesInstanceIdConfigPostResponse {
-    /// Success
-    Status200_Success(models::InstanceConfig),
-    /// No instance with this instance_id found
-    Status404_NoInstanceWithThisInstance,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[must_use]
-#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdDeleteResponse {
     /// Accepted
     Status202_Accepted(models::JobMeta),
@@ -656,17 +636,6 @@ pub trait Instances {
         body: models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response,
     ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNamePutResponse, ()>;
 
-    /// Get configuration of an Instance.
-    ///
-    /// InstancesInstanceIdConfigGet - GET /v2/instances/{instance_id}/config
-    async fn instances_instance_id_config_get(
-        &self,
-        method: Method,
-        host: Host,
-        cookies: CookieJar,
-        path_params: models::InstancesInstanceIdConfigGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigGetResponse, ()>;
-
     /// Retrieve labels of an instance.
     ///
     /// InstancesInstanceIdConfigLabelsGet - GET /v2/instances/{instance_id}/config/labels
@@ -878,18 +847,6 @@ pub trait Instances {
         path_params: models::InstancesInstanceIdConfigPortsTransportProtocolPutPathParams,
         body: Vec<models::InstancePortMapping>,
     ) -> Result<InstancesInstanceIdConfigPortsTransportProtocolPutResponse, ()>;
-
-    /// Update configuration of an Instance.
-    ///
-    /// InstancesInstanceIdConfigPost - POST /v2/instances/{instance_id}/config
-    async fn instances_instance_id_config_post(
-        &self,
-        method: Method,
-        host: Host,
-        cookies: CookieJar,
-        path_params: models::InstancesInstanceIdConfigPostPathParams,
-        body: models::InstanceConfig,
-    ) -> Result<InstancesInstanceIdConfigPostResponse, ()>;
 
     /// Delete a single instance.
     ///

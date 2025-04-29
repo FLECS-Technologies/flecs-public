@@ -30,7 +30,6 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse as DeleteEnvironmentVariableResponse,
     InstancesInstanceIdConfigEnvironmentVariableNameGetResponse as GetEnvironmentVariableResponse,
     InstancesInstanceIdConfigEnvironmentVariableNamePutResponse as PutEnvironmentVariableResponse,
-    InstancesInstanceIdConfigGetResponse,
     InstancesInstanceIdConfigLabelsGetResponse as GetLabelsResponse,
     InstancesInstanceIdConfigLabelsLabelNameGetResponse as GetLabelResponse,
     InstancesInstanceIdConfigMountsBindContainerPathGetResponse,
@@ -49,14 +48,14 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigPortsTransportProtocolHostPortRangeGetResponse as GetPortRangeResponse,
     InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutResponse as PutPortRangeResponse,
     InstancesInstanceIdConfigPortsTransportProtocolPutResponse as PutProtocolPortsResponse,
-    InstancesInstanceIdConfigPostResponse, InstancesInstanceIdDeleteResponse,
-    InstancesInstanceIdEditorPortGetResponse, InstancesInstanceIdGetResponse,
-    InstancesInstanceIdLogsGetResponse, InstancesInstanceIdPatchResponse,
-    InstancesInstanceIdStartPostResponse, InstancesInstanceIdStopPostResponse,
+    InstancesInstanceIdDeleteResponse, InstancesInstanceIdEditorPortGetResponse,
+    InstancesInstanceIdGetResponse, InstancesInstanceIdLogsGetResponse,
+    InstancesInstanceIdPatchResponse, InstancesInstanceIdStartPostResponse,
+    InstancesInstanceIdStopPostResponse,
 };
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{
-    InstanceConfig, InstanceEnvironment, InstancesCreatePostRequest, InstancesGetQueryParams,
+    InstanceEnvironment, InstancesCreatePostRequest, InstancesGetQueryParams,
     InstancesInstanceIdConfigDevicesUsbDeletePathParams,
     InstancesInstanceIdConfigDevicesUsbGetPathParams,
     InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
@@ -69,7 +68,6 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdConfigEnvironmentVariableNameGet200Response as PutEnvironmentVariableRequest,
     InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams as GetEnvironmentVariableParams,
     InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams as PutEnvironmentVariableParams,
-    InstancesInstanceIdConfigGetPathParams,
     InstancesInstanceIdConfigLabelsGetPathParams as GetLabelsParams,
     InstancesInstanceIdConfigLabelsLabelNameGetPathParams as GetLabelParams,
     InstancesInstanceIdConfigMountsBindContainerPathGetPathParams,
@@ -89,11 +87,10 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutPathParams as PutPortRangeParams,
     InstancesInstanceIdConfigPortsTransportProtocolHostPortRangePutRequest as PutPortRangeRequest,
     InstancesInstanceIdConfigPortsTransportProtocolPutPathParams as PutProtocolPortsParams,
-    InstancesInstanceIdConfigPostPathParams, InstancesInstanceIdDeletePathParams,
-    InstancesInstanceIdEditorPortGetPathParams, InstancesInstanceIdGetPathParams,
-    InstancesInstanceIdLogsGetPathParams, InstancesInstanceIdPatchPathParams,
-    InstancesInstanceIdPatchRequest, InstancesInstanceIdStartPostPathParams,
-    InstancesInstanceIdStopPostPathParams,
+    InstancesInstanceIdDeletePathParams, InstancesInstanceIdEditorPortGetPathParams,
+    InstancesInstanceIdGetPathParams, InstancesInstanceIdLogsGetPathParams,
+    InstancesInstanceIdPatchPathParams, InstancesInstanceIdPatchRequest,
+    InstancesInstanceIdStartPostPathParams, InstancesInstanceIdStopPostPathParams,
 };
 use http::Method;
 use std::num::NonZeroU16;
@@ -341,16 +338,6 @@ impl<
             )
             .await,
         )
-    }
-
-    async fn instances_instance_id_config_get(
-        &self,
-        _method: Method,
-        _host: Host,
-        _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigGetPathParams,
-    ) -> Result<InstancesInstanceIdConfigGetResponse, ()> {
-        todo!()
     }
 
     async fn instances_instance_id_config_labels_get(
@@ -673,17 +660,6 @@ impl<
             )
             .await,
         )
-    }
-
-    async fn instances_instance_id_config_post(
-        &self,
-        _method: Method,
-        _host: Host,
-        _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigPostPathParams,
-        _body: InstanceConfig,
-    ) -> Result<InstancesInstanceIdConfigPostResponse, ()> {
-        todo!()
     }
 
     async fn instances_instance_id_delete(

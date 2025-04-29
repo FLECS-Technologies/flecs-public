@@ -105,9 +105,6 @@ where
         .route("/v2/instances/:instance_id",
             delete(instances_instance_id_delete::<I, A>).get(instances_instance_id_get::<I, A>).patch(instances_instance_id_patch::<I, A>)
         )
-        .route("/v2/instances/:instance_id/config",
-            get(instances_instance_id_config_get::<I, A>).post(instances_instance_id_config_post::<I, A>)
-        )
         .route("/v2/instances/:instance_id/config/devices/usb",
             delete(instances_instance_id_config_devices_usb_delete::<I, A>).get(instances_instance_id_config_devices_usb_get::<I, A>)
         )
@@ -3758,87 +3755,6 @@ where
 }
 
 #[tracing::instrument(skip_all)]
-fn instances_instance_id_config_get_validation(
-    path_params: models::InstancesInstanceIdConfigGetPathParams,
-) -> std::result::Result<(models::InstancesInstanceIdConfigGetPathParams,), ValidationErrors> {
-    path_params.validate()?;
-
-    Ok((path_params,))
-}
-/// InstancesInstanceIdConfigGet - GET /v2/instances/{instance_id}/config
-#[tracing::instrument(skip_all)]
-async fn instances_instance_id_config_get<I, A>(
-    method: Method,
-    host: Host,
-    cookies: CookieJar,
-    Path(path_params): Path<models::InstancesInstanceIdConfigGetPathParams>,
-    State(api_impl): State<I>,
-) -> Result<Response, StatusCode>
-where
-    I: AsRef<A> + Send + Sync,
-    A: apis::instances::Instances,
-{
-    #[allow(clippy::redundant_closure)]
-    let validation = tokio::task::spawn_blocking(move || {
-        instances_instance_id_config_get_validation(path_params)
-    })
-    .await
-    .unwrap();
-
-    let Ok((path_params,)) = validation else {
-        return Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(Body::from(validation.unwrap_err().to_string()))
-            .map_err(|_| StatusCode::BAD_REQUEST);
-    };
-
-    let result = api_impl
-        .as_ref()
-        .instances_instance_id_config_get(method, host, cookies, path_params)
-        .await;
-
-    let mut response = Response::builder();
-
-    let resp = match result {
-                                            Ok(rsp) => match rsp {
-                                                apis::instances::InstancesInstanceIdConfigGetResponse::Status200_Success
-                                                    (body)
-                                                => {
-                                                  let mut response = response.status(200);
-                                                  {
-                                                    let mut response_headers = response.headers_mut().unwrap();
-                                                    response_headers.insert(
-                                                        CONTENT_TYPE,
-                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
-                                                  }
-
-                                                  let body_content =  tokio::task::spawn_blocking(move ||
-                                                      serde_json::to_vec(&body).map_err(|e| {
-                                                        error!(error = ?e);
-                                                        StatusCode::INTERNAL_SERVER_ERROR
-                                                      })).await.unwrap()?;
-                                                  response.body(Body::from(body_content))
-                                                },
-                                                apis::instances::InstancesInstanceIdConfigGetResponse::Status404_NoInstanceWithThisInstance
-                                                => {
-                                                  let mut response = response.status(404);
-                                                  response.body(Body::empty())
-                                                },
-                                            },
-                                            Err(_) => {
-                                                // Application code returned an error. This should not happen, as the implementation should
-                                                // return a valid response.
-                                                response.status(500).body(Body::empty())
-                                            },
-                                        };
-
-    resp.map_err(|e| {
-        error!(error = ?e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })
-}
-
-#[tracing::instrument(skip_all)]
 fn instances_instance_id_config_labels_get_validation(
     path_params: models::InstancesInstanceIdConfigLabelsGetPathParams,
 ) -> std::result::Result<(models::InstancesInstanceIdConfigLabelsGetPathParams,), ValidationErrors>
@@ -5945,104 +5861,6 @@ where
                                                         StatusCode::INTERNAL_SERVER_ERROR
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
-                                                },
-                                            },
-                                            Err(_) => {
-                                                // Application code returned an error. This should not happen, as the implementation should
-                                                // return a valid response.
-                                                response.status(500).body(Body::empty())
-                                            },
-                                        };
-
-    resp.map_err(|e| {
-        error!(error = ?e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })
-}
-
-#[derive(validator::Validate)]
-#[allow(dead_code)]
-struct InstancesInstanceIdConfigPostBodyValidator<'a> {
-    #[validate(nested)]
-    body: &'a models::InstanceConfig,
-}
-
-#[tracing::instrument(skip_all)]
-fn instances_instance_id_config_post_validation(
-    path_params: models::InstancesInstanceIdConfigPostPathParams,
-    body: models::InstanceConfig,
-) -> std::result::Result<
-    (
-        models::InstancesInstanceIdConfigPostPathParams,
-        models::InstanceConfig,
-    ),
-    ValidationErrors,
-> {
-    path_params.validate()?;
-    let b = InstancesInstanceIdConfigPostBodyValidator { body: &body };
-    b.validate()?;
-
-    Ok((path_params, body))
-}
-/// InstancesInstanceIdConfigPost - POST /v2/instances/{instance_id}/config
-#[tracing::instrument(skip_all)]
-async fn instances_instance_id_config_post<I, A>(
-    method: Method,
-    host: Host,
-    cookies: CookieJar,
-    Path(path_params): Path<models::InstancesInstanceIdConfigPostPathParams>,
-    State(api_impl): State<I>,
-    Json(body): Json<models::InstanceConfig>,
-) -> Result<Response, StatusCode>
-where
-    I: AsRef<A> + Send + Sync,
-    A: apis::instances::Instances,
-{
-    #[allow(clippy::redundant_closure)]
-    let validation = tokio::task::spawn_blocking(move || {
-        instances_instance_id_config_post_validation(path_params, body)
-    })
-    .await
-    .unwrap();
-
-    let Ok((path_params, body)) = validation else {
-        return Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(Body::from(validation.unwrap_err().to_string()))
-            .map_err(|_| StatusCode::BAD_REQUEST);
-    };
-
-    let result = api_impl
-        .as_ref()
-        .instances_instance_id_config_post(method, host, cookies, path_params, body)
-        .await;
-
-    let mut response = Response::builder();
-
-    let resp = match result {
-                                            Ok(rsp) => match rsp {
-                                                apis::instances::InstancesInstanceIdConfigPostResponse::Status200_Success
-                                                    (body)
-                                                => {
-                                                  let mut response = response.status(200);
-                                                  {
-                                                    let mut response_headers = response.headers_mut().unwrap();
-                                                    response_headers.insert(
-                                                        CONTENT_TYPE,
-                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
-                                                  }
-
-                                                  let body_content =  tokio::task::spawn_blocking(move ||
-                                                      serde_json::to_vec(&body).map_err(|e| {
-                                                        error!(error = ?e);
-                                                        StatusCode::INTERNAL_SERVER_ERROR
-                                                      })).await.unwrap()?;
-                                                  response.body(Body::from(body_content))
-                                                },
-                                                apis::instances::InstancesInstanceIdConfigPostResponse::Status404_NoInstanceWithThisInstance
-                                                => {
-                                                  let mut response = response.status(404);
-                                                  response.body(Body::empty())
                                                 },
                                             },
                                             Err(_) => {
