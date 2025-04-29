@@ -10,7 +10,7 @@ use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender, channel, error::TrySendError};
 use tokio::sync::oneshot::error::RecvError;
 use tokio::task::JoinError;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum DeleteQuestError {
@@ -175,7 +175,7 @@ impl QuestMasterInner {
             Ok(result) => match finish_quest(&quest, result).await {
                 Err(e) => {
                     let quest = quest.lock().await;
-                    warn!(
+                    error!(
                         "Quest '{}' with id {} failed after {:#?}: {e}",
                         quest.description,
                         quest.id.0,
