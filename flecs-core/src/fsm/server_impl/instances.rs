@@ -745,12 +745,12 @@ impl<
         _cookies: CookieJar,
         path_params: InstancesInstanceIdLogsGetPathParams,
     ) -> Result<InstancesInstanceIdLogsGetResponse, ()> {
-        super::api::v2::instances::instance_id::logs::get(
+        Ok(super::api::v2::instances::instance_id::logs::get(
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
             path_params,
         )
-        .await
+        .await)
     }
 
     async fn instances_instance_id_patch(

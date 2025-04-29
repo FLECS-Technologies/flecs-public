@@ -63,14 +63,7 @@ pub async fn get<I: Instancius>(
     instancius: Arc<I>,
     path_params: GetPathParams,
 ) -> GetResponse {
-    let instance_id = match InstanceId::from_str(path_params.instance_id.as_str()) {
-        Err(e) => {
-            return GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(
-                format!("Failed to parse instance id: {e}"),
-            ));
-        }
-        Ok(instance_id) => instance_id,
-    };
+    let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).unwrap();
     match instancius.get_instance_detailed(vault, instance_id).await {
         Ok(Some(details)) => GetResponse::Status200_Success(details),
         Ok(None) => GetResponse::Status404_NoInstanceWithThisInstance,

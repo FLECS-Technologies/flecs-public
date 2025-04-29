@@ -17,7 +17,7 @@ pub async fn post<I: Instancius + 'static, F: Floxy + 'static>(
     path_params: PostPathParams,
 ) -> Result<PostResponse, ()> {
     // TODO: Add 400 Response to API
-    let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
+    let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).unwrap();
     if !instancius
         .does_instance_exist(vault.clone(), instance_id)
         .await
