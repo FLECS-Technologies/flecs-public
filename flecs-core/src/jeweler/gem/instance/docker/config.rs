@@ -207,6 +207,7 @@ pub struct InstanceConfig {
     pub connected_networks: HashMap<NetworkId, IpAddr>,
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub usb_devices: HashMap<String, UsbPathConfig>,
+    /// Mapping of editor port -> open port in floxy
     #[serde(skip)]
     pub mapped_editor_ports: HashMap<u16, u16>,
 }
