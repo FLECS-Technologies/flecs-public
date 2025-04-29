@@ -81,19 +81,6 @@ components:
           orphaned,
           unknown,
         ]
-    app_editor:
-      type: object
-      required:
-        - name
-        - port
-      properties:
-        name:
-          type: string
-        port:
-          $ref: "#/components/schemas/port"
-        supportsReverseProxy:
-          type: boolean
-          default: true
     installed_app:
       required:
         - appKey
@@ -103,7 +90,6 @@ components:
         - downloadToken
         - installedSize
         - multiInstance
-        - editors
       properties:
         appKey:
           $ref: "#/components/schemas/app_key"
@@ -116,10 +102,6 @@ components:
           example: 10485760
         multiInstance:
           type: boolean
-        editors:
-          type: array
-          items:
-            $ref: "#/components/schemas/app_editor"
     license_key:
       type: string
       description: License key for App installation
