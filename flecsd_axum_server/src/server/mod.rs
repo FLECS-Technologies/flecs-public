@@ -283,6 +283,29 @@ where
                 let mut response = response.status(404);
                 response.body(Body::empty())
             }
+            apis::apps::AppsAppDeleteResponse::Status500_InternalServerError(body) => {
+                let mut response = response.status(500);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
         },
         Err(_) => {
             // Application code returned an error. This should not happen, as the implementation should
@@ -373,6 +396,29 @@ where
                 let mut response = response.status(404);
                 response.body(Body::empty())
             }
+            apis::apps::AppsAppGetResponse::Status500_InternalServerError(body) => {
+                let mut response = response.status(500);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
         },
         Err(_) => {
             // Application code returned an error. This should not happen, as the implementation should
@@ -423,6 +469,29 @@ where
         Ok(rsp) => match rsp {
             apis::apps::AppsGetResponse::Status200_Success(body) => {
                 let mut response = response.status(200);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
+            apis::apps::AppsGetResponse::Status500_InternalServerError(body) => {
+                let mut response = response.status(500);
                 {
                     let mut response_headers = response.headers_mut().unwrap();
                     response_headers.insert(
@@ -1665,6 +1734,29 @@ where
             }
             apis::device::DeviceOnboardingPostResponse::Status400_MalformedRequest(body) => {
                 let mut response = response.status(400);
+                {
+                    let mut response_headers = response.headers_mut().unwrap();
+                    response_headers.insert(
+                        CONTENT_TYPE,
+                        HeaderValue::from_str("application/json").map_err(|e| {
+                            error!(error = ?e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?,
+                    );
+                }
+
+                let body_content = tokio::task::spawn_blocking(move || {
+                    serde_json::to_vec(&body).map_err(|e| {
+                        error!(error = ?e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                })
+                .await
+                .unwrap()?;
+                response.body(Body::from(body_content))
+            }
+            apis::device::DeviceOnboardingPostResponse::Status500_InternalServerError(body) => {
+                let mut response = response.status(500);
                 {
                     let mut response_headers = response.headers_mut().unwrap();
                     response_headers.insert(
@@ -6032,6 +6124,24 @@ where
                                                   let mut response = response.status(404);
                                                   response.body(Body::empty())
                                                 },
+                                                apis::instances::InstancesInstanceIdDeleteResponse::Status500_InternalServerError
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(500);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
                                             },
                                             Err(_) => {
                                                 // Application code returned an error. This should not happen, as the implementation should
@@ -6462,6 +6572,24 @@ where
                                                 => {
                                                   let mut response = response.status(404);
                                                   response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdPatchResponse::Status500_InternalServerError
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(500);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
                                                 },
                                             },
                                             Err(_) => {

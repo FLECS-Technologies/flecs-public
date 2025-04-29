@@ -433,6 +433,8 @@ pub enum InstancesInstanceIdDeleteResponse {
     Status202_Accepted(models::JobMeta),
     /// No instance with this instance_id found
     Status404_NoInstanceWithThisInstance,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -481,6 +483,8 @@ pub enum InstancesInstanceIdPatchResponse {
     Status202_Accepted(models::JobMeta),
     /// No instance with this instance_id found
     Status404_NoInstanceWithThisInstance,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

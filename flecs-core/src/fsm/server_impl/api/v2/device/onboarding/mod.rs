@@ -14,12 +14,10 @@ pub async fn post<A: AppRaiser + 'static>(
     quest_master: QuestMaster,
     console_client: ConsoleClient,
     request: PostRequest,
-) -> Result<PostResponse, ()> {
+) -> PostResponse {
     if request.apps.is_empty() {
-        return Ok(PostResponse::Status400_MalformedRequest(
-            models::AdditionalInfo::new(
-                "No apps to install given (field 'apps' is empty)".to_string(),
-            ),
+        return PostResponse::Status400_MalformedRequest(models::AdditionalInfo::new(
+            "No apps to install given (field 'apps' is empty)".to_string(),
         ));
     }
     let app_keys = request
@@ -53,10 +51,9 @@ pub async fn post<A: AppRaiser + 'static>(
         )
         .await
     {
-        Ok((id, _)) => Ok(PostResponse::Status202_Accepted(models::JobMeta::new(
-            id.0 as i32,
-        ))),
-        // TODO: Add 500 Response to API
-        Err(_) => Err(()),
+        Ok((id, _)) => PostResponse::Status202_Accepted(models::JobMeta::new(id.0 as i32)),
+        Err(e) => {
+            PostResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }

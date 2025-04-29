@@ -43,6 +43,8 @@ pub enum DeviceOnboardingPostResponse {
     Status202_Accepted(models::JobMeta),
     /// Malformed request
     Status400_MalformedRequest(models::AdditionalInfo),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
 }
 
 /// Device

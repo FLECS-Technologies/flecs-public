@@ -29,16 +29,16 @@ pub async fn delete<I: Instancius + 'static, F: Floxy + 'static>(
     floxy: Arc<F>,
     quest_master: QuestMaster,
     path_params: DeletePathParams,
-) -> Result<DeleteResponse, ()> {
+) -> DeleteResponse {
     let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
     if !instancius
         .does_instance_exist(vault.clone(), instance_id)
         .await
     {
-        return Ok(DeleteResponse::Status404_NoInstanceWithThisInstance);
+        return DeleteResponse::Status404_NoInstanceWithThisInstance;
     }
     let floxy = FloxyOperation::new_arc(floxy);
-    let quest_id = quest_master
+    match quest_master
         .lock()
         .await
         .schedule_quest(
@@ -50,12 +50,12 @@ pub async fn delete<I: Instancius + 'static, F: Floxy + 'static>(
             },
         )
         .await
-        // TODO: Add 500 Response to API
-        .map_err(|_| ())?
-        .0;
-    Ok(DeleteResponse::Status202_Accepted(models::JobMeta::new(
-        quest_id.0 as i32,
-    )))
+    {
+        Ok((id, _)) => DeleteResponse::Status202_Accepted(models::JobMeta::new(id.0 as i32)),
+        Err(e) => DeleteResponse::Status500_InternalServerError(models::AdditionalInfo::new(
+            e.to_string(),
+        )),
+    }
 }
 
 pub async fn get<I: Instancius>(
@@ -87,16 +87,16 @@ pub async fn patch<I: Instancius + 'static, F: Floxy + 'static>(
     quest_master: QuestMaster,
     path_params: PatchPathParams,
     request: PatchRequest,
-) -> Result<PatchResponse, ()> {
+) -> PatchResponse {
     let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
     if !instancius
         .does_instance_exist(vault.clone(), instance_id)
         .await
     {
-        return Ok(PatchResponse::Status404_NoInstanceWithThisInstance);
+        return PatchResponse::Status404_NoInstanceWithThisInstance;
     }
     let floxy = FloxyOperation::new_arc(floxy);
-    let quest_id = quest_master
+    match quest_master
         .lock()
         .await
         .schedule_quest(
@@ -116,10 +116,10 @@ pub async fn patch<I: Instancius + 'static, F: Floxy + 'static>(
             },
         )
         .await
-        // TODO: Add 500 Response to API
-        .map_err(|_| ())?
-        .0;
-    Ok(PatchResponse::Status202_Accepted(models::JobMeta::new(
-        quest_id.0 as i32,
-    )))
+    {
+        Ok((id, _)) => PatchResponse::Status202_Accepted(models::JobMeta::new(id.0 as i32)),
+        Err(e) => {
+            PatchResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
+    }
 }
