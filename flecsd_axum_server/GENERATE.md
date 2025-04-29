@@ -9,7 +9,7 @@ generation. All necessary steps are explained below.
 ## Generate the code
 
 Execute the following command from the repository root directory. Adjust the version if necessary
-``docker run --rm -v ${PWD}:/local --user $(id -u):$(id -g) openapitools/openapi-generator-cli:v7.11.0 generate -i /local/flecs/api/openapi.yaml --additional-properties=packageName=flecsd_axum_server,generateAliasAsModel=true,packageVersion=2.0.0 -g rust-axum -t /local/flecsd_axum_server/openapi_generator_templates -o /local/flecsd_axum_server``
+``docker run --rm -v ${PWD}:/local --user $(id -u):$(id -g) openapitools/openapi-generator-cli:v7.11.0 generate -i /local/api/openapi.yaml --additional-properties=packageName=flecsd_axum_server,generateAliasAsModel=true,packageVersion=2.0.0 -g rust-axum -t /local/flecsd_axum_server/openapi_generator_templates -o /local/flecsd_axum_server``
 
 ## Format the code
 
