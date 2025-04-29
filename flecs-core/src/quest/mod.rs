@@ -9,7 +9,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, OnceLock};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
-use tracing::debug;
+use tracing::{debug, warn};
 
 #[repr(transparent)]
 #[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
@@ -211,7 +211,7 @@ impl Quest {
                     quest.id.0,
                     std::time::Instant::now() - start
                 ),
-                Err(e) => debug!(
+                Err(e) => warn!(
                     "Sub-quest '{}' with id {} failed after {:#?}: {e}",
                     quest.description,
                     quest.id.0,
