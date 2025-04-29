@@ -48,9 +48,8 @@ endfunction()
 
 function(stage_docker_fs)
     install(
-        FILES ${CMAKE_BINARY_DIR}/flecsdaemon
+        FILES ${CMAKE_BINARY_DIR}/flecsd
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/bin
-        RENAME flecsd
         PERMISSIONS
             OWNER_READ OWNER_WRITE OWNER_EXECUTE
             GROUP_READ GROUP_EXECUTE
@@ -59,7 +58,7 @@ function(stage_docker_fs)
         EXCLUDE_FROM_ALL
     )
     install(
-        FILES ${CMAKE_SOURCE_DIR}/flecsdaemon/scripts/flecs-update-hosts.sh
+        FILES ${CMAKE_SOURCE_DIR}/flecsd/scripts/flecs-update-hosts.sh
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/bin
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
         PERMISSIONS GROUP_READ GROUP_EXECUTE
