@@ -14,23 +14,22 @@ pub async fn get<I: Instancius>(
     vault: Arc<Vault>,
     instancius: Arc<I>,
     path_params: GetPathParams,
-) -> Result<GetResponse, ()> {
-    // TODO: Add 400 Response to API
-    let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).map_err(|_| ())?;
+) -> GetResponse {
+    let instance_id = InstanceId::from_str(path_params.instance_id.as_str()).unwrap();
     if !instancius
         .does_instance_exist(vault.clone(), instance_id)
         .await
     {
-        return Ok(GetResponse::Status404_NoInstanceWithThisInstance);
+        return GetResponse::Status404_NoInstanceWithThisInstance;
     }
     match instancius.get_instance_logs(vault, instance_id).await {
-        Err(e) => Ok(GetResponse::Status500_InternalServerError(
-            models::AdditionalInfo::new(e.to_string()),
-        )),
-        Ok(logs) => Ok(GetResponse::Status200_Success(GetResponse200 {
+        Err(e) => {
+            GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
+        Ok(logs) => GetResponse::Status200_Success(GetResponse200 {
             stdout: logs.stdout,
             stderr: logs.stderr,
-        })),
+        }),
     }
 }
 
@@ -57,7 +56,7 @@ mod tests {
                 },
             )
             .await,
-            Ok(GetResponse::Status404_NoInstanceWithThisInstance)
+            GetResponse::Status404_NoInstanceWithThisInstance
         )
     }
 }
