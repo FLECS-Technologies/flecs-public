@@ -25,7 +25,8 @@ use async_trait::async_trait;
 use bollard::container::Config;
 use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
 use config::InstanceConfig;
-use flecsd_axum_server::models::{AppInstance, InstanceEditors, InstancesInstanceIdGet200Response};
+use flecsd_axum_server::models;
+use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
 use futures_util::future::{BoxFuture, join_all};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -97,7 +98,7 @@ impl InstanceCommon for DockerInstance {
             app_key: self.app_key().into(),
             status: status.into(),
             desired: self.desired.into(),
-            editors: None,
+            editors: self.instance_editors(),
         })
     }
 
@@ -141,8 +142,7 @@ impl InstanceCommon for DockerInstance {
                     .unwrap_or_default(),
                 ports,
                 volumes,
-                // TODO: Fill editors
-                editors: Some(InstanceEditors::from(Vec::new())),
+                editors: self.instance_editors(),
             },
         )
     }
@@ -337,6 +337,23 @@ impl DockerInstance {
         match self.deployment.default_network().await?.name {
             None => anyhow::bail!("Default network has no name"),
             Some(network_id) => Ok(self.config.connected_networks.get(&network_id).cloned()),
+        }
+    }
+
+    fn instance_editors(&self) -> Option<models::InstanceEditors> {
+        let editors: Vec<_> = self
+            .manifest
+            .editors()
+            .iter()
+            .map(|editor| models::InstanceEditor {
+                name: editor.name.clone(),
+                url: format!("/v2/instances/{}/editor/{}", self.id, editor.port),
+            })
+            .collect();
+        if editors.is_empty() {
+            None
+        } else {
+            Some(models::InstanceEditors::from(editors))
         }
     }
 
@@ -1897,7 +1914,16 @@ pub mod tests {
             },
             status: flecsd_axum_server::models::InstanceStatus::Running,
             desired: flecsd_axum_server::models::InstanceStatus::Running,
-            editors: None,
+            editors: Some(models::InstanceEditors::from(vec![
+                models::InstanceEditor {
+                    name: "Editor#1".to_string(),
+                    url: "/v2/instances/00000123/editor/123".to_string(),
+                },
+                models::InstanceEditor {
+                    name: "Editor#2".to_string(),
+                    url: "/v2/instances/00000123/editor/789".to_string(),
+                },
+            ])),
         };
         assert_eq!(instance.generate_info().await.unwrap(), expected_info);
     }
@@ -1996,7 +2022,16 @@ pub mod tests {
                 name: "my-app-etc".to_string(),
                 path: "/etc/my-app".to_string(),
             }],
-            editors: Some(InstanceEditors::from(Vec::new())),
+            editors: Some(models::InstanceEditors::from(vec![
+                models::InstanceEditor {
+                    name: "Editor#1".to_string(),
+                    url: "/v2/instances/00000123/editor/123".to_string(),
+                },
+                models::InstanceEditor {
+                    name: "Editor#2".to_string(),
+                    url: "/v2/instances/00000123/editor/789".to_string(),
+                },
+            ])),
         };
         assert_eq!(
             instance.generate_detailed_info().await.unwrap(),
