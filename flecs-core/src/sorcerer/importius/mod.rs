@@ -4,8 +4,10 @@ use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem::instance::CreateInstanceError;
 use crate::jeweler::gem::instance::docker::TransferIpError;
 use crate::quest::SyncQuest;
+use crate::relic::device::usb::UsbDeviceReader;
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
+use crate::vault::pouch::AppKey;
 use async_trait::async_trait;
 pub use importius_impl::*;
 #[cfg(test)]
@@ -49,8 +51,6 @@ pub enum ImportAppError {
     IO(#[from] std::io::Error),
     #[error("Error during deserialization: {0}")]
     Ser(#[from] serde_json::Error),
-    #[error("Internal logic error: {0}")]
-    RecvError(#[from] RecvError),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -75,8 +75,8 @@ pub enum ImportInstanceError {
     Ser(#[from] serde_json::Error),
     #[error(transparent)]
     Invalid(#[from] anyhow::Error),
-    #[error("Internal logic error: {0}")]
-    RecvError(#[from] RecvError),
+    #[error("App {0} not present in import")]
+    AppNotPresent(AppKey),
     #[error(transparent)]
     TransferIp(#[from] TransferIpError),
     #[error(transparent)]
@@ -108,19 +108,27 @@ pub enum ImportError {
     InstanceStart(anyhow::Error),
     #[error("IO error during import: {0}")]
     IO(#[from] std::io::Error),
+    #[error("Internal logic error: {0}")]
+    RecvError(#[from] RecvError),
+}
+
+#[derive(Debug, Clone)]
+pub struct ImportPathInfo {
+    pub archive_path: PathBuf,
+    pub temp_path: PathBuf,
+    pub base_path: PathBuf,
 }
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait Importius: Sorcerer + 'static {
-    async fn import_archive<F: Floxy + 'static>(
+    async fn import_archive<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
         floxy: Arc<FloxyOperation<F>>,
-        archive_path: PathBuf,
-        temp_path: PathBuf,
-        base_path: PathBuf,
+        usb_device_reader: Arc<U>,
+        path_info: ImportPathInfo,
     ) -> Result<(), ImportError>;
 }
 

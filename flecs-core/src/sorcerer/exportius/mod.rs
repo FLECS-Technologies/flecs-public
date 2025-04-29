@@ -19,26 +19,55 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub mod manifest {
+    use crate::jeweler::gem::instance::InstanceId;
     use serde::{Deserialize, Serialize};
+    use std::str::FromStr;
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(tag = "_schemaVersion")]
     pub enum Manifest {
+        #[serde(rename = "2.0.0")]
+        V2(v2::Manifest),
         #[serde(rename = "3.0.0")]
         V3(v3::Manifest),
     }
 
-    /// Schema version 3.0.0
-    pub mod v3 {
-        use crate::jeweler::deployment::DeploymentId;
+    impl Manifest {
+        pub fn instance_ids(&self) -> Vec<InstanceId> {
+            match self {
+                Manifest::V2(manifest) => manifest
+                    .contents
+                    .instances
+                    .iter()
+                    .filter_map(|instance| InstanceId::from_str(&instance.instance_id).ok())
+                    .collect(),
+                Manifest::V3(manifest) => manifest.contents.instances.clone(),
+            }
+        }
+    }
+
+    impl From<v2::Manifest> for Manifest {
+        fn from(value: v2::Manifest) -> Self {
+            Self::V2(value)
+        }
+    }
+
+    impl From<v3::Manifest> for Manifest {
+        fn from(value: v3::Manifest) -> Self {
+            Self::V3(value)
+        }
+    }
+
+    /// Schema version 2.0.0
+    pub mod v2 {
+        use crate::legacy;
         use crate::vault::pouch::AppKey;
-        use crate::vault::pouch::instance::InstanceId;
         use flecsd_axum_server::models::SystemInfo;
         use serde::{Deserialize, Serialize};
 
         #[derive(Serialize, Deserialize, Debug, Clone)]
         pub struct Manifest {
-            pub time: std::time::SystemTime,
+            pub time: String,
             pub contents: Contents,
             pub device: Device,
             pub version: Version,
@@ -47,8 +76,7 @@ pub mod manifest {
         #[derive(Serialize, Deserialize, Debug, Clone)]
         pub struct Contents {
             pub apps: Vec<AppKey>,
-            pub instances: Vec<InstanceId>,
-            pub deployments: Vec<DeploymentId>,
+            pub instances: Vec<legacy::deployment::Instance>,
         }
 
         #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -70,6 +98,30 @@ pub mod manifest {
                     api: crate::lore::API_VERSION.to_string(),
                 }
             }
+        }
+    }
+
+    /// Schema version 3.0.0
+    pub mod v3 {
+        pub use super::v2::{Device, Version};
+        use crate::jeweler::deployment::DeploymentId;
+        use crate::vault::pouch::AppKey;
+        use crate::vault::pouch::instance::InstanceId;
+        use serde::{Deserialize, Serialize};
+
+        #[derive(Serialize, Deserialize, Debug, Clone)]
+        pub struct Manifest {
+            pub time: std::time::SystemTime,
+            pub contents: Contents,
+            pub device: Device,
+            pub version: Version,
+        }
+
+        #[derive(Serialize, Deserialize, Debug, Clone)]
+        pub struct Contents {
+            pub apps: Vec<AppKey>,
+            pub instances: Vec<InstanceId>,
+            pub deployments: Vec<DeploymentId>,
         }
     }
 }

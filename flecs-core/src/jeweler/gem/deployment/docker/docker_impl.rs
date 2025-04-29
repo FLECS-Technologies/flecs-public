@@ -354,6 +354,22 @@ impl DockerDeploymentImpl {
         }
     }
 
+    async fn guess_volume_path(src: &Path, volume_name: &str) -> Result<PathBuf, std::io::Error> {
+        let src = src.join(volume_name);
+        let tar_src = src.with_extension("tar");
+        let tar_gz_src = src.with_extension("tar.gz");
+        match (
+            tokio::fs::try_exists(&src).await?,
+            tokio::fs::try_exists(&tar_src).await?,
+            tokio::fs::try_exists(&tar_gz_src).await?,
+        ) {
+            (true, _, _) => Ok(src),
+            (_, true, _) => Ok(tar_src),
+            (_, _, true) => Ok(tar_gz_src),
+            _ => Err(std::io::Error::from(std::io::ErrorKind::NotFound)),
+        }
+    }
+
     pub async fn import_volume_with_client(
         docker_client: Arc<Docker>,
         quest: SyncQuest,
@@ -362,13 +378,7 @@ impl DockerDeploymentImpl {
         name: &str,
         image: &str,
     ) -> anyhow::Result<VolumeId> {
-        let src = src.join(name);
-        if !src.try_exists()? {
-            anyhow::bail!("Could not import volume {name}, path does not exist: {src:?}");
-        }
-        if !fs::metadata(&src).await?.is_dir() {
-            anyhow::bail!("Could not import volume {name}, path is not a directory: {src:?}");
-        }
+        let src = Self::guess_volume_path(src, name).await?;
         let name = name.to_string();
         let volume_exists = {
             let name = name.clone();
@@ -457,16 +467,39 @@ impl DockerDeploymentImpl {
                     let docker_client = docker_client.clone();
                     async move {
                         let container: String = recv_container_upload.await?;
-                        relic::docker::container::copy_to(
-                            docker_client,
-                            quest,
-                            &src,
-                            &dst,
-                            &container,
-                            false,
-                            false,
-                        )
-                        .await
+                        if fs::metadata(&src).await?.is_dir() {
+                            debug!("Uploading directory {src:?}");
+                            relic::docker::container::copy_to(
+                                docker_client,
+                                quest,
+                                &src,
+                                &dst,
+                                &container,
+                                false,
+                                false,
+                            )
+                            .await
+                        } else if src.extension() == Some("gz".as_ref()) {
+                            debug!("Uploading compressed archive {src:?}");
+                            relic::docker::container::upload_gzip_file_streamed(
+                                docker_client,
+                                quest,
+                                &src,
+                                &dst,
+                                &container,
+                            )
+                            .await
+                        } else {
+                            debug!("Uploading archive {src:?}");
+                            relic::docker::container::copy_archive_file_to(
+                                docker_client,
+                                quest,
+                                src,
+                                dst,
+                                &container,
+                            )
+                            .await
+                        }
                     }
                 },
             )
@@ -481,6 +514,7 @@ impl DockerDeploymentImpl {
                 let docker_client = docker_client.clone();
                 async move {
                     let container: String = recv_container_remove.await?;
+                    error!("Removing container {container}");
                     relic::docker::container::remove(
                         docker_client,
                         Some(RemoveContainerOptions {
@@ -497,18 +531,27 @@ impl DockerDeploymentImpl {
         match join!(created_volume, container) {
             (Ok(volume_id), Ok(container)) => {
                 let _ = send_container_upload.send(container.clone());
-                upload.await?;
+                let upload = upload.await;
                 let _ = send_container_remove.send(container.clone());
-                if let Err(e) = remove_container.await {
-                    eprintln!("Could not remove temporary container {container}: {e}");
+                match remove_container.await {
+                    Err(e) => error!("Could not remove temporary container {container}: {e}"),
+                    Ok(false) => {
+                        error!("Could not remove temporary container {container}: Not found")
+                    }
+                    _ => {}
                 }
+                upload?;
                 Ok(volume_id)
             }
             (Err(e), Ok(container)) => {
                 drop(send_container_upload);
                 let _ = send_container_remove.send(container.clone());
-                if let Err(e) = remove_container.await {
-                    eprintln!("Could not remove temporary container {container}: {e}");
+                match remove_container.await {
+                    Err(e) => error!("Could not remove temporary container {container}: {e}"),
+                    Ok(false) => {
+                        error!("Could not remove temporary container {container}: Not found")
+                    }
+                    _ => {}
                 }
                 Err(e)
             }

@@ -11,6 +11,7 @@ use tracing::error;
 
 const INSTANCES_FILE_NAME: &str = "instances.json";
 pub type InstanceId = jeweler::gem::instance::InstanceId;
+pub type Gems = HashMap<InstanceId, Instance>;
 pub type InstancesMap = HashMap<InstanceId, Instance>;
 pub struct InstancePouch {
     path: PathBuf,
@@ -19,7 +20,7 @@ pub struct InstancePouch {
 }
 
 impl Pouch for InstancePouch {
-    type Gems = HashMap<InstanceId, Instance>;
+    type Gems = Gems;
 
     fn gems(&self) -> &Self::Gems {
         &self.instances

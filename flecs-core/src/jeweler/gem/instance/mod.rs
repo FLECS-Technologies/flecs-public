@@ -112,6 +112,12 @@ pub enum CreateInstanceError {
     Other(#[from] anyhow::Error),
     #[error("IO Error during instance creation: {0}")]
     IO(#[from] std::io::Error),
+    #[error("No manifest found {0}")]
+    NoManifest(AppKey),
+    #[error("No fitting deployment found")]
+    NoFittingDeployment,
+    #[error("App '{0}' not installed")]
+    AppNotInstalled(AppKey),
 }
 
 impl Instance {

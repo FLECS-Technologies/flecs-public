@@ -1,31 +1,39 @@
 use crate::jeweler::deployment::DeploymentId;
-use crate::jeweler::gem::app::{App, AppDeserializable, try_create_app};
+use crate::jeweler::gem::app::{App, AppDeserializable, try_create_app, try_create_legacy_app};
 use crate::jeweler::gem::deployment::{Deployment, SerializedDeployment};
-use crate::jeweler::gem::instance::{Instance, InstanceDeserializable, InstanceId};
+use crate::jeweler::gem::instance::compose::ComposeInstance;
+use crate::jeweler::gem::instance::docker::DockerInstance;
+use crate::jeweler::gem::instance::{
+    CreateInstanceError, Instance, InstanceDeserializable, InstanceId,
+};
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::legacy;
 use crate::quest::SyncQuest;
+use crate::relic::device::usb::UsbDeviceReader;
 use crate::relic::system::info::try_create_system_info;
-use crate::sorcerer::exportius::manifest::{Manifest, v3};
+use crate::sorcerer::exportius::manifest::{Manifest, v2, v3};
 use crate::sorcerer::importius::{
     ImportAppError, ImportDeploymentError, ImportError, ImportInstanceError, ImportManifestError,
     ReadImportManifestError,
 };
+use crate::vault::pouch::deployment::DefaultDeployments;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault, pouch};
 use futures_util::future::{BoxFuture, join_all};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::debug;
+use tokio::sync::oneshot::error::RecvError;
+use tracing::{debug, error, warn};
 
 pub async fn read_import_manifest(
     quest: SyncQuest,
     src: PathBuf,
-) -> Result<v3::Manifest, ReadImportManifestError> {
+) -> Result<Manifest, ReadImportManifestError> {
     let manifest_path = src.join("manifest.json");
     let manifest = tokio::fs::read(&manifest_path).await?;
-    let Manifest::V3(manifest) = serde_json::from_slice(&manifest)?;
+    let manifest: Manifest = serde_json::from_slice(&manifest)?;
     let manifest = quest
         .lock()
         .await
@@ -59,7 +67,7 @@ pub async fn import_directory(
     let manifests = quest
         .lock()
         .await
-        .create_sub_quest("Import app manifests", |quest| {
+        .create_infallible_sub_quest("Import app manifests", |quest| {
             import_manifests(quest, manifest.contents.apps.clone(), src.join("apps"))
         })
         .await
@@ -83,10 +91,10 @@ pub async fn import_directory(
     .await;
     // Deployments and manifests can be imported concurrently as there are no dependencies
     let (deployments, manifests) = tokio::join!(deployments, manifests);
-    let (deployments, manifests) = (Arc::new(deployments?), Arc::new(manifests?));
+    let (deployments, manifests) = (Arc::new(deployments?), Arc::new(manifests));
     _ = apps_input_sender.send((manifests.clone(), deployments.clone()));
-    _ = instances_input_sender.send((manifests.clone(), deployments.clone()));
-    let apps = apps.await?;
+    let apps = Arc::new(apps.await?);
+    _ = instances_input_sender.send((manifests.clone(), deployments.clone(), apps.clone()));
     let instances = instances.await?;
     let Ok(deployments) = Arc::try_unwrap(deployments) else {
         return Err(ImportError::Logic("Unexpected strong references"));
@@ -94,7 +102,67 @@ pub async fn import_directory(
     let Ok(manifests) = Arc::try_unwrap(manifests) else {
         return Err(ImportError::Logic("Unexpected strong references"));
     };
+    let Ok(apps) = Arc::try_unwrap(apps) else {
+        return Err(ImportError::Logic("Unexpected strong references"));
+    };
     import_to_vault(vault, deployments, manifests, apps, instances).await;
+    Ok(())
+}
+
+pub async fn import_legacy_directory<U: UsbDeviceReader + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    usb_device_reader: Arc<U>,
+    manifest: v2::Manifest,
+    src: PathBuf,
+    dst: PathBuf,
+) -> Result<(), ImportError> {
+    let default_docker_deployments = vault
+        .reservation()
+        .reserve_deployment_pouch()
+        .grab()
+        .await
+        .deployment_pouch
+        .as_ref()
+        .expect("Vault reservations should never fail")
+        .default_deployments();
+    let manifests = quest
+        .lock()
+        .await
+        .create_infallible_sub_quest("Import app manifests", |quest| {
+            import_legacy_manifests(quest, manifest.contents.apps.clone(), src.join("apps"))
+        })
+        .await
+        .2;
+    let (apps_input_sender, apps_input_receiver) = tokio::sync::oneshot::channel();
+    let apps = import_legacy_apps_quest(
+        &quest,
+        manifest.contents.apps.clone(),
+        apps_input_receiver,
+        default_docker_deployments.clone(),
+        src.join("apps"),
+    )
+    .await;
+    let (instances_input_sender, instances_input_receiver) = tokio::sync::oneshot::channel();
+    let instances = import_legacy_instances_quest(
+        &quest,
+        usb_device_reader,
+        manifest.contents.instances,
+        instances_input_receiver,
+        default_docker_deployments,
+        src.join("instances"),
+        dst.join("instances"),
+    )
+    .await;
+    let manifests = Arc::new(manifests.await);
+    _ = apps_input_sender.send(manifests.clone());
+    _ = instances_input_sender.send(manifests.clone());
+    let apps = apps.await?;
+    let instances = instances.await?;
+    let Ok(manifests) = Arc::try_unwrap(manifests) else {
+        return Err(ImportError::Logic("Unexpected strong references"));
+    };
+    import_to_vault(vault, Default::default(), manifests, apps, instances).await;
     Ok(())
 }
 
@@ -115,12 +183,12 @@ pub async fn import_deployments(
                 .2;
             results.push(result);
         }
-        join_all(results)
-            .await
-            .into_iter()
-            .map(|result| result.map(|deployment| (deployment.id().clone(), deployment)))
-            .collect()
     }
+    join_all(results)
+        .await
+        .into_iter()
+        .map(|result| result.map(|deployment| (deployment.id().clone(), deployment)))
+        .collect()
 }
 
 pub async fn import_deployment(
@@ -138,25 +206,78 @@ pub async fn import_manifests(
     quest: SyncQuest,
     app_keys: Vec<AppKey>,
     path: PathBuf,
-) -> Result<pouch::manifest::Gems, ImportManifestError> {
+) -> pouch::manifest::Gems {
     let mut results = Vec::new();
     {
         let mut quest = quest.lock().await;
-        for app_key in app_keys {
+        for app_key in app_keys.iter() {
             let result = quest
                 .create_sub_quest(format!("Import manifest for {app_key}"), |quest| {
-                    import_manifest(quest, app_key, path.clone())
+                    import_manifest(quest, app_key.clone(), path.clone())
                 })
                 .await
                 .2;
             results.push(result);
         }
-        join_all(results)
-            .await
-            .into_iter()
-            .map(|result| result.map(|manifest| (manifest.key().clone(), manifest)))
-            .collect()
     }
+    let mut manifests = pouch::manifest::Gems::new();
+    for (manifest, app_key) in join_all(results).await.into_iter().zip(app_keys) {
+        match manifest {
+            Err(e) => error!("Failed to import manifest for {app_key}: {e}"),
+            Ok(manifest) => {
+                if let Some(replaced_manifest) = manifests.insert(app_key, manifest) {
+                    warn!(
+                        "Replaced manifest {} during import",
+                        replaced_manifest.key()
+                    )
+                }
+            }
+        }
+    }
+    manifests
+}
+
+pub async fn import_legacy_manifests(
+    quest: SyncQuest,
+    app_keys: Vec<AppKey>,
+    path: PathBuf,
+) -> pouch::manifest::Gems {
+    let mut results = Vec::new();
+    {
+        let mut quest = quest.lock().await;
+        for app_key in app_keys.iter() {
+            let result = quest
+                .create_sub_quest(format!("Import manifest for {app_key}"), |quest| {
+                    import_legacy_manifest(quest, app_key.clone(), path.clone())
+                })
+                .await
+                .2;
+            results.push(result);
+        }
+    }
+    let mut manifests = pouch::manifest::Gems::new();
+    for (manifest, app_key) in join_all(results).await.into_iter().zip(app_keys) {
+        match manifest {
+            Err(e) => error!("Failed to import manifest for {app_key}: {e}"),
+            Ok(manifest) => {
+                if let Some(replaced_manifest) = manifests.insert(app_key, manifest) {
+                    warn!(
+                        "Replaced manifest {} during import",
+                        replaced_manifest.key()
+                    )
+                }
+            }
+        }
+    }
+    manifests
+}
+
+async fn read_manifest(manifest_path: &Path) -> Result<AppManifest, ImportManifestError> {
+    let manifest = tokio::fs::read_to_string(manifest_path).await?;
+    let manifest = flecs_app_manifest::AppManifestVersion::from_str(&manifest)?;
+    let manifest = flecs_app_manifest::AppManifest::try_from(manifest)?;
+    let manifest = AppManifest::try_from(manifest)?;
+    Ok(manifest)
 }
 
 pub async fn import_manifest(
@@ -168,11 +289,16 @@ pub async fn import_manifest(
         "{}_{}/{}_{}.manifest.json",
         app_key.name, app_key.version, app_key.name, app_key.version
     ));
-    let manifest = tokio::fs::read_to_string(&manifest_path).await?;
-    let manifest = flecs_app_manifest::AppManifestVersion::from_str(&manifest)?;
-    let manifest = flecs_app_manifest::AppManifest::try_from(manifest)?;
-    let manifest = AppManifest::try_from(manifest)?;
-    Ok(manifest)
+    read_manifest(&manifest_path).await
+}
+
+pub async fn import_legacy_manifest(
+    _quest: SyncQuest,
+    app_key: AppKey,
+    path: PathBuf,
+) -> Result<AppManifest, ImportManifestError> {
+    let manifest_path = path.join(format!("{}_{}.json", app_key.name, app_key.version));
+    read_manifest(&manifest_path).await
 }
 
 async fn import_apps_quest(
@@ -183,13 +309,31 @@ async fn import_apps_quest(
         Arc<pouch::deployment::Gems>,
     )>,
     path: PathBuf,
-) -> BoxFuture<'static, Result<HashMap<AppKey, App>, ImportAppError>> {
+) -> BoxFuture<'static, Result<HashMap<AppKey, App>, RecvError>> {
     quest
         .lock()
         .await
         .create_sub_quest("Import apps", |quest| async move {
             let (manifests, deployments) = input_recv.await?;
-            import_apps(quest, app_keys, manifests, deployments, path).await
+            Ok(import_apps(quest, app_keys, manifests, deployments, path).await)
+        })
+        .await
+        .2
+}
+
+async fn import_legacy_apps_quest(
+    quest: &SyncQuest,
+    app_keys: Vec<AppKey>,
+    input_recv: tokio::sync::oneshot::Receiver<Arc<pouch::manifest::Gems>>,
+    default_deployments: DefaultDeployments,
+    path: PathBuf,
+) -> BoxFuture<'static, Result<pouch::app::Gems, RecvError>> {
+    quest
+        .lock()
+        .await
+        .create_sub_quest("Import apps", |quest| async move {
+            let manifests = input_recv.await?;
+            Ok(import_legacy_apps(quest, app_keys, manifests, default_deployments, path).await)
         })
         .await
         .2
@@ -201,16 +345,16 @@ pub async fn import_apps(
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
     path: PathBuf,
-) -> Result<pouch::app::Gems, ImportAppError> {
+) -> pouch::app::Gems {
     let mut results = Vec::new();
     {
         let mut quest = quest.lock().await;
-        for app_key in app_keys {
+        for app_key in app_keys.iter() {
             let result = quest
                 .create_sub_quest(format!("Import app {app_key}"), |quest| {
                     import_app(
                         quest,
-                        app_key,
+                        app_key.clone(),
                         manifests.clone(),
                         deployments.clone(),
                         path.clone(),
@@ -220,12 +364,19 @@ pub async fn import_apps(
                 .2;
             results.push(result);
         }
-        join_all(results)
-            .await
-            .into_iter()
-            .map(|result| result.map(|app| (app.key.clone(), app)))
-            .collect()
     }
+    let mut apps = pouch::app::Gems::new();
+    for (app, app_key) in join_all(results).await.into_iter().zip(app_keys) {
+        match app {
+            Err(e) => error!("Failed to import app {app_key}: {e}"),
+            Ok(app) => {
+                if let Some(replaced_app) = apps.insert(app_key, app) {
+                    warn!("Replaced app {} during import", replaced_app.key)
+                }
+            }
+        }
+    }
+    apps
 }
 
 pub async fn import_app(
@@ -244,22 +395,223 @@ pub async fn import_app(
     Ok(app)
 }
 
+pub async fn import_legacy_apps(
+    quest: SyncQuest,
+    app_keys: Vec<AppKey>,
+    manifests: Arc<pouch::manifest::Gems>,
+    default_deployments: DefaultDeployments,
+    path: PathBuf,
+) -> pouch::app::Gems {
+    let mut results = Vec::new();
+    {
+        let mut quest = quest.lock().await;
+        for app_key in app_keys.iter() {
+            let result = quest
+                .create_sub_quest(format!("Import app {app_key}"), |quest| {
+                    import_legacy_app(
+                        quest,
+                        app_key.clone(),
+                        manifests.clone(),
+                        default_deployments.clone(),
+                        path.clone(),
+                    )
+                })
+                .await
+                .2;
+            results.push(result);
+        }
+    }
+    let mut apps = pouch::app::Gems::new();
+    for (app, app_key) in join_all(results).await.into_iter().zip(app_keys) {
+        match app {
+            Err(e) => error!("Failed to import app {app_key}: {e}"),
+            Ok(app) => {
+                if let Some(replaced_app) = apps.insert(app_key, app) {
+                    warn!("Replaced app {} during import", replaced_app.key)
+                }
+            }
+        }
+    }
+    apps
+}
+
+pub async fn import_legacy_app(
+    quest: SyncQuest,
+    app_key: AppKey,
+    manifests: Arc<pouch::manifest::Gems>,
+    default_deployments: DefaultDeployments,
+    path: PathBuf,
+) -> Result<App, ImportAppError> {
+    let app = try_create_legacy_app(app_key.clone(), &manifests, default_deployments)?;
+    let app_dir = path.join(format!("{}_{}", app_key.name, app_key.version));
+    tokio::fs::create_dir_all(&app_dir).await?;
+    match app.manifest() {
+        AppManifest::Multi(manifest) => {
+            for service in manifest.services_with_image_without_repo() {
+                let name = service.name;
+                let image = service.image;
+                let old_path =
+                    path.join(format!("{}_{}.{name}.tar", app_key.name, app_key.version));
+                let new_path = app_dir.join(format!("{image}.tar"));
+                tokio::fs::rename(old_path, new_path).await?;
+            }
+        }
+        AppManifest::Single(_) => {
+            let filename = format!("{}_{}.json", app_key.name, app_key.version);
+            let old_path = path.join(&filename);
+            let new_path = app_dir.join(filename);
+            tokio::fs::rename(old_path, new_path).await?;
+            let filename = format!("{}_{}.tar", app_key.name, app_key.version);
+            let old_path = path.join(&filename);
+            let new_path = app_dir.join(filename);
+            tokio::fs::rename(old_path, new_path).await?;
+        }
+    }
+    app.import(quest, app_dir).await?;
+    Ok(app)
+}
+
+async fn import_legacy_instances_quest<U: UsbDeviceReader + 'static>(
+    quest: &SyncQuest,
+    usb_device_reader: Arc<U>,
+    instances: Vec<legacy::deployment::Instance>,
+    input_recv: tokio::sync::oneshot::Receiver<Arc<pouch::manifest::Gems>>,
+    default_docker_deployments: DefaultDeployments,
+    src: PathBuf,
+    dst: PathBuf,
+) -> BoxFuture<'static, Result<pouch::instance::Gems, RecvError>> {
+    quest
+        .lock()
+        .await
+        .create_sub_quest("Import instances", |quest| async move {
+            let manifests = input_recv.await?;
+            Ok(import_legacy_instances(
+                quest,
+                usb_device_reader,
+                instances,
+                manifests,
+                default_docker_deployments,
+                src,
+                dst,
+            )
+            .await)
+        })
+        .await
+        .2
+}
+
+pub async fn import_legacy_instances<U: UsbDeviceReader + 'static>(
+    quest: SyncQuest,
+    usb_device_reader: Arc<U>,
+    legacy_instances: Vec<legacy::deployment::Instance>,
+    manifests: Arc<pouch::manifest::Gems>,
+    default_docker_deployments: DefaultDeployments,
+    src: PathBuf,
+    dst: PathBuf,
+) -> pouch::instance::Gems {
+    let mut results = Vec::new();
+    {
+        let mut quest = quest.lock().await;
+        for instance in legacy_instances.clone() {
+            let src = src.join(&instance.instance_id);
+            let dst = dst.join(&instance.instance_id);
+            let result = quest
+                .create_sub_quest(
+                    format!("Import instance {} from {src:?}", instance.instance_id),
+                    |quest| {
+                        import_legacy_instance(
+                            quest,
+                            manifests.clone(),
+                            default_docker_deployments.clone(),
+                            usb_device_reader.clone(),
+                            instance,
+                            src,
+                            dst,
+                        )
+                    },
+                )
+                .await
+                .2;
+            results.push(result);
+        }
+    }
+    let mut instances = pouch::instance::Gems::new();
+    for (instance, legacy_instance) in join_all(results).await.into_iter().zip(legacy_instances) {
+        match instance {
+            Err(e) => error!(
+                "Failed to import instance {}: {e}",
+                legacy_instance.instance_id
+            ),
+            Ok(instance) => {
+                if let Some(replaced_instance) = instances.insert(instance.id(), instance) {
+                    warn!("Replaced instance {} during import", replaced_instance.id())
+                }
+            }
+        }
+    }
+    instances
+}
+
+pub async fn import_legacy_instance<U: UsbDeviceReader>(
+    quest: SyncQuest,
+    manifests: Arc<pouch::manifest::Gems>,
+    default_docker_deployments: DefaultDeployments,
+    usb_device_reader: Arc<U>,
+    instance: legacy::deployment::Instance,
+    src: PathBuf,
+    dst: PathBuf,
+) -> Result<Instance, ImportInstanceError> {
+    let Some(manifest) = manifests.get(&instance.app_key).cloned() else {
+        return Err(CreateInstanceError::NoManifest(instance.app_key).into());
+    };
+    let mut instance = match (manifest, default_docker_deployments) {
+        (
+            AppManifest::Single(manifest),
+            DefaultDeployments {
+                docker: Some(Deployment::Docker(deployment)),
+                ..
+            },
+        ) => Instance::Docker(
+            DockerInstance::try_create_from_legacy(
+                instance,
+                usb_device_reader.as_ref(),
+                manifest,
+                deployment,
+            )
+            .await?,
+        ),
+        (
+            AppManifest::Multi(manifest),
+            DefaultDeployments {
+                compose: Some(Deployment::Compose(deployment)),
+                ..
+            },
+        ) => Instance::Compose(
+            ComposeInstance::try_create_from_legacy(instance, manifest, deployment).await?,
+        ),
+        _ => return Err(CreateInstanceError::NoFittingDeployment.into()),
+    };
+    instance.import(quest, src, dst).await?;
+    Ok(instance)
+}
+
 async fn import_instances_quest(
     quest: &SyncQuest,
     instances: Vec<InstanceId>,
     input_recv: tokio::sync::oneshot::Receiver<(
         Arc<pouch::manifest::Gems>,
         Arc<pouch::deployment::Gems>,
+        Arc<pouch::app::Gems>,
     )>,
     src: PathBuf,
     dst: PathBuf,
-) -> BoxFuture<'static, Result<HashMap<InstanceId, Instance>, ImportInstanceError>> {
+) -> BoxFuture<'static, Result<HashMap<InstanceId, Instance>, RecvError>> {
     quest
         .lock()
         .await
         .create_sub_quest("Import instances", |quest| async move {
-            let (manifests, deployments) = input_recv.await?;
-            import_instances(quest, instances, manifests, deployments, src, dst).await
+            let (manifests, deployments, apps) = input_recv.await?;
+            Ok(import_instances(quest, instances, manifests, deployments, apps, src, dst).await)
         })
         .await
         .2
@@ -270,19 +622,21 @@ pub async fn import_instances(
     instance_ids: Vec<InstanceId>,
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
+    apps: Arc<pouch::app::Gems>,
     src: PathBuf,
     dst: PathBuf,
-) -> Result<HashMap<InstanceId, Instance>, ImportInstanceError> {
+) -> pouch::instance::Gems {
     let mut results = Vec::new();
     {
         let mut quest = quest.lock().await;
-        for instance_id in instance_ids {
+        for instance_id in instance_ids.iter() {
             let result = quest
                 .create_sub_quest(format!("Import instance {instance_id}"), |quest| {
                     import_instance(
                         quest,
                         manifests.clone(),
                         deployments.clone(),
+                        apps.clone(),
                         src.join(instance_id.to_string()),
                         dst.join(instance_id.to_string()),
                     )
@@ -291,41 +645,86 @@ pub async fn import_instances(
                 .2;
             results.push(result);
         }
-        join_all(results)
-            .await
-            .into_iter()
-            .map(|result| result.map(|instance| (instance.id(), instance)))
-            .collect()
     }
+    let mut instances = pouch::instance::Gems::new();
+    for (instance, instance_id) in join_all(results).await.into_iter().zip(instance_ids) {
+        match instance {
+            Err(e) => error!("Failed to import instance {instance_id}: {e}"),
+            Ok(instance) => {
+                if let Some(replaced_instance) = instances.insert(instance_id, instance) {
+                    warn!("Replaced instance {} during import", replaced_instance.id())
+                }
+            }
+        }
+    }
+    instances
 }
 
 pub async fn import_instance(
     quest: SyncQuest,
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
+    apps: Arc<pouch::app::Gems>,
     src: PathBuf,
     dst: PathBuf,
 ) -> Result<Instance, ImportInstanceError> {
     let instance_path = src.join("instance.json");
     let instance = tokio::fs::read(&instance_path).await?;
     let instance: InstanceDeserializable = serde_json::from_slice(&instance)?;
+    if !apps.contains_key(instance.app_key()) {
+        return Err(ImportInstanceError::AppNotPresent(
+            instance.app_key().clone(),
+        ));
+    }
     let mut instance = Instance::try_create_with_state(instance, &manifests, &deployments)?;
     instance.import(quest, src, dst).await?;
     Ok(instance)
 }
 
 pub async fn validate_import(
+    manifest: Manifest,
+    path: PathBuf,
+) -> Result<Manifest, ReadImportManifestError> {
+    Ok(match manifest {
+        Manifest::V2(manifest) => validate_v2_import(manifest, path).await?.into(),
+        Manifest::V3(manifest) => validate_v3_import(manifest, path).await?.into(),
+    })
+}
+
+fn validate_architecture_match(arch: &str) -> Result<(), ReadImportManifestError> {
+    let sys_info = try_create_system_info()?;
+    if sys_info.arch != arch {
+        Err(ReadImportManifestError::ArchitectureMismatch {
+            device_arch: sys_info.arch,
+            import_arch: arch.to_string(),
+        })
+    } else {
+        Ok(())
+    }
+}
+
+async fn validate_v2_import(
+    manifest: v2::Manifest,
+    path: PathBuf,
+) -> Result<v2::Manifest, ReadImportManifestError> {
+    validate_architecture_match(&manifest.device.sysinfo.arch)?;
+    for app_key in &manifest.contents.apps {
+        let manifest_path = path.join(format!("apps/{}_{}.json", app_key.name, app_key.version));
+        if !tokio::fs::try_exists(&manifest_path).await? {
+            return Err(ReadImportManifestError::Invalid(anyhow::anyhow!(
+                "App {app_key} is listed in import manifest but no app manifest was found at {manifest_path:?}"
+            )));
+        }
+    }
+    Ok(manifest)
+}
+
+async fn validate_v3_import(
     manifest: v3::Manifest,
     path: PathBuf,
 ) -> Result<v3::Manifest, ReadImportManifestError> {
     // TODO: Check that everything has unique ids (manifest -> AppKey, app -> AppKey, instance -> InstanceId, deployment -> DeploymentId
-    let sys_info = try_create_system_info()?;
-    if sys_info.arch != manifest.device.sysinfo.arch {
-        return Err(ReadImportManifestError::ArchitectureMismatch {
-            device_arch: sys_info.arch,
-            import_arch: manifest.device.sysinfo.arch,
-        });
-    }
+    validate_architecture_match(&manifest.device.sysinfo.arch)?;
     for deployment in &manifest.contents.deployments {
         if !tokio::fs::try_exists(path.join(format!("deployments/{deployment}.json"))).await? {
             return Err(ReadImportManifestError::Invalid(anyhow::anyhow!(

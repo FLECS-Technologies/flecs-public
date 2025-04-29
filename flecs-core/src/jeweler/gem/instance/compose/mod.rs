@@ -7,9 +7,9 @@ use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::{AppManifest, multi};
 use crate::jeweler::{GetAppKey, serialize_deployment_id, serialize_manifest_key};
-use crate::quest::{State, SyncQuest};
-use crate::vault;
+use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch::AppKey;
+use crate::{legacy, vault};
 use async_trait::async_trait;
 use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
 use futures_util::future::{BoxFuture, join_all};
@@ -206,13 +206,48 @@ impl ComposeInstance {
         })
     }
 
+    pub async fn try_create_from_legacy(
+        instance: legacy::deployment::Instance,
+        manifest: Arc<AppManifestMulti>,
+        deployment: Arc<dyn ComposeDeployment>,
+    ) -> Result<Self, CreateInstanceError> {
+        let instance = legacy::deployment::migrate_compose_instance(instance, deployment.id())?;
+        Self::try_create(
+            Quest::new_synced("Try create instance"),
+            deployment,
+            manifest,
+            instance.name,
+            instance.id,
+            instance.desired,
+        )
+        .await
+    }
+
     pub async fn try_create_new(
         quest: SyncQuest,
         deployment: Arc<dyn ComposeDeployment>,
         manifest: Arc<AppManifestMulti>,
         name: String,
     ) -> Result<Self, CreateInstanceError> {
-        let instance_id = InstanceId::new_random();
+        Self::try_create(
+            quest,
+            deployment,
+            manifest,
+            name,
+            InstanceId::new_random(),
+            InstanceStatus::Stopped,
+        )
+        .await
+    }
+
+    pub async fn try_create(
+        quest: SyncQuest,
+        deployment: Arc<dyn ComposeDeployment>,
+        manifest: Arc<AppManifestMulti>,
+        name: String,
+        instance_id: InstanceId,
+        desired: InstanceStatus,
+    ) -> Result<Self, CreateInstanceError> {
         tokio::fs::create_dir_all(crate::lore::instance_workdir_path(&instance_id.to_string()))
             .await?;
         let mut results = Vec::new();
@@ -236,8 +271,8 @@ impl ComposeInstance {
             deployment,
             name,
             manifest,
-            desired: InstanceStatus::Stopped,
-            id: InstanceId::new_random(),
+            desired,
+            id: instance_id,
         })
     }
 
