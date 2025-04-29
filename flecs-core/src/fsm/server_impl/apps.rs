@@ -71,13 +71,13 @@ impl<
         path_params: AppsAppGetPathParams,
         query_params: AppsAppGetQueryParams,
     ) -> Result<AppsAppGetResponse, ()> {
-        super::api::v2::apps::app::get(
+        Ok(super::api::v2::apps::app::get(
             self.vault.clone(),
             self.sorcerers.app_raiser.clone(),
             path_params,
             query_params,
         )
-        .await
+        .await)
     }
 
     async fn apps_get(
@@ -86,7 +86,7 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<AppsGetResponse, ()> {
-        super::api::v2::apps::get(self.vault.clone(), self.sorcerers.app_raiser.clone()).await
+        Ok(super::api::v2::apps::get(self.vault.clone(), self.sorcerers.app_raiser.clone()).await)
     }
 
     async fn apps_install_post(

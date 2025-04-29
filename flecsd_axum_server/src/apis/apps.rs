@@ -15,6 +15,8 @@ pub enum AppsAppDeleteResponse {
     Status202_Accepted(models::JobMeta),
     /// No such app or app/version combination
     Status404_NoSuchAppOrApp,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -25,6 +27,8 @@ pub enum AppsAppGetResponse {
     Status200_Success(Vec<models::InstalledApp>),
     /// No such app or app/version combination
     Status404_NoSuchAppOrApp,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -33,6 +37,8 @@ pub enum AppsAppGetResponse {
 pub enum AppsGetResponse {
     /// Success
     Status200_Success(Vec<models::InstalledApp>),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

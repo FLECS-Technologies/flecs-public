@@ -85,13 +85,13 @@ impl<
         _cookies: CookieJar,
         body: Dosschema,
     ) -> Result<DeviceOnboardingPostResponse, ()> {
-        super::api::v2::device::onboarding::post(
+        Ok(super::api::v2::device::onboarding::post(
             self.vault.clone(),
             self.sorcerers.app_raiser.clone(),
             self.enchantments.quest_master.clone(),
             self.console_client.clone(),
             body,
         )
-        .await
+        .await)
     }
 }

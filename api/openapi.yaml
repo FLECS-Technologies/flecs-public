@@ -832,6 +832,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/installed_app"
+        "500":
+          $ref: "#/components/responses/response_500"
   /apps/{app}:
     get:
       tags: [ "Apps" ]
@@ -860,6 +862,8 @@ paths:
                   $ref: "#/components/schemas/installed_app"
         "404":
           description: No such app or app/version combination
+        "500":
+          $ref: "#/components/responses/response_500"
     delete:
       tags: [ "Apps" ]
       summary: Uninstall one or all versions an App
@@ -881,6 +885,8 @@ paths:
           $ref: "#/components/responses/response_202"
         "404":
           description: No such app or app/version combination
+        "500":
+          $ref: "#/components/responses/response_500"
   /apps/install:
     post:
       tags: [ "Apps" ]
@@ -1276,6 +1282,8 @@ paths:
           $ref: "#/components/responses/response_202"
         "404":
           description: No instance with this instance_id found
+        "500":
+          $ref: "#/components/responses/response_500"
     delete:
       tags: [ "Instances" ]
       summary: Delete a single instance
@@ -1290,6 +1298,8 @@ paths:
           $ref: "#/components/responses/response_202"
         "404":
           description: No instance with this instance_id found
+        "500":
+          $ref: "#/components/responses/response_500"
   /instances/create:
     post:
       tags: [ "Instances" ]
@@ -2445,3 +2455,5 @@ paths:
           $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
+        "500":
+          $ref: "#/components/responses/response_500"

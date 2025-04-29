@@ -693,14 +693,14 @@ impl<
         _cookies: CookieJar,
         path_params: InstancesInstanceIdDeletePathParams,
     ) -> Result<InstancesInstanceIdDeleteResponse, ()> {
-        super::api::v2::instances::instance_id::delete(
+        Ok(super::api::v2::instances::instance_id::delete(
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
             self.enchantments.floxy.clone(),
             self.enchantments.quest_master.clone(),
             path_params,
         )
-        .await
+        .await)
     }
 
     async fn instances_instance_id_editor_port_get(
@@ -761,7 +761,7 @@ impl<
         path_params: InstancesInstanceIdPatchPathParams,
         body: InstancesInstanceIdPatchRequest,
     ) -> Result<InstancesInstanceIdPatchResponse, ()> {
-        super::api::v2::instances::instance_id::patch(
+        Ok(super::api::v2::instances::instance_id::patch(
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
             self.enchantments.floxy.clone(),
@@ -769,7 +769,7 @@ impl<
             path_params,
             body,
         )
-        .await
+        .await)
     }
 
     async fn instances_instance_id_start_post(

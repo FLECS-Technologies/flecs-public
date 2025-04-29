@@ -19,16 +19,16 @@ pub async fn get<A: AppRaiser>(
     appraiser: Arc<A>,
     path_params: GetPathParams,
     query_params: GetQueryParams,
-) -> Result<GetResponse, ()> {
-    let apps = appraiser
+) -> GetResponse {
+    match appraiser
         .get_app(vault, path_params.app, query_params.version)
         .await
-        // TODO: Add 500 Response to API
-        .map_err(|_| ())?;
-    if apps.is_empty() {
-        Ok(GetResponse::Status404_NoSuchAppOrApp)
-    } else {
-        Ok(GetResponse::Status200_Success(apps))
+    {
+        Ok(apps) if apps.is_empty() => GetResponse::Status404_NoSuchAppOrApp,
+        Ok(apps) => GetResponse::Status200_Success(apps),
+        Err(e) => {
+            GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
+        }
     }
 }
 
@@ -61,18 +61,21 @@ pub async fn delete<A: AppRaiser + 'static, F: Floxy + 'static>(
             }
             let vault = vault.clone();
             let floxy = FloxyOperation::new_arc(floxy);
-            let (id, _) = quest_master
+            match quest_master
                 .lock()
                 .await
                 .schedule_quest(format!("Uninstall {key}"), move |quest| async move {
                     appraiser.uninstall_app(quest, vault, floxy, key).await
                 })
                 .await
-                // TODO: Add 500 Response to API
-                .map_err(|_| ())?;
-            Ok(AppsAppDeleteResponse::Status202_Accepted(
-                models::JobMeta::new(id.0 as i32),
-            ))
+            {
+                Err(e) => Ok(AppsAppDeleteResponse::Status500_InternalServerError(
+                    models::AdditionalInfo::new(e.to_string()),
+                )),
+                Ok((id, _)) => Ok(AppsAppDeleteResponse::Status202_Accepted(
+                    models::JobMeta::new(id.0 as i32),
+                )),
+            }
         }
         // TODO: Add 400 Response to API
         None => Err(()),
