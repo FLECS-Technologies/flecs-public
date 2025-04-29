@@ -39,7 +39,7 @@ impl<
     E: Exportius,
     IMP: Importius,
     F: Floxy + 'static,
-    T: UsbDeviceReader,
+    T: UsbDeviceReader + 'static,
     NET: NetworkAdapterReader,
     NetDev: NetDeviceReader,
 > Flecsport for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
@@ -109,6 +109,7 @@ impl<
             self.vault.clone(),
             self.sorcerers.importius.clone(),
             self.enchantments.floxy.clone(),
+            self.usb_reader.clone(),
             self.enchantments.quest_master.clone(),
             body,
         )

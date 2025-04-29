@@ -52,6 +52,12 @@ impl TryFrom<flecs_app_manifest::AppManifestMulti> for AppManifestMulti {
     }
 }
 
+#[derive(Debug)]
+pub struct ServiceWithImage {
+    pub name: String,
+    pub image: String,
+}
+
 impl AppManifestMulti {
     pub fn revision(&self) -> Option<&String> {
         self.original.revision.as_deref()
@@ -71,6 +77,36 @@ impl AppManifestMulti {
             .0
             .values()
             .filter_map(|service| service.as_ref().and_then(|service| service.image.clone()))
+            .collect()
+    }
+
+    pub fn images_without_repo(&self) -> Vec<String> {
+        let mut images = self.images();
+        for image in images.iter_mut() {
+            if let Some((_, s)) = image.split_once('/') {
+                *image = s.to_string();
+            }
+        }
+        images
+    }
+
+    pub fn services_with_image_without_repo(&self) -> Vec<ServiceWithImage> {
+        self.compose
+            .services
+            .0
+            .iter()
+            .filter_map(|(name, service)| {
+                service
+                    .as_ref()
+                    .and_then(|service| service.image.as_ref())
+                    .map(|image| ServiceWithImage {
+                        name: name.clone(),
+                        image: match image.split_once('/') {
+                            Some((_, s)) => s.to_string(),
+                            _ => image.to_string(),
+                        },
+                    })
+            })
             .collect()
     }
 

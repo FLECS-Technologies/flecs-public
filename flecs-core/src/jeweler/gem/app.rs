@@ -7,6 +7,7 @@ use crate::jeweler::{GetDeploymentId, serialize_hashmap_values};
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
+use crate::vault::pouch::deployment::DefaultDeployments;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::future::join_all;
 use serde::{Deserialize, Serialize, Serializer};
@@ -101,6 +102,44 @@ pub fn try_create_app(
         deployments,
         manifest,
         key: app.key,
+    })
+}
+
+pub fn try_create_legacy_app(
+    app_key: AppKey,
+    manifests: &pouch::manifest::Gems,
+    default_deployments: DefaultDeployments,
+) -> anyhow::Result<App> {
+    let Some(manifest) = manifests.get(&app_key).cloned() else {
+        anyhow::bail!("No manifest found for {}", app_key);
+    };
+    let deployment = match (&manifest, default_deployments) {
+        (
+            AppManifest::Single(_),
+            DefaultDeployments {
+                docker: Some(deployment),
+                ..
+            },
+        ) => deployment,
+        (
+            AppManifest::Multi(_),
+            DefaultDeployments {
+                compose: Some(deployment),
+                ..
+            },
+        ) => deployment,
+        _ => anyhow::bail!("No deployment found for {}", app_key),
+    };
+    Ok(App {
+        deployments: HashMap::from([(
+            deployment.id().to_string(),
+            AppData {
+                deployment,
+                desired: AppStatus::Installed,
+            },
+        )]),
+        manifest,
+        key: app_key,
     })
 }
 

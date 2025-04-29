@@ -18,8 +18,9 @@ use crate::jeweler::serialize_deployment_id;
 use crate::jeweler::serialize_manifest_key;
 use crate::jeweler::volume::VolumeId;
 use crate::quest::{Quest, SyncQuest};
-use crate::vault;
+use crate::relic::device::usb::UsbDeviceReader;
 use crate::vault::pouch::AppKey;
+use crate::{legacy, vault};
 use async_trait::async_trait;
 use bollard::container::Config;
 use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
@@ -909,7 +910,15 @@ impl DockerInstance {
         let Deployment::Docker(deployment) = deployment else {
             anyhow::bail!("DockerInstances can only be created with DockerDeployments");
         };
-        Ok(Self {
+        Ok(Self::create(instance, manifest, deployment))
+    }
+
+    pub fn create(
+        instance: DockerInstanceDeserializable,
+        manifest: Arc<AppManifestSingle>,
+        deployment: Arc<dyn DockerDeployment>,
+    ) -> DockerInstance {
+        Self {
             manifest,
             deployment,
             desired: instance.desired,
@@ -917,7 +926,29 @@ impl DockerInstance {
             config: instance.config,
             name: instance.name,
             hostname: instance.hostname,
-        })
+        }
+    }
+
+    pub async fn try_create_from_legacy<U: UsbDeviceReader>(
+        instance: legacy::deployment::Instance,
+        usb_device_reader: &U,
+        manifest: Arc<AppManifestSingle>,
+        deployment: Arc<dyn DockerDeployment>,
+    ) -> anyhow::Result<Self> {
+        let instance = legacy::deployment::migrate_docker_instance(
+            instance,
+            usb_device_reader,
+            deployment.id(),
+        )?;
+        let mut instance = Self::create(instance, manifest.clone(), deployment.clone());
+        instance.config.volume_mounts = Self::create_volumes(
+            Quest::new_synced("Create volumes"),
+            deployment,
+            manifest.volume_mounts(),
+            instance.id,
+        )
+        .await?;
+        Ok(instance)
     }
 
     async fn export_volumes_quest<'a, I: Iterator<Item = &'a VolumeMount>>(

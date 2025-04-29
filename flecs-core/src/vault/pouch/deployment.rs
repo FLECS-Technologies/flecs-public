@@ -19,6 +19,12 @@ pub struct DeploymentPouch {
     path: PathBuf,
 }
 
+#[derive(Debug, Clone)]
+pub struct DefaultDeployments {
+    pub docker: Option<Deployment>,
+    pub compose: Option<Deployment>,
+}
+
 impl Pouch for DeploymentPouch {
     type Gems = Gems;
 
@@ -76,6 +82,13 @@ impl DeploymentPouch {
         self.deployments
             .get(self.default_docker_deployment_id.as_ref()?)
             .cloned()
+    }
+
+    pub fn default_deployments(&self) -> DefaultDeployments {
+        DefaultDeployments {
+            docker: self.default_docker_deployment(),
+            compose: self.default_compose_deployment(),
+        }
     }
 
     pub fn set_default_deployments(&mut self) {

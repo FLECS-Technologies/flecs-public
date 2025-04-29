@@ -14,6 +14,7 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::fs::File;
 use tokio_util::codec;
+use tracing::debug;
 
 impl TryFrom<&ProgressDetail> for Progress {
     type Error = ();
@@ -379,6 +380,7 @@ pub async fn load(
     options: ImportImageOptions,
     credentials: Option<HashMap<String, DockerCredentials>>,
 ) -> Result<()> {
+    debug!("Import image from {path:?}");
     let file = File::open(path).await?;
 
     let byte_stream =
