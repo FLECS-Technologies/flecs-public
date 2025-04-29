@@ -842,182 +842,6 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AdditionalIn
     }
 }
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
-#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct AppEditor {
-    #[serde(rename = "name")]
-    pub name: String,
-
-    #[serde(rename = "port")]
-    #[validate(range(min = 1u16, max = 65535u16))]
-    pub port: u16,
-
-    #[serde(rename = "supportsReverseProxy")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub supports_reverse_proxy: Option<bool>,
-}
-
-impl AppEditor {
-    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(name: String, port: u16) -> AppEditor {
-        AppEditor {
-            name,
-            port,
-            supports_reverse_proxy: Some(true),
-        }
-    }
-}
-
-/// Converts the AppEditor value to the Query Parameters representation (style=form, explode=false)
-/// specified in https://swagger.io/docs/specification/serialization/
-/// Should be implemented in a serde serializer
-impl std::fmt::Display for AppEditor {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let params: Vec<Option<String>> = vec![
-            Some("name".to_string()),
-            Some(self.name.to_string()),
-            Some("port".to_string()),
-            Some(self.port.to_string()),
-            self.supports_reverse_proxy
-                .as_ref()
-                .map(|supports_reverse_proxy| {
-                    [
-                        "supportsReverseProxy".to_string(),
-                        supports_reverse_proxy.to_string(),
-                    ]
-                    .join(",")
-                }),
-        ];
-
-        write!(
-            f,
-            "{}",
-            params.into_iter().flatten().collect::<Vec<_>>().join(",")
-        )
-    }
-}
-
-/// Converts Query Parameters representation (style=form, explode=false) to a AppEditor value
-/// as specified in https://swagger.io/docs/specification/serialization/
-/// Should be implemented in a serde deserializer
-impl std::str::FromStr for AppEditor {
-    type Err = String;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        /// An intermediate representation of the struct to use for parsing.
-        #[derive(Default)]
-        #[allow(dead_code)]
-        struct IntermediateRep {
-            pub name: Vec<String>,
-            pub port: Vec<u16>,
-            pub supports_reverse_proxy: Vec<bool>,
-        }
-
-        let mut intermediate_rep = IntermediateRep::default();
-
-        // Parse into intermediate representation
-        let mut string_iter = s.split(',');
-        let mut key_result = string_iter.next();
-
-        while key_result.is_some() {
-            let val = match string_iter.next() {
-                Some(x) => x,
-                None => {
-                    return std::result::Result::Err(
-                        "Missing value while parsing AppEditor".to_string(),
-                    )
-                }
-            };
-
-            if let Some(key) = key_result {
-                #[allow(clippy::match_single_binding)]
-                match key {
-                    #[allow(clippy::redundant_clone)]
-                    "name" => intermediate_rep.name.push(
-                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
-                    ),
-                    #[allow(clippy::redundant_clone)]
-                    "port" => intermediate_rep.port.push(
-                        <u16 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
-                    ),
-                    #[allow(clippy::redundant_clone)]
-                    "supportsReverseProxy" => intermediate_rep.supports_reverse_proxy.push(
-                        <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
-                    ),
-                    _ => {
-                        return std::result::Result::Err(
-                            "Unexpected key while parsing AppEditor".to_string(),
-                        )
-                    }
-                }
-            }
-
-            // Get the next key
-            key_result = string_iter.next();
-        }
-
-        // Use the intermediate representation to return the struct
-        std::result::Result::Ok(AppEditor {
-            name: intermediate_rep
-                .name
-                .into_iter()
-                .next()
-                .ok_or_else(|| "name missing in AppEditor".to_string())?,
-            port: intermediate_rep
-                .port
-                .into_iter()
-                .next()
-                .ok_or_else(|| "port missing in AppEditor".to_string())?,
-            supports_reverse_proxy: intermediate_rep.supports_reverse_proxy.into_iter().next(),
-        })
-    }
-}
-
-// Methods for converting between header::IntoHeaderValue<AppEditor> and HeaderValue
-
-#[cfg(feature = "server")]
-impl std::convert::TryFrom<header::IntoHeaderValue<AppEditor>> for HeaderValue {
-    type Error = String;
-
-    fn try_from(
-        hdr_value: header::IntoHeaderValue<AppEditor>,
-    ) -> std::result::Result<Self, Self::Error> {
-        let hdr_value = hdr_value.to_string();
-        match HeaderValue::from_str(&hdr_value) {
-            std::result::Result::Ok(value) => std::result::Result::Ok(value),
-            std::result::Result::Err(e) => std::result::Result::Err(format!(
-                "Invalid header value for AppEditor - value: {} is invalid {}",
-                hdr_value, e
-            )),
-        }
-    }
-}
-
-#[cfg(feature = "server")]
-impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AppEditor> {
-    type Error = String;
-
-    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
-        match hdr_value.to_str() {
-            std::result::Result::Ok(value) => {
-                match <AppEditor as std::str::FromStr>::from_str(value) {
-                    std::result::Result::Ok(value) => {
-                        std::result::Result::Ok(header::IntoHeaderValue(value))
-                    }
-                    std::result::Result::Err(err) => std::result::Result::Err(format!(
-                        "Unable to convert header value '{}' into AppEditor - {}",
-                        value, err
-                    )),
-                }
-            }
-            std::result::Result::Err(e) => std::result::Result::Err(format!(
-                "Unable to convert header: {:?} to string: {}",
-                hdr_value, e
-            )),
-        }
-    }
-}
-
 /// Instance of an App
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
@@ -3586,9 +3410,6 @@ pub struct InstalledApp {
 
     #[serde(rename = "multiInstance")]
     pub multi_instance: bool,
-
-    #[serde(rename = "editors")]
-    pub editors: Vec<models::AppEditor>,
 }
 
 impl InstalledApp {
@@ -3599,7 +3420,6 @@ impl InstalledApp {
         desired: models::AppStatus,
         installed_size: i32,
         multi_instance: bool,
-        editors: Vec<models::AppEditor>,
     ) -> InstalledApp {
         InstalledApp {
             app_key,
@@ -3607,7 +3427,6 @@ impl InstalledApp {
             desired,
             installed_size,
             multi_instance,
-            editors,
         }
     }
 }
@@ -3627,7 +3446,6 @@ impl std::fmt::Display for InstalledApp {
             Some(self.installed_size.to_string()),
             Some("multiInstance".to_string()),
             Some(self.multi_instance.to_string()),
-            // Skipping editors in query parameter serialization
         ];
 
         write!(
@@ -3654,7 +3472,6 @@ impl std::str::FromStr for InstalledApp {
             pub desired: Vec<models::AppStatus>,
             pub installed_size: Vec<i32>,
             pub multi_instance: Vec<bool>,
-            pub editors: Vec<Vec<models::AppEditor>>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -3699,12 +3516,6 @@ impl std::str::FromStr for InstalledApp {
                     "multiInstance" => intermediate_rep.multi_instance.push(
                         <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
-                    "editors" => {
-                        return std::result::Result::Err(
-                            "Parsing a container in this style is not supported in InstalledApp"
-                                .to_string(),
-                        )
-                    }
                     _ => {
                         return std::result::Result::Err(
                             "Unexpected key while parsing InstalledApp".to_string(),
@@ -3744,11 +3555,6 @@ impl std::str::FromStr for InstalledApp {
                 .into_iter()
                 .next()
                 .ok_or_else(|| "multiInstance missing in InstalledApp".to_string())?,
-            editors: intermediate_rep
-                .editors
-                .into_iter()
-                .next()
-                .ok_or_else(|| "editors missing in InstalledApp".to_string())?,
         })
     }
 }

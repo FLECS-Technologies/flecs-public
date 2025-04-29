@@ -199,7 +199,6 @@ impl App {
                 AppManifest::Multi(_) => false,
                 AppManifest::Single(single) => single.multi_instance(),
             },
-            editors: vec![],
         }
     }
 
