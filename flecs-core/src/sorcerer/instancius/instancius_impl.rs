@@ -1068,7 +1068,7 @@ impl Instancius for InstanciusImpl {
         instance
             .config
             .mapped_editor_ports
-            .insert(host_port, port.get());
+            .insert(port.get(), host_port);
         Ok(RedirectEditorRequestResult::Redirected(host_port))
     }
 
