@@ -908,6 +908,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "flecsd"
+version = "0.1.0"
+dependencies = [
+ "async-signal",
+ "flecs-core",
+ "futures-util",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "flecsd_axum_server"
 version = "2.0.0"
 dependencies = [
@@ -934,17 +945,6 @@ dependencies = [
  "tracing-subscriber",
  "uuid",
  "validator",
-]
-
-[[package]]
-name = "flecsdaemon"
-version = "0.1.0"
-dependencies = [
- "async-signal",
- "flecs-core",
- "futures-util",
- "tokio",
- "tracing",
 ]
 
 [[package]]
