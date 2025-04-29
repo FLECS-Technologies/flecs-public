@@ -7,8 +7,8 @@ use std::sync::Arc;
 
 /// # Example
 /// ```no_run
-/// use bollard::volume::CreateVolumeOptions;
 /// use bollard::Docker;
+/// use bollard::volume::CreateVolumeOptions;
 /// use flecs_core::relic::docker::volume::create;
 /// use std::sync::Arc;
 ///
@@ -41,8 +41,8 @@ where
 
 /// # Example
 /// ```no_run
-/// use bollard::volume::RemoveVolumeOptions;
 /// use bollard::Docker;
+/// use bollard::volume::RemoveVolumeOptions;
 /// use flecs_core::relic::docker::volume::remove;
 /// use std::sync::Arc;
 ///

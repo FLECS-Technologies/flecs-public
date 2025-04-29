@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 /// # Example
 /// ```no_run
-/// use bollard::network::InspectNetworkOptions;
 /// use bollard::Docker;
+/// use bollard::network::InspectNetworkOptions;
 /// use flecs_core::relic::docker::network::inspect;
 /// use std::sync::Arc;
 ///
@@ -51,8 +51,8 @@ where
 
 /// # Example
 /// ```no_run
-/// use bollard::network::ListNetworksOptions;
 /// use bollard::Docker;
+/// use bollard::network::ListNetworksOptions;
 /// use flecs_core::relic::docker::network::list;
 /// use std::collections::HashMap;
 /// use std::sync::Arc;
@@ -87,8 +87,8 @@ where
 
 /// # Example
 /// ```no_run
-/// use bollard::network::CreateNetworkOptions;
 /// use bollard::Docker;
+/// use bollard::network::CreateNetworkOptions;
 /// use flecs_core::relic::docker::network::create;
 /// use std::sync::Arc;
 ///
@@ -141,9 +141,9 @@ pub async fn remove(docker_client: Arc<Docker>, network_name: &str) -> Result<()
 
 /// # Example
 /// ```no_run
+/// use bollard::Docker;
 /// use bollard::models::EndpointSettings;
 /// use bollard::network::ConnectNetworkOptions;
-/// use bollard::Docker;
 /// use flecs_core::relic::docker::network::connect;
 /// use std::sync::Arc;
 ///
@@ -176,8 +176,8 @@ where
 
 /// # Example
 /// ```no_run
-/// use bollard::network::DisconnectNetworkOptions;
 /// use bollard::Docker;
+/// use bollard::network::DisconnectNetworkOptions;
 /// use flecs_core::relic::docker::network::disconnect;
 /// use std::sync::Arc;
 ///
