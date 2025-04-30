@@ -231,25 +231,29 @@ impl Vault {
             .unwrap_or_else(|e| error!("Could not open ManifestPouch: {e}"));
         match deployment_pouch_mut.open() {
             Ok(_) => {
-                let deployments = deployment_pouch_mut.gems_mut();
-                if deployments.is_empty() {
+                if deployment_pouch_mut.default_docker_deployment().is_none() {
                     let default_docker_deployment =
                         Deployment::Docker(Arc::new(DockerDeploymentImpl::default()));
-                    let default_compose_deployment =
-                        Deployment::Compose(Arc::new(ComposeDeploymentImpl::default()));
-                    deployments.insert(
+                    deployment_pouch_mut.gems_mut().insert(
                         default_docker_deployment.id().clone(),
                         default_docker_deployment,
                     );
-                    deployments.insert(
+                    info!(
+                        "No default docker deployment configured, added default Docker deployment"
+                    );
+                }
+                if deployment_pouch_mut.default_compose_deployment().is_none() {
+                    let default_compose_deployment =
+                        Deployment::Compose(Arc::new(ComposeDeploymentImpl::default()));
+                    deployment_pouch_mut.gems_mut().insert(
                         default_compose_deployment.id().clone(),
                         default_compose_deployment,
                     );
-                    deployment_pouch_mut.set_default_deployments();
                     info!(
-                        "No deployments configured, added default Docker deployment and default Compose deployments"
+                        "No default compose deployment configured, added default Compose deployment"
                     );
                 }
+                deployment_pouch_mut.set_default_deployments();
             }
             Err(e) => {
                 error!("Could not open DeploymentPouch: {e}");
