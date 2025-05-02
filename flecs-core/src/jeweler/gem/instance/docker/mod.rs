@@ -773,6 +773,7 @@ impl DockerInstance {
             id,
             path.display()
         );
+        tokio::fs::create_dir_all(&path).await?;
         let existing_config_path = crate::lore::instance_config_path(&id.to_string());
         for result in join_all(config_files.iter().map(|config_file| {
             let src = existing_config_path.join(&config_file.host_file_name);
