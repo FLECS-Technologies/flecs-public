@@ -8,23 +8,23 @@ RUN apt-get update && \
 
 ARG ARCH
 
-RUN mkdir -p /fs/usr/bin
+RUN mkdir -p /fs/usr/local/libexec/docker/cli-plugins
 RUN case "${ARCH}" in \
     "amd64") \
-    wget -O /fs/usr/bin/docker-compose https://github.com/docker/compose/releases/download/v2.34.0/docker-compose-linux-x86_64; \
+    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64; \
     ;; \
     "armhf") \
-    wget -O /fs/usr/bin/docker-compose https://github.com/docker/compose/releases/download/v2.34.0/docker-compose-linux-armv7; \
+    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-armv7; \
     ;; \
     "arm64") \
-    wget -O /fs/usr/bin/docker-compose https://github.com/docker/compose/releases/download/v2.34.0/docker-compose-linux-aarch64; \
+    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-aarch64; \
     ;; \
     *) \
     exit 1 \
     ;; \
     esac
 
-RUN chmod a+x /fs/usr/bin/docker-compose
+RUN chmod a+x /fs/usr/local/libexec/docker/cli-plugins/docker-compose
 
 FROM debian:bookworm-slim
 
