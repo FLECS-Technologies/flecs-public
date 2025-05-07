@@ -1,6 +1,6 @@
 #[cfg(test)]
 use mockall::{automock, predicate::*};
-use rusb::Device;
+use rusb::{Device, UsbContext};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -55,7 +55,8 @@ pub struct UsbDeviceReaderImpl {}
 
 impl UsbDeviceReader for UsbDeviceReaderImpl {
     fn read_usb_devices(&self) -> Result<HashMap<UsbPort, UsbDevice>> {
-        let devices = rusb::devices()?
+        let devices = rusb::Context::new()?
+            .devices()?
             .iter()
             .flat_map(Self::try_usb_device_from)
             .map(|device| (device.port.clone(), device))
