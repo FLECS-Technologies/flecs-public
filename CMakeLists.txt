@@ -18,11 +18,11 @@ include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
 
 project(
     FLECS
-    VERSION 3.6.0
+    VERSION 4.0.0
     HOMEPAGE_URL https://flecs.tech
     LANGUAGES CXX
 )
-set(CODENAME hedgehog)
+set(CODENAME snowhare)
 
 # set version
 set(FLECS_VERSION_FULL "${PROJECT_VERSION}-${CODENAME}")
