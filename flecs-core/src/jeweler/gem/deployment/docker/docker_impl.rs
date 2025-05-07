@@ -514,7 +514,6 @@ impl DockerDeploymentImpl {
                 let docker_client = docker_client.clone();
                 async move {
                     let container: String = recv_container_remove.await?;
-                    error!("Removing container {container}");
                     relic::docker::container::remove(
                         docker_client,
                         Some(RemoveContainerOptions {
