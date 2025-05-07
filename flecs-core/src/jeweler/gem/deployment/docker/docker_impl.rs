@@ -38,6 +38,8 @@ use std::sync::Arc;
 use tokio::{fs, join};
 use tracing::{debug, error, warn};
 
+pub const DEFAULT_DOCKER_DEPLOYMENT_ID: &str = "DefaultDockerDeployment";
+
 #[derive(Serialize, Deserialize)]
 pub struct DockerDeploymentImpl {
     pub id: DeploymentId,
@@ -57,7 +59,7 @@ impl GetDeploymentId for DockerDeploymentImpl {
 impl Default for DockerDeploymentImpl {
     fn default() -> Self {
         Self::new_default(
-            "DefaultDockerDeploymentImpl".to_string(),
+            DEFAULT_DOCKER_DEPLOYMENT_ID.to_string(),
             PathBuf::from("/var/run/docker.sock"),
         )
     }
