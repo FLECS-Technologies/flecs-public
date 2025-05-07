@@ -343,7 +343,7 @@ impl AppDeployment for ComposeDeploymentImpl {
             let result = quest
                 .lock()
                 .await
-                .create_sub_quest(format!("Export {image}"), |quest| async move {
+                .create_sub_quest(format!("Export {image} to {path:?}"), |quest| async move {
                     relic::docker::image::save(quest, client, &path, &image).await
                 })
                 .await
