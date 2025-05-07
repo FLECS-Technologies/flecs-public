@@ -80,16 +80,6 @@ impl AppManifestMulti {
             .collect()
     }
 
-    pub fn images_without_repo(&self) -> Vec<String> {
-        let mut images = self.images();
-        for image in images.iter_mut() {
-            if let Some((_, s)) = image.split_once('/') {
-                *image = s.to_string();
-            }
-        }
-        images
-    }
-
     pub fn services_with_image_without_repo(&self) -> Vec<ServiceWithImage> {
         self.compose
             .services
