@@ -14,7 +14,7 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::fs::File;
 use tokio_util::codec;
-use tracing::debug;
+use tracing::{debug, trace};
 
 impl TryFrom<&ProgressDetail> for Progress {
     type Error = ();
@@ -257,9 +257,18 @@ pub async fn remove(
     options: Option<RemoveImageOptions>,
     credentials: Option<DockerCredentials>,
 ) -> Result<Vec<ImageDeleteResponseItem>> {
-    Ok(docker_client
+    let results = docker_client
         .remove_image(image, options, credentials)
-        .await?)
+        .await?;
+    for result in results.iter() {
+        if let Some(untagged) = result.untagged.as_ref() {
+            trace!("Untagged: {untagged}");
+        }
+        if let Some(deleted) = result.deleted.as_ref() {
+            trace!("Deleted: {deleted}");
+        }
+    }
+    Ok(results)
 }
 
 impl crate::quest::StatusUpdate for BuildInfo {
