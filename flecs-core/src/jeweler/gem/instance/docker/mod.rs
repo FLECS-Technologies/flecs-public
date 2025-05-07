@@ -1043,7 +1043,12 @@ impl DockerInstance {
         .await;
         let export_volumes_result = join_all(export_volumes_results).await;
         if is_running {
-            self.start(floxy).await?;
+            if let Err(e) = self.start(floxy).await {
+                error!(
+                    "Failed to restart instance {} after exporting config files and volumes: {e}",
+                    self.id
+                );
+            }
         }
         export_config_files_result?;
         for result in export_volumes_result {
