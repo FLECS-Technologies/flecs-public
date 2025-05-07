@@ -337,8 +337,8 @@ impl AppDeployment for ComposeDeploymentImpl {
         };
         let mut results = Vec::new();
         let client = self.docker_client()?;
-        for image in manifest.images_without_repo() {
-            let path = path.join(format!("{image}.tar"));
+        for image in manifest.images() {
+            let path = path.join(format!("{}.tar", image.replace('/', "_")));
             let client = client.clone();
             let result = quest
                 .lock()
@@ -368,8 +368,7 @@ impl AppDeployment for ComposeDeploymentImpl {
         let mut results = Vec::new();
         let client = self.docker_client()?;
         for image in manifest.images() {
-            let (_, image_name) = image.split_once('/').unwrap_or(("", &image));
-            let path = path.join(format!("{image_name}.tar"));
+            let path = path.join(format!("{}.tar", image.replace('/', "_")));
             let client = client.clone();
             let result = quest
                 .lock()
