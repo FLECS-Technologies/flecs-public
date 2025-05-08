@@ -438,6 +438,16 @@ components:
     mac_address:
       type: string
       pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+    ipv4_network:
+      type: object
+      required:
+        - address
+        - netmask
+      properties:
+        address:
+          $ref: "#/components/schemas/ipv4_address"
+        netmask:
+          $ref: "#/components/schemas/ipv4_netmask"
     ipv4_ipam:
       type: object
       required:
