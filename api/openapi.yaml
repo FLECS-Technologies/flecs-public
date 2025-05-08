@@ -102,6 +102,30 @@ components:
           example: 10485760
         multiInstance:
           type: boolean
+    install_from_marketplace:
+      type: object
+      required:
+        - type
+        - appKey
+      properties:
+        type:
+          type: string
+          enum: [marketplace]
+          example: marketplace
+        appKey:
+          $ref: "#/components/schemas/app_key"
+    install_from_manifest:
+      type: object
+      required:
+        - type
+        - manifest
+      properties:
+        type:
+          type: string
+          enum: [manifest]
+          example: manifest
+        manifest:
+          type: string
     license_key:
       type: string
       description: License key for App installation
@@ -857,21 +881,23 @@ paths:
           description: No such app or app/version combination
         "500":
           $ref: "#/components/responses/response_500"
-  /apps/install:
+  /apps/installations:
     post:
-      tags: [ "Apps" ]
-      summary: Install an App from the FLECS marketplace
+      tags: ["Apps"]
+      summary: Install an App from the FLECS marketplace or an App Manifest ("sideload")
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - appKey
-              properties:
-                appKey:
-                  $ref: "#/components/schemas/app_key"
+              oneOf:
+                - $ref: "#/components/schemas/install_from_marketplace"
+                - $ref: "#/components/schemas/install_from_manifest"
+              discriminator:
+                propertyName: type
+                mapping:
+                  marketplace: "#/components/schemas/install_from_marketplace"
+                  manifest: "#/components/schemas/install_from_manifest"
       responses:
         "202":
           $ref: "#/components/responses/response_202"
@@ -879,27 +905,6 @@ paths:
           $ref: "#/components/responses/response_400"
         "500":
           $ref: "#/components/responses/response_500"
-  /apps/sideload:
-    post:
-      tags: [ "Apps" ]
-      summary: Sideload an App from its manifest
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - manifest
-                - licenseKey
-              properties:
-                manifest:
-                  type: string
-      responses:
-        "202":
-          $ref: "#/components/responses/response_202"
-        "400":
-          $ref: "#/components/responses/response_400"
   # Console related paths
   /console/authentication:
     put:
@@ -1159,6 +1164,26 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/app_instance"
+    post:
+      tags: [ "Instances" ]
+      summary: Create new instance of an installed App
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - appKey
+              properties:
+                appKey:
+                  $ref: "#/components/schemas/app_key"
+                instanceName:
+                  $ref: "#/components/schemas/instance_name"
+      responses:
+        "202":
+          $ref: "#/components/responses/response_202"
+        "400":
+          $ref: "#/components/responses/response_400"
   /instances/{instance_id}:
     get:
       tags: [ "Instances" ]
@@ -1263,58 +1288,39 @@ paths:
           description: No instance with this instance_id found
         "500":
           $ref: "#/components/responses/response_500"
-  /instances/create:
-    post:
+  /instances/{instance_id}/status:
+    put:
       tags: [ "Instances" ]
-      summary: Create new instance of an installed App
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              required:
-                - appKey
-              properties:
-                appKey:
-                  $ref: "#/components/schemas/app_key"
-                instanceName:
-                  $ref: "#/components/schemas/instance_name"
-      responses:
-        "202":
-          $ref: "#/components/responses/response_202"
-        "400":
-          $ref: "#/components/responses/response_400"
-  /instances/{instance_id}/start:
-    post:
-      tags: [ "Instances" ]
-      summary: Start an App instance
+      summary: Change the status of an instance (i.e. start/stop)
       parameters:
         - name: instance_id
           in: path
           schema:
             $ref: "#/components/schemas/instance_id"
           required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    [
+                      started,
+                      stopped
+                    ]
       responses:
         "202":
           $ref: "#/components/responses/response_202"
         "404":
           description: No instance with this instance_id found
-  /instances/{instance_id}/stop:
-    post:
-      tags: [ "Instances" ]
-      summary: Stop an App instance
-      parameters:
-        - name: instance_id
-          in: path
-          schema:
-            type: string
-            description: Instance id to delete
-          required: true
-      responses:
-        "202":
-          $ref: "#/components/responses/response_202"
-        "404":
-          description: No instance with this instance_id found
+        "409":
+          description: Invalid state transition for this instance_id
   /instances/{instance_id}/logs:
     get:
       tags: [ "Instances" ]
