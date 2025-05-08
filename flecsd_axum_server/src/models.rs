@@ -674,6 +674,13 @@ pub struct JobsJobIdGetPathParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ManifestsAppNameVersionGetPathParams {
+    pub app_name: String,
+    pub version: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct SystemDevicesUsbPortGetPathParams {
     #[validate(
                           regex(path = *RE_SYSTEMDEVICESUSBPORTGETPATHPARAMS_PORT),
@@ -1211,6 +1218,1267 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AppKey> {
                 "Unable to convert header: {:?} to string: {}",
                 hdr_value, e
             )),
+        }
+    }
+}
+
+/// Schema for the FLECS App Manifest
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+#[allow(non_camel_case_types)]
+pub enum AppManifest {
+    AppManifestOneOf(Box<models::AppManifestOneOf>),
+    AppManifestOneOf1(Box<models::AppManifestOneOf1>),
+}
+
+impl validator::Validate for AppManifest {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        match self {
+            Self::AppManifestOneOf(x) => x.validate(),
+            Self::AppManifestOneOf1(x) => x.validate(),
+        }
+    }
+}
+
+impl From<models::AppManifestOneOf> for AppManifest {
+    fn from(value: models::AppManifestOneOf) -> Self {
+        Self::AppManifestOneOf(Box::new(value))
+    }
+}
+impl From<models::AppManifestOneOf1> for AppManifest {
+    fn from(value: models::AppManifestOneOf1) -> Self {
+        Self::AppManifestOneOf1(Box::new(value))
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AppManifest value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AppManifest {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        serde_json::from_str(s)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct AppManifestOneOf {
+    /// Location of the JSON schema to validate against
+    #[serde(rename = "$schema")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dollar_schema: Option<String>,
+
+    /// Version of the implemented FLECS App Manifest schema
+    #[serde(rename = "_schemaVersion")]
+    #[validate(
+            regex(path = *RE_APPMANIFESTONEOF__SCHEMA_VERSION),
+        )]
+    pub _schema_version: String,
+
+    /// Minimum FLECS version needed for the app
+    #[serde(rename = "_minimumFlecsVersion")]
+    #[validate(
+            regex(path = *RE_APPMANIFESTONEOF__MINIMUM_FLECS_VERSION),
+        )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub _minimum_flecs_version: Option<String>,
+
+    /// Unique App identifier in reverse domain name notation
+    #[serde(rename = "app")]
+    #[validate(
+            regex(path = *RE_APPMANIFESTONEOF_APP),
+        )]
+    pub app: String,
+
+    /// App version, naturally sortable
+    #[serde(rename = "version")]
+    pub version: String,
+
+    /// App manifest revision. Increment if Manifest is changed within the same App version
+    #[serde(rename = "revision")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revision: Option<String>,
+
+    /// Docker image for the App
+    #[serde(rename = "image")]
+    #[validate(
+            regex(path = *RE_APPMANIFESTONEOF_IMAGE),
+        )]
+    pub image: String,
+
+    /// 'true' if App can be instantiated more than once (requires no editor, no ports)
+    #[serde(rename = "multiInstance")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub multi_instance: Option<bool>,
+
+    /// Set of web-based UIs of the app
+    #[serde(rename = "editors")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub editors: Option<Vec<models::AppManifestOneOfEditorsInner>>,
+
+    /// Command line arguments passed to App entrypoint
+    #[serde(rename = "args")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<String>>,
+
+    /// Permissions required for the App to function correctly
+    /// Note: inline enums are not fully supported by openapi-generator
+    #[serde(rename = "capabilities")]
+    #[validate()]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub capabilities: Option<Vec<String>>,
+
+    /// Configuration files used by the App
+    #[serde(rename = "conffiles")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conffiles: Option<Vec<String>>,
+
+    /// Devices passed through to the App instances
+    #[serde(rename = "devices")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub devices: Option<Vec<String>>,
+
+    /// Environment variables for the App instances
+    #[serde(rename = "env")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub env: Option<Vec<String>>,
+
+    /// DEPRECATED: true if App requires allocation of an interactive shell
+    #[serde(rename = "interactive")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interactive: Option<bool>,
+
+    /// Port mappings for the App's instances (not allowed for multiInstance Apps)
+    #[serde(rename = "ports")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ports: Option<Vec<String>>,
+
+    /// Virtual volumes and bind mounts for an App's instances
+    #[serde(rename = "volumes")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volumes: Option<Vec<String>>,
+
+    /// Labels for the App instances
+    #[serde(rename = "labels")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub labels: Option<Vec<String>>,
+
+    /// DEPRECATED: hostname of the started app, using this with multiInstance = true will cause problems
+    #[serde(rename = "hostname")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hostname: Option<String>,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_APPMANIFESTONEOF__SCHEMA_VERSION: regex::Regex = regex::Regex::new("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_APPMANIFESTONEOF__MINIMUM_FLECS_VERSION: regex::Regex = regex::Regex::new("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_APPMANIFESTONEOF_APP: regex::Regex = regex::Regex::new("^((?:[a-z])+[a-z0-9.\\-_]+[a-z0-9])$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_APPMANIFESTONEOF_IMAGE: regex::Regex = regex::Regex::new("^((?:(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])(?:\\.(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]))*|\\[(?:[a-fA-F0-9:]+)\\])(?::[0-9]+)?/)?[a-z0-9]+(?:(?:[._]|__|[-]+)[a-z0-9]+)*(?:/[a-z0-9]+(?:(?:[._]|__|[-]+)[a-z0-9]+)*)*)(?::([\\w][\\w.-]{0,127}))?(?:@([A-Za-z][A-Za-z0-9]*(?:[-_+.][A-Za-z][A-Za-z0-9]*)*[:][A-Fa-f0-9]{32,}))?$").unwrap();
+}
+
+impl AppManifestOneOf {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(
+        _schema_version: String,
+        app: String,
+        version: String,
+        image: String,
+    ) -> AppManifestOneOf {
+        AppManifestOneOf {
+            dollar_schema: None,
+            _schema_version,
+            _minimum_flecs_version: None,
+            app,
+            version,
+            revision: None,
+            image,
+            multi_instance: None,
+            editors: None,
+            args: None,
+            capabilities: None,
+            conffiles: None,
+            devices: None,
+            env: None,
+            interactive: None,
+            ports: None,
+            volumes: None,
+            labels: None,
+            hostname: None,
+        }
+    }
+}
+
+/// Converts the AppManifestOneOf value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for AppManifestOneOf {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            self.dollar_schema
+                .as_ref()
+                .map(|dollar_schema| ["$schema".to_string(), dollar_schema.to_string()].join(",")),
+            Some("_schemaVersion".to_string()),
+            Some(self._schema_version.to_string()),
+            self._minimum_flecs_version
+                .as_ref()
+                .map(|_minimum_flecs_version| {
+                    [
+                        "_minimumFlecsVersion".to_string(),
+                        _minimum_flecs_version.to_string(),
+                    ]
+                    .join(",")
+                }),
+            Some("app".to_string()),
+            Some(self.app.to_string()),
+            Some("version".to_string()),
+            Some(self.version.to_string()),
+            self.revision
+                .as_ref()
+                .map(|revision| ["revision".to_string(), revision.to_string()].join(",")),
+            Some("image".to_string()),
+            Some(self.image.to_string()),
+            self.multi_instance.as_ref().map(|multi_instance| {
+                ["multiInstance".to_string(), multi_instance.to_string()].join(",")
+            }),
+            // Skipping editors in query parameter serialization
+            self.args.as_ref().map(|args| {
+                [
+                    "args".to_string(),
+                    args.iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            self.capabilities.as_ref().map(|capabilities| {
+                [
+                    "capabilities".to_string(),
+                    capabilities
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            self.conffiles.as_ref().map(|conffiles| {
+                [
+                    "conffiles".to_string(),
+                    conffiles
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            self.devices.as_ref().map(|devices| {
+                [
+                    "devices".to_string(),
+                    devices
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            self.env.as_ref().map(|env| {
+                [
+                    "env".to_string(),
+                    env.iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            self.interactive
+                .as_ref()
+                .map(|interactive| ["interactive".to_string(), interactive.to_string()].join(",")),
+            self.ports.as_ref().map(|ports| {
+                [
+                    "ports".to_string(),
+                    ports
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            self.volumes.as_ref().map(|volumes| {
+                [
+                    "volumes".to_string(),
+                    volumes
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            self.labels.as_ref().map(|labels| {
+                [
+                    "labels".to_string(),
+                    labels
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(","),
+                ]
+                .join(",")
+            }),
+            self.hostname
+                .as_ref()
+                .map(|hostname| ["hostname".to_string(), hostname.to_string()].join(",")),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AppManifestOneOf value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AppManifestOneOf {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub dollar_schema: Vec<String>,
+            pub _schema_version: Vec<String>,
+            pub _minimum_flecs_version: Vec<String>,
+            pub app: Vec<String>,
+            pub version: Vec<String>,
+            pub revision: Vec<String>,
+            pub image: Vec<String>,
+            pub multi_instance: Vec<bool>,
+            pub editors: Vec<Vec<models::AppManifestOneOfEditorsInner>>,
+            pub args: Vec<Vec<String>>,
+            pub capabilities: Vec<Vec<String>>,
+            pub conffiles: Vec<Vec<String>>,
+            pub devices: Vec<Vec<String>>,
+            pub env: Vec<Vec<String>>,
+            pub interactive: Vec<bool>,
+            pub ports: Vec<Vec<String>>,
+            pub volumes: Vec<Vec<String>>,
+            pub labels: Vec<Vec<String>>,
+            pub hostname: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing AppManifestOneOf".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "$schema" => intermediate_rep.dollar_schema.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "_schemaVersion" => intermediate_rep._schema_version.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "_minimumFlecsVersion" => intermediate_rep._minimum_flecs_version.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "app" => intermediate_rep.app.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "version" => intermediate_rep.version.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "revision" => intermediate_rep.revision.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "image" => intermediate_rep.image.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "multiInstance" => intermediate_rep.multi_instance.push(
+                        <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    "editors" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in AppManifestOneOf"
+                            .to_string(),
+                    ),
+                    "args" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in AppManifestOneOf"
+                            .to_string(),
+                    ),
+                    "capabilities" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in AppManifestOneOf"
+                            .to_string(),
+                    ),
+                    "conffiles" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in AppManifestOneOf"
+                            .to_string(),
+                    ),
+                    "devices" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in AppManifestOneOf"
+                            .to_string(),
+                    ),
+                    "env" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in AppManifestOneOf"
+                            .to_string(),
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "interactive" => intermediate_rep.interactive.push(
+                        <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    "ports" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in AppManifestOneOf"
+                            .to_string(),
+                    ),
+                    "volumes" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in AppManifestOneOf"
+                            .to_string(),
+                    ),
+                    "labels" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in AppManifestOneOf"
+                            .to_string(),
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "hostname" => intermediate_rep.hostname.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing AppManifestOneOf".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(AppManifestOneOf {
+            dollar_schema: intermediate_rep.dollar_schema.into_iter().next(),
+            _schema_version: intermediate_rep
+                ._schema_version
+                .into_iter()
+                .next()
+                .ok_or_else(|| "_schemaVersion missing in AppManifestOneOf".to_string())?,
+            _minimum_flecs_version: intermediate_rep._minimum_flecs_version.into_iter().next(),
+            app: intermediate_rep
+                .app
+                .into_iter()
+                .next()
+                .ok_or_else(|| "app missing in AppManifestOneOf".to_string())?,
+            version: intermediate_rep
+                .version
+                .into_iter()
+                .next()
+                .ok_or_else(|| "version missing in AppManifestOneOf".to_string())?,
+            revision: intermediate_rep.revision.into_iter().next(),
+            image: intermediate_rep
+                .image
+                .into_iter()
+                .next()
+                .ok_or_else(|| "image missing in AppManifestOneOf".to_string())?,
+            multi_instance: intermediate_rep.multi_instance.into_iter().next(),
+            editors: intermediate_rep.editors.into_iter().next(),
+            args: intermediate_rep.args.into_iter().next(),
+            capabilities: intermediate_rep.capabilities.into_iter().next(),
+            conffiles: intermediate_rep.conffiles.into_iter().next(),
+            devices: intermediate_rep.devices.into_iter().next(),
+            env: intermediate_rep.env.into_iter().next(),
+            interactive: intermediate_rep.interactive.into_iter().next(),
+            ports: intermediate_rep.ports.into_iter().next(),
+            volumes: intermediate_rep.volumes.into_iter().next(),
+            labels: intermediate_rep.labels.into_iter().next(),
+            hostname: intermediate_rep.hostname.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<AppManifestOneOf> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<AppManifestOneOf>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<AppManifestOneOf>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for AppManifestOneOf - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AppManifestOneOf> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <AppManifestOneOf as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into AppManifestOneOf - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct AppManifestOneOf1 {
+    /// Location of the JSON schema to validate against
+    #[serde(rename = "$schema")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dollar_schema: Option<String>,
+
+    /// Version of the implemented FLECS App Manifest schema
+    #[serde(rename = "_schemaVersion")]
+    #[validate(
+            regex(path = *RE_APPMANIFESTONEOF1__SCHEMA_VERSION),
+        )]
+    pub _schema_version: String,
+
+    /// Minimum FLECS version needed for the app
+    #[serde(rename = "_minimumFlecsVersion")]
+    #[validate(
+            regex(path = *RE_APPMANIFESTONEOF1__MINIMUM_FLECS_VERSION),
+        )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub _minimum_flecs_version: Option<String>,
+
+    /// Unique App identifier in reverse domain name notation
+    #[serde(rename = "app")]
+    #[validate(
+            regex(path = *RE_APPMANIFESTONEOF1_APP),
+        )]
+    pub app: String,
+
+    /// App version, naturally sortable
+    #[serde(rename = "version")]
+    pub version: String,
+
+    /// App manifest revision. Increment if Manifest is changed within the same App version
+    #[serde(rename = "revision")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revision: Option<String>,
+
+    #[serde(rename = "deployment")]
+    pub deployment: models::AppManifestOneOf1Deployment,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_APPMANIFESTONEOF1__SCHEMA_VERSION: regex::Regex = regex::Regex::new("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_APPMANIFESTONEOF1__MINIMUM_FLECS_VERSION: regex::Regex = regex::Regex::new("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_APPMANIFESTONEOF1_APP: regex::Regex = regex::Regex::new("^((?:[a-z])+[a-z0-9.\\-_]+[a-z0-9])$").unwrap();
+}
+
+impl AppManifestOneOf1 {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(
+        _schema_version: String,
+        app: String,
+        version: String,
+        deployment: models::AppManifestOneOf1Deployment,
+    ) -> AppManifestOneOf1 {
+        AppManifestOneOf1 {
+            dollar_schema: None,
+            _schema_version,
+            _minimum_flecs_version: None,
+            app,
+            version,
+            revision: None,
+            deployment,
+        }
+    }
+}
+
+/// Converts the AppManifestOneOf1 value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for AppManifestOneOf1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            self.dollar_schema
+                .as_ref()
+                .map(|dollar_schema| ["$schema".to_string(), dollar_schema.to_string()].join(",")),
+            Some("_schemaVersion".to_string()),
+            Some(self._schema_version.to_string()),
+            self._minimum_flecs_version
+                .as_ref()
+                .map(|_minimum_flecs_version| {
+                    [
+                        "_minimumFlecsVersion".to_string(),
+                        _minimum_flecs_version.to_string(),
+                    ]
+                    .join(",")
+                }),
+            Some("app".to_string()),
+            Some(self.app.to_string()),
+            Some("version".to_string()),
+            Some(self.version.to_string()),
+            self.revision
+                .as_ref()
+                .map(|revision| ["revision".to_string(), revision.to_string()].join(",")),
+            // Skipping deployment in query parameter serialization
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AppManifestOneOf1 value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AppManifestOneOf1 {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub dollar_schema: Vec<String>,
+            pub _schema_version: Vec<String>,
+            pub _minimum_flecs_version: Vec<String>,
+            pub app: Vec<String>,
+            pub version: Vec<String>,
+            pub revision: Vec<String>,
+            pub deployment: Vec<models::AppManifestOneOf1Deployment>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing AppManifestOneOf1".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "$schema" => intermediate_rep.dollar_schema.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "_schemaVersion" => intermediate_rep._schema_version.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "_minimumFlecsVersion" => intermediate_rep._minimum_flecs_version.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "app" => intermediate_rep.app.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "version" => intermediate_rep.version.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "revision" => intermediate_rep.revision.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "deployment" => intermediate_rep.deployment.push(
+                        <models::AppManifestOneOf1Deployment as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing AppManifestOneOf1".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(AppManifestOneOf1 {
+            dollar_schema: intermediate_rep.dollar_schema.into_iter().next(),
+            _schema_version: intermediate_rep
+                ._schema_version
+                .into_iter()
+                .next()
+                .ok_or_else(|| "_schemaVersion missing in AppManifestOneOf1".to_string())?,
+            _minimum_flecs_version: intermediate_rep._minimum_flecs_version.into_iter().next(),
+            app: intermediate_rep
+                .app
+                .into_iter()
+                .next()
+                .ok_or_else(|| "app missing in AppManifestOneOf1".to_string())?,
+            version: intermediate_rep
+                .version
+                .into_iter()
+                .next()
+                .ok_or_else(|| "version missing in AppManifestOneOf1".to_string())?,
+            revision: intermediate_rep.revision.into_iter().next(),
+            deployment: intermediate_rep
+                .deployment
+                .into_iter()
+                .next()
+                .ok_or_else(|| "deployment missing in AppManifestOneOf1".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<AppManifestOneOf1> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<AppManifestOneOf1>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<AppManifestOneOf1>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for AppManifestOneOf1 - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AppManifestOneOf1> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <AppManifestOneOf1 as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into AppManifestOneOf1 - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+/// Method of deploying the App through FLECS
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct AppManifestOneOf1Deployment {
+    #[serde(rename = "compose")]
+    pub compose: models::AppManifestOneOf1DeploymentCompose,
+}
+
+impl AppManifestOneOf1Deployment {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(compose: models::AppManifestOneOf1DeploymentCompose) -> AppManifestOneOf1Deployment {
+        AppManifestOneOf1Deployment { compose }
+    }
+}
+
+/// Converts the AppManifestOneOf1Deployment value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for AppManifestOneOf1Deployment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping compose in query parameter serialization
+
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AppManifestOneOf1Deployment value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AppManifestOneOf1Deployment {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub compose: Vec<models::AppManifestOneOf1DeploymentCompose>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing AppManifestOneOf1Deployment".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "compose" => intermediate_rep.compose.push(<models::AppManifestOneOf1DeploymentCompose as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
+                    _ => return std::result::Result::Err("Unexpected key while parsing AppManifestOneOf1Deployment".to_string())
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(AppManifestOneOf1Deployment {
+            compose: intermediate_rep
+                .compose
+                .into_iter()
+                .next()
+                .ok_or_else(|| "compose missing in AppManifestOneOf1Deployment".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<AppManifestOneOf1Deployment> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<AppManifestOneOf1Deployment>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<AppManifestOneOf1Deployment>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for AppManifestOneOf1Deployment - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AppManifestOneOf1Deployment> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <AppManifestOneOf1Deployment as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into AppManifestOneOf1Deployment - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct AppManifestOneOf1DeploymentCompose {
+    /// docker-compose.yml file converted to JSON
+    #[serde(rename = "yaml")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub yaml: Option<crate::types::Object>,
+}
+
+impl AppManifestOneOf1DeploymentCompose {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new() -> AppManifestOneOf1DeploymentCompose {
+        AppManifestOneOf1DeploymentCompose { yaml: None }
+    }
+}
+
+/// Converts the AppManifestOneOf1DeploymentCompose value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for AppManifestOneOf1DeploymentCompose {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping yaml in query parameter serialization
+
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AppManifestOneOf1DeploymentCompose value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AppManifestOneOf1DeploymentCompose {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub yaml: Vec<crate::types::Object>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing AppManifestOneOf1DeploymentCompose"
+                            .to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "yaml" => intermediate_rep.yaml.push(
+                        <crate::types::Object as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing AppManifestOneOf1DeploymentCompose"
+                                .to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(AppManifestOneOf1DeploymentCompose {
+            yaml: intermediate_rep.yaml.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<AppManifestOneOf1DeploymentCompose> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<AppManifestOneOf1DeploymentCompose>>
+    for HeaderValue
+{
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<AppManifestOneOf1DeploymentCompose>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+             std::result::Result::Ok(value) => std::result::Result::Ok(value),
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Invalid header value for AppManifestOneOf1DeploymentCompose - value: {} is invalid {}",
+                     hdr_value, e))
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue>
+    for header::IntoHeaderValue<AppManifestOneOf1DeploymentCompose>
+{
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+             std::result::Result::Ok(value) => {
+                    match <AppManifestOneOf1DeploymentCompose as std::str::FromStr>::from_str(value) {
+                        std::result::Result::Ok(value) => std::result::Result::Ok(header::IntoHeaderValue(value)),
+                        std::result::Result::Err(err) => std::result::Result::Err(
+                            format!("Unable to convert header value '{}' into AppManifestOneOf1DeploymentCompose - {}",
+                                value, err))
+                    }
+             },
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Unable to convert header: {:?} to string: {}",
+                     hdr_value, e))
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct AppManifestOneOfEditorsInner {
+    #[serde(rename = "name")]
+    pub name: String,
+
+    /// Port on which the editor is reachable on the docker container
+    #[serde(rename = "port")]
+    #[validate(range(min = 1u16, max = 65535u16))]
+    pub port: u16,
+
+    #[serde(rename = "supportsReverseProxy")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supports_reverse_proxy: Option<bool>,
+}
+
+impl AppManifestOneOfEditorsInner {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String, port: u16) -> AppManifestOneOfEditorsInner {
+        AppManifestOneOfEditorsInner {
+            name,
+            port,
+            supports_reverse_proxy: Some(true),
+        }
+    }
+}
+
+/// Converts the AppManifestOneOfEditorsInner value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for AppManifestOneOfEditorsInner {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            Some("port".to_string()),
+            Some(self.port.to_string()),
+            self.supports_reverse_proxy
+                .as_ref()
+                .map(|supports_reverse_proxy| {
+                    [
+                        "supportsReverseProxy".to_string(),
+                        supports_reverse_proxy.to_string(),
+                    ]
+                    .join(",")
+                }),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AppManifestOneOfEditorsInner value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AppManifestOneOfEditorsInner {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub port: Vec<u16>,
+            pub supports_reverse_proxy: Vec<bool>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing AppManifestOneOfEditorsInner".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "port" => intermediate_rep.port.push(
+                        <u16 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "supportsReverseProxy" => intermediate_rep.supports_reverse_proxy.push(
+                        <bool as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing AppManifestOneOfEditorsInner".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(AppManifestOneOfEditorsInner {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in AppManifestOneOfEditorsInner".to_string())?,
+            port: intermediate_rep
+                .port
+                .into_iter()
+                .next()
+                .ok_or_else(|| "port missing in AppManifestOneOfEditorsInner".to_string())?,
+            supports_reverse_proxy: intermediate_rep.supports_reverse_proxy.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<AppManifestOneOfEditorsInner> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<AppManifestOneOfEditorsInner>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<AppManifestOneOfEditorsInner>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for AppManifestOneOfEditorsInner - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AppManifestOneOfEditorsInner> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+             std::result::Result::Ok(value) => {
+                    match <AppManifestOneOfEditorsInner as std::str::FromStr>::from_str(value) {
+                        std::result::Result::Ok(value) => std::result::Result::Ok(header::IntoHeaderValue(value)),
+                        std::result::Result::Err(err) => std::result::Result::Err(
+                            format!("Unable to convert header value '{}' into AppManifestOneOfEditorsInner - {}",
+                                value, err))
+                    }
+             },
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Unable to convert header: {:?} to string: {}",
+                     hdr_value, e))
         }
     }
 }
