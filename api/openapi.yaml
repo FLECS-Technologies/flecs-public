@@ -393,6 +393,7 @@ components:
     post_deployment_network:
       type: object
       required:
+        - network_id
         - network_kind
       properties:
         network_id:
