@@ -5,4 +5,5 @@ pub mod device;
 pub mod flecsport;
 pub mod instances;
 pub mod jobs;
+pub mod manifests;
 pub mod system;
