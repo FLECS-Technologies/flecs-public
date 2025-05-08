@@ -51,7 +51,7 @@ pub async fn post<T: Instancius>(
     let instance_id =
         crate::jeweler::gem::instance::InstanceId::from_str(&path_params.instance_id).unwrap();
     let ip = match body
-        .ip_address_suggestion
+        .ip_address
         .map(|ip| Ipv4Addr::from_str(&ip))
         .transpose()
     {
@@ -157,7 +157,7 @@ mod tests {
         let ip_address = Ipv4Addr::new(10, 18, 102, 10);
         let body = PostBody {
             network_id: NETWORK_ID.to_string(),
-            ip_address_suggestion: Some(ip_address.to_string()),
+            ip_address: Some(ip_address.to_string()),
         };
         let vault = create_empty_test_vault();
         let mut instancius = MockInstancius::new();
@@ -187,7 +187,7 @@ mod tests {
         };
         let body = PostBody {
             network_id: NETWORK_ID.to_string(),
-            ip_address_suggestion: Some("invalid ip".to_string()),
+            ip_address: Some("invalid ip".to_string()),
         };
         let vault = create_empty_test_vault();
         let instancius = MockInstancius::new();
@@ -206,7 +206,7 @@ mod tests {
         let ip_address = Ipv4Addr::new(10, 18, 102, 10);
         let body = PostBody {
             network_id: NETWORK_ID.to_string(),
-            ip_address_suggestion: Some(ip_address.to_string()),
+            ip_address: Some(ip_address.to_string()),
         };
         let vault = create_empty_test_vault();
         let mut instancius = MockInstancius::new();
@@ -240,7 +240,7 @@ mod tests {
         let ip_address = Ipv4Addr::new(10, 18, 102, 10);
         let body = PostBody {
             network_id: NETWORK_ID.to_string(),
-            ip_address_suggestion: Some(ip_address.to_string()),
+            ip_address: Some(ip_address.to_string()),
         };
         let vault = create_empty_test_vault();
         let mut instancius = MockInstancius::new();
@@ -273,7 +273,7 @@ mod tests {
         let ip_address = Ipv4Addr::new(10, 18, 102, 10);
         let body = PostBody {
             network_id: NETWORK_ID.to_string(),
-            ip_address_suggestion: Some(ip_address.to_string()),
+            ip_address: Some(ip_address.to_string()),
         };
         let vault = create_empty_test_vault();
         let mut instancius = MockInstancius::new();

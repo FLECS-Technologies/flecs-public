@@ -70,10 +70,10 @@ where
             delete(console_authentication_delete::<I, A>).put(console_authentication_put::<I, A>)
         )
         .route("/v2/deployments/:deployment_id/networks",
-            get(deployments_deployment_id_networks_get::<I, A>)
+            get(deployments_deployment_id_networks_get::<I, A>).post(deployments_deployment_id_networks_post::<I, A>)
         )
         .route("/v2/deployments/:deployment_id/networks/:network_id",
-            get(deployments_deployment_id_networks_network_id_get::<I, A>).put(deployments_deployment_id_networks_network_id_put::<I, A>)
+            get(deployments_deployment_id_networks_network_id_get::<I, A>)
         )
         .route("/v2/deployments/:deployment_id/networks/:network_id/dhcp/ipv4",
             post(deployments_deployment_id_networks_network_id_dhcp_ipv4_post::<I, A>)
@@ -1270,37 +1270,37 @@ where
 
 #[derive(validator::Validate)]
 #[allow(dead_code)]
-struct DeploymentsDeploymentIdNetworksNetworkIdPutBodyValidator<'a> {
+struct DeploymentsDeploymentIdNetworksPostBodyValidator<'a> {
     #[validate(nested)]
-    body: &'a models::PutDeploymentNetwork,
+    body: &'a models::PostDeploymentNetwork,
 }
 
 #[tracing::instrument(skip_all)]
-fn deployments_deployment_id_networks_network_id_put_validation(
-    path_params: models::DeploymentsDeploymentIdNetworksNetworkIdPutPathParams,
-    body: models::PutDeploymentNetwork,
+fn deployments_deployment_id_networks_post_validation(
+    path_params: models::DeploymentsDeploymentIdNetworksPostPathParams,
+    body: models::PostDeploymentNetwork,
 ) -> std::result::Result<
     (
-        models::DeploymentsDeploymentIdNetworksNetworkIdPutPathParams,
-        models::PutDeploymentNetwork,
+        models::DeploymentsDeploymentIdNetworksPostPathParams,
+        models::PostDeploymentNetwork,
     ),
     ValidationErrors,
 > {
     path_params.validate()?;
-    let b = DeploymentsDeploymentIdNetworksNetworkIdPutBodyValidator { body: &body };
+    let b = DeploymentsDeploymentIdNetworksPostBodyValidator { body: &body };
     b.validate()?;
 
     Ok((path_params, body))
 }
-/// DeploymentsDeploymentIdNetworksNetworkIdPut - PUT /v2/deployments/{deployment_id}/networks/{network_id}
+/// DeploymentsDeploymentIdNetworksPost - POST /v2/deployments/{deployment_id}/networks
 #[tracing::instrument(skip_all)]
-async fn deployments_deployment_id_networks_network_id_put<I, A>(
+async fn deployments_deployment_id_networks_post<I, A>(
     method: Method,
     host: Host,
     cookies: CookieJar,
-    Path(path_params): Path<models::DeploymentsDeploymentIdNetworksNetworkIdPutPathParams>,
+    Path(path_params): Path<models::DeploymentsDeploymentIdNetworksPostPathParams>,
     State(api_impl): State<I>,
-    Json(body): Json<models::PutDeploymentNetwork>,
+    Json(body): Json<models::PostDeploymentNetwork>,
 ) -> Result<Response, StatusCode>
 where
     I: AsRef<A> + Send + Sync,
@@ -1308,7 +1308,7 @@ where
 {
     #[allow(clippy::redundant_closure)]
     let validation = tokio::task::spawn_blocking(move || {
-        deployments_deployment_id_networks_network_id_put_validation(path_params, body)
+        deployments_deployment_id_networks_post_validation(path_params, body)
     })
     .await
     .unwrap();
@@ -1322,24 +1322,24 @@ where
 
     let result = api_impl
         .as_ref()
-        .deployments_deployment_id_networks_network_id_put(method, host, cookies, path_params, body)
+        .deployments_deployment_id_networks_post(method, host, cookies, path_params, body)
         .await;
 
     let mut response = Response::builder();
 
     let resp = match result {
                                             Ok(rsp) => match rsp {
-                                                apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdPutResponse::Status200_AlreadyCreated
+                                                apis::deployments::DeploymentsDeploymentIdNetworksPostResponse::Status200_AlreadyCreated
                                                 => {
                                                   let mut response = response.status(200);
                                                   response.body(Body::empty())
                                                 },
-                                                apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdPutResponse::Status201_Created
+                                                apis::deployments::DeploymentsDeploymentIdNetworksPostResponse::Status201_Created
                                                 => {
                                                   let mut response = response.status(201);
                                                   response.body(Body::empty())
                                                 },
-                                                apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdPutResponse::Status400_MalformedRequest
+                                                apis::deployments::DeploymentsDeploymentIdNetworksPostResponse::Status400_MalformedRequest
                                                     (body)
                                                 => {
                                                   let mut response = response.status(400);
@@ -1357,12 +1357,12 @@ where
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
                                                 },
-                                                apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdPutResponse::Status404_DeploymentNotFound
+                                                apis::deployments::DeploymentsDeploymentIdNetworksPostResponse::Status404_DeploymentNotFound
                                                 => {
                                                   let mut response = response.status(404);
                                                   response.body(Body::empty())
                                                 },
-                                                apis::deployments::DeploymentsDeploymentIdNetworksNetworkIdPutResponse::Status500_InternalServerError
+                                                apis::deployments::DeploymentsDeploymentIdNetworksPostResponse::Status500_InternalServerError
                                                     (body)
                                                 => {
                                                   let mut response = response.status(500);
@@ -1660,13 +1660,13 @@ where
 #[allow(dead_code)]
 struct DeviceOnboardingPostBodyValidator<'a> {
     #[validate(nested)]
-    body: &'a models::Dosschema,
+    body: &'a models::DosManifest,
 }
 
 #[tracing::instrument(skip_all)]
 fn device_onboarding_post_validation(
-    body: models::Dosschema,
-) -> std::result::Result<(models::Dosschema,), ValidationErrors> {
+    body: models::DosManifest,
+) -> std::result::Result<(models::DosManifest,), ValidationErrors> {
     let b = DeviceOnboardingPostBodyValidator { body: &body };
     b.validate()?;
 
@@ -1679,7 +1679,7 @@ async fn device_onboarding_post<I, A>(
     host: Host,
     cookies: CookieJar,
     State(api_impl): State<I>,
-    Json(body): Json<models::Dosschema>,
+    Json(body): Json<models::DosManifest>,
 ) -> Result<Response, StatusCode>
 where
     I: AsRef<A> + Send + Sync,

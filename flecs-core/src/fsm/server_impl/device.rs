@@ -20,7 +20,7 @@ use flecsd_axum_server::apis::device::{
     Device, DeviceLicenseActivationPostResponse, DeviceLicenseActivationStatusGetResponse,
     DeviceLicenseInfoGetResponse, DeviceOnboardingPostResponse,
 };
-use flecsd_axum_server::models::Dosschema;
+use flecsd_axum_server::models;
 use http::Method;
 
 #[async_trait]
@@ -83,7 +83,7 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        body: Dosschema,
+        body: models::DosManifest,
     ) -> Result<DeviceOnboardingPostResponse, ()> {
         Ok(super::api::v2::device::onboarding::post(
             self.vault.clone(),

@@ -48,7 +48,7 @@ pub enum DeploymentsDeploymentIdNetworksNetworkIdGetResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
-pub enum DeploymentsDeploymentIdNetworksNetworkIdPutResponse {
+pub enum DeploymentsDeploymentIdNetworksPostResponse {
     /// Already created
     Status200_AlreadyCreated,
     /// Created
@@ -92,13 +92,13 @@ pub trait Deployments {
         path_params: models::DeploymentsDeploymentIdNetworksNetworkIdGetPathParams,
     ) -> Result<DeploymentsDeploymentIdNetworksNetworkIdGetResponse, ()>;
 
-    /// DeploymentsDeploymentIdNetworksNetworkIdPut - PUT /v2/deployments/{deployment_id}/networks/{network_id}
-    async fn deployments_deployment_id_networks_network_id_put(
+    /// DeploymentsDeploymentIdNetworksPost - POST /v2/deployments/{deployment_id}/networks
+    async fn deployments_deployment_id_networks_post(
         &self,
         method: Method,
         host: Host,
         cookies: CookieJar,
-        path_params: models::DeploymentsDeploymentIdNetworksNetworkIdPutPathParams,
-        body: models::PutDeploymentNetwork,
-    ) -> Result<DeploymentsDeploymentIdNetworksNetworkIdPutResponse, ()>;
+        path_params: models::DeploymentsDeploymentIdNetworksPostPathParams,
+        body: models::PostDeploymentNetwork,
+    ) -> Result<DeploymentsDeploymentIdNetworksPostResponse, ()>;
 }

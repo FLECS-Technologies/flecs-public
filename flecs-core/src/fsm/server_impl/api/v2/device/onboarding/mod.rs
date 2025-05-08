@@ -4,7 +4,7 @@ use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::device::DeviceOnboardingPostResponse as PostResponse;
 use flecsd_axum_server::models;
-use flecsd_axum_server::models::Dosschema as PostRequest;
+use flecsd_axum_server::models::DosManifest as PostRequest;
 use std::sync::Arc;
 use tracing::warn;
 

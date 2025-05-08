@@ -20,13 +20,13 @@ use flecsd_axum_server::apis::deployments::{
     Deployments, DeploymentsDeploymentIdNetworksGetResponse,
     DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostResponse,
     DeploymentsDeploymentIdNetworksNetworkIdGetResponse,
-    DeploymentsDeploymentIdNetworksNetworkIdPutResponse,
+    DeploymentsDeploymentIdNetworksPostResponse,
 };
 use flecsd_axum_server::models::{
     DeploymentsDeploymentIdNetworksGetPathParams,
     DeploymentsDeploymentIdNetworksNetworkIdDhcpIpv4PostPathParams,
     DeploymentsDeploymentIdNetworksNetworkIdGetPathParams,
-    DeploymentsDeploymentIdNetworksNetworkIdPutPathParams, PutDeploymentNetwork,
+    DeploymentsDeploymentIdNetworksPostPathParams, PostDeploymentNetwork,
 };
 use http::Method;
 
@@ -97,22 +97,20 @@ impl<
         )
     }
 
-    async fn deployments_deployment_id_networks_network_id_put(
+    async fn deployments_deployment_id_networks_post(
         &self,
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        path_params: DeploymentsDeploymentIdNetworksNetworkIdPutPathParams,
-        body: PutDeploymentNetwork,
-    ) -> Result<DeploymentsDeploymentIdNetworksNetworkIdPutResponse, ()> {
-        Ok(
-            super::api::v2::deployments::deployment_id::networks::network_id::put(
-                self.vault.clone(),
-                self.sorcerers.deploymento.clone(),
-                path_params,
-                body,
-            )
-            .await,
+        path_params: DeploymentsDeploymentIdNetworksPostPathParams,
+        body: PostDeploymentNetwork,
+    ) -> Result<DeploymentsDeploymentIdNetworksPostResponse, ()> {
+        Ok(super::api::v2::deployments::deployment_id::networks::post(
+            self.vault.clone(),
+            self.sorcerers.deploymento.clone(),
+            path_params,
+            body,
         )
+        .await)
     }
 }
