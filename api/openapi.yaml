@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: 3.1.0
 info:
   title: FLECS Daemon API
   version: 2.0.0
@@ -388,15 +388,15 @@ components:
     ipam:
       type: object
       properties:
-        ipv4_subnet:
-          $ref: "#/components/schemas/ipv4_network"
-        ipv4_gateway:
-          $ref: "#/components/schemas/ipv4_address"
-    put_deployment_network:
+        ipv4:
+          $ref: "#/components/schemas/ipv4_ipam"
+    post_deployment_network:
       type: object
       required:
         - network_kind
       properties:
+        network_id:
+          type: string
         network_kind:
           $ref: "#/components/schemas/network_kind"
         options:
@@ -416,20 +416,29 @@ components:
           type: string
         driver:
           type: string
-        subnet:
-          $ref: "#/components/schemas/network"
+        ipam:
+          $ref: "#/components/schemas/ipam"
         parent:
           type: string
     ipv4_address:
       type: string
       format: ipv4
+      example: 172.31.0.42
+    ipv4_netmask:
+      type: string
+      format: ipv4
+      example: 255.255.0.0
+    ipv4_gateway:
+      type: string
+      format: ipv4
+      example: 172.31.0.1
     ipv6_address:
       type: string
       format: ipv6
     mac_address:
       type: string
       pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
-    ipv4_network:
+    ipv4_ipam:
       type: object
       required:
         - address
@@ -438,7 +447,9 @@ components:
         address:
           $ref: "#/components/schemas/ipv4_address"
         netmask:
-          $ref: "#/components/schemas/ipv4_address"
+          $ref: "#/components/schemas/ipv4_netmask"
+        gateway:
+          $ref: "#/components/schemas/ipv4_gateway"
     ipv6_network:
       type: object
       required:
@@ -486,7 +497,7 @@ components:
           items:
             $ref: "#/components/schemas/network"
         gateway:
-          $ref: "#/components/schemas/ipv4_address"
+          $ref: "#/components/schemas/ipv4_gateway"
         mac_address:
           $ref: "#/components/schemas/mac_address"
         net_type:
@@ -501,8 +512,7 @@ components:
         name:
           type: string
         ipAddress:
-          type: string
-          format: ipv4
+          $ref: "#/components/schemas/ipv4_address"
     instance_environment:
       type: array
       items:
@@ -935,8 +945,7 @@ paths:
           description: No deployment with this deployment_id found
         "500":
           $ref: "#/components/responses/response_500"
-  /deployments/{deployment_id}/networks/{network_id}:
-    put:
+    post:
       tags: [ "Deployments" ]
       parameters:
         - name: deployment_id
@@ -945,18 +954,12 @@ paths:
             type: string
             description: The id of the deployment or 'default'
           required: true
-        - name: network_id
-          in: path
-          schema:
-            type: string
-            description: The id of the network
-          required: true
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/put_deployment_network"
+              $ref: "#/components/schemas/post_deployment_network"
       responses:
         "200":
           description: Already created
@@ -968,6 +971,7 @@ paths:
           description: Deployment not found
         "500":
           $ref: "#/components/responses/response_500"
+  /deployments/{deployment_id}/networks/{network_id}:
     get:
       tags: [ "Deployments" ]
       parameters:
@@ -1018,8 +1022,7 @@ paths:
                 type: object
                 properties:
                   ipv4_address:
-                    type: string
-                    format: ipv4
+                    $ref: "#/components/schemas/ipv4_address"
                 required:
                   - ipv4_address
         "400":
@@ -1868,9 +1871,8 @@ paths:
               properties:
                 network_id:
                   type: string
-                ip_address_suggestion:
-                  type: string
-                  format: ipv4
+                ipAddress:
+                  $ref: "#/components/schemas/ipv4_address"
               required:
                 - network_id
       responses:
