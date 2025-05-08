@@ -57,9 +57,8 @@ pub struct DeploymentsDeploymentIdNetworksNetworkIdGetPathParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct DeploymentsDeploymentIdNetworksNetworkIdPutPathParams {
+pub struct DeploymentsDeploymentIdNetworksPostPathParams {
     pub deployment_id: String,
-    pub network_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -1896,9 +1895,9 @@ pub struct DeploymentNetwork {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub driver: Option<String>,
 
-    #[serde(rename = "subnet")]
+    #[serde(rename = "ipam")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subnet: Option<models::Network>,
+    pub ipam: Option<models::Ipam>,
 
     #[serde(rename = "parent")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1911,7 +1910,7 @@ impl DeploymentNetwork {
         DeploymentNetwork {
             name,
             driver: None,
-            subnet: None,
+            ipam: None,
             parent: None,
         }
     }
@@ -1928,7 +1927,7 @@ impl std::fmt::Display for DeploymentNetwork {
             self.driver
                 .as_ref()
                 .map(|driver| ["driver".to_string(), driver.to_string()].join(",")),
-            // Skipping subnet in query parameter serialization
+            // Skipping ipam in query parameter serialization
             self.parent
                 .as_ref()
                 .map(|parent| ["parent".to_string(), parent.to_string()].join(",")),
@@ -1955,7 +1954,7 @@ impl std::str::FromStr for DeploymentNetwork {
         struct IntermediateRep {
             pub name: Vec<String>,
             pub driver: Vec<String>,
-            pub subnet: Vec<models::Network>,
+            pub ipam: Vec<models::Ipam>,
             pub parent: Vec<String>,
         }
 
@@ -1987,8 +1986,8 @@ impl std::str::FromStr for DeploymentNetwork {
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "subnet" => intermediate_rep.subnet.push(
-                        <models::Network as std::str::FromStr>::from_str(val)
+                    "ipam" => intermediate_rep.ipam.push(
+                        <models::Ipam as std::str::FromStr>::from_str(val)
                             .map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
@@ -2015,7 +2014,7 @@ impl std::str::FromStr for DeploymentNetwork {
                 .next()
                 .ok_or_else(|| "name missing in DeploymentNetwork".to_string())?,
             driver: intermediate_rep.driver.into_iter().next(),
-            subnet: intermediate_rep.subnet.into_iter().next(),
+            ipam: intermediate_rep.ipam.into_iter().next(),
             parent: intermediate_rep.parent.into_iter().next(),
         })
     }
@@ -2634,7 +2633,7 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Devices> {
 /// Device Onboarding Service Manifest
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct Dosschema {
+pub struct DosManifest {
     #[serde(rename = "_schemaVersion")]
     #[validate(length(min = 1))]
     pub _schema_version: String,
@@ -2645,17 +2644,17 @@ pub struct Dosschema {
 
     #[serde(rename = "apps")]
     #[validate(length(min = 1))]
-    pub apps: Vec<models::DosschemaAppsInner>,
+    pub apps: Vec<models::DosManifestAppsInner>,
 }
 
-impl Dosschema {
+impl DosManifest {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
     pub fn new(
         _schema_version: String,
         time: String,
-        apps: Vec<models::DosschemaAppsInner>,
-    ) -> Dosschema {
-        Dosschema {
+        apps: Vec<models::DosManifestAppsInner>,
+    ) -> DosManifest {
+        DosManifest {
             _schema_version,
             time,
             apps,
@@ -2663,10 +2662,10 @@ impl Dosschema {
     }
 }
 
-/// Converts the Dosschema value to the Query Parameters representation (style=form, explode=false)
+/// Converts the DosManifest value to the Query Parameters representation (style=form, explode=false)
 /// specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde serializer
-impl std::fmt::Display for Dosschema {
+impl std::fmt::Display for DosManifest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
             Some("_schemaVersion".to_string()),
@@ -2684,10 +2683,10 @@ impl std::fmt::Display for Dosschema {
     }
 }
 
-/// Converts Query Parameters representation (style=form, explode=false) to a Dosschema value
+/// Converts Query Parameters representation (style=form, explode=false) to a DosManifest value
 /// as specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde deserializer
-impl std::str::FromStr for Dosschema {
+impl std::str::FromStr for DosManifest {
     type Err = String;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -2697,7 +2696,7 @@ impl std::str::FromStr for Dosschema {
         struct IntermediateRep {
             pub _schema_version: Vec<String>,
             pub time: Vec<String>,
-            pub apps: Vec<Vec<models::DosschemaAppsInner>>,
+            pub apps: Vec<Vec<models::DosManifestAppsInner>>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -2711,7 +2710,7 @@ impl std::str::FromStr for Dosschema {
                 Some(x) => x,
                 None => {
                     return std::result::Result::Err(
-                        "Missing value while parsing Dosschema".to_string(),
+                        "Missing value while parsing DosManifest".to_string(),
                     )
                 }
             };
@@ -2729,13 +2728,13 @@ impl std::str::FromStr for Dosschema {
                     ),
                     "apps" => {
                         return std::result::Result::Err(
-                            "Parsing a container in this style is not supported in Dosschema"
+                            "Parsing a container in this style is not supported in DosManifest"
                                 .to_string(),
                         )
                     }
                     _ => {
                         return std::result::Result::Err(
-                            "Unexpected key while parsing Dosschema".to_string(),
+                            "Unexpected key while parsing DosManifest".to_string(),
                         )
                     }
                 }
@@ -2746,40 +2745,40 @@ impl std::str::FromStr for Dosschema {
         }
 
         // Use the intermediate representation to return the struct
-        std::result::Result::Ok(Dosschema {
+        std::result::Result::Ok(DosManifest {
             _schema_version: intermediate_rep
                 ._schema_version
                 .into_iter()
                 .next()
-                .ok_or_else(|| "_schemaVersion missing in Dosschema".to_string())?,
+                .ok_or_else(|| "_schemaVersion missing in DosManifest".to_string())?,
             time: intermediate_rep
                 .time
                 .into_iter()
                 .next()
-                .ok_or_else(|| "time missing in Dosschema".to_string())?,
+                .ok_or_else(|| "time missing in DosManifest".to_string())?,
             apps: intermediate_rep
                 .apps
                 .into_iter()
                 .next()
-                .ok_or_else(|| "apps missing in Dosschema".to_string())?,
+                .ok_or_else(|| "apps missing in DosManifest".to_string())?,
         })
     }
 }
 
-// Methods for converting between header::IntoHeaderValue<Dosschema> and HeaderValue
+// Methods for converting between header::IntoHeaderValue<DosManifest> and HeaderValue
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<header::IntoHeaderValue<Dosschema>> for HeaderValue {
+impl std::convert::TryFrom<header::IntoHeaderValue<DosManifest>> for HeaderValue {
     type Error = String;
 
     fn try_from(
-        hdr_value: header::IntoHeaderValue<Dosschema>,
+        hdr_value: header::IntoHeaderValue<DosManifest>,
     ) -> std::result::Result<Self, Self::Error> {
         let hdr_value = hdr_value.to_string();
         match HeaderValue::from_str(&hdr_value) {
             std::result::Result::Ok(value) => std::result::Result::Ok(value),
             std::result::Result::Err(e) => std::result::Result::Err(format!(
-                "Invalid header value for Dosschema - value: {} is invalid {}",
+                "Invalid header value for DosManifest - value: {} is invalid {}",
                 hdr_value, e
             )),
         }
@@ -2787,18 +2786,18 @@ impl std::convert::TryFrom<header::IntoHeaderValue<Dosschema>> for HeaderValue {
 }
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Dosschema> {
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<DosManifest> {
     type Error = String;
 
     fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
         match hdr_value.to_str() {
             std::result::Result::Ok(value) => {
-                match <Dosschema as std::str::FromStr>::from_str(value) {
+                match <DosManifest as std::str::FromStr>::from_str(value) {
                     std::result::Result::Ok(value) => {
                         std::result::Result::Ok(header::IntoHeaderValue(value))
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
-                        "Unable to convert header value '{}' into Dosschema - {}",
+                        "Unable to convert header value '{}' into DosManifest - {}",
                         value, err
                     )),
                 }
@@ -2813,7 +2812,7 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Dosschema> {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct DosschemaAppsInner {
+pub struct DosManifestAppsInner {
     #[serde(rename = "name")]
     #[validate(length(min = 1))]
     pub name: String,
@@ -2824,20 +2823,20 @@ pub struct DosschemaAppsInner {
     pub version: Option<String>,
 }
 
-impl DosschemaAppsInner {
+impl DosManifestAppsInner {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(name: String) -> DosschemaAppsInner {
-        DosschemaAppsInner {
+    pub fn new(name: String) -> DosManifestAppsInner {
+        DosManifestAppsInner {
             name,
             version: None,
         }
     }
 }
 
-/// Converts the DosschemaAppsInner value to the Query Parameters representation (style=form, explode=false)
+/// Converts the DosManifestAppsInner value to the Query Parameters representation (style=form, explode=false)
 /// specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde serializer
-impl std::fmt::Display for DosschemaAppsInner {
+impl std::fmt::Display for DosManifestAppsInner {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
             Some("name".to_string()),
@@ -2855,10 +2854,10 @@ impl std::fmt::Display for DosschemaAppsInner {
     }
 }
 
-/// Converts Query Parameters representation (style=form, explode=false) to a DosschemaAppsInner value
+/// Converts Query Parameters representation (style=form, explode=false) to a DosManifestAppsInner value
 /// as specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde deserializer
-impl std::str::FromStr for DosschemaAppsInner {
+impl std::str::FromStr for DosManifestAppsInner {
     type Err = String;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -2881,7 +2880,7 @@ impl std::str::FromStr for DosschemaAppsInner {
                 Some(x) => x,
                 None => {
                     return std::result::Result::Err(
-                        "Missing value while parsing DosschemaAppsInner".to_string(),
+                        "Missing value while parsing DosManifestAppsInner".to_string(),
                     )
                 }
             };
@@ -2899,7 +2898,7 @@ impl std::str::FromStr for DosschemaAppsInner {
                     ),
                     _ => {
                         return std::result::Result::Err(
-                            "Unexpected key while parsing DosschemaAppsInner".to_string(),
+                            "Unexpected key while parsing DosManifestAppsInner".to_string(),
                         )
                     }
                 }
@@ -2910,31 +2909,31 @@ impl std::str::FromStr for DosschemaAppsInner {
         }
 
         // Use the intermediate representation to return the struct
-        std::result::Result::Ok(DosschemaAppsInner {
+        std::result::Result::Ok(DosManifestAppsInner {
             name: intermediate_rep
                 .name
                 .into_iter()
                 .next()
-                .ok_or_else(|| "name missing in DosschemaAppsInner".to_string())?,
+                .ok_or_else(|| "name missing in DosManifestAppsInner".to_string())?,
             version: intermediate_rep.version.into_iter().next(),
         })
     }
 }
 
-// Methods for converting between header::IntoHeaderValue<DosschemaAppsInner> and HeaderValue
+// Methods for converting between header::IntoHeaderValue<DosManifestAppsInner> and HeaderValue
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<header::IntoHeaderValue<DosschemaAppsInner>> for HeaderValue {
+impl std::convert::TryFrom<header::IntoHeaderValue<DosManifestAppsInner>> for HeaderValue {
     type Error = String;
 
     fn try_from(
-        hdr_value: header::IntoHeaderValue<DosschemaAppsInner>,
+        hdr_value: header::IntoHeaderValue<DosManifestAppsInner>,
     ) -> std::result::Result<Self, Self::Error> {
         let hdr_value = hdr_value.to_string();
         match HeaderValue::from_str(&hdr_value) {
             std::result::Result::Ok(value) => std::result::Result::Ok(value),
             std::result::Result::Err(e) => std::result::Result::Err(format!(
-                "Invalid header value for DosschemaAppsInner - value: {} is invalid {}",
+                "Invalid header value for DosManifestAppsInner - value: {} is invalid {}",
                 hdr_value, e
             )),
         }
@@ -2942,18 +2941,18 @@ impl std::convert::TryFrom<header::IntoHeaderValue<DosschemaAppsInner>> for Head
 }
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<DosschemaAppsInner> {
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<DosManifestAppsInner> {
     type Error = String;
 
     fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
         match hdr_value.to_str() {
             std::result::Result::Ok(value) => {
-                match <DosschemaAppsInner as std::str::FromStr>::from_str(value) {
+                match <DosManifestAppsInner as std::str::FromStr>::from_str(value) {
                     std::result::Result::Ok(value) => {
                         std::result::Result::Ok(header::IntoHeaderValue(value))
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
-                        "Unable to convert header value '{}' into DosschemaAppsInner - {}",
+                        "Unable to convert header value '{}' into DosManifestAppsInner - {}",
                         value, err
                     )),
                 }
@@ -6998,9 +6997,9 @@ pub struct InstancesInstanceIdConfigNetworksPostRequest {
     #[serde(rename = "network_id")]
     pub network_id: String,
 
-    #[serde(rename = "ip_address_suggestion")]
+    #[serde(rename = "ipAddress")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ip_address_suggestion: Option<String>,
+    pub ip_address: Option<String>,
 }
 
 impl InstancesInstanceIdConfigNetworksPostRequest {
@@ -7008,7 +7007,7 @@ impl InstancesInstanceIdConfigNetworksPostRequest {
     pub fn new(network_id: String) -> InstancesInstanceIdConfigNetworksPostRequest {
         InstancesInstanceIdConfigNetworksPostRequest {
             network_id,
-            ip_address_suggestion: None,
+            ip_address: None,
         }
     }
 }
@@ -7021,15 +7020,9 @@ impl std::fmt::Display for InstancesInstanceIdConfigNetworksPostRequest {
         let params: Vec<Option<String>> = vec![
             Some("network_id".to_string()),
             Some(self.network_id.to_string()),
-            self.ip_address_suggestion
+            self.ip_address
                 .as_ref()
-                .map(|ip_address_suggestion| {
-                    [
-                        "ip_address_suggestion".to_string(),
-                        ip_address_suggestion.to_string(),
-                    ]
-                    .join(",")
-                }),
+                .map(|ip_address| ["ipAddress".to_string(), ip_address.to_string()].join(",")),
         ];
 
         write!(
@@ -7052,7 +7045,7 @@ impl std::str::FromStr for InstancesInstanceIdConfigNetworksPostRequest {
         #[allow(dead_code)]
         struct IntermediateRep {
             pub network_id: Vec<String>,
-            pub ip_address_suggestion: Vec<String>,
+            pub ip_address: Vec<String>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -7079,7 +7072,7 @@ impl std::str::FromStr for InstancesInstanceIdConfigNetworksPostRequest {
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
-                    "ip_address_suggestion" => intermediate_rep.ip_address_suggestion.push(
+                    "ipAddress" => intermediate_rep.ip_address.push(
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     _ => return std::result::Result::Err(
@@ -7102,7 +7095,7 @@ impl std::str::FromStr for InstancesInstanceIdConfigNetworksPostRequest {
                 .ok_or_else(|| {
                     "network_id missing in InstancesInstanceIdConfigNetworksPostRequest".to_string()
                 })?,
-            ip_address_suggestion: intermediate_rep.ip_address_suggestion.into_iter().next(),
+            ip_address: intermediate_rep.ip_address.into_iter().next(),
         })
     }
 }
@@ -7774,22 +7767,15 @@ impl std::convert::TryFrom<HeaderValue>
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct Ipam {
-    #[serde(rename = "ipv4_subnet")]
+    #[serde(rename = "ipv4")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ipv4_subnet: Option<models::Ipv4Network>,
-
-    #[serde(rename = "ipv4_gateway")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ipv4_gateway: Option<String>,
+    pub ipv4: Option<models::Ipv4Ipam>,
 }
 
 impl Ipam {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
     pub fn new() -> Ipam {
-        Ipam {
-            ipv4_subnet: None,
-            ipv4_gateway: None,
-        }
+        Ipam { ipv4: None }
     }
 }
 
@@ -7799,10 +7785,8 @@ impl Ipam {
 impl std::fmt::Display for Ipam {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
-            // Skipping ipv4_subnet in query parameter serialization
-            self.ipv4_gateway.as_ref().map(|ipv4_gateway| {
-                ["ipv4_gateway".to_string(), ipv4_gateway.to_string()].join(",")
-            }),
+            // Skipping ipv4 in query parameter serialization
+
         ];
 
         write!(
@@ -7824,8 +7808,7 @@ impl std::str::FromStr for Ipam {
         #[derive(Default)]
         #[allow(dead_code)]
         struct IntermediateRep {
-            pub ipv4_subnet: Vec<models::Ipv4Network>,
-            pub ipv4_gateway: Vec<String>,
+            pub ipv4: Vec<models::Ipv4Ipam>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -7846,13 +7829,9 @@ impl std::str::FromStr for Ipam {
                 #[allow(clippy::match_single_binding)]
                 match key {
                     #[allow(clippy::redundant_clone)]
-                    "ipv4_subnet" => intermediate_rep.ipv4_subnet.push(
-                        <models::Ipv4Network as std::str::FromStr>::from_str(val)
+                    "ipv4" => intermediate_rep.ipv4.push(
+                        <models::Ipv4Ipam as std::str::FromStr>::from_str(val)
                             .map_err(|x| x.to_string())?,
-                    ),
-                    #[allow(clippy::redundant_clone)]
-                    "ipv4_gateway" => intermediate_rep.ipv4_gateway.push(
-                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     _ => {
                         return std::result::Result::Err(
@@ -7868,8 +7847,7 @@ impl std::str::FromStr for Ipam {
 
         // Use the intermediate representation to return the struct
         std::result::Result::Ok(Ipam {
-            ipv4_subnet: intermediate_rep.ipv4_subnet.into_iter().next(),
-            ipv4_gateway: intermediate_rep.ipv4_gateway.into_iter().next(),
+            ipv4: intermediate_rep.ipv4.into_iter().next(),
         })
     }
 }
@@ -7960,6 +7938,271 @@ impl std::ops::Deref for Ipv4Address {
 }
 
 impl std::ops::DerefMut for Ipv4Address {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Ipv4Gateway(String);
+
+impl validator::Validate for Ipv4Gateway {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for Ipv4Gateway {
+    fn from(x: String) -> Self {
+        Ipv4Gateway(x)
+    }
+}
+
+impl std::fmt::Display for Ipv4Gateway {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for Ipv4Gateway {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(Ipv4Gateway(x.to_string()))
+    }
+}
+
+impl std::convert::From<Ipv4Gateway> for String {
+    fn from(x: Ipv4Gateway) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for Ipv4Gateway {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for Ipv4Gateway {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Ipv4Ipam {
+    #[serde(rename = "address")]
+    pub address: String,
+
+    #[serde(rename = "netmask")]
+    pub netmask: String,
+
+    #[serde(rename = "gateway")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gateway: Option<String>,
+}
+
+impl Ipv4Ipam {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(address: String, netmask: String) -> Ipv4Ipam {
+        Ipv4Ipam {
+            address,
+            netmask,
+            gateway: None,
+        }
+    }
+}
+
+/// Converts the Ipv4Ipam value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for Ipv4Ipam {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("address".to_string()),
+            Some(self.address.to_string()),
+            Some("netmask".to_string()),
+            Some(self.netmask.to_string()),
+            self.gateway
+                .as_ref()
+                .map(|gateway| ["gateway".to_string(), gateway.to_string()].join(",")),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a Ipv4Ipam value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for Ipv4Ipam {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub address: Vec<String>,
+            pub netmask: Vec<String>,
+            pub gateway: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing Ipv4Ipam".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "address" => intermediate_rep.address.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "netmask" => intermediate_rep.netmask.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "gateway" => intermediate_rep.gateway.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing Ipv4Ipam".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(Ipv4Ipam {
+            address: intermediate_rep
+                .address
+                .into_iter()
+                .next()
+                .ok_or_else(|| "address missing in Ipv4Ipam".to_string())?,
+            netmask: intermediate_rep
+                .netmask
+                .into_iter()
+                .next()
+                .ok_or_else(|| "netmask missing in Ipv4Ipam".to_string())?,
+            gateway: intermediate_rep.gateway.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<Ipv4Ipam> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<Ipv4Ipam>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<Ipv4Ipam>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for Ipv4Ipam - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Ipv4Ipam> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <Ipv4Ipam as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into Ipv4Ipam - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Ipv4Netmask(String);
+
+impl validator::Validate for Ipv4Netmask {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for Ipv4Netmask {
+    fn from(x: String) -> Self {
+        Ipv4Netmask(x)
+    }
+}
+
+impl std::fmt::Display for Ipv4Netmask {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for Ipv4Netmask {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(Ipv4Netmask(x.to_string()))
+    }
+}
+
+impl std::convert::From<Ipv4Netmask> for String {
+    fn from(x: Ipv4Netmask) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for Ipv4Netmask {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for Ipv4Netmask {
     fn deref_mut(&mut self) -> &mut String {
         &mut self.0
     }
@@ -9866,26 +10109,26 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<NetworkAdapt
 )]
 #[cfg_attr(feature = "conversion", derive(frunk_enum_derive::LabelledGenericEnum))]
 pub enum NetworkKind {
-    #[serde(rename = "Internal")]
+    #[serde(rename = "internal")]
     Internal,
-    #[serde(rename = "Bridge")]
+    #[serde(rename = "bridge")]
     Bridge,
-    #[serde(rename = "MACVLAN")]
+    #[serde(rename = "macvlan")]
     Macvlan,
-    #[serde(rename = "IpvlanL2")]
-    IpvlanL2,
-    #[serde(rename = "IpvlanL3")]
-    IpvlanL3,
+    #[serde(rename = "ipvlanl2")]
+    Ipvlanl2,
+    #[serde(rename = "ipvlanl3")]
+    Ipvlanl3,
 }
 
 impl std::fmt::Display for NetworkKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            NetworkKind::Internal => write!(f, "Internal"),
-            NetworkKind::Bridge => write!(f, "Bridge"),
-            NetworkKind::Macvlan => write!(f, "MACVLAN"),
-            NetworkKind::IpvlanL2 => write!(f, "IpvlanL2"),
-            NetworkKind::IpvlanL3 => write!(f, "IpvlanL3"),
+            NetworkKind::Internal => write!(f, "internal"),
+            NetworkKind::Bridge => write!(f, "bridge"),
+            NetworkKind::Macvlan => write!(f, "macvlan"),
+            NetworkKind::Ipvlanl2 => write!(f, "ipvlanl2"),
+            NetworkKind::Ipvlanl3 => write!(f, "ipvlanl3"),
         }
     }
 }
@@ -9895,11 +10138,11 @@ impl std::str::FromStr for NetworkKind {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
-            "Internal" => std::result::Result::Ok(NetworkKind::Internal),
-            "Bridge" => std::result::Result::Ok(NetworkKind::Bridge),
-            "MACVLAN" => std::result::Result::Ok(NetworkKind::Macvlan),
-            "IpvlanL2" => std::result::Result::Ok(NetworkKind::IpvlanL2),
-            "IpvlanL3" => std::result::Result::Ok(NetworkKind::IpvlanL3),
+            "internal" => std::result::Result::Ok(NetworkKind::Internal),
+            "bridge" => std::result::Result::Ok(NetworkKind::Bridge),
+            "macvlan" => std::result::Result::Ok(NetworkKind::Macvlan),
+            "ipvlanl2" => std::result::Result::Ok(NetworkKind::Ipvlanl2),
+            "ipvlanl3" => std::result::Result::Ok(NetworkKind::Ipvlanl3),
             _ => std::result::Result::Err(format!("Value not valid: {}", s)),
         }
     }
@@ -9915,29 +10158,29 @@ impl std::str::FromStr for NetworkKind {
 )]
 #[cfg_attr(feature = "conversion", derive(frunk_enum_derive::LabelledGenericEnum))]
 pub enum NetworkType {
-    #[serde(rename = "Unknown")]
+    #[serde(rename = "unknown")]
     Unknown,
-    #[serde(rename = "Wired")]
+    #[serde(rename = "wired")]
     Wired,
-    #[serde(rename = "Wireless")]
+    #[serde(rename = "wireless")]
     Wireless,
-    #[serde(rename = "Local")]
+    #[serde(rename = "local")]
     Local,
-    #[serde(rename = "Bridge")]
+    #[serde(rename = "bridge")]
     Bridge,
-    #[serde(rename = "Virtual")]
+    #[serde(rename = "virtual")]
     Virtual,
 }
 
 impl std::fmt::Display for NetworkType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            NetworkType::Unknown => write!(f, "Unknown"),
-            NetworkType::Wired => write!(f, "Wired"),
-            NetworkType::Wireless => write!(f, "Wireless"),
-            NetworkType::Local => write!(f, "Local"),
-            NetworkType::Bridge => write!(f, "Bridge"),
-            NetworkType::Virtual => write!(f, "Virtual"),
+            NetworkType::Unknown => write!(f, "unknown"),
+            NetworkType::Wired => write!(f, "wired"),
+            NetworkType::Wireless => write!(f, "wireless"),
+            NetworkType::Local => write!(f, "local"),
+            NetworkType::Bridge => write!(f, "bridge"),
+            NetworkType::Virtual => write!(f, "virtual"),
         }
     }
 }
@@ -9947,12 +10190,12 @@ impl std::str::FromStr for NetworkType {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
-            "Unknown" => std::result::Result::Ok(NetworkType::Unknown),
-            "Wired" => std::result::Result::Ok(NetworkType::Wired),
-            "Wireless" => std::result::Result::Ok(NetworkType::Wireless),
-            "Local" => std::result::Result::Ok(NetworkType::Local),
-            "Bridge" => std::result::Result::Ok(NetworkType::Bridge),
-            "Virtual" => std::result::Result::Ok(NetworkType::Virtual),
+            "unknown" => std::result::Result::Ok(NetworkType::Unknown),
+            "wired" => std::result::Result::Ok(NetworkType::Wired),
+            "wireless" => std::result::Result::Ok(NetworkType::Wireless),
+            "local" => std::result::Result::Ok(NetworkType::Local),
+            "bridge" => std::result::Result::Ok(NetworkType::Bridge),
+            "virtual" => std::result::Result::Ok(NetworkType::Virtual),
             _ => std::result::Result::Err(format!("Value not valid: {}", s)),
         }
     }
@@ -10334,7 +10577,10 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<PortRange> {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct PutDeploymentNetwork {
+pub struct PostDeploymentNetwork {
+    #[serde(rename = "network_id")]
+    pub network_id: String,
+
     #[serde(rename = "network_kind")]
     pub network_kind: models::NetworkKind,
 
@@ -10351,10 +10597,11 @@ pub struct PutDeploymentNetwork {
     pub ipam: Option<models::Ipam>,
 }
 
-impl PutDeploymentNetwork {
+impl PostDeploymentNetwork {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(network_kind: models::NetworkKind) -> PutDeploymentNetwork {
-        PutDeploymentNetwork {
+    pub fn new(network_id: String, network_kind: models::NetworkKind) -> PostDeploymentNetwork {
+        PostDeploymentNetwork {
+            network_id,
             network_kind,
             options: None,
             parent_adapter: None,
@@ -10363,12 +10610,14 @@ impl PutDeploymentNetwork {
     }
 }
 
-/// Converts the PutDeploymentNetwork value to the Query Parameters representation (style=form, explode=false)
+/// Converts the PostDeploymentNetwork value to the Query Parameters representation (style=form, explode=false)
 /// specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde serializer
-impl std::fmt::Display for PutDeploymentNetwork {
+impl std::fmt::Display for PostDeploymentNetwork {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
+            Some("network_id".to_string()),
+            Some(self.network_id.to_string()),
             // Skipping network_kind in query parameter serialization
 
             // Skipping options in query parameter serialization
@@ -10386,10 +10635,10 @@ impl std::fmt::Display for PutDeploymentNetwork {
     }
 }
 
-/// Converts Query Parameters representation (style=form, explode=false) to a PutDeploymentNetwork value
+/// Converts Query Parameters representation (style=form, explode=false) to a PostDeploymentNetwork value
 /// as specified in https://swagger.io/docs/specification/serialization/
 /// Should be implemented in a serde deserializer
-impl std::str::FromStr for PutDeploymentNetwork {
+impl std::str::FromStr for PostDeploymentNetwork {
     type Err = String;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
@@ -10397,6 +10646,7 @@ impl std::str::FromStr for PutDeploymentNetwork {
         #[derive(Default)]
         #[allow(dead_code)]
         struct IntermediateRep {
+            pub network_id: Vec<String>,
             pub network_kind: Vec<models::NetworkKind>,
             pub options: Vec<std::collections::HashMap<String, String>>,
             pub parent_adapter: Vec<String>,
@@ -10414,7 +10664,7 @@ impl std::str::FromStr for PutDeploymentNetwork {
                 Some(x) => x,
                 None => {
                     return std::result::Result::Err(
-                        "Missing value while parsing PutDeploymentNetwork".to_string(),
+                        "Missing value while parsing PostDeploymentNetwork".to_string(),
                     )
                 }
             };
@@ -10423,13 +10673,15 @@ impl std::str::FromStr for PutDeploymentNetwork {
                 #[allow(clippy::match_single_binding)]
                 match key {
                     #[allow(clippy::redundant_clone)]
+                    "network_id" => intermediate_rep.network_id.push(<String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
+                    #[allow(clippy::redundant_clone)]
                     "network_kind" => intermediate_rep.network_kind.push(<models::NetworkKind as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
-                    "options" => return std::result::Result::Err("Parsing a container in this style is not supported in PutDeploymentNetwork".to_string()),
+                    "options" => return std::result::Result::Err("Parsing a container in this style is not supported in PostDeploymentNetwork".to_string()),
                     #[allow(clippy::redundant_clone)]
                     "parent_adapter" => intermediate_rep.parent_adapter.push(<String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
                     #[allow(clippy::redundant_clone)]
                     "ipam" => intermediate_rep.ipam.push(<models::Ipam as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
-                    _ => return std::result::Result::Err("Unexpected key while parsing PutDeploymentNetwork".to_string())
+                    _ => return std::result::Result::Err("Unexpected key while parsing PostDeploymentNetwork".to_string())
                 }
             }
 
@@ -10438,12 +10690,17 @@ impl std::str::FromStr for PutDeploymentNetwork {
         }
 
         // Use the intermediate representation to return the struct
-        std::result::Result::Ok(PutDeploymentNetwork {
+        std::result::Result::Ok(PostDeploymentNetwork {
+            network_id: intermediate_rep
+                .network_id
+                .into_iter()
+                .next()
+                .ok_or_else(|| "network_id missing in PostDeploymentNetwork".to_string())?,
             network_kind: intermediate_rep
                 .network_kind
                 .into_iter()
                 .next()
-                .ok_or_else(|| "network_kind missing in PutDeploymentNetwork".to_string())?,
+                .ok_or_else(|| "network_kind missing in PostDeploymentNetwork".to_string())?,
             options: intermediate_rep.options.into_iter().next(),
             parent_adapter: intermediate_rep.parent_adapter.into_iter().next(),
             ipam: intermediate_rep.ipam.into_iter().next(),
@@ -10451,20 +10708,20 @@ impl std::str::FromStr for PutDeploymentNetwork {
     }
 }
 
-// Methods for converting between header::IntoHeaderValue<PutDeploymentNetwork> and HeaderValue
+// Methods for converting between header::IntoHeaderValue<PostDeploymentNetwork> and HeaderValue
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<header::IntoHeaderValue<PutDeploymentNetwork>> for HeaderValue {
+impl std::convert::TryFrom<header::IntoHeaderValue<PostDeploymentNetwork>> for HeaderValue {
     type Error = String;
 
     fn try_from(
-        hdr_value: header::IntoHeaderValue<PutDeploymentNetwork>,
+        hdr_value: header::IntoHeaderValue<PostDeploymentNetwork>,
     ) -> std::result::Result<Self, Self::Error> {
         let hdr_value = hdr_value.to_string();
         match HeaderValue::from_str(&hdr_value) {
             std::result::Result::Ok(value) => std::result::Result::Ok(value),
             std::result::Result::Err(e) => std::result::Result::Err(format!(
-                "Invalid header value for PutDeploymentNetwork - value: {} is invalid {}",
+                "Invalid header value for PostDeploymentNetwork - value: {} is invalid {}",
                 hdr_value, e
             )),
         }
@@ -10472,18 +10729,18 @@ impl std::convert::TryFrom<header::IntoHeaderValue<PutDeploymentNetwork>> for He
 }
 
 #[cfg(feature = "server")]
-impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<PutDeploymentNetwork> {
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<PostDeploymentNetwork> {
     type Error = String;
 
     fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
         match hdr_value.to_str() {
             std::result::Result::Ok(value) => {
-                match <PutDeploymentNetwork as std::str::FromStr>::from_str(value) {
+                match <PostDeploymentNetwork as std::str::FromStr>::from_str(value) {
                     std::result::Result::Ok(value) => {
                         std::result::Result::Ok(header::IntoHeaderValue(value))
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
-                        "Unable to convert header value '{}' into PutDeploymentNetwork - {}",
+                        "Unable to convert header value '{}' into PostDeploymentNetwork - {}",
                         value, err
                     )),
                 }

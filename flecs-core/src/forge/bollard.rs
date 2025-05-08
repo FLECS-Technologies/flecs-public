@@ -11,6 +11,8 @@ pub trait BollardNetworkExtension {
     fn subnet_ipv4(&self) -> Result<Option<Ipv4Network>>;
     fn subnet_ipv6(&self) -> Result<Option<Ipv6Network>>;
     fn subnets(&self) -> Result<Vec<Network>>;
+    fn subnets_and_gateways(&self) -> Result<Vec<(Network, Option<IpAddr>)>>;
+    fn subnets_and_gateways_ipv4(&self) -> Result<Vec<(Ipv4Network, Option<Ipv4Addr>)>>;
     fn subnets_ipv4(&self) -> Result<Vec<Ipv4Network>>;
     fn subnets_ipv6(&self) -> Result<Vec<Ipv6Network>>;
     fn gateways(&self) -> Result<Vec<IpAddr>>;
@@ -58,6 +60,35 @@ impl BollardNetworkExtension for bollard::models::Network {
         } else {
             Ok(Vec::new())
         }
+    }
+
+    fn subnets_and_gateways(&self) -> Result<Vec<(Network, Option<IpAddr>)>> {
+        if let Some(bollard::models::Ipam {
+            config: Some(configs),
+            ..
+        }) = self.ipam.as_ref()
+        {
+            configs
+                .iter()
+                .filter_map(|ipam| subnet_and_gateway_from_ipam_config(ipam).transpose())
+                .collect()
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    fn subnets_and_gateways_ipv4(&self) -> Result<Vec<(Ipv4Network, Option<Ipv4Addr>)>> {
+        Ok(self
+            .subnets_and_gateways()?
+            .into_iter()
+            .filter_map(|(network, gateway)| match (network, gateway) {
+                (Network::Ipv4(network), None) => Some((network, None)),
+                (Network::Ipv4(network), Some(IpAddr::V4(gateway))) => {
+                    Some((network, Some(gateway)))
+                }
+                _ => None,
+            })
+            .collect())
     }
 
     fn subnets_ipv4(&self) -> Result<Vec<Ipv4Network>> {
@@ -129,6 +160,21 @@ impl BollardNetworkExtension for bollard::models::Network {
             Some(driver) => NetworkKind::from(driver),
             None => NetworkKind::Unknown,
         }
+    }
+}
+
+fn subnet_and_gateway_from_ipam_config(
+    ipam: &bollard::models::IpamConfig,
+) -> Result<Option<(Network, Option<IpAddr>)>> {
+    match &ipam.subnet {
+        None => Ok(None),
+        Some(subnet) => Ok(Some((
+            Network::from_str(subnet.as_str())?,
+            ipam.gateway
+                .as_ref()
+                .map(|gateway| IpAddr::from_str(gateway.as_str()))
+                .transpose()?,
+        ))),
     }
 }
 
