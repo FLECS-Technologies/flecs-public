@@ -11,6 +11,10 @@ pub enum AppManifest {
     Single(Arc<single::AppManifestSingle>),
     Multi(Arc<multi::AppManifestMulti>),
 }
+pub enum UnwrappedAppManifest {
+    Single(single::AppManifestSingle),
+    Multi(multi::AppManifestMulti),
+}
 
 impl TryFrom<flecs_app_manifest::AppManifest> for AppManifest {
     type Error = anyhow::Error;
@@ -39,6 +43,19 @@ impl AppManifest {
         match self {
             AppManifest::Single(single) => single.revision(),
             AppManifest::Multi(multi) => multi.revision(),
+        }
+    }
+
+    pub fn try_unwrap(self) -> Result<UnwrappedAppManifest, Self> {
+        match self {
+            Self::Multi(multi) => match Arc::try_unwrap(multi) {
+                Ok(multi) => Ok(UnwrappedAppManifest::Multi(multi)),
+                Err(multi) => Err(Self::Multi(multi)),
+            },
+            Self::Single(single) => match Arc::try_unwrap(single) {
+                Ok(single) => Ok(UnwrappedAppManifest::Single(single)),
+                Err(single) => Err(Self::Single(single)),
+            },
         }
     }
 }
