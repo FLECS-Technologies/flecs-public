@@ -27,6 +27,23 @@ impl TryFrom<flecs_app_manifest::AppManifest> for AppManifest {
     }
 }
 
+impl From<AppManifest> for flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest {
+    fn from(value: AppManifest) -> Self {
+        match value {
+            AppManifest::Single(single) => {
+                flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(
+                    single.inner().clone(),
+                )
+            }
+            AppManifest::Multi(multi) => {
+                flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Multi(
+                    multi.inner().clone(),
+                )
+            }
+        }
+    }
+}
+
 impl AppManifest {
     pub fn key(&self) -> &AppKey {
         match self {

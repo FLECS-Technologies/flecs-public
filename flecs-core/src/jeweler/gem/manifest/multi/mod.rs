@@ -2,6 +2,7 @@ use crate::jeweler::GetAppKey;
 use crate::vault::pouch::AppKey;
 use docker_compose_types::{Compose, ComposeVolume, ExternalVolume, MapOrEmpty};
 use serde::Serialize;
+use std::ops::Deref;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct AppManifestMulti {
@@ -151,5 +152,9 @@ impl AppManifestMulti {
             // The project name is prefixed in all other cases
             _ => format!("{project_name}_{volume_name}"),
         }
+    }
+
+    pub fn inner(&self) -> &flecs_app_manifest::generated::manifest_3_1_0::Multi {
+        self.original.deref()
     }
 }
