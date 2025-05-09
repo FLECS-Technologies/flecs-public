@@ -6,6 +6,7 @@ use crate::vault::pouch::{AppKey, Pouch};
 use anyhow::Error;
 use async_trait::async_trait;
 use flecs_app_manifest::AppManifestVersion;
+use flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest;
 
 #[derive(Default)]
 pub struct ManifestoImpl {}
@@ -34,5 +35,36 @@ impl Manifesto for ManifestoImpl {
         let session_id = session_id.unwrap_or_default();
         spell::manifest::download_manifest(config, &session_id, &app_key.name, &app_key.version)
             .await
+    }
+
+    async fn get_manifests(&self, vault: &Vault) -> Vec<FlecsAppManifest> {
+        vault
+            .reservation()
+            .reserve_manifest_pouch()
+            .grab()
+            .await
+            .manifest_pouch
+            .as_ref()
+            .expect("Vault reservations should never fail")
+            .gems()
+            .values()
+            .cloned()
+            .map(FlecsAppManifest::from)
+            .collect()
+    }
+
+    async fn get_manifest(&self, vault: &Vault, app_key: &AppKey) -> Option<FlecsAppManifest> {
+        vault
+            .reservation()
+            .reserve_manifest_pouch()
+            .grab()
+            .await
+            .manifest_pouch
+            .as_ref()
+            .expect("Vault reservations should never fail")
+            .gems()
+            .get(app_key)
+            .cloned()
+            .map(FlecsAppManifest::from)
     }
 }
