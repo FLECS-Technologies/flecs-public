@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use tracing::{debug, warn};
+use tracing::{debug, trace, warn};
 
 const MANIFEST_FILE_NAME: &str = "manifest.json";
 
@@ -33,6 +33,7 @@ impl ManifestPouch {
     pub(in super::super) fn close(&mut self) -> crate::vault::Result<()> {
         let mut errors: Vec<String> = Vec::new();
         fs::create_dir_all(&self.path)?;
+        self.erase_unused_manifests();
         for (key, manifest) in &self.manifests {
             let path = self.path.join(key.name.as_str()).join(key.version.as_str());
             if let Err(e) = fs::create_dir_all(&path) {
@@ -55,8 +56,7 @@ impl ManifestPouch {
         );
         for key in existing_manifest_keys {
             if !self.existing_manifest_keys.contains(&key) {
-                let path = self.path.join(key.name.as_str()).join(key.version.as_str());
-                if let Err(e) = fs::remove_dir_all(&path) {
+                if let Err(e) = Self::erase_manifest_from_disk(&self.path, &key) {
                     errors.push(e.to_string());
                 }
             }
@@ -83,6 +83,33 @@ impl ManifestPouch {
                     debug!("Successful read manifest from {entry:?}");
                 }
             }
+        }
+        Ok(())
+    }
+
+    fn erase_unused_manifests(&mut self) {
+        let kept_manifests =
+            self.manifests
+                .drain()
+                .filter_map(|(key, manifest)| match manifest.try_unwrap() {
+                    Ok(_) => {
+                        trace!("Erasing manifest {key}, no more references left");
+                        None
+                    }
+                    Err(manifest) => {
+                        trace!("Keeping manifest {key}, there are still references left");
+                        Some((key, manifest))
+                    }
+                });
+        self.manifests = kept_manifests.collect();
+    }
+
+    fn erase_manifest_from_disk(path: &Path, key: &AppKey) -> std::io::Result<()> {
+        let name_path = path.join(key.name.as_str());
+        let version_path = name_path.join(key.version.as_str());
+        fs::remove_dir_all(&version_path)?;
+        if fs::read_dir(&name_path)?.next().is_none() {
+            fs::remove_dir(name_path)?;
         }
         Ok(())
     }
@@ -381,7 +408,7 @@ pub mod tests {
         ]);
         let existing_manifest_keys = manifests.keys().cloned().collect();
         let mut manifest_pouch = ManifestPouch {
-            manifests,
+            manifests: manifests.clone(),
             path,
             existing_manifest_keys,
         };
