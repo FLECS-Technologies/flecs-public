@@ -1,9 +1,6 @@
 [submodule "flecs-build"]
 	path = flecs-build
 	url = ../flecs-build.git
-[submodule "flecs-external"]
-	path = flecs-external
-	url = ../flecs-external.git
 [submodule "flecs-console-api"]
 	path = flecs-console-api
 	url = ../flecs-console-api

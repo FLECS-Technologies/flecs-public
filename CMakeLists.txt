@@ -60,13 +60,6 @@ add_compile_options(-Wno-error=restrict)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-set(FLECS_NEED_CPR TRUE)
-set(FLECS_NEED_JSON TRUE)
-set(FLECS_NEED_LIBARCHIVE TRUE)
-set(FLECS_NEED_LIBUSB TRUE)
-set(FLECS_NEED_YAMLCPP TRUE)
-add_subdirectory(flecs-external)
-
 corrosion_import_crate(MANIFEST_PATH "${CMAKE_SOURCE_DIR}/Cargo.toml")
 
 add_custom_target(version
