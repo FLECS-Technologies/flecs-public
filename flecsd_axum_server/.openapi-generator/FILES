@@ -8,6 +8,7 @@ src/apis/device.rs
 src/apis/flecsport.rs
 src/apis/instances.rs
 src/apis/jobs.rs
+src/apis/manifests.rs
 src/apis/mod.rs
 src/apis/system.rs
 src/header.rs
