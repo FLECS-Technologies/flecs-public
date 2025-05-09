@@ -6,6 +6,7 @@ use crate::vault::Vault;
 use crate::vault::pouch::AppKey;
 use async_trait::async_trait;
 use flecs_app_manifest::AppManifestVersion;
+use flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest;
 pub use manifesto_impl::ManifestoImpl;
 #[cfg(test)]
 use mockall::automock;
@@ -19,6 +20,8 @@ pub trait Manifesto: Sorcerer {
         app_key: AppKey,
         config: ConsoleClient,
     ) -> Result<AppManifestVersion, Error>;
+    async fn get_manifests(&self, vault: &Vault) -> Vec<FlecsAppManifest>;
+    async fn get_manifest(&self, vault: &Vault, app_key: &AppKey) -> Option<FlecsAppManifest>;
 }
 
 #[cfg(test)]

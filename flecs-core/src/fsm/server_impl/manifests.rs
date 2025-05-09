@@ -45,9 +45,14 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: ManifestsAppNameVersionGetPathParams,
+        path_params: ManifestsAppNameVersionGetPathParams,
     ) -> Result<ManifestsAppNameVersionGetResponse, ()> {
-        todo!()
+        Ok(super::api::v2::manifests::app_name::version::get(
+            self.vault.clone(),
+            self.sorcerers.manifesto.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn manifests_get(
@@ -56,6 +61,9 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ManifestsGetResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::manifests::get(self.vault.clone(), self.sorcerers.manifesto.clone())
+                .await,
+        )
     }
 }

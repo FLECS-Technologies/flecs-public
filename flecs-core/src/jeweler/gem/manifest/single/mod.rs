@@ -131,6 +131,10 @@ impl AppManifestSingle {
     pub fn schema(&self) -> Option<&String> {
         self.original.schema.as_deref()
     }
+
+    pub fn inner(&self) -> &flecs_app_manifest::generated::manifest_3_1_0::Single {
+        self.original.deref()
+    }
 }
 
 fn try_from_option<'s, S, D, E>(source: Option<&'s Vec<S>>) -> Result<Vec<D>, E>
