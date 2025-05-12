@@ -73,12 +73,12 @@ async fn job_from_quest(quest: SyncQuest) -> models::Job {
             units_done,
             rate: 0,
         },
-        result: models::JobResult {
-            code: match quest.state {
-                State::Failed => -1,
-                _ => 0,
+        result: match quest.state {
+            State::Failed => models::JobResult {
+                code: -1,
+                message: quest.detail.clone().unwrap_or_default(),
             },
-            message,
+            _ => models::JobResult { code: 0, message },
         },
     }
 }
