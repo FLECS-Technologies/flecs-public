@@ -37,6 +37,12 @@ function(stage_docker_fs)
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
+    # Create log directory for nginx (floxy), as nginx itself can not
+    install(
+        DIRECTORY DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/var/log/floxy/
+        COMPONENT docker
+        EXCLUDE_FROM_ALL
+    )
 endfunction()
 
 add_subdirectory(flecs)
