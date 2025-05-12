@@ -17,6 +17,8 @@ servers:
 components:
   schemas:
     # Common schemas
+    app_manifest:
+      $ref: "https://raw.githubusercontent.com/FLECS-Technologies/app-manifest/refs/heads/3.1.0/manifest.schema.json"
     additionalInfo:
       type: object
       required:
@@ -788,6 +790,8 @@ tags:
   - name: "Jobs"
     x-displayName: "Jobs"
     description: Management of asynchronous jobs
+  - name: "Manifests"
+    x-displayName: "Manifests"
   - name: "System"
     x-displayName: "System"
   - name: "Device"
@@ -2187,6 +2191,46 @@ paths:
             text/plain:
               schema:
                 type: string
+  # Manifest related paths
+  /manifests:
+    get:
+      tags: [ "Manifests" ]
+      summary: Get a list of all manifests
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/app_manifest"
+  /manifests/{app_name}/{version}:
+    get:
+      tags: [ "Manifests" ]
+      summary: Get a specific manifest
+      parameters:
+        - name: app_name
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: version
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/app_manifest"
+        "404":
+          description: Manifest not found
+        "500":
+          $ref: "#/components/responses/response_500"
   # System related paths
   /system/ping:
     get:

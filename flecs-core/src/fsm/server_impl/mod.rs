@@ -6,6 +6,7 @@ mod device;
 mod flecsport;
 mod instances;
 mod jobs;
+mod manifests;
 mod system;
 use crate::enchantment::Enchantments;
 use crate::enchantment::floxy::Floxy;
