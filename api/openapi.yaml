@@ -753,6 +753,48 @@ components:
           $ref: "#/components/schemas/system_kernel"
         platform:
           type: string
+    # Quest related schemas
+    quest:
+      type: object
+      required:
+        - id
+        - description
+        - state
+      properties:
+        id:
+          type: integer
+          minimum: 0
+          maximum: 9223372036854775807
+        description:
+          type: string
+        detail:
+          type: string
+        result:
+          type: string
+        state:
+          $ref: "#/components/schemas/quest_state"
+        progress:
+          $ref: "#/components/schemas/quest_progress"
+        subquests:
+          type: array
+          items:
+            $ref: "#/components/schemas/quest"
+    quest_state:
+      type: string
+      enum: [ failing, ongoing, pending, failed, success, skipped ]
+    quest_progress:
+      type: object
+      required:
+        - current
+      properties:
+        current:
+          type: integer
+          minimum: 0
+          maximum: 9223372036854775807
+        total:
+          type: integer
+          minimum: 0
+          maximum: 9223372036854775807
   # Common responses
   responses:
     response_202:
@@ -2546,3 +2588,57 @@ paths:
           $ref: "#/components/responses/response_400"
         "500":
           $ref: "#/components/responses/response_500"
+  /quests:
+    get:
+      tags: [ "Quests" ]
+      summary: Get a list of all quests
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/quest"
+  /quests/{id}:
+    get:
+      tags: [ "Quests" ]
+      summary: Get a specific quest by its id
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            maximum: 9223372036854775807
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/quest"
+        "404":
+          description: Quest not found
+    delete:
+      tags: [ "Quests" ]
+      summary: Delete a specific quest by its id
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            maximum: 9223372036854775807
+          required: true
+      responses:
+        "200":
+          description: Success
+        "400":
+          description: Unfinished quests can not be deleted
+        "404":
+          description: Quest not found

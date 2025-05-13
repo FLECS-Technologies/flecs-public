@@ -7,6 +7,7 @@ mod flecsport;
 mod instances;
 mod jobs;
 mod manifests;
+mod quests;
 mod system;
 use crate::enchantment::Enchantments;
 use crate::enchantment::floxy::Floxy;

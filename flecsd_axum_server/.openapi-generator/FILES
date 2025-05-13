@@ -10,6 +10,7 @@ src/apis/instances.rs
 src/apis/jobs.rs
 src/apis/manifests.rs
 src/apis/mod.rs
+src/apis/quests.rs
 src/apis/system.rs
 src/header.rs
 src/lib.rs
