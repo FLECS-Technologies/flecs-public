@@ -739,6 +739,20 @@ pub struct ManifestsAppNameVersionGetPathParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct QuestsIdDeletePathParams {
+    #[validate(range(min = 0i64, max = 9223372036854775807i64))]
+    pub id: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct QuestsIdGetPathParams {
+    #[validate(range(min = 0i64, max = 9223372036854775807i64))]
+    pub id: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct SystemDevicesUsbPortGetPathParams {
     #[validate(
                           regex(path = *RE_SYSTEMDEVICESUSBPORTGETPATHPARAMS_PORT),
@@ -12236,6 +12250,441 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<PostDeployme
                 "Unable to convert header: {:?} to string: {}",
                 hdr_value, e
             )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Quest {
+    #[serde(rename = "id")]
+    #[validate(range(min = 0u64, max = 9223372036854775807u64))]
+    pub id: u64,
+
+    #[serde(rename = "description")]
+    pub description: String,
+
+    #[serde(rename = "detail")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+
+    #[serde(rename = "result")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result: Option<String>,
+
+    #[serde(rename = "state")]
+    pub state: models::QuestState,
+
+    #[serde(rename = "progress")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress: Option<models::QuestProgress>,
+
+    #[serde(rename = "subquests")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subquests: Option<Vec<models::Quest>>,
+}
+
+impl Quest {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(id: u64, description: String, state: models::QuestState) -> Quest {
+        Quest {
+            id,
+            description,
+            detail: None,
+            result: None,
+            state,
+            progress: None,
+            subquests: None,
+        }
+    }
+}
+
+/// Converts the Quest value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for Quest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("id".to_string()),
+            Some(self.id.to_string()),
+            Some("description".to_string()),
+            Some(self.description.to_string()),
+            self.detail
+                .as_ref()
+                .map(|detail| ["detail".to_string(), detail.to_string()].join(",")),
+            self.result
+                .as_ref()
+                .map(|result| ["result".to_string(), result.to_string()].join(",")),
+            // Skipping state in query parameter serialization
+
+            // Skipping progress in query parameter serialization
+
+            // Skipping subquests in query parameter serialization
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a Quest value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for Quest {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub id: Vec<u64>,
+            pub description: Vec<String>,
+            pub detail: Vec<String>,
+            pub result: Vec<String>,
+            pub state: Vec<models::QuestState>,
+            pub progress: Vec<models::QuestProgress>,
+            pub subquests: Vec<Vec<models::Quest>>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing Quest".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "id" => intermediate_rep.id.push(
+                        <u64 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "description" => intermediate_rep.description.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "detail" => intermediate_rep.detail.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "result" => intermediate_rep.result.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "state" => intermediate_rep.state.push(
+                        <models::QuestState as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "progress" => intermediate_rep.progress.push(
+                        <models::QuestProgress as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    "subquests" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in Quest"
+                                .to_string(),
+                        )
+                    }
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing Quest".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(Quest {
+            id: intermediate_rep
+                .id
+                .into_iter()
+                .next()
+                .ok_or_else(|| "id missing in Quest".to_string())?,
+            description: intermediate_rep
+                .description
+                .into_iter()
+                .next()
+                .ok_or_else(|| "description missing in Quest".to_string())?,
+            detail: intermediate_rep.detail.into_iter().next(),
+            result: intermediate_rep.result.into_iter().next(),
+            state: intermediate_rep
+                .state
+                .into_iter()
+                .next()
+                .ok_or_else(|| "state missing in Quest".to_string())?,
+            progress: intermediate_rep.progress.into_iter().next(),
+            subquests: intermediate_rep.subquests.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<Quest> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<Quest>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<Quest>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for Quest - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Quest> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => match <Quest as std::str::FromStr>::from_str(value) {
+                std::result::Result::Ok(value) => {
+                    std::result::Result::Ok(header::IntoHeaderValue(value))
+                }
+                std::result::Result::Err(err) => std::result::Result::Err(format!(
+                    "Unable to convert header value '{}' into Quest - {}",
+                    value, err
+                )),
+            },
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct QuestProgress {
+    #[serde(rename = "current")]
+    #[validate(range(min = 0u64, max = 9223372036854775807u64))]
+    pub current: u64,
+
+    #[serde(rename = "total")]
+    #[validate(range(min = 0u64, max = 9223372036854775807u64))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total: Option<u64>,
+}
+
+impl QuestProgress {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(current: u64) -> QuestProgress {
+        QuestProgress {
+            current,
+            total: None,
+        }
+    }
+}
+
+/// Converts the QuestProgress value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for QuestProgress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("current".to_string()),
+            Some(self.current.to_string()),
+            self.total
+                .as_ref()
+                .map(|total| ["total".to_string(), total.to_string()].join(",")),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a QuestProgress value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for QuestProgress {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub current: Vec<u64>,
+            pub total: Vec<u64>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing QuestProgress".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "current" => intermediate_rep.current.push(
+                        <u64 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "total" => intermediate_rep.total.push(
+                        <u64 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing QuestProgress".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(QuestProgress {
+            current: intermediate_rep
+                .current
+                .into_iter()
+                .next()
+                .ok_or_else(|| "current missing in QuestProgress".to_string())?,
+            total: intermediate_rep.total.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<QuestProgress> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<QuestProgress>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<QuestProgress>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for QuestProgress - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<QuestProgress> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <QuestProgress as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into QuestProgress - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+/// Enumeration of values.
+/// Since this enum's variants do not hold data, we can easily define them as `#[repr(C)]`
+/// which helps with FFI.
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[cfg_attr(feature = "conversion", derive(frunk_enum_derive::LabelledGenericEnum))]
+pub enum QuestState {
+    #[serde(rename = "failing")]
+    Failing,
+    #[serde(rename = "ongoing")]
+    Ongoing,
+    #[serde(rename = "pending")]
+    Pending,
+    #[serde(rename = "failed")]
+    Failed,
+    #[serde(rename = "success")]
+    Success,
+    #[serde(rename = "skipped")]
+    Skipped,
+}
+
+impl std::fmt::Display for QuestState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            QuestState::Failing => write!(f, "failing"),
+            QuestState::Ongoing => write!(f, "ongoing"),
+            QuestState::Pending => write!(f, "pending"),
+            QuestState::Failed => write!(f, "failed"),
+            QuestState::Success => write!(f, "success"),
+            QuestState::Skipped => write!(f, "skipped"),
+        }
+    }
+}
+
+impl std::str::FromStr for QuestState {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "failing" => std::result::Result::Ok(QuestState::Failing),
+            "ongoing" => std::result::Result::Ok(QuestState::Ongoing),
+            "pending" => std::result::Result::Ok(QuestState::Pending),
+            "failed" => std::result::Result::Ok(QuestState::Failed),
+            "success" => std::result::Result::Ok(QuestState::Success),
+            "skipped" => std::result::Result::Ok(QuestState::Skipped),
+            _ => std::result::Result::Err(format!("Value not valid: {}", s)),
         }
     }
 }
