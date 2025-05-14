@@ -199,6 +199,64 @@ lazy_static::lazy_static! {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigEditorsGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGEDITORSGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGEDITORSGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigEditorsPortGetPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGEDITORSPORTGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(range(min = 1i32, max = 65535i32))]
+    pub port: i32,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGEDITORSPORTGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigEditorsPortPathPrefixDeletePathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGEDITORSPORTPATHPREFIXDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(range(min = 1i32, max = 65535i32))]
+    pub port: i32,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGEDITORSPORTPATHPREFIXDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigEditorsPortPathPrefixPutPathParams {
+    #[validate(
+                          regex(path = *RE_INSTANCESINSTANCEIDCONFIGEDITORSPORTPATHPREFIXPUTPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    #[validate(range(min = 1i32, max = 65535i32))]
+    pub port: i32,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDCONFIGEDITORSPORTPATHPREFIXPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-f]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct InstancesInstanceIdConfigEnvironmentDeletePathParams {
     #[validate(
                           regex(path = *RE_INSTANCESINSTANCEIDCONFIGENVIRONMENTDELETEPATHPARAMS_INSTANCE_ID),
@@ -6219,6 +6277,15 @@ pub struct InstanceEditor {
     #[serde(rename = "name")]
     pub name: String,
 
+    #[serde(rename = "port")]
+    #[validate(range(min = 1u16, max = 65535u16))]
+    pub port: u16,
+
+    /// Prefix that should be shown in the url path of the editor
+    #[serde(rename = "path_prefix")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path_prefix: Option<String>,
+
     /// Link to the editor of an instance
     #[serde(rename = "url")]
     pub url: String,
@@ -6226,8 +6293,13 @@ pub struct InstanceEditor {
 
 impl InstanceEditor {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(name: String, url: String) -> InstanceEditor {
-        InstanceEditor { name, url }
+    pub fn new(name: String, port: u16, url: String) -> InstanceEditor {
+        InstanceEditor {
+            name,
+            port,
+            path_prefix: None,
+            url,
+        }
     }
 }
 
@@ -6239,6 +6311,11 @@ impl std::fmt::Display for InstanceEditor {
         let params: Vec<Option<String>> = vec![
             Some("name".to_string()),
             Some(self.name.to_string()),
+            Some("port".to_string()),
+            Some(self.port.to_string()),
+            self.path_prefix
+                .as_ref()
+                .map(|path_prefix| ["path_prefix".to_string(), path_prefix.to_string()].join(",")),
             Some("url".to_string()),
             Some(self.url.to_string()),
         ];
@@ -6263,6 +6340,8 @@ impl std::str::FromStr for InstanceEditor {
         #[allow(dead_code)]
         struct IntermediateRep {
             pub name: Vec<String>,
+            pub port: Vec<u16>,
+            pub path_prefix: Vec<String>,
             pub url: Vec<String>,
         }
 
@@ -6290,6 +6369,14 @@ impl std::str::FromStr for InstanceEditor {
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
+                    "port" => intermediate_rep.port.push(
+                        <u16 as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "path_prefix" => intermediate_rep.path_prefix.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
                     "url" => intermediate_rep.url.push(
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
@@ -6312,6 +6399,12 @@ impl std::str::FromStr for InstanceEditor {
                 .into_iter()
                 .next()
                 .ok_or_else(|| "name missing in InstanceEditor".to_string())?,
+            port: intermediate_rep
+                .port
+                .into_iter()
+                .next()
+                .ok_or_else(|| "port missing in InstanceEditor".to_string())?,
+            path_prefix: intermediate_rep.path_prefix.into_iter().next(),
             url: intermediate_rep
                 .url
                 .into_iter()
@@ -8001,6 +8094,132 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<InstancesCre
                 "Unable to convert header: {:?} to string: {}",
                 hdr_value, e
             )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest {
+    #[serde(rename = "path_prefix")]
+    pub path_prefix: String,
+}
+
+impl InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(path_prefix: String) -> InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest {
+        InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest { path_prefix }
+    }
+}
+
+/// Converts the InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("path_prefix".to_string()),
+            Some(self.path_prefix.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub path_prefix: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => return std::result::Result::Err("Missing value while parsing InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest".to_string())
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "path_prefix" => intermediate_rep.path_prefix.push(<String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?),
+                    _ => return std::result::Result::Err("Unexpected key while parsing InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest".to_string())
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest {
+            path_prefix: intermediate_rep.path_prefix.into_iter().next().ok_or_else(|| "path_prefix missing in InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest> and HeaderValue
+
+#[cfg(feature = "server")]
+impl
+    std::convert::TryFrom<
+        header::IntoHeaderValue<InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest>,
+    > for HeaderValue
+{
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<
+            InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest,
+        >,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+             std::result::Result::Ok(value) => std::result::Result::Ok(value),
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Invalid header value for InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest - value: {} is invalid {}",
+                     hdr_value, e))
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue>
+    for header::IntoHeaderValue<InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest>
+{
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+             std::result::Result::Ok(value) => {
+                    match <InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest as std::str::FromStr>::from_str(value) {
+                        std::result::Result::Ok(value) => std::result::Result::Ok(header::IntoHeaderValue(value)),
+                        std::result::Result::Err(err) => std::result::Result::Err(
+                            format!("Unable to convert header value '{}' into InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest - {}",
+                                value, err))
+                    }
+             },
+             std::result::Result::Err(e) => std::result::Result::Err(
+                 format!("Unable to convert header: {:?} to string: {}",
+                     hdr_value, e))
         }
     }
 }

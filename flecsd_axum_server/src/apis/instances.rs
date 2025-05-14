@@ -96,6 +96,62 @@ pub enum InstancesInstanceIdConfigDevicesUsbPortPutResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigEditorsGetResponse {
+    /// Success
+    Status200_Success(models::InstanceEditors),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// No instance with this instance_id found
+    Status404_NoInstanceWithThisInstance,
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigEditorsPortGetResponse {
+    /// Success
+    Status200_Success(models::InstanceEditor),
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigEditorsPortPathPrefixDeleteResponse {
+    /// Path prefix of editor was removed
+    Status200_PathPrefixOfEditorWasRemoved,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigEditorsPortPathPrefixPutResponse {
+    /// Path prefix of editor was changed
+    Status200_PathPrefixOfEditorWasChanged,
+    /// Malformed request
+    Status400_MalformedRequest(models::AdditionalInfo),
+    /// Resource not found
+    Status404_ResourceNotFound(models::OptionalAdditionalInfo),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdConfigEnvironmentDeleteResponse {
     /// Environment of instance with this instance_id was deleted
     Status200_EnvironmentOfInstanceWithThisInstance,
@@ -567,6 +623,51 @@ pub trait Instances {
         cookies: CookieJar,
         path_params: models::InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
     ) -> Result<InstancesInstanceIdConfigDevicesUsbPortPutResponse, ()>;
+
+    /// Retrieve editors of an instance.
+    ///
+    /// InstancesInstanceIdConfigEditorsGet - GET /v2/instances/{instance_id}/config/editors
+    async fn instances_instance_id_config_editors_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigEditorsGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigEditorsGetResponse, ()>;
+
+    /// Retrieve an editor of an instance.
+    ///
+    /// InstancesInstanceIdConfigEditorsPortGet - GET /v2/instances/{instance_id}/config/editors/{port}
+    async fn instances_instance_id_config_editors_port_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigEditorsPortGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigEditorsPortGetResponse, ()>;
+
+    /// Remove the path prefix used in the editor uri of an instance editor, this will revert to the default behaviour (/v2/instances/{instance_id}/editor/{port}).
+    ///
+    /// InstancesInstanceIdConfigEditorsPortPathPrefixDelete - DELETE /v2/instances/{instance_id}/config/editors/{port}/path_prefix
+    async fn instances_instance_id_config_editors_port_path_prefix_delete(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigEditorsPortPathPrefixDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigEditorsPortPathPrefixDeleteResponse, ()>;
+
+    /// Modify the path prefix used in the editor uri of an instance editor.
+    ///
+    /// InstancesInstanceIdConfigEditorsPortPathPrefixPut - PUT /v2/instances/{instance_id}/config/editors/{port}/path_prefix
+    async fn instances_instance_id_config_editors_port_path_prefix_put(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigEditorsPortPathPrefixPutPathParams,
+        body: models::InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest,
+    ) -> Result<InstancesInstanceIdConfigEditorsPortPathPrefixPutResponse, ()>;
 
     /// Delete environment of an instance.
     ///
