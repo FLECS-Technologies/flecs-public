@@ -205,11 +205,18 @@ components:
       required:
         - name
         - url
+        - port
       properties:
         name:
           type: string
           description: "Descriptive name of the editor"
           example: "Example app user settings"
+        port:
+          $ref: "#/components/schemas/port"
+        path_prefix:
+          type: string
+          description: "Prefix that should be shown in the url path of the editor"
+          example: "db_admin_dashboard"
         url:
           type: string
           description: "Link to the editor of an instance"
@@ -1467,6 +1474,115 @@ paths:
           description: Already passed through
         "201":
           description: Usb device was passed through
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+        "500":
+          $ref: "#/components/responses/response_500"
+  /instances/{instance_id}/config/editors:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve editors of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/instance_editors"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          description: No instance with this instance_id found
+        "500":
+          $ref: "#/components/responses/response_500"
+  /instances/{instance_id}/config/editors/{port}:
+    get:
+      tags: [ "Instances" ]
+      summary: Retrieve an editor of an instance
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: port
+          in: path
+          schema:
+            $ref: "#/components/schemas/port"
+          required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/instance_editor"
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+        "500":
+          $ref: "#/components/responses/response_500"
+  /instances/{instance_id}/config/editors/{port}/path_prefix:
+    put:
+      tags: [ "Instances" ]
+      summary: Modify the path prefix used in the editor uri of an instance editor
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: port
+          in: path
+          schema:
+            $ref: "#/components/schemas/port"
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path_prefix:
+                  type: string
+              required:
+                - path_prefix
+      responses:
+        "200":
+          description: Path prefix of editor was changed
+        "400":
+          $ref: "#/components/responses/response_400"
+        "404":
+          $ref: "#/components/responses/response_404"
+        "500":
+          $ref: "#/components/responses/response_500"
+    delete:
+      tags: [ "Instances" ]
+      summary: Remove the path prefix used in the editor uri of an instance editor, this will revert to the default behaviour (/v2/instances/{instance_id}/editor/{port})
+      parameters:
+        - name: instance_id
+          in: path
+          schema:
+            $ref: "#/components/schemas/instance_id"
+          required: true
+        - name: port
+          in: path
+          schema:
+            $ref: "#/components/schemas/port"
+          required: true
+      responses:
+        "200":
+          description: Path prefix of editor was removed
         "400":
           $ref: "#/components/responses/response_400"
         "404":

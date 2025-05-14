@@ -24,6 +24,9 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigDevicesUsbPortDeleteResponse,
     InstancesInstanceIdConfigDevicesUsbPortGetResponse,
     InstancesInstanceIdConfigDevicesUsbPortPutResponse,
+    InstancesInstanceIdConfigEditorsGetResponse, InstancesInstanceIdConfigEditorsPortGetResponse,
+    InstancesInstanceIdConfigEditorsPortPathPrefixDeleteResponse,
+    InstancesInstanceIdConfigEditorsPortPathPrefixPutResponse,
     InstancesInstanceIdConfigEnvironmentDeleteResponse as DeleteEnvironmentResponse,
     InstancesInstanceIdConfigEnvironmentGetResponse as GetEnvironmentResponse,
     InstancesInstanceIdConfigEnvironmentPutResponse as PutEnvironmentResponse,
@@ -61,6 +64,11 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdConfigDevicesUsbPortDeletePathParams,
     InstancesInstanceIdConfigDevicesUsbPortGetPathParams,
     InstancesInstanceIdConfigDevicesUsbPortPutPathParams,
+    InstancesInstanceIdConfigEditorsGetPathParams,
+    InstancesInstanceIdConfigEditorsPortGetPathParams,
+    InstancesInstanceIdConfigEditorsPortPathPrefixDeletePathParams,
+    InstancesInstanceIdConfigEditorsPortPathPrefixPutPathParams,
+    InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest,
     InstancesInstanceIdConfigEnvironmentDeletePathParams as DeleteEnvironmentParams,
     InstancesInstanceIdConfigEnvironmentGetPathParams as GetEnvironmentParams,
     InstancesInstanceIdConfigEnvironmentPutPathParams as PutEnvironmentParams,
@@ -232,6 +240,47 @@ impl<
             )
             .await,
         )
+    }
+
+    async fn instances_instance_id_config_editors_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigEditorsGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigEditorsGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_editors_port_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigEditorsPortGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigEditorsPortGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_editors_port_path_prefix_delete(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigEditorsPortPathPrefixDeletePathParams,
+    ) -> Result<InstancesInstanceIdConfigEditorsPortPathPrefixDeleteResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_editors_port_path_prefix_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigEditorsPortPathPrefixPutPathParams,
+        _body: InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest,
+    ) -> Result<InstancesInstanceIdConfigEditorsPortPathPrefixPutResponse, ()> {
+        todo!()
     }
 
     async fn instances_instance_id_config_environment_delete(
