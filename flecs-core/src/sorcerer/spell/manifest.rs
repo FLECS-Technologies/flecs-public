@@ -3,7 +3,7 @@ use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::lore;
 use crate::quest::SyncQuest;
-use crate::vault::pouch::Pouch;
+use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
 use anyhow::anyhow;
 use flecs_app_manifest::AppManifestVersion;
@@ -48,6 +48,35 @@ pub async fn download_manifest(
         }
         GetApiV2ManifestsAppVersionSuccess::UnknownValue(v) => Err(anyhow!("Unknown value {v}")),
     }
+}
+
+pub async fn erase_manifest_if_unused(vault: Arc<Vault>, app_key: AppKey) -> Option<AppManifest> {
+    let GrabbedPouches {
+        manifest_pouch_mut: Some(ref mut manifests),
+        app_pouch: Some(ref apps),
+        instance_pouch: Some(ref instances),
+        ..
+    } = vault
+        .reservation()
+        .reserve_manifest_pouch_mut()
+        .reserve_app_pouch()
+        .reserve_instance_pouch()
+        .grab()
+        .await
+    else {
+        unreachable!("Reservation should never fail");
+    };
+    if apps.gems().contains_key(&app_key) {
+        return None;
+    }
+    if instances
+        .gems()
+        .values()
+        .any(|instance| *instance.app_key() == app_key)
+    {
+        return None;
+    }
+    manifests.gems_mut().remove(&app_key)
 }
 
 pub async fn replace_manifest(

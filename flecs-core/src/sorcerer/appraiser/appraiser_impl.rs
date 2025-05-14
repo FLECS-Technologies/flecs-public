@@ -54,9 +54,12 @@ impl AppRaiser for AppraiserImpl {
             .2;
         match (
             delete_instances_result.await,
-            spell::app::uninstall_app(quest, vault, app_key).await,
+            spell::app::uninstall_app(quest, vault.clone(), app_key.clone()).await,
         ) {
-            (Ok(_), Ok(_)) => Ok(()),
+            (Ok(_), Ok(_)) => {
+                spell::manifest::erase_manifest_if_unused(vault, app_key).await;
+                Ok(())
+            }
             (Err(e1), Err(e2)) => Err(anyhow::anyhow!(
                 "Could not uninstall app ({e2}), could not remove all instances ({e1})"
             )),
