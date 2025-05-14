@@ -172,6 +172,30 @@ pub enum InstancesInstanceIdConfigEnvironmentVariableNamePutResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigHostnameGetResponse {
+    /// Success
+    Status200_Success(String),
+    /// Instance does not support hostnames
+    Status400_InstanceDoesNotSupportHostnames,
+    /// No instance with this instance_id found
+    Status404_NoInstanceWithThisInstance,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdConfigHostnamePutResponse {
+    /// Success
+    Status200_Success,
+    /// Instance does not support hostnames
+    Status400_InstanceDoesNotSupportHostnames,
+    /// No instance with this instance_id found
+    Status404_NoInstanceWithThisInstance,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
 pub enum InstancesInstanceIdConfigLabelsGetResponse {
     /// Success
     Status200_Success(Vec<models::InstanceLabel>),
@@ -635,6 +659,29 @@ pub trait Instances {
         path_params: models::InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams,
         body: models::InstancesInstanceIdConfigEnvironmentVariableNameGet200Response,
     ) -> Result<InstancesInstanceIdConfigEnvironmentVariableNamePutResponse, ()>;
+
+    /// Retrieve the hostname of an instance.
+    ///
+    /// InstancesInstanceIdConfigHostnameGet - GET /v2/instances/{instance_id}/config/hostname
+    async fn instances_instance_id_config_hostname_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigHostnameGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigHostnameGetResponse, ()>;
+
+    /// Set the hostname of an instance.
+    ///
+    /// InstancesInstanceIdConfigHostnamePut - PUT /v2/instances/{instance_id}/config/hostname
+    async fn instances_instance_id_config_hostname_put(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdConfigHostnamePutPathParams,
+        body: models::InstancesInstanceIdConfigHostnamePutRequest,
+    ) -> Result<InstancesInstanceIdConfigHostnamePutResponse, ()>;
 
     /// Retrieve labels of an instance.
     ///

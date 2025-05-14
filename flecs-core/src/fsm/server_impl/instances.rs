@@ -30,6 +30,7 @@ use flecsd_axum_server::apis::instances::{
     InstancesInstanceIdConfigEnvironmentVariableNameDeleteResponse as DeleteEnvironmentVariableResponse,
     InstancesInstanceIdConfigEnvironmentVariableNameGetResponse as GetEnvironmentVariableResponse,
     InstancesInstanceIdConfigEnvironmentVariableNamePutResponse as PutEnvironmentVariableResponse,
+    InstancesInstanceIdConfigHostnameGetResponse, InstancesInstanceIdConfigHostnamePutResponse,
     InstancesInstanceIdConfigLabelsGetResponse as GetLabelsResponse,
     InstancesInstanceIdConfigLabelsLabelNameGetResponse as GetLabelResponse,
     InstancesInstanceIdConfigMountsBindContainerPathGetResponse,
@@ -68,6 +69,8 @@ use flecsd_axum_server::models::{
     InstancesInstanceIdConfigEnvironmentVariableNameGet200Response as PutEnvironmentVariableRequest,
     InstancesInstanceIdConfigEnvironmentVariableNameGetPathParams as GetEnvironmentVariableParams,
     InstancesInstanceIdConfigEnvironmentVariableNamePutPathParams as PutEnvironmentVariableParams,
+    InstancesInstanceIdConfigHostnameGetPathParams, InstancesInstanceIdConfigHostnamePutPathParams,
+    InstancesInstanceIdConfigHostnamePutRequest,
     InstancesInstanceIdConfigLabelsGetPathParams as GetLabelsParams,
     InstancesInstanceIdConfigLabelsLabelNameGetPathParams as GetLabelParams,
     InstancesInstanceIdConfigMountsBindContainerPathGetPathParams,
@@ -338,6 +341,27 @@ impl<
             )
             .await,
         )
+    }
+
+    async fn instances_instance_id_config_hostname_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigHostnameGetPathParams,
+    ) -> Result<InstancesInstanceIdConfigHostnameGetResponse, ()> {
+        todo!()
+    }
+
+    async fn instances_instance_id_config_hostname_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        _path_params: InstancesInstanceIdConfigHostnamePutPathParams,
+        _body: InstancesInstanceIdConfigHostnamePutRequest,
+    ) -> Result<InstancesInstanceIdConfigHostnamePutResponse, ()> {
+        todo!()
     }
 
     async fn instances_instance_id_config_labels_get(

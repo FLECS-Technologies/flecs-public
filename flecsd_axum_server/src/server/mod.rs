@@ -117,6 +117,9 @@ where
         .route("/v2/instances/:instance_id/config/environment/:variable_name",
             delete(instances_instance_id_config_environment_variable_name_delete::<I, A>).get(instances_instance_id_config_environment_variable_name_get::<I, A>).put(instances_instance_id_config_environment_variable_name_put::<I, A>)
         )
+        .route("/v2/instances/:instance_id/config/hostname",
+            get(instances_instance_id_config_hostname_get::<I, A>).put(instances_instance_id_config_hostname_put::<I, A>)
+        )
         .route("/v2/instances/:instance_id/config/labels",
             get(instances_instance_id_config_labels_get::<I, A>)
         )
@@ -3736,6 +3739,183 @@ where
                                                   response.body(Body::from(body_content))
                                                 },
                                                 apis::instances::InstancesInstanceIdConfigEnvironmentVariableNamePutResponse::Status404_NoInstanceWithThisInstance
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  response.body(Body::empty())
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_hostname_get_validation(
+    path_params: models::InstancesInstanceIdConfigHostnameGetPathParams,
+) -> std::result::Result<(models::InstancesInstanceIdConfigHostnameGetPathParams,), ValidationErrors>
+{
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdConfigHostnameGet - GET /v2/instances/{instance_id}/config/hostname
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_hostname_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigHostnameGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_hostname_get_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_hostname_get(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigHostnameGetResponse::Status200_Success
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigHostnameGetResponse::Status400_InstanceDoesNotSupportHostnames
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigHostnameGetResponse::Status404_NoInstanceWithThisInstance
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  response.body(Body::empty())
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[derive(validator::Validate)]
+#[allow(dead_code)]
+struct InstancesInstanceIdConfigHostnamePutBodyValidator<'a> {
+    #[validate(nested)]
+    body: &'a models::InstancesInstanceIdConfigHostnamePutRequest,
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_config_hostname_put_validation(
+    path_params: models::InstancesInstanceIdConfigHostnamePutPathParams,
+    body: models::InstancesInstanceIdConfigHostnamePutRequest,
+) -> std::result::Result<
+    (
+        models::InstancesInstanceIdConfigHostnamePutPathParams,
+        models::InstancesInstanceIdConfigHostnamePutRequest,
+    ),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+    let b = InstancesInstanceIdConfigHostnamePutBodyValidator { body: &body };
+    b.validate()?;
+
+    Ok((path_params, body))
+}
+/// InstancesInstanceIdConfigHostnamePut - PUT /v2/instances/{instance_id}/config/hostname
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_config_hostname_put<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdConfigHostnamePutPathParams>,
+    State(api_impl): State<I>,
+    Json(body): Json<models::InstancesInstanceIdConfigHostnamePutRequest>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::instances::Instances,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_config_hostname_put_validation(path_params, body)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params, body)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_config_hostname_put(method, host, cookies, path_params, body)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::instances::InstancesInstanceIdConfigHostnamePutResponse::Status200_Success
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigHostnamePutResponse::Status400_InstanceDoesNotSupportHostnames
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::instances::InstancesInstanceIdConfigHostnamePutResponse::Status404_NoInstanceWithThisInstance
                                                 => {
                                                   let mut response = response.status(404);
                                                   response.body(Body::empty())
