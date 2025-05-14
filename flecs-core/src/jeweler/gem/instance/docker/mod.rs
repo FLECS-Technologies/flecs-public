@@ -566,7 +566,9 @@ impl DockerInstance {
             mapped_editor_ports: Default::default(),
         };
         Ok(Self {
-            hostname: format!("flecs-{instance_id}"),
+            hostname: manifest
+                .hostname()
+                .unwrap_or_else(|| format!("flecs-{instance_id}")),
             id: instance_id,
             deployment,
             name,
