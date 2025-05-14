@@ -115,6 +115,14 @@ pub enum ConnectInstanceConfigNetworkError {
     Other(String),
 }
 
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+pub enum InstanceConfigHostnameError {
+    #[error("Instance not found: {0}")]
+    InstanceNotFound(InstanceId),
+    #[error("Instance {0} does not support hostnames")]
+    Unsupported(InstanceId),
+}
+
 impl From<anyhow::Error> for ConnectInstanceConfigNetworkError {
     fn from(value: Error) -> Self {
         Self::Other(value.to_string())
@@ -195,6 +203,19 @@ pub trait Instancius: Sorcerer {
         vault: Arc<Vault>,
         id: InstanceId,
     ) -> Result<gem::instance::docker::config::InstanceConfig, QueryInstanceConfigError>;
+
+    async fn get_instance_hostname(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Result<String, InstanceConfigHostnameError>;
+
+    async fn put_instance_hostname(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        hostname: String,
+    ) -> Result<String, InstanceConfigHostnameError>;
 
     async fn get_instance_usb_devices<U: UsbDeviceReader + 'static>(
         &self,

@@ -527,6 +527,22 @@ where
         .get(&instance_id)?))
 }
 
+pub async fn modify_instance<F, T>(vault: Arc<Vault>, instance_id: InstanceId, f: F) -> Option<T>
+where
+    F: FnOnce(&mut Instance) -> T,
+{
+    Some(f(vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Reservations should never fail")
+        .gems_mut()
+        .get_mut(&instance_id)?))
+}
+
 pub async fn disconnect_instance_from_network(
     vault: Arc<Vault>,
     id: InstanceId,

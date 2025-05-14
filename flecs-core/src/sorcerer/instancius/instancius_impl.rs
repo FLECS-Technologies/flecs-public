@@ -23,7 +23,8 @@ use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::instancius::{
     ConnectInstanceConfigNetworkError, DisconnectInstanceError, GetInstanceConfigBindMountError,
     GetInstanceConfigNetworkResult, GetInstanceConfigVolumeMountError, GetInstanceUsbDeviceResult,
-    Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
+    InstanceConfigHostnameError, Instancius, PutInstanceUsbDeviceResult,
+    RedirectEditorRequestResult,
 };
 use crate::sorcerer::spell::instance::{QueryInstanceConfigError, UpdateInstanceError};
 use crate::sorcerer::{Sorcerer, spell};
@@ -400,6 +401,39 @@ impl Instancius for InstanciusImpl {
         id: InstanceId,
     ) -> Result<InstanceConfig, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| config.clone()).await
+    }
+
+    async fn get_instance_hostname(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> anyhow::Result<String, InstanceConfigHostnameError> {
+        match spell::instance::query_instance(vault, id, |instance| match instance {
+            Instance::Compose(_) => Err(InstanceConfigHostnameError::Unsupported(id)),
+            Instance::Docker(instance) => Ok(instance.hostname.clone()),
+        })
+        .await
+        {
+            None => Err(InstanceConfigHostnameError::InstanceNotFound(id)),
+            Some(result) => result,
+        }
+    }
+
+    async fn put_instance_hostname(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        hostname: String,
+    ) -> anyhow::Result<String, InstanceConfigHostnameError> {
+        match spell::instance::modify_instance(vault, id, |instance| match instance {
+            Instance::Compose(_) => Err(InstanceConfigHostnameError::Unsupported(id)),
+            Instance::Docker(instance) => Ok(std::mem::replace(&mut instance.hostname, hostname)),
+        })
+        .await
+        {
+            None => Err(InstanceConfigHostnameError::InstanceNotFound(id)),
+            Some(result) => result,
+        }
     }
 
     async fn get_instance_usb_devices<U: UsbDeviceReader>(

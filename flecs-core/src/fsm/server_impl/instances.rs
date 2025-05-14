@@ -348,9 +348,16 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigHostnameGetPathParams,
+        path_params: InstancesInstanceIdConfigHostnameGetPathParams,
     ) -> Result<InstancesInstanceIdConfigHostnameGetResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::hostname::get(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                path_params,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_hostname_put(
@@ -358,10 +365,18 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigHostnamePutPathParams,
-        _body: InstancesInstanceIdConfigHostnamePutRequest,
+        path_params: InstancesInstanceIdConfigHostnamePutPathParams,
+        body: InstancesInstanceIdConfigHostnamePutRequest,
     ) -> Result<InstancesInstanceIdConfigHostnamePutResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::hostname::put(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                path_params,
+                body,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_labels_get(
