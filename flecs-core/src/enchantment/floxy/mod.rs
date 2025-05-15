@@ -19,7 +19,7 @@ pub trait Floxy: Enchantment {
         app_name: &str,
         instance_id: InstanceId,
         instance_ip: IpAddr,
-        dest_ports: &[u16],
+        dest_ports: &[(u16, Option<String>)],
     ) -> crate::Result<bool>;
 
     fn delete_reverse_proxy_config(

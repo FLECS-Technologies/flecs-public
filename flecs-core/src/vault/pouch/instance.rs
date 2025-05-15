@@ -541,6 +541,7 @@ pub mod tests {
                     container_path: PathBuf::from("/test/path"),
                 },
             )]),
+            editor_path_prefixes: HashMap::new(),
             environment_variables: vec![
                 EnvironmentVariable {
                     name: "VAR_1".to_string(),

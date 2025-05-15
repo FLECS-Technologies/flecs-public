@@ -247,9 +247,16 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEditorsGetPathParams,
+        path_params: InstancesInstanceIdConfigEditorsGetPathParams,
     ) -> Result<InstancesInstanceIdConfigEditorsGetResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::editors::get(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                path_params,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_editors_port_get(
@@ -257,9 +264,16 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEditorsPortGetPathParams,
+        path_params: InstancesInstanceIdConfigEditorsPortGetPathParams,
     ) -> Result<InstancesInstanceIdConfigEditorsPortGetResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::editors::port::get(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                path_params,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_editors_port_path_prefix_delete(
@@ -267,9 +281,17 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEditorsPortPathPrefixDeletePathParams,
+        path_params: InstancesInstanceIdConfigEditorsPortPathPrefixDeletePathParams,
     ) -> Result<InstancesInstanceIdConfigEditorsPortPathPrefixDeleteResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::editors::port::path_prefix::delete(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                self.enchantments.floxy.clone(),
+                path_params,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_editors_port_path_prefix_put(
@@ -277,10 +299,19 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: InstancesInstanceIdConfigEditorsPortPathPrefixPutPathParams,
-        _body: InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest,
+        path_params: InstancesInstanceIdConfigEditorsPortPathPrefixPutPathParams,
+        body: InstancesInstanceIdConfigEditorsPortPathPrefixPutRequest,
     ) -> Result<InstancesInstanceIdConfigEditorsPortPathPrefixPutResponse, ()> {
-        todo!()
+        Ok(
+            super::api::v2::instances::instance_id::config::editors::port::path_prefix::put(
+                self.vault.clone(),
+                self.sorcerers.instancius.clone(),
+                self.enchantments.floxy.clone(),
+                path_params,
+                body,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_config_environment_delete(

@@ -6,10 +6,13 @@ use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader, UsbDeviceReaderExtension};
 use bollard::models::{DeviceMapping, MountTypeEnum, PortBinding};
-use serde::{Deserialize, Serialize};
+use serde::de::{MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::net::IpAddr;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 const USB_DEVICE_PATH: &str = "/dev/bus/usb/";
 
@@ -195,10 +198,57 @@ impl<T: UsbDeviceReader> TryFrom<(&UsbDevice, &T)> for UsbPathConfig {
     }
 }
 
+fn deserialize_key_map<'de, D, K, V>(deserializer: D) -> Result<HashMap<K, V>, D::Error>
+where
+    D: Deserializer<'de>,
+    K: FromStr + Eq + Hash,
+    K::Err: std::fmt::Display,
+    V: Deserialize<'de>,
+{
+    struct KeyMapVisitor<K, V> {
+        marker: std::marker::PhantomData<fn() -> HashMap<K, V>>,
+    }
+
+    impl<'de, K, V> Visitor<'de> for KeyMapVisitor<K, V>
+    where
+        K: FromStr + Eq + Hash,
+        K::Err: std::fmt::Display,
+        V: Deserialize<'de>,
+    {
+        type Value = HashMap<K, V>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a map with string keys that can be parsed")
+        }
+
+        fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+        where
+            M: MapAccess<'de>,
+        {
+            let mut map = HashMap::with_capacity(access.size_hint().unwrap_or(0));
+            while let Some((key_str, value)) = access.next_entry::<String, V>()? {
+                let key = key_str.parse::<K>().map_err(serde::de::Error::custom)?;
+                map.insert(key, value);
+            }
+            Ok(map)
+        }
+    }
+
+    deserializer.deserialize_map(KeyMapVisitor {
+        marker: std::marker::PhantomData,
+    })
+}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct InstanceConfig {
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub volume_mounts: HashMap<VolumeId, VolumeMount>,
+    #[serde(
+        skip_serializing_if = "HashMap::is_empty",
+        deserialize_with = "deserialize_key_map",
+        default
+    )]
+    pub editor_path_prefixes: HashMap<u16, String>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub environment_variables: Vec<EnvironmentVariable>,
     #[serde(skip_serializing_if = "InstancePortMapping::is_empty", default)]

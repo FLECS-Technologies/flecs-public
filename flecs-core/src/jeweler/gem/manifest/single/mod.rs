@@ -11,11 +11,12 @@ pub use crate::{Error, Result};
 pub use config_file::*;
 pub use device::*;
 pub use environment_variable::*;
+use flecs_app_manifest::generated::manifest_3_1_0::EditorsItem;
 pub use label::*;
 pub use mount::*;
 pub use port::*;
 use serde::Serialize;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize)]
@@ -66,6 +67,28 @@ impl AppManifestSingle {
         match self.original.multi_instance.as_ref() {
             None => false,
             Some(multi_instance) => multi_instance.0,
+        }
+    }
+
+    fn default_editor_path_prefix(editor: &EditorsItem, app_key: &AppKey) -> String {
+        format!(
+            "apps/{}/{}/editor/{}",
+            app_key.name, app_key.version, editor.port
+        )
+    }
+
+    pub fn default_editor_path_prefixes(&self) -> HashMap<u16, String> {
+        match (self.multi_instance(), &self.original.editors) {
+            (true, _) | (_, None) => HashMap::new(),
+            (_, Some(editors)) => editors
+                .iter()
+                .map(|editor| {
+                    (
+                        editor.port.get(),
+                        Self::default_editor_path_prefix(editor, self.app_key()),
+                    )
+                })
+                .collect(),
         }
     }
 

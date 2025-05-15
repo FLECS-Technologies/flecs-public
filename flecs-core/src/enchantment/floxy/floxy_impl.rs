@@ -1,6 +1,7 @@
 use crate::enchantment::Enchantment;
 use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::lore;
 use crate::relic::network::get_random_free_port;
 use crate::relic::nginx::Nginx;
 use anyhow::Error;
@@ -37,7 +38,7 @@ impl Floxy for FloxyImpl {
         app_name: &str,
         instance_id: InstanceId,
         instance_ip: IpAddr,
-        dest_ports: &[u16],
+        dest_ports: &[(u16, Option<String>)],
     ) -> anyhow::Result<bool> {
         let config_content =
             Self::create_instance_reverse_proxy_config(instance_id, instance_ip, dest_ports.iter());
@@ -194,13 +195,21 @@ impl FloxyImpl {
         self.base_path.join(INSTANCE_CONFIGS_DIR_NAME)
     }
 
-    fn create_instance_reverse_proxy_config<'a, I: Iterator<Item = &'a u16>>(
+    fn create_instance_reverse_proxy_config<'a, I: Iterator<Item = &'a (u16, Option<String>)>>(
         instance_id: InstanceId,
         instance_ip: IpAddr,
         dest_ports: I,
     ) -> String {
         dest_ports
-            .map(|port| Self::create_instance_config(instance_id, instance_ip, *port))
+            .map(|(port, path_prefix)| {
+                let location_with_prefix = path_prefix.as_ref().map(|s| format!("/{s}"));
+                Self::create_instance_config(
+                    instance_ip,
+                    *port,
+                    &lore::floxy::instance_editor_location(instance_id, *port),
+                    location_with_prefix.iter().map(|s| s.as_str()),
+                )
+            })
             .collect::<String>()
     }
 
@@ -256,18 +265,35 @@ impl FloxyImpl {
         Ok(())
     }
 
-    fn create_instance_config(
-        instance_id: InstanceId,
+    fn create_instance_config<'a, I: Iterator<Item = &'a str>>(
         instance_ip: IpAddr,
         dest_port: u16,
+        location: &str,
+        additional_locations: I,
     ) -> String {
-        format!(
-            "
-location /v2/instances/{instance_id}/editor/{dest_port} {{
+        let additional_locations: String = additional_locations
+            .into_iter()
+            .map(|additional_location| {
+                format!(
+                    "
+location {additional_location} {{
    server_name_in_redirect on;
-   return 301 $request_uri/;
+   return 307 $request_uri/;                
+}}
+location ~ ^{additional_location}/(.*) {{
+   server_name_in_redirect on;
+   return 307 {location}/$1;
+}}"
+                )
+            })
+            .collect();
+        format!(
+            "{additional_locations}
+location {location} {{
+   server_name_in_redirect on;
+   return 307 $request_uri/;
 
-   location ~ ^/v2/instances/{instance_id}/editor/{dest_port}/(.*) {{
+   location ~ ^{location}/(.*) {{
       set $upstream http://{instance_ip}:{dest_port}/$1;
       proxy_pass $upstream;
 
@@ -510,14 +536,15 @@ location /v2/instances/1234abcd/editor/7000 {
    }
 }";
 
-    const TRIPLE_DEST_PORTS: [u16; 3] = [5000, 6000, 7000];
-
+    fn triple_dest_ports_and_prefixes() -> [(u16, Option<String>); 3] {
+        [(5000, None), (6000, None), (7000, None)]
+    }
     #[test]
     fn create_instance_reverse_proxy_config_test() {
         let config = FloxyImpl::create_instance_reverse_proxy_config(
             InstanceId::new(0x1234abcd),
             IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
-            TRIPLE_DEST_PORTS.iter(),
+            triple_dest_ports_and_prefixes().iter(),
         );
         assert_eq!(config, EXPECTED_TRIPLE_CONFIG);
     }
@@ -537,7 +564,7 @@ location /v2/instances/1234abcd/editor/7000 {
                 "test_app",
                 InstanceId::new(0x1234abcd),
                 IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
-                &TRIPLE_DEST_PORTS,
+                &triple_dest_ports_and_prefixes(),
             ),
             Ok(true)
         ));
@@ -567,7 +594,7 @@ location /v2/instances/1234abcd/editor/7000 {
                 "test_app",
                 InstanceId::new(0x1234abcd),
                 IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
-                &TRIPLE_DEST_PORTS,
+                &triple_dest_ports_and_prefixes(),
             ),
             Ok(false)
         ));
@@ -595,7 +622,7 @@ location /v2/instances/1234abcd/editor/7000 {
                 "test_app",
                 InstanceId::new(0x1234abcd),
                 IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
-                &TRIPLE_DEST_PORTS,
+                &triple_dest_ports_and_prefixes(),
             ),
             Ok(true)
         ));
@@ -642,11 +669,11 @@ server {
     #[test]
     fn create_instance_config_test() {
         const EXPECTED_CONFIG: &str = "
-location /v2/instances/12345678/editor/7799 {
+location TEST_LOCATION {
    server_name_in_redirect on;
    return 301 $request_uri/;
 
-   location ~ ^/v2/instances/12345678/editor/7799/(.*) {
+   location ~ ^TEST_LOCATION/(.*) {
       set $upstream http://30.60.120.240:7799/$1;
       proxy_pass $upstream;
 
@@ -665,11 +692,13 @@ location /v2/instances/12345678/editor/7799 {
       client_body_timeout 30m;
    }
 }";
+        let additional_locations: Vec<&str> = Vec::new();
         assert_eq!(
             FloxyImpl::create_instance_config(
-                InstanceId::new(0x12345678),
                 IpAddr::V4(Ipv4Addr::new(30, 60, 120, 240)),
-                7799
+                7799,
+                "TEST_LOCATION",
+                additional_locations.into_iter()
             ),
             EXPECTED_CONFIG
         )

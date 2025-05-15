@@ -35,7 +35,7 @@ impl<F: Floxy> FloxyOperation<F> {
         app_name: &str,
         instance_id: InstanceId,
         instance_ip: IpAddr,
-        dest_ports: &[u16],
+        dest_ports: &[(u16, Option<String>)],
     ) -> crate::Result<()> {
         if self.floxy.add_instance_reverse_proxy_config(
             app_name,
