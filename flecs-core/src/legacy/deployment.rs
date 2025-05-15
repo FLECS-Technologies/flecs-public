@@ -117,6 +117,7 @@ pub fn migrate_docker_instance<U: UsbDeviceReader>(
     let connected_networks = connected_networks?;
     let config = InstanceConfig {
         volume_mounts: Default::default(),
+        editor_path_prefixes: Default::default(),
         environment_variables: migrate_environment(value.environment.iter())?,
         port_mapping: migrate_ports(value.ports.iter())?,
         connected_networks,

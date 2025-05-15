@@ -23,14 +23,15 @@ use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::instancius::{
     ConnectInstanceConfigNetworkError, DisconnectInstanceError, GetInstanceConfigBindMountError,
     GetInstanceConfigNetworkResult, GetInstanceConfigVolumeMountError, GetInstanceUsbDeviceResult,
-    Instancius, PutInstanceUsbDeviceResult, RedirectEditorRequestResult,
+    InstanceEditorPathPrefixError, Instancius, PutInstanceUsbDeviceResult,
+    RedirectEditorRequestResult,
 };
 use crate::sorcerer::spell::instance::{QueryInstanceConfigError, UpdateInstanceError};
 use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
 use async_trait::async_trait;
-use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
+use flecsd_axum_server::models::{AppInstance, InstanceEditor, InstancesInstanceIdGet200Response};
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU16;
@@ -400,6 +401,145 @@ impl Instancius for InstanciusImpl {
         id: InstanceId,
     ) -> Result<InstanceConfig, QueryInstanceConfigError> {
         spell::instance::get_instance_config_part_with(vault, id, |config| config.clone()).await
+    }
+
+    async fn get_instance_editor(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        port: u16,
+    ) -> Result<InstanceEditor, InstanceEditorPathPrefixError> {
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let instance = match grab
+            .instance_pouch
+            .as_ref()
+            .expect("Reservations should never fail")
+            .gems()
+            .get(&id)
+        {
+            None => return Err(InstanceEditorPathPrefixError::InstanceNotFound(id)),
+            Some(Instance::Compose(_)) => {
+                return Err(InstanceEditorPathPrefixError::NotSupported(id));
+            }
+            Some(Instance::Docker(instance)) => instance,
+        };
+        let editors = instance.manifest.editors();
+        let editor = editors
+            .iter()
+            .find(|editor| editor.port.get() == port)
+            .ok_or_else(|| InstanceEditorPathPrefixError::EditorNotFound(id, port))?;
+        let path_prefix = instance.config.editor_path_prefixes.get(&port).cloned();
+        Ok(InstanceEditor {
+            name: editor.name.clone(),
+            port,
+            url: crate::lore::floxy::instance_editor_location(id, port),
+            path_prefix,
+        })
+    }
+
+    async fn get_instance_editors(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Result<Vec<InstanceEditor>, InstanceEditorPathPrefixError> {
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let instance = match grab
+            .instance_pouch
+            .as_ref()
+            .expect("Reservations should never fail")
+            .gems()
+            .get(&id)
+        {
+            None => return Err(InstanceEditorPathPrefixError::InstanceNotFound(id)),
+            Some(Instance::Compose(_)) => {
+                return Err(InstanceEditorPathPrefixError::NotSupported(id));
+            }
+            Some(Instance::Docker(instance)) => instance,
+        };
+        let editors = instance
+            .manifest
+            .editors()
+            .iter()
+            .map(|editor| {
+                let port = editor.port.get();
+                let path_prefix = instance.config.editor_path_prefixes.get(&port).cloned();
+                InstanceEditor {
+                    name: editor.name.clone(),
+                    port,
+                    url: crate::lore::floxy::instance_editor_location(id, port),
+                    path_prefix,
+                }
+            })
+            .collect();
+        Ok(editors)
+    }
+
+    async fn put_instance_editor_path_prefix<F: Floxy + 'static>(
+        &self,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+        id: InstanceId,
+        port: u16,
+        path_prefix: String,
+    ) -> Result<Option<String>, InstanceEditorPathPrefixError> {
+        let mut grab = vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await;
+        let instance = match grab
+            .instance_pouch_mut
+            .as_mut()
+            .expect("Reservations should never fail")
+            .gems_mut()
+            .get_mut(&id)
+        {
+            None => return Err(InstanceEditorPathPrefixError::InstanceNotFound(id)),
+            Some(Instance::Compose(_)) => {
+                return Err(InstanceEditorPathPrefixError::NotSupported(id));
+            }
+            Some(Instance::Docker(instance)) => instance,
+        };
+        let previous_path_prefix = instance
+            .config
+            .editor_path_prefixes
+            .insert(port, path_prefix);
+        if instance.is_running().await? {
+            instance.load_additional_locations_reverse_proxy_config(floxy)?;
+        }
+        Ok(previous_path_prefix)
+    }
+
+    async fn delete_instance_editor_path_prefix<F: Floxy + 'static>(
+        &self,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+        id: InstanceId,
+        port: u16,
+    ) -> Result<Option<String>, InstanceEditorPathPrefixError> {
+        let mut grab = vault
+            .reservation()
+            .reserve_instance_pouch_mut()
+            .grab()
+            .await;
+        let instance = match grab
+            .instance_pouch_mut
+            .as_mut()
+            .expect("Reservations should never fail")
+            .gems_mut()
+            .get_mut(&id)
+        {
+            None => return Err(InstanceEditorPathPrefixError::InstanceNotFound(id)),
+            Some(Instance::Compose(_)) => {
+                return Err(InstanceEditorPathPrefixError::NotSupported(id));
+            }
+            Some(Instance::Docker(instance)) => instance,
+        };
+        let previous_path_prefix = instance.config.editor_path_prefixes.remove(&port);
+        if previous_path_prefix.is_some() && instance.is_running().await? {
+            instance.load_additional_locations_reverse_proxy_config(floxy)?;
+        }
+        Ok(previous_path_prefix)
     }
 
     async fn get_instance_usb_devices<U: UsbDeviceReader>(
@@ -1199,7 +1339,17 @@ pub mod tests {
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .returning(|_, _| Ok(false));
+        floxy
+            .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        floxy
+            .expect_delete_server_proxy_configs()
+            .returning(|_, _, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(INSTANCE_TO_DELETE, deployment)]),
             HashMap::new(),
@@ -2034,7 +2184,11 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         InstanciusImpl::default()
             .start_instance(
                 Quest::new_synced("TestQuest".to_string()),

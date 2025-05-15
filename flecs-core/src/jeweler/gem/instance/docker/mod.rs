@@ -1,6 +1,6 @@
 pub mod config;
 use super::{InstanceCommon, InstanceId, Logs};
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::{AdditionalLocationInfo, Floxy, FloxyOperation};
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::ipaddr::BitComplementExt;
 use crate::forge::time::SystemTimeExt;
@@ -20,7 +20,7 @@ use crate::jeweler::volume::VolumeId;
 use crate::quest::{Quest, SyncQuest};
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::vault::pouch::AppKey;
-use crate::{legacy, vault};
+use crate::{legacy, lore, vault};
 use async_trait::async_trait;
 use bollard::container::Config;
 use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
@@ -345,9 +345,18 @@ impl DockerInstance {
             .manifest
             .editors()
             .iter()
-            .map(|editor| models::InstanceEditor {
-                name: editor.name.clone(),
-                url: format!("/v2/instances/{}/editor/{}", self.id, editor.port),
+            .map(|editor| {
+                let path_prefix = self
+                    .config
+                    .editor_path_prefixes
+                    .get(&editor.port.get())
+                    .cloned();
+                models::InstanceEditor {
+                    name: editor.name.clone(),
+                    port: editor.port.get(),
+                    url: lore::floxy::instance_editor_location(self.id, editor.port.get()),
+                    path_prefix,
+                }
             })
             .collect();
         if editors.is_empty() {
@@ -564,6 +573,7 @@ impl DockerInstance {
             connected_networks: HashMap::from([(default_network_id, address)]),
             usb_devices: HashMap::new(),
             mapped_editor_ports: Default::default(),
+            editor_path_prefixes: manifest.default_editor_path_prefixes(),
         };
         Ok(Self {
             hostname: format!("flecs-{instance_id}"),
@@ -581,7 +591,8 @@ impl DockerInstance {
         if self.is_running().await? {
             return Ok(());
         }
-        self.load_reverse_proxy_config(floxy).await?;
+        self.load_reverse_proxy_config(floxy.clone()).await?;
+        self.load_additional_locations_reverse_proxy_config(floxy)?;
         self.id = self
             .deployment
             .start_instance((&*self).into(), Some(self.id), &self.manifest.config_files)
@@ -603,7 +614,7 @@ impl DockerInstance {
             .collect()
     }
 
-    async fn load_reverse_proxy_config<F: Floxy>(
+    pub async fn load_reverse_proxy_config<F: Floxy>(
         &self,
         floxy: Arc<FloxyOperation<F>>,
     ) -> anyhow::Result<()> {
@@ -621,23 +632,49 @@ impl DockerInstance {
         Ok(())
     }
 
+    pub fn load_additional_locations_reverse_proxy_config<F: Floxy>(
+        &self,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<()> {
+        let path_prefixes = &self.config.editor_path_prefixes;
+        if !path_prefixes.is_empty() {
+            let locations: Vec<_> = path_prefixes
+                .iter()
+                .map(|(port, prefix)| AdditionalLocationInfo {
+                    location: format!("/{prefix}"),
+                    port: *port,
+                })
+                .collect();
+            floxy.add_additional_locations_proxy_config(
+                &self.app_key().name,
+                self.id,
+                &locations,
+            )?;
+        } else {
+            self.delete_additional_locations_reverse_proxy_config(floxy)?;
+        }
+        Ok(())
+    }
+
+    fn delete_additional_locations_reverse_proxy_config<F: Floxy>(
+        &self,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<()> {
+        floxy.delete_additional_locations_proxy_config(&self.app_key().name, self.id)
+    }
+
     fn delete_reverse_proxy_config<F: Floxy>(
         &self,
         floxy: Arc<FloxyOperation<F>>,
-    ) -> anyhow::Result<bool> {
-        if !self.get_reverse_proxy_editor_ports().is_empty() {
-            floxy.delete_reverse_proxy_config(&self.app_key().name, self.id)?;
-            Ok(true)
-        } else {
-            Ok(false)
-        }
+    ) -> anyhow::Result<()> {
+        floxy.delete_reverse_proxy_config(&self.app_key().name, self.id)
     }
 
     fn delete_server_proxy_configs<F: Floxy>(
         &self,
         floxy: Arc<FloxyOperation<F>>,
     ) -> anyhow::Result<bool> {
-        let editor_ports: Vec<_> = self.config.mapped_editor_ports.keys().cloned().collect();
+        let editor_ports: Vec<_> = self.config.mapped_editor_ports.values().cloned().collect();
         if !editor_ports.is_empty() {
             floxy.delete_server_proxy_configs(&self.app_key().name, self.id, &editor_ports)?;
             Ok(true)
@@ -742,7 +779,10 @@ impl DockerInstance {
             volume_ids.push(volume_id.clone());
             delete_results.push(result);
         }
-        if let Err(e) = self.delete_reverse_proxy_config(floxy) {
+        if let Err(e) = self.delete_reverse_proxy_config(floxy.clone()) {
+            warn!("Instance {}: {e}", self.id);
+        }
+        if let Err(e) = self.delete_additional_locations_reverse_proxy_config(floxy) {
             warn!("Instance {}: {e}", self.id);
         }
         for (id, result) in volume_ids.into_iter().zip(join_all(delete_results).await) {
@@ -1307,6 +1347,7 @@ pub mod tests {
                         },
                     ),
                 ]),
+                editor_path_prefixes: Default::default(),
                 environment_variables: vec![
                     EnvironmentVariable::from_str("variable-1=value1").unwrap(),
                     EnvironmentVariable::from_str("variable-2=").unwrap(),
@@ -1368,6 +1409,9 @@ pub mod tests {
             .expect_delete_reverse_proxy_config()
             .once()
             .returning(|_, _| Ok(false));
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .returning(|_, _| Ok(false));
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDockerDeployment::new();
         deployment
@@ -1389,6 +1433,9 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        floxy
+            .expect_delete_additional_locations_proxy_config()
             .returning(|_, _| Ok(false));
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDockerDeployment::new();
@@ -1414,6 +1461,9 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        floxy
+            .expect_delete_additional_locations_proxy_config()
             .returning(|_, _| Ok(false));
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDockerDeployment::new();
@@ -1527,6 +1577,9 @@ pub mod tests {
         floxy
             .expect_delete_reverse_proxy_config()
             .returning(|_, _| Ok(false));
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .returning(|_, _| Ok(false));
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDockerDeployment::new();
         deployment
@@ -1561,6 +1614,9 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        floxy
+            .expect_delete_additional_locations_proxy_config()
             .returning(|_, _| Ok(false));
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDockerDeployment::new();
@@ -1923,10 +1979,14 @@ pub mod tests {
             editors: Some(models::InstanceEditors::from(vec![
                 models::InstanceEditor {
                     name: "Editor#1".to_string(),
+                    port: 123,
+                    path_prefix: None,
                     url: "/v2/instances/00000123/editor/123".to_string(),
                 },
                 models::InstanceEditor {
                     name: "Editor#2".to_string(),
+                    port: 789,
+                    path_prefix: None,
                     url: "/v2/instances/00000123/editor/789".to_string(),
                 },
             ])),
@@ -2031,10 +2091,14 @@ pub mod tests {
             editors: Some(models::InstanceEditors::from(vec![
                 models::InstanceEditor {
                     name: "Editor#1".to_string(),
+                    port: 123,
+                    path_prefix: None,
                     url: "/v2/instances/00000123/editor/123".to_string(),
                 },
                 models::InstanceEditor {
                     name: "Editor#2".to_string(),
+                    port: 789,
+                    path_prefix: None,
                     url: "/v2/instances/00000123/editor/789".to_string(),
                 },
             ])),
@@ -2426,7 +2490,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_start_ok() {
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_server_proxy_configs()
+            .returning(|_, _, _| Ok(false));
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
@@ -2527,7 +2598,7 @@ pub mod tests {
             Arc::new(MockedDockerDeployment::new()),
             create_test_manifest_full(None),
         );
-        assert!(instance.delete_reverse_proxy_config(floxy).unwrap());
+        instance.delete_reverse_proxy_config(floxy).unwrap();
     }
 
     #[tokio::test]
@@ -2539,12 +2610,15 @@ pub mod tests {
             .withf(|app, id, ports| {
                 app == "some.test.app"
                     && id == &InstanceId::new(2)
-                    && ports.contains(&10)
-                    && ports.contains(&100)
+                    && ports.contains(&1000)
+                    && ports.contains(&20)
             })
             .returning(|_, _, _| Ok(false));
         floxy
             .expect_delete_reverse_proxy_config()
+            .returning(|_, _| Ok(false));
+        floxy
+            .expect_delete_additional_locations_proxy_config()
             .returning(|_, _| Ok(false));
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut instance = test_instance(

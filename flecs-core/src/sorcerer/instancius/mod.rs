@@ -115,6 +115,18 @@ pub enum ConnectInstanceConfigNetworkError {
     Other(String),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum InstanceEditorPathPrefixError {
+    #[error("Instance {0} not found")]
+    InstanceNotFound(InstanceId),
+    #[error("Instance {0} has no editor with port {1}")]
+    EditorNotFound(InstanceId, u16),
+    #[error("Instance {0} does not support configuring")]
+    NotSupported(InstanceId),
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
 impl From<anyhow::Error> for ConnectInstanceConfigNetworkError {
     fn from(value: Error) -> Self {
         Self::Other(value.to_string())
@@ -195,6 +207,36 @@ pub trait Instancius: Sorcerer {
         vault: Arc<Vault>,
         id: InstanceId,
     ) -> Result<gem::instance::docker::config::InstanceConfig, QueryInstanceConfigError>;
+
+    async fn get_instance_editor(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+        port: u16,
+    ) -> Result<flecsd_axum_server::models::InstanceEditor, InstanceEditorPathPrefixError>;
+
+    async fn get_instance_editors(
+        &self,
+        vault: Arc<Vault>,
+        id: InstanceId,
+    ) -> Result<Vec<flecsd_axum_server::models::InstanceEditor>, InstanceEditorPathPrefixError>;
+
+    async fn put_instance_editor_path_prefix<F: Floxy + 'static>(
+        &self,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+        id: InstanceId,
+        port: u16,
+        path_prefix: String,
+    ) -> Result<Option<String>, InstanceEditorPathPrefixError>;
+
+    async fn delete_instance_editor_path_prefix<F: Floxy + 'static>(
+        &self,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+        id: InstanceId,
+        port: u16,
+    ) -> Result<Option<String>, InstanceEditorPathPrefixError>;
 
     async fn get_instance_usb_devices<U: UsbDeviceReader + 'static>(
         &self,
