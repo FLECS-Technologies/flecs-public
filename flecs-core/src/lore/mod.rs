@@ -33,8 +33,14 @@ pub mod flimport {
 }
 
 pub mod floxy {
+    use crate::jeweler::gem::instance::InstanceId;
+
     pub const BASE_PATH: &str = "/var/lib/flecs/floxy";
     pub const CONFIG_PATH: &str = "/etc/nginx/floxy.conf";
+
+    pub fn instance_editor_location(instance_id: InstanceId, port: u16) -> String {
+        format!("/v2/instances/{instance_id}/editor/{port}")
+    }
 }
 
 pub mod console {

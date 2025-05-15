@@ -848,7 +848,11 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1114,7 +1118,11 @@ pub mod tests {
             (instance_id, deployment)
         }));
         let vault = vault::tests::create_test_vault(instance_deployments, HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         start_all_instances_as_desired(Quest::new_synced("TestQuest".to_string()), vault, floxy)
             .await
             .unwrap();
@@ -1175,7 +1183,11 @@ pub mod tests {
             (instance_id, deployment)
         }));
         let vault = vault::tests::create_test_vault(instance_deployments, HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .returning(|_, _| Ok(false));
+        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         assert!(
             start_all_instances_as_desired(
                 Quest::new_synced("TestQuest".to_string()),

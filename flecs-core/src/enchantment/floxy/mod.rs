@@ -8,6 +8,11 @@ use mockall::{automock, predicate::*};
 pub use operation::FloxyOperation;
 use std::net::IpAddr;
 
+pub struct AdditionalLocationInfo {
+    pub port: u16,
+    pub location: String,
+}
+
 #[cfg_attr(test, automock)]
 pub trait Floxy: Enchantment {
     fn start(&self) -> crate::Result<()>;
@@ -20,6 +25,19 @@ pub trait Floxy: Enchantment {
         instance_id: InstanceId,
         instance_ip: IpAddr,
         dest_ports: &[u16],
+    ) -> crate::Result<bool>;
+
+    fn add_additional_locations_proxy_config(
+        &self,
+        app_name: &str,
+        instance_id: InstanceId,
+        additional_locations: &[AdditionalLocationInfo],
+    ) -> crate::Result<bool>;
+
+    fn delete_additional_locations_proxy_config(
+        &self,
+        app_name: &str,
+        instance_id: InstanceId,
     ) -> crate::Result<bool>;
 
     fn delete_reverse_proxy_config(

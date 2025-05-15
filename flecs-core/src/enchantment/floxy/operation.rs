@@ -1,4 +1,4 @@
-use crate::enchantment::floxy::Floxy;
+use crate::enchantment::floxy::{AdditionalLocationInfo, Floxy};
 use crate::jeweler::gem::instance::InstanceId;
 use std::net::IpAddr;
 use std::sync::{Arc, atomic};
@@ -43,6 +43,36 @@ impl<F: Floxy> FloxyOperation<F> {
             instance_ip,
             dest_ports,
         )? {
+            self.mark_for_reload();
+        }
+        Ok(())
+    }
+
+    pub fn add_additional_locations_proxy_config(
+        &self,
+        app_name: &str,
+        instance_id: InstanceId,
+        additional_locations: &[AdditionalLocationInfo],
+    ) -> crate::Result<()> {
+        if self.floxy.add_additional_locations_proxy_config(
+            app_name,
+            instance_id,
+            additional_locations,
+        )? {
+            self.mark_for_reload();
+        }
+        Ok(())
+    }
+
+    pub fn delete_additional_locations_proxy_config(
+        &self,
+        app_name: &str,
+        instance_id: InstanceId,
+    ) -> crate::Result<()> {
+        if self
+            .floxy
+            .delete_additional_locations_proxy_config(app_name, instance_id)?
+        {
             self.mark_for_reload();
         }
         Ok(())
