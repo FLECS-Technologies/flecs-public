@@ -13,17 +13,23 @@ pub mod tracing {
 }
 
 pub mod flecsport {
+    use std::time::Duration;
+
     #[cfg(test)]
     pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/exports";
     #[cfg(not(test))]
     pub const BASE_PATH: &str = "/var/lib/flecs/exports";
+    pub const APP_EXPORT_TIMEOUT: Duration = Duration::from_secs(u64::MAX);
 }
 
 pub mod flimport {
+    use std::time::Duration;
+
     #[cfg(test)]
     pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/imports";
     #[cfg(not(test))]
     pub const BASE_PATH: &str = "/var/lib/flecs/imports";
+    pub const APP_IMPORT_TIMEOUT: Duration = Duration::from_secs(u64::MAX);
 }
 
 pub mod floxy {

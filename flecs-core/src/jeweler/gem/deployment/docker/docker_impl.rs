@@ -35,6 +35,7 @@ use std::fmt::Formatter;
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::{fs, join};
 use tracing::{debug, error, warn};
 
@@ -116,9 +117,13 @@ fn default_network_adapter_reader() -> Box<dyn NetworkAdapterReader> {
 
 impl DockerDeploymentImpl {
     fn client(&self) -> anyhow::Result<Arc<Docker>> {
+        self.client_with_timeout(Duration::from_secs(120))
+    }
+
+    fn client_with_timeout(&self, timeout: Duration) -> anyhow::Result<Arc<Docker>> {
         Ok(Arc::new(Docker::connect_with_unix(
             &self.path.to_string_lossy(),
-            120,
+            timeout.as_secs(),
             API_DEFAULT_VERSION,
         )?))
     }
@@ -1209,7 +1214,13 @@ impl AppDeployment for DockerDeploymentImpl {
             "{}_{}.tar",
             manifest.key.name, manifest.key.version
         ));
-        relic::docker::image::save(quest, self.client()?, &path, &image).await
+        relic::docker::image::save(
+            quest,
+            self.client_with_timeout(lore::flecsport::APP_EXPORT_TIMEOUT)?,
+            &path,
+            &image,
+        )
+        .await
     }
 
     async fn import_app(
@@ -1222,7 +1233,7 @@ impl AppDeployment for DockerDeploymentImpl {
         let path = path.join(format!("{}_{}.tar", key.name, key.version));
         relic::docker::image::load(
             quest,
-            self.client()?,
+            self.client_with_timeout(lore::flimport::APP_IMPORT_TIMEOUT)?,
             &path,
             ImportImageOptions::default(),
             None,

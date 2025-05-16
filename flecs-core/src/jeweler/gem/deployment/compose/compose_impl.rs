@@ -12,10 +12,10 @@ use crate::jeweler::network::{
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
 use crate::quest::SyncQuest;
-use crate::relic;
 use crate::relic::docker_cli::{DockerCli, ExecuteCommandError};
 use crate::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
+use crate::{lore, relic};
 use async_trait::async_trait;
 use bollard::image::{ImportImageOptions, RemoveImageOptions};
 use bollard::models::{ContainerInspectResponse, ContainerState};
@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Formatter;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 #[derive(Serialize, Deserialize)]
 pub struct ComposeDeploymentImpl {
@@ -83,9 +84,13 @@ pub enum ExecuteCompose {
 
 impl ComposeDeploymentImpl {
     fn docker_client(&self) -> anyhow::Result<Arc<Docker>> {
+        self.docker_client_with_timeout(Duration::from_secs(120))
+    }
+
+    fn docker_client_with_timeout(&self, timeout: Duration) -> anyhow::Result<Arc<Docker>> {
         Ok(Arc::new(Docker::connect_with_unix(
             &self.docker_socket_path.to_string_lossy(),
-            120,
+            timeout.as_secs(),
             API_DEFAULT_VERSION,
         )?))
     }
@@ -336,7 +341,7 @@ impl AppDeployment for ComposeDeploymentImpl {
             anyhow::bail!("ComposeDeploymentImpl supports only AppManifest::Multi");
         };
         let mut results = Vec::new();
-        let client = self.docker_client()?;
+        let client = self.docker_client_with_timeout(lore::flecsport::APP_EXPORT_TIMEOUT)?;
         for image in manifest.images() {
             let path = path.join(format!("{}.tar", image.replace('/', "_")));
             let client = client.clone();
@@ -366,7 +371,7 @@ impl AppDeployment for ComposeDeploymentImpl {
             anyhow::bail!("ComposeDeploymentImpl supports only AppManifest::Multi");
         };
         let mut results = Vec::new();
-        let client = self.docker_client()?;
+        let client = self.docker_client_with_timeout(lore::flimport::APP_IMPORT_TIMEOUT)?;
         for image in manifest.images() {
             let path = path.join(format!("{}.tar", image.replace('/', "_")));
             let client = client.clone();
