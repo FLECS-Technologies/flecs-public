@@ -17,6 +17,7 @@ use mockall::automock;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use tracing::warn;
 
 pub mod manifest {
     use crate::jeweler::gem::instance::InstanceId;
@@ -251,7 +252,13 @@ pub trait Exportius: Sorcerer + 'static {
             .keys()
             .cloned()
             .collect();
-
+        let hostname = match crate::relic::system::hostname() {
+            Ok(hostname) => Some(hostname),
+            Err(e) => {
+                warn!("Failed to read hostname: {e}");
+                None
+            }
+        };
         let manifest = manifest::Manifest::V3(manifest::v3::Manifest {
             time: now,
             contents: manifest::v3::Contents {
@@ -262,7 +269,7 @@ pub trait Exportius: Sorcerer + 'static {
             device: manifest::v3::Device {
                 sysinfo: crate::relic::system::info::try_create_system_info()
                     .map_err(|e| CreateExportError::SysInfo(e.to_string()))?,
-                hostname: crate::relic::system::hostname().ok(),
+                hostname,
             },
             version: Default::default(),
         });
