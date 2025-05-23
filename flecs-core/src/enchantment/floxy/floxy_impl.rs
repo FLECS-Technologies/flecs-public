@@ -334,7 +334,7 @@ location {location} {{
    return 307 $request_uri/;
 
    location ~ ^{location}/(.*) {{
-      set $upstream http://{instance_ip}:{dest_port}/$1;
+      set $upstream http://{instance_ip}:{dest_port}/$1$is_args$args;
       proxy_pass $upstream;
 
       proxy_http_version 1.1;
@@ -525,7 +525,7 @@ location /v2/instances/1234abcd/editor/5000 {
    return 307 $request_uri/;
 
    location ~ ^/v2/instances/1234abcd/editor/5000/(.*) {
-      set $upstream http://123.123.234.234:5000/$1;
+      set $upstream http://123.123.234.234:5000/$1$is_args$args;
       proxy_pass $upstream;
 
       proxy_http_version 1.1;
@@ -548,7 +548,7 @@ location /v2/instances/1234abcd/editor/6000 {
    return 307 $request_uri/;
 
    location ~ ^/v2/instances/1234abcd/editor/6000/(.*) {
-      set $upstream http://123.123.234.234:6000/$1;
+      set $upstream http://123.123.234.234:6000/$1$is_args$args;
       proxy_pass $upstream;
 
       proxy_http_version 1.1;
@@ -571,7 +571,7 @@ location /v2/instances/1234abcd/editor/7000 {
    return 307 $request_uri/;
 
    location ~ ^/v2/instances/1234abcd/editor/7000/(.*) {
-      set $upstream http://123.123.234.234:7000/$1;
+      set $upstream http://123.123.234.234:7000/$1$is_args$args;
       proxy_pass $upstream;
 
       proxy_http_version 1.1;
@@ -727,7 +727,7 @@ location TEST_LOCATION {
    return 307 $request_uri/;
 
    location ~ ^TEST_LOCATION/(.*) {
-      set $upstream http://30.60.120.240:7799/$1;
+      set $upstream http://30.60.120.240:7799/$1$is_args$args;
       proxy_pass $upstream;
 
       proxy_http_version 1.1;
