@@ -90,6 +90,26 @@ pub async fn start_instance<F: Floxy>(
     }
 }
 
+pub async fn resume_instance<F: Floxy>(
+    _quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+    instance_id: InstanceId,
+) -> Result<()> {
+    let grab = vault.reservation().reserve_instance_pouch().grab().await;
+    let instance = grab
+        .instance_pouch
+        .as_ref()
+        .expect("Vault reservations should never fail")
+        .gems()
+        .get(&instance_id)
+        .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
+    match instance {
+        Instance::Docker(instance) => instance.resume(floxy).await,
+        Instance::Compose(instance) => instance.resume().await,
+    }
+}
+
 pub async fn stop_instance<F: Floxy>(
     _quest: SyncQuest,
     vault: Arc<Vault>,
@@ -205,14 +225,10 @@ pub async fn start_all_instances_as_desired<F: Floxy + 'static>(
     let mut instances_to_start = Vec::new();
     let mut start_results = Vec::new();
     {
-        let mut grab = vault
-            .reservation()
-            .reserve_instance_pouch_mut()
-            .grab()
-            .await;
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
         let instances = grab
-            .instance_pouch_mut
-            .as_mut()
+            .instance_pouch
+            .as_ref()
             .expect("Vault reservations should never fail");
         let mut quest = quest.lock().await;
 
@@ -223,15 +239,22 @@ pub async fn start_all_instances_as_desired<F: Floxy + 'static>(
         {
             instances_to_start.push(id);
             let result = quest
-                .create_sub_quest(format!("Start instance {id}"), |quest| {
-                    start_instance(quest, vault.clone(), floxy.clone(), *id)
+                .spawn_sub_quest(format!("Start instance {id}"), |quest| {
+                    resume_instance(quest, vault.clone(), floxy.clone(), *id)
                 })
                 .await
                 .2;
             start_results.push(result);
         }
     }
-    join_all(start_results).await.into_iter().collect()
+    join_all(start_results)
+        .await
+        .into_iter()
+        .try_for_each(|result| match result {
+            Err(e) => Err(anyhow::anyhow!(e)),
+            Ok(Err(e)) => Err(anyhow::anyhow!(e)),
+            Ok(Ok(())) => Ok(()),
+        })
 }
 
 pub async fn halt_instance<F: Floxy>(

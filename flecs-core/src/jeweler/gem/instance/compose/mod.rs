@@ -288,6 +288,19 @@ impl ComposeInstance {
         Ok(())
     }
 
+    pub async fn resume(&self) -> anyhow::Result<()> {
+        if self.desired != InstanceStatus::Running
+            || self.status().await? == InstanceStatus::Running
+        {
+            return Ok(());
+        }
+        let path = crate::lore::instance_workdir_path(&self.id.to_string());
+        self.deployment
+            .start_instance(&self.manifest, &path)
+            .await?;
+        Ok(())
+    }
+
     pub async fn halt(&self) -> anyhow::Result<()> {
         if self.status().await? == InstanceStatus::Stopped {
             return Ok(());

@@ -588,14 +588,17 @@ impl DockerInstance {
 
     pub async fn start<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
         self.desired = InstanceStatus::Running;
-        if self.is_running().await? {
+        self.resume(floxy).await
+    }
+
+    pub async fn resume<F: Floxy>(&self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+        if self.desired != InstanceStatus::Running || self.is_running().await? {
             return Ok(());
         }
         self.load_reverse_proxy_config(floxy.clone()).await?;
         self.load_additional_locations_reverse_proxy_config(floxy)?;
-        self.id = self
-            .deployment
-            .start_instance((&*self).into(), Some(self.id), &self.manifest.config_files)
+        self.deployment
+            .start_instance(self.into(), Some(self.id), &self.manifest.config_files)
             .await?;
         Ok(())
     }
