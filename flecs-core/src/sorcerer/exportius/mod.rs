@@ -397,7 +397,7 @@ pub trait Exportius: Sorcerer + 'static {
         src: PathBuf,
         dst: PathBuf,
     ) -> Result<(), ArchiveError> {
-        archive_to_file(&src, &dst, true)
+        archive_to_file(&src, &dst, false)
             .await
             .map_err(|e| ArchiveError::Any {
                 path: src,
