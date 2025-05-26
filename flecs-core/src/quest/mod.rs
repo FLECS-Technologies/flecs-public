@@ -2,6 +2,8 @@ pub use super::{Error, Result};
 use crate::vault::pouch::instance::InstanceId;
 use futures_util::StreamExt;
 use futures_util::future::BoxFuture;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::future::Future;
 use std::pin::Pin;
@@ -31,6 +33,16 @@ pub enum QuestResult {
     ExportId(String),
 }
 
+impl QuestResult {
+    fn to_model_string(&self) -> Option<String> {
+        match self {
+            Self::None => None,
+            Self::InstanceId(id) => Some(id.to_string()),
+            Self::ExportId(id) => Some(id.clone()),
+        }
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum State {
     Failing,
@@ -39,6 +51,19 @@ pub enum State {
     Failed,
     Success,
     Skipped,
+}
+
+impl From<State> for flecsd_axum_server::models::QuestState {
+    fn from(value: State) -> Self {
+        match value {
+            State::Failing => Self::Failing,
+            State::Ongoing => Self::Ongoing,
+            State::Pending => Self::Pending,
+            State::Failed => Self::Failed,
+            State::Success => Self::Success,
+            State::Skipped => Self::Skipped,
+        }
+    }
 }
 
 impl State {
@@ -105,6 +130,15 @@ pub struct Quest {
 pub struct Progress {
     pub current: u64,
     pub total: Option<u64>,
+}
+
+impl From<&Progress> for flecsd_axum_server::models::QuestProgress {
+    fn from(value: &Progress) -> Self {
+        Self {
+            current: value.current,
+            total: value.total,
+        }
+    }
 }
 
 impl Quest {
@@ -284,6 +318,77 @@ impl Quest {
 }
 
 impl Quest {
+    pub async fn create_model(s: Arc<Mutex<Self>>) -> flecsd_axum_server::models::Quest {
+        let mut stack = Vec::new();
+        let mut quests: HashMap<QuestId, (flecsd_axum_server::models::Quest, HashSet<u64>)> =
+            HashMap::new();
+        let mut quest_mapping: HashMap<u64, QuestId> = HashMap::new();
+        let mut leaf_quests = Vec::new();
+        stack.push((s, 0));
+
+        while let Some((quest, depth)) = stack.pop() {
+            let quest = quest.lock().await;
+            let mut sub_quests = HashSet::new();
+            let (progress, leaf_quest) = if !quest.sub_quests.is_empty() {
+                let mut current = 0;
+                let total = Some(quest.sub_quests.len() as u64);
+                for sub_quest in quest.sub_quests.iter() {
+                    {
+                        let sub_quest = sub_quest.lock().await;
+                        if sub_quest.state.is_finished() {
+                            current += 1;
+                        }
+                        sub_quests.insert(sub_quest.id.0);
+                        quest_mapping.insert(sub_quest.id.0, quest.id);
+                    }
+                    stack.push((sub_quest.clone(), depth + 1));
+                }
+                (Some(Progress { current, total }), false)
+            } else {
+                (quest.progress.clone(), true)
+            };
+
+            let quest_model = flecsd_axum_server::models::Quest {
+                subquests: None,
+                detail: quest.detail.clone(),
+                id: quest.id.0,
+                result: quest.result.to_model_string(),
+                description: quest.description.clone(),
+                progress: progress
+                    .as_ref()
+                    .map(flecsd_axum_server::models::QuestProgress::from),
+                state: flecsd_axum_server::models::QuestState::from(quest.state),
+            };
+            if leaf_quest {
+                leaf_quests.push(quest_model)
+            } else {
+                quests.insert(quest.id, (quest_model, sub_quests));
+            }
+        }
+        let mut stack = leaf_quests;
+        while let Some(quest) = stack.pop() {
+            match quest_mapping.get(&quest.id) {
+                None => return quest,
+                Some(parent_id) => match quests.entry(*parent_id) {
+                    Entry::Vacant(_) => {}
+                    Entry::Occupied(mut entry) => {
+                        entry.get_mut().1.remove(&quest.id);
+                        entry
+                            .get_mut()
+                            .0
+                            .subquests
+                            .get_or_insert_default()
+                            .push(quest);
+                        if entry.get_mut().1.is_empty() {
+                            stack.push(entry.remove().0);
+                        }
+                    }
+                },
+            }
+        }
+        unreachable!()
+    }
+
     pub async fn fmt(s: Arc<Mutex<Self>>) -> String {
         let mut stack = Vec::new();
         let mut result = String::new();

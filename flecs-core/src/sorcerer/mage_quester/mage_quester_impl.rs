@@ -1,11 +1,11 @@
 use crate::enchantment::quest_master::{DeleteQuestError, QuestMaster};
-use crate::quest::{QuestId, QuestResult, State, SyncQuest};
+use crate::quest::{Quest, QuestId, QuestResult, State, SyncQuest};
 use crate::sorcerer::Sorcerer;
 use crate::sorcerer::mage_quester::MageQuester;
 use async_trait::async_trait;
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::Job;
-use futures_util::StreamExt;
+use futures_util::{StreamExt, stream};
 
 #[derive(Default)]
 pub struct MageQuesterImpl {}
@@ -35,7 +35,37 @@ impl MageQuester for MageQuesterImpl {
         quest_master: QuestMaster,
         id: u64,
     ) -> Result<SyncQuest, DeleteQuestError> {
-        quest_master.lock().await.delete_quest(QuestId(id)).await
+        self.delete_quest(quest_master, QuestId(id)).await
+    }
+
+    async fn delete_quest(
+        &self,
+        quest_master: QuestMaster,
+        id: QuestId,
+    ) -> Result<SyncQuest, DeleteQuestError> {
+        quest_master.lock().await.delete_quest(id).await
+    }
+
+    async fn get_quest_model(
+        &self,
+        quest_master: QuestMaster,
+        id: QuestId,
+    ) -> Option<models::Quest> {
+        let quest = quest_master.lock().await.query_quest(id);
+        match quest {
+            None => None,
+            Some(quest) => Some(Quest::create_model(quest).await),
+        }
+    }
+
+    async fn get_quest_models(&self, quest_master: QuestMaster) -> Vec<models::Quest> {
+        let quests = quest_master.lock().await.get_quests();
+        let mut models: Vec<_> = stream::iter(quests)
+            .then(Quest::create_model)
+            .collect()
+            .await;
+        models.sort_by(|l, r| l.id.cmp(&r.id));
+        models
     }
 }
 

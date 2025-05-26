@@ -1,6 +1,6 @@
 mod mage_quester_impl;
 use crate::enchantment::quest_master::{DeleteQuestError, QuestMaster};
-use crate::quest::{State, SyncQuest};
+use crate::quest::{QuestId, State, SyncQuest};
 use crate::sorcerer::Sorcerer;
 use async_trait::async_trait;
 use flecsd_axum_server::models;
@@ -18,6 +18,17 @@ pub trait MageQuester: Sorcerer {
         quest_master: QuestMaster,
         id: u64,
     ) -> Result<SyncQuest, DeleteQuestError>;
+    async fn delete_quest(
+        &self,
+        quest_master: QuestMaster,
+        id: QuestId,
+    ) -> Result<SyncQuest, DeleteQuestError>;
+    async fn get_quest_model(
+        &self,
+        quest_master: QuestMaster,
+        id: QuestId,
+    ) -> Option<models::Quest>;
+    async fn get_quest_models(&self, quest_master: QuestMaster) -> Vec<models::Quest>;
 }
 
 #[cfg(test)]
