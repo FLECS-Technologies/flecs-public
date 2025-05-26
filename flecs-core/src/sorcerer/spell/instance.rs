@@ -188,14 +188,10 @@ pub async fn halt_all_instances<F: Floxy + 'static>(
     let mut instances_to_halt = Vec::new();
     let mut halt_results = Vec::new();
     {
-        let mut grab = vault
-            .reservation()
-            .reserve_instance_pouch_mut()
-            .grab()
-            .await;
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
         let instances = grab
-            .instance_pouch_mut
-            .as_mut()
+            .instance_pouch
+            .as_ref()
             .expect("Vault reservations should never fail");
         let mut quest = quest.lock().await;
         for (id, instance) in instances.gems() {
@@ -204,7 +200,7 @@ pub async fn halt_all_instances<F: Floxy + 'static>(
                 _ => {
                     instances_to_halt.push(id);
                     let result = quest
-                        .create_sub_quest(format!("Halt instance {id}"), |quest| {
+                        .spawn_sub_quest(format!("Halt instance {id}"), |quest| {
                             halt_instance(quest, vault.clone(), floxy.clone(), *id)
                         })
                         .await
@@ -214,7 +210,14 @@ pub async fn halt_all_instances<F: Floxy + 'static>(
             }
         }
     }
-    join_all(halt_results).await.into_iter().collect()
+    join_all(halt_results)
+        .await
+        .into_iter()
+        .try_for_each(|result| match result {
+            Err(e) => Err(anyhow::anyhow!(e)),
+            Ok(Err(e)) => Err(anyhow::anyhow!(e)),
+            Ok(Ok(())) => Ok(()),
+        })
 }
 
 pub async fn start_all_instances_as_desired<F: Floxy + 'static>(
@@ -263,17 +266,13 @@ pub async fn halt_instance<F: Floxy>(
     floxy: Arc<FloxyOperation<F>>,
     instance_id: InstanceId,
 ) -> Result<()> {
-    let mut grab = vault
-        .reservation()
-        .reserve_instance_pouch_mut()
-        .grab()
-        .await;
+    let mut grab = vault.reservation().reserve_instance_pouch().grab().await;
     let instance = grab
-        .instance_pouch_mut
+        .instance_pouch
         .as_mut()
         .expect("Vault reservations should never fail")
-        .gems_mut()
-        .get_mut(&instance_id)
+        .gems()
+        .get(&instance_id)
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
     match instance {
         Instance::Docker(instance) => instance.halt(floxy).await,
