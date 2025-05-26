@@ -46,7 +46,11 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<QuestsGetResponse, ()> {
-        todo!()
+        Ok(super::api::v2::quests::get(
+            self.sorcerers.mage_quester.clone(),
+            self.enchantments.quest_master.clone(),
+        )
+        .await)
     }
 
     async fn quests_id_delete(
@@ -54,9 +58,14 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: QuestsIdDeletePathParams,
+        path_params: QuestsIdDeletePathParams,
     ) -> Result<QuestsIdDeleteResponse, ()> {
-        todo!()
+        Ok(super::api::v2::quests::id::delete(
+            self.sorcerers.mage_quester.clone(),
+            self.enchantments.quest_master.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn quests_id_get(
@@ -64,8 +73,13 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _path_params: QuestsIdGetPathParams,
+        path_params: QuestsIdGetPathParams,
     ) -> Result<QuestsIdGetResponse, ()> {
-        todo!()
+        Ok(super::api::v2::quests::id::get(
+            self.sorcerers.mage_quester.clone(),
+            self.enchantments.quest_master.clone(),
+            path_params,
+        )
+        .await)
     }
 }
