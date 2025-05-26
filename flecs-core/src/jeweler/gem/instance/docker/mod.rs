@@ -745,7 +745,7 @@ impl DockerInstance {
         self.halt(floxy).await
     }
 
-    pub async fn halt<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+    pub async fn halt<F: Floxy>(&self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
         // TODO: Disconnect networks
         match self.deployment.instance_status(self.id).await? {
             InstanceStatus::Running | InstanceStatus::Unknown | InstanceStatus::Orphaned => {
