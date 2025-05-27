@@ -447,7 +447,7 @@ pub async fn import_legacy_app(
     tokio::fs::create_dir_all(&app_dir).await?;
     match app.manifest() {
         AppManifest::Multi(manifest) => {
-            for service in manifest.services_with_image_without_repo() {
+            for service in manifest.services_with_image_info() {
                 let name = service.name;
                 let image = service.image;
                 let old_path =

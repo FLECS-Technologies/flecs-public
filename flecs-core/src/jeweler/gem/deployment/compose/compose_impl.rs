@@ -342,15 +342,25 @@ impl AppDeployment for ComposeDeploymentImpl {
         };
         let mut results = Vec::new();
         let client = self.docker_client_with_timeout(lore::flecsport::APP_EXPORT_TIMEOUT)?;
-        for image in manifest.images() {
-            let path = path.join(format!("{}.tar", image.replace('/', "_")));
+        for service in manifest.services_with_image_info() {
+            let path = path.join(format!(
+                "{}_{}.{}.tar",
+                manifest.key.name, manifest.key.version, service.name
+            ));
             let client = client.clone();
             let result = quest
                 .lock()
                 .await
-                .create_sub_quest(format!("Export {image} to {path:?}"), |quest| async move {
-                    relic::docker::image::save(quest, client, &path, &image).await
-                })
+                .create_sub_quest(
+                    format!(
+                        "Export {} of service {} to {path:?}",
+                        service.image, service.name
+                    ),
+                    |quest| async move {
+                        relic::docker::image::save(quest, client, &path, &service.image_with_repo)
+                            .await
+                    },
+                )
                 .await
                 .2;
             results.push(result);
@@ -372,14 +382,29 @@ impl AppDeployment for ComposeDeploymentImpl {
         };
         let mut results = Vec::new();
         let client = self.docker_client_with_timeout(lore::flimport::APP_IMPORT_TIMEOUT)?;
-        for image in manifest.images() {
-            let path = path.join(format!("{}.tar", image.replace('/', "_")));
+        for service in manifest.services_with_image_info() {
+            let path = {
+                // Current format of path
+                let image_path = path.join(format!(
+                    "{}_{}.{}.tar",
+                    manifest.key.name, manifest.key.version, service.name
+                ));
+                if let Ok(true) = tokio::fs::try_exists(&image_path).await {
+                    image_path
+                } else {
+                    // Legacy format of path
+                    path.join(format!("{}.tar", service.image_with_repo.replace('/', "_")))
+                }
+            };
             let client = client.clone();
             let result = quest
                 .lock()
                 .await
                 .create_sub_quest(
-                    format!("Import {image} from {path:?}"),
+                    format!(
+                        "Import {} for service {} from {path:?}",
+                        service.image, service.name
+                    ),
                     |quest| async move {
                         relic::docker::image::load(
                             quest,
