@@ -54,9 +54,10 @@ impl TryFrom<flecs_app_manifest::AppManifestMulti> for AppManifestMulti {
 }
 
 #[derive(Debug)]
-pub struct ServiceWithImage {
+pub struct ServiceWithImageInfo {
     pub name: String,
     pub image: String,
+    pub image_with_repo: String,
 }
 
 impl AppManifestMulti {
@@ -81,7 +82,7 @@ impl AppManifestMulti {
             .collect()
     }
 
-    pub fn services_with_image_without_repo(&self) -> Vec<ServiceWithImage> {
+    pub fn services_with_image_info(&self) -> Vec<ServiceWithImageInfo> {
         self.compose
             .services
             .0
@@ -90,12 +91,13 @@ impl AppManifestMulti {
                 service
                     .as_ref()
                     .and_then(|service| service.image.as_ref())
-                    .map(|image| ServiceWithImage {
+                    .map(|image| ServiceWithImageInfo {
                         name: name.clone(),
                         image: match image.split_once('/') {
                             Some((_, s)) => s.to_string(),
                             _ => image.to_string(),
                         },
+                        image_with_repo: image.clone(),
                     })
             })
             .collect()
