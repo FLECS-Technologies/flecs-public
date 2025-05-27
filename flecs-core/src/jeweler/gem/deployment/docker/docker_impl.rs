@@ -1049,7 +1049,18 @@ impl DockerDeployment for DockerDeploymentImpl {
             .await;
             return Err(e);
         }
-        relic::docker::container::start(client, &id.to_docker_id()).await?;
+        if let Err(e) = relic::docker::container::start(client.clone(), &id.to_docker_id()).await {
+            let _ = relic::docker::container::remove(
+                client,
+                Some(RemoveContainerOptions {
+                    force: true,
+                    ..Default::default()
+                }),
+                &docker_id,
+            )
+            .await;
+            return Err(e);
+        }
         Ok(id)
     }
 
