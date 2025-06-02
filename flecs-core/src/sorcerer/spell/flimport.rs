@@ -45,6 +45,63 @@ pub async fn read_import_manifest(
     manifest.await
 }
 
+async fn merged_apps(vault: &Arc<Vault>, new_apps: &pouch::app::Gems) -> Arc<pouch::app::Gems> {
+    let merged_apps: HashMap<_, _> = vault
+        .reservation()
+        .reserve_app_pouch()
+        .grab()
+        .await
+        .app_pouch
+        .as_ref()
+        .expect("Vault reservations should never fail")
+        .gems()
+        .iter()
+        .chain(new_apps.iter())
+        .map(|(key, app)| (key.clone(), app.clone()))
+        .collect();
+    Arc::new(merged_apps)
+}
+
+async fn merged_deployments(
+    vault: &Arc<Vault>,
+    new_deployments: &pouch::deployment::Gems,
+) -> Arc<pouch::deployment::Gems> {
+    let merged_deployments: HashMap<_, _> = vault
+        .reservation()
+        .reserve_deployment_pouch()
+        .grab()
+        .await
+        .deployment_pouch
+        .as_ref()
+        .expect("Vault reservations should never fail")
+        .gems()
+        .iter()
+        .chain(new_deployments.iter())
+        .map(|(id, deployment)| (id.clone(), deployment.clone()))
+        .collect();
+    Arc::new(merged_deployments)
+}
+
+async fn merged_manifests(
+    vault: &Arc<Vault>,
+    new_manifests: &pouch::manifest::Gems,
+) -> Arc<pouch::manifest::Gems> {
+    let merged_manifests: HashMap<_, _> = vault
+        .reservation()
+        .reserve_manifest_pouch()
+        .grab()
+        .await
+        .manifest_pouch
+        .as_ref()
+        .expect("Vault reservations should never fail")
+        .gems()
+        .iter()
+        .chain(new_manifests.iter())
+        .map(|(key, manifest)| (key.clone(), manifest.clone()))
+        .collect();
+    Arc::new(merged_manifests)
+}
+
 pub async fn import_directory(
     quest: SyncQuest,
     vault: Arc<Vault>,
@@ -90,22 +147,22 @@ pub async fn import_directory(
     )
     .await;
     // Deployments and manifests can be imported concurrently as there are no dependencies
-    let (deployments, manifests) = tokio::join!(deployments, manifests);
-    let (deployments, manifests) = (Arc::new(deployments?), Arc::new(manifests));
-    _ = apps_input_sender.send((manifests.clone(), deployments.clone()));
-    let apps = Arc::new(apps.await?);
-    _ = instances_input_sender.send((manifests.clone(), deployments.clone(), apps.clone()));
+    let (new_deployments, new_manifests) = tokio::join!(deployments, manifests);
+    let new_deployments = new_deployments?;
+
+    // We need to take all deployments and manifests into account, not just the new ones
+    // e.g. a flecsport with an app but no deployments or manifests
+    let merged_deployments = merged_deployments(&vault, &new_deployments).await;
+    let merged_manifests = merged_manifests(&vault, &new_manifests).await;
+    _ = apps_input_sender.send((merged_manifests.clone(), merged_deployments.clone()));
+    let new_apps = apps.await?;
+
+    // We need to take all apps into account, not just the new ones
+    // e.g. a flecsport with an instance but without the app
+    let merged_apps = merged_apps(&vault, &new_apps).await;
+    _ = instances_input_sender.send((merged_manifests, merged_deployments, merged_apps));
     let instances = instances.await?;
-    let Ok(deployments) = Arc::try_unwrap(deployments) else {
-        return Err(ImportError::Logic("Unexpected strong references"));
-    };
-    let Ok(manifests) = Arc::try_unwrap(manifests) else {
-        return Err(ImportError::Logic("Unexpected strong references"));
-    };
-    let Ok(apps) = Arc::try_unwrap(apps) else {
-        return Err(ImportError::Logic("Unexpected strong references"));
-    };
-    import_to_vault(vault, deployments, manifests, apps, instances).await;
+    import_to_vault(vault, new_deployments, new_manifests, new_apps, instances).await;
     Ok(())
 }
 

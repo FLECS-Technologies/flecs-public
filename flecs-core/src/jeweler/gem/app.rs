@@ -16,7 +16,7 @@ use std::mem::swap;
 use std::path::PathBuf;
 use tracing::error;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct AppData {
     pub desired: AppStatus,
     #[serde(serialize_with = "serialize_deployment_id", rename = "deployment_id")]
@@ -47,7 +47,7 @@ impl AppData {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct App {
     pub key: AppKey,
     #[serde(serialize_with = "serialize_hashmap_values")]
