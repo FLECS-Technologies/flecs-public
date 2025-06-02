@@ -112,6 +112,8 @@ pub mod manifest {
 
         #[derive(Serialize, Deserialize, Debug, Clone)]
         pub struct Manifest {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            pub human_readable_time: Option<String>,
             pub time: std::time::SystemTime,
             pub contents: Contents,
             pub device: Device,
@@ -259,8 +261,12 @@ pub trait Exportius: Sorcerer + 'static {
                 None
             }
         };
+        let readable_time: chrono::DateTime<chrono::offset::Utc> = now.into();
         let manifest = manifest::Manifest::V3(manifest::v3::Manifest {
             time: now,
+            human_readable_time: Some(
+                readable_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+            ),
             contents: manifest::v3::Contents {
                 apps: apps.clone(),
                 instances: instances.clone(),
