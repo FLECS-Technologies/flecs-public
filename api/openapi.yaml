@@ -849,6 +849,8 @@ tags:
     x-displayName: "Console"
   - name: "Flecsport"
     x-displayName: "Flecsport"
+  - name: "Quests"
+    x-displayName: "Quests"
 
 paths:
   # App related paths
