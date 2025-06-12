@@ -40,8 +40,7 @@ use tokio::fs;
 use tokio::net::{UnixListener, UnixStream, unix::UCred};
 use tower::Service;
 use tower_http::classify::ServerErrorsFailureClass;
-use tower_http::trace::DefaultOnResponse;
-use tracing::{Span, error, info, info_span};
+use tracing::{Span, error, info, info_span, trace_span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub struct StartupError(pub String);
@@ -87,6 +86,10 @@ pub fn init_tracing() {
     info!("Tracing initialized");
 }
 
+fn is_trace_level_path(path: &str) -> bool {
+    path.starts_with("/v2/quests") || path.starts_with("/v2/jobs")
+}
+
 async fn create_service<
     APP: AppRaiser + 'static,
     AUTH: Authmancer + 'static,
@@ -127,20 +130,50 @@ async fn create_service<
                         .get::<MatchedPath>()
                         .map(MatchedPath::as_str);
                     let path = request.uri().path();
-                    info_span!(
-                        "http_request",
-                        method = ?request.method(),
-                        matched_path,
-                        path,
-                        error = tracing::field::Empty
-                    )
+                    if is_trace_level_path(path) {
+                        trace_span!(
+                            "http_request",
+                            method = ?request.method(),
+                            matched_path,
+                            path,
+                            error = tracing::field::Empty
+                        )
+                    } else {
+                        info_span!(
+                            "http_request",
+                            method = ?request.method(),
+                            matched_path,
+                            path,
+                            error = tracing::field::Empty
+                        )
+                    }
+                })
+                .on_request(|req: &Request<_>, _span: &Span| {
+                    let path = req.uri().path();
+                    if is_trace_level_path(path) {
+                        tracing::trace!("request: {} {}", req.method(), path)
+                    } else {
+                        tracing::debug!("request: {} {}", req.method(), path)
+                    }
                 })
                 .on_failure(
                     |_error: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
                         _span.record("error", _error.to_string());
                     },
                 )
-                .on_response(DefaultOnResponse::default().include_headers(true)),
+                .on_response(
+                    |res: &http::Response<axum::body::Body>, latency: Duration, span: &Span| {
+                        // We have no simple way to access the path directly to check which trace
+                        // level we want, so instead we check the trace level of the span which was
+                        // chosen depending on the path
+                        match span.metadata().map(|meta| meta.level()) {
+                            Some(&tracing::Level::DEBUG) => {
+                                tracing::debug!("response on: {} in {:?}", res.status(), latency)
+                            }
+                            _ => tracing::trace!("response on: {} in {:?}", res.status(), latency),
+                        }
+                    },
+                ),
         );
     app.into_make_service_with_connect_info::<UdsConnectInfo>()
 }
