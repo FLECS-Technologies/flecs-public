@@ -4,7 +4,7 @@ use crate::relic::async_flecstract::{
     archive_single_file_to_memory, archive_to_memory, extract_from_memory,
     extract_single_file_from_memory_as,
 };
-use crate::relic::docker::{write_stream_to_file, write_stream_to_memory};
+use crate::relic::docker::{map_bollard_error, write_stream_to_file, write_stream_to_memory};
 use async_compression::tokio::bufread::{GzipDecoder, GzipEncoder};
 use axum::body::Bytes;
 use bollard::Docker;
@@ -80,8 +80,12 @@ where
 {
     let exec = docker_client
         .create_exec(container_name, create_options)
-        .await?;
-    Ok(docker_client.start_exec(&exec.id, start_options).await?)
+        .await
+        .map_err(map_bollard_error)?;
+    docker_client
+        .start_exec(&exec.id, start_options)
+        .await
+        .map_err(map_bollard_error)
 }
 
 /// # Example
@@ -109,9 +113,10 @@ pub async fn stop(
     container_name: &str,
     options: Option<StopContainerOptions>,
 ) -> Result<()> {
-    Ok(docker_client
+    docker_client
         .stop_container(container_name, options)
-        .await?)
+        .await
+        .map_err(map_bollard_error)
 }
 
 /// # Example
@@ -128,9 +133,10 @@ pub async fn stop(
 /// # )
 /// ```
 pub async fn start(docker_client: Arc<Docker>, container_name: &str) -> Result<()> {
-    Ok(docker_client
+    docker_client
         .start_container::<&str>(container_name, None)
-        .await?)
+        .await
+        .map_err(map_bollard_error)
 }
 
 /// # Example
@@ -169,7 +175,10 @@ where
     T: Into<String> + Eq + Hash + Serialize,
     Z: Into<String> + Hash + Eq + Serialize,
 {
-    let response = docker_client.create_container(options, config).await?;
+    let response = docker_client
+        .create_container(options, config)
+        .await
+        .map_err(map_bollard_error)?;
     for warning in response.warnings {
         warn!(
             "Received warning during creation of container {}: {warning}",
@@ -202,7 +211,10 @@ pub async fn list<T>(
 where
     T: Into<String> + Eq + Hash + Serialize,
 {
-    Ok(docker_client.list_containers(options).await?)
+    docker_client
+        .list_containers(options)
+        .await
+        .map_err(map_bollard_error)
 }
 
 /// Returns Ok(true) if the specified container was removed, Ok(false) if the container did not exist
@@ -237,7 +249,7 @@ pub async fn remove(
         Err(bollard::errors::Error::DockerResponseServerError {
             status_code: 404, ..
         }) => Ok(false),
-        Err(e) => Err(Error::from(e)),
+        Err(e) => Err(map_bollard_error(e)),
     }
 }
 
@@ -387,7 +399,8 @@ where
                 });
             docker_client
                 .upload_to_container_streaming(container_name, options, byte_stream)
-                .await?
+                .await
+                .map_err(map_bollard_error)?
         }
         Data::InMemory(data) => {
             quest.lock().await.progress = Some(Progress {
@@ -406,7 +419,8 @@ where
                 });
             docker_client
                 .upload_to_container_streaming(container_name, options, byte_stream)
-                .await?
+                .await
+                .map_err(map_bollard_error)?
         }
     };
     Ok(())
@@ -709,7 +723,8 @@ pub async fn upload_gzip_file_streamed(
                         }),
                         stream,
                     )
-                    .await?;
+                    .await
+                    .map_err(map_bollard_error)?;
                 Ok::<(), anyhow::Error>(())
             }
         })
@@ -770,7 +785,7 @@ pub async fn download_gzip_streamed(
                     let mut download_stream =
                         docker_client.download_from_container(&container_name, options);
                     while let Some(data) = download_stream.next().await {
-                        match data {
+                        match data.map_err(map_bollard_error) {
                             Err(e) => {
                                 write_download.shutdown().await?;
                                 anyhow::bail!(e);
@@ -891,7 +906,7 @@ pub async fn inspect(
         Err(bollard::errors::Error::DockerResponseServerError {
             status_code: 404, ..
         }) => Ok(None),
-        Err(e) => Err(anyhow::anyhow!(e)),
+        Err(e) => Err(map_bollard_error(e)),
     }
 }
 
@@ -938,7 +953,7 @@ pub async fn logs(
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
     while let Some(data) = stream.next().await {
-        match data? {
+        match data.map_err(map_bollard_error)? {
             LogOutput::StdErr { message } => {
                 stderr.push(String::from_utf8_lossy(&message).to_string());
                 quest.lock().await.add_progress(message.len() as u64);
