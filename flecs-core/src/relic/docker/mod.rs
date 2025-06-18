@@ -16,6 +16,18 @@ use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
+fn map_bollard_error(input: bollard::errors::Error) -> Error {
+    match input {
+        bollard::errors::Error::DockerStreamError { error } => {
+            anyhow::anyhow!("Docker stream error: {error}")
+        }
+        bollard::errors::Error::DockerContainerWaitError { error, code } => {
+            anyhow::anyhow!("Docker container wait error ({code}): {error}")
+        }
+        e => anyhow::anyhow!(e),
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum ByteStatus {
     Complete(usize),
@@ -58,7 +70,7 @@ where
 {
     let mut total_bytes = 0;
     while let Some(data) = stream.next().await {
-        let data = data?;
+        let data = data.map_err(map_bollard_error)?;
         writer.write_all(data.as_ref()).await?;
         total_bytes += data.len();
         quest.lock().await.progress = Some(Progress {

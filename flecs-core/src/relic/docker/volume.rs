@@ -1,4 +1,5 @@
 pub use super::Result;
+use crate::relic::docker::map_bollard_error;
 use bollard::Docker;
 use bollard::models::Volume;
 use bollard::volume::{CreateVolumeOptions, RemoveVolumeOptions};
@@ -36,7 +37,10 @@ pub async fn create<T>(
 where
     T: Into<String> + Eq + Hash + serde::ser::Serialize,
 {
-    Ok(docker_client.create_volume(options).await?)
+    docker_client
+        .create_volume(options)
+        .await
+        .map_err(map_bollard_error)
 }
 
 /// # Example
@@ -64,7 +68,10 @@ pub async fn remove(
     options: Option<RemoveVolumeOptions>,
     volume_name: &str,
 ) -> Result<()> {
-    Ok(docker_client.remove_volume(volume_name, options).await?)
+    docker_client
+        .remove_volume(volume_name, options)
+        .await
+        .map_err(map_bollard_error)
 }
 
 /// # Example
@@ -91,6 +98,6 @@ pub async fn inspect(docker_client: Arc<Docker>, volume_name: &str) -> Result<Op
         Err(bollard::errors::Error::DockerResponseServerError {
             status_code: 404, ..
         }) => Ok(None),
-        Err(e) => Err(anyhow::anyhow!(e)),
+        Err(e) => Err(map_bollard_error(e)),
     }
 }

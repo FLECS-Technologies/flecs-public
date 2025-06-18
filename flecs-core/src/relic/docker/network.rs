@@ -1,4 +1,5 @@
 pub use super::Result;
+use crate::relic::docker::map_bollard_error;
 use bollard::Docker;
 use bollard::models::Network;
 use bollard::network::{
@@ -45,7 +46,7 @@ where
         Err(bollard::errors::Error::DockerResponseServerError {
             status_code: 404, ..
         }) => Ok(None),
-        Err(e) => Err(anyhow::anyhow!(e)),
+        Err(e) => Err(map_bollard_error(e)),
     }
 }
 
@@ -82,7 +83,10 @@ pub async fn list<T>(
 where
     T: Into<String> + Eq + Hash + serde::ser::Serialize,
 {
-    Ok(docker_client.list_networks(options).await?)
+    docker_client
+        .list_networks(options)
+        .await
+        .map_err(map_bollard_error)
 }
 
 /// # Example
@@ -116,7 +120,10 @@ pub async fn create<T>(
 where
     T: Into<String> + Eq + Hash + serde::ser::Serialize,
 {
-    let response = docker_client.create_network(options).await?;
+    let response = docker_client
+        .create_network(options)
+        .await
+        .map_err(map_bollard_error)?;
     inspect::<&str>(docker_client, &response.id, None)
         .await?
         .ok_or_else(|| anyhow::anyhow!("Could not get network after creation"))
@@ -136,7 +143,10 @@ where
 /// # )
 /// ```
 pub async fn remove(docker_client: Arc<Docker>, network_name: &str) -> Result<()> {
-    Ok(docker_client.remove_network(network_name).await?)
+    docker_client
+        .remove_network(network_name)
+        .await
+        .map_err(map_bollard_error)
 }
 
 /// # Example
@@ -171,7 +181,10 @@ pub async fn connect<T>(
 where
     T: Into<String> + Eq + Hash + serde::ser::Serialize,
 {
-    Ok(docker_client.connect_network(network_name, options).await?)
+    docker_client
+        .connect_network(network_name, options)
+        .await
+        .map_err(map_bollard_error)
 }
 
 /// # Example
@@ -205,7 +218,8 @@ pub async fn disconnect<T>(
 where
     T: Into<String> + Eq + Hash + serde::ser::Serialize,
 {
-    Ok(docker_client
+    docker_client
         .disconnect_network(network_name, options)
-        .await?)
+        .await
+        .map_err(map_bollard_error)
 }

@@ -180,7 +180,7 @@ pub async fn pull(
     let mut last_result = None;
     let mut results = docker_client.create_image(options, None, credentials);
     while let Some(result) = results.next().await {
-        let result = result?;
+        let result = result.map_err(super::map_bollard_error)?;
         quest.lock().await.update(&result);
         last_result = Some(result);
     }
@@ -219,7 +219,7 @@ pub async fn inspect(docker_client: Arc<Docker>, image: &str) -> Result<Option<I
         Err(bollard::errors::Error::DockerResponseServerError {
             status_code: 404, ..
         }) => Ok(None),
-        Err(e) => Err(anyhow::anyhow!(e)),
+        Err(e) => Err(super::map_bollard_error(e)),
     }
 }
 
@@ -259,7 +259,8 @@ pub async fn remove(
 ) -> Result<Vec<ImageDeleteResponseItem>> {
     let results = docker_client
         .remove_image(image, options, credentials)
-        .await?;
+        .await
+        .map_err(super::map_bollard_error)?;
     for result in results.iter() {
         if let Some(untagged) = result.untagged.as_ref() {
             trace!("Untagged: {untagged}");
@@ -398,7 +399,10 @@ pub async fn load(
     let mut stream = docker_client.import_image_stream(options, byte_stream, credentials);
 
     while let Some(result) = stream.next().await {
-        quest.lock().await.update(&result?)
+        quest
+            .lock()
+            .await
+            .update(&result.map_err(super::map_bollard_error)?)
     }
     Ok(())
 }
