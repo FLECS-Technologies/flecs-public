@@ -246,14 +246,14 @@ impl<
             .await
             .shutdown_with(|quest| async move {
                 instancius
-                    .halt_all_instances(quest, vault, FloxyOperation::new_arc(floxy))
+                    .shutdown_instances(quest, vault, FloxyOperation::new_arc(floxy))
                     .await?;
                 Ok(QuestResult::None)
             })
             .await
         {
             Ok(Ok(_)) => {}
-            Ok(Err(e)) => error!("Failed to halt all instances: {e}"),
+            Ok(Err(e)) => error!("Failed to shutdown instances: {e}"),
             Err(e) => error!("Failed to shutdown QuestMaster: {e}"),
         }
         match self.enchantments.floxy.stop() {

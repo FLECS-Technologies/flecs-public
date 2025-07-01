@@ -84,6 +84,7 @@ pub trait InstanceCommon {
     fn taken_ipv4_addresses(&self) -> Vec<Ipv4Addr>;
     async fn logs(&self) -> anyhow::Result<Logs>;
     async fn import(&mut self, quest: SyncQuest, src: PathBuf, dst: PathBuf) -> anyhow::Result<()>;
+    async fn halt(&self) -> anyhow::Result<()>;
 }
 
 impl Deref for Instance {

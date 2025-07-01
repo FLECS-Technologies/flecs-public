@@ -289,13 +289,45 @@ impl Instancius for InstanciusImpl {
         spell::instance::get_instances_info(quest, vault, instance_ids).await
     }
 
-    async fn halt_all_instances<F: Floxy + 'static>(
+    async fn halt_all_instances(&self, quest: SyncQuest, vault: Arc<Vault>) -> anyhow::Result<()> {
+        spell::instance::halt_all_instances(quest, vault).await
+    }
+
+    async fn shutdown_instances<F: Floxy + 'static>(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
         floxy: Arc<FloxyOperation<F>>,
     ) -> anyhow::Result<()> {
-        spell::instance::halt_all_instances(quest, vault, floxy).await
+        let delete_configs = quest
+            .lock()
+            .await
+            .create_sub_quest("Delete floxy server configs", |quest| {
+                spell::instance::delete_all_floxy_server_configs(quest, vault.clone(), floxy)
+            })
+            .await
+            .2;
+        let halt = quest
+            .lock()
+            .await
+            .create_sub_quest("Halt all instances", |quest| {
+                spell::instance::halt_all_instances(quest, vault)
+            })
+            .await
+            .2;
+        match (delete_configs.await, halt.await) {
+            (Err(_), _) | (_, Err(_)) => Err(anyhow::anyhow!("Failed to shutdown all instances")),
+            _ => Ok(()),
+        }
+    }
+
+    async fn delete_floxy_server_configs<F: Floxy + 'static>(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<()> {
+        spell::instance::delete_all_floxy_server_configs(quest, vault, floxy).await
     }
 
     async fn start_all_instances_as_desired<F: Floxy + 'static>(

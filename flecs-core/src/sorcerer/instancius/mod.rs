@@ -178,7 +178,16 @@ pub trait Instancius: Sorcerer {
         vault: Arc<Vault>,
     ) -> Vec<flecsd_axum_server::models::AppInstance>;
 
-    async fn halt_all_instances<F: Floxy + 'static>(
+    async fn halt_all_instances(&self, quest: SyncQuest, vault: Arc<Vault>) -> Result<()>;
+
+    async fn shutdown_instances<F: Floxy + 'static>(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> Result<()>;
+
+    async fn delete_floxy_server_configs<F: Floxy + 'static>(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,

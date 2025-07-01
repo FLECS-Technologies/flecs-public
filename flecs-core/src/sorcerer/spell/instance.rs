@@ -180,11 +180,7 @@ pub async fn stop_existing_instances<F: Floxy + 'static>(
     stop_instances(quest, vault, floxy, instance_ids).await
 }
 
-pub async fn halt_all_instances<F: Floxy + 'static>(
-    quest: SyncQuest,
-    vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
-) -> Result<()> {
+pub async fn halt_all_instances(quest: SyncQuest, vault: Arc<Vault>) -> Result<()> {
     let mut instances_to_halt = Vec::new();
     let mut halt_results = Vec::new();
     {
@@ -201,7 +197,7 @@ pub async fn halt_all_instances<F: Floxy + 'static>(
                     instances_to_halt.push(id);
                     let result = quest
                         .spawn_sub_quest(format!("Halt instance {id}"), |quest| {
-                            halt_instance(quest, vault.clone(), floxy.clone(), *id)
+                            halt_instance(quest, vault.clone(), *id)
                         })
                         .await
                         .2;
@@ -218,6 +214,72 @@ pub async fn halt_all_instances<F: Floxy + 'static>(
             Ok(Err(e)) => Err(anyhow::anyhow!(e)),
             Ok(Ok(())) => Ok(()),
         })
+}
+
+pub async fn delete_all_floxy_server_configs<F: Floxy + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+) -> anyhow::Result<()> {
+    let mut halt_results = Vec::new();
+    {
+        let grab = vault.reservation().reserve_instance_pouch().grab().await;
+        let instances = grab
+            .instance_pouch
+            .as_ref()
+            .expect("Vault reservations should never fail");
+        let mut quest = quest.lock().await;
+        for (id, instance) in instances.gems() {
+            if let Instance::Docker(_) = instance {
+                let result = quest
+                    .spawn_sub_quest(format!("Halt instance {id}"), |quest| {
+                        delete_floxy_server_configs(quest, vault.clone(), floxy.clone(), *id)
+                    })
+                    .await
+                    .2;
+                halt_results.push(result);
+            }
+        }
+    }
+    let fails = join_all(halt_results)
+        .await
+        .iter()
+        .filter(|result| !matches!(result, Ok(Ok(_))))
+        .count();
+    anyhow::ensure!(
+        fails == 0,
+        "Failed to delete floxy server configs of {fails} instances"
+    );
+    Ok(())
+}
+
+async fn delete_floxy_server_configs<F: Floxy + 'static>(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    floxy: Arc<FloxyOperation<F>>,
+    instance_id: InstanceId,
+) -> anyhow::Result<()> {
+    let mut grab = vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await;
+    let instances = grab
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Vault reservations should never fail");
+    match instances.gems_mut().get_mut(&instance_id) {
+        None => anyhow::bail!("Instance with id {instance_id} not found"),
+        Some(Instance::Docker(instance)) => {
+            instance.delete_server_proxy_configs(floxy)?;
+        }
+        _ => {
+            let mut quest = quest.lock().await;
+            quest.state = State::Skipped;
+            quest.detail = Some("Compose instances have no floxy configs".to_string());
+        }
+    }
+    Ok(())
 }
 
 pub async fn start_all_instances_as_desired<F: Floxy + 'static>(
@@ -260,10 +322,9 @@ pub async fn start_all_instances_as_desired<F: Floxy + 'static>(
         })
 }
 
-pub async fn halt_instance<F: Floxy>(
+pub async fn halt_instance(
     _quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
     instance_id: InstanceId,
 ) -> Result<()> {
     let mut grab = vault.reservation().reserve_instance_pouch().grab().await;
@@ -274,10 +335,7 @@ pub async fn halt_instance<F: Floxy>(
         .gems()
         .get(&instance_id)
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
-    match instance {
-        Instance::Docker(instance) => instance.halt(floxy).await,
-        Instance::Compose(instance) => instance.halt().await,
-    }
+    instance.halt().await
 }
 
 pub async fn get_instances_info(
