@@ -215,6 +215,10 @@ impl InstanceCommon for DockerInstance {
         }
         Ok(())
     }
+
+    async fn halt(&self) -> anyhow::Result<()> {
+        DockerInstance::halt(self).await
+    }
 }
 
 fn bind_mounts_to_bollard_mounts(bind_mounts: &[BindMount]) -> Vec<bollard::models::Mount> {
@@ -673,11 +677,13 @@ impl DockerInstance {
         floxy.delete_reverse_proxy_config(&self.app_key().name, self.id)
     }
 
-    fn delete_server_proxy_configs<F: Floxy>(
-        &self,
+    pub fn delete_server_proxy_configs<F: Floxy>(
+        &mut self,
         floxy: Arc<FloxyOperation<F>>,
     ) -> anyhow::Result<bool> {
-        let editor_ports: Vec<_> = self.config.mapped_editor_ports.values().cloned().collect();
+        let editor_ports: Vec<_> = std::mem::take(&mut self.config.mapped_editor_ports)
+            .into_values()
+            .collect();
         if !editor_ports.is_empty() {
             floxy.delete_server_proxy_configs(&self.app_key().name, self.id, &editor_ports)?;
             Ok(true)
@@ -742,16 +748,17 @@ impl DockerInstance {
 
     pub async fn stop<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
         self.desired = InstanceStatus::Stopped;
-        self.halt(floxy).await
+        self.halt().await?;
+        if let Err(e) = self.delete_server_proxy_configs(floxy) {
+            warn!("Instance {}: {e}", self.id);
+        }
+        Ok(())
     }
 
-    pub async fn halt<F: Floxy>(&self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+    pub async fn halt(&self) -> anyhow::Result<()> {
         // TODO: Disconnect networks
         match self.deployment.instance_status(self.id).await? {
             InstanceStatus::Running | InstanceStatus::Unknown | InstanceStatus::Orphaned => {
-                if let Err(e) = self.delete_server_proxy_configs(floxy) {
-                    warn!("Instance {}: {e}", self.id);
-                }
                 self.deployment
                     .stop_instance(self.id, &self.manifest.config_files)
                     .await
@@ -1048,14 +1055,14 @@ impl DockerInstance {
     }
 
     pub async fn export<F: Floxy>(
-        &mut self,
+        &self,
         quest: SyncQuest,
         floxy: Arc<FloxyOperation<F>>,
         path: &Path,
     ) -> anyhow::Result<()> {
         let is_running = self.is_running().await?;
         if is_running {
-            self.halt(floxy.clone()).await?;
+            self.halt().await?;
         }
         let export_config_files_result = quest
             .lock()
@@ -1086,7 +1093,7 @@ impl DockerInstance {
         .await;
         let export_volumes_result = join_all(export_volumes_results).await;
         if is_running {
-            if let Err(e) = self.start(floxy).await {
+            if let Err(e) = self.resume(floxy).await {
                 error!(
                     "Failed to restart instance {} after exporting config files and volumes: {e}",
                     self.id
@@ -1109,7 +1116,7 @@ impl DockerInstance {
     ) -> anyhow::Result<()> {
         let is_running = self.is_running().await?;
         if is_running {
-            self.halt(floxy.clone()).await?;
+            self.halt().await?;
         }
         let now = std::time::SystemTime::now();
         let backup_path = base_path.join("backup");
@@ -1495,7 +1502,6 @@ pub mod tests {
         floxy
             .expect_delete_reverse_proxy_config()
             .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_stop_instance()
@@ -1510,19 +1516,13 @@ pub mod tests {
         };
         let mut instance = test_instance(4, Arc::new(deployment), manifest);
         instance.desired = InstanceStatus::Running;
-        assert!(instance.halt(floxy).await.is_err());
+        assert!(instance.halt().await.is_err());
         assert_eq!(instance.desired, InstanceStatus::Running);
     }
 
     #[tokio::test]
     async fn halt_ok() {
         let mut deployment = MockedDockerDeployment::new();
-        let mut floxy = MockFloxy::new();
-        floxy
-            .expect_delete_server_proxy_configs()
-            .once()
-            .returning(|_, _, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         deployment
             .expect_stop_instance()
             .times(1)
@@ -1534,14 +1534,13 @@ pub mod tests {
         let mut instance = test_instance(5, Arc::new(deployment), create_test_manifest_full(None));
         instance.config.mapped_editor_ports = HashMap::from([(10, 100)]);
         instance.desired = InstanceStatus::Running;
-        assert!(instance.halt(floxy).await.is_ok());
+        assert!(instance.halt().await.is_ok());
         assert_eq!(instance.desired, InstanceStatus::Running);
     }
 
     #[tokio::test]
     async fn halt_stopped_ok() {
         let mut deployment = MockedDockerDeployment::new();
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         deployment.expect_stop_instance().times(0);
         deployment
             .expect_instance_status()
@@ -1552,7 +1551,7 @@ pub mod tests {
         };
         let mut instance = test_instance(6, Arc::new(deployment), manifest);
         instance.desired = InstanceStatus::Running;
-        assert!(instance.halt(floxy).await.is_ok());
+        assert!(instance.halt().await.is_ok());
         assert_eq!(instance.desired, InstanceStatus::Running);
     }
 

@@ -140,6 +140,10 @@ impl InstanceCommon for ComposeInstance {
         }
         Ok(())
     }
+
+    async fn halt(&self) -> anyhow::Result<()> {
+        ComposeInstance::halt(self).await
+    }
 }
 
 impl ComposeInstance {
