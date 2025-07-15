@@ -309,14 +309,14 @@ impl From<ContainerStateStatusEnum> for InstanceStatus {
     fn from(value: ContainerStateStatusEnum) -> Self {
         // TBD
         match value {
-            ContainerStateStatusEnum::EMPTY => Self::Stopped,
-            ContainerStateStatusEnum::CREATED => Self::Stopped,
+            ContainerStateStatusEnum::EMPTY => Self::Orphaned,
+            ContainerStateStatusEnum::CREATED => Self::Orphaned,
             ContainerStateStatusEnum::RUNNING => Self::Running,
             ContainerStateStatusEnum::PAUSED => Self::Running,
             ContainerStateStatusEnum::RESTARTING => Self::Running,
             ContainerStateStatusEnum::REMOVING => Self::Running,
-            ContainerStateStatusEnum::EXITED => Self::Stopped,
-            ContainerStateStatusEnum::DEAD => Self::Stopped,
+            ContainerStateStatusEnum::EXITED => Self::Orphaned,
+            ContainerStateStatusEnum::DEAD => Self::Orphaned,
         }
     }
 }
@@ -2286,11 +2286,11 @@ pub mod tests {
     fn instance_status_from_container_status() {
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::EMPTY),
-            InstanceStatus::Stopped
+            InstanceStatus::Orphaned
         );
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::CREATED),
-            InstanceStatus::Stopped
+            InstanceStatus::Orphaned
         );
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::RUNNING),
@@ -2310,11 +2310,11 @@ pub mod tests {
         );
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::EXITED),
-            InstanceStatus::Stopped
+            InstanceStatus::Orphaned
         );
         assert_eq!(
             InstanceStatus::from(ContainerStateStatusEnum::DEAD),
-            InstanceStatus::Stopped
+            InstanceStatus::Orphaned
         );
     }
 
