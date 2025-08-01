@@ -36,9 +36,6 @@ while [ "$1" != "" ]; do
     --arch)
       shift
       case $1 in
-        armhf|arm-linux-gnueabihf)
-          ARCH=armhf
-          ;;
         aarch64|arm64|aarch64-linux-gnu)
           ARCH=arm64
           ;;

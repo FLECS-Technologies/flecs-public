@@ -62,7 +62,7 @@ To also build all dependencies from source, refer to [flecs-build](https://githu
 ```bash
 cmake -G Ninja -B build/${ARCH} -DARCH=${ARCH} -DCMAKE_INSTALL_PREFIX=out/${ARCH}
 ```
-`ARCH` has to be one of `(amd64|arm64|armhf)`
+`ARCH` has to be one of `(amd64|arm64)`
 
 2. a. Building the whole project
 ```bash
