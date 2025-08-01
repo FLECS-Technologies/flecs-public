@@ -44,8 +44,6 @@ FetchContent_Declare(
 
 if ("${ARCH}" STREQUAL "amd64")
     set(Rust_CARGO_TARGET "x86_64-unknown-linux-gnu")
-elseif("${ARCH}" STREQUAL "armhf")
-    set(Rust_CARGO_TARGET "armv7-unknown-linux-gnueabihf")
 elseif("${ARCH}" STREQUAL "arm64")
     set(Rust_CARGO_TARGET "aarch64-unknown-linux-gnu")
 endif()

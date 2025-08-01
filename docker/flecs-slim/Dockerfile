@@ -14,10 +14,6 @@ RUN case "${ARCH}" in \
     wget https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz; \
     wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64; \
     ;; \
-    "armhf") \
-    wget https://download.docker.com/linux/static/stable/armhf/docker-28.1.1.tgz; \
-    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-armv7; \
-    ;; \
     "arm64") \
     wget https://download.docker.com/linux/static/stable/aarch64/docker-28.1.1.tgz; \
     wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-aarch64; \
