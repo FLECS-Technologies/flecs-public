@@ -1,6 +1,7 @@
 pub mod device;
 pub mod network;
 pub mod system;
+pub mod var;
 pub use super::{Error, Result};
 use crate::relic::device::net::{NetDeviceReader, NetDeviceReaderImpl};
 use crate::relic::device::usb::{UsbDeviceReader, UsbDeviceReaderImpl};

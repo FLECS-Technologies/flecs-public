@@ -4,6 +4,7 @@ use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::{GetDeploymentId, serialize_hashmap_values};
+use crate::lore::{ExportLoreRef, ImportLoreRef};
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
@@ -423,7 +424,12 @@ impl App {
         }
     }
 
-    pub async fn export(&self, quest: SyncQuest, path: PathBuf) -> Result<(), anyhow::Error> {
+    pub async fn export(
+        &self,
+        quest: SyncQuest,
+        lore: ExportLoreRef,
+        path: PathBuf,
+    ) -> Result<(), anyhow::Error> {
         let Some((_, app_data)) = self.deployments.iter().next() else {
             anyhow::bail!("App {} is not installed in any deployment", self.key);
         };
@@ -431,7 +437,7 @@ impl App {
         tokio::fs::create_dir_all(&path).await?;
         app_data
             .deployment
-            .export_app(quest, self.manifest.clone(), path.clone())
+            .export_app(quest, lore, self.manifest.clone(), path.clone())
             .await?;
         let manifest_path = path.join(format!(
             "{}_{}.manifest.json",
@@ -443,7 +449,12 @@ impl App {
         Ok(())
     }
 
-    pub async fn import(&self, quest: SyncQuest, path: PathBuf) -> Result<(), anyhow::Error> {
+    pub async fn import(
+        &self,
+        quest: SyncQuest,
+        lore: ImportLoreRef,
+        path: PathBuf,
+    ) -> Result<(), anyhow::Error> {
         let mut results = Vec::new();
         {
             let mut quest = quest.lock().await;
@@ -451,16 +462,16 @@ impl App {
                 let deployment = data.deployment().clone();
                 let path = path.clone();
                 let manifest = self.manifest().clone();
-                let result =
-                    quest
-                        .create_sub_quest(
-                            format!("Import {} to {}", self.key, deployment.id()),
-                            move |quest| async move {
-                                deployment.import_app(quest, manifest, path).await
-                            },
-                        )
-                        .await
-                        .2;
+                let lore = lore.clone();
+                let result = quest
+                    .create_sub_quest(
+                        format!("Import {} to {}", self.key, deployment.id()),
+                        move |quest| async move {
+                            deployment.import_app(quest, lore, manifest, path).await
+                        },
+                    )
+                    .await
+                    .2;
                 results.push(result);
             }
         }

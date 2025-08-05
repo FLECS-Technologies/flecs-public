@@ -1,3 +1,4 @@
+use crate::lore::ExportLoreRef;
 use crate::sorcerer::exportius::Exportius;
 use flecsd_axum_server::apis::flecsport::{
     ExportsExportIdDeleteResponse as DeleteResponse, ExportsExportIdGetResponse as GetResponse,
@@ -7,13 +8,15 @@ use flecsd_axum_server::models::{
     ExportsExportIdDeletePathParams as DeletePathParams,
     ExportsExportIdGetPathParams as GetPathParams,
 };
-use std::path::PathBuf;
 use std::sync::Arc;
 
-pub async fn get<E: Exportius>(exportius: Arc<E>, path_params: GetPathParams) -> GetResponse {
-    let export_dir = PathBuf::from(crate::lore::flecsport::BASE_PATH);
+pub async fn get<E: Exportius>(
+    exportius: Arc<E>,
+    lore: ExportLoreRef,
+    path_params: GetPathParams,
+) -> GetResponse {
     match exportius
-        .get_export(&export_dir, path_params.export_id)
+        .get_export(&lore.as_ref().as_ref().base_path, path_params.export_id)
         .await
     {
         Ok(Some(path)) => GetResponse::Status200_Success(path),
@@ -26,11 +29,11 @@ pub async fn get<E: Exportius>(exportius: Arc<E>, path_params: GetPathParams) ->
 
 pub async fn delete<E: Exportius>(
     exportius: Arc<E>,
+    lore: ExportLoreRef,
     path_params: DeletePathParams,
 ) -> DeleteResponse {
-    let export_dir = PathBuf::from(crate::lore::flecsport::BASE_PATH);
     match exportius
-        .delete_export(&export_dir, path_params.export_id)
+        .delete_export(&lore.as_ref().as_ref().base_path, path_params.export_id)
         .await
     {
         Ok(true) => DeleteResponse::Status200_Success,
@@ -44,23 +47,28 @@ pub async fn delete<E: Exportius>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lore;
+    use crate::relic::var::test::MockVarReader;
     use crate::sorcerer::exportius::MockExportius;
     use mockall::predicate;
     use testdir::testdir;
 
     #[tokio::test]
     async fn get_200() {
-        let path = testdir!().join("file");
-        let expected_path = path.clone();
+        let path = testdir!();
+        let file_path = path.join("file");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let expected_path = file_path.clone();
         let mut exportius = MockExportius::new();
         exportius
             .expect_get_export()
             .once()
             .with(predicate::always(), predicate::eq("12345".to_string()))
-            .return_once(move |_, _| Ok(Some(path)));
+            .return_once(move |_, _| Ok(Some(file_path)));
         assert_eq!(
             get(
                 Arc::new(exportius),
+                lore,
                 GetPathParams {
                     export_id: "12345".to_string()
                 }
@@ -72,6 +80,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_404() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut exportius = MockExportius::new();
         exportius
             .expect_get_export()
@@ -81,6 +90,7 @@ mod tests {
         assert_eq!(
             get(
                 Arc::new(exportius),
+                lore,
                 GetPathParams {
                     export_id: "12345".to_string()
                 }
@@ -93,6 +103,7 @@ mod tests {
     #[tokio::test]
     async fn get_500_open() {
         let mut exportius = MockExportius::new();
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         exportius
             .expect_get_export()
             .once()
@@ -101,6 +112,7 @@ mod tests {
         assert!(matches!(
             get(
                 Arc::new(exportius),
+                lore,
                 GetPathParams {
                     export_id: "12345".to_string()
                 }
@@ -113,6 +125,7 @@ mod tests {
     #[tokio::test]
     async fn delete_200() {
         let mut exportius = MockExportius::new();
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         exportius
             .expect_delete_export()
             .once()
@@ -121,6 +134,7 @@ mod tests {
         assert!(matches!(
             delete(
                 Arc::new(exportius),
+                lore,
                 DeletePathParams {
                     export_id: "12345".to_string()
                 }
@@ -133,6 +147,7 @@ mod tests {
     #[tokio::test]
     async fn delete_404() {
         let mut exportius = MockExportius::new();
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         exportius
             .expect_delete_export()
             .once()
@@ -141,6 +156,7 @@ mod tests {
         assert!(matches!(
             delete(
                 Arc::new(exportius),
+                lore,
                 DeletePathParams {
                     export_id: "12345".to_string()
                 }
@@ -153,6 +169,7 @@ mod tests {
     #[tokio::test]
     async fn delete_500() {
         let mut exportius = MockExportius::new();
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         exportius
             .expect_delete_export()
             .once()
@@ -161,6 +178,7 @@ mod tests {
         assert!(matches!(
             delete(
                 Arc::new(exportius),
+                lore,
                 DeletePathParams {
                     export_id: "12345".to_string()
                 }

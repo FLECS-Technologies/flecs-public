@@ -131,6 +131,7 @@ impl<
     ) -> Result<InstancesCreatePostResponse, ()> {
         super::api::v2::instances::create::post(
             self.vault.clone(),
+            self.lore.clone(),
             self.sorcerers.app_raiser.clone(),
             self.sorcerers.instancius.clone(),
             self.enchantments.quest_master.clone(),
@@ -822,6 +823,7 @@ impl<
             self.sorcerers.instancius.clone(),
             self.enchantments.floxy.clone(),
             self.enchantments.quest_master.clone(),
+            self.lore.clone(),
             path_params,
             body,
         )

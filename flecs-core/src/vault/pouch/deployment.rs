@@ -1,6 +1,7 @@
 pub use super::Result;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::SerializedDeployment;
+use crate::lore::DeploymentLoreRef;
 use crate::relic::serde::SerdeIteratorAdapter;
 use crate::vault::pouch::Pouch;
 use std::collections::HashMap;
@@ -11,12 +12,11 @@ use tracing::error;
 pub type DeploymentId = String;
 pub type Gems = HashMap<DeploymentId, Deployment>;
 
-#[derive(Debug)]
 pub struct DeploymentPouch {
     deployments: Gems,
     default_docker_deployment_id: Option<DeploymentId>,
     default_compose_deployment_id: Option<DeploymentId>,
-    path: PathBuf,
+    lore: DeploymentLoreRef,
 }
 
 #[derive(Debug, Clone)]
@@ -38,9 +38,13 @@ impl Pouch for DeploymentPouch {
 }
 
 impl DeploymentPouch {
+    fn base_path(&self) -> &Path {
+        &self.lore.as_ref().as_ref().base_path
+    }
+
     pub(in super::super) fn close(&mut self) -> Result<()> {
         self.set_default_deployments();
-        fs::create_dir_all(&self.path)?;
+        fs::create_dir_all(self.base_path())?;
         let file = fs::File::create(self.deployments_path())?;
         serde_json::to_writer_pretty(file, &SerdeIteratorAdapter::new(self.deployments.values()))?;
         Ok(())
@@ -63,10 +67,10 @@ impl DeploymentPouch {
         Ok(())
     }
 
-    pub fn new(path: &Path) -> DeploymentPouch {
+    pub fn new(lore: DeploymentLoreRef) -> DeploymentPouch {
         Self {
             deployments: Default::default(),
-            path: path.to_path_buf(),
+            lore,
             default_docker_deployment_id: Default::default(),
             default_compose_deployment_id: Default::default(),
         }
@@ -141,7 +145,7 @@ impl DeploymentPouch {
     }
 
     fn deployments_path(&self) -> PathBuf {
-        self.path.join("deployments.json")
+        self.base_path().join("deployments.json")
     }
 
     fn read_deployments(path: &Path) -> Result<Vec<Deployment>> {
@@ -162,9 +166,10 @@ pub mod tests {
     use super::*;
     use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
+    use crate::lore;
+    use crate::relic::var::test::MockVarReader;
     use crate::tests::prepare_test_path;
     use serde_json::json;
-    use std::path::Path;
     use std::sync::Arc;
     use testdir::testdir;
 
@@ -177,11 +182,12 @@ pub mod tests {
             deployment.expect_is_default().return_const(true);
             Deployment::Docker(Arc::new(deployment))
         });
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let default_docker_deployment_id = Some(deployment.id().clone());
         let deployments: HashMap<String, Deployment> =
             HashMap::from([(deployment.id().clone(), deployment)]);
         DeploymentPouch {
-            path: testdir!().join("deployments"),
+            lore,
             deployments,
             default_docker_deployment_id,
             default_compose_deployment_id: None,
@@ -222,11 +228,12 @@ pub mod tests {
 
     #[test]
     fn deployments_path() {
-        let path = Path::new("/some/random/path/");
-        let deployment_pouch = DeploymentPouch::new(path);
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let path = lore.deployment.base_path.clone();
+        let deployment_pouch = DeploymentPouch::new(lore);
         assert_eq!(
             deployment_pouch.deployments_path(),
-            PathBuf::from("/some/random/path/deployments.json")
+            path.join("deployments.json")
         )
     }
 
@@ -236,11 +243,12 @@ pub mod tests {
             TEST_DEPLOYMENT_ID.to_string(),
             PathBuf::from(TEST_DEPLOYMENT_SOCK_PATH),
         )));
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let default_docker_deployment_id = Some(deployment.id().clone());
         let gems = HashMap::from([(TEST_DEPLOYMENT_ID.to_string(), deployment)]);
         let mut deployment_pouch = DeploymentPouch {
             deployments: gems,
-            path: prepare_test_path(module_path!(), "gems"),
+            lore,
             default_docker_deployment_id,
             default_compose_deployment_id: None,
         };
@@ -266,17 +274,19 @@ pub mod tests {
 
     #[test]
     fn new_deployment_pouch() {
-        let path = prepare_test_path(module_path!(), "new_pouch");
-        let deployment_pouch = DeploymentPouch::new(&path);
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let path = lore.deployment.base_path.clone();
+        let deployment_pouch = DeploymentPouch::new(lore);
         assert!(deployment_pouch.deployments.is_empty());
-        assert_eq!(deployment_pouch.path, path);
+        assert_eq!(deployment_pouch.base_path(), path);
     }
 
     #[tokio::test]
     async fn open_deployment_pouch() {
-        let path = prepare_test_path(module_path!(), "open_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        fs::create_dir_all(&lore.deployment.base_path).unwrap();
         let json = serde_json::to_string(&test_deployment_json()).unwrap();
-        let mut deployment_pouch = DeploymentPouch::new(&path);
+        let mut deployment_pouch = DeploymentPouch::new(lore);
         fs::write(deployment_pouch.deployments_path(), json).unwrap();
         deployment_pouch.open().unwrap();
         assert_eq!(deployment_pouch.deployments.len(), 1);
@@ -292,7 +302,8 @@ pub mod tests {
 
     #[tokio::test]
     async fn close_deployment_pouch() {
-        let path = prepare_test_path(module_path!(), "close_pouch").join("deployments.json");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let path = lore.deployment.base_path.clone().join("deployments.json");
         let json = test_deployment_json();
         let deployment = Deployment::Docker(Arc::new(DockerDeploymentImpl::new(
             TEST_DEPLOYMENT_ID.to_string(),
@@ -301,7 +312,7 @@ pub mod tests {
         let default_docker_deployment_id = Some(deployment.id().clone());
         let mut deployment_pouch = DeploymentPouch {
             deployments: HashMap::from([(TEST_DEPLOYMENT_ID.to_string(), deployment)]),
-            path: path.parent().unwrap().to_path_buf(),
+            lore,
             default_docker_deployment_id,
             default_compose_deployment_id: None,
         };
@@ -327,8 +338,9 @@ pub mod tests {
     #[test]
     fn get_default_deployment_no_id() {
         let deployment = Deployment::Docker(Arc::new(MockedDockerDeployment::new()));
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let pouch = DeploymentPouch {
-            path: testdir!(),
+            lore,
             default_docker_deployment_id: None,
             default_compose_deployment_id: None,
             deployments: HashMap::from([("MockDeployment".to_string(), deployment)]),
@@ -340,8 +352,9 @@ pub mod tests {
     #[test]
     fn get_default_deployment_no_deployment() {
         let deployment = Deployment::Docker(Arc::new(MockedDockerDeployment::new()));
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let pouch = DeploymentPouch {
-            path: testdir!(),
+            lore,
             default_docker_deployment_id: Some("DefaultDockerDeployment".to_string()),
             default_compose_deployment_id: Some("DefaultComposeDeployment".to_string()),
             deployments: HashMap::from([("MockDeployment".to_string(), deployment)]),
@@ -366,8 +379,9 @@ pub mod tests {
                 (deployment.id().clone(), deployment)
             }),
         );
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let pouch = DeploymentPouch {
-            path: testdir!(),
+            lore,
             default_docker_deployment_id: Some("DefaultDeployment".to_string()),
             default_compose_deployment_id: None,
             deployments,
@@ -380,8 +394,9 @@ pub mod tests {
 
     #[test]
     fn set_default_deployment_no_deployment() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut pouch = DeploymentPouch {
-            path: testdir!(),
+            lore,
             default_docker_deployment_id: Some("DefaultDeployment".to_string()),
             default_compose_deployment_id: None,
             deployments: HashMap::new(),
@@ -398,8 +413,9 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment.expect_is_default().return_const(false);
         let deployment = Deployment::Docker(Arc::new(deployment));
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut pouch = DeploymentPouch {
-            path: testdir!(),
+            lore,
             default_docker_deployment_id: None,
             default_compose_deployment_id: None,
             deployments: HashMap::from([("MockedDeployment".to_string(), deployment)]),
@@ -431,8 +447,9 @@ pub mod tests {
                 (deployment.id().to_string(), deployment)
             }),
         );
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut pouch = DeploymentPouch {
-            path: testdir!(),
+            lore,
             default_docker_deployment_id: None,
             default_compose_deployment_id: None,
             deployments,

@@ -1,4 +1,5 @@
 use crate::enchantment::quest_master::QuestMaster;
+use crate::lore::Lore;
 use crate::quest::QuestResult;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::instancius::Instancius;
@@ -11,6 +12,7 @@ use std::sync::Arc;
 
 pub async fn post<A: AppRaiser, I: Instancius + 'static>(
     vault: Arc<Vault>,
+    lore: Arc<Lore>,
     appraiser: Arc<A>,
     instancius: Arc<I>,
     quest_master: QuestMaster,
@@ -33,7 +35,13 @@ pub async fn post<A: AppRaiser, I: Instancius + 'static>(
             format!("Create instance for {app_key}"),
             |quest| async move {
                 let id = instancius
-                    .create_instance(quest, vault, app_key, instance_name.unwrap_or_default())
+                    .create_instance(
+                        quest,
+                        vault,
+                        lore,
+                        app_key,
+                        instance_name.unwrap_or_default(),
+                    )
                     .await?;
                 Ok(QuestResult::InstanceId(id))
             },
@@ -51,12 +59,16 @@ mod tests {
     use super::*;
     use crate::fsm::server_impl::await_quest_completion;
     use crate::jeweler::gem::instance::InstanceId;
+    use crate::lore;
+    use crate::relic::var::test::MockVarReader;
     use crate::sorcerer::appraiser::MockAppRaiser;
     use crate::sorcerer::instancius::MockInstancius;
     use flecsd_axum_server::models;
+    use testdir::testdir;
 
     #[tokio::test]
     async fn post_400() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let instancius = Arc::new(MockInstancius::new());
         let mut appraiser = MockAppRaiser::new();
         appraiser.expect_does_app_exist().once().return_const(false);
@@ -65,6 +77,7 @@ mod tests {
         assert!(matches!(
             post(
                 vault,
+                lore,
                 appraiser,
                 instancius,
                 QuestMaster::default(),
@@ -87,17 +100,18 @@ mod tests {
             name: "TestName".to_string(),
             version: "1.2.3".to_string(),
         };
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let expected_key = test_key.clone();
         let mut instancius = MockInstancius::new();
         instancius
             .expect_create_instance()
-            .withf(move |_, _, app_key, name| {
+            .withf(move |_, _, _, app_key, name| {
                 app_key.name == expected_key.name
                     && app_key.version == expected_key.version
                     && name.is_empty()
             })
             .once()
-            .returning(|_, _, _, _| Ok(InstanceId::new(1)));
+            .returning(|_, _, _, _, _| Ok(InstanceId::new(1)));
         let mut appraiser = MockAppRaiser::new();
         appraiser
             .expect_does_app_exist()
@@ -107,6 +121,7 @@ mod tests {
         let vault = crate::vault::tests::create_empty_test_vault();
         let result = post(
             vault,
+            lore,
             Arc::new(appraiser),
             Arc::new(instancius),
             quest_master.clone(),

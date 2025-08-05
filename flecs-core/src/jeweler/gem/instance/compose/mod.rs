@@ -7,6 +7,7 @@ use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::{AppManifest, multi};
 use crate::jeweler::{GetAppKey, serialize_deployment_id, serialize_manifest_key};
+use crate::lore::{InstanceLore, InstanceLoreRef};
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch::AppKey;
 use crate::{legacy, vault};
@@ -28,6 +29,8 @@ pub struct ComposeInstance {
     pub deployment: Arc<dyn ComposeDeployment>,
     pub name: String,
     pub desired: InstanceStatus,
+    #[serde(skip_serializing)]
+    lore: InstanceLoreRef,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -147,6 +150,14 @@ impl InstanceCommon for ComposeInstance {
 }
 
 impl ComposeInstance {
+    fn lore(&self) -> &InstanceLore {
+        self.lore.as_ref().as_ref()
+    }
+
+    fn workdir(&self) -> PathBuf {
+        self.lore().instance_workdir_path(&self.id.to_string())
+    }
+
     fn aggregate_status(status_vec: Vec<InstanceStatus>) -> InstanceStatus {
         if status_vec.is_empty() {
             return InstanceStatus::Stopped;
@@ -162,6 +173,7 @@ impl ComposeInstance {
     }
 
     pub fn try_create_with_state(
+        lore: InstanceLoreRef,
         instance: ComposeInstanceDeserializable,
         manifests: &vault::pouch::manifest::Gems,
         deployments: &vault::pouch::deployment::Gems,
@@ -202,6 +214,7 @@ impl ComposeInstance {
             .into());
         };
         Ok(Self {
+            lore,
             manifest,
             deployment,
             desired: instance.desired,
@@ -211,6 +224,7 @@ impl ComposeInstance {
     }
 
     pub async fn try_create_from_legacy(
+        lore: InstanceLoreRef,
         instance: legacy::deployment::Instance,
         manifest: Arc<AppManifestMulti>,
         deployment: Arc<dyn ComposeDeployment>,
@@ -218,6 +232,7 @@ impl ComposeInstance {
         let instance = legacy::deployment::migrate_compose_instance(instance, deployment.id())?;
         Self::try_create(
             Quest::new_synced("Try create instance"),
+            lore,
             deployment,
             manifest,
             instance.name,
@@ -229,12 +244,14 @@ impl ComposeInstance {
 
     pub async fn try_create_new(
         quest: SyncQuest,
+        lore: InstanceLoreRef,
         deployment: Arc<dyn ComposeDeployment>,
         manifest: Arc<AppManifestMulti>,
         name: String,
     ) -> Result<Self, CreateInstanceError> {
         Self::try_create(
             quest,
+            lore,
             deployment,
             manifest,
             name,
@@ -246,14 +263,19 @@ impl ComposeInstance {
 
     pub async fn try_create(
         quest: SyncQuest,
+        lore: InstanceLoreRef,
         deployment: Arc<dyn ComposeDeployment>,
         manifest: Arc<AppManifestMulti>,
         name: String,
         instance_id: InstanceId,
         desired: InstanceStatus,
     ) -> Result<Self, CreateInstanceError> {
-        tokio::fs::create_dir_all(crate::lore::instance_workdir_path(&instance_id.to_string()))
-            .await?;
+        tokio::fs::create_dir_all(
+            lore.as_ref()
+                .as_ref()
+                .instance_workdir_path(&instance_id.to_string()),
+        )
+        .await?;
         let mut results = Vec::new();
         for volume_name in manifest.external_volume_names() {
             let deployment = deployment.clone();
@@ -272,6 +294,7 @@ impl ComposeInstance {
             result?;
         }
         Ok(Self {
+            lore,
             deployment,
             name,
             manifest,
@@ -285,9 +308,8 @@ impl ComposeInstance {
         if self.status().await? == InstanceStatus::Running {
             return Ok(());
         }
-        let path = crate::lore::instance_workdir_path(&self.id.to_string());
         self.deployment
-            .start_instance(&self.manifest, &path)
+            .start_instance(&self.manifest, &self.workdir())
             .await?;
         Ok(())
     }
@@ -298,9 +320,8 @@ impl ComposeInstance {
         {
             return Ok(());
         }
-        let path = crate::lore::instance_workdir_path(&self.id.to_string());
         self.deployment
-            .start_instance(&self.manifest, &path)
+            .start_instance(&self.manifest, &self.workdir())
             .await?;
         Ok(())
     }
@@ -323,8 +344,7 @@ impl ComposeInstance {
         if let Err(e) = self.halt().await {
             return Err((e, self));
         };
-        let path = crate::lore::instance_workdir_path(&self.id.to_string());
-        if let Err(e) = tokio::fs::remove_dir_all(&path).await {
+        if let Err(e) = tokio::fs::remove_dir_all(&self.workdir()).await {
             if e.kind() != std::io::ErrorKind::NotFound {
                 return Err((e.into(), self));
             }

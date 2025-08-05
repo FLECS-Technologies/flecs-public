@@ -1,5 +1,6 @@
 pub use super::Result;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::lore::{ExportLoreRef, ImportLoreRef};
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
 use flecs_console_client::models::{
@@ -46,6 +47,7 @@ pub trait AppDeployment {
     async fn export_app(
         &self,
         quest: SyncQuest,
+        lore: ExportLoreRef,
         manifest: AppManifest,
         path: PathBuf,
     ) -> Result<()>;
@@ -53,6 +55,7 @@ pub trait AppDeployment {
     async fn import_app(
         &self,
         quest: SyncQuest,
+        lore: ImportLoreRef,
         manifest: AppManifest,
         path: PathBuf,
     ) -> Result<()>;

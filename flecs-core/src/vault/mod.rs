@@ -3,6 +3,7 @@ pub mod pouch;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeploymentImpl;
 use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
+use crate::lore::Lore;
 use crate::vault::pouch::Pouch;
 use crate::vault::pouch::app::AppPouch;
 use crate::vault::pouch::deployment::DeploymentPouch;
@@ -10,7 +11,6 @@ use crate::vault::pouch::instance::InstancePouch;
 use crate::vault::pouch::manifest::ManifestPouch;
 use crate::vault::pouch::secret::{SecretPouch, Secrets};
 use std::fmt::{Debug, Display, Formatter};
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tracing::{error, info};
@@ -65,28 +65,6 @@ impl Error {
     }
 }
 
-/// Contains all the information for constructing a [Vault].
-/// # Examples
-/// ```
-/// use flecs_core::vault::VaultConfig;
-/// use std::path::PathBuf;
-///
-/// let config = VaultConfig {
-///     path: PathBuf::from("/flecs-tests/vault/"),
-/// };
-/// ```
-pub struct VaultConfig {
-    pub path: PathBuf,
-}
-
-impl Default for VaultConfig {
-    fn default() -> Self {
-        VaultConfig {
-            path: Path::new(crate::lore::BASE_PATH).to_path_buf(),
-        }
-    }
-}
-
 /// A [Vault] contains data that corresponds to files on disk. It is split into multiple pouches
 /// which contain different kinds of information. A [ManifestPouch] for example contains app
 /// manifests.
@@ -100,26 +78,26 @@ pub struct Vault {
 }
 
 impl Vault {
-    /// Creates a new [Vault] from a given [VaultConfig]. If data should be read from disk, a
+    /// Creates a new [Vault] from a given configuration [Lore]. If data should be read from disk, a
     /// separate call to [Vault::open()] is necessary.
     /// # Example
     /// ```
-    /// use flecs_core::vault::{Vault, VaultConfig};
+    /// use flecs_core::lore;
+    /// use flecs_core::vault::Vault;
     /// use std::path::PathBuf;
+    /// use std::sync::Arc;
     ///
-    /// let config = VaultConfig {
-    ///     path: PathBuf::from("/flecs-tests/vault/"),
-    /// };
-    /// let vault = Vault::new(config);
+    /// let lore = Arc::new(lore::Lore::from_conf_with_defaults(Default::default()).unwrap());
+    /// let vault = Vault::new(lore);
     /// vault.open();
     /// ```
-    pub fn new(config: VaultConfig) -> Self {
+    pub fn new(lore: Arc<Lore>) -> Self {
         Self::new_from_pouches(
-            AppPouch::new(&config.path.join("apps")),
-            ManifestPouch::new(&config.path.join("manifests")),
-            SecretPouch::new(&config.path.join("device")),
-            DeploymentPouch::new(&config.path.join("deployments")),
-            InstancePouch::new(&config.path.join("instances")),
+            AppPouch::new(lore.clone()),
+            ManifestPouch::new(lore.clone()),
+            SecretPouch::new(lore.clone()),
+            DeploymentPouch::new(lore.clone()),
+            InstancePouch::new(lore),
         )
     }
 
@@ -143,14 +121,15 @@ impl Vault {
     /// its Pouches. See [Reservation::grab()] for details.
     /// # Examples
     /// ```
-    /// use flecs_core::vault::{Vault, VaultConfig};
+    /// use flecs_core::lore;
+    /// use flecs_core::vault::Vault;
     /// use std::path::Path;
+    /// use std::sync::Arc;
     ///
     /// # tokio_test::block_on(
     /// async {
-    ///     let vault = Vault::new(VaultConfig {
-    ///         path: Path::new("/tmp/vault/").to_path_buf(),
-    ///     });
+    ///     let lore = Arc::new(lore::Lore::from_conf_with_defaults(Default::default()).unwrap());
+    ///     let vault = Vault::new(lore);
     ///     let reservation = vault
     ///         .reservation()
     ///         .reserve_app_pouch()
@@ -168,14 +147,15 @@ impl Vault {
     /// ```
     /// More concise variant
     /// ```
-    /// use flecs_core::vault::{GrabbedPouches, Vault, VaultConfig};
+    /// use flecs_core::lore;
+    /// use flecs_core::vault::{GrabbedPouches, Vault};
     /// use std::path::Path;
+    /// use std::sync::Arc;
     ///
     /// # tokio_test::block_on(
     /// async {
-    ///     let vault = Vault::new(VaultConfig {
-    ///         path: Path::new("/tmp/vault/").to_path_buf(),
-    ///     });
+    ///     let lore = Arc::new(lore::Lore::from_conf_with_defaults(Default::default()).unwrap());
+    ///     let vault = Vault::new(lore);
     ///     if let GrabbedPouches {
     ///         app_pouch: Some(apps),
     ///         manifest_pouch: Some(manifests),
@@ -499,6 +479,9 @@ impl Drop for GrabbedPouches<'_> {
 pub mod tests {
     use super::*;
     use crate::jeweler::gem::instance::InstanceId;
+    use crate::lore;
+    use crate::relic::var::test::MockVarReader;
+    use crate::tests::prepare_test_path;
     use crate::vault::pouch::AppKey;
     use crate::vault::pouch::app::tests::test_app_pouch;
     use crate::vault::pouch::deployment::tests::test_deployment_pouch;
@@ -547,15 +530,13 @@ pub mod tests {
     }
 
     pub fn create_empty_test_vault() -> Arc<Vault> {
-        Arc::new(Vault::new(VaultConfig {
-            path: testdir!().join("vault"),
-        }))
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        Arc::new(Vault::new(lore))
     }
 
     pub fn create_test_vault_with_deployment(deployment: Deployment) -> Arc<Vault> {
-        let mut vault = Vault::new(VaultConfig {
-            path: testdir!().join("vault"),
-        });
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let mut vault = Vault::new(lore);
         let deployments = vault.deployment_pouch.get_mut();
         deployments
             .gems_mut()
@@ -567,9 +548,9 @@ pub mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn grab_multiple() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/grab_mul/").to_path_buf(),
-        });
+        let path = prepare_test_path(module_path!(), "grab_multiple");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let vault = Vault::new(lore);
         let grab = vault
             .reservation()
             .reserve_manifest_pouch()
@@ -588,10 +569,12 @@ pub mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn default_deployment_is_created() {
-        let path = Path::new("/tmp/flecs-tests/vault/default_depl/").to_path_buf();
+        let path = prepare_test_path(module_path!(), "default_deployment_is_created");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let path = lore.deployment.base_path.clone();
         let _ = fs::remove_dir_all(&path);
         assert!(!path.try_exists().unwrap());
-        let vault = Vault::new(VaultConfig { path });
+        let vault = Vault::new(lore);
         vault.open().await;
         let grab = vault.reservation().reserve_deployment_pouch().grab().await;
         assert_eq!(grab.deployment_pouch.as_ref().unwrap().gems().len(), 2);
@@ -623,9 +606,9 @@ pub mod tests {
     #[timeout(10000)]
     #[should_panic]
     async fn double_grab_mutable_mutable() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/double_grab_mut/").to_path_buf(),
-        });
+        let path = prepare_test_path(module_path!(), "double_grab_mutable_mutable");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let vault = Vault::new(lore);
         let _grab1 = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let _grab2 = vault.reservation().reserve_secret_pouch_mut().grab().await;
     }
@@ -634,9 +617,9 @@ pub mod tests {
     #[timeout(10000)]
     #[should_panic]
     async fn double_grab_mutable_immutable() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/double_grab_mut_im/").to_path_buf(),
-        });
+        let path = prepare_test_path(module_path!(), "double_grab_mutable_immutable");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let vault = Vault::new(lore);
         let _grab1 = vault.reservation().reserve_secret_pouch_mut().grab().await;
         let _grab2 = vault.reservation().reserve_secret_pouch().grab().await;
     }
@@ -644,9 +627,9 @@ pub mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn double_grab_immutable_immutable() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/double_grab/").to_path_buf(),
-        });
+        let path = prepare_test_path(module_path!(), "double_grab_immutable_immutable");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let vault = Vault::new(lore);
         let grab1 = vault.reservation().reserve_secret_pouch().grab().await;
         assert!(grab1.secret_pouch.is_some());
         let grab2 = vault.reservation().reserve_secret_pouch().grab().await;
@@ -657,9 +640,9 @@ pub mod tests {
     #[timeout(10000)]
     #[should_panic]
     async fn double_grab_immutable_mutable() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/double_grab_im_mut/").to_path_buf(),
-        });
+        let path = prepare_test_path(module_path!(), "double_grab_immutable_mutable");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let vault = Vault::new(lore);
         let _grab1 = vault.reservation().reserve_secret_pouch().grab().await;
         let _grab2 = vault.reservation().reserve_secret_pouch_mut().grab().await;
     }
@@ -667,9 +650,12 @@ pub mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn reserving_one_pouch_leaves_other_pouches_mut() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/reserve/").to_path_buf(),
-        });
+        let path = prepare_test_path(
+            module_path!(),
+            "reserving_one_pouch_leaves_other_pouches_mut",
+        );
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let vault = Vault::new(lore);
         let grab_secrets = vault.reservation().reserve_secret_pouch_mut().grab().await;
         assert!(grab_secrets.secret_pouch_mut.is_some());
         let grab_apps = vault.reservation().reserve_app_pouch_mut().grab().await;
@@ -685,9 +671,9 @@ pub mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn get_secrets() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/get_secrets/").to_path_buf(),
-        });
+        let path = prepare_test_path(module_path!(), "get_secrets");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let vault = Vault::new(lore);
         let expected_secrets = Secrets::new(
             Some("9876-TZUI-VBNM-4567".to_string()),
             SessionId {
@@ -709,9 +695,9 @@ pub mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn grab_all() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/grab_all/").to_path_buf(),
-        });
+        let path = prepare_test_path(module_path!(), "grab_all");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let vault = Vault::new(lore);
         let grab = vault
             .reservation()
             .reserve_manifest_pouch()
@@ -736,9 +722,9 @@ pub mod tests {
     #[tokio::test]
     #[timeout(10000)]
     async fn grab_all_mut() {
-        let vault = Vault::new(VaultConfig {
-            path: Path::new("/tmp/flecs-tests/vault/grab_all_mut/").to_path_buf(),
-        });
+        let path = prepare_test_path(module_path!(), "grab_all_mut");
+        let lore = Arc::new(lore::test_lore(path, &MockVarReader::new()));
+        let vault = Vault::new(lore);
         let grab = vault
             .reservation()
             .reserve_manifest_pouch_mut()

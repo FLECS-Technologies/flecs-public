@@ -1,10 +1,11 @@
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::net::Ipv4Addr;
 use std::ops::Range;
 use std::str::FromStr;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, DeserializeFromStr, SerializeDisplay)]
 pub struct Ipv4Network {
     address: Ipv4Addr,
     size: u8,
@@ -114,6 +115,13 @@ impl Ipv4Iterator {
 }
 
 impl Ipv4Network {
+    pub const fn default() -> Self {
+        Self {
+            address: Ipv4Addr::new(172, 21, 0, 0),
+            size: 16,
+        }
+    }
+
     pub fn try_new(address: Ipv4Addr, size: u8) -> crate::Result<Self> {
         anyhow::ensure!(size <= 32, "Network size has to be 32 or less, not {size}");
         let mask = Ipv4Addr::from(0xffffffff >> size);
@@ -156,10 +164,7 @@ impl Ipv4Network {
 
 impl Default for Ipv4Network {
     fn default() -> Self {
-        Self {
-            address: Ipv4Addr::new(172, 21, 0, 0),
-            size: 16,
-        }
+        Ipv4Network::default()
     }
 }
 

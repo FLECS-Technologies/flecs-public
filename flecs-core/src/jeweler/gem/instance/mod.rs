@@ -7,12 +7,14 @@ use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
 use async_trait::async_trait;
 pub use id::*;
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 use std::net::Ipv4Addr;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
@@ -123,6 +125,7 @@ pub enum CreateInstanceError {
 
 impl Instance {
     pub fn try_create_with_state(
+        lore: Arc<Lore>,
         instance: InstanceDeserializable,
         manifests: &pouch::manifest::Gems,
         deployments: &pouch::deployment::Gems,
@@ -130,6 +133,7 @@ impl Instance {
         match instance {
             InstanceDeserializable::Compose(compose) => {
                 let instance = compose::ComposeInstance::try_create_with_state(
+                    lore,
                     compose,
                     manifests,
                     deployments,
@@ -137,8 +141,12 @@ impl Instance {
                 Ok(Self::Compose(instance))
             }
             InstanceDeserializable::Docker(docker) => {
-                let instance =
-                    docker::DockerInstance::try_create_with_state(docker, manifests, deployments)?;
+                let instance = docker::DockerInstance::try_create_with_state(
+                    lore,
+                    docker,
+                    manifests,
+                    deployments,
+                )?;
                 Ok(Self::Docker(instance))
             }
         }
