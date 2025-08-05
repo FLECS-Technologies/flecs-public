@@ -1,3 +1,4 @@
+use crate::lore::ConsoleLoreRef;
 use crate::vault::Vault;
 use crate::vault::pouch::Pouch;
 use flecs_console_client::apis::configuration::Configuration;
@@ -14,9 +15,9 @@ struct SessionIdMiddleware {
     vault: Arc<Vault>,
 }
 
-pub fn create_default(vault: Arc<Vault>) -> ConsoleClient {
+pub fn create_default(vault: Arc<Vault>, lore: ConsoleLoreRef) -> ConsoleClient {
     Arc::new(Configuration {
-        base_path: crate::lore::console::BASE_PATH.to_owned(),
+        base_path: lore.as_ref().as_ref().uri.to_string(),
         client: create_new_client_with_middleware(vault),
         ..Configuration::default()
     })

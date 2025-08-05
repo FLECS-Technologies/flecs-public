@@ -1,13 +1,14 @@
-mod config;
 use crate::enchantment::Enchantments;
 use crate::enchantment::floxy::{Floxy, FloxyImpl, FloxyOperation};
 use crate::enchantment::quest_master::QuestMaster;
 use crate::fsm::ServerHandle;
 use crate::legacy::MigrateError;
+use crate::lore::{Lore, conf};
 use crate::quest::QuestResult;
 use crate::relic::device::net::{NetDeviceReader, NetDeviceReaderImpl};
 use crate::relic::device::usb::{UsbDeviceReader, UsbDeviceReaderImpl};
 use crate::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
+use crate::relic::var::EnvReader;
 use crate::relic::{FlecsRelics, Relics};
 use crate::sorcerer::appraiser::{AppRaiser, AppraiserImpl};
 use crate::sorcerer::authmancer::{Authmancer, AuthmancerImpl};
@@ -22,8 +23,7 @@ use crate::sorcerer::systemus::{Systemus, SystemusImpl};
 use crate::sorcerer::{FlecsSorcerers, Sorcerers};
 use crate::vault::Vault;
 use crate::{legacy, lore};
-pub use config::*;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 use tracing::{error, info, warn};
 
@@ -77,6 +77,10 @@ pub enum CreateError {
     SpinUp(String),
     #[error("Migration failed: {0}")]
     Migration(#[from] MigrateError),
+    #[error("Failed to load config: {0}")]
+    Lore(#[from] lore::Error),
+    #[error("IO Error: {0}")]
+    IO(#[from] std::io::Error),
 }
 
 impl FlecsWorld {
@@ -96,8 +100,8 @@ impl FlecsWorld {
         )
     }
 
-    async fn migration_backup() -> Result<(), MigrateError> {
-        let backup_path = lore::base_path().join("migration").join("3.x");
+    async fn migration_backup(base_path: &Path) -> Result<(), MigrateError> {
+        let backup_path = base_path.join("migration").join("3.x");
         info!("Creating backup at {}", backup_path.to_string_lossy());
         let deployment_path = backup_path.join("deployment");
         tokio::fs::create_dir_all(&deployment_path).await?;
@@ -141,11 +145,11 @@ impl FlecsWorld {
         };
     }
 
-    pub async fn migrate() -> Result<Self, CreateError> {
+    pub async fn migrate(lore: Arc<Lore>) -> Result<Self, CreateError> {
         info!("Migrating from 3.x to {}", lore::CORE_VERSION);
-        Self::migration_backup().await?;
+        Self::migration_backup(&lore.base_path).await?;
         let legacy_apps = legacy::read_legacy_apps().await;
-        let world = Self::new_default().await?;
+        let world = Self::new_from_config(lore.clone()).await?;
         match legacy_apps {
             Err(e) => error!("Failed to migrate apps: {e}"),
             Ok(legacy_apps) => {
@@ -157,12 +161,13 @@ impl FlecsWorld {
         if let Err(e) = legacy::migrate_docker_instances(
             world.vault.clone(),
             world.relics.usb_device_reader.as_ref(),
+            lore.clone(),
         )
         .await
         {
             error!("Failed to migrate docker instances: {e}")
         }
-        if let Err(e) = legacy::migrate_compose_instances(world.vault.clone()).await {
+        if let Err(e) = legacy::migrate_compose_instances(world.vault.clone(), lore).await {
             error!("Failed to migrate compose instances: {e}")
         }
         Self::delete_legacy_files().await;
@@ -174,44 +179,36 @@ impl FlecsWorld {
         Ok(world)
     }
 
-    pub async fn create_default() -> Result<Self, CreateError> {
-        Self::create_from_config(Config::default()).await
-    }
-
-    pub async fn new_default() -> Result<Self, CreateError> {
-        Self::new_from_config(Config::default()).await
-    }
-
-    pub async fn new_from_config(config: Config) -> Result<Self, CreateError> {
+    pub async fn new_from_config(lore: Arc<Lore>) -> Result<Self, CreateError> {
         Self::new(
             FlecsSorcerers::default(),
             Enchantments {
                 floxy: Arc::new(
-                    FloxyImpl::from_config(config.floxy_base_path, config.floxy_config_path)
+                    FloxyImpl::from_config(lore.clone())
                         .map_err(|e| CreateError::FloxyCreation(e.to_string()))?,
                 ),
                 quest_master: QuestMaster::default(),
             },
             FlecsRelics::default(),
-            Arc::new(Vault::new(config.vault_config)),
-            config.socket_path,
+            Arc::new(Vault::new(lore.clone())),
+            lore,
         )
         .await
     }
 
-    pub async fn create_from_config(config: Config) -> Result<Self, CreateError> {
+    pub async fn create_from_config(lore: Arc<Lore>) -> Result<Self, CreateError> {
         Self::create(
             FlecsSorcerers::default(),
             Enchantments {
                 floxy: Arc::new(
-                    FloxyImpl::from_config(config.floxy_base_path, config.floxy_config_path)
+                    FloxyImpl::from_config(lore.clone())
                         .map_err(|e| CreateError::FloxyCreation(e.to_string()))?,
                 ),
                 quest_master: QuestMaster::default(),
             },
             FlecsRelics::default(),
-            Arc::new(Vault::new(config.vault_config)),
-            config.socket_path,
+            Arc::new(Vault::new(lore.clone())),
+            lore,
         )
         .await
     }
@@ -284,9 +281,9 @@ impl<
         enchantments: Enchantments<F>,
         relics: Relics<UDR, NAR, NDR>,
         vault: Arc<Vault>,
-        socket_path: PathBuf,
+        lore: Arc<Lore>,
     ) -> Result<Self, CreateError> {
-        let world = Self::new(sorcerers, enchantments, relics, vault, socket_path).await?;
+        let world = Self::new(sorcerers, enchantments, relics, vault, lore).await?;
         world
             .spin_up()
             .await
@@ -299,7 +296,7 @@ impl<
         enchantments: Enchantments<F>,
         relics: Relics<UDR, NAR, NDR>,
         vault: Arc<Vault>,
-        socket_path: PathBuf,
+        lore: Arc<Lore>,
     ) -> Result<Self, CreateError> {
         enchantments
             .floxy
@@ -309,9 +306,9 @@ impl<
         let world = Self {
             server: crate::fsm::spawn_server(
                 sorcerers.clone(),
-                socket_path,
                 enchantments.clone(),
                 vault.clone(),
+                lore,
             ),
             sorcerers,
             enchantments,
@@ -319,5 +316,26 @@ impl<
             vault,
         };
         Ok(world)
+    }
+
+    pub async fn read_lore() -> Result<Lore, lore::Error> {
+        let reader = &EnvReader;
+        let config_path = lore::config_path(reader);
+        let config_exists = config_path.try_exists().map_err(conf::Error::from)?;
+        if config_exists {
+            let file_config = lore::conf::FlecsConfig::from_path(&config_path).await?;
+            let env_config = lore::conf::FlecsConfig::from_var_reader(reader)?;
+            let lore = lore::Lore::from_confs_with_defaults([env_config, file_config])?;
+            Ok(lore)
+        } else {
+            let lore = lore::Lore::from_conf_with_defaults(
+                lore::conf::FlecsConfig::from_var_reader(reader)?,
+            )?;
+            let file = lore::conf::FlecsConfig::from(&lore);
+            if let Err(e) = file.to_path(&config_path).await {
+                error!("Could not write config to {}: {e}", config_path.display())
+            }
+            Ok(lore)
+        }
     }
 }

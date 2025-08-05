@@ -2,6 +2,7 @@ mod exportius_impl;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::forge::time::SystemTimeExt;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::lore::ExportLoreRef;
 use crate::quest::SyncQuest;
 use crate::relic::async_flecstract::archive_to_file;
 use crate::sorcerer::Sorcerer;
@@ -165,6 +166,7 @@ pub trait Exportius: Sorcerer + 'static {
         quest: SyncQuest,
         vault: Arc<Vault>,
         floxy: Arc<FloxyOperation<F>>,
+        lore: ExportLoreRef,
         apps: Vec<AppKey>,
         instances: Vec<InstanceId>,
     ) -> Result<String, CreateExportError> {
@@ -172,7 +174,7 @@ pub trait Exportius: Sorcerer + 'static {
             .lock()
             .await
             .create_sub_quest("Create export".to_string(), |quest| {
-                Self::create_export(quest, vault, floxy, apps, instances)
+                Self::create_export(quest, vault, floxy, lore, apps, instances)
             })
             .await
             .2;
@@ -214,12 +216,16 @@ pub trait Exportius: Sorcerer + 'static {
         quest: SyncQuest,
         vault: Arc<Vault>,
         floxy: Arc<FloxyOperation<F>>,
+        lore: ExportLoreRef,
         apps: Vec<AppKey>,
         instances: Vec<InstanceId>,
     ) -> Result<PathBuf, CreateExportError> {
         let now = std::time::SystemTime::now();
-        let export_dir =
-            PathBuf::from(crate::lore::flecsport::BASE_PATH).join(now.unix_millis().to_string());
+        let export_dir = lore
+            .as_ref()
+            .as_ref()
+            .base_path
+            .join(now.unix_millis().to_string());
         let result = quest
             .lock()
             .await
@@ -298,6 +304,7 @@ pub trait Exportius: Sorcerer + 'static {
                     quest,
                     vault.clone(),
                     floxy,
+                    lore,
                     apps,
                     instances,
                     export_dir.clone(),
@@ -324,6 +331,7 @@ pub trait Exportius: Sorcerer + 'static {
         quest: SyncQuest,
         vault: Arc<Vault>,
         floxy: Arc<FloxyOperation<F>>,
+        lore: ExportLoreRef,
         apps: Vec<AppKey>,
         instances: Vec<InstanceId>,
         export_dir: PathBuf,
@@ -332,7 +340,7 @@ pub trait Exportius: Sorcerer + 'static {
             .lock()
             .await
             .create_sub_quest(format!("Export apps to {export_dir:?}"), |quest| {
-                Self::export_apps(quest, vault.clone(), apps, export_dir.join("apps"))
+                Self::export_apps(quest, vault.clone(), lore, apps, export_dir.join("apps"))
             })
             .await
             .2;
@@ -378,9 +386,9 @@ pub trait Exportius: Sorcerer + 'static {
         export_id: String,
     ) -> Result<Option<PathBuf>, std::io::Error>;
 
-    async fn get_exports(&self) -> Result<Vec<String>, std::io::Error> {
-        let export_dir = PathBuf::from(crate::lore::flecsport::BASE_PATH);
-        if let Ok(false) = tokio::fs::try_exists(&export_dir).await {
+    async fn get_exports(&self, lore: ExportLoreRef) -> Result<Vec<String>, std::io::Error> {
+        let export_dir = &lore.as_ref().as_ref().base_path;
+        if let Ok(false) = tokio::fs::try_exists(export_dir).await {
             return Ok(Vec::new());
         };
         let mut exports = Vec::new();
@@ -414,6 +422,7 @@ pub trait Exportius: Sorcerer + 'static {
     async fn export_apps(
         quest: SyncQuest,
         vault: Arc<Vault>,
+        lore: ExportLoreRef,
         apps: Vec<AppKey>,
         path: PathBuf,
     ) -> Result<(), ExportAppError>;

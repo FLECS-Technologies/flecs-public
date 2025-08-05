@@ -1,7 +1,8 @@
 use async_signal::{Signal, Signals};
 use flecs_core::fsm::world::FlecsWorld;
 use futures_util::StreamExt;
-use tracing::info;
+use std::sync::Arc;
+use tracing::{info, trace};
 
 fn init_signal_handler() -> std::io::Result<tokio::sync::oneshot::Receiver<()>> {
     let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
@@ -22,14 +23,16 @@ fn init_signal_handler() -> std::io::Result<tokio::sync::oneshot::Receiver<()>> 
 #[tokio::main]
 async fn main() -> flecs_core::fsm::Result<()> {
     flecs_core::fsm::init_backtracing();
-    flecs_core::fsm::init_tracing();
+    let lore = FlecsWorld::read_lore().await?;
+    flecs_core::fsm::init_tracing(&lore.tracing_filter);
+    trace!("Using {lore:#?}");
     let stop_signal = init_signal_handler()?;
     let world = if std::env::args().any(|arg| &arg == "--migrate")
         || FlecsWorld::migration_necessary().await
     {
-        FlecsWorld::migrate().await?
+        FlecsWorld::migrate(Arc::new(lore)).await?
     } else {
-        FlecsWorld::create_default().await?
+        FlecsWorld::create_from_config(Arc::new(lore)).await?
     };
     stop_signal.await?;
     world.halt().await;

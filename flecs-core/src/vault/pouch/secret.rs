@@ -1,9 +1,10 @@
 use super::Result;
 use super::{Pouch, combine_results};
+use crate::lore::SecretLoreRef;
 use flecs_console_client::models::SessionId;
 use flecsd_axum_server::models::AuthResponseData;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Secrets {
@@ -45,7 +46,7 @@ const SESSION_FILE_NAME: &str = ".session_id";
 const LICENSE_FILE_NAME: &str = ".license";
 pub struct SecretPouch {
     secrets: Secrets,
-    path: PathBuf,
+    lore: SecretLoreRef,
 }
 
 impl Pouch for SecretPouch {
@@ -62,7 +63,7 @@ impl Pouch for SecretPouch {
 
 impl SecretPouch {
     pub(in super::super) fn close(&mut self) -> crate::vault::Result<()> {
-        fs::create_dir_all(&self.path)?;
+        fs::create_dir_all(self.base_path())?;
         combine_results(self.save_session(), self.save_license())
     }
 
@@ -72,15 +73,19 @@ impl SecretPouch {
 }
 
 impl SecretPouch {
-    pub fn new(path: &Path) -> Self {
+    fn base_path(&self) -> &Path {
+        &self.lore.as_ref().as_ref().base_path
+    }
+
+    pub fn new(lore: SecretLoreRef) -> Self {
         Self {
             secrets: Secrets::default(),
-            path: path.to_path_buf(),
+            lore,
         }
     }
     fn save_license(&self) -> crate::vault::Result<()> {
         fs::write(
-            self.path.join(LICENSE_FILE_NAME),
+            self.base_path().join(LICENSE_FILE_NAME),
             self.secrets.license_key.as_ref().unwrap_or(&String::new()),
         )?;
         Ok(())
@@ -99,18 +104,18 @@ impl SecretPouch {
             _ => String::new(),
         }
         .to_string();
-        fs::write(self.path.join(SESSION_FILE_NAME), content)?;
+        fs::write(self.base_path().join(SESSION_FILE_NAME), content)?;
         Ok(())
     }
     fn read_session(&mut self) -> Result<()> {
-        let session_file = fs::read_to_string(self.path.join(SESSION_FILE_NAME))?;
+        let session_file = fs::read_to_string(self.base_path().join(SESSION_FILE_NAME))?;
         let mut lines = session_file.lines();
         self.secrets.session_id.id = lines.next().map(str::to_string);
         self.secrets.session_id.timestamp = lines.next().and_then(|s| s.parse().ok());
         Ok(())
     }
     fn read_license(&mut self) -> Result<()> {
-        let license_file = fs::read_to_string(self.path.join(LICENSE_FILE_NAME))?;
+        let license_file = fs::read_to_string(self.base_path().join(LICENSE_FILE_NAME))?;
         self.secrets.license_key = license_file.lines().next().map(str::to_string);
         Ok(())
     }
@@ -119,12 +124,15 @@ impl SecretPouch {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::lore;
+    use crate::relic::var::test::MockVarReader;
+    use std::sync::Arc;
     use testdir::testdir;
-    const TEST_PATH: &str = "/tmp/flecs-tests/pouch";
 
     pub fn test_secret_pouch() -> SecretPouch {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         SecretPouch {
-            path: testdir!().join("secrets"),
+            lore,
             secrets: Secrets {
                 license_key: None,
                 session_id: Default::default(),
@@ -135,7 +143,8 @@ pub mod tests {
 
     #[test]
     fn open_complete_secret_pouch() {
-        let test_path = Path::new(TEST_PATH).join("open_complete_secret_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let test_path = lore.secret.base_path.clone();
         fs::create_dir_all(&test_path).unwrap();
         let id = "510292de-e745-4dd0-bf04-75630ba52187";
         let timestamp = 1723534992;
@@ -146,7 +155,7 @@ pub mod tests {
         )
         .unwrap();
         fs::write(test_path.join(LICENSE_FILE_NAME), license).unwrap();
-        let mut secrets = SecretPouch::new(&test_path);
+        let mut secrets = SecretPouch::new(lore);
         secrets.open().unwrap();
         assert_eq!(secrets.secrets.session_id.timestamp, Some(timestamp));
         assert_eq!(secrets.secrets.session_id.id, Some(id.to_string()));
@@ -156,7 +165,8 @@ pub mod tests {
 
     #[test]
     fn close_complete_secret_pouch() {
-        let test_path = Path::new(TEST_PATH).join("close_complete_secret_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let test_path = lore.secret.base_path.clone();
         fs::create_dir_all(&test_path).unwrap();
         let id = "510292de-e745-4dd0-bf04-75630ba52187";
         let timestamp = 1723534992;
@@ -168,7 +178,7 @@ pub mod tests {
             fs::remove_file(test_path.join(LICENSE_FILE_NAME)).unwrap();
         }
         let mut secrets = SecretPouch {
-            path: test_path.to_path_buf(),
+            lore,
             secrets: Secrets {
                 license_key: Some(license.to_string()),
                 session_id: SessionId {
@@ -191,13 +201,14 @@ pub mod tests {
 
     #[test]
     fn open_secret_pouch_without_timestamp() {
-        let test_path = Path::new(TEST_PATH).join("open_secret_pouch_without_timestamp");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let test_path = lore.secret.base_path.clone();
         fs::create_dir_all(&test_path).unwrap();
         let id = "510292de-e745-4dd0-bf04-75630ba52187";
         let license = "1234-ABCD-EFGH-5678-IJKL";
         fs::write(test_path.join(SESSION_FILE_NAME), id).unwrap();
         fs::write(test_path.join(LICENSE_FILE_NAME), license).unwrap();
-        let mut secrets = SecretPouch::new(&test_path);
+        let mut secrets = SecretPouch::new(lore);
         secrets.open().unwrap();
         assert!(secrets.secrets.session_id.timestamp.is_none());
         assert_eq!(secrets.secrets.session_id.id, Some(id.to_string()));
@@ -207,7 +218,8 @@ pub mod tests {
 
     #[test]
     fn close_secret_pouch_without_timestamp() {
-        let test_path = Path::new(TEST_PATH).join("close_secret_pouch_without_timestamp");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let test_path = lore.secret.base_path.clone();
         fs::create_dir_all(&test_path).unwrap();
         let id = "510292de-e745-4dd0-bf04-75630ba52187";
         let license = "1234-ABCD-EFGH-5678-IJKL";
@@ -218,7 +230,7 @@ pub mod tests {
             fs::remove_file(test_path.join(LICENSE_FILE_NAME)).unwrap();
         }
         let mut secrets = SecretPouch {
-            path: test_path.to_path_buf(),
+            lore,
             secrets: Secrets {
                 license_key: Some(license.to_string()),
                 session_id: SessionId {
@@ -242,7 +254,8 @@ pub mod tests {
 
     #[test]
     fn open_empty_secret_pouch() {
-        let test_path = Path::new(TEST_PATH).join("open_empty_secret_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let test_path = lore.secret.base_path.clone();
         fs::create_dir_all(&test_path).unwrap();
         if test_path.join(SESSION_FILE_NAME).exists() {
             fs::remove_file(test_path.join(SESSION_FILE_NAME)).unwrap();
@@ -250,7 +263,7 @@ pub mod tests {
         if test_path.join(LICENSE_FILE_NAME).exists() {
             fs::remove_file(test_path.join(LICENSE_FILE_NAME)).unwrap();
         }
-        let mut secrets = SecretPouch::new(&test_path);
+        let mut secrets = SecretPouch::new(lore);
         assert!(secrets.open().is_err());
         assert!(secrets.secrets.session_id.id.is_none());
         assert!(secrets.secrets.session_id.timestamp.is_none());
@@ -260,7 +273,8 @@ pub mod tests {
 
     #[test]
     fn close_empty_secret_pouch() {
-        let test_path = Path::new(TEST_PATH).join("close_empty_secret_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let test_path = lore.secret.base_path.clone();
         fs::create_dir_all(&test_path).unwrap();
         if test_path.join(SESSION_FILE_NAME).exists() {
             fs::remove_file(test_path.join(SESSION_FILE_NAME)).unwrap();
@@ -269,7 +283,7 @@ pub mod tests {
             fs::remove_file(test_path.join(LICENSE_FILE_NAME)).unwrap();
         }
         let mut secrets = SecretPouch {
-            path: test_path.to_path_buf(),
+            lore,
             secrets: Secrets {
                 license_key: None,
                 session_id: SessionId {

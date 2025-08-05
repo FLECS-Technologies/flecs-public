@@ -17,6 +17,7 @@ use crate::jeweler::network::NetworkId;
 use crate::jeweler::serialize_deployment_id;
 use crate::jeweler::serialize_manifest_key;
 use crate::jeweler::volume::VolumeId;
+use crate::lore::{InstanceLore, Lore};
 use crate::quest::{Quest, SyncQuest};
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::vault::pouch::AppKey;
@@ -49,6 +50,8 @@ pub struct DockerInstance {
     pub hostname: String,
     pub config: InstanceConfig,
     desired: InstanceStatus,
+    #[serde(skip_serializing)]
+    lore: Arc<Lore>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -333,12 +336,24 @@ pub struct DockerInstanceDeserializable {
 }
 
 impl DockerInstance {
+    fn lore(&self) -> &InstanceLore {
+        self.lore.as_ref().as_ref()
+    }
+
+    fn config_path(&self) -> PathBuf {
+        self.lore().instance_config_path(&self.id.to_string())
+    }
     pub fn app_key(&self) -> AppKey {
         self.manifest.key.clone()
     }
 
     pub async fn get_default_network_address(&self) -> crate::Result<Option<IpAddr>> {
-        match self.deployment.default_network().await?.name {
+        match self
+            .deployment
+            .default_network(self.lore.clone())
+            .await?
+            .name
+        {
             None => anyhow::bail!("Default network has no name"),
             Some(network_id) => Ok(self.config.connected_networks.get(&network_id).cloned()),
         }
@@ -358,7 +373,7 @@ impl DockerInstance {
                 models::InstanceEditor {
                     name: editor.name.clone(),
                     port: editor.port.get(),
-                    url: lore::floxy::instance_editor_location(self.id, editor.port.get()),
+                    url: lore::FloxyLore::instance_editor_location(self.id, editor.port.get()),
                     path_prefix,
                 }
             })
@@ -510,6 +525,7 @@ impl DockerInstance {
 
     pub async fn try_create_new(
         quest: SyncQuest,
+        lore: Arc<Lore>,
         deployment: Arc<dyn DockerDeployment>,
         manifest: Arc<AppManifestSingle>,
         name: String,
@@ -518,9 +534,9 @@ impl DockerInstance {
         let instance_id = InstanceId::new_random();
         let tcp_port_mapping = manifest.ports.clone();
         let environment_variables = manifest.environment_variables.clone();
-        let config_path = crate::lore::instance_config_path(&instance_id.to_string());
+        let config_path = lore.instance.instance_config_path(&instance_id.to_string());
         let default_network_id = deployment
-            .default_network()
+            .default_network(lore.clone())
             .await?
             .name
             .ok_or_else(|| anyhow::anyhow!("Default network has no name"))?;
@@ -587,6 +603,7 @@ impl DockerInstance {
             manifest,
             config,
             desired: InstanceStatus::Stopped,
+            lore,
         })
     }
 
@@ -602,7 +619,12 @@ impl DockerInstance {
         self.load_reverse_proxy_config(floxy.clone()).await?;
         self.load_additional_locations_reverse_proxy_config(floxy)?;
         self.deployment
-            .start_instance(self.into(), Some(self.id), &self.manifest.config_files)
+            .start_instance(
+                self.lore.clone(),
+                self.into(),
+                Some(self.id),
+                &self.manifest.config_files,
+            )
             .await?;
         Ok(())
     }
@@ -760,7 +782,7 @@ impl DockerInstance {
         match self.deployment.instance_status(self.id).await? {
             InstanceStatus::Running | InstanceStatus::Unknown | InstanceStatus::Orphaned => {
                 self.deployment
-                    .stop_instance(self.id, &self.manifest.config_files)
+                    .stop_instance(self.id, self.lore.clone(), &self.manifest.config_files)
                     .await
             }
             _ => Ok(()),
@@ -816,18 +838,18 @@ impl DockerInstance {
     pub async fn export_config_files(
         id: InstanceId,
         config_files: Vec<ConfigFile>,
-        path: PathBuf,
+        src: PathBuf,
+        dst: PathBuf,
     ) -> anyhow::Result<()> {
         debug!(
             "Export config files of stopped instance {} to {}",
             id,
-            path.display()
+            dst.display()
         );
-        tokio::fs::create_dir_all(&path).await?;
-        let existing_config_path = crate::lore::instance_config_path(&id.to_string());
+        tokio::fs::create_dir_all(&dst).await?;
         for result in join_all(config_files.iter().map(|config_file| {
-            let src = existing_config_path.join(&config_file.host_file_name);
-            let dst = path.join(&config_file.host_file_name);
+            let src = src.join(&config_file.host_file_name);
+            let dst = dst.join(&config_file.host_file_name);
             tokio::fs::copy(src, dst)
         }))
         .await
@@ -947,6 +969,7 @@ impl DockerInstance {
     }
 
     pub fn try_create_with_state(
+        lore: Arc<Lore>,
         instance: DockerInstanceDeserializable,
         manifests: &vault::pouch::manifest::Gems,
         deployments: &vault::pouch::deployment::Gems,
@@ -978,10 +1001,11 @@ impl DockerInstance {
         let Deployment::Docker(deployment) = deployment else {
             anyhow::bail!("DockerInstances can only be created with DockerDeployments");
         };
-        Ok(Self::create(instance, manifest, deployment))
+        Ok(Self::create(lore, instance, manifest, deployment))
     }
 
     pub fn create(
+        lore: Arc<Lore>,
         instance: DockerInstanceDeserializable,
         manifest: Arc<AppManifestSingle>,
         deployment: Arc<dyn DockerDeployment>,
@@ -994,10 +1018,12 @@ impl DockerInstance {
             config: instance.config,
             name: instance.name,
             hostname: instance.hostname,
+            lore,
         }
     }
 
     pub async fn try_create_from_legacy<U: UsbDeviceReader>(
+        lore: Arc<Lore>,
         instance: legacy::deployment::Instance,
         usb_device_reader: &U,
         manifest: Arc<AppManifestSingle>,
@@ -1008,7 +1034,7 @@ impl DockerInstance {
             usb_device_reader,
             deployment.id(),
         )?;
-        let mut instance = Self::create(instance, manifest.clone(), deployment.clone());
+        let mut instance = Self::create(lore, instance, manifest.clone(), deployment.clone());
         instance.config.volume_mounts = Self::create_volumes(
             Quest::new_synced("Create volumes"),
             deployment,
@@ -1073,6 +1099,7 @@ impl DockerInstance {
                     Self::export_config_files(
                         self.id,
                         self.manifest.config_files.clone(),
+                        self.lore().instance_config_path(&self.id.to_string()),
                         path.join("conf"),
                     )
                 },
@@ -1132,6 +1159,7 @@ impl DockerInstance {
                     Self::export_config_files(
                         self.id,
                         self.manifest.config_files.clone(),
+                        self.config_path(),
                         new_backup_path.join("conf"),
                     )
                 },
@@ -1238,6 +1266,7 @@ pub mod tests {
     use crate::jeweler::gem::manifest::single::{EnvironmentVariable, PortMapping, PortRange};
     use crate::quest::Quest;
     use crate::relic::device::usb::tests::prepare_usb_device_test_path;
+    use crate::relic::var::test::MockVarReader;
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::instance::tests::{NETWORK_INSTANCE, get_test_instance};
     use bollard::secret::Network;
@@ -1253,9 +1282,11 @@ pub mod tests {
     use std::num::IntErrorKind;
     use std::path::PathBuf;
     use std::str::FromStr;
+    use testdir::testdir;
 
     #[test]
     fn try_create_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = create_test_manifest(None);
         let app_key = manifest.key().clone();
         let manifests = HashMap::from([(app_key.clone(), manifest)]);
@@ -1272,11 +1303,12 @@ pub mod tests {
             config: InstanceConfig::default(),
             hostname: format!("flecs-{instance_id}"),
         };
-        DockerInstance::try_create_with_state(instance, &manifests, &deployments).unwrap();
+        DockerInstance::try_create_with_state(lore, instance, &manifests, &deployments).unwrap();
     }
 
     #[test]
     fn try_create_no_deployment() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = create_test_manifest(None);
         let app_key = manifest.key().clone();
         let manifests = HashMap::from([(app_key.clone(), manifest)]);
@@ -1292,11 +1324,15 @@ pub mod tests {
             config: InstanceConfig::default(),
             hostname: format!("flecs-{instance_id}"),
         };
-        assert!(DockerInstance::try_create_with_state(instance, &manifests, &deployments).is_err());
+        assert!(
+            DockerInstance::try_create_with_state(lore, instance, &manifests, &deployments)
+                .is_err()
+        );
     }
 
     #[test]
     fn try_create_no_manifest() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = create_test_manifest(None);
         let app_key = manifest.key().clone();
         let manifests = HashMap::new();
@@ -1313,15 +1349,20 @@ pub mod tests {
             config: InstanceConfig::default(),
             hostname: format!("flecs-{instance_id}"),
         };
-        assert!(DockerInstance::try_create_with_state(instance, &manifests, &deployments).is_err());
+        assert!(
+            DockerInstance::try_create_with_state(lore, instance, &manifests, &deployments)
+                .is_err()
+        );
     }
 
     pub fn test_instance(
         id: u32,
+        lore: Arc<Lore>,
         deployment: Arc<dyn DockerDeployment>,
         manifest: Arc<AppManifestSingle>,
     ) -> DockerInstance {
         DockerInstance {
+            lore,
             id: InstanceId::new(id),
             desired: InstanceStatus::Stopped,
             name: "TestInstance".to_string(),
@@ -1414,6 +1455,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn delete_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -1432,14 +1474,20 @@ pub mod tests {
             .expect_delete_volume()
             .times(4)
             .returning(|_, _| Ok(()));
-        test_instance(1, Arc::new(deployment), create_test_manifest_full(None))
-            .delete(Quest::new_synced("TestQuest".to_string()), floxy)
-            .await
-            .unwrap();
+        test_instance(
+            1,
+            lore,
+            Arc::new(deployment),
+            create_test_manifest_full(None),
+        )
+        .delete(Quest::new_synced("TestQuest".to_string()), floxy)
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
     async fn delete_volume_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -1460,7 +1508,7 @@ pub mod tests {
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        test_instance(2, Arc::new(deployment), manifest)
+        test_instance(2, lore, Arc::new(deployment), manifest)
             .delete(Quest::new_synced("TestQuest".to_string()), floxy)
             .await
             .unwrap();
@@ -1468,6 +1516,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn delete_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -1488,7 +1537,7 @@ pub mod tests {
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        let (_error, instance) = test_instance(3, Arc::new(deployment), manifest)
+        let (_error, instance) = test_instance(3, lore, Arc::new(deployment), manifest)
             .delete(Quest::new_synced("TestQuest".to_string()), floxy)
             .await
             .err()
@@ -1498,6 +1547,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn halt_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -1506,7 +1556,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
         deployment
             .expect_instance_status()
             .times(1)
@@ -1514,7 +1564,7 @@ pub mod tests {
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        let mut instance = test_instance(4, Arc::new(deployment), manifest);
+        let mut instance = test_instance(4, lore, Arc::new(deployment), manifest);
         instance.desired = InstanceStatus::Running;
         assert!(instance.halt().await.is_err());
         assert_eq!(instance.desired, InstanceStatus::Running);
@@ -1522,16 +1572,22 @@ pub mod tests {
 
     #[tokio::test]
     async fn halt_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         deployment
             .expect_instance_status()
             .times(1)
             .returning(|_| Ok(InstanceStatus::Running));
-        let mut instance = test_instance(5, Arc::new(deployment), create_test_manifest_full(None));
+        let mut instance = test_instance(
+            5,
+            lore,
+            Arc::new(deployment),
+            create_test_manifest_full(None),
+        );
         instance.config.mapped_editor_ports = HashMap::from([(10, 100)]);
         instance.desired = InstanceStatus::Running;
         assert!(instance.halt().await.is_ok());
@@ -1540,6 +1596,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn halt_stopped_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment.expect_stop_instance().times(0);
         deployment
@@ -1549,7 +1606,7 @@ pub mod tests {
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        let mut instance = test_instance(6, Arc::new(deployment), manifest);
+        let mut instance = test_instance(6, lore, Arc::new(deployment), manifest);
         instance.desired = InstanceStatus::Running;
         assert!(instance.halt().await.is_ok());
         assert_eq!(instance.desired, InstanceStatus::Running);
@@ -1557,6 +1614,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn stop_sets_desired() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         deployment.expect_stop_instance().times(0);
@@ -1567,7 +1625,7 @@ pub mod tests {
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        let mut instance = test_instance(6, Arc::new(deployment), manifest);
+        let mut instance = test_instance(6, lore, Arc::new(deployment), manifest);
         instance.desired = InstanceStatus::Running;
         assert!(instance.stop(floxy).await.is_ok());
         assert_eq!(instance.desired, InstanceStatus::Stopped);
@@ -1575,6 +1633,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn stop_and_delete_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -1587,7 +1646,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         deployment
             .expect_instance_status()
             .times(1)
@@ -1604,7 +1663,7 @@ pub mod tests {
             panic!()
         };
         assert!(
-            test_instance(7, Arc::new(deployment), manifest)
+            test_instance(7, lore, Arc::new(deployment), manifest)
                 .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
                 .await
                 .is_ok()
@@ -1613,6 +1672,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn stop_and_delete_delete_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -1625,7 +1685,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         deployment
             .expect_instance_status()
             .times(1)
@@ -1641,7 +1701,7 @@ pub mod tests {
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        let mut instance = test_instance(8, Arc::new(deployment), manifest);
+        let mut instance = test_instance(8, lore, Arc::new(deployment), manifest);
         instance.desired = InstanceStatus::Running;
         let (_error, instance) = instance
             .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
@@ -1653,6 +1713,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn stop_and_delete_stop_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -1662,7 +1723,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _, _| Err(anyhow::anyhow!("TestError")));
         deployment
             .expect_instance_status()
             .times(1)
@@ -1672,7 +1733,7 @@ pub mod tests {
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        let mut instance = test_instance(9, Arc::new(deployment), manifest);
+        let mut instance = test_instance(9, lore, Arc::new(deployment), manifest);
         instance.desired = InstanceStatus::Running;
         let (_error, instance) = instance
             .stop_and_delete(Quest::new_synced("TestQuest".to_string()), floxy)
@@ -1829,13 +1890,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = create_test_manifest_full(None);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_copy_from_app_image()
             .times(3)
             .returning(|_, _, _, _, _| Ok(()));
-        deployment.expect_default_network().times(1).returning(|| {
+        deployment.expect_default_network().times(1).returning(|_| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
                 ..Network::default()
@@ -1849,6 +1911,7 @@ pub mod tests {
         let address = IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123));
         let instance = DockerInstance::try_create_new(
             Quest::new_synced("TestQuest".to_string()),
+            lore,
             deployment,
             manifest.clone(),
             "TestInstance".to_string(),
@@ -1880,13 +1943,14 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_create_config_fails() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = create_test_manifest_full(None);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_copy_from_app_image()
             .times(3)
             .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
-        deployment.expect_default_network().times(1).returning(|| {
+        deployment.expect_default_network().times(1).returning(|_| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
                 ..Network::default()
@@ -1896,6 +1960,7 @@ pub mod tests {
         assert!(
             DockerInstance::try_create_new(
                 Quest::new_synced("TestQuest".to_string()),
+                lore,
                 deployment,
                 manifest.clone(),
                 "TestInstance".to_string(),
@@ -1908,16 +1973,18 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_default_network_without_id() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = create_test_manifest_full(None);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_default_network()
             .times(1)
-            .returning(|| Ok(Network::default()));
+            .returning(|_| Ok(Network::default()));
         let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
         assert!(
             DockerInstance::try_create_new(
                 Quest::new_synced("TestQuest".to_string()),
+                lore,
                 deployment,
                 manifest.clone(),
                 "TestInstance".to_string(),
@@ -1930,16 +1997,18 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_default_network_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = create_test_manifest_full(None);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_default_network()
             .times(1)
-            .returning(|| Err(anyhow::anyhow!("TestError").into()));
+            .returning(|_| Err(anyhow::anyhow!("TestError").into()));
         let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
         assert!(
             DockerInstance::try_create_new(
                 Quest::new_synced("TestQuest".to_string()),
+                lore,
                 deployment,
                 manifest.clone(),
                 "TestInstance".to_string(),
@@ -1952,6 +2021,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_instance_info_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
@@ -1961,6 +2031,7 @@ pub mod tests {
         let manifest = create_test_manifest_full(Some(true));
         let instance_id = InstanceId::new(0x123);
         let instance = DockerInstance {
+            lore,
             name: "TestInstance".to_string(),
             hostname: format!("flecs-{instance_id}"),
             id: instance_id,
@@ -1998,6 +2069,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_instance_info_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
@@ -2007,6 +2079,7 @@ pub mod tests {
         let manifest = create_test_manifest_full(Some(true));
         let instance_id = InstanceId::new(0x123);
         let instance = DockerInstance {
+            lore,
             name: "TestInstance".to_string(),
             hostname: format!("flecs-{instance_id}"),
             id: instance_id,
@@ -2020,6 +2093,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_instance_info_details_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
@@ -2029,6 +2103,7 @@ pub mod tests {
         let manifest = create_test_manifest_full(Some(true));
         let instance_id = InstanceId::new(0x123);
         let instance = DockerInstance {
+            lore,
             name: "TestInstance".to_string(),
             hostname: format!("flecs-{instance_id}"),
             id: instance_id,
@@ -2113,6 +2188,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_instance_info_details_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
@@ -2122,6 +2198,7 @@ pub mod tests {
         let manifest = create_test_manifest_full(Some(true));
         let instance_id = InstanceId::new(0x123);
         let instance = DockerInstance {
+            lore,
             name: "TestInstance".to_string(),
             hostname: format!("flecs-{instance_id}"),
             id: instance_id,
@@ -2143,12 +2220,13 @@ pub mod tests {
 
     #[test]
     fn config_from_instance() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         prepare_usb_device_test_path("test_instance_dev_1");
         prepare_usb_device_test_path("test_instance_dev_2");
         let deployment = MockedDockerDeployment::new();
         let deployment = Arc::new(deployment);
         let manifest = create_test_manifest_full(Some(true));
-        let mut instance = test_instance(123, deployment, manifest);
+        let mut instance = test_instance(123, lore, deployment, manifest);
         instance.config.connected_networks.insert(
             "Ipv4Network".to_string(),
             IpAddr::V4(Ipv4Addr::new(20, 22, 24, 26)),
@@ -2461,10 +2539,12 @@ pub mod tests {
 
     #[test]
     fn replace_manifest() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        let mut instance = test_instance(2, Arc::new(MockedDockerDeployment::new()), manifest);
+        let mut instance =
+            test_instance(2, lore, Arc::new(MockedDockerDeployment::new()), manifest);
         let manifest = create_test_manifest(Some("#2".to_string()));
         assert_eq!(instance.manifest.revision(), None);
         let old_manifest = instance.replace_manifest(manifest);
@@ -2474,6 +2554,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_start_ok_already_running() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
@@ -2484,7 +2565,7 @@ pub mod tests {
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        let mut instance = test_instance(2, Arc::new(deployment), manifest);
+        let mut instance = test_instance(2, lore, Arc::new(deployment), manifest);
         instance.desired = InstanceStatus::Stopped;
         instance.start(floxy).await.unwrap();
         assert_eq!(instance.desired, InstanceStatus::Running);
@@ -2492,6 +2573,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_start_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_server_proxy_configs()
@@ -2509,12 +2591,12 @@ pub mod tests {
         deployment
             .expect_start_instance()
             .once()
-            .withf(|_, id, _| id == &Some(InstanceId::new(2)))
-            .returning(|_, _, _| Ok(InstanceId::new(2)));
+            .withf(|_, _, id, _| id == &Some(InstanceId::new(2)))
+            .returning(|_, _, _, _| Ok(InstanceId::new(2)));
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };
-        let mut instance = test_instance(2, Arc::new(deployment), manifest);
+        let mut instance = test_instance(2, lore, Arc::new(deployment), manifest);
         instance.desired = InstanceStatus::Stopped;
         instance.start(floxy).await.unwrap();
         assert_eq!(instance.desired, InstanceStatus::Running);
@@ -2522,8 +2604,9 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_load_reverse_proxy_config_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
-        deployment.expect_default_network().returning(|| {
+        deployment.expect_default_network().returning(|_| {
             Ok(Network {
                 name: Some("flecs".to_string()),
                 ..Default::default()
@@ -2541,7 +2624,12 @@ pub mod tests {
             })
             .returning(|_, _, _, _| Ok(false));
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
-        let mut instance = test_instance(2, Arc::new(deployment), create_test_manifest_full(None));
+        let mut instance = test_instance(
+            2,
+            lore,
+            Arc::new(deployment),
+            create_test_manifest_full(None),
+        );
         instance.config.connected_networks.insert(
             "flecs".to_string(),
             IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20)),
@@ -2551,21 +2639,28 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_load_reverse_proxy_config_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_default_network()
-            .returning(|| Err(anyhow::anyhow!("TestError").into()));
+            .returning(|_| Err(anyhow::anyhow!("TestError").into()));
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        let instance = test_instance(2, Arc::new(deployment), create_test_manifest_full(None));
+        let instance = test_instance(
+            2,
+            lore,
+            Arc::new(deployment),
+            create_test_manifest_full(None),
+        );
         assert!(instance.load_reverse_proxy_config(floxy).await.is_err());
     }
 
     #[tokio::test]
     async fn instance_load_reverse_proxy_config_ok_no_editors() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let AppManifest::Single(manifest) = create_test_manifest_numbered(1, 2, None) else {
             panic!()
         };
-        let instance = test_instance(2, Arc::new(MockedDockerDeployment::new()), manifest);
+        let instance = test_instance(2, lore, Arc::new(MockedDockerDeployment::new()), manifest);
         instance
             .load_reverse_proxy_config(FloxyOperation::new_arc(Arc::new(MockFloxy::new())))
             .await
@@ -2574,20 +2669,27 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_load_reverse_proxy_config_ok_no_address() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
-        deployment.expect_default_network().returning(|| {
+        deployment.expect_default_network().returning(|_| {
             Ok(Network {
                 name: Some("flecs".to_string()),
                 ..Default::default()
             })
         });
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
-        let instance = test_instance(2, Arc::new(deployment), create_test_manifest_full(None));
+        let instance = test_instance(
+            2,
+            lore,
+            Arc::new(deployment),
+            create_test_manifest_full(None),
+        );
         instance.load_reverse_proxy_config(floxy).await.unwrap();
     }
 
     #[tokio::test]
     async fn instance_delete_reverse_proxy_config_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -2597,6 +2699,7 @@ pub mod tests {
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let instance = test_instance(
             2,
+            lore,
             Arc::new(MockedDockerDeployment::new()),
             create_test_manifest_full(None),
         );
@@ -2605,6 +2708,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_delete_server_proxy_configs_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_server_proxy_configs()
@@ -2625,6 +2729,7 @@ pub mod tests {
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut instance = test_instance(
             2,
+            lore,
             Arc::new(MockedDockerDeployment::new()),
             create_test_manifest_full(None),
         );
@@ -2634,6 +2739,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn instance_delete_server_proxy_configs_ok_no_mapped_ports() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
@@ -2641,6 +2747,7 @@ pub mod tests {
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
         let mut instance = test_instance(
             2,
+            lore,
             Arc::new(MockedDockerDeployment::new()),
             create_test_manifest_full(None),
         );
@@ -2659,6 +2766,7 @@ pub mod tests {
         else {
             panic!()
         };
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         if let Some(mock_result) = disconnect_mock_result {
             deployment
@@ -2678,6 +2786,7 @@ pub mod tests {
                 .return_once(|_| mock_result);
         }
         DockerInstance {
+            lore,
             name: "TestInstance".to_string(),
             hostname: INSTANCE_ID.to_docker_id(),
             id: INSTANCE_ID,
@@ -2774,11 +2883,17 @@ pub mod tests {
 
     #[test]
     fn get_instance_deployment() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
             .return_const("GetMockedDeployment".to_string());
-        let instance = test_instance(2, Arc::new(deployment), create_test_manifest_full(None));
+        let instance = test_instance(
+            2,
+            lore,
+            Arc::new(deployment),
+            create_test_manifest_full(None),
+        );
         assert_eq!(instance.deployment().id(), "GetMockedDeployment");
     }
 

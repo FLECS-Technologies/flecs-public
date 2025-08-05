@@ -5,6 +5,7 @@ use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::single::{AppManifestSingle, ConfigFile};
 use crate::jeweler::network::{CreateNetworkError, NetworkId};
+use crate::lore::{InstanceLoreRef, NetworkLoreRef};
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
 use bollard::container::Config;
@@ -19,6 +20,7 @@ pub type AppInfo = bollard::models::ImageInspect;
 pub trait DockerDeployment: CommonDeployment {
     async fn create_default_network(
         &self,
+        lore: NetworkLoreRef,
     ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
 
     async fn app_info(
@@ -78,6 +80,7 @@ pub trait DockerDeployment: CommonDeployment {
 
     async fn start_instance(
         &self,
+        lore: InstanceLoreRef,
         config: Config<String>,
         id: Option<InstanceId>,
         config_files: &[ConfigFile],
@@ -86,6 +89,7 @@ pub trait DockerDeployment: CommonDeployment {
     async fn stop_instance(
         &self,
         id: InstanceId,
+        lore: InstanceLoreRef,
         config_files: &[ConfigFile],
     ) -> anyhow::Result<()>;
 
@@ -117,6 +121,7 @@ pub mod tests {
     use crate::jeweler::volume::Volume;
     use crate::jeweler::volume::VolumeDeployment;
     use crate::jeweler::volume::VolumeId;
+    use crate::lore::{ExportLoreRef, ImportLoreRef};
     use crate::quest::SyncQuest;
     use mockall::mock;
     use serde::{Serialize, Serializer};
@@ -154,12 +159,14 @@ pub mod tests {
             async fn export_app(
                 &self,
                 quest: SyncQuest,
+                lore: ExportLoreRef,
                 manifest: AppManifest,
                 path: PathBuf
             ) -> Result<()>;
             async fn import_app(
                 &self,
                 quest: SyncQuest,
+                lore: ImportLoreRef,
                 manifest: AppManifest,
                 path: PathBuf
             ) -> Result<()>;
@@ -167,7 +174,7 @@ pub mod tests {
         #[async_trait]
         impl NetworkDeployment for edDockerDeployment {
             async fn create_network(&self, quest: SyncQuest, config: NetworkConfig) -> Result<Network, CreateNetworkError>;
-            async fn default_network(&self) -> Result<Network, CreateNetworkError>;
+            async fn default_network(&self, lore: NetworkLoreRef) -> Result<Network, CreateNetworkError>;
             async fn delete_network(&self, id: NetworkId) -> Result<()>;
             async fn network(&self, id: NetworkId) -> Result<Option<Network>>;
             async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;
@@ -206,6 +213,7 @@ pub mod tests {
         impl DockerDeployment for edDockerDeployment {
             async fn create_default_network(
                 &self,
+                lore: NetworkLoreRef,
             ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
             async fn app_info(
                 &self,
@@ -257,11 +265,17 @@ pub mod tests {
             ) -> Result<()>;
             async fn start_instance(
                 &self,
+                lore: InstanceLoreRef,
                 config: Config<String>,
                 id: Option<InstanceId>,
                 config_files: &[ConfigFile],
             ) -> Result<InstanceId>;
-            async fn stop_instance(&self, id: InstanceId, config_files: &[ConfigFile]) -> Result<()>;
+            async fn stop_instance(
+                &self, id: InstanceId,
+                lore:
+                InstanceLoreRef,
+                config_files: &[ConfigFile]
+            ) -> Result<()>;
             async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
             async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
             async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> Result<Logs>;

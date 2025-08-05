@@ -3,6 +3,7 @@ mod server_impl;
 pub mod world;
 use crate::enchantment::Enchantments;
 use crate::enchantment::floxy::Floxy;
+use crate::lore::Lore;
 use crate::relic::device::net::NetDeviceReaderImpl;
 use crate::relic::device::usb::UsbDeviceReaderImpl;
 use crate::relic::network::NetworkAdapterReaderImpl;
@@ -34,6 +35,7 @@ use hyper_util::{
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::os::unix::fs::PermissionsExt;
+use std::str::FromStr;
 use std::time::Duration;
 use std::{convert::Infallible, path::PathBuf, sync::Arc};
 use tokio::fs;
@@ -78,9 +80,11 @@ pub fn init_backtracing() {
     }
 }
 
-pub fn init_tracing() {
+pub fn init_tracing(filter: &tracing_subscriber::EnvFilter) {
+    let filter = tracing_subscriber::EnvFilter::from_str(&filter.to_string())
+        .expect("A valid filter should result in a valid string");
     tracing_subscriber::registry()
-        .with(crate::lore::tracing::default_filter())
+        .with(filter)
         .with(tracing_subscriber::fmt::layer())
         .init();
     info!("Tracing initialized");
@@ -106,9 +110,11 @@ async fn create_service<
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
+    lore: Arc<Lore>,
 ) -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
     let server = server_impl::ServerImpl::new(
         vault,
+        lore,
         sorcerers,
         enchantments,
         UsbDeviceReaderImpl::default(),
@@ -253,20 +259,21 @@ pub fn spawn_server<
     F: Floxy + 'static,
 >(
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
-    socket_path: PathBuf,
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
+    lore: Arc<Lore>,
 ) -> ServerHandle {
     let (server_shutdown_sender, server_shutdown_receiver) = tokio::sync::oneshot::channel();
     let (server_shutdown_finished_sender, server_shutdown_finished_receiver) =
         tokio::sync::oneshot::channel();
+    let socket_path = lore.flecsd_socket_path.clone();
     tokio::spawn(async move {
         info!("Starting rust server listening on {socket_path:?}");
         crate::fsm::server(
             sorcerers,
-            socket_path.clone(),
             enchantments,
             vault,
+            lore,
             server_shutdown_receiver,
         )
         .await
@@ -294,14 +301,14 @@ pub async fn server<
     F: Floxy + 'static,
 >(
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
-    socket_path: PathBuf,
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
+    lore: Arc<Lore>,
     shutdown_signal: tokio::sync::oneshot::Receiver<()>,
 ) -> Result<()> {
     serve(
-        create_unix_socket(socket_path).await?,
-        create_service(sorcerers, enchantments, vault).await,
+        create_unix_socket(lore.flecsd_socket_path.clone()).await?,
+        create_service(sorcerers, enchantments, vault, lore).await,
         shutdown_signal,
     )
     .await;

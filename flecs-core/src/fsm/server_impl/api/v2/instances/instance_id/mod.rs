@@ -6,6 +6,7 @@ pub mod stop;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::lore::InstanceLoreRef;
 use crate::sorcerer::instancius::Instancius;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::{
@@ -78,6 +79,7 @@ pub async fn patch<I: Instancius + 'static, F: Floxy + 'static>(
     instancius: Arc<I>,
     floxy: Arc<F>,
     quest_master: QuestMaster,
+    lore: InstanceLoreRef,
     path_params: PatchPathParams,
     request: PatchRequest,
 ) -> PatchResponse {
@@ -102,7 +104,7 @@ pub async fn patch<I: Instancius + 'static, F: Floxy + 'static>(
                         floxy,
                         instance_id,
                         request.to,
-                        crate::lore::base_path().join("instances"),
+                        lore.as_ref().as_ref().base_path.clone(),
                     )
                     .await?;
                 Ok(())

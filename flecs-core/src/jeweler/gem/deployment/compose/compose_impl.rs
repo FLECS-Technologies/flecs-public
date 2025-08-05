@@ -11,11 +11,12 @@ use crate::jeweler::network::{
     CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
+use crate::lore::{ExportLoreRef, ImportLoreRef, NetworkLoreRef};
 use crate::quest::SyncQuest;
+use crate::relic;
 use crate::relic::docker_cli::{DockerCli, ExecuteCommandError};
 use crate::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
-use crate::{lore, relic};
 use async_trait::async_trait;
 use bollard::image::{ImportImageOptions, RemoveImageOptions};
 use bollard::models::{ContainerInspectResponse, ContainerState};
@@ -334,6 +335,7 @@ impl AppDeployment for ComposeDeploymentImpl {
     async fn export_app(
         &self,
         quest: SyncQuest,
+        lore: ExportLoreRef,
         manifest: AppManifest,
         path: PathBuf,
     ) -> anyhow::Result<()> {
@@ -341,7 +343,7 @@ impl AppDeployment for ComposeDeploymentImpl {
             anyhow::bail!("ComposeDeploymentImpl supports only AppManifest::Multi");
         };
         let mut results = Vec::new();
-        let client = self.docker_client_with_timeout(lore::flecsport::APP_EXPORT_TIMEOUT)?;
+        let client = self.docker_client_with_timeout(lore.as_ref().as_ref().timeout)?;
         for service in manifest.services_with_image_info() {
             let path = path.join(format!(
                 "{}_{}.{}.tar",
@@ -374,6 +376,7 @@ impl AppDeployment for ComposeDeploymentImpl {
     async fn import_app(
         &self,
         quest: SyncQuest,
+        lore: ImportLoreRef,
         manifest: AppManifest,
         path: PathBuf,
     ) -> anyhow::Result<()> {
@@ -381,7 +384,7 @@ impl AppDeployment for ComposeDeploymentImpl {
             anyhow::bail!("ComposeDeploymentImpl supports only AppManifest::Multi");
         };
         let mut results = Vec::new();
-        let client = self.docker_client_with_timeout(lore::flimport::APP_IMPORT_TIMEOUT)?;
+        let client = self.docker_client_with_timeout(lore.as_ref().as_ref().timeout)?;
         for service in manifest.services_with_image_info() {
             let path = {
                 // Current format of path
@@ -444,11 +447,15 @@ impl NetworkDeployment for ComposeDeploymentImpl {
         .await
     }
 
-    async fn default_network(&self) -> anyhow::Result<Network, CreateNetworkError> {
+    async fn default_network(
+        &self,
+        lore: NetworkLoreRef,
+    ) -> anyhow::Result<Network, CreateNetworkError> {
         let docker_client = self.docker_client()?;
         DockerDeploymentImpl::default_network_with_client(
             docker_client,
             self.network_adapter_reader.as_ref(),
+            lore,
         )
         .await
     }

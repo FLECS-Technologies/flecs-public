@@ -21,6 +21,8 @@ thiserror = "1.0"
 libc = "0.2"
 procfs = "0.16"
 serde = { version = "1.0", features = ["derive", "rc"] }
+serde_with = { version = "3.14" }
+toml = "0.9"
 usb-ids = "1.2024"
 glob = "0.3"
 axum = "0.7"

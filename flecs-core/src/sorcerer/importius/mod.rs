@@ -3,6 +3,7 @@ mod importius_impl;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem::instance::CreateInstanceError;
 use crate::jeweler::gem::instance::docker::TransferIpError;
+use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::sorcerer::Sorcerer;
@@ -127,6 +128,7 @@ pub trait Importius: Sorcerer + 'static {
         quest: SyncQuest,
         vault: Arc<Vault>,
         floxy: Arc<FloxyOperation<F>>,
+        lore: Arc<Lore>,
         usb_device_reader: Arc<U>,
         path_info: ImportPathInfo,
     ) -> Result<(), ImportError>;

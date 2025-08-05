@@ -11,10 +11,11 @@ use crate::jeweler::network::{
     CreateNetworkError, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
+use crate::lore::{ExportLoreRef, ImportLoreRef, InstanceLoreRef, NetworkLoreRef};
 use crate::quest::{Quest, QuestId, State, SyncQuest};
 use crate::relic::network::{Ipv4Network, NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
-use crate::{jeweler, lore, relic};
+use crate::{jeweler, relic};
 use async_trait::async_trait;
 use bollard::auth::DockerCredentials;
 use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions};
@@ -242,11 +243,15 @@ impl DockerDeploymentImpl {
 
     async fn copy_config_to_instance(
         client: Arc<Docker>,
+        lore: InstanceLoreRef,
         id: InstanceId,
         config_files: &[ConfigFile],
     ) -> crate::Result<()> {
         for config_file in config_files {
-            let src = crate::lore::instance_config_path(&id.to_string())
+            let src = lore
+                .as_ref()
+                .as_ref()
+                .instance_config_path(&id.to_string())
                 .join(&config_file.host_file_name);
             if let Err(e) = Self::copy_to_instance(
                 client.clone(),
@@ -840,8 +845,9 @@ impl DockerDeploymentImpl {
     pub async fn default_network_with_client(
         docker_client: Arc<Docker>,
         network_adapter_reader: &dyn NetworkAdapterReader,
+        lore: NetworkLoreRef,
     ) -> anyhow::Result<Network, CreateNetworkError> {
-        let default_network_name = lore::network::default_network_name();
+        let default_network_name = lore.as_ref().as_ref().default_network_name.as_str();
         let network = relic::docker::network::list(
             docker_client.clone(),
             Some(ListNetworksOptions {
@@ -854,17 +860,18 @@ impl DockerDeploymentImpl {
         if let Some(network) = network {
             return Ok(network);
         };
-        Self::create_default_network_with_client(docker_client, network_adapter_reader).await
+        Self::create_default_network_with_client(docker_client, lore, network_adapter_reader).await
     }
 
     pub async fn create_default_network_with_client(
         docker_client: Arc<Docker>,
+        lore: NetworkLoreRef,
         network_adapter_reader: &dyn NetworkAdapterReader,
     ) -> anyhow::Result<Network, CreateNetworkError> {
         Self::create_network_with_client(
             docker_client,
             Quest::new_synced("Create default network".to_string()),
-            lore::network::default_network_config(),
+            lore.as_ref().as_ref().default_network_config(),
             network_adapter_reader,
         )
         .await
@@ -882,10 +889,11 @@ impl DockerDeploymentImpl {
 impl DockerDeployment for DockerDeploymentImpl {
     async fn create_default_network(
         &self,
+        lore: NetworkLoreRef,
     ) -> crate::Result<jeweler::network::Network, CreateNetworkError> {
         self.create_network(
             Quest::new_synced("Create default network".to_string()),
-            lore::network::default_network_config(),
+            lore.as_ref().as_ref().default_network_config(),
         )
         .await
     }
@@ -1015,6 +1023,7 @@ impl DockerDeployment for DockerDeploymentImpl {
 
     async fn start_instance(
         &self,
+        lore: InstanceLoreRef,
         config: Config<String>,
         id: Option<InstanceId>,
         config_files: &[ConfigFile],
@@ -1037,7 +1046,8 @@ impl DockerDeployment for DockerDeploymentImpl {
         });
         let docker_id = relic::docker::container::create(client.clone(), options, config).await?;
         debug!("Created container {}/{}", id, docker_id);
-        if let Err(e) = Self::copy_config_to_instance(client.clone(), id, config_files).await {
+        if let Err(e) = Self::copy_config_to_instance(client.clone(), lore, id, config_files).await
+        {
             let _ = relic::docker::container::remove(
                 client.clone(),
                 Some(RemoveContainerOptions {
@@ -1067,6 +1077,7 @@ impl DockerDeployment for DockerDeploymentImpl {
     async fn stop_instance(
         &self,
         id: InstanceId,
+        lore: InstanceLoreRef,
         config_files: &[ConfigFile],
     ) -> anyhow::Result<()> {
         let client = self.client()?;
@@ -1075,7 +1086,7 @@ impl DockerDeployment for DockerDeploymentImpl {
             client,
             id,
             config_files,
-            crate::lore::instance_config_path(&id.to_string()),
+            lore.as_ref().as_ref().instance_config_path(&id.to_string()),
         )
         .await?;
         self.delete_instance(id).await?;
@@ -1214,6 +1225,7 @@ impl AppDeployment for DockerDeploymentImpl {
     async fn export_app(
         &self,
         quest: SyncQuest,
+        lore: ExportLoreRef,
         manifest: AppManifest,
         path: PathBuf,
     ) -> anyhow::Result<()> {
@@ -1227,7 +1239,7 @@ impl AppDeployment for DockerDeploymentImpl {
         ));
         relic::docker::image::save(
             quest,
-            self.client_with_timeout(lore::flecsport::APP_EXPORT_TIMEOUT)?,
+            self.client_with_timeout(lore.as_ref().as_ref().timeout)?,
             &path,
             &image,
         )
@@ -1237,6 +1249,7 @@ impl AppDeployment for DockerDeploymentImpl {
     async fn import_app(
         &self,
         quest: SyncQuest,
+        lore: ImportLoreRef,
         manifest: AppManifest,
         path: PathBuf,
     ) -> anyhow::Result<()> {
@@ -1244,7 +1257,7 @@ impl AppDeployment for DockerDeploymentImpl {
         let path = path.join(format!("{}_{}.tar", key.name, key.version));
         relic::docker::image::load(
             quest,
-            self.client_with_timeout(lore::flimport::APP_IMPORT_TIMEOUT)?,
+            self.client_with_timeout(lore.as_ref().as_ref().timeout)?,
             &path,
             ImportImageOptions::default(),
             None,
@@ -1319,9 +1332,13 @@ impl NetworkDeployment for DockerDeploymentImpl {
         .await
     }
 
-    async fn default_network(&self) -> Result<jeweler::network::Network, CreateNetworkError> {
+    async fn default_network(
+        &self,
+        lore: NetworkLoreRef,
+    ) -> Result<jeweler::network::Network, CreateNetworkError> {
         let docker_client = self.client()?;
-        Self::default_network_with_client(docker_client, self.network_adapter_reader.as_ref()).await
+        Self::default_network_with_client(docker_client, self.network_adapter_reader.as_ref(), lore)
+            .await
     }
 
     async fn delete_network(&self, id: NetworkId) -> anyhow::Result<()> {

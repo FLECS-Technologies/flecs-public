@@ -2,6 +2,7 @@ pub mod export_id;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::lore::ExportLoreRef;
 use crate::quest::QuestResult;
 use crate::sorcerer::exportius::Exportius;
 use crate::vault::Vault;
@@ -14,8 +15,8 @@ use flecsd_axum_server::models::ExportRequest as PostRequest;
 use std::str::FromStr;
 use std::sync::Arc;
 
-pub async fn get<E: Exportius>(exportius: Arc<E>) -> GetResponse {
-    match exportius.get_exports().await {
+pub async fn get<E: Exportius>(exportius: Arc<E>, lore: ExportLoreRef) -> GetResponse {
+    match exportius.get_exports(lore).await {
         Ok(exports) => GetResponse::Status200_Success(
             exports.into_iter().map(models::ExportId::from).collect(),
         ),
@@ -30,6 +31,7 @@ pub async fn post<E: Exportius, F: Floxy + 'static>(
     exportius: Arc<E>,
     floxy: Arc<F>,
     quest_master: QuestMaster,
+    lore: ExportLoreRef,
     request: PostRequest,
 ) -> PostResponse {
     let instance_ids = request
@@ -48,6 +50,7 @@ pub async fn post<E: Exportius, F: Floxy + 'static>(
                     quest,
                     vault,
                     FloxyOperation::new_arc(floxy),
+                    lore,
                     apps,
                     instance_ids,
                 )
@@ -66,18 +69,22 @@ pub async fn post<E: Exportius, F: Floxy + 'static>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lore;
+    use crate::relic::var::test::MockVarReader;
     use crate::sorcerer::exportius::MockExportius;
     use std::io::ErrorKind;
+    use testdir::testdir;
 
     #[tokio::test]
     async fn get_200() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut exportius = MockExportius::new();
         exportius
             .expect_get_exports()
             .once()
-            .returning(|| Ok(vec!["1234".to_string(), "5678".to_string()]));
+            .returning(|_| Ok(vec!["1234".to_string(), "5678".to_string()]));
         assert_eq!(
-            get(Arc::new(exportius)).await,
+            get(Arc::new(exportius), lore).await,
             GetResponse::Status200_Success(vec![
                 models::ExportId::from("1234".to_string()),
                 models::ExportId::from("5678".to_string())
@@ -87,13 +94,14 @@ mod tests {
 
     #[tokio::test]
     async fn get_500() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut exportius = MockExportius::new();
         exportius
             .expect_get_exports()
             .once()
-            .returning(|| Err(std::io::Error::from(ErrorKind::PermissionDenied)));
+            .returning(|_| Err(std::io::Error::from(ErrorKind::PermissionDenied)));
         assert!(matches!(
-            get(Arc::new(exportius)).await,
+            get(Arc::new(exportius), lore).await,
             GetResponse::Status500_InternalServerError(_)
         ));
     }

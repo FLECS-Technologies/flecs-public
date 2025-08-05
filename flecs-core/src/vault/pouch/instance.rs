@@ -1,12 +1,14 @@
 pub use crate::Result;
 use crate::jeweler;
 use crate::jeweler::gem::instance::{CreateInstanceError, Instance, InstanceDeserializable};
+use crate::lore::{InstanceLore, Lore};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::vault::pouch::{AppKey, Pouch};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::net::{IpAddr, Ipv4Addr};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::sync::Arc;
 use tracing::error;
 
 const INSTANCES_FILE_NAME: &str = "instances.json";
@@ -14,7 +16,7 @@ pub type InstanceId = jeweler::gem::instance::InstanceId;
 pub type Gems = HashMap<InstanceId, Instance>;
 pub type InstancesMap = HashMap<InstanceId, Instance>;
 pub struct InstancePouch {
-    path: PathBuf,
+    lore: Arc<Lore>,
     instances: HashMap<InstanceId, Instance>,
     reserved_ip_addresses: HashSet<IpAddr>,
 }
@@ -32,9 +34,17 @@ impl Pouch for InstancePouch {
 }
 
 impl InstancePouch {
+    fn lore(&self) -> &InstanceLore {
+        self.lore.as_ref().as_ref()
+    }
+
+    fn base_path(&self) -> &Path {
+        &self.lore().base_path
+    }
+
     pub(in super::super) fn close(&mut self) -> Result<()> {
-        fs::create_dir_all(&self.path)?;
-        let file = fs::File::create(self.path.join(INSTANCES_FILE_NAME))?;
+        fs::create_dir_all(self.base_path())?;
+        let file = fs::File::create(self.base_path().join(INSTANCES_FILE_NAME))?;
         let content: Vec<_> = self.instances.values().collect();
         serde_json::to_writer_pretty(file, &content)?;
         Ok(())
@@ -45,16 +55,22 @@ impl InstancePouch {
         manifests: &super::manifest::Gems,
         deployments: &super::deployment::Gems,
     ) -> Result<()> {
-        self.instances = Self::create_instances(self.read_instances()?, manifests, deployments);
+        self.instances = Self::create_instances(
+            self.lore.clone(),
+            self.read_instances()?,
+            manifests,
+            deployments,
+        );
         Ok(())
     }
 
     fn read_instances(&self) -> anyhow::Result<Vec<InstanceDeserializable>> {
-        let file = fs::File::open(self.path.join(INSTANCES_FILE_NAME))?;
+        let file = fs::File::open(self.base_path().join(INSTANCES_FILE_NAME))?;
         Ok(serde_json::from_reader(file)?)
     }
 
     fn try_create_instances(
+        lore: Arc<Lore>,
         instances: Vec<InstanceDeserializable>,
         manifests: &super::manifest::Gems,
         deployments: &super::deployment::Gems,
@@ -65,7 +81,12 @@ impl InstancePouch {
             .into_iter()
             .filter_map(|instance| {
                 let id = instance.id();
-                match Instance::try_create_with_state(instance, manifests, deployments) {
+                match Instance::try_create_with_state(
+                    lore.clone(),
+                    instance,
+                    manifests,
+                    deployments,
+                ) {
                     Ok(instance) => Some((id, instance)),
                     Err(e) => {
                         errors.push((id, e));
@@ -82,11 +103,12 @@ impl InstancePouch {
     }
 
     fn create_instances(
+        lore: Arc<Lore>,
         instances: Vec<InstanceDeserializable>,
         manifests: &super::manifest::Gems,
         deployments: &super::deployment::Gems,
     ) -> HashMap<InstanceId, Instance> {
-        Self::try_create_instances(instances, manifests, deployments).unwrap_or_else(
+        Self::try_create_instances(lore, instances, manifests, deployments).unwrap_or_else(
             |(instances, errors)| {
                 for (id, error) in errors {
                     error!("Could not create instance {id}: {error}");
@@ -175,9 +197,9 @@ impl InstancePouch {
 }
 
 impl InstancePouch {
-    pub fn new(path: &Path) -> Self {
+    pub fn new(lore: Arc<Lore>) -> Self {
         Self {
-            path: path.to_path_buf(),
+            lore,
             instances: HashMap::default(),
             reserved_ip_addresses: HashSet::default(),
         }
@@ -199,8 +221,9 @@ pub mod tests {
     use crate::jeweler::gem::manifest::single::{
         EnvironmentVariable, PortMapping, PortRange, VolumeMount,
     };
+    use crate::lore;
     use crate::relic::network::{Ipv4Iterator, Ipv4Network};
-    use crate::tests::prepare_test_path;
+    use crate::relic::var::test::MockVarReader;
     use crate::vault::pouch::app::tests::{
         EDITOR_APP_NAME, EDITOR_APP_VERSION, LABEL_APP_NAME, LABEL_APP_VERSION, MINIMAL_APP_2_NAME,
         MINIMAL_APP_2_VERSION, MINIMAL_APP_WITH_INSTANCE_NAME, MINIMAL_APP_WITH_INSTANCE_VERSION,
@@ -210,6 +233,7 @@ pub mod tests {
     use crate::vault::tests::create_test_vault_raw;
     use serde_json::Value;
     use std::net::Ipv6Addr;
+    use std::path::PathBuf;
     use std::sync::Arc;
     use testdir::testdir;
 
@@ -269,10 +293,16 @@ pub mod tests {
             .into_values()
             .map(|deployment| (deployment.id().clone(), deployment))
             .collect();
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         InstancePouch {
-            path: testdir!().join("instances"),
-            instances: InstancePouch::try_create_instances(instances, manifests, &deployments)
-                .unwrap(),
+            instances: InstancePouch::try_create_instances(
+                lore.clone(),
+                instances,
+                manifests,
+                &deployments,
+            )
+            .unwrap(),
+            lore,
             reserved_ip_addresses: HashSet::default(),
         }
     }
@@ -817,9 +847,11 @@ pub mod tests {
 
     #[test]
     fn read_instances_ok() {
-        let path = prepare_test_path(module_path!(), "read_instances_ok").join(INSTANCES_FILE_NAME);
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        fs::create_dir_all(&lore.instance.base_path).unwrap();
+        let path = lore.instance.base_path.join(INSTANCES_FILE_NAME);
         let json = create_test_json();
-        let instance_pouch = InstancePouch::new(path.parent().unwrap());
+        let instance_pouch = InstancePouch::new(lore);
         let mut expected_instances = create_test_instances_deserializable();
         let InstanceDeserializable::Docker(instance) = &mut expected_instances[5] else {
             panic!()
@@ -833,32 +865,34 @@ pub mod tests {
 
     #[test]
     fn read_instances_invalid_file() {
-        let path = prepare_test_path(module_path!(), "read_instances_invalid_file")
-            .join(INSTANCES_FILE_NAME);
-        let instance_pouch = InstancePouch::new(path.parent().unwrap());
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        fs::create_dir_all(&lore.instance.base_path).unwrap();
+        let path = lore.instance.base_path.join(INSTANCES_FILE_NAME);
+        let instance_pouch = InstancePouch::new(lore);
         fs::write(path, "random_data").unwrap();
         assert!(instance_pouch.read_instances().is_err());
     }
 
     #[test]
     fn read_instances_file_missing() {
-        let path = prepare_test_path(module_path!(), "read_instances_file_missing")
-            .join(INSTANCES_FILE_NAME);
-        let instance_pouch = InstancePouch::new(path.parent().unwrap());
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let instance_pouch = InstancePouch::new(lore);
         assert!(instance_pouch.read_instances().is_err());
     }
 
     #[test]
     fn create_instances_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let (instances, manifests, deployments) = create_test_data();
         assert_eq!(
-            InstancePouch::create_instances(instances, &manifests, &deployments).len(),
+            InstancePouch::create_instances(lore, instances, &manifests, &deployments).len(),
             6
         );
     }
 
     #[test]
     fn create_instances_error() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let instances = create_test_instances_deserializable();
         let manifests = instances
             .iter()
@@ -871,22 +905,28 @@ pub mod tests {
             .map(create_deployment_for_instance)
             .collect::<HashMap<DeploymentId, Deployment>>();
         assert_eq!(
-            InstancePouch::create_instances(instances, &manifests, &deployments).len(),
+            InstancePouch::create_instances(lore, instances, &manifests, &deployments).len(),
             1
         );
     }
 
     #[test]
     fn close_pouch() {
-        let path = prepare_test_path(module_path!(), "close_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let path = lore.instance.base_path.join(INSTANCES_FILE_NAME);
         let (instances, manifests, deployments) = create_test_data();
         let mut pouch = InstancePouch {
-            path: path.clone(),
-            instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            instances: InstancePouch::create_instances(
+                lore.clone(),
+                instances,
+                &manifests,
+                &deployments,
+            ),
+            lore,
             reserved_ip_addresses: HashSet::default(),
         };
         pouch.close().unwrap();
-        let data = fs::read_to_string(path.join(INSTANCES_FILE_NAME)).unwrap();
+        let data = fs::read_to_string(path).unwrap();
         let test_json = create_test_json();
         let test_json = test_json.as_array().unwrap();
         let result_json = serde_json::from_str::<Value>(data.as_str()).unwrap();
@@ -901,15 +941,17 @@ pub mod tests {
 
     #[test]
     fn open_pouch() {
-        let path = prepare_test_path(module_path!(), "open_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        fs::create_dir_all(&lore.instance.base_path).unwrap();
+        let path = lore.instance.base_path.join(INSTANCES_FILE_NAME);
         let (instances, manifests, deployments) = create_test_data();
         let mut pouch = InstancePouch {
-            path: path.clone(),
+            lore,
             instances: HashMap::new(),
             reserved_ip_addresses: HashSet::default(),
         };
         fs::write(
-            path.join(INSTANCES_FILE_NAME),
+            path,
             serde_json::to_string_pretty(&create_test_json()).unwrap(),
         )
         .unwrap();
@@ -923,12 +965,22 @@ pub mod tests {
 
     #[test]
     fn gems() {
-        let path = prepare_test_path(module_path!(), "gems");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let (instances, manifests, deployments) = create_test_data();
-        let gems = InstancePouch::create_instances(instances.clone(), &manifests, &deployments);
+        let gems = InstancePouch::create_instances(
+            lore.clone(),
+            instances.clone(),
+            &manifests,
+            &deployments,
+        );
         let mut pouch = InstancePouch {
-            path: path.clone(),
-            instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            instances: InstancePouch::create_instances(
+                lore.clone(),
+                instances,
+                &manifests,
+                &deployments,
+            ),
+            lore,
             reserved_ip_addresses: HashSet::default(),
         };
         for gem in gems {
@@ -939,11 +991,16 @@ pub mod tests {
 
     #[test]
     fn get_instance_ids_by_app_key() {
-        let path = prepare_test_path(module_path!(), "get_instance_ids_by_app_key");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let (instances, manifests, deployments) = create_test_data();
         let pouch = InstancePouch {
-            path: path.clone(),
-            instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            instances: InstancePouch::create_instances(
+                lore.clone(),
+                instances,
+                &manifests,
+                &deployments,
+            ),
+            lore,
             reserved_ip_addresses: HashSet::default(),
         };
         assert_eq!(pouch.instances.len(), 6);
@@ -958,11 +1015,16 @@ pub mod tests {
 
     #[test]
     fn get_instance_ids_by_app_name() {
-        let path = prepare_test_path(module_path!(), "get_instance_ids_by_app_name");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let (instances, manifests, deployments) = create_test_data();
         let pouch = InstancePouch {
-            path: path.clone(),
-            instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            instances: InstancePouch::create_instances(
+                lore.clone(),
+                instances,
+                &manifests,
+                &deployments,
+            ),
+            lore,
             reserved_ip_addresses: HashSet::default(),
         };
         assert_eq!(pouch.instances.len(), 6);
@@ -976,11 +1038,16 @@ pub mod tests {
 
     #[test]
     fn get_instance_ids_by_app_version() {
-        let path = prepare_test_path(module_path!(), "get_instance_ids_by_app_version");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let (instances, manifests, deployments) = create_test_data();
         let pouch = InstancePouch {
-            path: path.clone(),
-            instances: InstancePouch::create_instances(instances, &manifests, &deployments),
+            instances: InstancePouch::create_instances(
+                lore.clone(),
+                instances,
+                &manifests,
+                &deployments,
+            ),
+            lore,
             reserved_ip_addresses: HashSet::default(),
         };
         assert_eq!(pouch.instances.len(), 6);
@@ -994,9 +1061,9 @@ pub mod tests {
 
     #[test]
     fn unavailable_ipv4_addresses_empty() {
-        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_empty");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let pouch = InstancePouch {
-            path: path.clone(),
+            lore,
             instances: HashMap::default(),
             reserved_ip_addresses: HashSet::default(),
         };
@@ -1005,14 +1072,14 @@ pub mod tests {
 
     #[test]
     fn unavailable_ipv4_addresses_some_reserved() {
-        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_some_reserved");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let ipv4_addresses = [
             Ipv4Addr::new(5, 10, 20, 40),
             Ipv4Addr::new(1, 2, 3, 4),
             Ipv4Addr::new(56, 84, 71, 93),
         ];
         let pouch = InstancePouch {
-            path: path.clone(),
+            lore,
             instances: HashMap::default(),
             reserved_ip_addresses: ipv4_addresses
                 .iter()
@@ -1027,11 +1094,16 @@ pub mod tests {
 
     #[test]
     fn unavailable_ipv4_addresses_some_instances() {
-        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_some_instances");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let (instances, manifests, deployments) = create_test_data();
         let mut pouch = InstancePouch {
-            path: path.clone(),
-            instances: InstancePouch::create_instances(instances.clone(), &manifests, &deployments),
+            instances: InstancePouch::create_instances(
+                lore.clone(),
+                instances.clone(),
+                &manifests,
+                &deployments,
+            ),
+            lore,
             reserved_ip_addresses: HashSet::default(),
         };
         for instance in pouch.instances.values_mut() {
@@ -1065,11 +1137,16 @@ pub mod tests {
 
     #[test]
     fn unavailable_ipv4_addresses_some() {
-        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_some");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let (instances, manifests, deployments) = create_test_data();
         let mut pouch = InstancePouch {
-            path: path.clone(),
-            instances: InstancePouch::create_instances(instances.clone(), &manifests, &deployments),
+            instances: InstancePouch::create_instances(
+                lore.clone(),
+                instances.clone(),
+                &manifests,
+                &deployments,
+            ),
+            lore,
             reserved_ip_addresses: HashSet::from([
                 IpAddr::V4(Ipv4Addr::new(5, 10, 20, 40)),
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4)),
@@ -1110,11 +1187,16 @@ pub mod tests {
 
     #[test]
     fn unavailable_ipv4_addresses_ipv6_skipped() {
-        let path = prepare_test_path(module_path!(), "unavailable_ipv4_addresses_ipv6_skipped");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let (instances, manifests, deployments) = create_test_data();
         let mut pouch = InstancePouch {
-            path: path.clone(),
-            instances: InstancePouch::create_instances(instances.clone(), &manifests, &deployments),
+            instances: InstancePouch::create_instances(
+                lore.clone(),
+                instances.clone(),
+                &manifests,
+                &deployments,
+            ),
+            lore,
             reserved_ip_addresses: HashSet::from([
                 IpAddr::V6(Ipv6Addr::new(
                     0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x81,
@@ -1153,7 +1235,7 @@ pub mod tests {
 
     #[test]
     fn clear_ip_address_reservation_test() {
-        let path = prepare_test_path(module_path!(), "clear_ip_address_reservation_test");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let ip1 = IpAddr::V6(Ipv6Addr::new(
             0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x81,
         ));
@@ -1164,7 +1246,7 @@ pub mod tests {
             0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x83,
         ));
         let mut pouch = InstancePouch {
-            path: path.clone(),
+            lore,
             instances: HashMap::default(),
             reserved_ip_addresses: HashSet::from([ip1, ip2, ip3]),
         };
@@ -1178,7 +1260,7 @@ pub mod tests {
 
     #[test]
     fn reserve_free_ipv4_address_some() {
-        let path = prepare_test_path(module_path!(), "reserve_free_ipv4_address_some");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(20, 30, 40, 0), 24).unwrap(),
             Ipv4Addr::new(20, 30, 40, 1),
@@ -1186,8 +1268,13 @@ pub mod tests {
         .unwrap();
         let (instances, manifests, deployments) = create_test_data();
         let mut pouch = InstancePouch {
-            path: path.clone(),
-            instances: InstancePouch::create_instances(instances.clone(), &manifests, &deployments),
+            instances: InstancePouch::create_instances(
+                lore.clone(),
+                instances.clone(),
+                &manifests,
+                &deployments,
+            ),
+            lore,
             reserved_ip_addresses: HashSet::from([
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, 2)),
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, 3)),
@@ -1227,7 +1314,7 @@ pub mod tests {
 
     #[test]
     fn reserve_free_ipv4_address_none() {
-        let path = prepare_test_path(module_path!(), "reserve_free_ipv4_address_none");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let network = Ipv4NetworkAccess::try_new(
             Ipv4Network::try_new(Ipv4Addr::new(20, 30, 40, 0), 24).unwrap(),
             Ipv4Addr::new(20, 30, 40, 1),
@@ -1239,7 +1326,7 @@ pub mod tests {
         .map(Into::into)
         .collect();
         let mut pouch = InstancePouch {
-            path: path.clone(),
+            lore,
             instances: HashMap::default(),
             reserved_ip_addresses: reserved_ip_addresses.clone(),
         };

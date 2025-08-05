@@ -1,6 +1,7 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::lore::ExportLoreRef;
 use crate::quest::SyncQuest;
 use crate::vault::Vault;
 use crate::vault::pouch::{AppKey, Pouch};
@@ -115,6 +116,7 @@ pub async fn delete_export(export_dir: &Path, export_id: String) -> Result<bool,
 pub async fn export_apps(
     quest: SyncQuest,
     vault: Arc<Vault>,
+    lore: ExportLoreRef,
     app_keys: Vec<AppKey>,
     path: PathBuf,
 ) -> Result<(), ExportAppError> {
@@ -124,7 +126,7 @@ pub async fn export_apps(
         for app_key in app_keys {
             let result = quest
                 .create_sub_quest(format!("Export app {app_key} to {path:?}"), |quest| {
-                    export_app(quest, vault.clone(), app_key, path.clone())
+                    export_app(quest, vault.clone(), lore.clone(), app_key, path.clone())
                 })
                 .await
                 .2;
@@ -140,6 +142,7 @@ pub async fn export_apps(
 pub async fn export_app(
     quest: SyncQuest,
     vault: Arc<Vault>,
+    lore: ExportLoreRef,
     app_key: AppKey,
     path: PathBuf,
 ) -> Result<(), ExportAppError> {
@@ -154,7 +157,7 @@ pub async fn export_app(
         .gems()
         .get(&app_key)
     {
-        Some(app) => Ok(app.export(quest, path).await?),
+        Some(app) => Ok(app.export(quest, lore, path).await?),
         None => Err(ExportAppError::AppNotFound(app_key)),
     }
 }
@@ -213,7 +216,9 @@ mod tests {
     use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::instance::status::InstanceStatus;
+    use crate::lore;
     use crate::quest::Quest;
+    use crate::relic::var::test::MockVarReader;
     use crate::vault::pouch::app::tests::{
         LABEL_APP_NAME, LABEL_APP_VERSION, MINIMAL_APP_NAME, MINIMAL_APP_VERSION, MOUNT_APP_NAME,
         MOUNT_APP_VERSION, NETWORK_APP_NAME, NETWORK_APP_VERSION, UNKNOWN_APP_NAME,
@@ -251,7 +256,7 @@ mod tests {
             deployment
                 .expect_stop_instance()
                 .once()
-                .returning(|_, _| Ok(()));
+                .returning(|_, _, _| Ok(()));
             let deployment = Deployment::Docker(Arc::new(deployment));
             (*instance_id, deployment)
         }));
@@ -287,7 +292,7 @@ mod tests {
                 vault,
                 floxy,
                 vec![INSTANCE_ID],
-                path.clone(),
+                path,
             )
             .await
             .is_err()
@@ -312,7 +317,7 @@ mod tests {
         deployment
             .expect_stop_instance()
             .once()
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::from([(INSTANCE_ID, deployment)]),
@@ -344,7 +349,7 @@ mod tests {
                 vault,
                 floxy,
                 INSTANCE_ID,
-                path.clone(),
+                path,
             )
             .await,
             Err(ExportInstanceError::InstanceNotFound(UNKNOWN_INSTANCE_2))
@@ -365,7 +370,7 @@ mod tests {
                 vault,
                 floxy,
                 INSTANCE_ID,
-                path.clone(),
+                path,
             )
             .await
             .is_err()
@@ -374,7 +379,8 @@ mod tests {
 
     #[tokio::test]
     async fn export_apps_ok() {
-        let path = testdir!().join("exports");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let path = lore.export.base_path.clone();
         let app_keys = [
             AppKey {
                 name: NETWORK_APP_NAME.to_string(),
@@ -407,9 +413,10 @@ mod tests {
                 .with(
                     predicate::always(),
                     predicate::always(),
+                    predicate::always(),
                     predicate::eq(expected_path.clone()),
                 )
-                .returning(|_, _, _| Ok(()));
+                .returning(|_, _, _, _| Ok(()));
             let deployment = Deployment::Docker(Arc::new(deployment));
             (app_key.clone(), deployment)
         }));
@@ -417,8 +424,9 @@ mod tests {
         export_apps(
             Quest::new_synced("TestQuest"),
             vault,
+            lore,
             app_keys.to_vec(),
-            path.clone(),
+            path,
         )
         .await
         .unwrap();
@@ -426,7 +434,8 @@ mod tests {
 
     #[tokio::test]
     async fn export_apps_err() {
-        let path = testdir!().join("exports");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let path = lore.export.base_path.clone();
         let app_key = AppKey {
             name: UNKNOWN_APP_NAME.to_string(),
             version: UNKNOWN_APP_VERSION.to_string(),
@@ -436,8 +445,9 @@ mod tests {
             export_apps(
                 Quest::new_synced("TestQuest"),
                 vault,
+                lore,
                 vec![app_key],
-                path.clone(),
+                path,
             )
             .await,
             Err(ExportAppError::AppNotFound(_))
@@ -446,7 +456,8 @@ mod tests {
 
     #[tokio::test]
     async fn export_app_ok() {
-        let path = testdir!().join("exports");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let path = lore.export.base_path.clone();
         let app_key = AppKey {
             name: NETWORK_APP_NAME.to_string(),
             version: NETWORK_APP_VERSION.to_string(),
@@ -463,30 +474,32 @@ mod tests {
             .with(
                 predicate::always(),
                 predicate::always(),
+                predicate::always(),
                 predicate::eq(expected_path.clone()),
             )
-            .returning(|_, _, _| Ok(()));
+            .returning(|_, _, _, _| Ok(()));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::new(),
             HashMap::from([(app_key.clone(), deployment)]),
             None,
         );
-        export_app(Quest::new_synced("TestQuest"), vault, app_key, path.clone())
+        export_app(Quest::new_synced("TestQuest"), vault, lore, app_key, path)
             .await
             .unwrap();
     }
 
     #[tokio::test]
     async fn export_app_err_app_not_found() {
-        let path = testdir!().join("exports");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let path = lore.export.base_path.clone();
         let app_key = AppKey {
             name: NETWORK_APP_NAME.to_string(),
             version: NETWORK_APP_VERSION.to_string(),
         };
         let vault = create_empty_test_vault();
         assert!(matches!(
-            export_app(Quest::new_synced("TestQuest"), vault, app_key.clone(), path.clone())
+            export_app(Quest::new_synced("TestQuest"), vault, lore, app_key.clone(), path)
                 .await, Err(ExportAppError::AppNotFound(key)) if key == app_key
         ));
     }

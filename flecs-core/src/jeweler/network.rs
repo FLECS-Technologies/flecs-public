@@ -1,14 +1,16 @@
 use super::Result;
+use crate::lore::NetworkLoreRef;
 use crate::quest::SyncQuest;
 use anyhow::Error;
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::net::Ipv4Addr;
 
 pub type NetworkId = String;
 pub type Network = bollard::models::Network;
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub enum NetworkKind {
     #[default]
     None,
@@ -108,7 +110,7 @@ pub trait NetworkDeployment {
         quest: SyncQuest,
         config: NetworkConfig,
     ) -> Result<Network, CreateNetworkError>;
-    async fn default_network(&self) -> Result<Network, CreateNetworkError>;
+    async fn default_network(&self, lore: NetworkLoreRef) -> Result<Network, CreateNetworkError>;
     async fn delete_network(&self, id: NetworkId) -> Result<()>;
     async fn network(&self, id: NetworkId) -> Result<Option<Network>>;
     async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;

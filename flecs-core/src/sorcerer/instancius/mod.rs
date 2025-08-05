@@ -11,6 +11,7 @@ use crate::jeweler::gem::manifest::single::{
 };
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
+use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::sorcerer::Sorcerer;
@@ -205,6 +206,7 @@ pub trait Instancius: Sorcerer {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
+        lore: Arc<Lore>,
         app_key: AppKey,
         name: String,
     ) -> Result<InstanceId>;

@@ -17,6 +17,7 @@ use crate::jeweler::gem::manifest::single::{
 };
 use crate::jeweler::network::{Network, NetworkId};
 use crate::jeweler::volume::VolumeId;
+use crate::lore::{InstanceLoreRef, Lore};
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::network::Ipv4NetworkAccess;
@@ -48,6 +49,7 @@ impl InstanciusImpl {
         quest: SyncQuest,
         vault: Arc<Vault>,
         deployment: Arc<dyn DockerDeployment>,
+        lore: Arc<Lore>,
         manifest: Arc<AppManifestSingle>,
         instance_name: String,
     ) -> anyhow::Result<Instance> {
@@ -60,10 +62,11 @@ impl InstanciusImpl {
                     deployment.id()
                 ),
                 |quest| {
-                    let (vault, deployment) = (vault.clone(), deployment.clone());
+                    let (vault, deployment, lore) =
+                        (vault.clone(), deployment.clone(), lore.clone());
                     async move {
                         let network =
-                            Ipv4NetworkAccess::try_from(deployment.default_network().await?)?;
+                            Ipv4NetworkAccess::try_from(deployment.default_network(lore).await?)?;
                         let address = spell::instance::make_ipv4_reservation(vault, network)
                             .await
                             .ok_or_else(|| {
@@ -89,6 +92,7 @@ impl InstanciusImpl {
                 |quest| {
                     spell::instance::create_docker_instance(
                         quest,
+                        lore,
                         deployment,
                         manifest,
                         instance_name,
@@ -105,6 +109,7 @@ impl InstanciusImpl {
     async fn create_compose_instance(
         quest: SyncQuest,
         deployment: Arc<dyn ComposeDeployment>,
+        lore: InstanceLoreRef,
         manifest: Arc<AppManifestMulti>,
         instance_name: String,
     ) -> anyhow::Result<Instance> {
@@ -119,6 +124,7 @@ impl InstanciusImpl {
                 |quest| {
                     spell::instance::create_compose_instance(
                         quest,
+                        lore,
                         deployment,
                         manifest,
                         instance_name,
@@ -343,6 +349,7 @@ impl Instancius for InstanciusImpl {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
+        lore: Arc<Lore>,
         app_key: AppKey,
         name: String,
     ) -> anyhow::Result<InstanceId> {
@@ -365,6 +372,7 @@ impl Instancius for InstanciusImpl {
                             quest,
                             vault.clone(),
                             deployment,
+                            lore,
                             manifest,
                             name,
                         )
@@ -377,7 +385,7 @@ impl Instancius for InstanciusImpl {
                     .lock()
                     .await
                     .create_sub_quest(format!("Create compose instance {name}"), |quest| {
-                        Self::create_compose_instance(quest, deployment, manifest, name)
+                        Self::create_compose_instance(quest, deployment, lore, manifest, name)
                     })
                     .await
                     .2
@@ -464,7 +472,7 @@ impl Instancius for InstanciusImpl {
         Ok(InstanceEditor {
             name: editor.name.clone(),
             port,
-            url: crate::lore::floxy::instance_editor_location(id, port),
+            url: crate::lore::FloxyLore::instance_editor_location(id, port),
             path_prefix,
         })
     }
@@ -498,7 +506,7 @@ impl Instancius for InstanciusImpl {
                 InstanceEditor {
                     name: editor.name.clone(),
                     port,
-                    url: crate::lore::floxy::instance_editor_location(id, port),
+                    url: crate::lore::FloxyLore::instance_editor_location(id, port),
                     path_prefix,
                 }
             })
@@ -1326,7 +1334,7 @@ pub mod tests {
     use crate::quest::Quest;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
     use crate::relic::network::Ipv4Network;
-    use crate::vault;
+    use crate::relic::var::test::MockVarReader;
     use crate::vault::pouch::Pouch;
     use crate::vault::pouch::app::tests::{
         MINIMAL_APP_NAME, MINIMAL_APP_VERSION, MINIMAL_APP_WITH_INSTANCE_NAME,
@@ -1340,6 +1348,7 @@ pub mod tests {
         UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE, network_instance, test_instances, test_port_mapping,
     };
     use crate::vault::tests::create_test_vault;
+    use crate::{lore, vault};
     use bollard::models::{Ipam, IpamConfig, Network};
     use mockall::predicate;
     use std::collections::{HashMap, HashSet};
@@ -1348,6 +1357,7 @@ pub mod tests {
     use std::path::PathBuf;
     use std::str::FromStr;
     use std::sync::Arc;
+    use testdir::testdir;
 
     #[tokio::test]
     async fn delete_instance_test() {
@@ -1362,7 +1372,7 @@ pub mod tests {
         deployment
             .expect_stop_instance()
             .times(1)
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         deployment
             .expect_delete_instance()
             .times(1)
@@ -1435,9 +1445,9 @@ pub mod tests {
             .return_const("MockedDeployment".to_string());
         deployment
             .expect_stop_instance()
-            .withf(|id, _| *id == INSTANCE_TO_STOP)
+            .withf(|id, _, _| *id == INSTANCE_TO_STOP)
             .times(2)
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         deployment
             .expect_instance_status()
             .withf(|id| *id == INSTANCE_TO_STOP)
@@ -1568,6 +1578,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_instance_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let app_key = AppKey {
             name: MINIMAL_APP_NAME.to_string(),
             version: MINIMAL_APP_VERSION.to_string(),
@@ -1582,7 +1593,7 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .returning(|_, _| Ok(true));
-        deployment.expect_default_network().times(2).returning(|| {
+        deployment.expect_default_network().times(2).returning(|_| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
                 ipam: Some(Ipam {
@@ -1606,6 +1617,7 @@ pub mod tests {
             .create_instance(
                 Quest::new_synced("TestQuest".to_string()),
                 vault.clone(),
+                lore,
                 app_key,
                 "TestInstance".to_string(),
             )
@@ -1634,6 +1646,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_instance_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let app_key = AppKey {
             name: MINIMAL_APP_NAME.to_string(),
             version: MINIMAL_APP_VERSION.to_string(),
@@ -1651,7 +1664,7 @@ pub mod tests {
         deployment
             .expect_default_network()
             .times(1)
-            .returning(|| Err(anyhow::anyhow!("TestError").into()));
+            .returning(|_| Err(anyhow::anyhow!("TestError").into()));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
@@ -1684,6 +1697,7 @@ pub mod tests {
                 .create_instance(
                     Quest::new_synced("TestQuest".to_string()),
                     vault.clone(),
+                    lore,
                     app_key,
                     "TestInstance".to_string(),
                 )
@@ -1708,6 +1722,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_multi_instance_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let app_key = AppKey {
             name: MULTI_INSTANCE_APP_NAME.to_string(),
             version: MULTI_INSTANCE_APP_VERSION.to_string(),
@@ -1722,7 +1737,7 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .returning(|_, _| Ok(true));
-        deployment.expect_default_network().times(4).returning(|| {
+        deployment.expect_default_network().times(4).returning(|_| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
                 ipam: Some(Ipam {
@@ -1746,6 +1761,7 @@ pub mod tests {
             .create_instance(
                 Quest::new_synced("TestQuest".to_string()),
                 vault.clone(),
+                lore.clone(),
                 app_key.clone(),
                 "TestInstance1".to_string(),
             )
@@ -1755,6 +1771,7 @@ pub mod tests {
             .create_instance(
                 Quest::new_synced("TestQuest".to_string()),
                 vault.clone(),
+                lore,
                 app_key,
                 "TestInstance2".to_string(),
             )
@@ -1793,6 +1810,7 @@ pub mod tests {
     }
     #[tokio::test]
     async fn create_instance_single_instance_but_instance_present() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let app_key = AppKey {
             name: SINGLE_INSTANCE_APP_NAME.to_string(),
             version: SINGLE_INSTANCE_APP_VERSION.to_string(),
@@ -1807,7 +1825,7 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .returning(|_, _| Ok(true));
-        deployment.expect_default_network().times(2).returning(|| {
+        deployment.expect_default_network().times(2).returning(|_| {
             Ok(Network {
                 name: Some("DefaultTestNetworkId".to_string()),
                 ipam: Some(Ipam {
@@ -1831,6 +1849,7 @@ pub mod tests {
             .create_instance(
                 Quest::new_synced("TestQuest".to_string()),
                 vault.clone(),
+                lore.clone(),
                 app_key.clone(),
                 "TestInstance1".to_string(),
             )
@@ -1841,6 +1860,7 @@ pub mod tests {
                 .create_instance(
                     Quest::new_synced("TestQuest".to_string()),
                     vault.clone(),
+                    lore,
                     app_key,
                     "TestInstance2".to_string(),
                 )
@@ -1869,6 +1889,7 @@ pub mod tests {
     }
     #[tokio::test]
     async fn create_instance_app_not_installed() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let app_key = AppKey {
             name: MINIMAL_APP_NAME.to_string(),
             version: MINIMAL_APP_VERSION.to_string(),
@@ -1894,6 +1915,7 @@ pub mod tests {
                 .create_instance(
                     Quest::new_synced("TestQuest".to_string()),
                     vault.clone(),
+                    lore,
                     app_key,
                     "TestInstance".to_string(),
                 )
@@ -1903,6 +1925,7 @@ pub mod tests {
     }
     #[tokio::test]
     async fn create_instance_app_not_created() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let app_key = AppKey {
             name: UNKNOWN_APP_NAME.to_string(),
             version: UNKNOWN_APP_VERSION.to_string(),
@@ -1925,6 +1948,7 @@ pub mod tests {
                 .create_instance(
                     Quest::new_synced("TestQuest".to_string()),
                     vault.clone(),
+                    lore,
                     app_key,
                     "TestInstance".to_string(),
                 )
@@ -1935,6 +1959,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_instance_manifest_not_present() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let app_key = AppKey {
             name: NO_MANIFEST_APP_NAME.to_string(),
             version: NO_MANIFEST_APP_VERSION.to_string(),
@@ -1960,6 +1985,7 @@ pub mod tests {
                 .create_instance(
                     Quest::new_synced("TestQuest".to_string()),
                     vault.clone(),
+                    lore,
                     app_key,
                     "TestInstance".to_string(),
                 )
@@ -1970,6 +1996,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn create_instance_no_deployment() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let app_key = AppKey {
             name: MINIMAL_APP_NAME.to_string(),
             version: MINIMAL_APP_VERSION.to_string(),
@@ -2005,6 +2032,7 @@ pub mod tests {
                 .create_instance(
                     Quest::new_synced("TestQuest".to_string()),
                     vault,
+                    lore,
                     app_key,
                     "TestInstance".to_string(),
                 )
@@ -2208,8 +2236,8 @@ pub mod tests {
         deployment
             .expect_start_instance()
             .once()
-            .withf(|_, id, _| *id == Some(RUNNING_INSTANCE))
-            .returning(|_, _, _| Ok(RUNNING_INSTANCE));
+            .withf(|_, _, id, _| *id == Some(RUNNING_INSTANCE))
+            .returning(|_, _, _, _| Ok(RUNNING_INSTANCE));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
@@ -4158,7 +4186,7 @@ pub mod tests {
             .expect_instance_status()
             .once()
             .returning(|_| Ok(InstanceStatus::Running));
-        deployment.expect_default_network().once().returning(|| {
+        deployment.expect_default_network().once().returning(|_| {
             Ok(Network {
                 name: Some("flecs".to_string()),
                 ..Network::default()
@@ -4255,7 +4283,7 @@ pub mod tests {
             .expect_instance_status()
             .once()
             .returning(|_| Ok(InstanceStatus::Running));
-        deployment.expect_default_network().once().returning(|| {
+        deployment.expect_default_network().once().returning(|_| {
             Ok(Network {
                 name: Some("unknown".to_string()),
                 ..Network::default()

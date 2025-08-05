@@ -53,6 +53,7 @@ impl<
     ) -> Result<ExportsExportIdDeleteResponse, ()> {
         Ok(super::api::v2::exports::export_id::delete(
             self.sorcerers.exportius.clone(),
+            self.lore.clone(),
             path_params,
         )
         .await)
@@ -65,10 +66,12 @@ impl<
         _cookies: CookieJar,
         path_params: ExportsExportIdGetPathParams,
     ) -> Result<ExportsExportIdGetResponse, ()> {
-        Ok(
-            super::api::v2::exports::export_id::get(self.sorcerers.exportius.clone(), path_params)
-                .await,
+        Ok(super::api::v2::exports::export_id::get(
+            self.sorcerers.exportius.clone(),
+            self.lore.clone(),
+            path_params,
         )
+        .await)
     }
 
     async fn exports_get(
@@ -77,7 +80,7 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ExportsGetResponse, ()> {
-        Ok(super::api::v2::exports::get(self.sorcerers.exportius.clone()).await)
+        Ok(super::api::v2::exports::get(self.sorcerers.exportius.clone(), self.lore.clone()).await)
     }
 
     async fn exports_post(
@@ -92,6 +95,7 @@ impl<
             self.sorcerers.exportius.clone(),
             self.enchantments.floxy.clone(),
             self.enchantments.quest_master.clone(),
+            self.lore.clone(),
             body,
         )
         .await)
@@ -107,6 +111,7 @@ impl<
     ) -> Result<ImportsPostResponse, ()> {
         Ok(super::api::v2::imports::post(
             self.vault.clone(),
+            self.lore.clone(),
             self.sorcerers.importius.clone(),
             self.enchantments.floxy.clone(),
             self.usb_reader.clone(),

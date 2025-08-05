@@ -1,16 +1,17 @@
 pub use crate::Result;
 use crate::jeweler::gem::app::{App, AppDeserializable, try_create_app};
+use crate::lore::AppLoreRef;
 use crate::vault::pouch::{AppKey, Pouch};
 use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tracing::error;
 
 const APPS_FILE_NAME: &str = "apps.json";
 pub type Gems = HashMap<AppKey, App>;
 
 pub struct AppPouch {
-    path: PathBuf,
+    lore: AppLoreRef,
     apps: Gems,
 }
 
@@ -27,9 +28,14 @@ impl Pouch for AppPouch {
 }
 
 impl AppPouch {
+    fn base_path(&self) -> &Path {
+        &self.lore.as_ref().as_ref().base_path
+    }
+
     pub(in super::super) fn close(&mut self) -> Result<()> {
-        fs::create_dir_all(&self.path)?;
-        let file = fs::File::create(self.path.join(APPS_FILE_NAME))?;
+        let base_path = self.base_path();
+        fs::create_dir_all(base_path)?;
+        let file = fs::File::create(base_path.join(APPS_FILE_NAME))?;
         let content: Vec<_> = self.apps.values().collect();
         serde_json::to_writer_pretty(file, &content)?;
         Ok(())
@@ -45,7 +51,7 @@ impl AppPouch {
     }
 
     fn read_apps(&self) -> Result<Vec<AppDeserializable>> {
-        let file = fs::File::open(self.path.join(APPS_FILE_NAME))?;
+        let file = fs::File::open(self.lore.as_ref().as_ref().base_path.join(APPS_FILE_NAME))?;
         Ok(serde_json::from_reader(file)?)
     }
 
@@ -70,9 +76,9 @@ impl AppPouch {
 }
 
 impl AppPouch {
-    pub fn new(path: &Path) -> Self {
+    pub fn new(lore: AppLoreRef) -> Self {
         Self {
-            path: path.to_path_buf(),
+            lore,
             apps: HashMap::default(),
         }
     }
@@ -81,16 +87,17 @@ impl AppPouch {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::jeweler;
     use crate::jeweler::app::AppStatus;
     use crate::jeweler::gem::app::AppDataDeserializable;
     use crate::jeweler::gem::deployment::Deployment;
     use crate::jeweler::gem::deployment::docker::DockerDeploymentImpl;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::manifest::AppManifest;
-    use crate::tests::prepare_test_path;
+    use crate::relic::var::test::MockVarReader;
+    use crate::{jeweler, lore};
     use serde_json::Value;
     use std::fs;
+    use std::path::PathBuf;
     use std::sync::Arc;
     use testdir::testdir;
 
@@ -119,9 +126,10 @@ pub mod tests {
             .into_values()
             .map(|deployment| (deployment.id().clone(), deployment))
             .collect();
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         AppPouch {
             apps: AppPouch::create_apps(apps, manifests, &deployments),
-            path: testdir!().join("apps"),
+            lore,
         }
     }
 
@@ -354,7 +362,9 @@ pub mod tests {
 
     #[test]
     fn open_app_pouch() {
-        let path = prepare_test_path(module_path!(), "open_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        fs::create_dir_all(&lore.app.base_path).unwrap();
+        let path = lore.app.base_path.clone();
         let json = create_test_json();
         fs::write(
             path.join(APPS_FILE_NAME),
@@ -363,7 +373,7 @@ pub mod tests {
         .unwrap();
         let mut app_pouch = AppPouch {
             apps: HashMap::default(),
-            path,
+            lore,
         };
         app_pouch
             .open(&create_test_manifests(), &create_test_deployments())
@@ -372,12 +382,13 @@ pub mod tests {
 
     #[test]
     fn close_app_pouch() {
-        let path = prepare_test_path(module_path!(), "close_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let path = lore.app.base_path.clone();
         let json = create_test_json();
         let app = create_test_app();
         let mut app_pouch = AppPouch {
             apps: HashMap::from([(app.key.clone(), app)]),
-            path: path.clone(),
+            lore,
         };
         app_pouch.close().unwrap();
         let file = fs::File::open(path.join(APPS_FILE_NAME)).unwrap();
@@ -390,10 +401,8 @@ pub mod tests {
         let app = create_test_app();
         let key = app.key.clone();
         let gems = HashMap::from([(key.clone(), app)]);
-        let mut app_pouch = AppPouch {
-            apps: gems,
-            path: prepare_test_path(module_path!(), "gems"),
-        };
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let mut app_pouch = AppPouch { apps: gems, lore };
         assert_eq!(app_pouch.gems().len(), 1);
         assert_eq!(app_pouch.gems().get(&key).unwrap().key, key);
         assert_eq!(app_pouch.gems_mut().len(), 1);

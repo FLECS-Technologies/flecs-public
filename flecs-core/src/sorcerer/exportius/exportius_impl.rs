@@ -1,5 +1,6 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::gem::instance::InstanceId;
+use crate::lore::ExportLoreRef;
 use crate::quest::SyncQuest;
 use crate::sorcerer::Sorcerer;
 use crate::sorcerer::exportius::{
@@ -34,10 +35,11 @@ impl Exportius for ExportiusImpl {
     async fn export_apps(
         quest: SyncQuest,
         vault: Arc<Vault>,
+        lore: ExportLoreRef,
         apps: Vec<AppKey>,
         path: PathBuf,
     ) -> Result<(), ExportAppError> {
-        crate::sorcerer::spell::flecsport::export_apps(quest, vault, apps, path).await
+        crate::sorcerer::spell::flecsport::export_apps(quest, vault, lore, apps, path).await
     }
 
     async fn export_instances<F: Floxy + 'static>(

@@ -1,5 +1,6 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::forge::time::SystemTimeExt;
+use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::relic::async_flecstract::{decompress_from_file, extract_from_file};
 use crate::relic::device::usb::UsbDeviceReader;
@@ -26,6 +27,7 @@ impl Importius for ImportiusImpl {
         quest: SyncQuest,
         vault: Arc<Vault>,
         floxy: Arc<FloxyOperation<F>>,
+        lore: Arc<Lore>,
         usb_device_reader: Arc<U>,
         mut path_info: ImportPathInfo,
     ) -> Result<(), ImportError> {
@@ -33,7 +35,7 @@ impl Importius for ImportiusImpl {
         path_info.temp_path = path_info.temp_path.join(now.unix_millis().to_string());
         tokio::fs::create_dir_all(&path_info.temp_path).await?;
         let temp_path = path_info.temp_path.clone();
-        let result = import_archive(quest, vault, floxy, usb_device_reader, path_info).await;
+        let result = import_archive(quest, vault, floxy, lore, usb_device_reader, path_info).await;
         if let Err(e) = tokio::fs::remove_dir_all(&temp_path).await {
             warn!("Could not remove temporary import directory {temp_path:?}: {e}")
         }
@@ -45,6 +47,7 @@ async fn import_archive<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
     quest: SyncQuest,
     vault: Arc<Vault>,
     floxy: Arc<FloxyOperation<F>>,
+    lore: Arc<Lore>,
     usb_device_reader: Arc<U>,
     path_info: ImportPathInfo,
 ) -> Result<(), ImportError> {
@@ -56,6 +59,7 @@ async fn import_archive<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
         vault.clone(),
         floxy.clone(),
         usb_device_reader,
+        lore,
         path_info.temp_path,
         path_info.base_path,
     )
@@ -105,6 +109,7 @@ async fn import<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
     vault: Arc<Vault>,
     floxy: Arc<FloxyOperation<F>>,
     usb_device_reader: Arc<U>,
+    lore: Arc<Lore>,
     import_path: PathBuf,
     base_path: PathBuf,
 ) -> Result<(), ImportError> {
@@ -155,6 +160,7 @@ async fn import<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
                     spell::flimport::import_legacy_directory(
                         quest,
                         vault,
+                        lore,
                         usb_device_reader,
                         manifest,
                         import_path,
@@ -166,6 +172,7 @@ async fn import<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
                     spell::flimport::import_directory(
                         quest,
                         vault,
+                        lore,
                         manifest,
                         import_path,
                         base_path,

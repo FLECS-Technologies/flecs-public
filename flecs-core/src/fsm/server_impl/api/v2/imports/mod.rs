@@ -1,6 +1,7 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::enchantment::quest_master::QuestMaster;
 use crate::forge::axum::{MultipartExt, WriteMultipartError};
+use crate::lore::Lore;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::sorcerer::importius::{ImportPathInfo, Importius};
 use crate::vault::Vault;
@@ -8,19 +9,18 @@ use axum_extra::extract::Multipart;
 use flecsd_axum_server::apis::flecsport::ImportsPostResponse as PostResponse;
 use flecsd_axum_server::models;
 use futures_util::TryFutureExt;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 pub async fn post<I: Importius, F: Floxy + 'static, U: UsbDeviceReader + 'static>(
     vault: Arc<Vault>,
+    lore: Arc<Lore>,
     importius: Arc<I>,
     floxy: Arc<F>,
     usb_device_reader: Arc<U>,
     quest_master: QuestMaster,
     request: Multipart,
 ) -> PostResponse {
-    let path = PathBuf::from(crate::lore::flimport::BASE_PATH);
-    match request.write_file(path).await {
+    match request.write_file(lore.import.base_path.clone()).await {
         Err(e @ WriteMultipartError::NoData) | Err(e @ WriteMultipartError::NoFileName) => {
             PostResponse::Status400_MalformedRequest(models::AdditionalInfo::new(e.to_string()))
         }
@@ -30,8 +30,8 @@ pub async fn post<I: Importius, F: Floxy + 'static, U: UsbDeviceReader + 'static
         Ok(file_path) => {
             let path_info = ImportPathInfo {
                 archive_path: file_path,
-                temp_path: PathBuf::from(crate::lore::flimport::BASE_PATH),
-                base_path: PathBuf::from(crate::lore::BASE_PATH),
+                temp_path: lore.import.base_path.clone(),
+                base_path: lore.base_path.clone(),
             };
             match quest_master
                 .lock()
@@ -44,6 +44,7 @@ pub async fn post<I: Importius, F: Floxy + 'static, U: UsbDeviceReader + 'static
                                 quest,
                                 vault,
                                 FloxyOperation::new_arc(floxy),
+                                lore,
                                 usb_device_reader,
                                 path_info,
                             )

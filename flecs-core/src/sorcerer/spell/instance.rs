@@ -10,6 +10,7 @@ use crate::jeweler::gem::instance::{Instance, InstanceId};
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::single::AppManifestSingle;
 use crate::jeweler::network::NetworkId;
+use crate::lore::{InstanceLoreRef, Lore};
 use crate::quest::{State, SyncQuest};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::vault::Vault;
@@ -49,21 +50,23 @@ pub enum UpdateInstanceError {
 
 pub async fn create_docker_instance(
     quest: SyncQuest,
+    lore: Arc<Lore>,
     deployment: Arc<dyn DockerDeployment>,
     manifest: Arc<AppManifestSingle>,
     name: String,
     address: IpAddr,
 ) -> Result<DockerInstance> {
-    DockerInstance::try_create_new(quest, deployment, manifest, name, address).await
+    DockerInstance::try_create_new(quest, lore, deployment, manifest, name, address).await
 }
 
 pub async fn create_compose_instance(
     quest: SyncQuest,
+    lore: InstanceLoreRef,
     deployment: Arc<dyn ComposeDeployment>,
     manifest: Arc<AppManifestMulti>,
     name: String,
 ) -> Result<ComposeInstance> {
-    Ok(ComposeInstance::try_create_new(quest, deployment, manifest, name).await?)
+    Ok(ComposeInstance::try_create_new(quest, lore, deployment, manifest, name).await?)
 }
 
 pub async fn start_instance<F: Floxy>(
@@ -920,8 +923,8 @@ pub mod tests {
         deployment
             .expect_start_instance()
             .once()
-            .withf(|_, id, _| *id == Some(RUNNING_INSTANCE))
-            .returning(|_, _, _| Ok(RUNNING_INSTANCE));
+            .withf(|_, _, id, _| *id == Some(RUNNING_INSTANCE))
+            .returning(|_, _, _, _| Ok(RUNNING_INSTANCE));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
@@ -1189,10 +1192,11 @@ pub mod tests {
                     .once()
                     .with(
                         predicate::always(),
+                        predicate::always(),
                         predicate::eq(Some(instance_id)),
                         predicate::always(),
                     )
-                    .returning(move |_, _, _| Ok(instance_id));
+                    .returning(move |_, _, _, _| Ok(instance_id));
             }
             let deployment = Deployment::Docker(Arc::new(deployment));
             (instance_id, deployment)
@@ -1248,10 +1252,11 @@ pub mod tests {
                     .once()
                     .with(
                         predicate::always(),
+                        predicate::always(),
                         predicate::eq(Some(instance_id)),
                         predicate::always(),
                     )
-                    .returning(move |_, _, _| {
+                    .returning(move |_, _, _, _| {
                         if instance_id == ERROR_INSTANCE {
                             Err(anyhow::anyhow!("TestError"))
                         } else {

@@ -3,6 +3,7 @@ use crate::jeweler::gem::instance::compose::ComposeInstance;
 use crate::jeweler::gem::instance::docker::DockerInstance;
 use crate::jeweler::gem::instance::{CreateInstanceError, Instance};
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::lore::{InstanceLoreRef, Lore};
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::vault::pouch::Pouch;
 use crate::vault::{GrabbedPouches, Vault};
@@ -33,6 +34,7 @@ pub enum MigrateError {
 pub async fn migrate_docker_instances<U: UsbDeviceReader>(
     vault: Arc<Vault>,
     usb_device_reader: &U,
+    lore: Arc<Lore>,
 ) -> Result<(), MigrateError> {
     let path = Path::new(LEGACY_DEPLOYMENT_PATH).join("docker.json");
     info!("Migrating docker instances from {path:?}");
@@ -70,6 +72,7 @@ pub async fn migrate_docker_instances<U: UsbDeviceReader>(
     for instance in docker_instances {
         let instance_id = instance.id;
         match DockerInstance::try_create_with_state(
+            lore.clone(),
             instance,
             manifest_pouch.gems(),
             deployment_pouch.gems(),
@@ -91,7 +94,10 @@ pub async fn migrate_docker_instances<U: UsbDeviceReader>(
     Ok(())
 }
 
-pub async fn migrate_compose_instances(vault: Arc<Vault>) -> Result<(), MigrateError> {
+pub async fn migrate_compose_instances(
+    vault: Arc<Vault>,
+    lore: InstanceLoreRef,
+) -> Result<(), MigrateError> {
     let path = Path::new(LEGACY_DEPLOYMENT_PATH).join("compose.json");
     info!("Migrating compose instances from {path:?}");
     let compose_instances = tokio::fs::read_to_string(&path)
@@ -125,6 +131,7 @@ pub async fn migrate_compose_instances(vault: Arc<Vault>) -> Result<(), MigrateE
     for instance in compose_instances {
         let instance_id = instance.id;
         match ComposeInstance::try_create_with_state(
+            lore.clone(),
             instance,
             manifest_pouch.gems(),
             deployment_pouch.gems(),

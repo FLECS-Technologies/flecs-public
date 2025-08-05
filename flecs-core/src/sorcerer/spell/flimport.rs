@@ -8,6 +8,7 @@ use crate::jeweler::gem::instance::{
 };
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::legacy;
+use crate::lore::{ImportLoreRef, Lore};
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::relic::system::info::try_create_system_info;
@@ -105,6 +106,7 @@ async fn merged_manifests(
 pub async fn import_directory(
     quest: SyncQuest,
     vault: Arc<Vault>,
+    lore: Arc<Lore>,
     manifest: v3::Manifest,
     src: PathBuf,
     dst: PathBuf,
@@ -133,17 +135,22 @@ pub async fn import_directory(
     let apps = import_apps_quest(
         &quest,
         manifest.contents.apps.clone(),
+        lore.clone(),
         apps_input_receiver,
         src.join("apps"),
     )
     .await;
     let (instances_input_sender, instances_input_receiver) = tokio::sync::oneshot::channel();
+    let config = ImportInstanceConfig {
+        lore,
+        src: src.join("instances"),
+        dst: dst.join("instances"),
+    };
     let instances = import_instances_quest(
         &quest,
         manifest.contents.instances,
         instances_input_receiver,
-        src.join("instances"),
-        dst.join("instances"),
+        config,
     )
     .await;
     // Deployments and manifests can be imported concurrently as there are no dependencies
@@ -169,6 +176,7 @@ pub async fn import_directory(
 pub async fn import_legacy_directory<U: UsbDeviceReader + 'static>(
     quest: SyncQuest,
     vault: Arc<Vault>,
+    lore: Arc<Lore>,
     usb_device_reader: Arc<U>,
     manifest: v2::Manifest,
     src: PathBuf,
@@ -195,20 +203,25 @@ pub async fn import_legacy_directory<U: UsbDeviceReader + 'static>(
     let apps = import_legacy_apps_quest(
         &quest,
         manifest.contents.apps.clone(),
+        lore.clone(),
         apps_input_receiver,
         default_docker_deployments.clone(),
         src.join("apps"),
     )
     .await;
     let (instances_input_sender, instances_input_receiver) = tokio::sync::oneshot::channel();
+    let config = ImportInstanceConfig {
+        lore,
+        src: src.join("instances"),
+        dst: dst.join("instances"),
+    };
     let instances = import_legacy_instances_quest(
         &quest,
         usb_device_reader,
         manifest.contents.instances,
         instances_input_receiver,
         default_docker_deployments,
-        src.join("instances"),
-        dst.join("instances"),
+        config,
     )
     .await;
     let manifests = Arc::new(manifests.await);
@@ -361,6 +374,7 @@ pub async fn import_legacy_manifest(
 async fn import_apps_quest(
     quest: &SyncQuest,
     app_keys: Vec<AppKey>,
+    lore: ImportLoreRef,
     input_recv: tokio::sync::oneshot::Receiver<(
         Arc<pouch::manifest::Gems>,
         Arc<pouch::deployment::Gems>,
@@ -372,7 +386,7 @@ async fn import_apps_quest(
         .await
         .create_sub_quest("Import apps", |quest| async move {
             let (manifests, deployments) = input_recv.await?;
-            Ok(import_apps(quest, app_keys, manifests, deployments, path).await)
+            Ok(import_apps(quest, app_keys, manifests, deployments, lore, path).await)
         })
         .await
         .2
@@ -381,6 +395,7 @@ async fn import_apps_quest(
 async fn import_legacy_apps_quest(
     quest: &SyncQuest,
     app_keys: Vec<AppKey>,
+    lore: ImportLoreRef,
     input_recv: tokio::sync::oneshot::Receiver<Arc<pouch::manifest::Gems>>,
     default_deployments: DefaultDeployments,
     path: PathBuf,
@@ -390,7 +405,10 @@ async fn import_legacy_apps_quest(
         .await
         .create_sub_quest("Import apps", |quest| async move {
             let manifests = input_recv.await?;
-            Ok(import_legacy_apps(quest, app_keys, manifests, default_deployments, path).await)
+            Ok(
+                import_legacy_apps(quest, app_keys, manifests, default_deployments, lore, path)
+                    .await,
+            )
         })
         .await
         .2
@@ -401,6 +419,7 @@ pub async fn import_apps(
     app_keys: Vec<AppKey>,
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
+    lore: ImportLoreRef,
     path: PathBuf,
 ) -> pouch::app::Gems {
     let mut results = Vec::new();
@@ -414,6 +433,7 @@ pub async fn import_apps(
                         app_key.clone(),
                         manifests.clone(),
                         deployments.clone(),
+                        lore.clone(),
                         path.clone(),
                     )
                 })
@@ -441,6 +461,7 @@ pub async fn import_app(
     app_key: AppKey,
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
+    lore: ImportLoreRef,
     path: PathBuf,
 ) -> Result<App, ImportAppError> {
     let path = path.join(format!("{}_{}", app_key.name, app_key.version));
@@ -448,7 +469,7 @@ pub async fn import_app(
     let app = tokio::fs::read(&app_path).await?;
     let app: AppDeserializable = serde_json::from_slice(&app)?;
     let app = try_create_app(app, &manifests, &deployments)?;
-    app.import(quest, path).await?;
+    app.import(quest, lore, path).await?;
     Ok(app)
 }
 
@@ -457,6 +478,7 @@ pub async fn import_legacy_apps(
     app_keys: Vec<AppKey>,
     manifests: Arc<pouch::manifest::Gems>,
     default_deployments: DefaultDeployments,
+    lore: ImportLoreRef,
     path: PathBuf,
 ) -> pouch::app::Gems {
     let mut results = Vec::new();
@@ -470,6 +492,7 @@ pub async fn import_legacy_apps(
                         app_key.clone(),
                         manifests.clone(),
                         default_deployments.clone(),
+                        lore.clone(),
                         path.clone(),
                     )
                 })
@@ -497,6 +520,7 @@ pub async fn import_legacy_app(
     app_key: AppKey,
     manifests: Arc<pouch::manifest::Gems>,
     default_deployments: DefaultDeployments,
+    lore: ImportLoreRef,
     path: PathBuf,
 ) -> Result<App, ImportAppError> {
     let app = try_create_legacy_app(app_key.clone(), &manifests, default_deployments)?;
@@ -524,8 +548,15 @@ pub async fn import_legacy_app(
             tokio::fs::rename(old_path, new_path).await?;
         }
     }
-    app.import(quest, app_dir).await?;
+    app.import(quest, lore, app_dir).await?;
     Ok(app)
+}
+
+#[derive(Clone)]
+pub struct ImportInstanceConfig {
+    pub lore: Arc<Lore>,
+    pub src: PathBuf,
+    pub dst: PathBuf,
 }
 
 async fn import_legacy_instances_quest<U: UsbDeviceReader + 'static>(
@@ -534,8 +565,7 @@ async fn import_legacy_instances_quest<U: UsbDeviceReader + 'static>(
     instances: Vec<legacy::deployment::Instance>,
     input_recv: tokio::sync::oneshot::Receiver<Arc<pouch::manifest::Gems>>,
     default_docker_deployments: DefaultDeployments,
-    src: PathBuf,
-    dst: PathBuf,
+    config: ImportInstanceConfig,
 ) -> BoxFuture<'static, Result<pouch::instance::Gems, RecvError>> {
     quest
         .lock()
@@ -548,8 +578,7 @@ async fn import_legacy_instances_quest<U: UsbDeviceReader + 'static>(
                 instances,
                 manifests,
                 default_docker_deployments,
-                src,
-                dst,
+                config,
             )
             .await)
         })
@@ -563,18 +592,26 @@ pub async fn import_legacy_instances<U: UsbDeviceReader + 'static>(
     legacy_instances: Vec<legacy::deployment::Instance>,
     manifests: Arc<pouch::manifest::Gems>,
     default_docker_deployments: DefaultDeployments,
-    src: PathBuf,
-    dst: PathBuf,
+    config: ImportInstanceConfig,
 ) -> pouch::instance::Gems {
     let mut results = Vec::new();
     {
         let mut quest = quest.lock().await;
         for instance in legacy_instances.clone() {
-            let src = src.join(&instance.instance_id);
-            let dst = dst.join(&instance.instance_id);
+            let config = {
+                ImportInstanceConfig {
+                    src: config.src.join(&instance.instance_id),
+                    dst: config.dst.join(&instance.instance_id),
+                    lore: config.lore.clone(),
+                }
+            };
             let result = quest
                 .create_sub_quest(
-                    format!("Import instance {} from {src:?}", instance.instance_id),
+                    format!(
+                        "Import instance {} from {}",
+                        instance.instance_id,
+                        config.src.display()
+                    ),
                     |quest| {
                         import_legacy_instance(
                             quest,
@@ -582,8 +619,7 @@ pub async fn import_legacy_instances<U: UsbDeviceReader + 'static>(
                             default_docker_deployments.clone(),
                             usb_device_reader.clone(),
                             instance,
-                            src,
-                            dst,
+                            config,
                         )
                     },
                 )
@@ -615,8 +651,7 @@ pub async fn import_legacy_instance<U: UsbDeviceReader>(
     default_docker_deployments: DefaultDeployments,
     usb_device_reader: Arc<U>,
     instance: legacy::deployment::Instance,
-    src: PathBuf,
-    dst: PathBuf,
+    ImportInstanceConfig { lore, src, dst }: ImportInstanceConfig,
 ) -> Result<Instance, ImportInstanceError> {
     let Some(manifest) = manifests.get(&instance.app_key).cloned() else {
         return Err(CreateInstanceError::NoManifest(instance.app_key).into());
@@ -630,6 +665,7 @@ pub async fn import_legacy_instance<U: UsbDeviceReader>(
             },
         ) => Instance::Docker(
             DockerInstance::try_create_from_legacy(
+                lore,
                 instance,
                 usb_device_reader.as_ref(),
                 manifest,
@@ -644,7 +680,7 @@ pub async fn import_legacy_instance<U: UsbDeviceReader>(
                 ..
             },
         ) => Instance::Compose(
-            ComposeInstance::try_create_from_legacy(instance, manifest, deployment).await?,
+            ComposeInstance::try_create_from_legacy(lore, instance, manifest, deployment).await?,
         ),
         _ => return Err(CreateInstanceError::NoFittingDeployment.into()),
     };
@@ -660,15 +696,14 @@ async fn import_instances_quest(
         Arc<pouch::deployment::Gems>,
         Arc<pouch::app::Gems>,
     )>,
-    src: PathBuf,
-    dst: PathBuf,
+    config: ImportInstanceConfig,
 ) -> BoxFuture<'static, Result<HashMap<InstanceId, Instance>, RecvError>> {
     quest
         .lock()
         .await
         .create_sub_quest("Import instances", |quest| async move {
             let (manifests, deployments, apps) = input_recv.await?;
-            Ok(import_instances(quest, instances, manifests, deployments, apps, src, dst).await)
+            Ok(import_instances(quest, instances, manifests, deployments, apps, config).await)
         })
         .await
         .2
@@ -680,8 +715,7 @@ pub async fn import_instances(
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
     apps: Arc<pouch::app::Gems>,
-    src: PathBuf,
-    dst: PathBuf,
+    config: ImportInstanceConfig,
 ) -> pouch::instance::Gems {
     let mut results = Vec::new();
     {
@@ -694,8 +728,7 @@ pub async fn import_instances(
                         manifests.clone(),
                         deployments.clone(),
                         apps.clone(),
-                        src.join(instance_id.to_string()),
-                        dst.join(instance_id.to_string()),
+                        config.clone(),
                     )
                 })
                 .await
@@ -722,8 +755,7 @@ pub async fn import_instance(
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
     apps: Arc<pouch::app::Gems>,
-    src: PathBuf,
-    dst: PathBuf,
+    ImportInstanceConfig { lore, src, dst }: ImportInstanceConfig,
 ) -> Result<Instance, ImportInstanceError> {
     let instance_path = src.join("instance.json");
     let instance = tokio::fs::read(&instance_path).await?;
@@ -733,7 +765,7 @@ pub async fn import_instance(
             instance.app_key().clone(),
         ));
     }
-    let mut instance = Instance::try_create_with_state(instance, &manifests, &deployments)?;
+    let mut instance = Instance::try_create_with_state(lore, instance, &manifests, &deployments)?;
     instance.import(quest, src, dst).await?;
     Ok(instance)
 }

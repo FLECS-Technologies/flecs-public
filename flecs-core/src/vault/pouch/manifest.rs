@@ -1,9 +1,10 @@
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::lore::ManifestLoreRef;
 use crate::vault::Error;
 use crate::vault::pouch::{AppKey, Pouch};
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::str::FromStr;
 use tracing::{debug, warn};
 
@@ -12,7 +13,7 @@ const MANIFEST_FILE_NAME: &str = "manifest.json";
 pub type Gems = HashMap<AppKey, AppManifest>;
 
 pub struct ManifestPouch {
-    path: PathBuf,
+    lore: ManifestLoreRef,
     manifests: Gems,
     existing_manifest_keys: HashSet<AppKey>,
 }
@@ -30,11 +31,16 @@ impl Pouch for ManifestPouch {
 }
 
 impl ManifestPouch {
+    fn base_path(&self) -> &Path {
+        &self.lore.as_ref().as_ref().base_path
+    }
+
     pub(in super::super) fn close(&mut self) -> crate::vault::Result<()> {
         let mut errors: Vec<String> = Vec::new();
-        fs::create_dir_all(&self.path)?;
+        let base_path = self.base_path().to_path_buf();
+        fs::create_dir_all(&base_path)?;
         for (key, manifest) in &self.manifests {
-            let path = self.path.join(key.name.as_str()).join(key.version.as_str());
+            let path = base_path.join(key.name.as_str()).join(key.version.as_str());
             if let Err(e) = fs::create_dir_all(&path) {
                 errors.push(e.to_string());
                 break;
@@ -55,7 +61,7 @@ impl ManifestPouch {
         );
         for key in existing_manifest_keys {
             if !self.existing_manifest_keys.contains(&key) {
-                if let Err(e) = Self::erase_manifest_from_disk(&self.path, &key) {
+                if let Err(e) = Self::erase_manifest_from_disk(&base_path, &key) {
                     errors.push(e.to_string());
                 }
             }
@@ -68,7 +74,7 @@ impl ManifestPouch {
     }
 
     pub(in super::super) fn open(&mut self) -> crate::vault::Result<()> {
-        let path = self.path.join(format!("*/*/{MANIFEST_FILE_NAME}"));
+        let path = self.base_path().join(format!("*/*/{MANIFEST_FILE_NAME}"));
         let path = path.to_str().ok_or(Error::Single(String::from("")))?;
         self.manifests.clear();
         for entry in glob::glob(path)?.flatten() {
@@ -98,9 +104,9 @@ impl ManifestPouch {
 }
 
 impl ManifestPouch {
-    pub fn new(path: &Path) -> Self {
+    pub fn new(lore: ManifestLoreRef) -> Self {
         Self {
-            path: path.to_path_buf(),
+            lore,
             manifests: HashMap::default(),
             existing_manifest_keys: HashSet::default(),
         }
@@ -117,11 +123,13 @@ impl ManifestPouch {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::tests::prepare_test_path;
+    use crate::lore;
+    use crate::relic::var::test::MockVarReader;
     use flecs_app_manifest::AppManifestVersion;
     use serde_json::Value;
     use std::fs;
     use std::io::Write;
+    use std::sync::Arc;
     use testdir::testdir;
 
     fn manifest_from_json(json: &Value) -> AppManifest {
@@ -151,8 +159,9 @@ pub mod tests {
                 .into_iter()
                 .map(|manifest| (manifest.key().clone(), manifest)),
         );
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         ManifestPouch {
-            path: testdir!().join("manifests"),
+            lore,
             existing_manifest_keys: HashSet::from_iter(manifests.keys().cloned()),
             manifests,
         }
@@ -369,10 +378,15 @@ pub mod tests {
     // TODO: Test delete of manifest files on close
     #[test]
     fn close_manifest_pouch() {
-        let path = prepare_test_path(module_path!(), "close_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
 
         let (name, version) = ("mample".to_string(), "2.1.3".to_string());
-        let manifest_path1 = path.join(&name).join(&version).join(MANIFEST_FILE_NAME);
+        let manifest_path1 = lore
+            .manifest
+            .base_path
+            .join(&name)
+            .join(&version)
+            .join(MANIFEST_FILE_NAME);
         let json1 = create_test_json_v3(&name, &version);
         let manifest1 = create_test_manifest(&name, &version);
         let manifest_key1 = AppKey {
@@ -380,7 +394,12 @@ pub mod tests {
             version: version.clone(),
         };
         let (name, version) = ("tamble".to_string(), "10.23.1".to_string());
-        let manifest_path2 = path.join(&name).join(&version).join(MANIFEST_FILE_NAME);
+        let manifest_path2 = lore
+            .manifest
+            .base_path
+            .join(&name)
+            .join(&version)
+            .join(MANIFEST_FILE_NAME);
         let json2 = create_test_json_v3(&name, &version);
         let manifest2 = create_test_manifest(&name, &version);
 
@@ -391,7 +410,7 @@ pub mod tests {
         let existing_manifest_keys = manifests.keys().cloned().collect();
         let mut manifest_pouch = ManifestPouch {
             manifests: manifests.clone(),
-            path,
+            lore,
             existing_manifest_keys,
         };
         manifest_pouch.close().unwrap();
@@ -413,15 +432,25 @@ pub mod tests {
 
     #[test]
     fn open_manifest_pouch() {
-        let path = prepare_test_path(module_path!(), "open_pouch");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
 
         let (name, version) = ("mample".to_string(), "2.1.3".to_string());
-        let manifest_path1 = path.join(&name).join(&version).join(MANIFEST_FILE_NAME);
+        let manifest_path1 = lore
+            .manifest
+            .base_path
+            .join(&name)
+            .join(&version)
+            .join(MANIFEST_FILE_NAME);
         let json1 = create_test_json_v3(&name, &version);
         let manifest1 = create_test_manifest(&name, &version);
 
         let (name, version) = ("tamble".to_string(), "10.23.1".to_string());
-        let manifest_path2 = path.join(&name).join(&version).join(MANIFEST_FILE_NAME);
+        let manifest_path2 = lore
+            .manifest
+            .base_path
+            .join(&name)
+            .join(&version)
+            .join(MANIFEST_FILE_NAME);
         let json2 = create_test_json_v3(&name, &version);
         let manifest2 = create_test_manifest(&name, &version);
 
@@ -431,7 +460,7 @@ pub mod tests {
         ]);
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
-            path,
+            lore,
             existing_manifest_keys: HashSet::new(),
         };
         fs::create_dir_all(manifest_path1.parent().unwrap()).unwrap();
@@ -450,19 +479,29 @@ pub mod tests {
 
     #[test]
     fn open_manifest_pouch_error() {
-        let path = prepare_test_path(module_path!(), "open_pouch_error");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
 
-        let manifest_path1 = path.join("mample").join("2.1.3").join(MANIFEST_FILE_NAME);
+        let manifest_path1 = lore
+            .manifest
+            .base_path
+            .join("mample")
+            .join("2.1.3")
+            .join(MANIFEST_FILE_NAME);
 
         let (name, version) = ("tamble".to_string(), "10.23.1".to_string());
-        let manifest_path2 = path.join(&name).join(&version).join(MANIFEST_FILE_NAME);
+        let manifest_path2 = lore
+            .manifest
+            .base_path
+            .join(&name)
+            .join(&version)
+            .join(MANIFEST_FILE_NAME);
         let json = create_test_json_v3(&name, &version);
         let manifest = create_test_manifest(&name, &version);
 
         let manifests = HashMap::from([(manifest.key().clone(), manifest)]);
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
-            path,
+            lore,
             existing_manifest_keys: HashSet::new(),
         };
         fs::create_dir_all(manifest_path1.parent().unwrap()).unwrap();
@@ -481,14 +520,24 @@ pub mod tests {
 
     #[test]
     fn open_manifest_pouch_errors() {
-        let path = prepare_test_path(module_path!(), "open_pouch_errors");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
 
-        let manifest_path1 = path.join("mample").join("2.1.3").join(MANIFEST_FILE_NAME);
-        let manifest_path2 = path.join("tamble").join("10.23.1").join(MANIFEST_FILE_NAME);
+        let manifest_path1 = lore
+            .manifest
+            .base_path
+            .join("mample")
+            .join("2.1.3")
+            .join(MANIFEST_FILE_NAME);
+        let manifest_path2 = lore
+            .manifest
+            .base_path
+            .join("tamble")
+            .join("10.23.1")
+            .join(MANIFEST_FILE_NAME);
 
         let mut manifest_pouch = ManifestPouch {
             manifests: HashMap::default(),
-            path,
+            lore,
             existing_manifest_keys: HashSet::default(),
         };
         fs::create_dir_all(manifest_path1.parent().unwrap()).unwrap();
@@ -507,7 +556,7 @@ pub mod tests {
 
     #[test]
     fn manifest_gems() {
-        let path = prepare_test_path(module_path!(), "gems");
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
 
         let manifest1 = create_test_manifest("mample", "2.1.3");
         let manifest2 = create_test_manifest("tamble", "10.23.1");
@@ -518,7 +567,7 @@ pub mod tests {
         ]);
         let mut manifest_pouch = ManifestPouch {
             manifests: gems.clone(),
-            path: path.parent().unwrap().to_path_buf(),
+            lore,
             existing_manifest_keys: gems.keys().cloned().collect(),
         };
         assert_eq!(&gems, manifest_pouch.gems_mut());

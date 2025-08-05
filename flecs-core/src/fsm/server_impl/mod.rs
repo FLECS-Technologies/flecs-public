@@ -12,6 +12,7 @@ mod system;
 use crate::enchantment::Enchantments;
 use crate::enchantment::floxy::Floxy;
 use crate::fsm::console_client::ConsoleClient;
+use crate::lore::Lore;
 use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::relic::network::NetworkAdapterReader;
@@ -61,6 +62,7 @@ pub struct ServerImpl<
     NetDev: NetDeviceReader,
 > {
     vault: Arc<Vault>,
+    lore: Arc<Lore>,
     enchantments: Enchantments<F>,
     usb_reader: Arc<T>,
     network_adapter_reader: Arc<NET>,
@@ -88,6 +90,7 @@ impl<
 {
     pub async fn new(
         vault: Arc<Vault>,
+        lore: Arc<Lore>,
         sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
         enchantments: Enchantments<F>,
         usb_reader: T,
@@ -95,8 +98,9 @@ impl<
         net_device_reader: NetDev,
     ) -> Self {
         Self {
-            console_client: crate::fsm::console_client::create_default(vault.clone()),
+            console_client: crate::fsm::console_client::create_default(vault.clone(), lore.clone()),
             vault,
+            lore,
             enchantments,
             usb_reader: Arc::new(usb_reader),
             net_device_reader: Arc::new(net_device_reader),
