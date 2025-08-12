@@ -226,6 +226,8 @@ pub struct SecretLore {
 pub struct AuthLore {
     pub issuer_url: Option<openidconnect::IssuerUrl>,
     pub issuer_certificate_cache_lifetime: Duration,
+    pub casbin_policy_path: PathBuf,
+    pub casbin_model_path: PathBuf,
 }
 
 impl Lore {
@@ -473,9 +475,17 @@ impl AuthLore {
             .issuer_certificate_cache_lifetime
             .map(Duration::from_secs)
             .unwrap_or(default::auth::ISSUER_CERTIFICATE_CACHE_LIFETIME);
+        let casbin_policy_path = conf.casbin_policy_path.unwrap_or_else(|| {
+            Path::new(default::auth::BASE_PATH).join(default::auth::CASBIN_POLICY_FILE_NAME)
+        });
+        let casbin_model_path = conf.casbin_model_path.unwrap_or_else(|| {
+            Path::new(default::auth::BASE_PATH).join(default::auth::CASBIN_MODEL_FILE_NAME)
+        });
         Self {
             issuer_url,
             issuer_certificate_cache_lifetime,
+            casbin_policy_path,
+            casbin_model_path,
         }
     }
 }

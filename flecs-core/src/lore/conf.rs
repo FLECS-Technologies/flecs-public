@@ -320,6 +320,10 @@ pub struct AuthConfig {
     pub issuer_url: Option<url::Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub issuer_certificate_cache_lifetime: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub casbin_policy_path: Option<PathBuf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub casbin_model_path: Option<PathBuf>,
 }
 
 #[cfg(feature = "auth")]
@@ -334,6 +338,8 @@ impl From<&AuthLore> for AuthConfig {
             issuer_certificate_cache_lifetime: Some(
                 value.issuer_certificate_cache_lifetime.as_secs(),
             ),
+            casbin_policy_path: Some(value.casbin_policy_path.clone()),
+            casbin_model_path: Some(value.casbin_model_path.clone()),
         }
     }
 }
@@ -450,6 +456,10 @@ impl Mergeable for SecretConfig {
 impl Mergeable for AuthConfig {
     fn merge(&mut self, other: Self) {
         self.issuer_url.trivial_merge(other.issuer_url);
+        self.casbin_model_path
+            .trivial_merge(other.casbin_model_path);
+        self.casbin_policy_path
+            .trivial_merge(other.casbin_policy_path);
         self.issuer_certificate_cache_lifetime
             .trivial_merge(other.issuer_certificate_cache_lifetime);
     }

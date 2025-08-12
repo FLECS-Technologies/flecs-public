@@ -319,13 +319,24 @@ pub mod auth {
     use super::Result;
     use crate::lore::conf::AuthConfig;
     use crate::relic::var::VarReader;
+    use std::path::PathBuf;
     use std::time::Duration;
 
     const ISSUER_URL: &str = "FLECS_CORE_ISSUER_URL";
     const ISSUER_CERTIFICATE_CACHE_LIFETIME: &str = "FLECS_CORE_ISSUER_CERTIFICATE_CACHE_LIFETIME";
+    const CASBIN_POLICY_PATH: &str = "FLECS_CORE_CASBIN_POLICY_PATH";
+    const CASBIN_MODEL_PATH: &str = "FLECS_CORE_CASBIN_MODEL_PATH";
 
     fn issuer_certificate_cache_lifetime(reader: &impl VarReader) -> Result<Option<Duration>> {
         Ok(reader.read_secs(ISSUER_CERTIFICATE_CACHE_LIFETIME)?)
+    }
+
+    fn casbin_policy_path(reader: &impl VarReader) -> Option<PathBuf> {
+        reader.read_path(CASBIN_POLICY_PATH)
+    }
+
+    fn casbin_model_path(reader: &impl VarReader) -> Option<PathBuf> {
+        reader.read_path(CASBIN_MODEL_PATH)
     }
 
     impl AuthConfig {
@@ -334,13 +345,19 @@ pub mod auth {
             let issuer_certificate_cache_lifetime = issuer_certificate_cache_lifetime(reader)?
                 .as_ref()
                 .map(Duration::as_secs);
+            let casbin_policy_path = casbin_policy_path(reader);
+            let casbin_model_path = casbin_model_path(reader);
             Ok(
                 if issuer_url.is_some()
                     || issuer_certificate_cache_lifetime.is_some()
+                    || casbin_policy_path.is_some()
+                    || casbin_model_path.is_some()
                 {
                     Some(Self {
                         issuer_url,
                         issuer_certificate_cache_lifetime,
+                        casbin_policy_path,
+                        casbin_model_path,
                     })
                 } else {
                     None
