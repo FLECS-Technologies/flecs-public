@@ -245,7 +245,7 @@ impl ServerHandle {
     }
 }
 
-pub fn spawn_server<
+pub async fn spawn_server<
     APP: AppRaiser + 'static,
     AUTH: Authmancer + 'static,
     I: Instancius + 'static,
@@ -262,57 +262,23 @@ pub fn spawn_server<
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
     lore: Arc<Lore>,
-) -> ServerHandle {
+) -> Result<ServerHandle> {
     let (server_shutdown_sender, server_shutdown_receiver) = tokio::sync::oneshot::channel();
     let (server_shutdown_finished_sender, server_shutdown_finished_receiver) =
         tokio::sync::oneshot::channel();
     let socket_path = lore.flecsd_socket_path.clone();
+    let unix_listener = create_unix_socket(lore.flecsd_socket_path.clone()).await?;
+    let service = create_service(sorcerers, enchantments, vault, lore).await;
     tokio::spawn(async move {
         info!("Starting rust server listening on {socket_path:?}");
-        crate::fsm::server(
-            sorcerers,
-            enchantments,
-            vault,
-            lore,
-            server_shutdown_receiver,
-        )
-        .await
-        .unwrap();
+        serve(unix_listener, service, server_shutdown_receiver).await;
         info!("Rust server listening on {socket_path:?} stopped");
         server_shutdown_finished_sender.send(()).unwrap()
     });
-    ServerHandle {
+    Ok(ServerHandle {
         server_shutdown_sender,
         server_shutdown_finished_receiver,
-    }
-}
-
-pub async fn server<
-    APP: AppRaiser + 'static,
-    AUTH: Authmancer + 'static,
-    I: Instancius + 'static,
-    L: Licenso + 'static,
-    Q: MageQuester + 'static,
-    M: Manifesto + 'static,
-    SYS: Systemus + 'static,
-    D: Deploymento + 'static,
-    E: Exportius + 'static,
-    IMP: Importius + 'static,
-    F: Floxy + 'static,
->(
-    sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
-    enchantments: Enchantments<F>,
-    vault: Arc<Vault>,
-    lore: Arc<Lore>,
-    shutdown_signal: tokio::sync::oneshot::Receiver<()>,
-) -> Result<()> {
-    serve(
-        create_unix_socket(lore.flecsd_socket_path.clone()).await?,
-        create_service(sorcerers, enchantments, vault, lore).await,
-        shutdown_signal,
-    )
-    .await;
-    Ok(())
+    })
 }
 
 #[derive(Clone, Debug)]

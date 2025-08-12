@@ -309,7 +309,9 @@ impl<
                 enchantments.clone(),
                 vault.clone(),
                 lore,
-            ),
+            )
+            .await
+            .map_err(|e| CreateError::SpinUp(e.to_string()))?,
             sorcerers,
             enchantments,
             relics,
