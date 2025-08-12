@@ -22,6 +22,8 @@ use crate::vault::Vault;
 #[cfg(feature = "auth")]
 use crate::wall;
 #[cfg(feature = "auth")]
+use crate::wall::enforcer::Enforcer;
+#[cfg(feature = "auth")]
 use crate::wall::watch::{AuthToken, RolesExtension, Watch};
 use axum::extract::DefaultBodyLimit;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
@@ -131,6 +133,27 @@ async fn auth_middleware(
     next.run(request).await
 }
 
+#[cfg(feature = "auth")]
+async fn roles_middleware(
+    axum::extract::State(enforcer): axum::extract::State<Arc<Enforcer>>,
+    axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
+    axum::Extension(roles): axum::Extension<RolesExtension>,
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    match enforcer
+        .verify_roles(uri.path(), &roles.0, request.method())
+        .await
+    {
+        Ok(false) => http::StatusCode::FORBIDDEN.into_response(),
+        Ok(true) => next.run(request).await,
+        Err(e) => {
+            warn!("Error verifying roles: {e}");
+            http::StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+}
+
 async fn create_service<
     APP: AppRaiser + 'static,
     AUTH: Authmancer + 'static,
@@ -162,9 +185,16 @@ async fn create_service<
     .await;
     #[cfg(feature = "auth")]
     let watch = Arc::new(Watch::new_with_lore(lore.clone()).await?);
+    #[cfg(feature = "auth")]
+    let enforcer = Arc::new(Enforcer::new_with_lore(lore).await?);
     let app = flecsd_axum_server::server::new(Arc::new(server));
     #[cfg(feature = "auth")]
-    let app = app.layer(axum::middleware::from_fn_with_state(watch, auth_middleware));
+    let app = app
+        .layer(axum::middleware::from_fn_with_state(
+            enforcer,
+            roles_middleware,
+        ))
+        .layer(axum::middleware::from_fn_with_state(watch, auth_middleware));
     let app = app
         // It is not feasible to configure the body limit per route as we would have to manually
         // generated code (flecsd_axum_server::server::new). We therefore disable the limit for all
