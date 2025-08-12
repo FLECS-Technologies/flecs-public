@@ -1,4 +1,6 @@
 pub mod apps;
+#[cfg(feature = "auth")]
+pub mod auth;
 pub mod console;
 pub mod deployments;
 pub mod device;

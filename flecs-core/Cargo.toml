@@ -26,7 +26,7 @@ toml = "0.9"
 usb-ids = "1.2024"
 glob = "0.3"
 axum = "0.7"
-axum-extra = "0.9"
+axum-extra = { version = "0.9" }
 tokio = { version = "1.38", features = ["full"] }
 hyper = { version = "1.4", features = ["full"] }
 hyper-util = { version = "0.1", features = ["tokio", "server-auto", "http1"] }
@@ -49,6 +49,11 @@ rand = "0.8.5"
 docker-compose-types = { version = "0.22", default-features = false, features = ["norway"] }
 astral-tokio-tar = { version = "0.5" }
 chrono = "0.4.41"
+openidconnect = { version = "4.0.1", default-features = false, features = ["native-tls", "reqwest"], optional = true }
+jsonwebtoken = { version = "9.3.1", optional = true }
+casbin = { version = "2.10", features = ["logging"], optional = true }
+slog = { version = "2.7", optional = true }
+url = { version = "2.5", features = ["serde"], optional = true }
 
 [dev-dependencies]
 mockito = "1.4"
@@ -57,3 +62,6 @@ ntest = "0.9"
 tokio-test = "0.4"
 mockall = "0.13"
 testdir = "0.9.3"
+
+[features]
+auth = ["dep:openidconnect", "dep:jsonwebtoken", "dep:casbin", "dep:slog", "dep:url", "axum-extra/typed-header"]

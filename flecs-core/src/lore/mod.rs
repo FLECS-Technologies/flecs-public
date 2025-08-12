@@ -41,6 +41,8 @@ pub type AppLoreRef = Arc<dyn AsRef<AppLore> + Sync + Send>;
 pub type DeploymentLoreRef = Arc<dyn AsRef<DeploymentLore> + Sync + Send>;
 pub type ManifestLoreRef = Arc<dyn AsRef<ManifestLore> + Sync + Send>;
 pub type SecretLoreRef = Arc<dyn AsRef<SecretLore> + Sync + Send>;
+#[cfg(feature = "auth")]
+pub type AuthLoreRef = Arc<dyn AsRef<AuthLore> + Sync + Send>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Listener {
@@ -66,6 +68,8 @@ pub struct Lore {
     pub deployment: DeploymentLore,
     pub manifest: ManifestLore,
     pub secret: SecretLore,
+    #[cfg(feature = "auth")]
+    pub auth: AuthLore,
 }
 
 impl LoreRef<InstanceLore> for Lore {}
@@ -127,6 +131,13 @@ impl AsRef<ManifestLore> for Lore {
 impl AsRef<SecretLore> for Lore {
     fn as_ref(&self) -> &SecretLore {
         &self.secret
+    }
+}
+
+#[cfg(feature = "auth")]
+impl AsRef<AuthLore> for Lore {
+    fn as_ref(&self) -> &AuthLore {
+        &self.auth
     }
 }
 
@@ -210,6 +221,13 @@ pub struct SecretLore {
     pub base_path: PathBuf,
 }
 
+#[cfg(feature = "auth")]
+#[derive(Debug)]
+pub struct AuthLore {
+    pub issuer_url: Option<openidconnect::IssuerUrl>,
+    pub issuer_certificate_cache_lifetime: Duration,
+}
+
 impl Lore {
     pub fn from_confs_with_defaults(
         confs: impl IntoIterator<Item = conf::FlecsConfig>,
@@ -290,6 +308,8 @@ impl Lore {
                 conf.secret.unwrap_or_default(),
                 &base_path,
             ),
+            #[cfg(feature = "auth")]
+            auth: AuthLore::from_conf_with_defaults(conf.auth.unwrap_or_default()),
             tracing_filter,
             base_path,
             listener,
@@ -442,6 +462,21 @@ impl SecretLore {
             .base_path
             .unwrap_or_else(|| base_path.join(default::secret::BASE_DIRECTORY_NAME));
         Self { base_path }
+    }
+}
+
+#[cfg(feature = "auth")]
+impl AuthLore {
+    pub fn from_conf_with_defaults(conf: conf::AuthConfig) -> Self {
+        let issuer_url = conf.issuer_url.map(openidconnect::IssuerUrl::from_url);
+        let issuer_certificate_cache_lifetime = conf
+            .issuer_certificate_cache_lifetime
+            .map(Duration::from_secs)
+            .unwrap_or(default::auth::ISSUER_CERTIFICATE_CACHE_LIFETIME);
+        Self {
+            issuer_url,
+            issuer_certificate_cache_lifetime,
+        }
     }
 }
 

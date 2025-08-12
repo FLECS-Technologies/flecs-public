@@ -19,8 +19,14 @@ use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::manifesto::Manifesto;
 use crate::sorcerer::systemus::Systemus;
 use crate::vault::Vault;
+#[cfg(feature = "auth")]
+use crate::wall;
+#[cfg(feature = "auth")]
+use crate::wall::watch::{AuthToken, RolesExtension, Watch};
 use axum::extract::DefaultBodyLimit;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
+#[cfg(feature = "auth")]
+use axum::response::IntoResponse;
 use axum::{
     Router,
     extract::MatchedPath,
@@ -43,6 +49,8 @@ use tokio::fs;
 use tokio::net::{TcpListener, UnixListener, UnixStream, unix::UCred};
 use tower::Service;
 use tower_http::classify::ServerErrorsFailureClass;
+#[cfg(feature = "auth")]
+use tracing::debug;
 use tracing::{Span, error, info, info_span, trace_span, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -95,6 +103,34 @@ fn is_trace_level_path(path: &str) -> bool {
     path.starts_with("/v2/quests") || path.starts_with("/v2/jobs")
 }
 
+#[cfg(feature = "auth")]
+async fn auth_middleware(
+    axum::extract::State(watch): axum::extract::State<Arc<Watch>>,
+    AuthToken(auth_token): AuthToken,
+    mut request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    if let Some(token) = auth_token.as_deref() {
+        match watch.verify_token(token).await {
+            Err(wall::watch::Error::NoIssuer) => {
+                debug!("Can not verify token as no issuer is configured, continuing as anonymous");
+                request.extensions_mut().insert(RolesExtension::default());
+            }
+            Err(e) => {
+                warn!("Failed to verify token: {e}");
+                return http::StatusCode::UNAUTHORIZED.into_response();
+            }
+            Ok(roles) => {
+                debug!("Successfully verified token, roles: {:?}", roles.0);
+                request.extensions_mut().insert(roles);
+            }
+        }
+    } else {
+        request.extensions_mut().insert(RolesExtension::default());
+    }
+    next.run(request).await
+}
+
 async fn create_service<
     APP: AppRaiser + 'static,
     AUTH: Authmancer + 'static,
@@ -113,10 +149,10 @@ async fn create_service<
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
     lore: Arc<Lore>,
-) -> IntoMakeServiceWithConnectInfo<Router, C> {
+) -> Result<IntoMakeServiceWithConnectInfo<Router, C>> {
     let server = server_impl::ServerImpl::new(
         vault,
-        lore,
+        lore.clone(),
         sorcerers,
         enchantments,
         UsbDeviceReaderImpl::default(),
@@ -124,7 +160,12 @@ async fn create_service<
         NetDeviceReaderImpl,
     )
     .await;
-    let app = flecsd_axum_server::server::new(Arc::new(server))
+    #[cfg(feature = "auth")]
+    let watch = Arc::new(Watch::new_with_lore(lore.clone()).await?);
+    let app = flecsd_axum_server::server::new(Arc::new(server));
+    #[cfg(feature = "auth")]
+    let app = app.layer(axum::middleware::from_fn_with_state(watch, auth_middleware));
+    let app = app
         // It is not feasible to configure the body limit per route as we would have to manually
         // generated code (flecsd_axum_server::server::new). We therefore disable the limit for all
         // routes. As we should always operate behind a nginx which controls the max size per route
@@ -183,7 +224,7 @@ async fn create_service<
                     },
                 ),
         );
-    app.into_make_service_with_connect_info::<C>()
+    Ok(app.into_make_service_with_connect_info::<C>())
 }
 
 async fn create_unix_socket(socket_path: PathBuf) -> Result<UnixListener> {
@@ -288,35 +329,46 @@ pub async fn spawn_server<
     vault: Arc<Vault>,
     lore: Arc<Lore>,
 ) -> Result<ServerHandle> {
-    enum _Listener {
-        Socket(UnixListener),
-        Port(TcpListener),
+    enum _Listener<T> {
+        Socket(
+            UnixListener,
+            IntoMakeServiceWithConnectInfo<T, UdsConnectInfo>,
+        ),
+        Port(
+            TcpListener,
+            IntoMakeServiceWithConnectInfo<T, TcpConnectInfo>,
+        ),
     }
     let (server_shutdown_sender, server_shutdown_receiver) = tokio::sync::oneshot::channel();
     let (server_shutdown_finished_sender, server_shutdown_finished_receiver) =
         tokio::sync::oneshot::channel();
-    let (listener, log_location) = match &lore.listener {
+    let (log_location, listener) = match lore.listener.clone() {
         Listener::UnixSocket(path) => (
-            _Listener::Socket(create_unix_socket(path.clone()).await?),
             format!("unix socket {}", path.display()),
+            _Listener::Socket(
+                create_unix_socket(path).await?,
+                create_service(sorcerers, enchantments, vault, lore).await?,
+            ),
         ),
         Listener::TCP { port, bind_address } => (
-            _Listener::Port(create_tcp_listener(*port, *bind_address).await?),
-            format!("port {port}"),
+            if let Some(address) = bind_address {
+                format!("port {address}:{port}")
+            } else {
+                format!("port {port}")
+            },
+            _Listener::Port(
+                create_tcp_listener(port, bind_address).await?,
+                create_service(sorcerers, enchantments, vault, lore).await?,
+            ),
         ),
     };
-
     tokio::spawn(async move {
         info!("Starting rust server listening on {log_location}");
         match listener {
-            _Listener::Socket(listener) => {
-                let service: IntoMakeServiceWithConnectInfo<_, UdsConnectInfo> =
-                    create_service(sorcerers, enchantments, vault, lore).await;
+            _Listener::Socket(listener, service) => {
                 serve(listener, service, server_shutdown_receiver).await
             }
-            _Listener::Port(listener) => {
-                let service: IntoMakeServiceWithConnectInfo<_, TcpConnectInfo> =
-                    create_service(sorcerers, enchantments, vault, lore).await;
+            _Listener::Port(listener, service) => {
                 serve(listener, service, server_shutdown_receiver).await
             }
         }
