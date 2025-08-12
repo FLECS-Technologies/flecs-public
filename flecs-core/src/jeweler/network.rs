@@ -57,12 +57,12 @@ impl Display for NetworkKind {
 impl From<&str> for NetworkKind {
     fn from(value: &str) -> Self {
         match value {
-            "none" => NetworkKind::None,
-            "internal" => NetworkKind::Internal,
-            "bridge" => NetworkKind::Bridge,
-            "macvlan" => NetworkKind::MACVLAN,
-            "ipvlan_l2" => NetworkKind::IpvlanL2,
-            "ipvlan_l3" => NetworkKind::IpvlanL3,
+            "none" | "None" => NetworkKind::None,
+            "internal" | "Internal" => NetworkKind::Internal,
+            "bridge" | "Bridge" => NetworkKind::Bridge,
+            "macvlan" | "MACVLAN" => NetworkKind::MACVLAN,
+            "ipvlan_l2" | "IpvlanL2" => NetworkKind::IpvlanL2,
+            "ipvlan_l3" | "IpvlanL3" => NetworkKind::IpvlanL3,
             _ => NetworkKind::Unknown,
         }
     }
@@ -123,11 +123,17 @@ mod tests {
     #[test]
     fn network_kind_from_str() {
         assert_eq!(NetworkKind::from("none"), NetworkKind::None);
+        assert_eq!(NetworkKind::from("None"), NetworkKind::None);
         assert_eq!(NetworkKind::from("internal"), NetworkKind::Internal);
+        assert_eq!(NetworkKind::from("Internal"), NetworkKind::Internal);
         assert_eq!(NetworkKind::from("bridge"), NetworkKind::Bridge);
+        assert_eq!(NetworkKind::from("Bridge"), NetworkKind::Bridge);
         assert_eq!(NetworkKind::from("macvlan"), NetworkKind::MACVLAN);
+        assert_eq!(NetworkKind::from("MACVLAN"), NetworkKind::MACVLAN);
         assert_eq!(NetworkKind::from("ipvlan_l2"), NetworkKind::IpvlanL2);
+        assert_eq!(NetworkKind::from("IpvlanL2"), NetworkKind::IpvlanL2);
         assert_eq!(NetworkKind::from("ipvlan_l3"), NetworkKind::IpvlanL3);
+        assert_eq!(NetworkKind::from("IpvlanL3"), NetworkKind::IpvlanL3);
         assert_eq!(NetworkKind::from("08ih208h5"), NetworkKind::Unknown);
     }
 }
