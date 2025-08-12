@@ -1,5 +1,7 @@
 use crate::forge::serde::{EnvFilterWrapper, UriWrapper};
 use crate::jeweler::network::NetworkKind;
+#[cfg(feature = "auth")]
+use crate::lore::AuthLore;
 use crate::lore::{
     AppLore, ConsoleLore, DeploymentLore, ExportLore, FloxyLore, ImportLore, InstanceLore, Lore,
     ManifestLore, NetworkLore, SecretLore,
@@ -89,6 +91,9 @@ pub struct FlecsConfig {
     pub manifest: Option<ManifestConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub secret: Option<SecretConfig>,
+    #[cfg(feature = "auth")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth: Option<AuthConfig>,
 }
 
 impl Default for FlecsConfig {
@@ -108,6 +113,8 @@ impl Default for FlecsConfig {
             deployment: None,
             manifest: None,
             secret: None,
+            #[cfg(feature = "auth")]
+            auth: None,
         }
     }
 }
@@ -132,6 +139,8 @@ impl From<&Lore> for FlecsConfig {
             deployment: Some((&value.deployment).into()),
             manifest: Some((&value.manifest).into()),
             secret: Some((&value.secret).into()),
+            #[cfg(feature = "auth")]
+            auth: Some((&value.auth).into()),
         }
     }
 }
@@ -304,6 +313,31 @@ impl From<&SecretLore> for SecretConfig {
     }
 }
 
+#[cfg(feature = "auth")]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AuthConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub issuer_url: Option<url::Url>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub issuer_certificate_cache_lifetime: Option<u64>,
+}
+
+#[cfg(feature = "auth")]
+impl From<&AuthLore> for AuthConfig {
+    fn from(value: &AuthLore) -> Self {
+        Self {
+            issuer_url: value
+                .issuer_url
+                .as_ref()
+                .map(openidconnect::IssuerUrl::url)
+                .cloned(),
+            issuer_certificate_cache_lifetime: Some(
+                value.issuer_certificate_cache_lifetime.as_secs(),
+            ),
+        }
+    }
+}
+
 impl FlecsConfig {
     pub async fn from_path(path: &Path) -> Result<Self> {
         let content = tokio::fs::read_to_string(path).await?;
@@ -409,6 +443,15 @@ impl Mergeable for NetworkConfig {
 impl Mergeable for SecretConfig {
     fn merge(&mut self, other: Self) {
         self.base_path.trivial_merge(other.base_path);
+    }
+}
+
+#[cfg(feature = "auth")]
+impl Mergeable for AuthConfig {
+    fn merge(&mut self, other: Self) {
+        self.issuer_url.trivial_merge(other.issuer_url);
+        self.issuer_certificate_cache_lifetime
+            .trivial_merge(other.issuer_certificate_cache_lifetime);
     }
 }
 

@@ -417,6 +417,8 @@ pub mod quest;
 pub mod relic;
 pub mod sorcerer;
 pub mod vault;
+#[cfg(feature = "auth")]
+pub mod wall;
 pub use anyhow::Error;
 pub use anyhow::Result;
 // TODO: Unify structs (App, Instance, Deployment, ...) with structs from Pouches and move them there
