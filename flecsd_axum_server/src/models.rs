@@ -2895,6 +2895,39 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AppsSideload
     }
 }
 
+/// Enumeration of values.
+/// Since this enum's variants do not hold data, we can easily define them as `#[repr(C)]`
+/// which helps with FFI.
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[cfg_attr(feature = "conversion", derive(frunk_enum_derive::LabelledGenericEnum))]
+pub enum AuthProtocol {
+    #[serde(rename = "oidc")]
+    Oidc,
+}
+
+impl std::fmt::Display for AuthProtocol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            AuthProtocol::Oidc => write!(f, "oidc"),
+        }
+    }
+}
+
+impl std::str::FromStr for AuthProtocol {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "oidc" => std::result::Result::Ok(AuthProtocol::Oidc),
+            _ => std::result::Result::Err(format!("Value not valid: {}", s)),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct AuthResponseData {

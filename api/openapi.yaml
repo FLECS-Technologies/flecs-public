@@ -108,6 +108,10 @@ components:
       type: string
       description: License key for App installation
       example: "538E-A5E8-84A3-D798"
+    # Authentication related schemas
+    auth_protocol:
+      type: string
+      enum: [ oidc ]
     # Console related schemas
     user:
       type: object
@@ -795,6 +799,13 @@ components:
           type: integer
           minimum: 0
           maximum: 9223372036854775807
+  # Security schemes
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token authentication
   # Common responses
   responses:
     response_202:
@@ -826,10 +837,15 @@ components:
           schema:
             $ref: "#/components/schemas/additionalInfo"
 
+security:
+  - bearerAuth: [ ]
+
 tags:
   - name: "Apps"
     x-displayName: "Apps"
     description: Install, manage and uninstall Apps
+  - name: "Authentication"
+    x-displayName: "Authentication"
   - name: "Deployments"
     x-displayName: "Deployments"
     description: Create, manage and query Deployments
@@ -965,6 +981,37 @@ paths:
           $ref: "#/components/responses/response_202"
         "400":
           $ref: "#/components/responses/response_400"
+  # Authentication related paths
+  /auth/providers/default/location:
+    get:
+      tags: [ "Authentication" ]
+      summary: Get the location of the default authentication provider
+      security: [ ]
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uri
+                example: "https://123.321.123.321:562/auth"
+        "404":
+          description: No default auth provider configured
+  /auth/providers/default/protocol:
+    get:
+      tags: [ "Authentication" ]
+      summary: Get the protocol of the default authentication provider
+      security: [ ]
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/auth_protocol"
+        "404":
+          description: No default auth provider configured
   # Console related paths
   /console/authentication:
     put:
@@ -2396,6 +2443,7 @@ paths:
     get:
       tags: [ "System" ]
       summary: Check daemon availability and connectivity
+      security: [ ]
       responses:
         "200":
           description: Success
@@ -2407,6 +2455,7 @@ paths:
     get:
       tags: [ "System" ]
       summary: Get FLECS core and API version
+      security: [ ]
       responses:
         "200":
           description: Success

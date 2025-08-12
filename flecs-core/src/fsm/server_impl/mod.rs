@@ -1,5 +1,6 @@
 mod api;
 mod apps;
+mod authentication;
 mod console;
 mod deployments;
 mod device;

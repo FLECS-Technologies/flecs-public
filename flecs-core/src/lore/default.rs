@@ -79,6 +79,13 @@ pub mod network {
     }
 }
 
+#[cfg(feature = "auth")]
+pub mod auth {
+    use std::time::Duration;
+
+    pub const ISSUER_CERTIFICATE_CACHE_LIFETIME: Duration = Duration::from_secs(300);
+}
+
 #[cfg(test)]
 pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/";
 #[cfg(not(test))]

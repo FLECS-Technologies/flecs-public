@@ -15,6 +15,9 @@ pub enum Error {
     InvalidInteger(&'static str, String, ParseIntError),
     #[error("Invalid uri {1} from {0}: {2}")]
     InvalidUri(&'static str, String, http::uri::InvalidUri),
+    #[cfg(feature = "auth")]
+    #[error("Invalid url {1} from {0}: {2}")]
+    InvalidUrl(&'static str, String, url::ParseError),
     #[error("Invalid network {1} from {0}: {2}")]
     InvalidIpv4Network(&'static str, String, anyhow::Error),
     #[error("Invalid ip {1} from {0}: {2}")]
@@ -50,6 +53,13 @@ pub trait VarReader {
     fn read_uri(&self, key: &'static str) -> Result<Option<http::Uri>> {
         self.read_var(key)?
             .map(|val| http::Uri::from_str(&val).map_err(|e| Error::InvalidUri(key, val, e)))
+            .transpose()
+    }
+
+    #[cfg(feature = "auth")]
+    fn read_url(&self, key: &'static str) -> Result<Option<url::Url>> {
+        self.read_var(key)?
+            .map(|val| url::Url::from_str(&val).map_err(|e| Error::InvalidUrl(key, val, e)))
             .transpose()
     }
 

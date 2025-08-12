@@ -1,4 +1,6 @@
 use crate::forge::serde::EnvFilterWrapper;
+#[cfg(feature = "auth")]
+use crate::lore::conf::AuthConfig;
 use crate::lore::conf::{
     AppConfig, ConsoleConfig, DeploymentConfig, ExportConfig, FlecsConfig, FloxyConfig,
     ImportConfig, InstanceConfig, Listener, ManifestConfig, NetworkConfig, SecretConfig,
@@ -88,6 +90,8 @@ impl FlecsConfig {
             deployment: DeploymentConfig::from_var_reader(reader),
             manifest: ManifestConfig::from_var_reader(reader),
             secret: SecretConfig::from_var_reader(reader),
+            #[cfg(feature = "auth")]
+            auth: AuthConfig::from_var_reader(reader)?,
         })
     }
 }
@@ -306,6 +310,42 @@ pub mod secret {
             base_path.map(|base_path| Self {
                 base_path: Some(base_path),
             })
+        }
+    }
+}
+
+#[cfg(feature = "auth")]
+pub mod auth {
+    use super::Result;
+    use crate::lore::conf::AuthConfig;
+    use crate::relic::var::VarReader;
+    use std::time::Duration;
+
+    const ISSUER_URL: &str = "FLECS_CORE_ISSUER_URL";
+    const ISSUER_CERTIFICATE_CACHE_LIFETIME: &str = "FLECS_CORE_ISSUER_CERTIFICATE_CACHE_LIFETIME";
+
+    fn issuer_certificate_cache_lifetime(reader: &impl VarReader) -> Result<Option<Duration>> {
+        Ok(reader.read_secs(ISSUER_CERTIFICATE_CACHE_LIFETIME)?)
+    }
+
+    impl AuthConfig {
+        pub fn from_var_reader(reader: &impl VarReader) -> Result<Option<Self>> {
+            let issuer_url = reader.read_url(ISSUER_URL)?;
+            let issuer_certificate_cache_lifetime = issuer_certificate_cache_lifetime(reader)?
+                .as_ref()
+                .map(Duration::as_secs);
+            Ok(
+                if issuer_url.is_some()
+                    || issuer_certificate_cache_lifetime.is_some()
+                {
+                    Some(Self {
+                        issuer_url,
+                        issuer_certificate_cache_lifetime,
+                    })
+                } else {
+                    None
+                },
+            )
         }
     }
 }
