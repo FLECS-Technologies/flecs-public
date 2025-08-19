@@ -174,9 +174,9 @@ async fn create_service<
                         // chosen depending on the path
                         match span.metadata().map(|meta| meta.level()) {
                             Some(&tracing::Level::INFO) => {
-                                tracing::debug!("response on: {} in {:?}", res.status(), latency)
+                                tracing::debug!("response: {} in {:?}", res.status(), latency)
                             }
-                            _ => tracing::trace!("response on: {} in {:?}", res.status(), latency),
+                            _ => tracing::trace!("response: {} in {:?}", res.status(), latency),
                         }
                     },
                 ),
