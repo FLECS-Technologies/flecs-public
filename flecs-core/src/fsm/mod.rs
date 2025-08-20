@@ -3,7 +3,7 @@ mod server_impl;
 pub mod world;
 use crate::enchantment::Enchantments;
 use crate::enchantment::floxy::Floxy;
-use crate::lore::Lore;
+use crate::lore::{Listener, Lore};
 use crate::relic::device::net::NetDeviceReaderImpl;
 use crate::relic::device::usb::UsbDeviceReaderImpl;
 use crate::relic::network::NetworkAdapterReaderImpl;
@@ -34,15 +34,16 @@ use hyper_util::{
 };
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::os::unix::fs::PermissionsExt;
 use std::str::FromStr;
 use std::time::Duration;
 use std::{convert::Infallible, path::PathBuf, sync::Arc};
 use tokio::fs;
-use tokio::net::{UnixListener, UnixStream, unix::UCred};
+use tokio::net::{TcpListener, UnixListener, UnixStream, unix::UCred};
 use tower::Service;
 use tower_http::classify::ServerErrorsFailureClass;
-use tracing::{Span, error, info, info_span, trace_span};
+use tracing::{Span, error, info, info_span, trace_span, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub struct StartupError(pub String);
@@ -106,12 +107,13 @@ async fn create_service<
     E: Exportius + 'static,
     IMP: Importius + 'static,
     F: Floxy + 'static,
+    C,
 >(
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
     lore: Arc<Lore>,
-) -> IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo> {
+) -> IntoMakeServiceWithConnectInfo<Router, C> {
     let server = server_impl::ServerImpl::new(
         vault,
         lore,
@@ -181,7 +183,7 @@ async fn create_service<
                     },
                 ),
         );
-    app.into_make_service_with_connect_info::<UdsConnectInfo>()
+    app.into_make_service_with_connect_info::<C>()
 }
 
 async fn create_unix_socket(socket_path: PathBuf) -> Result<UnixListener> {
@@ -198,11 +200,34 @@ async fn create_unix_socket(socket_path: PathBuf) -> Result<UnixListener> {
     Ok(uds)
 }
 
-async fn serve(
-    unix_listener: UnixListener,
-    service: IntoMakeServiceWithConnectInfo<Router, UdsConnectInfo>,
+async fn create_tcp_listener(port: u16, bind_address: Option<IpAddr>) -> Result<TcpListener> {
+    const IPV6_ANY: Ipv6Addr = Ipv6Addr::UNSPECIFIED;
+    const IPV4_ANY: Ipv4Addr = Ipv4Addr::UNSPECIFIED;
+    let listener = if let Some(bind_address) = bind_address {
+        TcpListener::bind((bind_address, port)).await?
+    } else {
+        match TcpListener::bind((IPV6_ANY, port)).await {
+            Ok(listener) => listener,
+            Err(e) => {
+                warn!(
+                    "Failed to bind to ipv6 address {IPV6_ANY}, falling back to ipv4 ({IPV4_ANY}): {e}"
+                );
+                TcpListener::bind((IPV4_ANY, port)).await?
+            }
+        }
+    };
+    Ok(listener)
+}
+
+async fn serve<L, C>(
+    mut listener: L,
+    service: IntoMakeServiceWithConnectInfo<Router, C>,
     mut shutdown_signal: tokio::sync::oneshot::Receiver<()>,
-) {
+) where
+    L: tokio_util::net::Listener + Send,
+    L::Io: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+    C: for<'a> connect_info::Connected<&'a L::Io> + Clone + Send + Sync + 'static,
+{
     let mut service = service;
     loop {
         tokio::select! {
@@ -210,7 +235,7 @@ async fn serve(
                 info!("Server shutting down.");
                 break
             },
-            new_connection = unix_listener.accept() => {
+            new_connection = listener.accept() => {
                 let (socket, _remote_addr) = new_connection.unwrap();
                 let tower_service = unwrap_infallible(service.call(&socket).await);
 
@@ -263,16 +288,39 @@ pub async fn spawn_server<
     vault: Arc<Vault>,
     lore: Arc<Lore>,
 ) -> Result<ServerHandle> {
+    enum _Listener {
+        Socket(UnixListener),
+        Port(TcpListener),
+    }
     let (server_shutdown_sender, server_shutdown_receiver) = tokio::sync::oneshot::channel();
     let (server_shutdown_finished_sender, server_shutdown_finished_receiver) =
         tokio::sync::oneshot::channel();
-    let socket_path = lore.flecsd_socket_path.clone();
-    let unix_listener = create_unix_socket(lore.flecsd_socket_path.clone()).await?;
-    let service = create_service(sorcerers, enchantments, vault, lore).await;
+    let (listener, log_location) = match &lore.listener {
+        Listener::UnixSocket(path) => (
+            _Listener::Socket(create_unix_socket(path.clone()).await?),
+            format!("unix socket {}", path.display()),
+        ),
+        Listener::TCP { port, bind_address } => (
+            _Listener::Port(create_tcp_listener(*port, *bind_address).await?),
+            format!("port {port}"),
+        ),
+    };
+
     tokio::spawn(async move {
-        info!("Starting rust server listening on {socket_path:?}");
-        serve(unix_listener, service, server_shutdown_receiver).await;
-        info!("Rust server listening on {socket_path:?} stopped");
+        info!("Starting rust server listening on {log_location}");
+        match listener {
+            _Listener::Socket(listener) => {
+                let service: IntoMakeServiceWithConnectInfo<_, UdsConnectInfo> =
+                    create_service(sorcerers, enchantments, vault, lore).await;
+                serve(listener, service, server_shutdown_receiver).await
+            }
+            _Listener::Port(listener) => {
+                let service: IntoMakeServiceWithConnectInfo<_, TcpConnectInfo> =
+                    create_service(sorcerers, enchantments, vault, lore).await;
+                serve(listener, service, server_shutdown_receiver).await
+            }
+        }
+        info!("Rust server listening on {log_location} stopped");
         server_shutdown_finished_sender.send(()).unwrap()
     });
     Ok(ServerHandle {
@@ -288,6 +336,12 @@ struct UdsConnectInfo {
     peer_cred: UCred,
 }
 
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+struct TcpConnectInfo {
+    peer_addr: Arc<std::net::SocketAddr>,
+}
+
 impl connect_info::Connected<&UnixStream> for UdsConnectInfo {
     fn connect_info(target: &UnixStream) -> Self {
         let peer_addr = target.peer_addr().unwrap();
@@ -295,6 +349,15 @@ impl connect_info::Connected<&UnixStream> for UdsConnectInfo {
         Self {
             peer_addr: Arc::new(peer_addr),
             peer_cred,
+        }
+    }
+}
+
+impl connect_info::Connected<&tokio::net::TcpStream> for TcpConnectInfo {
+    fn connect_info(target: &tokio::net::TcpStream) -> Self {
+        let peer_addr = target.peer_addr().unwrap();
+        Self {
+            peer_addr: Arc::new(peer_addr),
         }
     }
 }

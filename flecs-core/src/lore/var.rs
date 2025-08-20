@@ -1,10 +1,11 @@
 use crate::forge::serde::EnvFilterWrapper;
 use crate::lore::conf::{
     AppConfig, ConsoleConfig, DeploymentConfig, ExportConfig, FlecsConfig, FloxyConfig,
-    ImportConfig, InstanceConfig, ManifestConfig, NetworkConfig, SecretConfig,
+    ImportConfig, InstanceConfig, Listener, ManifestConfig, NetworkConfig, SecretConfig,
 };
 use crate::relic::var;
 use crate::relic::var::VarReader;
+use std::net::IpAddr;
 use std::path::PathBuf;
 use thiserror::Error;
 use tracing_subscriber::EnvFilter;
@@ -12,6 +13,8 @@ use tracing_subscriber::EnvFilter;
 const TRACING_FILTER_ENV: &str = "RUST_LOG";
 const BASE_PATH: &str = "FLECS_CORE_BASE_PATH";
 const FLECSD_SOCKET_PATH: &str = "FLECS_CORE_SOCKET_PATH";
+const FLECSD_PORT: &str = "FLECS_CORE_PORT";
+const FLECSD_BIND_ADDRESS: &str = "FLECS_CORE_BIND_ADDRESS";
 const CONFIG_PATH: &str = "FLECS_CORE_CONFIG_PATH";
 
 #[derive(Debug, Error)]
@@ -43,13 +46,38 @@ pub fn flecsd_socket_path(reader: &impl VarReader) -> Option<PathBuf> {
     reader.read_path(FLECSD_SOCKET_PATH)
 }
 
+pub fn flecsd_port(reader: &impl VarReader) -> Result<Option<u16>> {
+    Ok(reader.read_u16(FLECSD_PORT)?)
+}
+
+pub fn flecsd_bind_address(reader: &impl VarReader) -> Result<Option<IpAddr>> {
+    Ok(reader.read_ip(FLECSD_BIND_ADDRESS)?)
+}
+
 impl FlecsConfig {
     pub fn from_var_reader(reader: &impl VarReader) -> Result<Self> {
         Ok(Self {
             version: 1,
             tracing_filter: env_filter(reader)?.map(EnvFilterWrapper),
             base_path: base_path(reader),
-            flecsd_socket_path: flecsd_socket_path(reader),
+            listener: match (
+                flecsd_port(reader)?,
+                flecsd_bind_address(reader)?,
+                flecsd_socket_path(reader),
+            ) {
+                (Some(port), bind_address, _) => Some(Listener::TCP {
+                    port: Some(port),
+                    bind_address,
+                }),
+                (port, Some(bind_address), _) => Some(Listener::TCP {
+                    port,
+                    bind_address: Some(bind_address),
+                }),
+                (None, None, Some(socket_path)) => Some(Listener::UnixSocket {
+                    socket_path: Some(socket_path),
+                }),
+                _ => None,
+            },
             export: ExportConfig::from_var_reader(reader)?,
             import: ImportConfig::from_var_reader(reader)?,
             floxy: FloxyConfig::from_var_reader(reader),
