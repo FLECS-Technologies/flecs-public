@@ -88,3 +88,4 @@ pub const CONFIG_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/config.toml";
 #[cfg(not(test))]
 pub const CONFIG_PATH: &str = "/var/lib/flecs/config.toml";
 pub const FLECSD_SOCKET_PATH: &str = "/run/flecs/flecsd.sock";
+pub const FLECSD_PORT: u16 = 8951;

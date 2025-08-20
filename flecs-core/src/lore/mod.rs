@@ -3,8 +3,9 @@ use crate::jeweler::network::{NetworkConfig, NetworkKind};
 use crate::lore::conf::Mergeable;
 use crate::relic::network::Ipv4Network;
 use crate::relic::var::VarReader;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -39,11 +40,20 @@ pub type DeploymentLoreRef = Arc<dyn AsRef<DeploymentLore> + Sync + Send>;
 pub type ManifestLoreRef = Arc<dyn AsRef<ManifestLore> + Sync + Send>;
 pub type SecretLoreRef = Arc<dyn AsRef<SecretLore> + Sync + Send>;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Listener {
+    UnixSocket(PathBuf),
+    TCP {
+        port: u16,
+        bind_address: Option<IpAddr>,
+    },
+}
+
 #[derive(Debug)]
 pub struct Lore {
     pub tracing_filter: EnvFilter,
     pub base_path: PathBuf,
-    pub flecsd_socket_path: PathBuf,
+    pub listener: Listener,
     pub export: ExportLore,
     pub import: ImportLore,
     pub floxy: FloxyLore,
@@ -220,9 +230,35 @@ impl Lore {
         let base_path = conf
             .base_path
             .unwrap_or_else(|| PathBuf::from(default::BASE_PATH));
-        let flecsd_socket_path = conf
-            .flecsd_socket_path
-            .unwrap_or_else(|| PathBuf::from(default::FLECSD_SOCKET_PATH));
+        let listener = conf
+            .listener
+            .map(|listener| match listener {
+                conf::Listener::UnixSocket {
+                    socket_path: Some(socket_path),
+                } => Listener::UnixSocket(socket_path),
+                conf::Listener::UnixSocket { socket_path: None } => {
+                    Listener::UnixSocket(PathBuf::from(default::FLECSD_SOCKET_PATH))
+                }
+                conf::Listener::TCP {
+                    port: Some(port),
+                    bind_address,
+                } => Listener::TCP { port, bind_address },
+                conf::Listener::TCP {
+                    port: None,
+                    bind_address: Some(bind_address),
+                } => Listener::TCP {
+                    port: default::FLECSD_PORT,
+                    bind_address: Some(bind_address),
+                },
+                conf::Listener::TCP {
+                    port: None,
+                    bind_address: None,
+                } => Listener::TCP {
+                    port: default::FLECSD_PORT,
+                    bind_address: None,
+                },
+            })
+            .unwrap_or_else(|| Listener::UnixSocket(PathBuf::from(default::FLECSD_SOCKET_PATH)));
         Ok(Self {
             export: ExportLore::from_conf_with_defaults(
                 conf.export.unwrap_or_default(),
@@ -254,7 +290,7 @@ impl Lore {
             ),
             tracing_filter,
             base_path,
-            flecsd_socket_path,
+            listener,
         })
     }
 }
@@ -501,26 +537,24 @@ mod tests {
     fn from_conf_socket_path() {
         const SOCKET_PATH: &str = "/socket/path.sock";
         let conf = conf::FlecsConfig {
-            flecsd_socket_path: Some(PathBuf::from(SOCKET_PATH)),
+            listener: Some(conf::Listener::UnixSocket {
+                socket_path: Some(PathBuf::from(SOCKET_PATH)),
+            }),
             ..conf::FlecsConfig::default()
         };
-        assert_eq!(
-            Lore::from_conf_with_defaults(conf)
-                .unwrap()
-                .flecsd_socket_path,
-            PathBuf::from(SOCKET_PATH)
-        );
+        assert!(matches!(
+            Lore::from_conf_with_defaults(conf).unwrap().listener,
+            Listener::UnixSocket(socket_path) if socket_path == PathBuf::from(SOCKET_PATH)
+        ));
     }
 
     #[test]
     fn from_conf_socket_path_default() {
         let conf = conf::FlecsConfig::default();
-        assert_eq!(
-            Lore::from_conf_with_defaults(conf)
-                .unwrap()
-                .flecsd_socket_path,
-            PathBuf::from(default::FLECSD_SOCKET_PATH)
-        );
+        assert!(matches!(
+            Lore::from_conf_with_defaults(conf).unwrap().listener,
+            Listener::UnixSocket(socket_path) if socket_path == PathBuf::from(default::FLECSD_SOCKET_PATH)
+        ));
     }
 
     #[test]

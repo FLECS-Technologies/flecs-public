@@ -1,6 +1,6 @@
 use crate::relic::network::Ipv4Network;
 use std::ffi::OsString;
-use std::net::{AddrParseError, Ipv4Addr};
+use std::net::{AddrParseError, IpAddr, Ipv4Addr};
 use std::num::ParseIntError;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -17,8 +17,8 @@ pub enum Error {
     InvalidUri(&'static str, String, http::uri::InvalidUri),
     #[error("Invalid network {1} from {0}: {2}")]
     InvalidIpv4Network(&'static str, String, anyhow::Error),
-    #[error("Invalid ipv4 network {1} from {0}: {2}")]
-    InvalidIpv4(&'static str, String, AddrParseError),
+    #[error("Invalid ip {1} from {0}: {2}")]
+    InvalidIp(&'static str, String, AddrParseError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -63,7 +63,19 @@ pub trait VarReader {
 
     fn read_ipv4(&self, key: &'static str) -> Result<Option<Ipv4Addr>> {
         self.read_var(key)?
-            .map(|val| Ipv4Addr::from_str(&val).map_err(|e| Error::InvalidIpv4(key, val, e)))
+            .map(|val| Ipv4Addr::from_str(&val).map_err(|e| Error::InvalidIp(key, val, e)))
+            .transpose()
+    }
+
+    fn read_ip(&self, key: &'static str) -> Result<Option<IpAddr>> {
+        self.read_var(key)?
+            .map(|val| IpAddr::from_str(&val).map_err(|e| Error::InvalidIp(key, val, e)))
+            .transpose()
+    }
+
+    fn read_u16(&self, key: &'static str) -> Result<Option<u16>> {
+        self.read_var(key)?
+            .map(|val| u16::from_str(&val).map_err(|e| Error::InvalidInteger(key, val, e)))
             .transpose()
     }
 }
@@ -309,7 +321,7 @@ pub mod test {
         assert!(
             matches!(
                 result,
-                Err(Error::InvalidIpv4(KEY, ref v, _)) if v == VALUE
+                Err(Error::InvalidIp(KEY, ref v, _)) if v == VALUE
             ),
             "{:?}",
             result

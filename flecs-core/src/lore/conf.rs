@@ -8,7 +8,7 @@ use crate::relic::network::Ipv4Network;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use thiserror::Error;
@@ -35,6 +35,30 @@ pub enum Error {
 }
 
 type Result<T> = std::result::Result<T, Error>;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Listener {
+    UnixSocket {
+        socket_path: Option<PathBuf>,
+    },
+    TCP {
+        port: Option<u16>,
+        bind_address: Option<IpAddr>,
+    },
+}
+
+impl From<super::Listener> for Listener {
+    fn from(value: super::Listener) -> Self {
+        match value {
+            super::Listener::UnixSocket(socket_path) => Self::UnixSocket {
+                socket_path: Some(socket_path),
+            },
+            super::Listener::TCP { port, bind_address } => Self::TCP {
+                port: Some(port),
+                bind_address,
+            },
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FlecsConfig {
@@ -44,7 +68,7 @@ pub struct FlecsConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_path: Option<PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub flecsd_socket_path: Option<PathBuf>,
+    pub listener: Option<Listener>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub export: Option<ExportConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -73,7 +97,7 @@ impl Default for FlecsConfig {
             version: 1,
             tracing_filter: None,
             base_path: None,
-            flecsd_socket_path: None,
+            listener: None,
             export: None,
             import: None,
             floxy: None,
@@ -97,7 +121,7 @@ impl From<&Lore> for FlecsConfig {
                     .expect("String from existing EnvFilter should be valid"),
             )),
             base_path: Some(value.base_path.clone()),
-            flecsd_socket_path: Some(value.flecsd_socket_path.clone()),
+            listener: Some(value.listener.clone().into()),
             export: Some((&value.export).into()),
             import: Some((&value.import).into()),
             floxy: Some((&value.floxy).into()),
@@ -305,8 +329,7 @@ impl Mergeable for FlecsConfig {
     fn merge(&mut self, other: Self) {
         self.tracing_filter.trivial_merge(other.tracing_filter);
         self.base_path.trivial_merge(other.base_path);
-        self.flecsd_socket_path
-            .trivial_merge(other.flecsd_socket_path);
+        self.listener.trivial_merge(other.listener);
         self.app.merge(other.app);
         self.console.merge(other.console);
         self.deployment.merge(other.deployment);
@@ -386,6 +409,32 @@ impl Mergeable for NetworkConfig {
 impl Mergeable for SecretConfig {
     fn merge(&mut self, other: Self) {
         self.base_path.trivial_merge(other.base_path);
+    }
+}
+
+impl Mergeable for Listener {
+    fn merge(&mut self, other: Self) {
+        match (self, other) {
+            (
+                Self::TCP { port, bind_address },
+                Self::TCP {
+                    port: other_port,
+                    bind_address: other_bind_address,
+                },
+            ) => {
+                port.trivial_merge(other_port);
+                bind_address.trivial_merge(other_bind_address);
+            }
+            (
+                Self::UnixSocket { socket_path },
+                Self::UnixSocket {
+                    socket_path: other_socket_path,
+                },
+            ) => {
+                socket_path.trivial_merge(other_socket_path);
+            }
+            _ => {}
+        }
     }
 }
 
@@ -703,5 +752,107 @@ mod tests {
             ..NetworkConfig::default()
         });
         assert_eq!(current.default_network_kind, Some(DEFAULT_NETWORK_KIND));
+    }
+
+    #[test]
+    fn merge_listener_both_tcp_port() {
+        const PORT: u16 = 1234;
+        let mut current = FlecsConfig {
+            listener: Some(Listener::TCP {
+                port: Some(PORT),
+                bind_address: None,
+            }),
+            ..FlecsConfig::default()
+        };
+        current.merge(FlecsConfig {
+            listener: Some(Listener::TCP {
+                port: Some(35732),
+                bind_address: None,
+            }),
+            ..FlecsConfig::default()
+        });
+        assert!(matches!(
+            current.listener,
+            Some(Listener::TCP {
+                port: Some(PORT),
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn merge_listener_both_tcp_bind() {
+        const BIND_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 50, 70, 1));
+        let mut current = FlecsConfig {
+            listener: Some(Listener::TCP {
+                port: None,
+                bind_address: Some(BIND_ADDRESS),
+            }),
+            ..FlecsConfig::default()
+        };
+        current.merge(FlecsConfig {
+            listener: Some(Listener::TCP {
+                port: None,
+                bind_address: Some(IpAddr::V4(Ipv4Addr::new(20, 30, 40, 50))),
+            }),
+            ..FlecsConfig::default()
+        });
+        assert!(matches!(
+            current.listener,
+            Some(Listener::TCP {
+                bind_address: Some(BIND_ADDRESS),
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn merge_listener_mixed_tcp() {
+        const BIND_ADDRESS: IpAddr = IpAddr::V4(Ipv4Addr::new(10, 50, 70, 1));
+        const PORT: u16 = 12345;
+        let mut current = FlecsConfig {
+            listener: Some(Listener::TCP {
+                port: Some(PORT),
+                bind_address: Some(BIND_ADDRESS),
+            }),
+            ..FlecsConfig::default()
+        };
+        current.merge(FlecsConfig {
+            listener: Some(Listener::UnixSocket {
+                socket_path: Some(PathBuf::from("./t.sock")),
+            }),
+            ..FlecsConfig::default()
+        });
+        assert!(matches!(
+            current.listener,
+            Some(Listener::TCP {
+                port: Some(PORT),
+                bind_address: Some(BIND_ADDRESS),
+            })
+        ));
+    }
+
+    #[test]
+    fn merge_listener_mixed_unix_socket() {
+        const SOCKET_PATH: &str = "test.sock";
+        let mut current = FlecsConfig {
+            listener: Some(Listener::UnixSocket {
+                socket_path: Some(PathBuf::from(SOCKET_PATH)),
+            }),
+            ..FlecsConfig::default()
+        };
+        current.merge(FlecsConfig {
+            listener: Some(Listener::TCP {
+                bind_address: None,
+                port: Some(123),
+            }),
+            ..FlecsConfig::default()
+        });
+        assert!(matches!(
+            current.listener,
+            Some(Listener::UnixSocket {
+                socket_path: Some(sock),
+            })
+         if sock == PathBuf::from(SOCKET_PATH)));
     }
 }
