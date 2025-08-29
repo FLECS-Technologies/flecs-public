@@ -4,6 +4,7 @@ mod authentication;
 mod console;
 mod deployments;
 mod device;
+mod experimental;
 mod flecsport;
 mod instances;
 mod jobs;
