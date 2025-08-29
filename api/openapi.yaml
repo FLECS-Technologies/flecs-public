@@ -799,6 +799,178 @@ components:
           type: integer
           minimum: 0
           maximum: 9223372036854775807
+    # Provider schemes
+    AdditionalInfo:
+      type: object
+      required:
+        - additional_info
+      properties:
+        additional_info:
+          type: string
+    AppKey:
+      type: object
+      required:
+        - name
+        - version
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+    AuthProvider:
+      type: object
+      required:
+        - id
+        - config
+      properties:
+        config:
+          $ref: '#/components/schemas/AuthProviderConfig'
+        id:
+          $ref: '#/components/schemas/HexString8'
+    AuthProviderConfig:
+      type: object
+      required:
+        - name
+        - issuer_url
+        - kind
+      properties:
+        issuer_url:
+          type: string
+        kind:
+          type: string
+        name:
+          type: string
+    AuthProviders:
+      type: object
+      required:
+        - providers
+      properties:
+        core:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/HexString8'
+        default:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/HexString8'
+        providers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/AuthProvider'
+          propertyNames:
+            type: string
+            maxLength: 8
+            minLength: 8
+            pattern: ^[0-9a-fA-F]{8}$
+    FeatureInfo:
+      type: object
+      required:
+        - config
+      properties:
+        config: { }
+    FeatureProvider:
+      type: object
+      required:
+        - app_key
+      properties:
+        app_key:
+          $ref: '#/components/schemas/AppKey'
+        config: { }
+    FeatureProviders:
+      type: object
+      required:
+        - providers
+      properties:
+        default:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/HexString8'
+        providers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/FeatureProvider'
+          propertyNames:
+            type: string
+            maxLength: 8
+            minLength: 8
+            pattern: ^[0-9a-fA-F]{8}$
+    GenericProvider:
+      type: object
+      required:
+        - app_key
+      properties:
+        app_key:
+          $ref: '#/components/schemas/AppKey'
+    GenericProviders:
+      type: object
+      required:
+        - providers
+      properties:
+        default:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/HexString8'
+        providers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/GenericProvider'
+          propertyNames:
+            type: string
+            maxLength: 8
+            minLength: 8
+            pattern: ^[0-9a-fA-F]{8}$
+    HexString8:
+      type: string
+      maxLength: 8
+      minLength: 8
+      pattern: ^[0-9a-fA-F]{8}$
+    InstanceNotFoundOrFeatureNotProvided:
+      type: string
+      enum:
+        - InstanceNotFound
+        - FeatureNotProvided
+    InstanceNotFoundOrNotDependent:
+      type: string
+      enum:
+        - InstanceNotFound
+        - NotDependent
+    NotFound:
+      type: string
+      enum:
+        - Provider
+        - SuperAdmin
+    ProviderReference:
+      oneOf:
+        - type: string
+          enum:
+            - Default
+        - type: object
+          required:
+            - Provider
+          properties:
+            Provider:
+              $ref: '#/components/schemas/HexString8'
+    Providers:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/GenericProviders'
+    PutDefaultProviderRequest:
+      type: object
+      required:
+        - provider_id
+      properties:
+        provider_id:
+          $ref: '#/components/schemas/HexString8'
+    SuperAdmin:
+      type: object
+      required:
+        - name
+        - password
+      properties:
+        name:
+          type: string
+        password:
+          type: string
   # Security schemes
   securitySchemes:
     bearerAuth:
@@ -865,6 +1037,9 @@ tags:
     x-displayName: "Console"
   - name: "Flecsport"
     x-displayName: "Flecsport"
+  - name: "Experimental"
+    x-displayName: "Experimental"
+    description: APIs in this category are experimental and may change without a major version change
   - name: "Quests"
     x-displayName: "Quests"
 
@@ -2310,6 +2485,173 @@ paths:
           $ref: "#/components/responses/response_400"
         "404":
           $ref: "#/components/responses/response_404"
+  /instances/{instance_id}/depends:
+    get:
+      tags:
+        - Experimental
+      description: Get information on all dependencies of the specified instance
+      parameters:
+        - name: instance_id
+          in: path
+          description: Instance to check
+          required: true
+          schema:
+            $ref: '#/components/schemas/HexString8'
+      responses:
+        '200':
+          description: All dependencies of the specified instance and how they are currently solved
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/ProviderReference'
+                propertyNames:
+                  type: string
+        '404':
+          description: Instance not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /instances/{instance_id}/depends/{feature}:
+    get:
+      tags:
+        - Experimental
+      description: Get information on the dependency for the specified feature of the specified instance
+      parameters:
+        - name: instance_id
+          in: path
+          description: Instance to check
+          required: true
+          schema:
+            $ref: '#/components/schemas/HexString8'
+        - name: feature
+          in: path
+          description: Feature to check
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: How the dependency on a feature is currently solved
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: 'null'
+                  - $ref: '#/components/schemas/ProviderReference'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '404':
+          description: Instance not found or instance not dependent on specified feature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceNotFoundOrNotDependent'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+    put:
+      tags:
+        - Experimental
+      description: Set a provider for the specified feature of the specified instance
+      parameters:
+        - name: instance_id
+          in: path
+          description: Instance to set a provider for
+          required: true
+          schema:
+            $ref: '#/components/schemas/HexString8'
+        - name: feature
+          in: path
+          description: Feature to set a provider for
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: The provider that should be used
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderReference'
+        required: true
+      responses:
+        '200':
+          description: Provider was overwritten
+        '201':
+          description: Provider was set
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '404':
+          description: Instance not found or instance not dependent on specified feature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceNotFoundOrNotDependent'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+    delete:
+      tags:
+        - Experimental
+      description: Remove the provider for the specified feature of the specified instance
+      parameters:
+        - name: instance_id
+          in: path
+          description: Instance to check
+          required: true
+          schema:
+            $ref: '#/components/schemas/HexString8'
+        - name: feature
+          in: path
+          description: Feature to check
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Provider removed
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '404':
+          description: Instance not found or instance not dependent on specified feature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceNotFoundOrNotDependent'
+        '409':
+          description: State of the instance prevents removal of provider, e.g. instance is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
   /instances/{instance_id}/editor/{port}:
     get:
       tags: [ "Instances" ]
@@ -2343,6 +2685,74 @@ paths:
                 $ref: "#/components/schemas/additionalInfo"
         "500":
           $ref: "#/components/responses/response_500"
+  /instances/{instance_id}/provides:
+    get:
+      tags:
+        - Experimental
+      description: Get all provided feature of the specified instance
+      parameters:
+        - name: instance_id
+          in: path
+          description: Instance to check
+          required: true
+          schema:
+            $ref: '#/components/schemas/HexString8'
+      responses:
+        '200':
+          description: Information for all features and their config provided by this instance
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/FeatureInfo'
+                propertyNames:
+                  type: string
+        '404':
+          description: Instance id not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /instances/{instance_id}/provides/{feature}:
+    get:
+      tags:
+        - Experimental
+      description: Check if the specified instance provides the specified feature
+      parameters:
+        - name: instance_id
+          in: path
+          description: Instance to check
+          required: true
+          schema:
+            $ref: '#/components/schemas/HexString8'
+        - name: feature
+          in: path
+          description: Feature to check
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Information of the specified feature provided by the specified instance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureInfo'
+        '404':
+          description: Instance not found or feature not provided by instance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceNotFoundOrFeatureNotProvided'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
   # Job related paths
   /jobs:
     get:
@@ -2438,6 +2848,488 @@ paths:
           description: Manifest not found
         "500":
           $ref: "#/components/responses/response_500"
+  # Provider related paths
+  /providers:
+    get:
+      tags:
+        - Experimental
+      description: Get information for all providers
+      responses:
+        '200':
+          description: Information for all providers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Providers'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/auth:
+    get:
+      tags:
+        - Experimental
+      description: Get information for all auth providers
+      responses:
+        '200':
+          description: Information for all auth providers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthProviders'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/auth/core:
+    get:
+      tags:
+        - Experimental
+      description: Get information on the core auth provider
+      responses:
+        '200':
+          description: How the core auth provider is currently set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderReference'
+        '404':
+          description: No core auth provider set
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+    put:
+      tags:
+        - Experimental
+      description: Set a core auth provider
+      requestBody:
+        description: The provider that should be used
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderReference'
+        required: true
+      responses:
+        '200':
+          description: Provider was overwritten
+        '201':
+          description: Provider was set
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/auth/core/first-time-setup/super-admin:
+    get:
+      tags:
+        - Experimental
+      description: Check if the super admin of the core auth provider is set
+      responses:
+        '204':
+          description: Super admin of core auth provider set
+        '404':
+          description: Super admin of core auth provider not set or no core provider set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+    post:
+      tags:
+        - Experimental
+      description: Set the super admin of the core auth provider
+      requestBody:
+        description: Super admin that should be set to the default auth provider
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuperAdmin'
+            example: '{"name": "admin", "password": "8i2jh%3/K9h1qwf"}'
+        required: true
+      responses:
+        '200':
+          description: Super admin of core auth provider set
+        '400':
+          description: Invalid super admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '403':
+          description: Forbidden
+        '404':
+          description: No core auth provider present
+        '500':
+          description: Failed to set super admin of core auth provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/auth/default:
+    get:
+      tags:
+        - Experimental
+      responses:
+        '200':
+          description: Default auth provider was found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthProvider'
+        '404':
+          description: No default auth provider was found
+    put:
+      tags:
+        - Experimental
+      requestBody:
+        description: Id of the provider that should be used as the default auth provider
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutDefaultProviderRequest'
+            example: '{"provider_id": "3f6bfe21"}'
+        required: true
+      responses:
+        '200':
+          description: Default auth provider was replaced
+        '201':
+          description: Default auth provider was set
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+    delete:
+      tags:
+        - Experimental
+      responses:
+        '200':
+          description: Remove the default auth provider
+        '404':
+          description: No default auth provider was found
+        '409':
+          description: The current state does not allow the removal of the default auth provider, e.g. a running instance is using it
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/auth/default/first-time-setup/super-admin:
+    get:
+      tags:
+        - Experimental
+      description: Check if the super admin of the default auth provider is set
+      responses:
+        '204':
+          description: Super admin of default auth provider set
+        '404':
+          description: Super admin of default auth provider not set or no default provider set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+    post:
+      tags:
+        - Experimental
+      description: Set the super admin of the default auth provider
+      requestBody:
+        description: Super admin that should be set to the default auth provider
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuperAdmin'
+            example: '{"name": "admin", "password": "8i2jh%3/K9h1qwf"}'
+        required: true
+      responses:
+        '200':
+          description: Super admin of default auth provider set
+        '400':
+          description: Invalid super admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '403':
+          description: Forbidden
+        '404':
+          description: No default auth provider present
+        '500':
+          description: Failed to set super admin of default auth provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/auth/first-time-setup/flecsport:
+    post:
+      tags:
+        - Experimental
+      description: Trigger the first time setup of auth providers via flecsport
+      responses:
+        '202':
+          description: First time setup of auth providers via flecsport triggered
+  /providers/auth/{id}:
+    get:
+      tags:
+        - Experimental
+      parameters:
+        - name: id
+          in: path
+          description: Id of the auth provider to get
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Auth provider was found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthProvider'
+        '404':
+          description: Auth provider was not found
+  /providers/auth/{id}/first-time-setup/super-admin:
+    get:
+      tags:
+        - Experimental
+      description: Check if the super admin of the specified auth provider is set
+      parameters:
+        - name: id
+          in: path
+          description: Id of the auth provider to check
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Super admin of specified auth provider set
+        '404':
+          description: Super admin of specified auth provider not set or specified provider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFound'
+    post:
+      tags:
+        - Experimental
+      description: Set the super admin of the specified auth provider
+      parameters:
+        - name: id
+          in: path
+          description: Id of the auth provider to configure
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Super admin that should be set to the specified auth provider
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuperAdmin'
+            example: '{"name": "admin", "password": "8i2jh%3/K9h1qwf"}'
+        required: true
+      responses:
+        '200':
+          description: Super admin of specified auth provider set
+        '400':
+          description: Invalid super admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '403':
+          description: Forbidden
+        '404':
+          description: Specified auth provider not found
+        '500':
+          description: Failed to set super admin of specified auth provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/{feature}:
+    get:
+      tags:
+        - Experimental
+      description: Get information for all providers of the specified feature
+      parameters:
+        - name: feature
+          in: path
+          description: Feature for which to get the providers
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Information for all providers of the specified feature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureProviders'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/{feature}/default:
+    get:
+      tags:
+        - Experimental
+      parameters:
+        - name: feature
+          in: path
+          description: Feature for which to get the default provider
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Default provider for specified feature was found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureProvider'
+        '404':
+          description: Default provider for specified feature was not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+    put:
+      tags:
+        - Experimental
+      parameters:
+        - name: feature
+          in: path
+          description: Feature for which to set the default provider
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Id of the provider that should be used as the default provider of the specified feature
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutDefaultProviderRequest'
+            example: '{"provider_id": "3f6bfe21"}'
+        required: true
+      responses:
+        '200':
+          description: Default provider for specified feature was replaced
+        '201':
+          description: Default provider for specified feature was set
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '404':
+          description: Provider not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+    delete:
+      tags:
+        - Experimental
+      parameters:
+        - name: feature
+          in: path
+          description: Feature for which to unset the default provider
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Default provider for specified feature unset
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '404':
+          description: Default provider for specified feature was not found
+        '409':
+          description: The current state does not allow the removal of the default provider, e.g. a running instance is using it
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/{feature}/{id}:
+    get:
+      tags:
+        - Experimental
+      parameters:
+        - name: id
+          in: path
+          description: Id of the provider to get
+          required: true
+          schema:
+            type: string
+        - name: feature
+          in: path
+          description: Feature if the provider to get
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Provider was found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureProvider'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '404':
+          description: Provider was not found
   # System related paths
   /system/ping:
     get:

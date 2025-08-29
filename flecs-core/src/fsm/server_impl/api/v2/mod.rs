@@ -9,5 +9,6 @@ pub mod imports;
 pub mod instances;
 pub mod jobs;
 pub mod manifests;
+pub mod providers;
 pub mod quests;
 pub mod system;
