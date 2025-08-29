@@ -1,6 +1,8 @@
 pub mod config;
+pub mod depends;
 pub mod editor;
 pub mod logs;
+pub mod provides;
 pub mod start;
 pub mod stop;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};

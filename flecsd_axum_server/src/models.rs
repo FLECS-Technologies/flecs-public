@@ -63,6 +63,162 @@ pub struct DeploymentsDeploymentIdNetworksPostPathParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdDependsFeatureDeletePathParams {
+    /// Instance to check
+    #[validate(
+                        length(min = 8, max = 8),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSFEATUREDELETEPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    /// Feature to check
+    pub feature: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSFEATUREDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdDependsFeatureGetPathParams {
+    /// Instance to check
+    #[validate(
+                        length(min = 8, max = 8),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSFEATUREGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    /// Feature to check
+    pub feature: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSFEATUREGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdDependsFeaturePutPathParams {
+    /// Instance to set a provider for
+    #[validate(
+                        length(min = 8, max = 8),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSFEATUREPUTPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    /// Feature to set a provider for
+    pub feature: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSFEATUREPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdDependsGetPathParams {
+    /// Instance to check
+    #[validate(
+                        length(min = 8, max = 8),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdProvidesFeatureGetPathParams {
+    /// Instance to check
+    #[validate(
+                        length(min = 8, max = 8),
+                          regex(path = *RE_INSTANCESINSTANCEIDPROVIDESFEATUREGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    /// Feature to check
+    pub feature: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDPROVIDESFEATUREGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdProvidesGetPathParams {
+    /// Instance to check
+    #[validate(
+                        length(min = 8, max = 8),
+                          regex(path = *RE_INSTANCESINSTANCEIDPROVIDESGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDPROVIDESGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ProvidersAuthIdFirstTimeSetupSuperAdminGetPathParams {
+    /// Id of the auth provider to check
+    pub id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ProvidersAuthIdFirstTimeSetupSuperAdminPostPathParams {
+    /// Id of the auth provider to configure
+    pub id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ProvidersAuthIdGetPathParams {
+    /// Id of the auth provider to get
+    pub id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ProvidersFeatureDefaultDeletePathParams {
+    /// Feature for which to unset the default provider
+    pub feature: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ProvidersFeatureDefaultGetPathParams {
+    /// Feature for which to get the default provider
+    pub feature: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ProvidersFeatureDefaultPutPathParams {
+    /// Feature for which to set the default provider
+    pub feature: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ProvidersFeatureGetPathParams {
+    /// Feature for which to get the providers
+    pub feature: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ProvidersFeatureIdGetPathParams {
+    /// Id of the provider to get
+    pub id: String,
+    /// Feature if the provider to get
+    pub feature: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct ExportsExportIdDeletePathParams {
     #[validate(
                           regex(path = *RE_EXPORTSEXPORTIDDELETEPATHPARAMS_EXPORT_ID),
@@ -770,11 +926,10 @@ pub struct SystemNetworkAdaptersNetworkAdapterIdGetPathParams {
     pub network_adapter_id: String,
 }
 
-/// Additional info
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct AdditionalInfo {
-    #[serde(rename = "additionalInfo")]
+    #[serde(rename = "additional_info")]
     pub additional_info: String,
 }
 
@@ -791,7 +946,7 @@ impl AdditionalInfo {
 impl std::fmt::Display for AdditionalInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let params: Vec<Option<String>> = vec![
-            Some("additionalInfo".to_string()),
+            Some("additional_info".to_string()),
             Some(self.additional_info.to_string()),
         ];
 
@@ -837,7 +992,7 @@ impl std::str::FromStr for AdditionalInfo {
                 #[allow(clippy::match_single_binding)]
                 match key {
                     #[allow(clippy::redundant_clone)]
-                    "additionalInfo" => intermediate_rep.additional_info.push(
+                    "additional_info" => intermediate_rep.additional_info.push(
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     _ => {
@@ -858,7 +1013,7 @@ impl std::str::FromStr for AdditionalInfo {
                 .additional_info
                 .into_iter()
                 .next()
-                .ok_or_else(|| "additionalInfo missing in AdditionalInfo".to_string())?,
+                .ok_or_else(|| "additional_info missing in AdditionalInfo".to_string())?,
         })
     }
 }
@@ -2930,6 +3085,523 @@ impl std::str::FromStr for AuthProtocol {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct AuthProvider {
+    #[serde(rename = "config")]
+    pub config: models::AuthProviderConfig,
+
+    #[serde(rename = "id")]
+    #[validate(
+            length(min = 8, max = 8),
+            regex(path = *RE_AUTHPROVIDER_ID),
+        )]
+    pub id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_AUTHPROVIDER_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+impl AuthProvider {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(config: models::AuthProviderConfig, id: String) -> AuthProvider {
+        AuthProvider { config, id }
+    }
+}
+
+/// Converts the AuthProvider value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for AuthProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping config in query parameter serialization
+            Some("id".to_string()),
+            Some(self.id.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AuthProvider value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AuthProvider {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub config: Vec<models::AuthProviderConfig>,
+            pub id: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing AuthProvider".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "config" => intermediate_rep.config.push(
+                        <models::AuthProviderConfig as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "id" => intermediate_rep.id.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing AuthProvider".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(AuthProvider {
+            config: intermediate_rep
+                .config
+                .into_iter()
+                .next()
+                .ok_or_else(|| "config missing in AuthProvider".to_string())?,
+            id: intermediate_rep
+                .id
+                .into_iter()
+                .next()
+                .ok_or_else(|| "id missing in AuthProvider".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<AuthProvider> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<AuthProvider>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<AuthProvider>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for AuthProvider - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AuthProvider> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <AuthProvider as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into AuthProvider - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct AuthProviderConfig {
+    #[serde(rename = "issuer_url")]
+    pub issuer_url: String,
+
+    #[serde(rename = "kind")]
+    pub kind: String,
+
+    #[serde(rename = "name")]
+    pub name: String,
+}
+
+impl AuthProviderConfig {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(issuer_url: String, kind: String, name: String) -> AuthProviderConfig {
+        AuthProviderConfig {
+            issuer_url,
+            kind,
+            name,
+        }
+    }
+}
+
+/// Converts the AuthProviderConfig value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for AuthProviderConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("issuer_url".to_string()),
+            Some(self.issuer_url.to_string()),
+            Some("kind".to_string()),
+            Some(self.kind.to_string()),
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AuthProviderConfig value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AuthProviderConfig {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub issuer_url: Vec<String>,
+            pub kind: Vec<String>,
+            pub name: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing AuthProviderConfig".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "issuer_url" => intermediate_rep.issuer_url.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "kind" => intermediate_rep.kind.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing AuthProviderConfig".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(AuthProviderConfig {
+            issuer_url: intermediate_rep
+                .issuer_url
+                .into_iter()
+                .next()
+                .ok_or_else(|| "issuer_url missing in AuthProviderConfig".to_string())?,
+            kind: intermediate_rep
+                .kind
+                .into_iter()
+                .next()
+                .ok_or_else(|| "kind missing in AuthProviderConfig".to_string())?,
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in AuthProviderConfig".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<AuthProviderConfig> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<AuthProviderConfig>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<AuthProviderConfig>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for AuthProviderConfig - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AuthProviderConfig> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <AuthProviderConfig as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into AuthProviderConfig - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct AuthProviders {
+    #[serde(rename = "core")]
+    #[validate(
+            length(min = 8, max = 8),
+            regex(path = *RE_AUTHPROVIDERS_CORE),
+        )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub core: Option<String>,
+
+    #[serde(rename = "default")]
+    #[validate(
+            length(min = 8, max = 8),
+            regex(path = *RE_AUTHPROVIDERS_DEFAULT),
+        )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
+
+    #[serde(rename = "providers")]
+    pub providers: std::collections::HashMap<String, models::AuthProvider>,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_AUTHPROVIDERS_CORE: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_AUTHPROVIDERS_DEFAULT: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+impl AuthProviders {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(
+        providers: std::collections::HashMap<String, models::AuthProvider>,
+    ) -> AuthProviders {
+        AuthProviders {
+            core: None,
+            default: None,
+            providers,
+        }
+    }
+}
+
+/// Converts the AuthProviders value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for AuthProviders {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            self.core
+                .as_ref()
+                .map(|core| ["core".to_string(), core.to_string()].join(",")),
+            self.default
+                .as_ref()
+                .map(|default| ["default".to_string(), default.to_string()].join(",")),
+            // Skipping providers in query parameter serialization
+            // Skipping providers in query parameter serialization
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a AuthProviders value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for AuthProviders {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub core: Vec<String>,
+            pub default: Vec<String>,
+            pub providers: Vec<std::collections::HashMap<String, models::AuthProvider>>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing AuthProviders".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "core" => intermediate_rep.core.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "default" => intermediate_rep.default.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    "providers" => {
+                        return std::result::Result::Err(
+                            "Parsing a container in this style is not supported in AuthProviders"
+                                .to_string(),
+                        )
+                    }
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing AuthProviders".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(AuthProviders {
+            core: intermediate_rep.core.into_iter().next(),
+            default: intermediate_rep.default.into_iter().next(),
+            providers: intermediate_rep
+                .providers
+                .into_iter()
+                .next()
+                .ok_or_else(|| "providers missing in AuthProviders".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<AuthProviders> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<AuthProviders>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<AuthProviders>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for AuthProviders - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AuthProviders> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <AuthProviders as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into AuthProviders - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct AuthResponseData {
     #[serde(rename = "user")]
     pub user: models::User,
@@ -4702,6 +5374,810 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<FeatureFlags
                 hdr_value, e
             )),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct FeatureInfo {
+    #[serde(rename = "config")]
+    pub config: crate::types::Object,
+}
+
+impl FeatureInfo {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(config: crate::types::Object) -> FeatureInfo {
+        FeatureInfo { config }
+    }
+}
+
+/// Converts the FeatureInfo value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for FeatureInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping config in query parameter serialization
+
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a FeatureInfo value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for FeatureInfo {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub config: Vec<crate::types::Object>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing FeatureInfo".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "config" => intermediate_rep.config.push(
+                        <crate::types::Object as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing FeatureInfo".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(FeatureInfo {
+            config: intermediate_rep
+                .config
+                .into_iter()
+                .next()
+                .ok_or_else(|| "config missing in FeatureInfo".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<FeatureInfo> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<FeatureInfo>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<FeatureInfo>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for FeatureInfo - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<FeatureInfo> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <FeatureInfo as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into FeatureInfo - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct FeatureProvider {
+    #[serde(rename = "app_key")]
+    pub app_key: models::AppKey,
+
+    #[serde(rename = "config")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config: Option<crate::types::Object>,
+}
+
+impl FeatureProvider {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(app_key: models::AppKey) -> FeatureProvider {
+        FeatureProvider {
+            app_key,
+            config: None,
+        }
+    }
+}
+
+/// Converts the FeatureProvider value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for FeatureProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping app_key in query parameter serialization
+
+            // Skipping config in query parameter serialization
+
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a FeatureProvider value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for FeatureProvider {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub app_key: Vec<models::AppKey>,
+            pub config: Vec<crate::types::Object>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing FeatureProvider".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "app_key" => intermediate_rep.app_key.push(
+                        <models::AppKey as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "config" => intermediate_rep.config.push(
+                        <crate::types::Object as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing FeatureProvider".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(FeatureProvider {
+            app_key: intermediate_rep
+                .app_key
+                .into_iter()
+                .next()
+                .ok_or_else(|| "app_key missing in FeatureProvider".to_string())?,
+            config: intermediate_rep.config.into_iter().next(),
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<FeatureProvider> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<FeatureProvider>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<FeatureProvider>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for FeatureProvider - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<FeatureProvider> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <FeatureProvider as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into FeatureProvider - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct FeatureProviders {
+    #[serde(rename = "default")]
+    #[validate(
+            length(min = 8, max = 8),
+            regex(path = *RE_FEATUREPROVIDERS_DEFAULT),
+        )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
+
+    #[serde(rename = "providers")]
+    pub providers: std::collections::HashMap<String, models::FeatureProvider>,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_FEATUREPROVIDERS_DEFAULT: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+impl FeatureProviders {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(
+        providers: std::collections::HashMap<String, models::FeatureProvider>,
+    ) -> FeatureProviders {
+        FeatureProviders {
+            default: None,
+            providers,
+        }
+    }
+}
+
+/// Converts the FeatureProviders value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for FeatureProviders {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            self.default
+                .as_ref()
+                .map(|default| ["default".to_string(), default.to_string()].join(",")),
+            // Skipping providers in query parameter serialization
+            // Skipping providers in query parameter serialization
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a FeatureProviders value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for FeatureProviders {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub default: Vec<String>,
+            pub providers: Vec<std::collections::HashMap<String, models::FeatureProvider>>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing FeatureProviders".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "default" => intermediate_rep.default.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    "providers" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in FeatureProviders"
+                            .to_string(),
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing FeatureProviders".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(FeatureProviders {
+            default: intermediate_rep.default.into_iter().next(),
+            providers: intermediate_rep
+                .providers
+                .into_iter()
+                .next()
+                .ok_or_else(|| "providers missing in FeatureProviders".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<FeatureProviders> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<FeatureProviders>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<FeatureProviders>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for FeatureProviders - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<FeatureProviders> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <FeatureProviders as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into FeatureProviders - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct GenericProvider {
+    #[serde(rename = "app_key")]
+    pub app_key: models::AppKey,
+}
+
+impl GenericProvider {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(app_key: models::AppKey) -> GenericProvider {
+        GenericProvider { app_key }
+    }
+}
+
+/// Converts the GenericProvider value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for GenericProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping app_key in query parameter serialization
+
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a GenericProvider value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for GenericProvider {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub app_key: Vec<models::AppKey>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing GenericProvider".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "app_key" => intermediate_rep.app_key.push(
+                        <models::AppKey as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing GenericProvider".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(GenericProvider {
+            app_key: intermediate_rep
+                .app_key
+                .into_iter()
+                .next()
+                .ok_or_else(|| "app_key missing in GenericProvider".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<GenericProvider> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<GenericProvider>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<GenericProvider>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for GenericProvider - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<GenericProvider> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <GenericProvider as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into GenericProvider - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct GenericProviders {
+    #[serde(rename = "default")]
+    #[validate(
+            length(min = 8, max = 8),
+            regex(path = *RE_GENERICPROVIDERS_DEFAULT),
+        )]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
+
+    #[serde(rename = "providers")]
+    pub providers: std::collections::HashMap<String, models::GenericProvider>,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_GENERICPROVIDERS_DEFAULT: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+impl GenericProviders {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(
+        providers: std::collections::HashMap<String, models::GenericProvider>,
+    ) -> GenericProviders {
+        GenericProviders {
+            default: None,
+            providers,
+        }
+    }
+}
+
+/// Converts the GenericProviders value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for GenericProviders {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            self.default
+                .as_ref()
+                .map(|default| ["default".to_string(), default.to_string()].join(",")),
+            // Skipping providers in query parameter serialization
+            // Skipping providers in query parameter serialization
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a GenericProviders value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for GenericProviders {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub default: Vec<String>,
+            pub providers: Vec<std::collections::HashMap<String, models::GenericProvider>>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing GenericProviders".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "default" => intermediate_rep.default.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    "providers" => return std::result::Result::Err(
+                        "Parsing a container in this style is not supported in GenericProviders"
+                            .to_string(),
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing GenericProviders".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(GenericProviders {
+            default: intermediate_rep.default.into_iter().next(),
+            providers: intermediate_rep
+                .providers
+                .into_iter()
+                .next()
+                .ok_or_else(|| "providers missing in GenericProviders".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<GenericProviders> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<GenericProviders>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<GenericProviders>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for GenericProviders - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<GenericProviders> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <GenericProviders as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into GenericProviders - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct HexString8(String);
+
+impl validator::Validate for HexString8 {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for HexString8 {
+    fn from(x: String) -> Self {
+        HexString8(x)
+    }
+}
+
+impl std::fmt::Display for HexString8 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for HexString8 {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(HexString8(x.to_string()))
+    }
+}
+
+impl std::convert::From<HexString8> for String {
+    fn from(x: HexString8) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for HexString8 {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for HexString8 {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
     }
 }
 
@@ -7394,6 +8870,88 @@ impl std::ops::Deref for InstanceName {
 impl std::ops::DerefMut for InstanceName {
     fn deref_mut(&mut self) -> &mut String {
         &mut self.0
+    }
+}
+
+/// Enumeration of values.
+/// Since this enum's variants do not hold data, we can easily define them as `#[repr(C)]`
+/// which helps with FFI.
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[cfg_attr(feature = "conversion", derive(frunk_enum_derive::LabelledGenericEnum))]
+pub enum InstanceNotFoundOrFeatureNotProvided {
+    #[serde(rename = "InstanceNotFound")]
+    InstanceNotFound,
+    #[serde(rename = "FeatureNotProvided")]
+    FeatureNotProvided,
+}
+
+impl std::fmt::Display for InstanceNotFoundOrFeatureNotProvided {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            InstanceNotFoundOrFeatureNotProvided::InstanceNotFound => write!(f, "InstanceNotFound"),
+            InstanceNotFoundOrFeatureNotProvided::FeatureNotProvided => {
+                write!(f, "FeatureNotProvided")
+            }
+        }
+    }
+}
+
+impl std::str::FromStr for InstanceNotFoundOrFeatureNotProvided {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "InstanceNotFound" => {
+                std::result::Result::Ok(InstanceNotFoundOrFeatureNotProvided::InstanceNotFound)
+            }
+            "FeatureNotProvided" => {
+                std::result::Result::Ok(InstanceNotFoundOrFeatureNotProvided::FeatureNotProvided)
+            }
+            _ => std::result::Result::Err(format!("Value not valid: {}", s)),
+        }
+    }
+}
+
+/// Enumeration of values.
+/// Since this enum's variants do not hold data, we can easily define them as `#[repr(C)]`
+/// which helps with FFI.
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[cfg_attr(feature = "conversion", derive(frunk_enum_derive::LabelledGenericEnum))]
+pub enum InstanceNotFoundOrNotDependent {
+    #[serde(rename = "InstanceNotFound")]
+    InstanceNotFound,
+    #[serde(rename = "NotDependent")]
+    NotDependent,
+}
+
+impl std::fmt::Display for InstanceNotFoundOrNotDependent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            InstanceNotFoundOrNotDependent::InstanceNotFound => write!(f, "InstanceNotFound"),
+            InstanceNotFoundOrNotDependent::NotDependent => write!(f, "NotDependent"),
+        }
+    }
+}
+
+impl std::str::FromStr for InstanceNotFoundOrNotDependent {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "InstanceNotFound" => {
+                std::result::Result::Ok(InstanceNotFoundOrNotDependent::InstanceNotFound)
+            }
+            "NotDependent" => std::result::Result::Ok(InstanceNotFoundOrNotDependent::NotDependent),
+            _ => std::result::Result::Err(format!("Value not valid: {}", s)),
+        }
     }
 }
 
@@ -11735,6 +13293,43 @@ impl std::str::FromStr for NetworkType {
     }
 }
 
+/// Enumeration of values.
+/// Since this enum's variants do not hold data, we can easily define them as `#[repr(C)]`
+/// which helps with FFI.
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[cfg_attr(feature = "conversion", derive(frunk_enum_derive::LabelledGenericEnum))]
+pub enum NotFound {
+    #[serde(rename = "Provider")]
+    Provider,
+    #[serde(rename = "SuperAdmin")]
+    SuperAdmin,
+}
+
+impl std::fmt::Display for NotFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            NotFound::Provider => write!(f, "Provider"),
+            NotFound::SuperAdmin => write!(f, "SuperAdmin"),
+        }
+    }
+}
+
+impl std::str::FromStr for NotFound {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "Provider" => std::result::Result::Ok(NotFound::Provider),
+            "SuperAdmin" => std::result::Result::Ok(NotFound::SuperAdmin),
+            _ => std::result::Result::Err(format!("Value not valid: {}", s)),
+        }
+    }
+}
+
 /// Additional info
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
@@ -12275,6 +13870,391 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<PostDeployme
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
                         "Unable to convert header value '{}' into PostDeploymentNetwork - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
+#[allow(non_camel_case_types)]
+pub enum ProviderReference {
+    String(Box<String>),
+    ProviderReferenceOneOf(Box<models::ProviderReferenceOneOf>),
+}
+
+impl validator::Validate for ProviderReference {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        match self {
+            Self::String(_) => std::result::Result::Ok(()),
+            Self::ProviderReferenceOneOf(x) => x.validate(),
+        }
+    }
+}
+
+impl From<String> for ProviderReference {
+    fn from(value: String) -> Self {
+        Self::String(Box::new(value))
+    }
+}
+impl From<models::ProviderReferenceOneOf> for ProviderReference {
+    fn from(value: models::ProviderReferenceOneOf) -> Self {
+        Self::ProviderReferenceOneOf(Box::new(value))
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a ProviderReference value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for ProviderReference {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        serde_json::from_str(s)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct ProviderReferenceOneOf {
+    #[serde(rename = "Provider")]
+    #[validate(
+            length(min = 8, max = 8),
+            regex(path = *RE_PROVIDERREFERENCEONEOF_PROVIDER),
+        )]
+    pub provider: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_PROVIDERREFERENCEONEOF_PROVIDER: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+impl ProviderReferenceOneOf {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(provider: String) -> ProviderReferenceOneOf {
+        ProviderReferenceOneOf { provider }
+    }
+}
+
+/// Converts the ProviderReferenceOneOf value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for ProviderReferenceOneOf {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("Provider".to_string()),
+            Some(self.provider.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a ProviderReferenceOneOf value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for ProviderReferenceOneOf {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub provider: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing ProviderReferenceOneOf".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "Provider" => intermediate_rep.provider.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing ProviderReferenceOneOf".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(ProviderReferenceOneOf {
+            provider: intermediate_rep
+                .provider
+                .into_iter()
+                .next()
+                .ok_or_else(|| "Provider missing in ProviderReferenceOneOf".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<ProviderReferenceOneOf> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<ProviderReferenceOneOf>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<ProviderReferenceOneOf>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for ProviderReferenceOneOf - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<ProviderReferenceOneOf> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <ProviderReferenceOneOf as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into ProviderReferenceOneOf - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Providers(std::collections::HashMap<String, models::GenericProviders>);
+
+impl validator::Validate for Providers {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<std::collections::HashMap<String, models::GenericProviders>> for Providers {
+    fn from(x: std::collections::HashMap<String, models::GenericProviders>) -> Self {
+        Providers(x)
+    }
+}
+
+impl std::convert::From<Providers> for std::collections::HashMap<String, models::GenericProviders> {
+    fn from(x: Providers) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for Providers {
+    type Target = std::collections::HashMap<String, models::GenericProviders>;
+    fn deref(&self) -> &std::collections::HashMap<String, models::GenericProviders> {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for Providers {
+    fn deref_mut(&mut self) -> &mut std::collections::HashMap<String, models::GenericProviders> {
+        &mut self.0
+    }
+}
+
+/// Converts the Providers value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for Providers {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Skipping additionalProperties in query parameter serialization
+        write!(f, "")
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a Providers value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl ::std::str::FromStr for Providers {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Err("Parsing additionalProperties for Providers is not supported")
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct PutDefaultProviderRequest {
+    #[serde(rename = "provider_id")]
+    #[validate(
+            length(min = 8, max = 8),
+            regex(path = *RE_PUTDEFAULTPROVIDERREQUEST_PROVIDER_ID),
+        )]
+    pub provider_id: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_PUTDEFAULTPROVIDERREQUEST_PROVIDER_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+
+impl PutDefaultProviderRequest {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(provider_id: String) -> PutDefaultProviderRequest {
+        PutDefaultProviderRequest { provider_id }
+    }
+}
+
+/// Converts the PutDefaultProviderRequest value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for PutDefaultProviderRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("provider_id".to_string()),
+            Some(self.provider_id.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a PutDefaultProviderRequest value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for PutDefaultProviderRequest {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub provider_id: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing PutDefaultProviderRequest".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "provider_id" => intermediate_rep.provider_id.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing PutDefaultProviderRequest".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(PutDefaultProviderRequest {
+            provider_id: intermediate_rep
+                .provider_id
+                .into_iter()
+                .next()
+                .ok_or_else(|| "provider_id missing in PutDefaultProviderRequest".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<PutDefaultProviderRequest> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<PutDefaultProviderRequest>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<PutDefaultProviderRequest>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for PutDefaultProviderRequest - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<PutDefaultProviderRequest> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <PutDefaultProviderRequest as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into PutDefaultProviderRequest - {}",
                         value, err
                     )),
                 }
@@ -12869,6 +14849,158 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<SessionId> {
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
                         "Unable to convert header value '{}' into SessionId - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct SuperAdmin {
+    #[serde(rename = "name")]
+    pub name: String,
+
+    #[serde(rename = "password")]
+    pub password: String,
+}
+
+impl SuperAdmin {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(name: String, password: String) -> SuperAdmin {
+        SuperAdmin { name, password }
+    }
+}
+
+/// Converts the SuperAdmin value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for SuperAdmin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("name".to_string()),
+            Some(self.name.to_string()),
+            Some("password".to_string()),
+            Some(self.password.to_string()),
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a SuperAdmin value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for SuperAdmin {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub name: Vec<String>,
+            pub password: Vec<String>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing SuperAdmin".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "password" => intermediate_rep.password.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing SuperAdmin".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(SuperAdmin {
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in SuperAdmin".to_string())?,
+            password: intermediate_rep
+                .password
+                .into_iter()
+                .next()
+                .ok_or_else(|| "password missing in SuperAdmin".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<SuperAdmin> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<SuperAdmin>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<SuperAdmin>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for SuperAdmin - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<SuperAdmin> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <SuperAdmin as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into SuperAdmin - {}",
                         value, err
                     )),
                 }
