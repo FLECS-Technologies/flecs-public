@@ -43,11 +43,11 @@ impl FromStr for Mount {
     }
 }
 
-impl TryFrom<&flecs_app_manifest::generated::manifest_3_1_0::VolumesItem> for Mount {
+impl TryFrom<&flecs_app_manifest::generated::manifest_3_2_0::VolumesItem> for Mount {
     type Error = Error;
 
     fn try_from(
-        value: &flecs_app_manifest::generated::manifest_3_1_0::VolumesItem,
+        value: &flecs_app_manifest::generated::manifest_3_2_0::VolumesItem,
     ) -> Result<Self, Self::Error> {
         Self::from_str(value.as_str())
     }

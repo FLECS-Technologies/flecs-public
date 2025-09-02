@@ -20,11 +20,11 @@ impl Display for EnvironmentVariable {
     }
 }
 
-impl TryFrom<&flecs_app_manifest::generated::manifest_3_1_0::EnvItem> for EnvironmentVariable {
+impl TryFrom<&flecs_app_manifest::generated::manifest_3_2_0::EnvItem> for EnvironmentVariable {
     type Error = Error;
 
     fn try_from(
-        value: &flecs_app_manifest::generated::manifest_3_1_0::EnvItem,
+        value: &flecs_app_manifest::generated::manifest_3_2_0::EnvItem,
     ) -> Result<Self, Self::Error> {
         Self::from_str(value.as_str())
     }
@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn try_environment_variable_from_env_item() {
-        let item = flecs_app_manifest::generated::manifest_3_1_0::EnvItem::from_str("MY_ENV=VALUE")
+        let item = flecs_app_manifest::generated::manifest_3_2_0::EnvItem::from_str("MY_ENV=VALUE")
             .unwrap();
         assert_eq!(
             EnvironmentVariable::try_from(&item).unwrap(),
