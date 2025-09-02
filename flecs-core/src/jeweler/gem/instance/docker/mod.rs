@@ -1185,7 +1185,7 @@ impl DockerInstance {
         let mut bind_mounts = self.manifest.bind_mounts();
         let mut capabilities = self.manifest.capabilities();
         if capabilities
-            .remove(&flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::Docker)
+            .remove(&flecs_app_manifest::generated::manifest_3_2_0::CapabilitiesItem::Docker)
         {
             bind_mounts.push(BindMount::default_docker_socket_bind_mount());
         }

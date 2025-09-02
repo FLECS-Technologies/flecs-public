@@ -11,7 +11,6 @@ pub use crate::{Error, Result};
 pub use config_file::*;
 pub use device::*;
 pub use environment_variable::*;
-use flecs_app_manifest::generated::manifest_3_1_0::EditorsItem;
 pub use label::*;
 pub use mount::*;
 pub use port::*;
@@ -55,7 +54,7 @@ impl AppManifestSingle {
 
     pub fn capabilities(
         &self,
-    ) -> HashSet<flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem> {
+    ) -> HashSet<flecs_app_manifest::generated::manifest_3_2_0::CapabilitiesItem> {
         self.original
             .capabilities
             .as_ref()
@@ -70,7 +69,10 @@ impl AppManifestSingle {
         }
     }
 
-    fn default_editor_path_prefix(editor: &EditorsItem, app_key: &AppKey) -> String {
+    fn default_editor_path_prefix(
+        editor: &flecs_app_manifest::generated::manifest_3_2_0::EditorsItem,
+        app_key: &AppKey,
+    ) -> String {
         format!(
             "apps/{}/{}/editor/{}",
             app_key.name, app_key.version, editor.port
@@ -103,7 +105,7 @@ impl AppManifestSingle {
         self.original.revision.as_deref()
     }
 
-    pub fn editors(&self) -> Vec<flecs_app_manifest::generated::manifest_3_1_0::EditorsItem> {
+    pub fn editors(&self) -> Vec<flecs_app_manifest::generated::manifest_3_2_0::EditorsItem> {
         match &self.original.editors {
             None => Vec::new(),
             Some(editors) => editors.0.clone(),
@@ -155,7 +157,7 @@ impl AppManifestSingle {
         self.original.schema.as_deref()
     }
 
-    pub fn inner(&self) -> &flecs_app_manifest::generated::manifest_3_1_0::Single {
+    pub fn inner(&self) -> &flecs_app_manifest::generated::manifest_3_2_0::Single {
         self.original.deref()
     }
 }
@@ -232,8 +234,8 @@ pub mod tests {
         name_number: u8,
         version_number: u8,
         revision: Option<String>,
-    ) -> flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest {
-        let manifest = flecs_app_manifest::generated::manifest_3_1_0::Single {
+    ) -> flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest {
+        let manifest = flecs_app_manifest::generated::manifest_3_2_0::Single {
             app: FromStr::from_str(&format!("some.test.app-{name_number}")).unwrap(),
             args: None,
             capabilities: None,
@@ -253,7 +255,7 @@ pub mod tests {
             version: FromStr::from_str(&format!("1.2.{version_number}")).unwrap(),
             volumes: None,
         };
-        flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(manifest)
+        flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Single(manifest)
     }
 
     pub fn create_test_manifest(revision: Option<String>) -> AppManifest {
@@ -262,12 +264,12 @@ pub mod tests {
 
     pub fn create_test_manifest_raw(
         revision: Option<String>,
-    ) -> flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest {
+    ) -> flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest {
         create_test_manifest_numbered_raw(0, 0, revision)
     }
 
     pub fn create_test_manifest_full(multi_instance: Option<bool>) -> Arc<AppManifestSingle> {
-        let manifest = flecs_app_manifest::generated::manifest_3_1_0::Single {
+        let manifest = flecs_app_manifest::generated::manifest_3_2_0::Single {
             app: FromStr::from_str("some.test.app").unwrap(),
             args: Some(
                 vec![
@@ -278,9 +280,9 @@ pub mod tests {
             ),
             capabilities: Some(
                 vec![
-                    flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::Docker,
-                    flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::NetAdmin,
-                    flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::SysNice,
+                    flecs_app_manifest::generated::manifest_3_2_0::CapabilitiesItem::Docker,
+                    flecs_app_manifest::generated::manifest_3_2_0::CapabilitiesItem::NetAdmin,
+                    flecs_app_manifest::generated::manifest_3_2_0::CapabilitiesItem::SysNice,
                 ]
                 .into(),
             ),
@@ -301,12 +303,12 @@ pub mod tests {
             ),
             editors: Some(
                 vec![
-                    flecs_app_manifest::generated::manifest_3_1_0::EditorsItem {
+                    flecs_app_manifest::generated::manifest_3_2_0::EditorsItem {
                         name: "Editor#1".to_string(),
                         port: std::num::NonZeroU16::new(123).unwrap(),
                         supports_reverse_proxy: false,
                     },
-                    flecs_app_manifest::generated::manifest_3_1_0::EditorsItem {
+                    flecs_app_manifest::generated::manifest_3_2_0::EditorsItem {
                         name: "Editor#2".to_string(),
                         port: std::num::NonZeroU16::new(789).unwrap(),
                         supports_reverse_proxy: true,
@@ -355,7 +357,7 @@ pub mod tests {
             ),
         };
         let manifest =
-            flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(manifest);
+            flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Single(manifest);
         let manifest = flecs_app_manifest::AppManifestVersion::V3_1_0(manifest);
         let manifest = flecs_app_manifest::AppManifest::try_from(manifest).unwrap();
         let manifest = AppManifest::try_from(manifest).unwrap();
@@ -522,9 +524,9 @@ pub mod tests {
         assert_eq!(
             manifest.capabilities(),
             HashSet::from([
-                flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::Docker,
-                flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::NetAdmin,
-                flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::SysNice,
+                flecs_app_manifest::generated::manifest_3_2_0::CapabilitiesItem::Docker,
+                flecs_app_manifest::generated::manifest_3_2_0::CapabilitiesItem::NetAdmin,
+                flecs_app_manifest::generated::manifest_3_2_0::CapabilitiesItem::SysNice,
             ])
         )
     }
@@ -554,12 +556,12 @@ pub mod tests {
     fn editors() {
         let manifest = create_test_manifest_full(None);
         let editors = vec![
-            flecs_app_manifest::generated::manifest_3_1_0::EditorsItem {
+            flecs_app_manifest::generated::manifest_3_2_0::EditorsItem {
                 name: "Editor#1".to_string(),
                 port: std::num::NonZeroU16::new(123).unwrap(),
                 supports_reverse_proxy: false,
             },
-            flecs_app_manifest::generated::manifest_3_1_0::EditorsItem {
+            flecs_app_manifest::generated::manifest_3_2_0::EditorsItem {
                 name: "Editor#2".to_string(),
                 port: std::num::NonZeroU16::new(789).unwrap(),
                 supports_reverse_proxy: true,
@@ -632,8 +634,8 @@ pub mod tests {
     #[test]
     fn try_from_duplicate_environment_err() {
         let manifest = flecs_app_manifest::AppManifestVersion::V3_1_0(
-            flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(
-                flecs_app_manifest::generated::manifest_3_1_0::Single {
+            flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Single(
+                flecs_app_manifest::generated::manifest_3_2_0::Single {
                     app: FromStr::from_str("some.test.app").unwrap(),
                     args: None,
                     capabilities: None,

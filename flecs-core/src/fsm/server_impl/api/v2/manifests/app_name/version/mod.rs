@@ -1,7 +1,7 @@
 use crate::sorcerer::manifesto::Manifesto;
 use crate::vault::Vault;
 use crate::vault::pouch::AppKey;
-use flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest;
+use flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest;
 use flecsd_axum_server::apis::manifests::ManifestsAppNameVersionGetResponse as GetResponse;
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::ManifestsAppNameVersionGetPathParams as GetPathParams;

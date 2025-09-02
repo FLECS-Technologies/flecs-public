@@ -29,14 +29,14 @@ pub async fn get<M: Manifesto>(vault: Arc<Vault>, manifesto: Arc<M>) -> GetRespo
 }
 
 fn app_key_from_manifest(
-    manifest: &flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest,
+    manifest: &flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest,
 ) -> AppKey {
     match manifest {
-        flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(single) => AppKey {
+        flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Single(single) => AppKey {
             name: single.app.deref().clone(),
             version: single.version.deref().clone(),
         },
-        flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Multi(multi) => AppKey {
+        flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Multi(multi) => AppKey {
             name: multi.app.deref().clone(),
             version: multi.version.deref().clone(),
         },

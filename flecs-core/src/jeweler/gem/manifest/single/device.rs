@@ -21,11 +21,11 @@ impl FromStr for Device {
     }
 }
 
-impl TryFrom<&flecs_app_manifest::generated::manifest_3_1_0::DevicesItem> for Device {
+impl TryFrom<&flecs_app_manifest::generated::manifest_3_2_0::DevicesItem> for Device {
     type Error = Error;
 
     fn try_from(
-        value: &flecs_app_manifest::generated::manifest_3_1_0::DevicesItem,
+        value: &flecs_app_manifest::generated::manifest_3_2_0::DevicesItem,
     ) -> Result<Self, Self::Error> {
         Self::from_str(value.as_str())
     }
@@ -52,7 +52,7 @@ mod tests {
 
     #[test]
     fn device_from_device_item() {
-        let item = flecs_app_manifest::generated::manifest_3_1_0::DevicesItem::from_str(
+        let item = flecs_app_manifest::generated::manifest_3_2_0::DevicesItem::from_str(
             "/dev/test.device",
         )
         .unwrap();
