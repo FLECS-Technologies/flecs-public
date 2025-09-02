@@ -6,7 +6,7 @@ use crate::vault::Vault;
 use crate::vault::pouch::AppKey;
 use async_trait::async_trait;
 use flecs_app_manifest::AppManifestVersion;
-use flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest;
+use flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest;
 pub use manifesto_impl::ManifestoImpl;
 #[cfg(test)]
 use mockall::automock;

@@ -89,11 +89,11 @@ impl FromStr for ConfigFile {
     }
 }
 
-impl TryFrom<&flecs_app_manifest::generated::manifest_3_1_0::ConffilesItem> for ConfigFile {
+impl TryFrom<&flecs_app_manifest::generated::manifest_3_2_0::ConffilesItem> for ConfigFile {
     type Error = Error;
 
     fn try_from(
-        value: &flecs_app_manifest::generated::manifest_3_1_0::ConffilesItem,
+        value: &flecs_app_manifest::generated::manifest_3_2_0::ConffilesItem,
     ) -> Result<Self, Self::Error> {
         Self::from_str(value.as_str())
     }
@@ -186,7 +186,7 @@ mod tests {
 
     #[test]
     fn try_config_file_conffile_item_ok() {
-        let item = flecs_app_manifest::generated::manifest_3_1_0::ConffilesItem::from_str(
+        let item = flecs_app_manifest::generated::manifest_3_2_0::ConffilesItem::from_str(
             "my.config:/some/container/path.config:ro",
         )
         .unwrap();
@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn try_config_file_conffile_item_relative_container_path() {
-        let item = flecs_app_manifest::generated::manifest_3_1_0::ConffilesItem::from_str(
+        let item = flecs_app_manifest::generated::manifest_3_2_0::ConffilesItem::from_str(
             "my.config:../some/container/path.config",
         )
         .unwrap();

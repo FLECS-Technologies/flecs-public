@@ -123,7 +123,7 @@ mod tests {
     use crate::vault;
     use crate::vault::pouch::instance::tests::LABEL_INSTANCE;
     use crate::vault::pouch::manifest::tests::label_manifest;
-    use flecs_app_manifest::generated::manifest_3_1_0::{
+    use flecs_app_manifest::generated::manifest_3_2_0::{
         App as OtherApp, FlecsAppManifest, Image, Single, Version,
     };
     use std::collections::HashMap;
