@@ -169,7 +169,7 @@ impl AppManifestMulti {
         }
     }
 
-    pub fn inner(&self) -> &flecs_app_manifest::generated::manifest_3_1_0::Multi {
+    pub fn inner(&self) -> &flecs_app_manifest::generated::manifest_3_2_0::Multi {
         self.original.deref()
     }
 }

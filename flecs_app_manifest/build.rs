@@ -85,7 +85,7 @@ mod tests;"#,
 }
 
 fn main() {
-    for version in ["2.0.0", "3.0.0", "3.1.0"] {
+    for version in ["2.0.0", "3.0.0", "3.1.0", "FLX-1085-rbac"] {
         match generate_code(version) {
             Ok(()) => {}
             Err(Error(message, file_exists)) => {

@@ -1,3 +1,4 @@
+use crate::generated::manifest_3_2_0;
 use generated::manifest_2_0_0;
 use generated::manifest_3_0_0;
 use generated::manifest_3_1_0;
@@ -11,6 +12,7 @@ pub mod generated;
 
 #[derive(Debug)]
 pub enum ManifestError {
+    ConversionV3V32(manifest_3_2_0::error::ConversionError),
     ConversionV3V31(manifest_3_1_0::error::ConversionError),
     ConversionV2V3(manifest_3_0_0::error::ConversionError),
     MultiAppManifestNotSupported,
@@ -19,6 +21,12 @@ pub enum ManifestError {
 impl Display for ManifestError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            ManifestError::ConversionV3V32(error) => {
+                write!(
+                    f,
+                    "Could not convert app manifest from v3.0.0 to v3.2.0: {error}"
+                )
+            }
             ManifestError::ConversionV3V31(error) => {
                 write!(
                     f,
@@ -39,6 +47,12 @@ impl Display for ManifestError {
 }
 
 impl std::error::Error for ManifestError {}
+
+impl From<manifest_3_2_0::error::ConversionError> for ManifestError {
+    fn from(value: generated::manifest_3_2_0::error::ConversionError) -> Self {
+        Self::ConversionV3V32(value)
+    }
+}
 
 impl From<manifest_3_1_0::error::ConversionError> for ManifestError {
     fn from(value: generated::manifest_3_1_0::error::ConversionError) -> Self {
@@ -61,6 +75,8 @@ pub enum AppManifestVersion {
     V3_0_0(manifest_3_0_0::FlecsAppManifest),
     #[serde(rename = "3.1.0")]
     V3_1_0(manifest_3_1_0::FlecsAppManifest),
+    #[serde(rename = "3.2.0")]
+    V3_2_0(manifest_3_2_0::FlecsAppManifest),
 }
 
 impl FromStr for AppManifestVersion {
@@ -85,7 +101,7 @@ pub enum AppManifest {
 #[derive(Debug, Eq, PartialEq, Clone, Serialize)]
 pub struct AppManifestMulti {
     #[serde(skip_serializing)]
-    manifest: manifest_3_1_0::Multi,
+    manifest: manifest_3_2_0::Multi,
     #[serde(flatten)]
     original: AppManifestVersion,
 }
@@ -93,13 +109,13 @@ pub struct AppManifestMulti {
 #[derive(Debug, Eq, PartialEq, Clone, Serialize)]
 pub struct AppManifestSingle {
     #[serde(skip_serializing)]
-    manifest: manifest_3_1_0::Single,
+    manifest: manifest_3_2_0::Single,
     #[serde(flatten)]
     original: AppManifestVersion,
 }
 
 impl Deref for AppManifestSingle {
-    type Target = manifest_3_1_0::Single;
+    type Target = manifest_3_2_0::Single;
 
     fn deref(&self) -> &Self::Target {
         &self.manifest
@@ -107,7 +123,7 @@ impl Deref for AppManifestSingle {
 }
 
 impl Deref for AppManifestMulti {
-    type Target = manifest_3_1_0::Multi;
+    type Target = manifest_3_2_0::Multi;
 
     fn deref(&self) -> &Self::Target {
         &self.manifest
@@ -127,13 +143,23 @@ impl TryFrom<AppManifestVersion> for AppManifest {
                 manifest: val.try_into()?,
                 original: value,
             })),
-            AppManifestVersion::V3_1_0(manifest_3_1_0::FlecsAppManifest::Single(val)) => {
+            AppManifestVersion::V3_1_0(manifest) => Ok(match manifest.try_into()? {
+                manifest_3_2_0::FlecsAppManifest::Single(val) => Self::Single(AppManifestSingle {
+                    manifest: val,
+                    original: value,
+                }),
+                manifest_3_2_0::FlecsAppManifest::Multi(val) => Self::Multi(AppManifestMulti {
+                    manifest: val,
+                    original: value,
+                }),
+            }),
+            AppManifestVersion::V3_2_0(manifest_3_2_0::FlecsAppManifest::Single(val)) => {
                 Ok(Self::Single(AppManifestSingle {
                     manifest: val.clone(),
                     original: value,
                 }))
             }
-            AppManifestVersion::V3_1_0(manifest_3_1_0::FlecsAppManifest::Multi(val)) => {
+            AppManifestVersion::V3_2_0(manifest_3_2_0::FlecsAppManifest::Multi(val)) => {
                 Ok(Self::Multi(AppManifestMulti {
                     manifest: val.clone(),
                     original: value,

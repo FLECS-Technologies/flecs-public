@@ -319,15 +319,15 @@ pub mod tests {
     }
 
     fn create_test_manifests() -> HashMap<AppKey, AppManifest> {
-        let manifest: flecs_app_manifest::generated::manifest_3_1_0::Single =
-            flecs_app_manifest::generated::manifest_3_1_0::builder::Single::default()
+        let manifest: flecs_app_manifest::generated::manifest_3_2_0::Single =
+            flecs_app_manifest::generated::manifest_3_2_0::builder::Single::default()
                 .app("test-app-1")
                 .image("test-image")
                 .version("1.2.3".to_string())
                 .try_into()
                 .unwrap();
         let manifest =
-            flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(manifest);
+            flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Single(manifest);
         let manifest = flecs_app_manifest::AppManifestVersion::V3_1_0(manifest);
         let manifest = flecs_app_manifest::AppManifest::try_from(manifest).unwrap();
         let manifest = AppManifest::try_from(manifest).unwrap();

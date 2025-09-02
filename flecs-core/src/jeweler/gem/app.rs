@@ -676,7 +676,7 @@ pub mod tests {
         let deployment = Deployment::Docker(Arc::new(deployment));
         let mut app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest(), lore);
         let mut manifest = create_test_manifest_raw(None);
-        if let flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(single) =
+        if let flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Single(single) =
             &mut manifest
         {
             single.multi_instance = Some(true.into());
