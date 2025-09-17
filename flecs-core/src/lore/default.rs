@@ -79,6 +79,10 @@ pub mod network {
     }
 }
 
+pub mod provider {
+    pub const BASE_DIRECTORY_NAME: &str = "providers";
+}
+
 #[cfg(feature = "auth")]
 pub mod auth {
     use std::time::Duration;

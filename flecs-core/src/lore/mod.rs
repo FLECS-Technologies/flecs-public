@@ -41,6 +41,7 @@ pub type ManifestLoreRef = Arc<dyn AsRef<ManifestLore> + Sync + Send>;
 pub type SecretLoreRef = Arc<dyn AsRef<SecretLore> + Sync + Send>;
 #[cfg(feature = "auth")]
 pub type AuthLoreRef = Arc<dyn AsRef<AuthLore> + Sync + Send>;
+pub type ProviderLoreRef = Arc<dyn AsRef<ProviderLore> + Sync + Send>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Listener {
@@ -68,6 +69,7 @@ pub struct Lore {
     pub secret: SecretLore,
     #[cfg(feature = "auth")]
     pub auth: AuthLore,
+    pub provider: ProviderLore,
 }
 
 impl LoreRef<InstanceLore> for Lore {}
@@ -129,6 +131,12 @@ impl AsRef<ManifestLore> for Lore {
 impl AsRef<SecretLore> for Lore {
     fn as_ref(&self) -> &SecretLore {
         &self.secret
+    }
+}
+
+impl AsRef<ProviderLore> for Lore {
+    fn as_ref(&self) -> &ProviderLore {
+        &self.provider
     }
 }
 
@@ -228,6 +236,11 @@ pub struct AuthLore {
     pub casbin_model_path: PathBuf,
 }
 
+#[derive(Debug)]
+pub struct ProviderLore {
+    pub base_path: PathBuf,
+}
+
 impl Lore {
     pub fn from_confs_with_defaults(
         confs: impl IntoIterator<Item = conf::FlecsConfig>,
@@ -310,6 +323,10 @@ impl Lore {
             ),
             #[cfg(feature = "auth")]
             auth: AuthLore::from_conf_with_defaults(conf.auth.unwrap_or_default()),
+            provider: ProviderLore::from_conf_with_defaults(
+                conf.provider.unwrap_or_default(),
+                &base_path,
+            ),
             tracing_filter,
             base_path,
             listener,
@@ -485,6 +502,15 @@ impl AuthLore {
             casbin_policy_path,
             casbin_model_path,
         }
+    }
+}
+
+impl ProviderLore {
+    pub fn from_conf_with_defaults(conf: conf::ProviderConfig, base_path: &Path) -> Self {
+        let base_path = conf
+            .base_path
+            .unwrap_or_else(|| base_path.join(default::provider::BASE_DIRECTORY_NAME));
+        Self { base_path }
     }
 }
 

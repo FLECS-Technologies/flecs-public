@@ -3,7 +3,8 @@ use crate::forge::serde::EnvFilterWrapper;
 use crate::lore::conf::AuthConfig;
 use crate::lore::conf::{
     AppConfig, ConsoleConfig, DeploymentConfig, ExportConfig, FlecsConfig, FloxyConfig,
-    ImportConfig, InstanceConfig, Listener, ManifestConfig, NetworkConfig, SecretConfig,
+    ImportConfig, InstanceConfig, Listener, ManifestConfig, NetworkConfig, ProviderConfig,
+    SecretConfig,
 };
 use crate::relic::var;
 use crate::relic::var::VarReader;
@@ -92,6 +93,7 @@ impl FlecsConfig {
             secret: SecretConfig::from_var_reader(reader),
             #[cfg(feature = "auth")]
             auth: AuthConfig::from_var_reader(reader)?,
+            provider: ProviderConfig::from_var_reader(reader),
         })
     }
 }
@@ -363,6 +365,27 @@ pub mod auth {
                     None
                 },
             )
+        }
+    }
+}
+
+pub mod provider {
+    use crate::lore::conf::ProviderConfig;
+    use crate::relic::var::VarReader;
+    use std::path::PathBuf;
+
+    const BASE_PATH: &str = "FLECS_CORE_PROVIDER_BASE_PATH";
+
+    fn base_path(reader: &impl VarReader) -> Option<PathBuf> {
+        reader.read_path(BASE_PATH)
+    }
+
+    impl ProviderConfig {
+        pub fn from_var_reader(reader: &impl VarReader) -> Option<Self> {
+            let base_path = base_path(reader);
+            base_path.map(|base_path| Self {
+                base_path: Some(base_path),
+            })
         }
     }
 }

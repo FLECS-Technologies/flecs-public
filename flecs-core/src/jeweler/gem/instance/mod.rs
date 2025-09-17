@@ -6,19 +6,61 @@ pub mod status;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::instance::status::InstanceStatus;
-use crate::jeweler::gem::manifest::AppManifest;
+use crate::jeweler::gem::manifest::{AppManifest, DependencyKey};
 use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
+use crate::vault::pouch::provider::ProviderId;
 use async_trait::async_trait;
 pub use id::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::net::Ipv4Addr;
+use std::num::ParseIntError;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use std::sync::Arc;
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub enum ProviderReference {
+    #[default]
+    Default,
+    Provider(ProviderId),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub struct StoredProviderReference {
+    pub provider: ProviderReference,
+    pub provided_feature: String,
+}
+
+impl ProviderReference {
+    pub fn is_default(&self) -> bool {
+        matches!(self, Self::Default)
+    }
+}
+
+impl StoredProviderReference {
+    pub fn is_default(&self) -> bool {
+        self.provider.is_default()
+    }
+}
+
+impl TryFrom<flecsd_axum_server::models::ProviderReference> for ProviderReference {
+    type Error = ParseIntError;
+
+    fn try_from(value: flecsd_axum_server::models::ProviderReference) -> Result<Self, Self::Error> {
+        Ok(match value {
+            flecsd_axum_server::models::ProviderReference::String(_) => Self::Default,
+            flecsd_axum_server::models::ProviderReference::ProviderReferenceOneOf(id) => {
+                Self::Provider(ProviderId::from_str(&id.provider)?)
+            }
+        })
+    }
+}
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "type")]
@@ -87,6 +129,13 @@ pub trait InstanceCommon {
     async fn logs(&self) -> anyhow::Result<Logs>;
     async fn import(&mut self, quest: SyncQuest, src: PathBuf, dst: PathBuf) -> anyhow::Result<()>;
     async fn halt(&self) -> anyhow::Result<()>;
+    fn dependencies(&self) -> &HashMap<DependencyKey, StoredProviderReference>;
+    fn clear_dependency(&mut self, key: &DependencyKey) -> Option<StoredProviderReference>;
+    fn set_dependency(
+        &mut self,
+        key: DependencyKey,
+        provider: StoredProviderReference,
+    ) -> Option<StoredProviderReference>;
 }
 
 impl Deref for Instance {

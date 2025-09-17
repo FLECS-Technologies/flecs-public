@@ -41,7 +41,7 @@ impl From<FlecsAppManifest> for TaggedManifest {
     fn from(manifest: FlecsAppManifest) -> Self {
         Self {
             manifest,
-            schema_version: "3.1.0",
+            schema_version: "3.2.0",
         }
     }
 }

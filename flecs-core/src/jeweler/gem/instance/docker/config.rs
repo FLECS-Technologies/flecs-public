@@ -1,4 +1,6 @@
 use crate::forge::vec::VecExtension;
+use crate::jeweler::gem::instance::StoredProviderReference;
+use crate::jeweler::gem::manifest::DependencyKey;
 use crate::jeweler::gem::manifest::single::{
     EnvironmentVariable, PortMapping, PortRange, VolumeMount,
 };
@@ -260,6 +262,8 @@ pub struct InstanceConfig {
     /// Mapping of editor port -> open port in floxy
     #[serde(skip)]
     pub mapped_editor_ports: HashMap<u16, u16>,
+    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
+    pub dependencies: HashMap<DependencyKey, StoredProviderReference>,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]

@@ -1,8 +1,6 @@
 use crate::jeweler::gem::instance::compose::ComposeInstanceDeserializable;
+use crate::jeweler::gem::instance::docker;
 use crate::jeweler::gem::instance::docker::DockerInstanceDeserializable;
-use crate::jeweler::gem::instance::docker::config::{
-    InstanceConfig, InstancePortMapping, UsbPathConfig,
-};
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::single::{EnvironmentVariable, PortMapping};
 use crate::jeweler::network::NetworkId;
@@ -64,10 +62,10 @@ fn migrate_environment<'a, I: Iterator<Item = &'a String>>(
 
 fn migrate_ports<'a, I: Iterator<Item = &'a String>>(
     ports: I,
-) -> Result<InstancePortMapping, anyhow::Error> {
+) -> Result<docker::config::InstancePortMapping, anyhow::Error> {
     let ports: Result<Vec<_>, _> = ports.map(|s| PortMapping::from_str(s.as_str())).collect();
     let ports = ports?;
-    Ok(InstancePortMapping {
+    Ok(docker::config::InstancePortMapping {
         tcp: ports.clone(),
         udp: ports,
         sctp: Vec::new(),
@@ -89,14 +87,14 @@ impl From<Device> for UsbDevice {
 fn migrate_devices<I: Iterator<Item = Device>, U: UsbDeviceReader>(
     devices: I,
     usb_reader: &U,
-) -> Result<HashMap<String, UsbPathConfig>, anyhow::Error> {
+) -> Result<HashMap<String, docker::config::UsbPathConfig>, anyhow::Error> {
     devices
-        .map(
-            |device| match UsbPathConfig::try_from((&UsbDevice::from(device), usb_reader)) {
+        .map(|device| {
+            match docker::config::UsbPathConfig::try_from((&UsbDevice::from(device), usb_reader)) {
                 Ok(device) => Ok((device.port.clone(), device)),
                 Err(e) => Err(e),
-            },
-        )
+            }
+        })
         .collect()
 }
 
@@ -115,14 +113,12 @@ pub fn migrate_docker_instance<U: UsbDeviceReader>(
         })
         .collect();
     let connected_networks = connected_networks?;
-    let config = InstanceConfig {
-        volume_mounts: Default::default(),
-        editor_path_prefixes: Default::default(),
+    let config = docker::config::InstanceConfig {
         environment_variables: migrate_environment(value.environment.iter())?,
         port_mapping: migrate_ports(value.ports.iter())?,
         connected_networks,
         usb_devices: migrate_devices(value.usb_devices.into_iter(), usb_device_reader)?,
-        mapped_editor_ports: Default::default(),
+        ..docker::config::InstanceConfig::default()
     };
     Ok(DockerInstanceDeserializable {
         hostname: format!("flecs-{id}"),
@@ -158,6 +154,7 @@ pub fn migrate_compose_instance(
         desired: InstanceStatus::from(value.desired.as_str()),
         app_key: value.app_key,
         deployment_id: default_deployment_id.clone(),
+        config: None,
     })
 }
 

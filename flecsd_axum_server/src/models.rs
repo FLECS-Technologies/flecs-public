@@ -63,53 +63,107 @@ pub struct DeploymentsDeploymentIdNetworksPostPathParams {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstancesInstanceIdDependsFeatureDeletePathParams {
+pub struct InstancesInstanceIdDependsDependencyKeyDeletePathParams {
     /// Instance to check
     #[validate(
                         length(min = 8, max = 8),
-                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSFEATUREDELETEPATHPARAMS_INSTANCE_ID),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYDELETEPATHPARAMS_INSTANCE_ID),
                     )]
     pub instance_id: String,
-    /// Feature to check
-    pub feature: String,
+    /// Dependency to check
+    #[validate(
+                        length(min = 1),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYDELETEPATHPARAMS_DEPENDENCY_KEY),
+                    )]
+    pub dependency_key: String,
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDDEPENDSFEATUREDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYDELETEPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYDELETEPATHPARAMS_DEPENDENCY_KEY: regex::Regex = regex::Regex::new("^([\\w.-]+)(?:\\s*\\|\\s*([\\w.-]+))*$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstancesInstanceIdDependsFeatureGetPathParams {
-    /// Instance to check
-    #[validate(
-                        length(min = 8, max = 8),
-                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSFEATUREGETPATHPARAMS_INSTANCE_ID),
-                    )]
-    pub instance_id: String,
-    /// Feature to check
-    pub feature: String,
-}
-
-lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDDEPENDSFEATUREGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
-#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct InstancesInstanceIdDependsFeaturePutPathParams {
+pub struct InstancesInstanceIdDependsDependencyKeyFeaturePutPathParams {
     /// Instance to set a provider for
     #[validate(
                         length(min = 8, max = 8),
-                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSFEATUREPUTPATHPARAMS_INSTANCE_ID),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYFEATUREPUTPATHPARAMS_INSTANCE_ID),
                     )]
     pub instance_id: String,
-    /// Feature to set a provider for
+    /// Dependency key consisting of multiple features separated by |
+    #[validate(
+                        length(min = 1),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYFEATUREPUTPATHPARAMS_DEPENDENCY_KEY),
+                    )]
+    pub dependency_key: String,
+    /// The specific feature of the dependency key to set a provider for
+    #[validate(
+                        length(min = 1),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYFEATUREPUTPATHPARAMS_FEATURE),
+                    )]
     pub feature: String,
 }
 
 lazy_static::lazy_static! {
-    static ref RE_INSTANCESINSTANCEIDDEPENDSFEATUREPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+    static ref RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYFEATUREPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYFEATUREPUTPATHPARAMS_DEPENDENCY_KEY: regex::Regex = regex::Regex::new("^([\\w.-]+)(?:\\s*\\|\\s*([\\w.-]+))*$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYFEATUREPUTPATHPARAMS_FEATURE: regex::Regex = regex::Regex::new("^([\\w.-]+)$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdDependsDependencyKeyGetPathParams {
+    /// Instance to check
+    #[validate(
+                        length(min = 8, max = 8),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYGETPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    /// Feature to check
+    #[validate(
+                        length(min = 1),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYGETPATHPARAMS_DEPENDENCY_KEY),
+                    )]
+    pub dependency_key: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYGETPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYGETPATHPARAMS_DEPENDENCY_KEY: regex::Regex = regex::Regex::new("^([\\w.-]+)(?:\\s*\\|\\s*([\\w.-]+))*$").unwrap();
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct InstancesInstanceIdDependsDependencyKeyPutPathParams {
+    /// Instance to set a provider for
+    #[validate(
+                        length(min = 8, max = 8),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYPUTPATHPARAMS_INSTANCE_ID),
+                    )]
+    pub instance_id: String,
+    /// Feature to set a provider for
+    #[validate(
+                        length(min = 1),
+                          regex(path = *RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYPUTPATHPARAMS_DEPENDENCY_KEY),
+                    )]
+    pub dependency_key: String,
+}
+
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYPUTPATHPARAMS_INSTANCE_ID: regex::Regex = regex::Regex::new("^[0-9a-fA-F]{8}$").unwrap();
+}
+lazy_static::lazy_static! {
+    static ref RE_INSTANCESINSTANCEIDDEPENDSDEPENDENCYKEYPUTPATHPARAMS_DEPENDENCY_KEY: regex::Regex = regex::Regex::new("^([\\w.-]+)$").unwrap();
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
@@ -3932,6 +3986,213 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<BindMount> {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Dependency {
+    #[serde(rename = "provider")]
+    #[serde(deserialize_with = "deserialize_optional_nullable")]
+    #[serde(default = "default_optional_nullable")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider: Option<Nullable<models::Provider>>,
+
+    #[serde(rename = "requirements")]
+    pub requirements: crate::types::Object,
+}
+
+impl Dependency {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(requirements: crate::types::Object) -> Dependency {
+        Dependency {
+            provider: None,
+            requirements,
+        }
+    }
+}
+
+/// Converts the Dependency value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for Dependency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            // Skipping provider in query parameter serialization
+
+            // Skipping requirements in query parameter serialization
+
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a Dependency value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for Dependency {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub provider: Vec<models::Provider>,
+            pub requirements: Vec<crate::types::Object>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing Dependency".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    "provider" => {
+                        return std::result::Result::Err(
+                            "Parsing a nullable type in this style is not supported in Dependency"
+                                .to_string(),
+                        )
+                    }
+                    #[allow(clippy::redundant_clone)]
+                    "requirements" => intermediate_rep.requirements.push(
+                        <crate::types::Object as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing Dependency".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(Dependency {
+            provider: std::result::Result::Err(
+                "Nullable types not supported in Dependency".to_string(),
+            )?,
+            requirements: intermediate_rep
+                .requirements
+                .into_iter()
+                .next()
+                .ok_or_else(|| "requirements missing in Dependency".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<Dependency> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<Dependency>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<Dependency>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for Dependency - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Dependency> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <Dependency as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into Dependency - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct DependencyKey(String);
+
+impl validator::Validate for DependencyKey {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for DependencyKey {
+    fn from(x: String) -> Self {
+        DependencyKey(x)
+    }
+}
+
+impl std::fmt::Display for DependencyKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for DependencyKey {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(DependencyKey(x.to_string()))
+    }
+}
+
+impl std::convert::From<DependencyKey> for String {
+    fn from(x: DependencyKey) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for DependencyKey {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for DependencyKey {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct DeploymentNetwork {
     #[serde(rename = "name")]
     pub name: String,
@@ -5512,6 +5773,54 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<FeatureInfo>
                 hdr_value, e
             )),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct FeatureKey(String);
+
+impl validator::Validate for FeatureKey {
+    fn validate(&self) -> std::result::Result<(), validator::ValidationErrors> {
+        std::result::Result::Ok(())
+    }
+}
+
+impl std::convert::From<String> for FeatureKey {
+    fn from(x: String) -> Self {
+        FeatureKey(x)
+    }
+}
+
+impl std::fmt::Display for FeatureKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::str::FromStr for FeatureKey {
+    type Err = std::string::ParseError;
+    fn from_str(x: &str) -> std::result::Result<Self, Self::Err> {
+        std::result::Result::Ok(FeatureKey(x.to_string()))
+    }
+}
+
+impl std::convert::From<FeatureKey> for String {
+    fn from(x: FeatureKey) -> Self {
+        x.0
+    }
+}
+
+impl std::ops::Deref for FeatureKey {
+    type Target = String;
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for FeatureKey {
+    fn deref_mut(&mut self) -> &mut String {
+        &mut self.0
     }
 }
 
@@ -13870,6 +14179,164 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<PostDeployme
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
                         "Unable to convert header value '{}' into PostDeploymentNetwork - {}",
+                        value, err
+                    )),
+                }
+            }
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Unable to convert header: {:?} to string: {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
+#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
+pub struct Provider {
+    #[serde(rename = "provided_feature")]
+    pub provided_feature: String,
+
+    #[serde(rename = "provider_reference")]
+    pub provider_reference: models::ProviderReference,
+}
+
+impl Provider {
+    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
+    pub fn new(
+        provided_feature: String,
+        provider_reference: models::ProviderReference,
+    ) -> Provider {
+        Provider {
+            provided_feature,
+            provider_reference,
+        }
+    }
+}
+
+/// Converts the Provider value to the Query Parameters representation (style=form, explode=false)
+/// specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde serializer
+impl std::fmt::Display for Provider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let params: Vec<Option<String>> = vec![
+            Some("provided_feature".to_string()),
+            Some(self.provided_feature.to_string()),
+            // Skipping provider_reference in query parameter serialization
+        ];
+
+        write!(
+            f,
+            "{}",
+            params.into_iter().flatten().collect::<Vec<_>>().join(",")
+        )
+    }
+}
+
+/// Converts Query Parameters representation (style=form, explode=false) to a Provider value
+/// as specified in https://swagger.io/docs/specification/serialization/
+/// Should be implemented in a serde deserializer
+impl std::str::FromStr for Provider {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        /// An intermediate representation of the struct to use for parsing.
+        #[derive(Default)]
+        #[allow(dead_code)]
+        struct IntermediateRep {
+            pub provided_feature: Vec<String>,
+            pub provider_reference: Vec<models::ProviderReference>,
+        }
+
+        let mut intermediate_rep = IntermediateRep::default();
+
+        // Parse into intermediate representation
+        let mut string_iter = s.split(',');
+        let mut key_result = string_iter.next();
+
+        while key_result.is_some() {
+            let val = match string_iter.next() {
+                Some(x) => x,
+                None => {
+                    return std::result::Result::Err(
+                        "Missing value while parsing Provider".to_string(),
+                    )
+                }
+            };
+
+            if let Some(key) = key_result {
+                #[allow(clippy::match_single_binding)]
+                match key {
+                    #[allow(clippy::redundant_clone)]
+                    "provided_feature" => intermediate_rep.provided_feature.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "provider_reference" => intermediate_rep.provider_reference.push(
+                        <models::ProviderReference as std::str::FromStr>::from_str(val)
+                            .map_err(|x| x.to_string())?,
+                    ),
+                    _ => {
+                        return std::result::Result::Err(
+                            "Unexpected key while parsing Provider".to_string(),
+                        )
+                    }
+                }
+            }
+
+            // Get the next key
+            key_result = string_iter.next();
+        }
+
+        // Use the intermediate representation to return the struct
+        std::result::Result::Ok(Provider {
+            provided_feature: intermediate_rep
+                .provided_feature
+                .into_iter()
+                .next()
+                .ok_or_else(|| "provided_feature missing in Provider".to_string())?,
+            provider_reference: intermediate_rep
+                .provider_reference
+                .into_iter()
+                .next()
+                .ok_or_else(|| "provider_reference missing in Provider".to_string())?,
+        })
+    }
+}
+
+// Methods for converting between header::IntoHeaderValue<Provider> and HeaderValue
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<header::IntoHeaderValue<Provider>> for HeaderValue {
+    type Error = String;
+
+    fn try_from(
+        hdr_value: header::IntoHeaderValue<Provider>,
+    ) -> std::result::Result<Self, Self::Error> {
+        let hdr_value = hdr_value.to_string();
+        match HeaderValue::from_str(&hdr_value) {
+            std::result::Result::Ok(value) => std::result::Result::Ok(value),
+            std::result::Result::Err(e) => std::result::Result::Err(format!(
+                "Invalid header value for Provider - value: {} is invalid {}",
+                hdr_value, e
+            )),
+        }
+    }
+}
+
+#[cfg(feature = "server")]
+impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<Provider> {
+    type Error = String;
+
+    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
+        match hdr_value.to_str() {
+            std::result::Result::Ok(value) => {
+                match <Provider as std::str::FromStr>::from_str(value) {
+                    std::result::Result::Ok(value) => {
+                        std::result::Result::Ok(header::IntoHeaderValue(value))
+                    }
+                    std::result::Result::Err(err) => std::result::Result::Err(format!(
+                        "Unable to convert header value '{}' into Provider - {}",
                         value, err
                     )),
                 }

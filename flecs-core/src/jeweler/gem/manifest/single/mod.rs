@@ -6,6 +6,7 @@ mod mount;
 mod port;
 
 use crate::jeweler::GetAppKey;
+use crate::jeweler::gem::manifest::{Dependency, DependencyKey, parse_depends};
 use crate::vault::pouch::AppKey;
 pub use crate::{Error, Result};
 pub use config_file::*;
@@ -34,6 +35,10 @@ pub struct AppManifestSingle {
     pub labels: Vec<Label>,
     #[serde(skip_serializing)]
     pub ports: Vec<PortMapping>,
+    #[serde(skip_serializing)]
+    pub provides: HashMap<String, serde_json::Value>,
+    #[serde(skip_serializing)]
+    pub depends: HashMap<DependencyKey, Dependency>,
     #[serde(flatten)]
     original: flecs_app_manifest::AppManifestSingle,
 }
@@ -160,6 +165,14 @@ impl AppManifestSingle {
     pub fn inner(&self) -> &flecs_app_manifest::generated::manifest_3_2_0::Single {
         self.original.deref()
     }
+
+    pub fn provides(&self) -> &HashMap<String, serde_json::Value> {
+        &self.provides
+    }
+
+    pub fn depends(&self) -> &HashMap<DependencyKey, Dependency> {
+        &self.depends
+    }
 }
 
 fn try_from_option<'s, S, D, E>(source: Option<&'s Vec<S>>) -> Result<Vec<D>, E>
@@ -204,6 +217,23 @@ impl TryFrom<flecs_app_manifest::AppManifestSingle> for AppManifestSingle {
             devices: try_from_option(value.devices.as_deref())?,
             labels: try_from_option(value.labels.as_deref())?,
             ports: try_from_option(value.ports.as_deref())?,
+            provides: value
+                .provides
+                .as_ref()
+                .map(|provides| {
+                    provides
+                        .0
+                        .iter()
+                        .map(|(key, value)| (key.deref().clone(), value.clone()))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            depends: value
+                .depends
+                .as_ref()
+                .map(parse_depends)
+                .transpose()?
+                .unwrap_or_default(),
             original: value,
         })
     }
@@ -224,7 +254,7 @@ pub mod tests {
     ) -> AppManifest {
         let manifest = create_test_manifest_numbered_raw(name_number, version_number, revision);
         let manifest = flecs_app_manifest::AppManifest::try_from(
-            flecs_app_manifest::AppManifestVersion::V3_1_0(manifest),
+            flecs_app_manifest::AppManifestVersion::V3_2_0(manifest),
         )
         .unwrap();
         AppManifest::try_from(manifest).unwrap()
@@ -240,6 +270,7 @@ pub mod tests {
             args: None,
             capabilities: None,
             conffiles: None,
+            depends: None,
             devices: None,
             editors: None,
             env: None,
@@ -250,6 +281,8 @@ pub mod tests {
             minimum_flecs_version: None,
             multi_instance: None,
             ports: None,
+            provides: None,
+            recommends: None,
             revision: revision.map(From::from),
             schema: None,
             version: FromStr::from_str(&format!("1.2.{version_number}")).unwrap(),
@@ -294,6 +327,7 @@ pub mod tests {
                 ]
                 .into(),
             ),
+            depends: None,
             devices: Some(
                 vec![
                     FromStr::from_str("/dev/dev1").unwrap(),
@@ -345,6 +379,8 @@ pub mod tests {
                 ]
                 .into(),
             ),
+            provides: None,
+            recommends: None,
             revision: Some(FromStr::from_str("5").unwrap()),
             schema: Some(FromStr::from_str("/path/to/manifest/schema.json").unwrap()),
             version: FromStr::from_str("1.2.1").unwrap(),
@@ -358,7 +394,7 @@ pub mod tests {
         };
         let manifest =
             flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Single(manifest);
-        let manifest = flecs_app_manifest::AppManifestVersion::V3_1_0(manifest);
+        let manifest = flecs_app_manifest::AppManifestVersion::V3_2_0(manifest);
         let manifest = flecs_app_manifest::AppManifest::try_from(manifest).unwrap();
         let manifest = AppManifest::try_from(manifest).unwrap();
         let AppManifest::Single(manifest) = manifest else {
@@ -633,13 +669,14 @@ pub mod tests {
 
     #[test]
     fn try_from_duplicate_environment_err() {
-        let manifest = flecs_app_manifest::AppManifestVersion::V3_1_0(
+        let manifest = flecs_app_manifest::AppManifestVersion::V3_2_0(
             flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Single(
                 flecs_app_manifest::generated::manifest_3_2_0::Single {
                     app: FromStr::from_str("some.test.app").unwrap(),
                     args: None,
                     capabilities: None,
                     conffiles: None,
+                    depends: None,
                     devices: None,
                     editors: None,
                     env: Some(
@@ -656,6 +693,8 @@ pub mod tests {
                     minimum_flecs_version: None,
                     multi_instance: None,
                     ports: None,
+                    provides: None,
+                    recommends: None,
                     revision: None,
                     schema: None,
                     version: FromStr::from_str("1.2.1").unwrap(),

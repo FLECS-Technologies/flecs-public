@@ -4,7 +4,7 @@ use crate::jeweler::network::NetworkKind;
 use crate::lore::AuthLore;
 use crate::lore::{
     AppLore, ConsoleLore, DeploymentLore, ExportLore, FloxyLore, ImportLore, InstanceLore, Lore,
-    ManifestLore, NetworkLore, SecretLore,
+    ManifestLore, NetworkLore, ProviderLore, SecretLore,
 };
 use crate::relic::network::Ipv4Network;
 use serde::{Deserialize, Serialize};
@@ -94,6 +94,8 @@ pub struct FlecsConfig {
     #[cfg(feature = "auth")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth: Option<AuthConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider: Option<ProviderConfig>,
 }
 
 impl Default for FlecsConfig {
@@ -115,6 +117,7 @@ impl Default for FlecsConfig {
             secret: None,
             #[cfg(feature = "auth")]
             auth: None,
+            provider: None,
         }
     }
 }
@@ -141,6 +144,7 @@ impl From<&Lore> for FlecsConfig {
             secret: Some((&value.secret).into()),
             #[cfg(feature = "auth")]
             auth: Some((&value.auth).into()),
+            provider: Some((&value.provider).into()),
         }
     }
 }
@@ -344,6 +348,20 @@ impl From<&AuthLore> for AuthConfig {
     }
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ProviderConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_path: Option<PathBuf>,
+}
+
+impl From<&ProviderLore> for ProviderConfig {
+    fn from(value: &ProviderLore) -> Self {
+        Self {
+            base_path: Some(value.base_path.clone()),
+        }
+    }
+}
+
 impl FlecsConfig {
     pub async fn from_path(path: &Path) -> Result<Self> {
         let content = tokio::fs::read_to_string(path).await?;
@@ -488,6 +506,12 @@ impl Mergeable for Listener {
             }
             _ => {}
         }
+    }
+}
+
+impl Mergeable for ProviderConfig {
+    fn merge(&mut self, other: Self) {
+        self.base_path.trivial_merge(other.base_path);
     }
 }
 
