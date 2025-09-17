@@ -10,13 +10,13 @@ use crate::{models, types::*};
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
-pub enum InstancesInstanceIdDependsFeatureDeleteResponse {
+pub enum InstancesInstanceIdDependsDependencyKeyDeleteResponse {
     /// Provider removed
     Status200_ProviderRemoved,
     /// Bad request
     Status400_BadRequest(models::AdditionalInfo),
-    /// Instance not found or instance not dependent on specified feature
-    Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature(
+    /// Instance not found or instance not dependent on specified dependency
+    Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedDependency(
         models::InstanceNotFoundOrNotDependent,
     ),
     /// State of the instance prevents removal of provider, e.g. instance is running
@@ -28,23 +28,7 @@ pub enum InstancesInstanceIdDependsFeatureDeleteResponse {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[must_use]
 #[allow(clippy::large_enum_variant)]
-pub enum InstancesInstanceIdDependsFeatureGetResponse {
-    /// How the dependency on a feature is currently solved
-    Status200_HowTheDependencyOnAFeatureIsCurrentlySolved(models::ProviderReference),
-    /// Bad request
-    Status400_BadRequest(models::AdditionalInfo),
-    /// Instance not found or instance not dependent on specified feature
-    Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature(
-        models::InstanceNotFoundOrNotDependent,
-    ),
-    /// Internal server error
-    Status500_InternalServerError(models::AdditionalInfo),
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[must_use]
-#[allow(clippy::large_enum_variant)]
-pub enum InstancesInstanceIdDependsFeaturePutResponse {
+pub enum InstancesInstanceIdDependsDependencyKeyFeaturePutResponse {
     /// Provider was overwritten
     Status200_ProviderWasOverwritten,
     /// Provider was set
@@ -55,6 +39,44 @@ pub enum InstancesInstanceIdDependsFeaturePutResponse {
     Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature(
         models::InstanceNotFoundOrNotDependent,
     ),
+    /// Provider conflicts with requirements of dependency
+    Status409_ProviderConflictsWithRequirementsOfDependency(models::AdditionalInfo),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdDependsDependencyKeyGetResponse {
+    /// How the dependency is currently solved
+    Status200_HowTheDependencyIsCurrentlySolved(models::Dependency),
+    /// Bad request
+    Status400_BadRequest(models::AdditionalInfo),
+    /// Instance not found or instance not dependent on specified dependency
+    Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedDependency(
+        models::InstanceNotFoundOrNotDependent,
+    ),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[must_use]
+#[allow(clippy::large_enum_variant)]
+pub enum InstancesInstanceIdDependsDependencyKeyPutResponse {
+    /// Provider was overwritten
+    Status200_ProviderWasOverwritten,
+    /// Provider was set
+    Status201_ProviderWasSet,
+    /// Bad request
+    Status400_BadRequest(models::AdditionalInfo),
+    /// Instance not found or instance not dependent on specified feature
+    Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature(
+        models::InstanceNotFoundOrNotDependent,
+    ),
+    /// Provider conflicts with requirements of dependency
+    Status409_ProviderConflictsWithRequirementsOfDependency(models::AdditionalInfo),
     /// Internal server error
     Status500_InternalServerError(models::AdditionalInfo),
 }
@@ -65,7 +87,7 @@ pub enum InstancesInstanceIdDependsFeaturePutResponse {
 pub enum InstancesInstanceIdDependsGetResponse {
     /// All dependencies of the specified instance and how they are currently solved
     Status200_AllDependenciesOfTheSpecifiedInstanceAndHowTheyAreCurrentlySolved(
-        std::collections::HashMap<String, models::ProviderReference>,
+        std::collections::HashMap<String, models::Dependency>,
     ),
     /// Instance not found
     Status404_InstanceNotFound,
@@ -353,33 +375,43 @@ pub enum ProvidersGetResponse {
 #[async_trait]
 #[allow(clippy::ptr_arg)]
 pub trait Experimental {
-    /// InstancesInstanceIdDependsFeatureDelete - DELETE /v2/instances/{instance_id}/depends/{feature}
-    async fn instances_instance_id_depends_feature_delete(
+    /// InstancesInstanceIdDependsDependencyKeyDelete - DELETE /v2/instances/{instance_id}/depends/{dependency_key}
+    async fn instances_instance_id_depends_dependency_key_delete(
         &self,
         method: Method,
         host: Host,
         cookies: CookieJar,
-        path_params: models::InstancesInstanceIdDependsFeatureDeletePathParams,
-    ) -> Result<InstancesInstanceIdDependsFeatureDeleteResponse, ()>;
+        path_params: models::InstancesInstanceIdDependsDependencyKeyDeletePathParams,
+    ) -> Result<InstancesInstanceIdDependsDependencyKeyDeleteResponse, ()>;
 
-    /// InstancesInstanceIdDependsFeatureGet - GET /v2/instances/{instance_id}/depends/{feature}
-    async fn instances_instance_id_depends_feature_get(
+    /// InstancesInstanceIdDependsDependencyKeyFeaturePut - PUT /v2/instances/{instance_id}/depends/{dependency_key}/{feature}
+    async fn instances_instance_id_depends_dependency_key_feature_put(
         &self,
         method: Method,
         host: Host,
         cookies: CookieJar,
-        path_params: models::InstancesInstanceIdDependsFeatureGetPathParams,
-    ) -> Result<InstancesInstanceIdDependsFeatureGetResponse, ()>;
-
-    /// InstancesInstanceIdDependsFeaturePut - PUT /v2/instances/{instance_id}/depends/{feature}
-    async fn instances_instance_id_depends_feature_put(
-        &self,
-        method: Method,
-        host: Host,
-        cookies: CookieJar,
-        path_params: models::InstancesInstanceIdDependsFeaturePutPathParams,
+        path_params: models::InstancesInstanceIdDependsDependencyKeyFeaturePutPathParams,
         body: models::ProviderReference,
-    ) -> Result<InstancesInstanceIdDependsFeaturePutResponse, ()>;
+    ) -> Result<InstancesInstanceIdDependsDependencyKeyFeaturePutResponse, ()>;
+
+    /// InstancesInstanceIdDependsDependencyKeyGet - GET /v2/instances/{instance_id}/depends/{dependency_key}
+    async fn instances_instance_id_depends_dependency_key_get(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdDependsDependencyKeyGetPathParams,
+    ) -> Result<InstancesInstanceIdDependsDependencyKeyGetResponse, ()>;
+
+    /// InstancesInstanceIdDependsDependencyKeyPut - PUT /v2/instances/{instance_id}/depends/{dependency_key}
+    async fn instances_instance_id_depends_dependency_key_put(
+        &self,
+        method: Method,
+        host: Host,
+        cookies: CookieJar,
+        path_params: models::InstancesInstanceIdDependsDependencyKeyPutPathParams,
+        body: models::ProviderReference,
+    ) -> Result<InstancesInstanceIdDependsDependencyKeyPutResponse, ()>;
 
     /// InstancesInstanceIdDependsGet - GET /v2/instances/{instance_id}/depends
     async fn instances_instance_id_depends_get(

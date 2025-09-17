@@ -175,8 +175,11 @@ where
         .route("/v2/instances/:instance_id/depends",
             get(instances_instance_id_depends_get::<I, A>)
         )
-        .route("/v2/instances/:instance_id/depends/:feature",
-            delete(instances_instance_id_depends_feature_delete::<I, A>).get(instances_instance_id_depends_feature_get::<I, A>).put(instances_instance_id_depends_feature_put::<I, A>)
+        .route("/v2/instances/:instance_id/depends/:dependency_key",
+            delete(instances_instance_id_depends_dependency_key_delete::<I, A>).get(instances_instance_id_depends_dependency_key_get::<I, A>).put(instances_instance_id_depends_dependency_key_put::<I, A>)
+        )
+        .route("/v2/instances/:instance_id/depends/:dependency_key/:feature",
+            put(instances_instance_id_depends_dependency_key_feature_put::<I, A>)
         )
         .route("/v2/instances/:instance_id/editor/:port",
             get(instances_instance_id_editor_port_get::<I, A>)
@@ -2019,23 +2022,23 @@ where
 }
 
 #[tracing::instrument(skip_all)]
-fn instances_instance_id_depends_feature_delete_validation(
-    path_params: models::InstancesInstanceIdDependsFeatureDeletePathParams,
+fn instances_instance_id_depends_dependency_key_delete_validation(
+    path_params: models::InstancesInstanceIdDependsDependencyKeyDeletePathParams,
 ) -> std::result::Result<
-    (models::InstancesInstanceIdDependsFeatureDeletePathParams,),
+    (models::InstancesInstanceIdDependsDependencyKeyDeletePathParams,),
     ValidationErrors,
 > {
     path_params.validate()?;
 
     Ok((path_params,))
 }
-/// InstancesInstanceIdDependsFeatureDelete - DELETE /v2/instances/{instance_id}/depends/{feature}
+/// InstancesInstanceIdDependsDependencyKeyDelete - DELETE /v2/instances/{instance_id}/depends/{dependency_key}
 #[tracing::instrument(skip_all)]
-async fn instances_instance_id_depends_feature_delete<I, A>(
+async fn instances_instance_id_depends_dependency_key_delete<I, A>(
     method: Method,
     host: Host,
     cookies: CookieJar,
-    Path(path_params): Path<models::InstancesInstanceIdDependsFeatureDeletePathParams>,
+    Path(path_params): Path<models::InstancesInstanceIdDependsDependencyKeyDeletePathParams>,
     State(api_impl): State<I>,
 ) -> Result<Response, StatusCode>
 where
@@ -2044,7 +2047,7 @@ where
 {
     #[allow(clippy::redundant_closure)]
     let validation = tokio::task::spawn_blocking(move || {
-        instances_instance_id_depends_feature_delete_validation(path_params)
+        instances_instance_id_depends_dependency_key_delete_validation(path_params)
     })
     .await
     .unwrap();
@@ -2058,19 +2061,19 @@ where
 
     let result = api_impl
         .as_ref()
-        .instances_instance_id_depends_feature_delete(method, host, cookies, path_params)
+        .instances_instance_id_depends_dependency_key_delete(method, host, cookies, path_params)
         .await;
 
     let mut response = Response::builder();
 
     let resp = match result {
                                             Ok(rsp) => match rsp {
-                                                apis::experimental::InstancesInstanceIdDependsFeatureDeleteResponse::Status200_ProviderRemoved
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyDeleteResponse::Status200_ProviderRemoved
                                                 => {
                                                   let mut response = response.status(200);
                                                   response.body(Body::empty())
                                                 },
-                                                apis::experimental::InstancesInstanceIdDependsFeatureDeleteResponse::Status400_BadRequest
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyDeleteResponse::Status400_BadRequest
                                                     (body)
                                                 => {
                                                   let mut response = response.status(400);
@@ -2088,7 +2091,7 @@ where
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
                                                 },
-                                                apis::experimental::InstancesInstanceIdDependsFeatureDeleteResponse::Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyDeleteResponse::Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedDependency
                                                     (body)
                                                 => {
                                                   let mut response = response.status(404);
@@ -2106,7 +2109,7 @@ where
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
                                                 },
-                                                apis::experimental::InstancesInstanceIdDependsFeatureDeleteResponse::Status409_StateOfTheInstancePreventsRemovalOfProvider
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyDeleteResponse::Status409_StateOfTheInstancePreventsRemovalOfProvider
                                                     (body)
                                                 => {
                                                   let mut response = response.status(409);
@@ -2124,138 +2127,7 @@ where
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
                                                 },
-                                                apis::experimental::InstancesInstanceIdDependsFeatureDeleteResponse::Status500_InternalServerError
-                                                    (body)
-                                                => {
-                                                  let mut response = response.status(500);
-                                                  {
-                                                    let mut response_headers = response.headers_mut().unwrap();
-                                                    response_headers.insert(
-                                                        CONTENT_TYPE,
-                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
-                                                  }
-
-                                                  let body_content =  tokio::task::spawn_blocking(move ||
-                                                      serde_json::to_vec(&body).map_err(|e| {
-                                                        error!(error = ?e);
-                                                        StatusCode::INTERNAL_SERVER_ERROR
-                                                      })).await.unwrap()?;
-                                                  response.body(Body::from(body_content))
-                                                },
-                                            },
-                                            Err(_) => {
-                                                // Application code returned an error. This should not happen, as the implementation should
-                                                // return a valid response.
-                                                response.status(500).body(Body::empty())
-                                            },
-                                        };
-
-    resp.map_err(|e| {
-        error!(error = ?e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })
-}
-
-#[tracing::instrument(skip_all)]
-fn instances_instance_id_depends_feature_get_validation(
-    path_params: models::InstancesInstanceIdDependsFeatureGetPathParams,
-) -> std::result::Result<(models::InstancesInstanceIdDependsFeatureGetPathParams,), ValidationErrors>
-{
-    path_params.validate()?;
-
-    Ok((path_params,))
-}
-/// InstancesInstanceIdDependsFeatureGet - GET /v2/instances/{instance_id}/depends/{feature}
-#[tracing::instrument(skip_all)]
-async fn instances_instance_id_depends_feature_get<I, A>(
-    method: Method,
-    host: Host,
-    cookies: CookieJar,
-    Path(path_params): Path<models::InstancesInstanceIdDependsFeatureGetPathParams>,
-    State(api_impl): State<I>,
-) -> Result<Response, StatusCode>
-where
-    I: AsRef<A> + Send + Sync,
-    A: apis::experimental::Experimental,
-{
-    #[allow(clippy::redundant_closure)]
-    let validation = tokio::task::spawn_blocking(move || {
-        instances_instance_id_depends_feature_get_validation(path_params)
-    })
-    .await
-    .unwrap();
-
-    let Ok((path_params,)) = validation else {
-        return Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(Body::from(validation.unwrap_err().to_string()))
-            .map_err(|_| StatusCode::BAD_REQUEST);
-    };
-
-    let result = api_impl
-        .as_ref()
-        .instances_instance_id_depends_feature_get(method, host, cookies, path_params)
-        .await;
-
-    let mut response = Response::builder();
-
-    let resp = match result {
-                                            Ok(rsp) => match rsp {
-                                                apis::experimental::InstancesInstanceIdDependsFeatureGetResponse::Status200_HowTheDependencyOnAFeatureIsCurrentlySolved
-                                                    (body)
-                                                => {
-                                                  let mut response = response.status(200);
-                                                  {
-                                                    let mut response_headers = response.headers_mut().unwrap();
-                                                    response_headers.insert(
-                                                        CONTENT_TYPE,
-                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
-                                                  }
-
-                                                  let body_content =  tokio::task::spawn_blocking(move ||
-                                                      serde_json::to_vec(&body).map_err(|e| {
-                                                        error!(error = ?e);
-                                                        StatusCode::INTERNAL_SERVER_ERROR
-                                                      })).await.unwrap()?;
-                                                  response.body(Body::from(body_content))
-                                                },
-                                                apis::experimental::InstancesInstanceIdDependsFeatureGetResponse::Status400_BadRequest
-                                                    (body)
-                                                => {
-                                                  let mut response = response.status(400);
-                                                  {
-                                                    let mut response_headers = response.headers_mut().unwrap();
-                                                    response_headers.insert(
-                                                        CONTENT_TYPE,
-                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
-                                                  }
-
-                                                  let body_content =  tokio::task::spawn_blocking(move ||
-                                                      serde_json::to_vec(&body).map_err(|e| {
-                                                        error!(error = ?e);
-                                                        StatusCode::INTERNAL_SERVER_ERROR
-                                                      })).await.unwrap()?;
-                                                  response.body(Body::from(body_content))
-                                                },
-                                                apis::experimental::InstancesInstanceIdDependsFeatureGetResponse::Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature
-                                                    (body)
-                                                => {
-                                                  let mut response = response.status(404);
-                                                  {
-                                                    let mut response_headers = response.headers_mut().unwrap();
-                                                    response_headers.insert(
-                                                        CONTENT_TYPE,
-                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
-                                                  }
-
-                                                  let body_content =  tokio::task::spawn_blocking(move ||
-                                                      serde_json::to_vec(&body).map_err(|e| {
-                                                        error!(error = ?e);
-                                                        StatusCode::INTERNAL_SERVER_ERROR
-                                                      })).await.unwrap()?;
-                                                  response.body(Body::from(body_content))
-                                                },
-                                                apis::experimental::InstancesInstanceIdDependsFeatureGetResponse::Status500_InternalServerError
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyDeleteResponse::Status500_InternalServerError
                                                     (body)
                                                 => {
                                                   let mut response = response.status(500);
@@ -2289,35 +2161,35 @@ where
 
 #[derive(validator::Validate)]
 #[allow(dead_code)]
-struct InstancesInstanceIdDependsFeaturePutBodyValidator<'a> {
+struct InstancesInstanceIdDependsDependencyKeyFeaturePutBodyValidator<'a> {
     #[validate(nested)]
     body: &'a models::ProviderReference,
 }
 
 #[tracing::instrument(skip_all)]
-fn instances_instance_id_depends_feature_put_validation(
-    path_params: models::InstancesInstanceIdDependsFeaturePutPathParams,
+fn instances_instance_id_depends_dependency_key_feature_put_validation(
+    path_params: models::InstancesInstanceIdDependsDependencyKeyFeaturePutPathParams,
     body: models::ProviderReference,
 ) -> std::result::Result<
     (
-        models::InstancesInstanceIdDependsFeaturePutPathParams,
+        models::InstancesInstanceIdDependsDependencyKeyFeaturePutPathParams,
         models::ProviderReference,
     ),
     ValidationErrors,
 > {
     path_params.validate()?;
-    let b = InstancesInstanceIdDependsFeaturePutBodyValidator { body: &body };
+    let b = InstancesInstanceIdDependsDependencyKeyFeaturePutBodyValidator { body: &body };
     b.validate()?;
 
     Ok((path_params, body))
 }
-/// InstancesInstanceIdDependsFeaturePut - PUT /v2/instances/{instance_id}/depends/{feature}
+/// InstancesInstanceIdDependsDependencyKeyFeaturePut - PUT /v2/instances/{instance_id}/depends/{dependency_key}/{feature}
 #[tracing::instrument(skip_all)]
-async fn instances_instance_id_depends_feature_put<I, A>(
+async fn instances_instance_id_depends_dependency_key_feature_put<I, A>(
     method: Method,
     host: Host,
     cookies: CookieJar,
-    Path(path_params): Path<models::InstancesInstanceIdDependsFeaturePutPathParams>,
+    Path(path_params): Path<models::InstancesInstanceIdDependsDependencyKeyFeaturePutPathParams>,
     State(api_impl): State<I>,
     Json(body): Json<models::ProviderReference>,
 ) -> Result<Response, StatusCode>
@@ -2327,7 +2199,7 @@ where
 {
     #[allow(clippy::redundant_closure)]
     let validation = tokio::task::spawn_blocking(move || {
-        instances_instance_id_depends_feature_put_validation(path_params, body)
+        instances_instance_id_depends_dependency_key_feature_put_validation(path_params, body)
     })
     .await
     .unwrap();
@@ -2341,24 +2213,30 @@ where
 
     let result = api_impl
         .as_ref()
-        .instances_instance_id_depends_feature_put(method, host, cookies, path_params, body)
+        .instances_instance_id_depends_dependency_key_feature_put(
+            method,
+            host,
+            cookies,
+            path_params,
+            body,
+        )
         .await;
 
     let mut response = Response::builder();
 
     let resp = match result {
                                             Ok(rsp) => match rsp {
-                                                apis::experimental::InstancesInstanceIdDependsFeaturePutResponse::Status200_ProviderWasOverwritten
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyFeaturePutResponse::Status200_ProviderWasOverwritten
                                                 => {
                                                   let mut response = response.status(200);
                                                   response.body(Body::empty())
                                                 },
-                                                apis::experimental::InstancesInstanceIdDependsFeaturePutResponse::Status201_ProviderWasSet
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyFeaturePutResponse::Status201_ProviderWasSet
                                                 => {
                                                   let mut response = response.status(201);
                                                   response.body(Body::empty())
                                                 },
-                                                apis::experimental::InstancesInstanceIdDependsFeaturePutResponse::Status400_BadRequest
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyFeaturePutResponse::Status400_BadRequest
                                                     (body)
                                                 => {
                                                   let mut response = response.status(400);
@@ -2376,7 +2254,7 @@ where
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
                                                 },
-                                                apis::experimental::InstancesInstanceIdDependsFeaturePutResponse::Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyFeaturePutResponse::Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature
                                                     (body)
                                                 => {
                                                   let mut response = response.status(404);
@@ -2394,7 +2272,315 @@ where
                                                       })).await.unwrap()?;
                                                   response.body(Body::from(body_content))
                                                 },
-                                                apis::experimental::InstancesInstanceIdDependsFeaturePutResponse::Status500_InternalServerError
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyFeaturePutResponse::Status409_ProviderConflictsWithRequirementsOfDependency
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(409);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyFeaturePutResponse::Status500_InternalServerError
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(500);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_depends_dependency_key_get_validation(
+    path_params: models::InstancesInstanceIdDependsDependencyKeyGetPathParams,
+) -> std::result::Result<
+    (models::InstancesInstanceIdDependsDependencyKeyGetPathParams,),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+
+    Ok((path_params,))
+}
+/// InstancesInstanceIdDependsDependencyKeyGet - GET /v2/instances/{instance_id}/depends/{dependency_key}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_depends_dependency_key_get<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdDependsDependencyKeyGetPathParams>,
+    State(api_impl): State<I>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::experimental::Experimental,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_depends_dependency_key_get_validation(path_params)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params,)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_depends_dependency_key_get(method, host, cookies, path_params)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyGetResponse::Status200_HowTheDependencyIsCurrentlySolved
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyGetResponse::Status400_BadRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyGetResponse::Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedDependency
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyGetResponse::Status500_InternalServerError
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(500);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                            },
+                                            Err(_) => {
+                                                // Application code returned an error. This should not happen, as the implementation should
+                                                // return a valid response.
+                                                response.status(500).body(Body::empty())
+                                            },
+                                        };
+
+    resp.map_err(|e| {
+        error!(error = ?e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
+}
+
+#[derive(validator::Validate)]
+#[allow(dead_code)]
+struct InstancesInstanceIdDependsDependencyKeyPutBodyValidator<'a> {
+    #[validate(nested)]
+    body: &'a models::ProviderReference,
+}
+
+#[tracing::instrument(skip_all)]
+fn instances_instance_id_depends_dependency_key_put_validation(
+    path_params: models::InstancesInstanceIdDependsDependencyKeyPutPathParams,
+    body: models::ProviderReference,
+) -> std::result::Result<
+    (
+        models::InstancesInstanceIdDependsDependencyKeyPutPathParams,
+        models::ProviderReference,
+    ),
+    ValidationErrors,
+> {
+    path_params.validate()?;
+    let b = InstancesInstanceIdDependsDependencyKeyPutBodyValidator { body: &body };
+    b.validate()?;
+
+    Ok((path_params, body))
+}
+/// InstancesInstanceIdDependsDependencyKeyPut - PUT /v2/instances/{instance_id}/depends/{dependency_key}
+#[tracing::instrument(skip_all)]
+async fn instances_instance_id_depends_dependency_key_put<I, A>(
+    method: Method,
+    host: Host,
+    cookies: CookieJar,
+    Path(path_params): Path<models::InstancesInstanceIdDependsDependencyKeyPutPathParams>,
+    State(api_impl): State<I>,
+    Json(body): Json<models::ProviderReference>,
+) -> Result<Response, StatusCode>
+where
+    I: AsRef<A> + Send + Sync,
+    A: apis::experimental::Experimental,
+{
+    #[allow(clippy::redundant_closure)]
+    let validation = tokio::task::spawn_blocking(move || {
+        instances_instance_id_depends_dependency_key_put_validation(path_params, body)
+    })
+    .await
+    .unwrap();
+
+    let Ok((path_params, body)) = validation else {
+        return Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(validation.unwrap_err().to_string()))
+            .map_err(|_| StatusCode::BAD_REQUEST);
+    };
+
+    let result = api_impl
+        .as_ref()
+        .instances_instance_id_depends_dependency_key_put(method, host, cookies, path_params, body)
+        .await;
+
+    let mut response = Response::builder();
+
+    let resp = match result {
+                                            Ok(rsp) => match rsp {
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyPutResponse::Status200_ProviderWasOverwritten
+                                                => {
+                                                  let mut response = response.status(200);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyPutResponse::Status201_ProviderWasSet
+                                                => {
+                                                  let mut response = response.status(201);
+                                                  response.body(Body::empty())
+                                                },
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyPutResponse::Status400_BadRequest
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(400);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyPutResponse::Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(404);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyPutResponse::Status409_ProviderConflictsWithRequirementsOfDependency
+                                                    (body)
+                                                => {
+                                                  let mut response = response.status(409);
+                                                  {
+                                                    let mut response_headers = response.headers_mut().unwrap();
+                                                    response_headers.insert(
+                                                        CONTENT_TYPE,
+                                                        HeaderValue::from_str("application/json").map_err(|e| { error!(error = ?e); StatusCode::INTERNAL_SERVER_ERROR })?);
+                                                  }
+
+                                                  let body_content =  tokio::task::spawn_blocking(move ||
+                                                      serde_json::to_vec(&body).map_err(|e| {
+                                                        error!(error = ?e);
+                                                        StatusCode::INTERNAL_SERVER_ERROR
+                                                      })).await.unwrap()?;
+                                                  response.body(Body::from(body_content))
+                                                },
+                                                apis::experimental::InstancesInstanceIdDependsDependencyKeyPutResponse::Status500_InternalServerError
                                                     (body)
                                                 => {
                                                   let mut response = response.status(500);

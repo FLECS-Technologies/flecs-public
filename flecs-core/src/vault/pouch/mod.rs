@@ -2,6 +2,7 @@ pub(crate) mod app;
 pub(crate) mod deployment;
 pub(crate) mod instance;
 pub(crate) mod manifest;
+pub(crate) mod provider;
 pub(crate) mod secret;
 
 pub use super::Result;

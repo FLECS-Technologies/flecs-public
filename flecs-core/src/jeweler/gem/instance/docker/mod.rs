@@ -1,5 +1,5 @@
 pub mod config;
-use super::{InstanceCommon, InstanceId, Logs};
+use super::{InstanceCommon, InstanceId, Logs, StoredProviderReference};
 use crate::enchantment::floxy::{AdditionalLocationInfo, Floxy, FloxyOperation};
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::ipaddr::BitComplementExt;
@@ -9,10 +9,10 @@ use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::instance::docker::config::InstancePortMapping;
 use crate::jeweler::gem::instance::status::InstanceStatus;
-use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::single::{
     AppManifestSingle, BindMount, ConfigFile, Mount, VolumeMount,
 };
+use crate::jeweler::gem::manifest::{AppManifest, DependencyKey};
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::serialize_deployment_id;
 use crate::jeweler::serialize_manifest_key;
@@ -222,6 +222,22 @@ impl InstanceCommon for DockerInstance {
 
     async fn halt(&self) -> anyhow::Result<()> {
         DockerInstance::halt(self).await
+    }
+
+    fn dependencies(&self) -> &HashMap<DependencyKey, StoredProviderReference> {
+        &self.config.dependencies
+    }
+
+    fn clear_dependency(&mut self, key: &DependencyKey) -> Option<StoredProviderReference> {
+        self.config.dependencies.remove(key)
+    }
+
+    fn set_dependency(
+        &mut self,
+        key: DependencyKey,
+        provider: StoredProviderReference,
+    ) -> Option<StoredProviderReference> {
+        self.config.dependencies.insert(key, provider)
     }
 }
 
@@ -523,6 +539,7 @@ impl DockerInstance {
             usb_devices: HashMap::new(),
             mapped_editor_ports: Default::default(),
             editor_path_prefixes: manifest.default_editor_path_prefixes(),
+            dependencies: HashMap::default(),
         };
         Ok(Self {
             hostname: format!("flecs-{instance_id}"),
@@ -1453,6 +1470,7 @@ pub mod tests {
                     ),
                 ]),
                 mapped_editor_ports: Default::default(),
+                dependencies: HashMap::default(),
             },
             deployment,
             manifest,

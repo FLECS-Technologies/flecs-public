@@ -9,6 +9,7 @@ use crate::vault::pouch::app::AppPouch;
 use crate::vault::pouch::deployment::DeploymentPouch;
 use crate::vault::pouch::instance::InstancePouch;
 use crate::vault::pouch::manifest::ManifestPouch;
+use crate::vault::pouch::provider::ProviderPouch;
 use crate::vault::pouch::secret::{SecretPouch, Secrets};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
@@ -75,6 +76,7 @@ pub struct Vault {
     manifest_pouch: RwLock<ManifestPouch>,
     secret_pouch: RwLock<SecretPouch>,
     deployment_pouch: RwLock<DeploymentPouch>,
+    provider_pouch: RwLock<ProviderPouch>,
 }
 
 impl Vault {
@@ -97,7 +99,8 @@ impl Vault {
             ManifestPouch::new(lore.clone()),
             SecretPouch::new(lore.clone()),
             DeploymentPouch::new(lore.clone()),
-            InstancePouch::new(lore),
+            InstancePouch::new(lore.clone()),
+            ProviderPouch::new(lore),
         )
     }
 
@@ -107,6 +110,7 @@ impl Vault {
         secrets: SecretPouch,
         deployments: DeploymentPouch,
         instances: InstancePouch,
+        providers: ProviderPouch,
     ) -> Self {
         Self {
             app_pouch: RwLock::new(apps),
@@ -114,6 +118,7 @@ impl Vault {
             secret_pouch: RwLock::new(secrets),
             deployment_pouch: RwLock::new(deployments),
             instance_pouch: RwLock::new(instances),
+            provider_pouch: RwLock::new(providers),
         }
     }
 
@@ -190,6 +195,7 @@ impl Vault {
             .reserve_secret_pouch_mut()
             .reserve_deployment_pouch_mut()
             .reserve_instance_pouch_mut()
+            .reserve_provider_pouch_mut()
             .grab()
             .await;
         let GrabbedPouches {
@@ -198,6 +204,7 @@ impl Vault {
             secret_pouch_mut: Some(ref mut secret_pouch_mut),
             deployment_pouch_mut: Some(ref mut deployment_pouch_mut),
             instance_pouch_mut: Some(ref mut instance_pouch_mut),
+            provider_pouch_mut: Some(ref mut provider_pouch_mut),
             ..
         } = grabbed_pouches
         else {
@@ -245,6 +252,9 @@ impl Vault {
         instance_pouch_mut
             .open(manifest_pouch_mut.gems(), deployment_pouch_mut.gems())
             .unwrap_or_else(|e| error!("Could not open InstancePouch: {e}"));
+        provider_pouch_mut
+            .open()
+            .unwrap_or_else(|e| error!("Could not open ProviderPouch: {e}"));
     }
 
     /// Saves the content of all contained pouches. Calling this function is generally not necessary
@@ -258,6 +268,7 @@ impl Vault {
             .reserve_secret_pouch_mut()
             .reserve_deployment_pouch_mut()
             .reserve_instance_pouch_mut()
+            .reserve_provider_pouch_mut()
             .grab()
             .await;
     }
@@ -295,6 +306,7 @@ pub struct Reservation<'a> {
     secret_pouch_reserved: ReserveKind,
     deployment_pouch_reserved: ReserveKind,
     instance_pouch_reserved: ReserveKind,
+    provider_pouch_reserved: ReserveKind,
 }
 
 /// Contains references to pouches behind RwLockGuards for thread-safe access. This struct is
@@ -306,11 +318,13 @@ pub struct GrabbedPouches<'a> {
     pub deployment_pouch: Option<RwLockReadGuard<'a, DeploymentPouch>>,
     pub manifest_pouch: Option<RwLockReadGuard<'a, ManifestPouch>>,
     pub instance_pouch: Option<RwLockReadGuard<'a, InstancePouch>>,
+    pub provider_pouch: Option<RwLockReadGuard<'a, ProviderPouch>>,
     pub app_pouch_mut: Option<RwLockWriteGuard<'a, AppPouch>>,
     pub secret_pouch_mut: Option<RwLockWriteGuard<'a, SecretPouch>>,
     pub manifest_pouch_mut: Option<RwLockWriteGuard<'a, ManifestPouch>>,
     pub deployment_pouch_mut: Option<RwLockWriteGuard<'a, DeploymentPouch>>,
     pub instance_pouch_mut: Option<RwLockWriteGuard<'a, InstancePouch>>,
+    pub provider_pouch_mut: Option<RwLockWriteGuard<'a, ProviderPouch>>,
 }
 
 impl<'a> Reservation<'a> {
@@ -322,6 +336,7 @@ impl<'a> Reservation<'a> {
             secret_pouch_reserved: ReserveKind::None,
             deployment_pouch_reserved: ReserveKind::None,
             instance_pouch_reserved: ReserveKind::None,
+            provider_pouch_reserved: ReserveKind::None,
         }
     }
 
@@ -360,6 +375,13 @@ impl<'a> Reservation<'a> {
         self
     }
 
+    /// Marks the provider pouch as immutably reserved. See [Vault::reservation()] for general usage
+    /// examples. Calling [Self::reserve_provider_pouch_mut()] overwrites the reservation as mutable.
+    pub fn reserve_provider_pouch(mut self) -> Self {
+        self.provider_pouch_reserved = ReserveKind::Read;
+        self
+    }
+
     /// Marks the app pouch as mutably reserved. See [Vault::reservation()] for general usage
     /// examples. Calling [Self::reserve_app_pouch()] overwrites the reservation as immutable.
     pub fn reserve_app_pouch_mut(mut self) -> Self {
@@ -392,6 +414,13 @@ impl<'a> Reservation<'a> {
     /// examples. Calling [Self::reserve_instance_pouch()] overwrites the reservation as immutable.
     pub fn reserve_instance_pouch_mut(mut self) -> Self {
         self.instance_pouch_reserved = ReserveKind::Write;
+        self
+    }
+
+    /// Marks the provider pouch as mutably reserved. See [Vault::reservation()] for general usage
+    /// examples. Calling [Self::reserve_provider_pouch()] overwrites the reservation as immutable.
+    pub fn reserve_provider_pouch_mut(mut self) -> Self {
+        self.provider_pouch_reserved = ReserveKind::Write;
         self
     }
 
@@ -430,17 +459,24 @@ impl<'a> Reservation<'a> {
             &self.vault.instance_pouch,
         )
         .await;
+        let (provider_pouch, provider_pouch_mut) = Self::create_reservation_guards(
+            self.provider_pouch_reserved,
+            &self.vault.provider_pouch,
+        )
+        .await;
         GrabbedPouches {
             app_pouch,
             secret_pouch,
             manifest_pouch,
             deployment_pouch,
             instance_pouch,
+            provider_pouch,
             app_pouch_mut,
             secret_pouch_mut,
             manifest_pouch_mut,
             deployment_pouch_mut,
             instance_pouch_mut,
+            provider_pouch_mut,
         }
     }
 }
@@ -472,6 +508,11 @@ impl Drop for GrabbedPouches<'_> {
                 .close()
                 .unwrap_or_else(|e| error!("Error saving AppPouch: {e}"));
         }
+        if let Some(provider_pouch) = &mut self.provider_pouch_mut {
+            provider_pouch
+                .close()
+                .unwrap_or_else(|e| error!("Error saving ProviderPouch: {e}"));
+        }
     }
 }
 
@@ -487,6 +528,7 @@ pub mod tests {
     use crate::vault::pouch::deployment::tests::test_deployment_pouch;
     use crate::vault::pouch::instance::tests::test_instance_pouch;
     use crate::vault::pouch::manifest::tests::test_manifest_pouch;
+    use crate::vault::pouch::provider::tests::test_provider_pouch;
     use crate::vault::pouch::secret::tests::test_secret_pouch;
     use flecs_console_client::models::SessionId;
     use ntest::timeout;
@@ -519,6 +561,7 @@ pub mod tests {
         );
         let deployment_pouch = test_deployment_pouch(default_deployment.clone());
         let secret_pouch = test_secret_pouch();
+        let provider_pouch = test_provider_pouch();
         let app_pouch = test_app_pouch(manifest_pouch.gems(), app_deployments, default_deployment);
         Vault::new_from_pouches(
             app_pouch,
@@ -526,6 +569,7 @@ pub mod tests {
             secret_pouch,
             deployment_pouch,
             instance_pouch,
+            provider_pouch,
         )
     }
 

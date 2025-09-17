@@ -683,7 +683,7 @@ pub mod tests {
         }
         let manifest = AppManifest::try_from(
             flecs_app_manifest::AppManifest::try_from(
-                flecs_app_manifest::AppManifestVersion::V3_1_0(manifest),
+                flecs_app_manifest::AppManifestVersion::V3_2_0(manifest),
             )
             .unwrap(),
         )

@@ -862,12 +862,30 @@ components:
             maxLength: 8
             minLength: 8
             pattern: ^[0-9a-fA-F]{8}$
+    Dependency:
+      type: object
+      required:
+        - requirements
+      properties:
+        provider:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/Provider'
+        requirements: { }
+    DependencyKey:
+      type: string
+      minLength: 1
+      pattern: ^([\w.-]+)(?:\s*\|\s*([\w.-]+))*$
     FeatureInfo:
       type: object
       required:
         - config
       properties:
         config: { }
+    FeatureKey:
+      type: string
+      minLength: 1
+      pattern: ^([\w.-]+)$
     FeatureProvider:
       type: object
       required:
@@ -939,6 +957,16 @@ components:
       enum:
         - Provider
         - SuperAdmin
+    Provider:
+      type: object
+      required:
+        - provider_reference
+        - provided_feature
+      properties:
+        provided_feature:
+          type: string
+        provider_reference:
+          $ref: '#/components/schemas/ProviderReference'
     ProviderReference:
       oneOf:
         - type: string
@@ -2505,7 +2533,7 @@ paths:
               schema:
                 type: object
                 additionalProperties:
-                  $ref: '#/components/schemas/ProviderReference'
+                  $ref: '#/components/schemas/Dependency'
                 propertyNames:
                   type: string
         '404':
@@ -2516,11 +2544,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
-  /instances/{instance_id}/depends/{feature}:
+  /instances/{instance_id}/depends/{dependency_key}:
     get:
       tags:
         - Experimental
-      description: Get information on the dependency for the specified feature of the specified instance
+      description: Get information on the dependency for the specified dependency key of the specified instance
       parameters:
         - name: instance_id
           in: path
@@ -2528,21 +2556,19 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/HexString8'
-        - name: feature
+        - name: dependency_key
           in: path
           description: Feature to check
           required: true
           schema:
-            type: string
+            $ref: '#/components/schemas/DependencyKey'
       responses:
         '200':
-          description: How the dependency on a feature is currently solved
+          description: How the dependency is currently solved
           content:
             application/json:
               schema:
-                oneOf:
-                  - type: 'null'
-                  - $ref: '#/components/schemas/ProviderReference'
+                $ref: '#/components/schemas/Dependency'
         '400':
           description: Bad request
           content:
@@ -2550,11 +2576,55 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
         '404':
-          description: Instance not found or instance not dependent on specified feature
+          description: Instance not found or instance not dependent on specified dependency
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/InstanceNotFoundOrNotDependent'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+    delete:
+      tags:
+        - Experimental
+      description: Remove the provider for the specified dependency of the specified instance
+      parameters:
+        - name: instance_id
+          in: path
+          description: Instance to check
+          required: true
+          schema:
+            $ref: '#/components/schemas/HexString8'
+        - name: dependency_key
+          in: path
+          description: Dependency to check
+          required: true
+          schema:
+            $ref: '#/components/schemas/DependencyKey'
+      responses:
+        '200':
+          description: Provider removed
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '404':
+          description: Instance not found or instance not dependent on specified dependency
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceNotFoundOrNotDependent'
+        '409':
+          description: State of the instance prevents removal of provider, e.g. instance is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
         '500':
           description: Internal server error
           content:
@@ -2572,12 +2642,12 @@ paths:
           required: true
           schema:
             $ref: '#/components/schemas/HexString8'
-        - name: feature
+        - name: dependency_key
           in: path
           description: Feature to set a provider for
           required: true
           schema:
-            type: string
+            $ref: '#/components/schemas/FeatureKey'
       requestBody:
         description: The provider that should be used
         content:
@@ -2602,32 +2672,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InstanceNotFoundOrNotDependent'
+        '409':
+          description: Provider conflicts with requirements of dependency
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
-    delete:
+  /instances/{instance_id}/depends/{dependency_key}/{feature}:
+    put:
       tags:
         - Experimental
-      description: Remove the provider for the specified feature of the specified instance
+      description: Set a provider for the specified dependency of the specified instance
       parameters:
         - name: instance_id
           in: path
-          description: Instance to check
+          description: Instance to set a provider for
           required: true
           schema:
             $ref: '#/components/schemas/HexString8'
-        - name: feature
+        - name: dependency_key
           in: path
-          description: Feature to check
+          description: Dependency key consisting of multiple features separated by |
           required: true
           schema:
-            type: string
+            $ref: '#/components/schemas/DependencyKey'
+        - name: feature
+          in: path
+          description: The specific feature of the dependency key to set a provider for
+          required: true
+          schema:
+            $ref: '#/components/schemas/FeatureKey'
+      requestBody:
+        description: The provider that should be used
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderReference'
+        required: true
       responses:
         '200':
-          description: Provider removed
+          description: Provider was overwritten
+        '201':
+          description: Provider was set
         '400':
           description: Bad request
           content:
@@ -2641,7 +2733,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/InstanceNotFoundOrNotDependent'
         '409':
-          description: State of the instance prevents removal of provider, e.g. instance is running
+          description: Provider conflicts with requirements of dependency
           content:
             application/json:
               schema:
