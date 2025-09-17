@@ -1,11 +1,12 @@
-use super::{CreateInstanceError, InstanceCommon, InstanceId, Logs};
+use super::{CreateInstanceError, InstanceCommon, InstanceId, Logs, StoredProviderReference};
 use crate::forge::time::SystemTimeExt;
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
+use crate::jeweler::gem::instance::compose::config::InstanceConfig;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
-use crate::jeweler::gem::manifest::{AppManifest, multi};
+use crate::jeweler::gem::manifest::{AppManifest, DependencyKey, multi};
 use crate::jeweler::{GetAppKey, serialize_deployment_id, serialize_manifest_key};
 use crate::lore::{InstanceLore, Lore};
 use crate::quest::{Quest, State, SyncQuest};
@@ -15,10 +16,13 @@ use async_trait::async_trait;
 use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
 use futures_util::future::{BoxFuture, join_all};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::mem::swap;
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+
+pub mod config;
 
 #[derive(Debug, Serialize)]
 pub struct ComposeInstance {
@@ -31,6 +35,7 @@ pub struct ComposeInstance {
     pub desired: InstanceStatus,
     #[serde(skip_serializing)]
     lore: Arc<Lore>,
+    config: InstanceConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -40,6 +45,7 @@ pub struct ComposeInstanceDeserializable {
     pub deployment_id: DeploymentId,
     pub name: String,
     pub desired: InstanceStatus,
+    pub config: Option<InstanceConfig>,
 }
 
 #[async_trait]
@@ -152,6 +158,22 @@ impl InstanceCommon for ComposeInstance {
     async fn halt(&self) -> anyhow::Result<()> {
         ComposeInstance::halt(self).await
     }
+
+    fn dependencies(&self) -> &HashMap<DependencyKey, StoredProviderReference> {
+        &self.config.dependencies
+    }
+
+    fn clear_dependency(&mut self, feature: &DependencyKey) -> Option<StoredProviderReference> {
+        self.config.dependencies.remove(feature)
+    }
+
+    fn set_dependency(
+        &mut self,
+        feature: DependencyKey,
+        provider: StoredProviderReference,
+    ) -> Option<StoredProviderReference> {
+        self.config.dependencies.insert(feature, provider)
+    }
 }
 
 impl ComposeInstance {
@@ -225,6 +247,7 @@ impl ComposeInstance {
             desired: instance.desired,
             id: instance.id,
             name: instance.name,
+            config: instance.config.unwrap_or_default(),
         })
     }
 
@@ -304,6 +327,7 @@ impl ComposeInstance {
             manifest,
             desired,
             id: instance_id,
+            config: InstanceConfig::default(),
         })
     }
 

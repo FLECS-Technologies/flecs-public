@@ -144,11 +144,12 @@ mod tests {
 }"#;
         const APP_NAME: &str = "tech.flecs.flunder";
         const APP_VERSION: &str = "3.0.0";
-        let expected_result = AppManifestVersion::V3_1_0(FlecsAppManifest::Single(Single {
+        let expected_result = AppManifestVersion::V3_2_0(FlecsAppManifest::Single(Single {
             app: OtherApp::from_str(APP_NAME).unwrap(),
             args: None,
             capabilities: None,
             conffiles: None,
+            depends: None,
             devices: None,
             editors: None,
             env: None,
@@ -159,6 +160,8 @@ mod tests {
             minimum_flecs_version: None,
             multi_instance: None,
             ports: None,
+            provides: None,
+            recommends: None,
             revision: None,
             schema: None,
             version: Version::from_str(APP_VERSION).unwrap(),

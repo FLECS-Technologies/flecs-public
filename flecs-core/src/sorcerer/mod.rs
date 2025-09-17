@@ -7,6 +7,7 @@ pub mod instancius;
 pub mod licenso;
 pub mod mage_quester;
 pub mod manifesto;
+pub mod providius;
 mod spell;
 pub mod systemus;
 
@@ -20,6 +21,8 @@ use crate::sorcerer::instancius::{Instancius, InstanciusImpl};
 use crate::sorcerer::licenso::{Licenso, LicensoImpl};
 use crate::sorcerer::mage_quester::{MageQuester, MageQuesterImpl};
 use crate::sorcerer::manifesto::{Manifesto, ManifestoImpl};
+use crate::sorcerer::providius::Providius;
+use crate::sorcerer::providius::providius_impl::ProvidiusImpl;
 use crate::sorcerer::systemus::{Systemus, SystemusImpl};
 use std::sync::Arc;
 
@@ -49,6 +52,7 @@ impl Default for FlecsSorcerers {
             deploymento: Default::default(),
             exportius: Default::default(),
             importius: Default::default(),
+            providius: Arc::new(ProvidiusImpl),
         }
     }
 }
@@ -75,6 +79,7 @@ pub struct Sorcerers<
     pub deploymento: Arc<D>,
     pub exportius: Arc<E>,
     pub importius: Arc<IMP>,
+    pub providius: Arc<dyn Providius>,
 }
 
 impl<
@@ -102,6 +107,7 @@ impl<
             deploymento: self.deploymento.clone(),
             exportius: self.exportius.clone(),
             importius: self.importius.clone(),
+            providius: self.providius.clone(),
         }
     }
 }
@@ -134,6 +140,7 @@ impl Default for MockSorcerers {
             deploymento: Arc::new(crate::sorcerer::deploymento::MockDeploymento::default()),
             exportius: Arc::new(crate::sorcerer::exportius::MockExportius::default()),
             importius: Arc::new(crate::sorcerer::importius::MockImportius::default()),
+            providius: Arc::new(crate::sorcerer::providius::MockProvidius::default()),
         }
     }
 }

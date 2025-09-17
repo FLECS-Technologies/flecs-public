@@ -17,10 +17,12 @@ use async_trait::async_trait;
 use axum::extract::Host;
 use axum_extra::extract::CookieJar;
 use flecsd_axum_server::apis::experimental::{
-    Experimental, InstancesInstanceIdDependsFeatureDeleteResponse,
-    InstancesInstanceIdDependsFeatureGetResponse, InstancesInstanceIdDependsFeaturePutResponse,
-    InstancesInstanceIdDependsGetResponse, InstancesInstanceIdProvidesFeatureGetResponse,
-    InstancesInstanceIdProvidesGetResponse, ProvidersAuthCoreFirstTimeSetupSuperAdminGetResponse,
+    Experimental, InstancesInstanceIdDependsDependencyKeyDeleteResponse,
+    InstancesInstanceIdDependsDependencyKeyFeaturePutResponse,
+    InstancesInstanceIdDependsDependencyKeyGetResponse,
+    InstancesInstanceIdDependsDependencyKeyPutResponse, InstancesInstanceIdDependsGetResponse,
+    InstancesInstanceIdProvidesFeatureGetResponse, InstancesInstanceIdProvidesGetResponse,
+    ProvidersAuthCoreFirstTimeSetupSuperAdminGetResponse,
     ProvidersAuthCoreFirstTimeSetupSuperAdminPostResponse, ProvidersAuthCoreGetResponse,
     ProvidersAuthCorePutResponse, ProvidersAuthDefaultDeleteResponse,
     ProvidersAuthDefaultFirstTimeSetupSuperAdminGetResponse,
@@ -33,11 +35,12 @@ use flecsd_axum_server::apis::experimental::{
     ProvidersGetResponse,
 };
 use flecsd_axum_server::models::{
-    InstancesInstanceIdDependsFeatureDeletePathParams,
-    InstancesInstanceIdDependsFeatureGetPathParams, InstancesInstanceIdDependsFeaturePutPathParams,
-    InstancesInstanceIdDependsGetPathParams, InstancesInstanceIdProvidesFeatureGetPathParams,
-    InstancesInstanceIdProvidesGetPathParams, ProviderReference,
-    ProvidersAuthIdFirstTimeSetupSuperAdminGetPathParams,
+    InstancesInstanceIdDependsDependencyKeyDeletePathParams,
+    InstancesInstanceIdDependsDependencyKeyFeaturePutPathParams,
+    InstancesInstanceIdDependsDependencyKeyGetPathParams,
+    InstancesInstanceIdDependsDependencyKeyPutPathParams, InstancesInstanceIdDependsGetPathParams,
+    InstancesInstanceIdProvidesFeatureGetPathParams, InstancesInstanceIdProvidesGetPathParams,
+    ProviderReference, ProvidersAuthIdFirstTimeSetupSuperAdminGetPathParams,
     ProvidersAuthIdFirstTimeSetupSuperAdminPostPathParams, ProvidersAuthIdGetPathParams,
     ProvidersFeatureDefaultDeletePathParams, ProvidersFeatureDefaultGetPathParams,
     ProvidersFeatureDefaultPutPathParams, ProvidersFeatureGetPathParams,
@@ -63,35 +66,76 @@ impl<
     NetDev: NetDeviceReader,
 > Experimental for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
 {
-    async fn instances_instance_id_depends_feature_delete(
+    async fn instances_instance_id_depends_dependency_key_delete(
         &self,
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        path_params: InstancesInstanceIdDependsFeatureDeletePathParams,
-    ) -> Result<InstancesInstanceIdDependsFeatureDeleteResponse, ()> {
-        Ok(api::v2::instances::instance_id::depends::feature::delete(path_params).await)
+        path_params: InstancesInstanceIdDependsDependencyKeyDeletePathParams,
+    ) -> Result<InstancesInstanceIdDependsDependencyKeyDeleteResponse, ()> {
+        Ok(
+            api::v2::instances::instance_id::depends::dependency_key::delete(
+                self.vault.clone(),
+                self.sorcerers.providius.clone(),
+                path_params,
+            )
+            .await,
+        )
     }
 
-    async fn instances_instance_id_depends_feature_get(
+    async fn instances_instance_id_depends_dependency_key_feature_put(
         &self,
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        path_params: InstancesInstanceIdDependsFeatureGetPathParams,
-    ) -> Result<InstancesInstanceIdDependsFeatureGetResponse, ()> {
-        Ok(api::v2::instances::instance_id::depends::feature::get(path_params).await)
-    }
-
-    async fn instances_instance_id_depends_feature_put(
-        &self,
-        _method: Method,
-        _host: Host,
-        _cookies: CookieJar,
-        path_params: InstancesInstanceIdDependsFeaturePutPathParams,
+        path_params: InstancesInstanceIdDependsDependencyKeyFeaturePutPathParams,
         body: ProviderReference,
-    ) -> Result<InstancesInstanceIdDependsFeaturePutResponse, ()> {
-        Ok(api::v2::instances::instance_id::depends::feature::put(body, path_params).await)
+    ) -> Result<InstancesInstanceIdDependsDependencyKeyFeaturePutResponse, ()> {
+        Ok(
+            api::v2::instances::instance_id::depends::dependency_key::feature::put(
+                self.vault.clone(),
+                self.sorcerers.providius.clone(),
+                body,
+                path_params,
+            )
+            .await,
+        )
+    }
+
+    async fn instances_instance_id_depends_dependency_key_get(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        path_params: InstancesInstanceIdDependsDependencyKeyGetPathParams,
+    ) -> Result<InstancesInstanceIdDependsDependencyKeyGetResponse, ()> {
+        Ok(
+            api::v2::instances::instance_id::depends::dependency_key::get(
+                self.vault.clone(),
+                self.sorcerers.providius.clone(),
+                path_params,
+            )
+            .await,
+        )
+    }
+
+    async fn instances_instance_id_depends_dependency_key_put(
+        &self,
+        _method: Method,
+        _host: Host,
+        _cookies: CookieJar,
+        path_params: InstancesInstanceIdDependsDependencyKeyPutPathParams,
+        body: ProviderReference,
+    ) -> Result<InstancesInstanceIdDependsDependencyKeyPutResponse, ()> {
+        Ok(
+            api::v2::instances::instance_id::depends::dependency_key::put(
+                self.vault.clone(),
+                self.sorcerers.providius.clone(),
+                body,
+                path_params,
+            )
+            .await,
+        )
     }
 
     async fn instances_instance_id_depends_get(
@@ -101,7 +145,12 @@ impl<
         _cookies: CookieJar,
         path_params: InstancesInstanceIdDependsGetPathParams,
     ) -> Result<InstancesInstanceIdDependsGetResponse, ()> {
-        Ok(api::v2::instances::instance_id::depends::get(path_params).await)
+        Ok(api::v2::instances::instance_id::depends::get(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn instances_instance_id_provides_feature_get(
@@ -111,7 +160,12 @@ impl<
         _cookies: CookieJar,
         path_params: InstancesInstanceIdProvidesFeatureGetPathParams,
     ) -> Result<InstancesInstanceIdProvidesFeatureGetResponse, ()> {
-        Ok(api::v2::instances::instance_id::provides::feature::get(path_params).await)
+        Ok(api::v2::instances::instance_id::provides::feature::get(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn instances_instance_id_provides_get(
@@ -121,7 +175,12 @@ impl<
         _cookies: CookieJar,
         path_params: InstancesInstanceIdProvidesGetPathParams,
     ) -> Result<InstancesInstanceIdProvidesGetResponse, ()> {
-        Ok(api::v2::instances::instance_id::provides::get(path_params).await)
+        Ok(api::v2::instances::instance_id::provides::get(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn providers_auth_core_first_time_setup_super_admin_get(
@@ -268,7 +327,12 @@ impl<
         _cookies: CookieJar,
         path_params: ProvidersFeatureDefaultDeletePathParams,
     ) -> Result<ProvidersFeatureDefaultDeleteResponse, ()> {
-        Ok(api::v2::providers::feature::default::delete(path_params).await)
+        Ok(api::v2::providers::feature::default::delete(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn providers_feature_default_get(
@@ -278,7 +342,12 @@ impl<
         _cookies: CookieJar,
         path_params: ProvidersFeatureDefaultGetPathParams,
     ) -> Result<ProvidersFeatureDefaultGetResponse, ()> {
-        Ok(api::v2::providers::feature::default::get(path_params).await)
+        Ok(api::v2::providers::feature::default::get(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn providers_feature_default_put(
@@ -289,7 +358,13 @@ impl<
         path_params: ProvidersFeatureDefaultPutPathParams,
         body: PutDefaultProviderRequest,
     ) -> Result<ProvidersFeatureDefaultPutResponse, ()> {
-        Ok(api::v2::providers::feature::default::put(body, path_params).await)
+        Ok(api::v2::providers::feature::default::put(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            body,
+            path_params,
+        )
+        .await)
     }
 
     async fn providers_feature_get(
@@ -299,7 +374,12 @@ impl<
         _cookies: CookieJar,
         path_params: ProvidersFeatureGetPathParams,
     ) -> Result<ProvidersFeatureGetResponse, ()> {
-        Ok(api::v2::providers::feature::get(path_params).await)
+        Ok(api::v2::providers::feature::get(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn providers_feature_id_get(
@@ -309,7 +389,12 @@ impl<
         _cookies: CookieJar,
         path_params: ProvidersFeatureIdGetPathParams,
     ) -> Result<ProvidersFeatureIdGetResponse, ()> {
-        Ok(api::v2::providers::feature::id::get(path_params).await)
+        Ok(api::v2::providers::feature::id::get(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            path_params,
+        )
+        .await)
     }
 
     async fn providers_get(
@@ -318,6 +403,6 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ProvidersGetResponse, ()> {
-        Ok(api::v2::providers::get().await)
+        Ok(api::v2::providers::get(self.vault.clone(), self.sorcerers.providius.clone()).await)
     }
 }

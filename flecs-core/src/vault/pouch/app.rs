@@ -328,7 +328,7 @@ pub mod tests {
                 .unwrap();
         let manifest =
             flecs_app_manifest::generated::manifest_3_2_0::FlecsAppManifest::Single(manifest);
-        let manifest = flecs_app_manifest::AppManifestVersion::V3_1_0(manifest);
+        let manifest = flecs_app_manifest::AppManifestVersion::V3_2_0(manifest);
         let manifest = flecs_app_manifest::AppManifest::try_from(manifest).unwrap();
         let manifest = AppManifest::try_from(manifest).unwrap();
         HashMap::from([(manifest.key().clone(), manifest)])

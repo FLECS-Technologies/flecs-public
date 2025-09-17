@@ -611,6 +611,7 @@ pub mod tests {
                 },
             )]),
             mapped_editor_ports: HashMap::from([(3000, 4000)]),
+            dependencies: Default::default(),
         }
     }
 
