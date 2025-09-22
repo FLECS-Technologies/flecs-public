@@ -10,6 +10,7 @@ use std::sync::Arc;
 use thiserror::Error;
 
 pub mod multi;
+pub mod providers;
 pub mod single;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
@@ -197,5 +198,12 @@ impl AppManifest {
             AppManifest::Multi(multi) => multi.depends(),
         }
         .get(key)
+    }
+
+    pub fn specific_providers(&self) -> &providers::Providers {
+        match self {
+            AppManifest::Single(single) => single.specific_providers(),
+            AppManifest::Multi(multi) => multi.specific_providers(),
+        }
     }
 }

@@ -1,3 +1,4 @@
+use crate::jeweler::gem::instance::ProviderReference;
 use crate::lore::ProviderLoreRef;
 use crate::vault::pouch::Pouch;
 use serde::{Deserialize, Serialize};
@@ -9,10 +10,10 @@ const PROVIDERS_FILE_NAME: &str = "providers.json";
 
 pub type ProviderId = crate::jeweler::gem::instance::InstanceId;
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct CoreProviders {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth: Option<ProviderId>,
+    pub auth: Option<ProviderReference>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]

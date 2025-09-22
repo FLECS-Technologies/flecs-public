@@ -1,15 +1,16 @@
 use super::spell;
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference, StoredProviderReference};
 use crate::jeweler::gem::manifest::DependencyKey;
+use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
 use crate::vault::pouch::AppKey;
-use crate::vault::pouch::provider::ProviderId;
+use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use async_trait::async_trait;
 pub use spell::provider::{
     ClearDependencyError, DeleteDefaultProviderError, GetDependenciesError, GetDependencyError,
-    GetFeatureProvidesError, GetProviderError, GetProvidesError, SetDefaultProviderError,
-    SetDependencyError,
+    GetFeatureProvidesError, GetProviderError, GetProvidesError, PutCoreAuthProviderError,
+    SetDefaultProviderError, SetDependencyError,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,6 +18,12 @@ use std::sync::Arc;
 pub struct ProvidersAndDefaults {
     pub providers: HashMap<String, HashMap<ProviderId, Provider>>,
     pub defaults: HashMap<String, ProviderId>,
+}
+
+pub struct AuthProvidersAndDefaults {
+    pub default: Option<ProviderId>,
+    pub providers: HashMap<ProviderId, AuthProvider>,
+    pub core: Option<ProviderReference>,
 }
 
 pub struct Provider {
@@ -35,6 +42,13 @@ pub mod providius_impl;
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait Providius: Sorcerer {
+    async fn get_core_providers(&self, vault: Arc<Vault>) -> CoreProviders;
+    async fn put_core_auth_provider(
+        &self,
+        vault: Arc<Vault>,
+        provider: ProviderReference,
+    ) -> Result<Option<ProviderReference>, PutCoreAuthProviderError>;
+    async fn get_auth_providers_and_default(&self, vault: Arc<Vault>) -> AuthProvidersAndDefaults;
     async fn get_providers(
         &self,
         vault: Arc<Vault>,

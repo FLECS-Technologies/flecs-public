@@ -189,7 +189,12 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ProvidersAuthCoreFirstTimeSetupSuperAdminGetResponse, ()> {
-        Ok(api::v2::providers::auth::core::first_time_setup::super_admin::get().await)
+        #[cfg(feature = "auth")]
+        {
+            Ok(api::v2::providers::auth::core::first_time_setup::super_admin::get().await)
+        }
+        #[cfg(not(feature = "auth"))]
+        Err(())
     }
 
     async fn providers_auth_core_first_time_setup_super_admin_post(
@@ -199,7 +204,15 @@ impl<
         _cookies: CookieJar,
         body: SuperAdmin,
     ) -> Result<ProvidersAuthCoreFirstTimeSetupSuperAdminPostResponse, ()> {
-        Ok(api::v2::providers::auth::core::first_time_setup::super_admin::post(body).await)
+        #[cfg(feature = "auth")]
+        {
+            Ok(api::v2::providers::auth::core::first_time_setup::super_admin::post(body).await)
+        }
+        #[cfg(not(feature = "auth"))]
+        {
+            let _ = body;
+            Err(())
+        }
     }
 
     async fn providers_auth_core_get(
@@ -208,7 +221,11 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ProvidersAuthCoreGetResponse, ()> {
-        Ok(api::v2::providers::auth::core::get().await)
+        Ok(api::v2::providers::auth::core::get(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+        )
+        .await)
     }
 
     async fn providers_auth_core_put(
@@ -218,7 +235,12 @@ impl<
         _cookies: CookieJar,
         body: ProviderReference,
     ) -> Result<ProvidersAuthCorePutResponse, ()> {
-        Ok(api::v2::providers::auth::core::put(body).await)
+        Ok(api::v2::providers::auth::core::put(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            body,
+        )
+        .await)
     }
 
     async fn providers_auth_default_delete(
@@ -227,7 +249,11 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ProvidersAuthDefaultDeleteResponse, ()> {
-        Ok(api::v2::providers::auth::default::delete().await)
+        Ok(api::v2::providers::auth::default::delete(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+        )
+        .await)
     }
 
     async fn providers_auth_default_first_time_setup_super_admin_get(
@@ -236,7 +262,12 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ProvidersAuthDefaultFirstTimeSetupSuperAdminGetResponse, ()> {
-        Ok(api::v2::providers::auth::default::first_time_setup::super_admin::get().await)
+        #[cfg(feature = "auth")]
+        {
+            Ok(api::v2::providers::auth::default::first_time_setup::super_admin::get().await)
+        }
+        #[cfg(not(feature = "auth"))]
+        Err(())
     }
 
     async fn providers_auth_default_first_time_setup_super_admin_post(
@@ -246,7 +277,15 @@ impl<
         _cookies: CookieJar,
         body: SuperAdmin,
     ) -> Result<ProvidersAuthDefaultFirstTimeSetupSuperAdminPostResponse, ()> {
-        Ok(api::v2::providers::auth::default::first_time_setup::super_admin::post(body).await)
+        #[cfg(feature = "auth")]
+        {
+            Ok(api::v2::providers::auth::default::first_time_setup::super_admin::post(body).await)
+        }
+        #[cfg(not(feature = "auth"))]
+        {
+            let _ = body;
+            Err(())
+        }
     }
 
     async fn providers_auth_default_get(
@@ -265,7 +304,12 @@ impl<
         _cookies: CookieJar,
         body: PutDefaultProviderRequest,
     ) -> Result<ProvidersAuthDefaultPutResponse, ()> {
-        Ok(api::v2::providers::auth::default::put(body).await)
+        Ok(api::v2::providers::auth::default::put(
+            self.vault.clone(),
+            self.sorcerers.providius.clone(),
+            body,
+        )
+        .await)
     }
 
     async fn providers_auth_first_time_setup_flecsport_post(
@@ -274,7 +318,12 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ProvidersAuthFirstTimeSetupFlecsportPostResponse, ()> {
-        Ok(api::v2::providers::auth::first_time_setup::flecsport::post().await)
+        #[cfg(feature = "auth")]
+        {
+            Ok(api::v2::providers::auth::first_time_setup::flecsport::post().await)
+        }
+        #[cfg(not(feature = "auth"))]
+        Err(())
     }
 
     async fn providers_auth_get(
@@ -283,7 +332,10 @@ impl<
         _host: Host,
         _cookies: CookieJar,
     ) -> Result<ProvidersAuthGetResponse, ()> {
-        Ok(api::v2::providers::auth::get().await)
+        Ok(
+            api::v2::providers::auth::get(self.vault.clone(), self.sorcerers.providius.clone())
+                .await,
+        )
     }
 
     async fn providers_auth_id_first_time_setup_super_admin_get(
@@ -293,7 +345,15 @@ impl<
         _cookies: CookieJar,
         path_params: ProvidersAuthIdFirstTimeSetupSuperAdminGetPathParams,
     ) -> Result<ProvidersAuthIdFirstTimeSetupSuperAdminGetResponse, ()> {
-        Ok(api::v2::providers::auth::id::first_time_setup::super_admin::get(path_params).await)
+        #[cfg(feature = "auth")]
+        {
+            Ok(api::v2::providers::auth::id::first_time_setup::super_admin::get(path_params).await)
+        }
+        #[cfg(not(feature = "auth"))]
+        {
+            let _ = path_params;
+            Err(())
+        }
     }
 
     async fn providers_auth_id_first_time_setup_super_admin_post(
@@ -304,10 +364,22 @@ impl<
         path_params: ProvidersAuthIdFirstTimeSetupSuperAdminPostPathParams,
         body: SuperAdmin,
     ) -> Result<ProvidersAuthIdFirstTimeSetupSuperAdminPostResponse, ()> {
-        Ok(
-            api::v2::providers::auth::id::first_time_setup::super_admin::post(body, path_params)
+        #[cfg(feature = "auth")]
+        {
+            Ok(
+                api::v2::providers::auth::id::first_time_setup::super_admin::post(
+                    body,
+                    path_params,
+                )
                 .await,
-        )
+            )
+        }
+        #[cfg(not(feature = "auth"))]
+        {
+            let _ = body;
+            let _ = path_params;
+            Err(())
+        }
     }
 
     async fn providers_auth_id_get(
