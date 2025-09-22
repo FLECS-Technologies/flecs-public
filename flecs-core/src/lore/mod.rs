@@ -16,6 +16,8 @@ pub mod conf;
 pub mod default;
 pub mod var;
 
+pub const SPECIAL_CORE_GATEWAY_HOST: &str = "tech.flecs.core";
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Unsupported config version {0}")]

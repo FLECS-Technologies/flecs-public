@@ -1,4 +1,5 @@
 use crate::jeweler::GetAppKey;
+use crate::lore::SPECIAL_CORE_GATEWAY_HOST;
 use crate::vault::pouch::AppKey;
 use docker_compose_types::{Compose, ComposeVolume, ExternalVolume, MapOrEmpty};
 use serde::Serialize;
@@ -40,8 +41,13 @@ impl TryFrom<flecs_app_manifest::AppManifestMulti> for AppManifestMulti {
 
     fn try_from(value: flecs_app_manifest::AppManifestMulti) -> Result<Self, Self::Error> {
         let json_value = serde_json::Value::Object(value.deployment.compose.yaml.clone());
-        let compose = serde_json::from_value(json_value)?;
+        let mut compose = serde_json::from_value(json_value)?;
         validate_compose(&compose)?;
+        for service in compose.services.0.values_mut().flatten() {
+            service
+                .extra_hosts
+                .push(format!("{SPECIAL_CORE_GATEWAY_HOST}:host-gateway"))
+        }
         Ok(Self {
             compose,
             key: AppKey {
