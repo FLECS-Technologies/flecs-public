@@ -3141,7 +3141,8 @@ impl std::str::FromStr for AuthProtocol {
 #[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
 pub struct AuthProvider {
     #[serde(rename = "config")]
-    pub config: models::AuthProviderConfig,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config: Option<crate::types::Object>,
 
     #[serde(rename = "id")]
     #[validate(
@@ -3149,6 +3150,15 @@ pub struct AuthProvider {
             regex(path = *RE_AUTHPROVIDER_ID),
         )]
     pub id: String,
+
+    #[serde(rename = "issuer_url")]
+    pub issuer_url: String,
+
+    #[serde(rename = "kind")]
+    pub kind: String,
+
+    #[serde(rename = "name")]
+    pub name: String,
 }
 
 lazy_static::lazy_static! {
@@ -3157,8 +3167,14 @@ lazy_static::lazy_static! {
 
 impl AuthProvider {
     #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(config: models::AuthProviderConfig, id: String) -> AuthProvider {
-        AuthProvider { config, id }
+    pub fn new(id: String, issuer_url: String, kind: String, name: String) -> AuthProvider {
+        AuthProvider {
+            config: None,
+            id,
+            issuer_url,
+            kind,
+            name,
+        }
     }
 }
 
@@ -3171,6 +3187,12 @@ impl std::fmt::Display for AuthProvider {
             // Skipping config in query parameter serialization
             Some("id".to_string()),
             Some(self.id.to_string()),
+            Some("issuer_url".to_string()),
+            Some(self.issuer_url.to_string()),
+            Some("kind".to_string()),
+            Some(self.kind.to_string()),
+            Some("name".to_string()),
+            Some(self.name.to_string()),
         ];
 
         write!(
@@ -3192,8 +3214,11 @@ impl std::str::FromStr for AuthProvider {
         #[derive(Default)]
         #[allow(dead_code)]
         struct IntermediateRep {
-            pub config: Vec<models::AuthProviderConfig>,
+            pub config: Vec<crate::types::Object>,
             pub id: Vec<String>,
+            pub issuer_url: Vec<String>,
+            pub kind: Vec<String>,
+            pub name: Vec<String>,
         }
 
         let mut intermediate_rep = IntermediateRep::default();
@@ -3217,11 +3242,23 @@ impl std::str::FromStr for AuthProvider {
                 match key {
                     #[allow(clippy::redundant_clone)]
                     "config" => intermediate_rep.config.push(
-                        <models::AuthProviderConfig as std::str::FromStr>::from_str(val)
+                        <crate::types::Object as std::str::FromStr>::from_str(val)
                             .map_err(|x| x.to_string())?,
                     ),
                     #[allow(clippy::redundant_clone)]
                     "id" => intermediate_rep.id.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "issuer_url" => intermediate_rep.issuer_url.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "kind" => intermediate_rep.kind.push(
+                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
+                    ),
+                    #[allow(clippy::redundant_clone)]
+                    "name" => intermediate_rep.name.push(
                         <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
                     ),
                     _ => {
@@ -3238,16 +3275,27 @@ impl std::str::FromStr for AuthProvider {
 
         // Use the intermediate representation to return the struct
         std::result::Result::Ok(AuthProvider {
-            config: intermediate_rep
-                .config
-                .into_iter()
-                .next()
-                .ok_or_else(|| "config missing in AuthProvider".to_string())?,
+            config: intermediate_rep.config.into_iter().next(),
             id: intermediate_rep
                 .id
                 .into_iter()
                 .next()
                 .ok_or_else(|| "id missing in AuthProvider".to_string())?,
+            issuer_url: intermediate_rep
+                .issuer_url
+                .into_iter()
+                .next()
+                .ok_or_else(|| "issuer_url missing in AuthProvider".to_string())?,
+            kind: intermediate_rep
+                .kind
+                .into_iter()
+                .next()
+                .ok_or_else(|| "kind missing in AuthProvider".to_string())?,
+            name: intermediate_rep
+                .name
+                .into_iter()
+                .next()
+                .ok_or_else(|| "name missing in AuthProvider".to_string())?,
         })
     }
 }
@@ -3285,177 +3333,6 @@ impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AuthProvider
                     }
                     std::result::Result::Err(err) => std::result::Result::Err(format!(
                         "Unable to convert header value '{}' into AuthProvider - {}",
-                        value, err
-                    )),
-                }
-            }
-            std::result::Result::Err(e) => std::result::Result::Err(format!(
-                "Unable to convert header: {:?} to string: {}",
-                hdr_value, e
-            )),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, validator::Validate)]
-#[cfg_attr(feature = "conversion", derive(frunk::LabelledGeneric))]
-pub struct AuthProviderConfig {
-    #[serde(rename = "issuer_url")]
-    pub issuer_url: String,
-
-    #[serde(rename = "kind")]
-    pub kind: String,
-
-    #[serde(rename = "name")]
-    pub name: String,
-}
-
-impl AuthProviderConfig {
-    #[allow(clippy::new_without_default, clippy::too_many_arguments)]
-    pub fn new(issuer_url: String, kind: String, name: String) -> AuthProviderConfig {
-        AuthProviderConfig {
-            issuer_url,
-            kind,
-            name,
-        }
-    }
-}
-
-/// Converts the AuthProviderConfig value to the Query Parameters representation (style=form, explode=false)
-/// specified in https://swagger.io/docs/specification/serialization/
-/// Should be implemented in a serde serializer
-impl std::fmt::Display for AuthProviderConfig {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let params: Vec<Option<String>> = vec![
-            Some("issuer_url".to_string()),
-            Some(self.issuer_url.to_string()),
-            Some("kind".to_string()),
-            Some(self.kind.to_string()),
-            Some("name".to_string()),
-            Some(self.name.to_string()),
-        ];
-
-        write!(
-            f,
-            "{}",
-            params.into_iter().flatten().collect::<Vec<_>>().join(",")
-        )
-    }
-}
-
-/// Converts Query Parameters representation (style=form, explode=false) to a AuthProviderConfig value
-/// as specified in https://swagger.io/docs/specification/serialization/
-/// Should be implemented in a serde deserializer
-impl std::str::FromStr for AuthProviderConfig {
-    type Err = String;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        /// An intermediate representation of the struct to use for parsing.
-        #[derive(Default)]
-        #[allow(dead_code)]
-        struct IntermediateRep {
-            pub issuer_url: Vec<String>,
-            pub kind: Vec<String>,
-            pub name: Vec<String>,
-        }
-
-        let mut intermediate_rep = IntermediateRep::default();
-
-        // Parse into intermediate representation
-        let mut string_iter = s.split(',');
-        let mut key_result = string_iter.next();
-
-        while key_result.is_some() {
-            let val = match string_iter.next() {
-                Some(x) => x,
-                None => {
-                    return std::result::Result::Err(
-                        "Missing value while parsing AuthProviderConfig".to_string(),
-                    )
-                }
-            };
-
-            if let Some(key) = key_result {
-                #[allow(clippy::match_single_binding)]
-                match key {
-                    #[allow(clippy::redundant_clone)]
-                    "issuer_url" => intermediate_rep.issuer_url.push(
-                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
-                    ),
-                    #[allow(clippy::redundant_clone)]
-                    "kind" => intermediate_rep.kind.push(
-                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
-                    ),
-                    #[allow(clippy::redundant_clone)]
-                    "name" => intermediate_rep.name.push(
-                        <String as std::str::FromStr>::from_str(val).map_err(|x| x.to_string())?,
-                    ),
-                    _ => {
-                        return std::result::Result::Err(
-                            "Unexpected key while parsing AuthProviderConfig".to_string(),
-                        )
-                    }
-                }
-            }
-
-            // Get the next key
-            key_result = string_iter.next();
-        }
-
-        // Use the intermediate representation to return the struct
-        std::result::Result::Ok(AuthProviderConfig {
-            issuer_url: intermediate_rep
-                .issuer_url
-                .into_iter()
-                .next()
-                .ok_or_else(|| "issuer_url missing in AuthProviderConfig".to_string())?,
-            kind: intermediate_rep
-                .kind
-                .into_iter()
-                .next()
-                .ok_or_else(|| "kind missing in AuthProviderConfig".to_string())?,
-            name: intermediate_rep
-                .name
-                .into_iter()
-                .next()
-                .ok_or_else(|| "name missing in AuthProviderConfig".to_string())?,
-        })
-    }
-}
-
-// Methods for converting between header::IntoHeaderValue<AuthProviderConfig> and HeaderValue
-
-#[cfg(feature = "server")]
-impl std::convert::TryFrom<header::IntoHeaderValue<AuthProviderConfig>> for HeaderValue {
-    type Error = String;
-
-    fn try_from(
-        hdr_value: header::IntoHeaderValue<AuthProviderConfig>,
-    ) -> std::result::Result<Self, Self::Error> {
-        let hdr_value = hdr_value.to_string();
-        match HeaderValue::from_str(&hdr_value) {
-            std::result::Result::Ok(value) => std::result::Result::Ok(value),
-            std::result::Result::Err(e) => std::result::Result::Err(format!(
-                "Invalid header value for AuthProviderConfig - value: {} is invalid {}",
-                hdr_value, e
-            )),
-        }
-    }
-}
-
-#[cfg(feature = "server")]
-impl std::convert::TryFrom<HeaderValue> for header::IntoHeaderValue<AuthProviderConfig> {
-    type Error = String;
-
-    fn try_from(hdr_value: HeaderValue) -> std::result::Result<Self, Self::Error> {
-        match hdr_value.to_str() {
-            std::result::Result::Ok(value) => {
-                match <AuthProviderConfig as std::str::FromStr>::from_str(value) {
-                    std::result::Result::Ok(value) => {
-                        std::result::Result::Ok(header::IntoHeaderValue(value))
-                    }
-                    std::result::Result::Err(err) => std::result::Result::Err(format!(
-                        "Unable to convert header value '{}' into AuthProviderConfig - {}",
                         value, err
                     )),
                 }
