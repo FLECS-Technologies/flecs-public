@@ -17,6 +17,7 @@ use crate::jeweler::network::NetworkId;
 use crate::jeweler::serialize_deployment_id;
 use crate::jeweler::serialize_manifest_key;
 use crate::jeweler::volume::VolumeId;
+use crate::lore::SPECIAL_CORE_GATEWAY_HOST;
 use crate::lore::{InstanceLore, Lore};
 use crate::quest::{Quest, SyncQuest};
 use crate::relic::device::usb::UsbDeviceReader;
@@ -266,6 +267,7 @@ impl From<&DockerInstance> for Config<String> {
             mounts: Some(mounts),
             cap_add: Some(capabilities.iter().map(ToString::to_string).collect()),
             devices: Some(instance.generate_device_mappings()),
+            extra_hosts: Some(vec![format!("{SPECIAL_CORE_GATEWAY_HOST}:host-gateway")]),
             ..HostConfig::default()
         });
         let mut network_config = instance.config.generate_network_config();
