@@ -2,10 +2,11 @@ use crate::jeweler::gem;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference, StoredProviderReference};
 use crate::jeweler::gem::manifest::DependencyKey;
+use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
 use crate::sorcerer::providius::{Dependency, Provider};
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
-use crate::vault::pouch::provider::ProviderId;
+use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use anyhow::Context;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -109,6 +110,16 @@ pub enum GetFeatureProvidesError {
     DoesNotProvide { id: ProviderId, feature: String },
 }
 
+#[derive(Error, Debug)]
+pub enum PutCoreAuthProviderError {
+    #[error("Instance with id {0} does not exist")]
+    InstanceNotFound(ProviderId),
+    #[error("Can not use default auth provider as it is not set")]
+    DefaultProviderNotSet,
+    #[error("Instance with id {id} does not provide feature auth")]
+    DoesNotProvide { id: ProviderId },
+}
+
 pub async fn delete_default_provider(
     feature: &str,
     providers: &mut pouch::provider::Gems,
@@ -171,6 +182,20 @@ pub fn get_provider(
     }
 }
 
+pub fn get_auth_providers(instances: &pouch::instance::Gems) -> HashMap<ProviderId, AuthProvider> {
+    instances
+        .iter()
+        .filter_map(|(id, instance)| {
+            instance
+                .manifest()
+                .specific_providers()
+                .auth
+                .as_ref()
+                .map(|auth_provider| (*id, auth_provider.clone()))
+        })
+        .collect()
+}
+
 pub fn get_providers(
     instances: &pouch::instance::Gems,
 ) -> HashMap<String, HashMap<ProviderId, Provider>> {
@@ -220,6 +245,37 @@ pub fn get_provides(
                 )
             })
             .collect()),
+    }
+}
+
+pub fn get_core_providers(providers: &pouch::provider::Gems) -> &CoreProviders {
+    &providers.core_providers
+}
+
+pub fn put_core_auth_provider(
+    instances: &pouch::instance::Gems,
+    providers: &mut pouch::provider::Gems,
+    provider: ProviderReference,
+) -> Result<Option<ProviderReference>, PutCoreAuthProviderError> {
+    let id = match provider {
+        ProviderReference::Default => providers
+            .default_providers
+            .get("auth")
+            .cloned()
+            .ok_or(PutCoreAuthProviderError::DefaultProviderNotSet)?,
+        ProviderReference::Provider(id) => id,
+    };
+    if instances
+        .get(&id)
+        .ok_or(PutCoreAuthProviderError::InstanceNotFound(id))?
+        .manifest()
+        .specific_providers()
+        .auth
+        .is_none()
+    {
+        Err(PutCoreAuthProviderError::DoesNotProvide { id })
+    } else {
+        Ok(providers.core_providers.auth.replace(provider))
     }
 }
 

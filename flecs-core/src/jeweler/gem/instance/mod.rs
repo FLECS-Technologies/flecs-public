@@ -16,7 +16,7 @@ use async_trait::async_trait;
 pub use id::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::net::Ipv4Addr;
 use std::num::ParseIntError;
 use std::ops::{Deref, DerefMut};
@@ -40,6 +40,15 @@ pub struct StoredProviderReference {
 impl ProviderReference {
     pub fn is_default(&self) -> bool {
         matches!(self, Self::Default)
+    }
+}
+
+impl Display for ProviderReference {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProviderReference::Default => write!(f, "Default"),
+            ProviderReference::Provider(id) => std::fmt::Display::fmt(id, f),
+        }
     }
 }
 

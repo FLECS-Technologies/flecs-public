@@ -41,6 +41,8 @@ pub struct AppManifestSingle {
     pub depends: HashMap<DependencyKey, Dependency>,
     #[serde(flatten)]
     original: flecs_app_manifest::AppManifestSingle,
+    #[serde(skip_serializing)]
+    pub specific_providers: super::providers::Providers,
 }
 
 impl GetAppKey for AppManifestSingle {
@@ -173,6 +175,10 @@ impl AppManifestSingle {
     pub fn depends(&self) -> &HashMap<DependencyKey, Dependency> {
         &self.depends
     }
+
+    pub fn specific_providers(&self) -> &super::providers::Providers {
+        &self.specific_providers
+    }
 }
 
 fn try_from_option<'s, S, D, E>(source: Option<&'s Vec<S>>) -> Result<Vec<D>, E>
@@ -217,6 +223,12 @@ impl TryFrom<flecs_app_manifest::AppManifestSingle> for AppManifestSingle {
             devices: try_from_option(value.devices.as_deref())?,
             labels: try_from_option(value.labels.as_deref())?,
             ports: try_from_option(value.ports.as_deref())?,
+            specific_providers: value
+                .provides
+                .as_ref()
+                .map(|provides| super::providers::Providers::try_from(&provides.0))
+                .transpose()?
+                .unwrap_or_default(),
             provides: value
                 .provides
                 .as_ref()

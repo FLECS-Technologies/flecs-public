@@ -2,17 +2,18 @@ use crate::jeweler::gem::instance::{InstanceId, ProviderReference};
 use crate::jeweler::gem::manifest::DependencyKey;
 use crate::sorcerer::Sorcerer;
 use crate::sorcerer::providius::{
-    ClearDependencyError, Dependency, GetDependenciesError, GetFeatureProvidesError,
-    GetProvidesError, Provider, ProvidersAndDefaults, Providius,
+    AuthProvidersAndDefaults, ClearDependencyError, Dependency, GetDependenciesError,
+    GetFeatureProvidesError, GetProvidesError, Provider, ProvidersAndDefaults, Providius,
 };
 use crate::sorcerer::spell::provider::{
-    DeleteDefaultProviderError, GetDependencyError, GetProviderError, SetDefaultProviderError,
-    SetDependencyError, clear_dependency, delete_default_provider, get_default_provider_id,
-    get_default_provider_ids, get_dependencies, get_dependency, get_feature_provides, get_provider,
-    get_providers, get_provides, set_default_provider, set_dependency,
+    DeleteDefaultProviderError, GetDependencyError, GetProviderError, PutCoreAuthProviderError,
+    SetDefaultProviderError, SetDependencyError, clear_dependency, delete_default_provider,
+    get_auth_providers, get_core_providers, get_default_provider_id, get_default_provider_ids,
+    get_dependencies, get_dependency, get_feature_provides, get_provider, get_providers,
+    get_provides, put_core_auth_provider, set_default_provider, set_dependency,
 };
 use crate::vault::pouch::Pouch;
-use crate::vault::pouch::provider::ProviderId;
+use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use crate::vault::{GrabbedPouches, Vault};
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -24,6 +25,60 @@ impl Sorcerer for ProvidiusImpl {}
 
 #[async_trait]
 impl Providius for ProvidiusImpl {
+    async fn get_core_providers(&self, vault: Arc<Vault>) -> CoreProviders {
+        let grab = vault.reservation().reserve_provider_pouch().grab().await;
+        let provider_pouch = grab
+            .provider_pouch
+            .as_ref()
+            .expect("Vault reservations should never fail");
+        get_core_providers(provider_pouch.gems()).clone()
+    }
+
+    async fn put_core_auth_provider(
+        &self,
+        vault: Arc<Vault>,
+        provider: ProviderReference,
+    ) -> Result<Option<ProviderReference>, PutCoreAuthProviderError> {
+        let GrabbedPouches {
+            instance_pouch: Some(ref instances),
+            provider_pouch_mut: Some(ref mut providers),
+            ..
+        } = vault
+            .reservation()
+            .reserve_instance_pouch()
+            .reserve_provider_pouch_mut()
+            .grab()
+            .await
+        else {
+            unreachable!("Reservation should never fail");
+        };
+        put_core_auth_provider(instances.gems(), providers.gems_mut(), provider)
+    }
+
+    async fn get_auth_providers_and_default(&self, vault: Arc<Vault>) -> AuthProvidersAndDefaults {
+        let GrabbedPouches {
+            instance_pouch: Some(ref instances),
+            provider_pouch: Some(ref providers),
+            ..
+        } = vault
+            .reservation()
+            .reserve_instance_pouch()
+            .reserve_provider_pouch()
+            .grab()
+            .await
+        else {
+            unreachable!("Reservation should never fail");
+        };
+        let default = get_default_provider_id(providers.gems(), "auth");
+        let core = get_core_providers(providers.gems()).auth.clone();
+        let providers = get_auth_providers(instances.gems());
+        AuthProvidersAndDefaults {
+            default,
+            core,
+            providers,
+        }
+    }
+
     async fn get_providers(
         &self,
         vault: Arc<Vault>,

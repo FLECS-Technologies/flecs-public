@@ -18,6 +18,8 @@ pub struct AppManifestMulti {
     pub depends: HashMap<DependencyKey, Dependency>,
     #[serde(flatten)]
     original: flecs_app_manifest::AppManifestMulti,
+    #[serde(skip_serializing)]
+    pub specific_providers: super::providers::Providers,
 }
 
 impl GetAppKey for AppManifestMulti {
@@ -69,6 +71,12 @@ impl TryFrom<flecs_app_manifest::AppManifestMulti> for AppManifestMulti {
                 .depends
                 .as_ref()
                 .map(parse_depends)
+                .transpose()?
+                .unwrap_or_default(),
+            specific_providers: value
+                .provides
+                .as_ref()
+                .map(|provides| super::providers::Providers::try_from(&provides.0))
                 .transpose()?
                 .unwrap_or_default(),
             original: value,
@@ -189,5 +197,9 @@ impl AppManifestMulti {
 
     pub fn depends(&self) -> &HashMap<DependencyKey, Dependency> {
         &self.depends
+    }
+
+    pub fn specific_providers(&self) -> &super::providers::Providers {
+        &self.specific_providers
     }
 }

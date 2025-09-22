@@ -821,19 +821,13 @@ components:
       type: object
       required:
         - id
-        - config
-      properties:
-        config:
-          $ref: '#/components/schemas/AuthProviderConfig'
-        id:
-          $ref: '#/components/schemas/HexString8'
-    AuthProviderConfig:
-      type: object
-      required:
         - name
         - issuer_url
         - kind
       properties:
+        config: { }
+        id:
+          $ref: '#/components/schemas/HexString8'
         issuer_url:
           type: string
         kind:
