@@ -3,7 +3,6 @@ use async_compression::tokio::bufread::GzipDecoder;
 use flecstract::tar::{archive, archive_single_file_as, extract, extract_single_file_as};
 use std::path::{Path, PathBuf};
 use tokio::io::BufReader;
-use tokio_util::compat::TokioAsyncReadCompatExt;
 
 pub async fn archive_to_file(src: &Path, dst: &Path, follow_symlinks: bool) -> Result<()> {
     let dst = dst.to_path_buf();
@@ -56,7 +55,7 @@ pub async fn decompress_from_file(src: impl Into<PathBuf>, dst: impl Into<PathBu
     let src = tokio::fs::File::open(&src).await?;
     let src = BufReader::new(src);
     let src = GzipDecoder::new(src);
-    let archive = async_tar::Archive::new(src.compat());
+    let mut archive = tokio_tar::Archive::new(src);
     archive.unpack(dst).await?;
     Ok(())
 }
