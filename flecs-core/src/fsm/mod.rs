@@ -195,7 +195,9 @@ async fn create_service<
     let watch = Arc::new(Watch::new_with_lore(lore.clone()).await?);
     #[cfg(feature = "auth")]
     let enforcer = Arc::new(Enforcer::new_with_lore(lore).await?);
-    let app = flecsd_axum_server::server::new(Arc::new(server));
+    let server = Arc::new(server);
+    let app = flecsd_axum_server::server::new(server.clone());
+    let app = app.with_state(server);
     #[cfg(feature = "auth")]
     let app = app
         .layer(axum::middleware::from_fn_with_state(
