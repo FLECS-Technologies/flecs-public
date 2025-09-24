@@ -145,7 +145,15 @@ async fn roles_middleware(
         .verify_roles(uri.path(), &roles.0, request.method())
         .await
     {
+        #[cfg(not(feature = "dev-auth"))]
         Ok(false) => http::StatusCode::FORBIDDEN.into_response(),
+        #[cfg(feature = "dev-auth")]
+        Ok(false) => {
+            warn!(
+                "Authorization failed, but feature dev-auth is enabled and the request will be processed "
+            );
+            next.run(request).await
+        }
         Ok(true) => next.run(request).await,
         Err(e) => {
             warn!("Error verifying roles: {e}");
@@ -394,6 +402,10 @@ pub async fn spawn_server<
     };
     tokio::spawn(async move {
         info!("Starting rust server listening on {log_location}");
+        #[cfg(feature = "dev-auth")]
+        warn!(
+            "Feature dev-auth is enabled which will disable all authorization checks on http requests"
+        );
         match listener {
             _Listener::Socket(listener, service) => {
                 serve(listener, service, server_shutdown_receiver).await
