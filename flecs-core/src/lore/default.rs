@@ -91,6 +91,7 @@ pub mod auth {
     pub const BASE_PATH: &str = "/usr/share/flecs/auth";
     pub const CASBIN_POLICY_FILE_NAME: &str = "casbin_policy.csv";
     pub const CASBIN_MODEL_FILE_NAME: &str = "casbin_model.conf";
+    pub const INITIAL_AUTH_PROVIDER_FLECSPORT_FILE_NAME: &str = "initial_auth_provider.tar.gz";
 }
 
 #[cfg(test)]

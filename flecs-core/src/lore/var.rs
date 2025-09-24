@@ -328,6 +328,8 @@ pub mod auth {
     const ISSUER_CERTIFICATE_CACHE_LIFETIME: &str = "FLECS_CORE_ISSUER_CERTIFICATE_CACHE_LIFETIME";
     const CASBIN_POLICY_PATH: &str = "FLECS_CORE_CASBIN_POLICY_PATH";
     const CASBIN_MODEL_PATH: &str = "FLECS_CORE_CASBIN_MODEL_PATH";
+    const INITIAL_AUTH_PROVIDER_FLECSPORT_PATH: &str =
+        "FLECS_CORE_INITIAL_AUTH_PROVIDER_FLECSPORT_PATH";
 
     fn issuer_certificate_cache_lifetime(reader: &impl VarReader) -> Result<Option<Duration>> {
         Ok(reader.read_secs(ISSUER_CERTIFICATE_CACHE_LIFETIME)?)
@@ -341,6 +343,10 @@ pub mod auth {
         reader.read_path(CASBIN_MODEL_PATH)
     }
 
+    fn initial_auth_provider_flecsport_path(reader: &impl VarReader) -> Option<PathBuf> {
+        reader.read_path(INITIAL_AUTH_PROVIDER_FLECSPORT_PATH)
+    }
+
     impl AuthConfig {
         pub fn from_var_reader(reader: &impl VarReader) -> Result<Option<Self>> {
             let issuer_url = reader.read_url(ISSUER_URL)?;
@@ -349,17 +355,20 @@ pub mod auth {
                 .map(Duration::as_secs);
             let casbin_policy_path = casbin_policy_path(reader);
             let casbin_model_path = casbin_model_path(reader);
+            let initial_auth_provider_flecsport_path = initial_auth_provider_flecsport_path(reader);
             Ok(
                 if issuer_url.is_some()
                     || issuer_certificate_cache_lifetime.is_some()
                     || casbin_policy_path.is_some()
                     || casbin_model_path.is_some()
+                    || initial_auth_provider_flecsport_path.is_some()
                 {
                     Some(Self {
                         issuer_url,
                         issuer_certificate_cache_lifetime,
                         casbin_policy_path,
                         casbin_model_path,
+                        initial_auth_provider_flecsport_path,
                     })
                 } else {
                     None

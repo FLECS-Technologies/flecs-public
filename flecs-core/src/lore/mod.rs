@@ -236,6 +236,7 @@ pub struct AuthLore {
     pub issuer_certificate_cache_lifetime: Duration,
     pub casbin_policy_path: PathBuf,
     pub casbin_model_path: PathBuf,
+    pub initial_auth_provider_flecsport_path: PathBuf,
 }
 
 #[derive(Debug)]
@@ -498,11 +499,18 @@ impl AuthLore {
         let casbin_model_path = conf.casbin_model_path.unwrap_or_else(|| {
             Path::new(default::auth::BASE_PATH).join(default::auth::CASBIN_MODEL_FILE_NAME)
         });
+        let initial_auth_provider_flecsport_path = conf
+            .initial_auth_provider_flecsport_path
+            .unwrap_or_else(|| {
+                Path::new(default::auth::BASE_PATH)
+                    .join(default::auth::INITIAL_AUTH_PROVIDER_FLECSPORT_FILE_NAME)
+            });
         Self {
             issuer_url,
             issuer_certificate_cache_lifetime,
             casbin_policy_path,
             casbin_model_path,
+            initial_auth_provider_flecsport_path,
         }
     }
 }
