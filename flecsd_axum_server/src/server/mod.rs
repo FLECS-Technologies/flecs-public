@@ -39,7 +39,7 @@ where
 }
 
 /// Setup API Server.
-pub fn new<I, A>(api_impl: I) -> Router
+pub fn new<I, A>(api_impl: I) -> Router<I>
 where
     I: AsRef<A> + Clone + Send + Sync + 'static,
     A: apis::apps::Apps
@@ -280,7 +280,6 @@ where
         .route("/v2/system/version",
             get(system_version_get::<I, A>)
         )
-        .with_state(api_impl)
 }
 
 #[tracing::instrument(skip_all)]
