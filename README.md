@@ -258,4 +258,8 @@ casbin_policy_path = "/usr/share/flecs/auth/casbin_policy.csv"
 # Default: "/usr/share/flecs/auth/casbin_model.conf"
 # Environment variable: FLECS_CORE_CASBIN_MODEL_PATH
 casbin_model_path = "/usr/share/flecs/auth/casbin_model.conf"
+# The path of the initial auth provider flecsport containing the shipped auth provider.
+# Default: "/usr/share/flecs/auth/initial_auth_provider.tar.gz"
+# Environment variable: FLECS_CORE_INITIAL_AUTH_PROVIDER_FLECSPORT_PATH
+initial_auth_provider_flecsport_path = "/usr/share/flecs/auth/initial_auth_provider.tar.gz"
 ```
