@@ -23,4 +23,8 @@ fn main() {
     assert!(result.status.success());
     let flecs_git_sha = String::from_utf8(result.stdout).unwrap();
     println!("cargo:rustc-env=FLECS_GIT_SHA={flecs_git_sha}");
+    #[cfg(feature = "dev-auth")]
+    println!(
+        "cargo::warning=Feature dev-auth is enabled which will disable all authorization checks on http requests"
+    );
 }
