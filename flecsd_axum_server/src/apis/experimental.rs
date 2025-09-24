@@ -243,8 +243,10 @@ pub enum ProvidersAuthDefaultPutResponse {
 #[must_use]
 #[allow(clippy::large_enum_variant)]
 pub enum ProvidersAuthFirstTimeSetupFlecsportPostResponse {
-    /// First time setup of auth providers via flecsport triggered
-    Status202_FirstTimeSetupOfAuthProvidersViaFlecsportTriggered,
+    /// Accepted
+    Status202_Accepted(models::JobMeta),
+    /// Internal server error
+    Status500_InternalServerError(models::AdditionalInfo),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

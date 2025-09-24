@@ -3176,8 +3176,10 @@ paths:
         - Experimental
       description: Trigger the first time setup of auth providers via flecsport
       responses:
-        '202':
-          description: First time setup of auth providers via flecsport triggered
+        "202":
+          $ref: "#/components/responses/response_202"
+        '500':
+          $ref: "#/components/responses/response_500"
   /providers/auth/{id}:
     get:
       tags:

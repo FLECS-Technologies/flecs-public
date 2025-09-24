@@ -328,6 +328,8 @@ pub struct AuthConfig {
     pub casbin_policy_path: Option<PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub casbin_model_path: Option<PathBuf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub initial_auth_provider_flecsport_path: Option<PathBuf>,
 }
 
 #[cfg(feature = "auth")]
@@ -344,6 +346,9 @@ impl From<&AuthLore> for AuthConfig {
             ),
             casbin_policy_path: Some(value.casbin_policy_path.clone()),
             casbin_model_path: Some(value.casbin_model_path.clone()),
+            initial_auth_provider_flecsport_path: Some(
+                value.initial_auth_provider_flecsport_path.clone(),
+            ),
         }
     }
 }

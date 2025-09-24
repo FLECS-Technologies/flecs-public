@@ -60,8 +60,8 @@ impl<
     D: Deploymento,
     E: Exportius,
     IMP: Importius,
-    F: Floxy,
-    T: UsbDeviceReader,
+    F: Floxy + 'static,
+    T: UsbDeviceReader + 'static,
     NET: NetworkAdapterReader,
     NetDev: NetDeviceReader,
 > Experimental for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
@@ -320,7 +320,15 @@ impl<
     ) -> Result<ProvidersAuthFirstTimeSetupFlecsportPostResponse, ()> {
         #[cfg(feature = "auth")]
         {
-            Ok(api::v2::providers::auth::first_time_setup::flecsport::post().await)
+            Ok(api::v2::providers::auth::first_time_setup::flecsport::post(
+                self.vault.clone(),
+                self.lore.clone(),
+                self.sorcerers.importius.clone(),
+                self.enchantments.floxy.clone(),
+                self.usb_reader.clone(),
+                self.enchantments.quest_master.clone(),
+            )
+            .await)
         }
         #[cfg(not(feature = "auth"))]
         Err(())
