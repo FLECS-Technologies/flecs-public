@@ -243,4 +243,19 @@ base_path = "/var/lib/flecs/manifests"
 # Default: "<flecsd-base_path>/device"
 # Environment variable: FLECS_CORE_SECRET_BASE_PATH
 base_path = "/var/lib/flecs/device"
+
+[auth]
+# The time in seconds the certificate of the issuer is cached for, i.e. the time after which the certificate of the
+# issuer will be reaquired from the issuer.
+# Default: 300
+# Environment variable: FLECS_CORE_ISSUER_CERTIFICATE_CACHE_LIFETIME
+issuer_certificate_cache_lifetime = 300
+# The path of the casbin policy file used for access control.
+# Default: "/usr/share/flecs/auth/casbin_policy.csv"
+# Environment variable: FLECS_CORE_CASBIN_POLICY_PATH
+casbin_policy_path = "/usr/share/flecs/auth/casbin_policy.csv"
+# The path of the casbin model file used for access control.
+# Default: "/usr/share/flecs/auth/casbin_model.conf"
+# Environment variable: FLECS_CORE_CASBIN_MODEL_PATH
+casbin_model_path = "/usr/share/flecs/auth/casbin_model.conf"
 ```
