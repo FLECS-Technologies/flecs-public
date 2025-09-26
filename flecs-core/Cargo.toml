@@ -8,6 +8,10 @@ authors = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "gen-openapi"
+path = "./src/gen_openapi.rs"
+
 [dependencies]
 flecstract = { path = "../flecstract", version = "0.1.0" }
 flecs_console_client = { path = "../flecs-console-api/flecs_console_client", version = "1.0.0" }
@@ -54,6 +58,7 @@ jsonwebtoken = { version = "9.3.1", optional = true }
 casbin = { version = "2.10", features = ["logging"], optional = true }
 slog = { version = "2.7", optional = true }
 url = { version = "2.5", features = ["serde"], optional = true }
+utoipa = { version = "5.4", features = ["axum_extras", "yaml", "non_strict_integers", "debug", "url"] }
 
 [dev-dependencies]
 mockito = "1.4"

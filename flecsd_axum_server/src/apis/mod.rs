@@ -1,9 +1,7 @@
 pub mod apps;
-pub mod authentication;
 pub mod console;
 pub mod deployments;
 pub mod device;
-pub mod experimental;
 pub mod flecsport;
 pub mod instances;
 pub mod jobs;

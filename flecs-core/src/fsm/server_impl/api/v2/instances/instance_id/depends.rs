@@ -1,54 +1,41 @@
 pub mod dependency_key;
 
-use crate::jeweler::gem::instance::ProviderReference;
-use crate::sorcerer::providius::{Dependency, GetDependenciesError, Providius};
-use crate::vault::Vault;
-use crate::vault::pouch::instance::InstanceId;
-use flecsd_axum_server::apis::experimental::InstancesInstanceIdDependsGetResponse as GetResponse;
-use flecsd_axum_server::models::InstancesInstanceIdDependsGetPathParams as GetPathParams;
-use flecsd_axum_server::{models, types};
-use std::str::FromStr;
-use std::sync::Arc;
+use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
+use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
+use crate::jeweler::gem::manifest::DependencyKey;
+use crate::sorcerer::providius::{Dependency, GetDependenciesError};
+use axum::Json;
+use axum::extract::{Path, State};
+use axum::response::{IntoResponse, Response};
+use http::StatusCode;
+use serde::Deserialize;
+use serde_with::{DisplayFromStr, serde_as};
+use utoipa::IntoParams;
 
-impl From<Dependency> for models::Dependency {
-    fn from(val: Dependency) -> Self {
-        models::Dependency {
-            provider: val.provider.map(|provides| match provides.provider {
-                ProviderReference::Default => types::Nullable::Present(models::Provider {
-                    provider_reference: models::ProviderReference::String(Box::new(
-                        "Default".to_string(),
-                    )),
-                    provided_feature: provides.provided_feature,
-                }),
-                ProviderReference::Provider(provider_id) => {
-                    types::Nullable::Present(models::Provider {
-                        provider_reference: models::ProviderReference::ProviderReferenceOneOf(
-                            Box::new(models::ProviderReferenceOneOf::new(provider_id.to_string())),
-                        ),
-                        provided_feature: provides.provided_feature,
-                    })
-                }
-            }),
-            requirements: types::Object(val.config),
-        }
-    }
+#[serde_as]
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct GetPathParams {
+    #[serde_as(as = "DisplayFromStr")]
+    pub instance_id: crate::jeweler::gem::instance::InstanceId,
 }
 
+#[utoipa::path(
+    get,
+    path = "/instances/{instance_id}/depends",
+    tag = "Experimental",
+    description = "Get information on all dependencies of the specified instance",
+    responses(
+        (status = OK, description = "All dependencies of the specified instance and how they are currently solved", body = HashMap<DependencyKey, Dependency>),
+        (status = NOT_FOUND, description = "Instance not found"),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+    params(GetPathParams)
+)]
 pub async fn get(
-    vault: Arc<Vault>,
-    providius: Arc<dyn Providius>,
-    path_params: GetPathParams,
-) -> GetResponse {
-    let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-    match providius.get_dependencies(vault, instance_id).await {
-        Err(GetDependenciesError::InstanceNotFound(_)) => GetResponse::Status404_InstanceNotFound,
-        Ok(dependencies) => {
-            GetResponse::Status200_AllDependenciesOfTheSpecifiedInstanceAndHowTheyAreCurrentlySolved(
-                dependencies
-                    .into_iter()
-                    .map(|(key, dependency)| (key.to_string(), dependency.into()))
-                    .collect(),
-            )
-        }
-    }
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+    Path(GetPathParams { instance_id }): Path<GetPathParams>,
+) -> Result<Response, GetDependenciesError> {
+    let dependencies = providius.get_dependencies(vault, instance_id).await?;
+    Ok((StatusCode::OK, Json(dependencies)).into_response())
 }

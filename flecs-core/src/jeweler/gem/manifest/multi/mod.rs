@@ -1,5 +1,5 @@
 use crate::jeweler::GetAppKey;
-use crate::jeweler::gem::manifest::{Dependency, DependencyKey, parse_depends};
+use crate::jeweler::gem::manifest::{Dependency, DependencyKey, FeatureKey, parse_depends};
 use crate::vault::pouch::AppKey;
 use docker_compose_types::{Compose, ComposeVolume, ExternalVolume, MapOrEmpty};
 use serde::Serialize;
@@ -13,7 +13,7 @@ pub struct AppManifestMulti {
     #[serde(skip_serializing)]
     pub compose: Compose,
     #[serde(skip_serializing)]
-    pub provides: HashMap<String, serde_json::Value>,
+    pub provides: HashMap<FeatureKey, serde_json::Value>,
     #[serde(skip_serializing)]
     pub depends: HashMap<DependencyKey, Dependency>,
     #[serde(flatten)]
@@ -63,7 +63,7 @@ impl TryFrom<flecs_app_manifest::AppManifestMulti> for AppManifestMulti {
                     provides
                         .0
                         .iter()
-                        .map(|(key, value)| (key.deref().clone(), value.clone()))
+                        .map(|(key, value)| (FeatureKey::from(key.clone()), value.clone()))
                         .collect()
                 })
                 .unwrap_or_default(),
@@ -191,7 +191,7 @@ impl AppManifestMulti {
         self.original.deref()
     }
 
-    pub fn provides(&self) -> &HashMap<String, serde_json::Value> {
+    pub fn provides(&self) -> &HashMap<FeatureKey, serde_json::Value> {
         &self.provides
     }
 

@@ -1,41 +1,33 @@
 pub mod core;
 pub mod default;
-#[cfg(feature = "auth")]
 pub mod first_time_setup;
 pub mod id;
 
-use crate::jeweler::gem::instance::ProviderReference;
-use crate::sorcerer::providius::{AuthProvidersAndDefaults, Providius};
-use crate::vault::Vault;
-use crate::vault::pouch::provider::ProviderId;
-use flecsd_axum_server::apis::experimental::ProvidersAuthGetResponse as GetResponse;
-use flecsd_axum_server::{models, types};
-use std::collections::HashMap;
-use std::sync::Arc;
+use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
+use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
+use crate::sorcerer::providius::AuthProvidersAndDefaults;
+use axum::Json;
+use axum::extract::State;
+use axum::response::{IntoResponse, Response};
+use http::StatusCode;
 
-impl From<AuthProvidersAndDefaults> for models::AuthProviders {
-    fn from(value: AuthProvidersAndDefaults) -> Self {
-        Self {
-            core: value.core.as_ref().map(ProviderReference::to_string),
-            default: value.default.as_ref().map(ProviderId::to_string),
-            providers: HashMap::from_iter(value.providers.into_iter().map(|(id, provider)| {
-                (
-                    id.to_string(),
-                    models::AuthProvider {
-                        config: Some(types::Object(provider.config)),
-                        id: id.to_string(),
-                        issuer_url: provider.issuer_url.to_string(),
-                        kind: provider.kind,
-                        name: provider.name,
-                    },
-                )
-            })),
-        }
-    }
-}
-
-pub async fn get(vault: Arc<Vault>, providius: Arc<dyn Providius>) -> GetResponse {
-    GetResponse::Status200_InformationForAllAuthProviders(
-        providius.get_auth_providers_and_default(vault).await.into(),
+#[utoipa::path(
+    get,
+    path = "/providers/auth",
+    tag = "Experimental",
+    description = "Get information for all auth providers",
+    responses(
+        (status = OK, description = "Information for all auth providers", body = AuthProvidersAndDefaults),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+)]
+pub async fn get(
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+) -> Response {
+    (
+        StatusCode::OK,
+        Json(providius.get_auth_providers_and_default(vault).await),
     )
+        .into_response()
 }

@@ -1,61 +1,61 @@
-use crate::jeweler::gem::manifest::DependencyKey;
-use crate::sorcerer::providius::{Providius, SetDependencyError};
-use crate::vault::Vault;
-use crate::vault::pouch::instance::InstanceId;
-use flecsd_axum_server::apis::experimental::InstancesInstanceIdDependsDependencyKeyFeaturePutResponse as PutResponse;
-use flecsd_axum_server::models;
-use flecsd_axum_server::models::{
-    InstancesInstanceIdDependsDependencyKeyFeaturePutPathParams as PutPathParams,
-    ProviderReference as PutRequest,
-};
-use std::str::FromStr;
-use std::sync::Arc;
+use crate::fsm::server_impl::api::v2::instances::instance_id::depends::dependency_key::InstanceNotFoundOrNotDependent;
+use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
+use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
+use crate::jeweler::gem::instance::InstanceId;
+use crate::jeweler::gem::instance::ProviderReference as PutRequest;
+use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
+use crate::sorcerer::providius::SetDependencyError;
+use axum::Json;
+use axum::extract::{Path, State};
+use axum::response::{IntoResponse, Response};
+use http::StatusCode;
+use serde::Deserialize;
+use serde_with::{DisplayFromStr, serde_as};
+use utoipa::IntoParams;
 
+#[serde_as]
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct PutPathParams {
+    #[serde_as(as = "DisplayFromStr")]
+    pub instance_id: InstanceId,
+    pub dependency_key: DependencyKey,
+    pub feature: FeatureKey,
+}
+
+#[utoipa::path(
+    put,
+    path = "/instances/{instance_id}/depends/{dependency_key}/{feature}",
+    tag = "Experimental",
+    summary = "Set a provider for the specified feature of the specified instance",
+    request_body(
+        content = PutRequest,
+        description = "The provider that should be used",
+    ),
+    params(PutPathParams),
+    responses(
+        (status = OK, description = "Provider was overwritten"),
+        (status = CREATED, description = "Provider was set"),
+        (status = BAD_REQUEST, description = "Bad request", body = AdditionalInfo),
+        (status = NOT_FOUND, description = "Instance not found or instance not dependent on specified dependency", body = InstanceNotFoundOrNotDependent),
+        (status = CONFLICT, description = "Provider conflicts with requirements of dependency", body = AdditionalInfo),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    )
+)]
 pub async fn put(
-    vault: Arc<Vault>,
-    providius: Arc<dyn Providius>,
-    request: PutRequest,
-    path_params: PutPathParams,
-) -> PutResponse {
-    let instance_id = InstanceId::from_str(&path_params.instance_id).unwrap();
-    let provider_reference = request.try_into().unwrap();
-    let key = DependencyKey::new(&path_params.dependency_key);
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+    Path(PutPathParams {
+        instance_id,
+        dependency_key,
+        feature,
+    }): Path<PutPathParams>,
+    Json(request): Json<PutRequest>,
+) -> Result<Response, SetDependencyError> {
     match providius
-        .set_dependency(
-            vault,
-            key,
-            &path_params.feature,
-            instance_id,
-            provider_reference,
-        )
-        .await
+        .set_dependency(vault, dependency_key, feature, instance_id, request)
+        .await?
     {
-        Ok(Some(_)) => PutResponse::Status200_ProviderWasOverwritten,
-        Ok(None) => PutResponse::Status201_ProviderWasSet,
-        Err(e @ SetDependencyError::NoDefaultProvider { .. })
-        | Err(e @ SetDependencyError::InstanceRunning { .. })
-        | Err(e @ SetDependencyError::KeyDoesNotContainFeature { .. })
-        | Err(e @ SetDependencyError::ProviderDoesNotExist(_))
-        | Err(e @ SetDependencyError::ProviderDoesNotProvideFeature { .. }) => {
-            PutResponse::Status400_BadRequest(models::AdditionalInfo::new(e.to_string()))
-        }
-        Err(SetDependencyError::InstanceNotFound(_)) => {
-            PutResponse::Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature(
-                models::InstanceNotFoundOrNotDependent::InstanceNotFound,
-            )
-        }
-        Err(SetDependencyError::DoesNotDepend { .. }) => {
-            PutResponse::Status404_InstanceNotFoundOrInstanceNotDependentOnSpecifiedFeature(
-                models::InstanceNotFoundOrNotDependent::NotDependent,
-            )
-        }
-        Err(e @ SetDependencyError::FeatureConfigNotMatching { .. }) => {
-            PutResponse::Status409_ProviderConflictsWithRequirementsOfDependency(
-                models::AdditionalInfo::new(e.to_string()),
-            )
-        }
-        Err(e @ SetDependencyError::FailedToCheckStatus(_)) => {
-            PutResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
-        }
+        Some(_) => Ok(StatusCode::OK.into_response()),
+        None => Ok(StatusCode::CREATED.into_response()),
     }
 }

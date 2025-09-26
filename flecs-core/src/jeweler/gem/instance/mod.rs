@@ -6,7 +6,7 @@ pub mod status;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::instance::status::InstanceStatus;
-use crate::jeweler::gem::manifest::{AppManifest, DependencyKey};
+use crate::jeweler::gem::manifest::{AppManifest, DependencyKey, FeatureKey};
 use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::vault::pouch;
@@ -18,23 +18,22 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::net::Ipv4Addr;
-use std::num::ParseIntError;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use std::sync::Arc;
+use utoipa::ToSchema;
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq, ToSchema)]
 pub enum ProviderReference {
     #[default]
     Default,
     Provider(ProviderId),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, ToSchema)]
 pub struct StoredProviderReference {
-    pub provider: ProviderReference,
-    pub provided_feature: String,
+    pub provider_reference: ProviderReference,
+    pub provided_feature: FeatureKey,
 }
 
 impl ProviderReference {
@@ -54,20 +53,7 @@ impl Display for ProviderReference {
 
 impl StoredProviderReference {
     pub fn is_default(&self) -> bool {
-        self.provider.is_default()
-    }
-}
-
-impl TryFrom<flecsd_axum_server::models::ProviderReference> for ProviderReference {
-    type Error = ParseIntError;
-
-    fn try_from(value: flecsd_axum_server::models::ProviderReference) -> Result<Self, Self::Error> {
-        Ok(match value {
-            flecsd_axum_server::models::ProviderReference::String(_) => Self::Default,
-            flecsd_axum_server::models::ProviderReference::ProviderReferenceOneOf(id) => {
-                Self::Provider(ProviderId::from_str(&id.provider)?)
-            }
-        })
+        self.provider_reference.is_default()
     }
 }
 

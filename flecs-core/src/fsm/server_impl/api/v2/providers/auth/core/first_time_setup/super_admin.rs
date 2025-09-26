@@ -1,13 +1,39 @@
-use flecsd_axum_server::apis::experimental::{
-    ProvidersAuthCoreFirstTimeSetupSuperAdminGetResponse as GetResponse,
-    ProvidersAuthCoreFirstTimeSetupSuperAdminPostResponse as PostResponse,
-};
-use flecsd_axum_server::models::SuperAdmin;
+use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
+use crate::fsm::server_impl::api::v2::models::auth::{ProviderOrSuperAdminNotFound, SuperAdmin};
+use axum::Json;
+use axum::response::Response;
 
-pub async fn get() -> GetResponse {
+#[utoipa::path(
+    get,
+    path = "/providers/auth/core/first-time-setup/super-admin",
+    tag = "Experimental",
+    description = "Check if the super admin of the core auth provider is set",
+    responses(
+        (status = NO_CONTENT, description = "Super admin of core auth provider is set"),
+        (status = NOT_FOUND, description = "Super admin of core auth provider not set or no core provider set", body = ProviderOrSuperAdminNotFound),
+    ),
+)]
+pub async fn get() -> Response {
     todo!()
 }
 
-pub async fn post(_request: SuperAdmin) -> PostResponse {
+#[utoipa::path(
+    post,
+    path = "/providers/auth/core/first-time-setup/super-admin",
+    tag = "Experimental",
+    description = "Set the super admin of the core auth provider",
+    request_body(
+        content = SuperAdmin,
+        description = "Super admin that should be set to the core auth provider",
+    ),
+    responses(
+        (status = OK, description = "Super admin of core auth provider set"),
+        (status = BAD_REQUEST, description = "Invalid super admin", body = AdditionalInfo),
+        (status = FORBIDDEN, description = "Forbidden"),
+        (status = NOT_FOUND, description = "No core auth provider present"),
+        (status = INTERNAL_SERVER_ERROR, description = "Failed to set super admin of core auth provider", body = AdditionalInfo),
+    ),
+)]
+pub async fn post(Json(_request): Json<SuperAdmin>) -> Response {
     todo!()
 }

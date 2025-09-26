@@ -1,22 +1,31 @@
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
-use crate::enchantment::quest_master::QuestMaster;
-use crate::lore::Lore;
-use crate::relic::device::usb::UsbDeviceReader;
+use crate::fsm::server_impl::api::v2::models::{Accepted, AdditionalInfo};
+use crate::fsm::server_impl::state::{
+    FloxyState, ImportiusState, LoreState, QuestMasterState, UsbDeviceReaderState, VaultState,
+};
 use crate::sorcerer::importius::{ImportPathInfo, Importius};
-use crate::vault::Vault;
-use flecsd_axum_server::apis::experimental::ProvidersAuthFirstTimeSetupFlecsportPostResponse as PostResponse;
-use flecsd_axum_server::models;
+use axum::extract::State;
+use axum::response::{IntoResponse, Response};
 use futures_util::TryFutureExt;
-use std::sync::Arc;
 
-pub async fn post<I: Importius, F: Floxy + 'static, U: UsbDeviceReader + 'static>(
-    vault: Arc<Vault>,
-    lore: Arc<Lore>,
-    importius: Arc<I>,
-    floxy: Arc<F>,
-    usb_device_reader: Arc<U>,
-    quest_master: QuestMaster,
-) -> PostResponse {
+#[utoipa::path(
+    post,
+    path = "/providers/auth/core/first-time-setup/flecsport",
+    tag = "Experimental",
+    description = "Trigger the first time setup of auth providers via flecsport",
+    responses(
+        (status = ACCEPTED, description = "Super admin of core auth provider set", body = Accepted),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+)]
+pub async fn post<I: Importius, F: Floxy + 'static>(
+    State(VaultState(vault)): State<VaultState>,
+    State(LoreState(lore)): State<LoreState>,
+    State(ImportiusState(importius)): State<ImportiusState<I>>,
+    State(FloxyState(floxy)): State<FloxyState<F>>,
+    State(UsbDeviceReaderState(usb_device_reader)): State<UsbDeviceReaderState>,
+    State(QuestMasterState(quest_master)): State<QuestMasterState>,
+) -> Response {
     let path_info = ImportPathInfo {
         archive_path: lore.auth.initial_auth_provider_flecsport_path.clone(),
         temp_path: lore.import.base_path.clone(),
@@ -46,9 +55,7 @@ pub async fn post<I: Importius, F: Floxy + 'static, U: UsbDeviceReader + 'static
         )
         .await
     {
-        Ok((id, _)) => PostResponse::Status202_Accepted(models::JobMeta::new(id.0 as i32)),
-        Err(e) => {
-            PostResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
-        }
+        Ok((id, _)) => Accepted::new(id).into_response(),
+        Err(e) => AdditionalInfo::new(e.to_string()).into_internal_server_error(),
     }
 }

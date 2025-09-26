@@ -29,6 +29,7 @@ use axum::extract::DefaultBodyLimit;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 #[cfg(feature = "auth")]
 use axum::response::IntoResponse;
+use axum::routing::{delete, get, put};
 use axum::{
     Router,
     extract::MatchedPath,
@@ -40,6 +41,7 @@ use hyper_util::{
     rt::{TokioExecutor, TokioIo},
     server,
 };
+pub use server_impl::ApiDoc;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -197,6 +199,93 @@ async fn create_service<
     let enforcer = Arc::new(Enforcer::new_with_lore(lore).await?);
     let server = Arc::new(server);
     let app = flecsd_axum_server::server::new(server.clone());
+    let app = app
+        .route(
+            "/v2/instances/:instance_id/depends/:dependency_key",
+            delete(server_impl::api::v2::instances::instance_id::depends::dependency_key::delete)
+                .get(server_impl::api::v2::instances::instance_id::depends::dependency_key::get)
+                .put(server_impl::api::v2::instances::instance_id::depends::dependency_key::put),
+        )
+        .route(
+            "/v2/instances/:instance_id/depends/:dependency_key/:feature",
+            put(
+                server_impl::api::v2::instances::instance_id::depends::dependency_key::feature::put,
+            ),
+        )
+        .route(
+            "/v2/instances/:instance_id/depends",
+            get(server_impl::api::v2::instances::instance_id::depends::get),
+        )
+        .route(
+            "/v2/instances/:instance_id/provides",
+            get(server_impl::api::v2::instances::instance_id::provides::get),
+        )
+        .route(
+            "/v2/instances/:instance_id/provides/:feature",
+            get(server_impl::api::v2::instances::instance_id::provides::feature::get),
+        )
+        .route("/v2/providers", get(server_impl::api::v2::providers::get))
+        .route(
+            "/v2/providers/:feature",
+            get(server_impl::api::v2::providers::feature::get),
+        )
+        .route(
+            "/v2/providers/:feature/:id",
+            get(server_impl::api::v2::providers::feature::id::get),
+        )
+        .route(
+            "/v2/providers/:feature/default",
+            delete(server_impl::api::v2::providers::feature::default::delete)
+                .get(server_impl::api::v2::providers::feature::default::get)
+                .put(server_impl::api::v2::providers::feature::default::put),
+        );
+
+    #[cfg(feature = "auth")]
+    let app = app
+        .route(
+            "/v2/providers/auth",
+            get(server_impl::api::v2::providers::auth::get),
+        )
+        .route(
+            "/v2/providers/auth/core/first-time-setup/super-admin",
+            get(server_impl::api::v2::providers::auth::core::first_time_setup::super_admin::get)
+                .post(
+                server_impl::api::v2::providers::auth::core::first_time_setup::super_admin::post,
+            ),
+        )
+        .route(
+            "/v2/providers/auth/core",
+            get(server_impl::api::v2::providers::auth::core::get)
+                .put(server_impl::api::v2::providers::auth::core::put),
+        )
+        .route(
+            "/v2/providers/auth/default",
+            delete(server_impl::api::v2::providers::auth::default::delete)
+                .get(server_impl::api::v2::providers::auth::default::get)
+                .put(server_impl::api::v2::providers::auth::default::put),
+        )
+        .route(
+            "/v2/providers/auth/default/first-time-setup/super-admin",
+            get(server_impl::api::v2::providers::auth::default::first_time_setup::super_admin::get)
+                .post(
+                    server_impl::api::v2::providers::auth::default::first_time_setup::super_admin::post,
+                ),
+        )
+        .route(
+            "/v2/providers/auth/first-time-setup/flecsport",
+            axum::routing::post(server_impl::api::v2::providers::auth::first_time_setup::flecsport::post::<IMP, F>)
+        )
+        .route(
+            "/v2/providers/auth/:id",
+            get(server_impl::api::v2::providers::auth::id::get),
+        )
+        .route(
+            "/v2/providers/auth/:id/first-time-setup/super-admin",
+            get(server_impl::api::v2::providers::auth::id::first_time_setup::super_admin::get)
+                .post(
+                    server_impl::api::v2::providers::auth::id::first_time_setup::super_admin::post,
+                ),
+        );
     let app = app.with_state(server);
     #[cfg(feature = "auth")]
     let app = app

@@ -8,6 +8,7 @@ pub(crate) mod secret;
 pub use super::Result;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use utoipa::ToSchema;
 
 /// Structs that implement the Pouch trait have to provide an object of the chosen type [Self::Gems]
 /// with the functions [Self::gems()] and [Self::gems_mut()].
@@ -57,7 +58,7 @@ fn combine_results(left: Result<()>, right: Result<()>) -> Result<()> {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Ord, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Ord, PartialOrd, Eq, Serialize, Deserialize, ToSchema)]
 pub struct AppKey {
     pub name: String,
     pub version: String,

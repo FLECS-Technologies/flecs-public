@@ -1,8 +1,8 @@
 use crate::jeweler::gem;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference, StoredProviderReference};
-use crate::jeweler::gem::manifest::DependencyKey;
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
+use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
 use crate::sorcerer::providius::{Dependency, Provider};
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
@@ -25,7 +25,7 @@ pub enum SetDefaultProviderError {
     #[error("Provider with id {0} does not exist")]
     ProviderNotFound(ProviderId),
     #[error("Provider with id {id} does not provide {feature}")]
-    ProviderDoesNotProvide { id: ProviderId, feature: String },
+    ProviderDoesNotProvide { id: ProviderId, feature: FeatureKey },
 }
 
 pub type GetProviderError = SetDefaultProviderError;
@@ -82,24 +82,27 @@ pub enum SetDependencyError {
     #[error("Failed to check instance status: {0}")]
     FailedToCheckStatus(#[from] anyhow::Error),
     #[error("No default provider for feature {feature} present")]
-    NoDefaultProvider { feature: String },
+    NoDefaultProvider { feature: FeatureKey },
     #[error("Provider with id {0} does not exist")]
     ProviderDoesNotExist(ProviderId),
     #[error("Provider with id {provider_id} does not provide feature {feature}")]
     ProviderDoesNotProvideFeature {
-        feature: String,
+        feature: FeatureKey,
         provider_id: ProviderId,
     },
     #[error(
         "Provider with id {provider_id} provides feature {feature}, but config does not match: {error}"
     )]
     FeatureConfigNotMatching {
-        feature: String,
+        feature: FeatureKey,
         provider_id: ProviderId,
         error: anyhow::Error,
     },
     #[error("Provided dependency key {key} does not contain feature {feature}")]
-    KeyDoesNotContainFeature { feature: String, key: DependencyKey },
+    KeyDoesNotContainFeature {
+        feature: FeatureKey,
+        key: DependencyKey,
+    },
 }
 
 #[derive(Error, Debug)]
@@ -121,7 +124,7 @@ pub enum PutCoreAuthProviderError {
 }
 
 pub async fn delete_default_provider(
-    feature: &str,
+    feature: &FeatureKey,
     providers: &mut pouch::provider::Gems,
     instances: &pouch::instance::Gems,
 ) -> Result<Option<ProviderId>, DeleteDefaultProviderError> {
@@ -131,7 +134,7 @@ pub async fn delete_default_provider(
     let mut depending_running_instances = Vec::new();
     for (id, instance) in instances.iter().filter(|(_, instance)| {
         instance.dependencies().iter().any(|(key, id)| {
-            id.provided_feature == feature && id.is_default() && key.features().contains(&feature)
+            id.provided_feature == *feature && id.is_default() && key.features().contains(feature)
         })
     }) {
         if instance.status().await? == InstanceStatus::Running {
@@ -147,7 +150,7 @@ pub async fn delete_default_provider(
 }
 
 pub fn set_default_provider(
-    feature: String,
+    feature: FeatureKey,
     providers: &mut pouch::provider::Gems,
     instances: &pouch::instance::Gems,
     id: ProviderId,
@@ -164,7 +167,7 @@ pub fn set_default_provider(
 
 pub fn get_provider(
     instances: &pouch::instance::Gems,
-    feature: &str,
+    feature: &FeatureKey,
     id: ProviderId,
 ) -> Result<Provider, GetProviderError> {
     match instances.get(&id) {
@@ -176,7 +179,7 @@ pub fn get_provider(
             }),
             None => Err(SetDefaultProviderError::ProviderDoesNotProvide {
                 id,
-                feature: feature.to_string(),
+                feature: feature.clone(),
             }),
         },
     }
@@ -198,8 +201,8 @@ pub fn get_auth_providers(instances: &pouch::instance::Gems) -> HashMap<Provider
 
 pub fn get_providers(
     instances: &pouch::instance::Gems,
-) -> HashMap<String, HashMap<ProviderId, Provider>> {
-    let mut providers: HashMap<String, HashMap<ProviderId, Provider>> = HashMap::new();
+) -> HashMap<FeatureKey, HashMap<ProviderId, Provider>> {
+    let mut providers: HashMap<FeatureKey, HashMap<ProviderId, Provider>> = HashMap::new();
     for (id, instance) in instances {
         for (feature, value) in instance.manifest().provides() {
             providers.entry(feature.clone()).or_default().insert(
@@ -216,19 +219,21 @@ pub fn get_providers(
 
 pub fn get_default_provider_id(
     providers: &pouch::provider::Gems,
-    feature: &str,
+    feature: &FeatureKey,
 ) -> Option<ProviderId> {
     providers.default_providers.get(feature).copied()
 }
 
-pub fn get_default_provider_ids(providers: &pouch::provider::Gems) -> &HashMap<String, ProviderId> {
+pub fn get_default_provider_ids(
+    providers: &pouch::provider::Gems,
+) -> &HashMap<FeatureKey, ProviderId> {
     &providers.default_providers
 }
 
 pub fn get_provides(
     instances: &pouch::instance::Gems,
     id: InstanceId,
-) -> Result<HashMap<String, Provider>, GetProvidesError> {
+) -> Result<HashMap<FeatureKey, Provider>, GetProvidesError> {
     match instances.get(&id) {
         None => Err(GetProvidesError::InstanceNotFound(id)),
         Some(instance) => Ok(instance
@@ -260,7 +265,7 @@ pub fn put_core_auth_provider(
     let id = match provider {
         ProviderReference::Default => providers
             .default_providers
-            .get("auth")
+            .get(&FeatureKey::auth())
             .cloned()
             .ok_or(PutCoreAuthProviderError::DefaultProviderNotSet)?,
         ProviderReference::Provider(id) => id,
@@ -281,7 +286,7 @@ pub fn put_core_auth_provider(
 
 pub fn get_feature_provides(
     instances: &pouch::instance::Gems,
-    feature: &str,
+    feature: &FeatureKey,
     id: InstanceId,
 ) -> Result<Provider, GetFeatureProvidesError> {
     match instances.get(&id) {
@@ -368,7 +373,7 @@ pub async fn clear_dependency(
     }
     Ok(instance
         .clear_dependency(feature)
-        .map(|dependency| dependency.provider))
+        .map(|dependency| dependency.provider_reference))
 }
 
 fn config_str_matches(
@@ -499,7 +504,7 @@ pub async fn set_dependency(
     instances: &mut pouch::instance::Gems,
     providers: &pouch::provider::Gems,
     dependency_key: DependencyKey,
-    feature: &str,
+    feature: FeatureKey,
     id: InstanceId,
     provider_reference: ProviderReference,
 ) -> Result<Option<ProviderReference>, SetDependencyError> {
@@ -510,7 +515,7 @@ pub async fn set_dependency(
     if !dependency_key.features().contains(&feature) {
         return Err(SetDependencyError::KeyDoesNotContainFeature {
             key: dependency_key,
-            feature: feature.to_string(),
+            feature,
         });
     }
     let manifest = instance.manifest();
@@ -523,7 +528,7 @@ pub async fn set_dependency(
         }
         Some(gem::manifest::Dependency::One(_, value)) => value,
         Some(gem::manifest::Dependency::OneOf(map)) => {
-            map.get(feature)
+            map.get(&feature)
                 .ok_or_else(|| SetDependencyError::DoesNotDepend {
                     key: feature.to_string(),
                     instance_id: id,
@@ -535,19 +540,19 @@ pub async fn set_dependency(
         ProviderReference::Provider(id) => id,
         ProviderReference::Default => providers
             .default_providers
-            .get(feature)
+            .get(&feature)
             .cloned()
             .ok_or_else(|| SetDependencyError::NoDefaultProvider {
-                feature: feature.to_string(),
+                feature: feature.clone(),
             })?,
     };
     let Some(provider) = instances.get(&provider_id) else {
         return Err(SetDependencyError::ProviderDoesNotExist(provider_id));
     };
     let manifest = provider.manifest();
-    let Some(provider_config) = manifest.provides().get(feature) else {
+    let Some(provider_config) = manifest.provides().get(&feature) else {
         return Err(SetDependencyError::ProviderDoesNotProvideFeature {
-            feature: feature.to_string(),
+            feature: feature.clone(),
             provider_id,
         });
     };
@@ -555,7 +560,7 @@ pub async fn set_dependency(
         SetDependencyError::FeatureConfigNotMatching {
             provider_id,
             error,
-            feature: feature.to_string(),
+            feature: feature.clone(),
         }
     })?;
     if instance.status().await? == InstanceStatus::Running {
@@ -565,12 +570,12 @@ pub async fn set_dependency(
         return Err(SetDependencyError::InstanceNotFound(id));
     };
     let provider_reference = StoredProviderReference {
-        provider: provider_reference,
-        provided_feature: feature.to_string(),
+        provider_reference,
+        provided_feature: feature,
     };
     Ok(instance
         .set_dependency(dependency_key, provider_reference)
-        .map(|dependency| dependency.provider.clone()))
+        .map(|dependency| dependency.provider_reference.clone()))
 }
 
 #[cfg(test)]
