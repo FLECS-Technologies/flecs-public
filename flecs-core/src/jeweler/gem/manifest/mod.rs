@@ -1,13 +1,18 @@
 use crate::vault::pouch::AppKey;
-use serde::Serialize;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
 use serde_with::DeserializeFromStr;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::str::FromStr;
+use std::string::ToString;
 use std::sync::Arc;
 use thiserror::Error;
+use utoipa::openapi::schema::SchemaType;
+use utoipa::openapi::{RefOr, Schema, Type};
+use utoipa::{PartialSchema, ToSchema};
 
 pub mod multi;
 pub mod providers;
@@ -52,15 +57,78 @@ impl From<AppManifest> for flecs_app_manifest::generated::manifest_3_2_0::FlecsA
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct FeatureKey(String);
+
+impl PartialSchema for FeatureKey {
+    fn schema() -> RefOr<Schema> {
+        utoipa::openapi::ObjectBuilder::new()
+            .schema_type(SchemaType::Type(Type::String))
+            .min_length(Some(1))
+            .pattern(Some(r"^([\w.-]+)$"))
+            .into()
+    }
+}
+
+impl ToSchema for FeatureKey {}
+
+impl AsRef<str> for FeatureKey {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl FromStr for FeatureKey {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let regex = Regex::new(r"^([\w.-]+)$").unwrap();
+        if regex.is_match(s) {
+            Ok(Self(s.to_string()))
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl Display for FeatureKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl FeatureKey {
+    pub fn auth() -> Self {
+        Self("auth".to_string())
+    }
+}
+
+impl From<flecs_app_manifest::generated::manifest_3_2_0::ProvidesKey> for FeatureKey {
+    fn from(value: flecs_app_manifest::generated::manifest_3_2_0::ProvidesKey) -> Self {
+        Self(value.into())
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Clone, Serialize)]
 pub enum Dependency {
-    OneOf(HashMap<String, serde_json::Value>),
-    One(String, serde_json::Value),
+    OneOf(HashMap<FeatureKey, serde_json::Value>),
+    One(FeatureKey, serde_json::Value),
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, DeserializeFromStr, Serialize, Hash)]
 pub struct DependencyKey(String);
 
+impl PartialSchema for DependencyKey {
+    fn schema() -> RefOr<Schema> {
+        utoipa::openapi::ObjectBuilder::new()
+            .schema_type(SchemaType::Type(Type::String))
+            .min_length(Some(1))
+            .pattern(Some("^([\\w.-]+)(?:\\s*\\|\\s*([\\w.-]+))*$"))
+            .into()
+    }
+}
+impl ToSchema for DependencyKey {}
 impl Display for DependencyKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.0, f)
@@ -83,8 +151,11 @@ impl DependencyKey {
         Self(value.join("|"))
     }
 
-    pub fn features(&self) -> Vec<&str> {
-        self.0.split('|').collect()
+    pub fn features(&self) -> Vec<FeatureKey> {
+        self.0
+            .split('|')
+            .map(|f| FeatureKey(f.to_string()))
+            .collect()
     }
 }
 
@@ -98,17 +169,19 @@ impl Dependency {
     pub fn config_json(&self) -> serde_json::Value {
         serde_json::Value::Object(match self {
             Self::One(feature, config) => {
-                serde_json::Map::from_iter([(feature.clone(), config.clone())])
+                serde_json::Map::from_iter([(feature.to_string(), config.clone())])
             }
-            Self::OneOf(configs) => serde_json::Map::from_iter(configs.clone()),
+            Self::OneOf(configs) => serde_json::Map::from_iter(
+                configs
+                    .iter()
+                    .map(|(feature, value)| (feature.to_string(), value.clone())),
+            ),
         })
     }
 }
 
 #[derive(Debug, Clone, Error)]
 pub enum ParseDependencyError {
-    #[error("")]
-    EmptyFeature,
     #[error("")]
     NoProperties,
     #[error("")]
@@ -121,10 +194,9 @@ impl TryFrom<(&DependencyKey, &serde_json::Value)> for Dependency {
     type Error = ParseDependencyError;
 
     fn try_from((key, value): (&DependencyKey, &serde_json::Value)) -> Result<Self, Self::Error> {
-        let features: Vec<&str> = key.features();
+        let features = key.features();
         match features.len() {
-            1 if features[0].is_empty() => Err(Self::Error::EmptyFeature),
-            1 => Ok(Self::One(features[0].to_string(), value.clone())),
+            1 => Ok(Self::One(features[0].clone(), value.clone())),
             len => {
                 let serde_json::Value::Object(properties) = value else {
                     return Err(Self::Error::NoProperties);
@@ -132,13 +204,13 @@ impl TryFrom<(&DependencyKey, &serde_json::Value)> for Dependency {
                 if properties.len() != len {
                     return Err(Self::Error::FeaturesNotMatchingProperties);
                 };
-                let dependencies: Result<HashMap<String, serde_json::Value>, Self::Error> =
+                let dependencies: Result<HashMap<FeatureKey, serde_json::Value>, Self::Error> =
                     features
                         .iter()
                         .map(|feature| {
                             Ok::<_, Self::Error>((
-                                feature.to_string(),
-                                properties.get(*feature).cloned().ok_or_else(|| {
+                                feature.clone(),
+                                properties.get(feature.as_ref()).cloned().ok_or_else(|| {
                                     Self::Error::NoMatchingProperty(feature.to_string())
                                 })?,
                             ))
@@ -178,7 +250,7 @@ impl AppManifest {
         }
     }
 
-    pub fn provides(&self) -> &HashMap<String, serde_json::Value> {
+    pub fn provides(&self) -> &HashMap<FeatureKey, serde_json::Value> {
         match self {
             AppManifest::Single(single) => single.provides(),
             AppManifest::Multi(multi) => multi.provides(),

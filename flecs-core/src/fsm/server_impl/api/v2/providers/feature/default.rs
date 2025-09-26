@@ -1,88 +1,100 @@
+use crate::fsm::server_impl::api::v2::models::{AdditionalInfo, PutDefaultProviderRequest};
+use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
+use crate::jeweler::gem::manifest::FeatureKey;
 use crate::sorcerer::providius::{
-    DeleteDefaultProviderError, GetProviderError, Providius, SetDefaultProviderError,
+    DeleteDefaultProviderError, GetProviderError, Provider, SetDefaultProviderError,
 };
-use crate::vault::Vault;
-use crate::vault::pouch::provider::ProviderId;
-use flecsd_axum_server::apis::experimental::{
-    ProvidersFeatureDefaultDeleteResponse as DeleteResponse,
-    ProvidersFeatureDefaultGetResponse as GetResponse,
-    ProvidersFeatureDefaultPutResponse as PutResponse,
-};
-use flecsd_axum_server::models::{
-    ProvidersFeatureDefaultDeletePathParams as DeletePathParams,
-    ProvidersFeatureDefaultGetPathParams as GetPathParams,
-    ProvidersFeatureDefaultPutPathParams as PutPathParams, PutDefaultProviderRequest as PutRequest,
-};
-use flecsd_axum_server::{models, types};
-use std::str::FromStr;
-use std::sync::Arc;
+use axum::Json;
+use axum::extract::{Path, State};
+use axum::response::{IntoResponse, Response};
+use http::StatusCode;
+use serde::Deserialize;
+use utoipa::IntoParams;
 
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct DeletePathParams {
+    pub feature: FeatureKey,
+}
+
+pub type GetPathParams = DeletePathParams;
+pub type PutPathParams = DeletePathParams;
+
+#[utoipa::path(
+    delete,
+    path = "/providers/{feature}/default",
+    tag = "Experimental",
+    description = "Remove the default provider for the specified feature",
+    params(DeletePathParams),
+    responses(
+        (status = OK, description = "Default provider was removed"),
+        (status = NOT_FOUND, description = "No default provider for the specified feature was found"),
+        (status = CONFLICT, description = "The current state does not allow the removal of the default provider, e.g. a running instance is using it", body = AdditionalInfo),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+)]
 pub async fn delete(
-    vault: Arc<Vault>,
-    providius: Arc<dyn Providius>,
-    path_params: DeletePathParams,
-) -> DeleteResponse {
-    match providius
-        .delete_default_provider(vault, &path_params.feature)
-        .await
-    {
-        Ok(Some(_)) => DeleteResponse::Status200_DefaultProviderForSpecifiedFeatureUnset,
-        Ok(None) => DeleteResponse::Status404_DefaultProviderForSpecifiedFeatureWasNotFound,
-        Err(e @ DeleteDefaultProviderError::ProviderInUse(_)) => {
-            DeleteResponse::Status409_TheCurrentStateDoesNotAllowTheRemovalOfTheDefaultProvider(
-                models::AdditionalInfo::new(e.to_string()),
-            )
-        }
-        Err(e @ DeleteDefaultProviderError::FailedToCheckDependents(_)) => {
-            DeleteResponse::Status500_InternalServerError(models::AdditionalInfo::new(
-                e.to_string(),
-            ))
-        }
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+    Path(DeletePathParams { feature }): Path<DeletePathParams>,
+) -> Result<Response, DeleteDefaultProviderError> {
+    match providius.delete_default_provider(vault, &feature).await? {
+        Some(_) => Ok(StatusCode::OK.into_response()),
+        None => Ok(StatusCode::CREATED.into_response()),
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/providers/{feature}/default",
+    tag = "Experimental",
+    description = "Get the default provider for the specified feature",
+    params(GetPathParams),
+    responses(
+        (status = OK, description = "Default provider was found", body = Provider),
+        (status = NOT_FOUND, description = "No default provider for the specified feature was found"),
+        (status = BAD_REQUEST, description = "Bad request", body = AdditionalInfo),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+)]
 pub async fn get(
-    vault: Arc<Vault>,
-    providius: Arc<dyn Providius>,
-    path_params: GetPathParams,
-) -> GetResponse {
-    match providius
-        .get_default_provider(vault.clone(), &path_params.feature)
-        .await
-    {
-        Ok(Some(provider)) => GetResponse::Status200_DefaultProviderForSpecifiedFeatureWasFound(
-            models::FeatureProvider {
-                app_key: provider.app_key.into(),
-                config: Some(types::Object(provider.config)),
-            },
-        ),
-        Ok(None) | Err(GetProviderError::ProviderNotFound(_)) => {
-            GetResponse::Status404_DefaultProviderForSpecifiedFeatureWasNotFound
-        }
-        Err(e) => {
-            GetResponse::Status500_InternalServerError(models::AdditionalInfo::new(e.to_string()))
-        }
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+    Path(GetPathParams { feature }): Path<GetPathParams>,
+) -> Result<Response, GetProviderError> {
+    match providius.get_default_provider(vault, &feature).await? {
+        Some(provider) => Ok((StatusCode::OK, Json(provider)).into_response()),
+        None => Ok(StatusCode::NOT_FOUND.into_response()),
     }
 }
 
+#[utoipa::path(
+    put,
+    path = "/providers/{feature}/default",
+    tag = "Experimental",
+    description = "Set the default provider for the specified feature",
+    request_body(
+        content = PutDefaultProviderRequest,
+        description = "Id of the provider that should be used as the default provider",
+    ),
+    params(PutPathParams),
+    responses(
+        (status = OK, description = "Default provider was replaced"),
+        (status = CREATED, description = "Default provider was set"),
+        (status = BAD_REQUEST, description = "Bad request", body = AdditionalInfo),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+)]
 pub async fn put(
-    vault: Arc<Vault>,
-    providius: Arc<dyn Providius>,
-    request: PutRequest,
-    path_params: PutPathParams,
-) -> PutResponse {
-    let id = ProviderId::from_str(&request.provider_id).unwrap();
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+    Path(PutPathParams { feature }): Path<PutPathParams>,
+    Json(PutDefaultProviderRequest { provider_id }): Json<PutDefaultProviderRequest>,
+) -> Result<Response, SetDefaultProviderError> {
     match providius
-        .set_default_provider(vault, path_params.feature, id)
-        .await
+        .set_default_provider(vault, feature, provider_id)
+        .await?
     {
-        Ok(Some(_)) => PutResponse::Status200_DefaultProviderForSpecifiedFeatureWasReplaced,
-        Ok(None) => PutResponse::Status201_DefaultProviderForSpecifiedFeatureWasSet,
-        Err(e @ SetDefaultProviderError::ProviderDoesNotProvide { .. }) => {
-            PutResponse::Status400_BadRequest(models::AdditionalInfo::new(e.to_string()))
-        }
-        Err(SetDefaultProviderError::ProviderNotFound(_)) => {
-            PutResponse::Status404_ProviderNotFound
-        }
+        Some(_) => Ok(StatusCode::OK.into_response()),
+        None => Ok(StatusCode::CREATED.into_response()),
     }
 }

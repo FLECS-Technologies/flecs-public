@@ -2,6 +2,7 @@ pub use super::{Error, Result};
 use crate::vault::pouch::instance::InstanceId;
 use futures_util::StreamExt;
 use futures_util::future::BoxFuture;
+use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -12,10 +13,13 @@ use std::sync::{Arc, OnceLock};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tracing::{debug, warn};
+use utoipa::ToSchema;
 
 #[repr(transparent)]
-#[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
+#[derive(Hash, Eq, PartialEq, Copy, Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[serde(transparent)]
 pub struct QuestId(pub u64);
+
 pub type SyncQuest = Arc<Mutex<Quest>>;
 
 fn get_quest_id() -> QuestId {

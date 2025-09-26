@@ -1,6 +1,9 @@
 #[cfg(feature = "auth")]
 pub use openidconnect::IssuerUrl;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use utoipa::ToSchema;
+use utoipa::openapi::{Object, ObjectBuilder};
 
 #[cfg(not(feature = "auth"))]
 pub type IssuerUrl = String;
@@ -75,8 +78,18 @@ impl TryFrom<&serde_json::Value> for AuthProvider {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+fn custom_type() -> Object {
+    ObjectBuilder::new()
+        .schema_type(utoipa::openapi::schema::Type::String)
+        .format(Some(utoipa::openapi::SchemaFormat::KnownFormat(
+            utoipa::openapi::KnownFormat::Uri,
+        )))
+        .build()
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize, ToSchema)]
 pub struct AuthProvider {
+    #[schema(schema_with = custom_type)]
     pub issuer_url: IssuerUrl,
     pub name: String,
     pub kind: String,

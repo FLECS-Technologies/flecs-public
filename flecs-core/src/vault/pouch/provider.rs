@@ -1,4 +1,5 @@
 use crate::jeweler::gem::instance::ProviderReference;
+use crate::jeweler::gem::manifest::FeatureKey;
 use crate::lore::ProviderLoreRef;
 use crate::vault::pouch::Pouch;
 use serde::{Deserialize, Serialize};
@@ -19,7 +20,7 @@ pub struct CoreProviders {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Gems {
     pub core_providers: CoreProviders,
-    pub default_providers: HashMap<String, ProviderId>,
+    pub default_providers: HashMap<FeatureKey, ProviderId>,
 }
 
 pub struct ProviderPouch {
