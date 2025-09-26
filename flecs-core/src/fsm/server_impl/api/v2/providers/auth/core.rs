@@ -1,42 +1,57 @@
-#[cfg(feature = "auth")]
 pub mod first_time_setup;
 
+use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
+use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
 use crate::jeweler::gem::instance::ProviderReference;
-use crate::sorcerer::providius::{Providius, PutCoreAuthProviderError};
-use crate::vault::Vault;
-use flecsd_axum_server::apis::experimental::{
-    ProvidersAuthCoreGetResponse as GetResponse, ProvidersAuthCorePutResponse as PutResponse,
-};
-use flecsd_axum_server::models;
-use flecsd_axum_server::models::ProviderReference as PutRequest;
-use std::sync::Arc;
+use crate::sorcerer::providius::PutCoreAuthProviderError;
+use axum::Json;
+use axum::extract::State;
+use axum::response::{IntoResponse, Response};
+use http::StatusCode;
 
-pub async fn get(vault: Arc<Vault>, providius: Arc<dyn Providius>) -> GetResponse {
+#[utoipa::path(
+    get,
+    path = "/providers/auth/core",
+    tag = "Experimental",
+    description = "Get information on the core auth provider",
+    responses(
+        (status = NO_CONTENT, description = "How the core auth provider is currently set", body = ProviderReference),
+        (status = NOT_FOUND, description = "No core auth provider set"),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+)]
+pub async fn get(
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+) -> Response {
     match providius.get_core_providers(vault).await.auth {
-        Some(provider) => GetResponse::Status200_HowTheCoreAuthProviderIsCurrentlySet(
-            models::ProviderReference::ProviderReferenceOneOf(Box::new(
-                models::ProviderReferenceOneOf {
-                    provider: provider.to_string(),
-                },
-            )),
-        ),
-        None => GetResponse::Status404_NoCoreAuthProviderSet,
+        Some(provider) => (StatusCode::OK, Json(provider)).into_response(),
+        None => StatusCode::NOT_FOUND.into_response(),
     }
 }
-
+#[utoipa::path(
+    get,
+    path = "/providers/auth/core",
+    tag = "Experimental",
+    description = "Set a core auth provider",
+    request_body(
+        content = ProviderReference,
+        description = "The provider that should be used",
+    ),
+    responses(
+        (status = OK, description = "Provider was overwritten"),
+        (status = CREATED, description = "Provider was set"),
+        (status = BAD_REQUEST, description = "Bad request", body = AdditionalInfo),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+)]
 pub async fn put(
-    vault: Arc<Vault>,
-    providius: Arc<dyn Providius>,
-    request: PutRequest,
-) -> PutResponse {
-    let provider = ProviderReference::try_from(request).unwrap();
-    match providius.put_core_auth_provider(vault, provider).await {
-        Ok(Some(_)) => PutResponse::Status200_ProviderWasOverwritten,
-        Ok(None) => PutResponse::Status201_ProviderWasSet,
-        Err(e @ PutCoreAuthProviderError::InstanceNotFound(_))
-        | Err(e @ PutCoreAuthProviderError::DefaultProviderNotSet)
-        | Err(e @ PutCoreAuthProviderError::DoesNotProvide { .. }) => {
-            PutResponse::Status400_BadRequest(models::AdditionalInfo::new(e.to_string()))
-        }
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+    Json(provider): Json<ProviderReference>,
+) -> Result<Response, PutCoreAuthProviderError> {
+    match providius.put_core_auth_provider(vault, provider).await? {
+        Some(_) => Ok(StatusCode::OK.into_response()),
+        None => Ok(StatusCode::CREATED.into_response()),
     }
 }

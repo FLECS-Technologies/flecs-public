@@ -1,36 +1,55 @@
 pub mod feature;
 
+use crate::fsm::server_impl::api::v2::models::{AdditionalInfo, FeatureInfo};
+use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
 use crate::jeweler::gem::instance::InstanceId;
-use crate::sorcerer::providius::{GetProvidesError, Providius};
-use crate::vault::Vault;
-use flecsd_axum_server::apis::experimental::InstancesInstanceIdProvidesGetResponse as GetResponse;
-use flecsd_axum_server::models::InstancesInstanceIdProvidesGetPathParams as GetPathParams;
-use flecsd_axum_server::{models, types};
-use std::str::FromStr;
-use std::sync::Arc;
+use crate::jeweler::gem::manifest::FeatureKey;
+use crate::sorcerer::providius::GetProvidesError;
+use axum::Json;
+use axum::extract::{Path, State};
+use axum::response::{IntoResponse, Response};
+use http::StatusCode;
+use serde::Deserialize;
+use serde_with::{DisplayFromStr, serde_as};
+use std::collections::HashMap;
+use utoipa::IntoParams;
 
+#[serde_as]
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct GetPathParams {
+    #[serde_as(as = "DisplayFromStr")]
+    pub instance_id: InstanceId,
+}
+
+#[utoipa::path(
+    get,
+    path = "/instances/{instance_id}/provides",
+    tag = "Experimental",
+    description = "Get all provided features of the specified instance",
+    responses(
+        (status = OK, description = "Information for all features and their config provided by this instance", body = HashMap<FeatureKey, FeatureInfo>),
+        (status = NOT_FOUND, description = "Instance id not found"),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+    params(GetPathParams)
+)]
 pub async fn get(
-    vault: Arc<Vault>,
-    providius: Arc<dyn Providius>,
-    path_params: GetPathParams,
-) -> GetResponse {
-    let id = InstanceId::from_str(&path_params.instance_id).unwrap();
-    match providius.get_provides(vault, id).await {
-        Ok(providers) => {
-            GetResponse::Status200_InformationForAllFeaturesAndTheirConfigProvidedByThisInstance(
-                providers
-                    .into_iter()
-                    .map(|(feature, provider)| {
-                        (
-                            feature,
-                            models::FeatureInfo {
-                                config: types::Object(provider.config),
-                            },
-                        )
-                    })
-                    .collect(),
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+    Path(GetPathParams { instance_id }): Path<GetPathParams>,
+) -> Result<Response, GetProvidesError> {
+    let providers: HashMap<FeatureKey, FeatureInfo> = providius
+        .get_provides(vault, instance_id)
+        .await?
+        .into_iter()
+        .map(|(feature, provider)| {
+            (
+                feature,
+                FeatureInfo {
+                    config: provider.config,
+                },
             )
-        }
-        Err(GetProvidesError::InstanceNotFound(_)) => GetResponse::Status404_InstanceIdNotFound,
-    }
+        })
+        .collect();
+    Ok((StatusCode::OK, Json(providers)).into_response())
 }

@@ -1,12 +1,13 @@
 use super::spell;
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference, StoredProviderReference};
-use crate::jeweler::gem::manifest::DependencyKey;
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
+use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
 use crate::vault::pouch::AppKey;
 use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 pub use spell::provider::{
     ClearDependencyError, DeleteDefaultProviderError, GetDependenciesError, GetDependencyError,
     GetFeatureProvidesError, GetProviderError, GetProvidesError, PutCoreAuthProviderError,
@@ -14,18 +15,21 @@ pub use spell::provider::{
 };
 use std::collections::HashMap;
 use std::sync::Arc;
+use utoipa::ToSchema;
 
 pub struct ProvidersAndDefaults {
-    pub providers: HashMap<String, HashMap<ProviderId, Provider>>,
-    pub defaults: HashMap<String, ProviderId>,
+    pub providers: HashMap<FeatureKey, HashMap<ProviderId, Provider>>,
+    pub defaults: HashMap<FeatureKey, ProviderId>,
 }
 
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct AuthProvidersAndDefaults {
     pub default: Option<ProviderId>,
     pub providers: HashMap<ProviderId, AuthProvider>,
     pub core: Option<ProviderReference>,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct Provider {
     pub app_key: AppKey,
     pub config: serde_json::Value,
@@ -33,6 +37,7 @@ pub struct Provider {
 
 pub type Provides = StoredProviderReference;
 
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct Dependency {
     pub provider: Option<Provides>,
     pub config: serde_json::Value,
@@ -52,40 +57,40 @@ pub trait Providius: Sorcerer {
     async fn get_providers(
         &self,
         vault: Arc<Vault>,
-    ) -> HashMap<String, HashMap<ProviderId, Provider>>;
-    async fn get_default_providers(&self, vault: Arc<Vault>) -> HashMap<String, ProviderId>;
+    ) -> HashMap<FeatureKey, HashMap<ProviderId, Provider>>;
+    async fn get_default_providers(&self, vault: Arc<Vault>) -> HashMap<FeatureKey, ProviderId>;
     async fn get_default_provider(
         &self,
         vault: Arc<Vault>,
-        feature: &str,
+        feature: &FeatureKey,
     ) -> Result<Option<Provider>, GetProviderError>;
     async fn get_providers_and_defaults(&self, vault: Arc<Vault>) -> ProvidersAndDefaults;
     async fn get_provider(
         &self,
         vault: Arc<Vault>,
-        feature: &str,
+        feature: &FeatureKey,
         id: ProviderId,
     ) -> Result<Provider, GetProviderError>;
     async fn delete_default_provider(
         &self,
         vault: Arc<Vault>,
-        feature: &str,
+        feature: &FeatureKey,
     ) -> Result<Option<ProviderId>, DeleteDefaultProviderError>;
     async fn set_default_provider(
         &self,
         vault: Arc<Vault>,
-        feature: String,
+        feature: FeatureKey,
         id: ProviderId,
     ) -> Result<Option<ProviderId>, SetDefaultProviderError>;
     async fn get_provides(
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Result<HashMap<String, Provider>, GetProvidesError>;
+    ) -> Result<HashMap<FeatureKey, Provider>, GetProvidesError>;
     async fn get_feature_provides(
         &self,
         vault: Arc<Vault>,
-        feature: &str,
+        feature: &FeatureKey,
         id: InstanceId,
     ) -> Result<Provider, GetFeatureProvidesError>;
     async fn get_dependencies(
@@ -109,7 +114,7 @@ pub trait Providius: Sorcerer {
         &self,
         vault: Arc<Vault>,
         dependency_key: DependencyKey,
-        feature: &str,
+        feature: FeatureKey,
         id: InstanceId,
         provider_reference: ProviderReference,
     ) -> Result<Option<ProviderReference>, SetDependencyError>;

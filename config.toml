@@ -1,0 +1,48 @@
+version = 1
+tracing_filter = "flecsd=trace,info"
+base_path = "/var/lib/flecs/"
+
+[listener.UnixSocket]
+socket_path = "/run/flecs/flecsd.sock"
+
+[export]
+base_path = "/var/lib/flecs/export"
+timeout = 9223372036854775807
+
+[import]
+base_path = "/var/lib/flecs/import"
+timeout = 9223372036854775807
+
+[floxy]
+base_path = "/var/lib/flecs/floxy"
+config_path = "/etc/nginx/floxy.conf"
+
+[console]
+uri = "https://console-dev.flecs.tech/"
+
+[instance]
+base_path = "/var/lib/flecs/instances"
+
+[network]
+default_network_name = "flecs"
+default_cidr_subnet = "172.21.0.0/16"
+default_gateway = "172.21.0.1"
+default_parent_adapter = ""
+default_network_kind = "Bridge"
+
+[network.default_options]
+
+[app]
+base_path = "/var/lib/flecs/apps"
+
+[deployment]
+base_path = "/var/lib/flecs/deployments"
+
+[manifest]
+base_path = "/var/lib/flecs/manifests"
+
+[secret]
+base_path = "/var/lib/flecs/device"
+
+[provider]
+base_path = "/var/lib/flecs/providers"

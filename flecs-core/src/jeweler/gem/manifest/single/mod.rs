@@ -6,7 +6,7 @@ mod mount;
 mod port;
 
 use crate::jeweler::GetAppKey;
-use crate::jeweler::gem::manifest::{Dependency, DependencyKey, parse_depends};
+use crate::jeweler::gem::manifest::{Dependency, DependencyKey, FeatureKey, parse_depends};
 use crate::vault::pouch::AppKey;
 pub use crate::{Error, Result};
 pub use config_file::*;
@@ -36,7 +36,7 @@ pub struct AppManifestSingle {
     #[serde(skip_serializing)]
     pub ports: Vec<PortMapping>,
     #[serde(skip_serializing)]
-    pub provides: HashMap<String, serde_json::Value>,
+    pub provides: HashMap<FeatureKey, serde_json::Value>,
     #[serde(skip_serializing)]
     pub depends: HashMap<DependencyKey, Dependency>,
     #[serde(flatten)]
@@ -168,7 +168,7 @@ impl AppManifestSingle {
         self.original.deref()
     }
 
-    pub fn provides(&self) -> &HashMap<String, serde_json::Value> {
+    pub fn provides(&self) -> &HashMap<FeatureKey, serde_json::Value> {
         &self.provides
     }
 
@@ -236,7 +236,7 @@ impl TryFrom<flecs_app_manifest::AppManifestSingle> for AppManifestSingle {
                     provides
                         .0
                         .iter()
-                        .map(|(key, value)| (key.deref().clone(), value.clone()))
+                        .map(|(key, value)| (FeatureKey::from(key.clone()), value.clone()))
                         .collect()
                 })
                 .unwrap_or_default(),

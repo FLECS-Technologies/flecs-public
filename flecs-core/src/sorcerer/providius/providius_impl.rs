@@ -1,5 +1,5 @@
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference};
-use crate::jeweler::gem::manifest::DependencyKey;
+use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
 use crate::sorcerer::Sorcerer;
 use crate::sorcerer::providius::{
     AuthProvidersAndDefaults, ClearDependencyError, Dependency, GetDependenciesError,
@@ -69,7 +69,7 @@ impl Providius for ProvidiusImpl {
         else {
             unreachable!("Reservation should never fail");
         };
-        let default = get_default_provider_id(providers.gems(), "auth");
+        let default = get_default_provider_id(providers.gems(), &FeatureKey::auth());
         let core = get_core_providers(providers.gems()).auth.clone();
         let providers = get_auth_providers(instances.gems());
         AuthProvidersAndDefaults {
@@ -82,7 +82,7 @@ impl Providius for ProvidiusImpl {
     async fn get_providers(
         &self,
         vault: Arc<Vault>,
-    ) -> HashMap<String, HashMap<ProviderId, Provider>> {
+    ) -> HashMap<FeatureKey, HashMap<ProviderId, Provider>> {
         let grab = vault.reservation().reserve_instance_pouch().grab().await;
         let instance_pouch = grab
             .instance_pouch
@@ -91,7 +91,7 @@ impl Providius for ProvidiusImpl {
         get_providers(instance_pouch.gems())
     }
 
-    async fn get_default_providers(&self, vault: Arc<Vault>) -> HashMap<String, ProviderId> {
+    async fn get_default_providers(&self, vault: Arc<Vault>) -> HashMap<FeatureKey, ProviderId> {
         let grab = vault.reservation().reserve_provider_pouch().grab().await;
         let provider_pouch = grab
             .provider_pouch
@@ -103,7 +103,7 @@ impl Providius for ProvidiusImpl {
     async fn get_default_provider(
         &self,
         vault: Arc<Vault>,
-        feature: &str,
+        feature: &FeatureKey,
     ) -> Result<Option<Provider>, GetProviderError> {
         let GrabbedPouches {
             instance_pouch: Some(ref instances),
@@ -147,7 +147,7 @@ impl Providius for ProvidiusImpl {
     async fn get_provider(
         &self,
         vault: Arc<Vault>,
-        feature: &str,
+        feature: &FeatureKey,
         id: ProviderId,
     ) -> Result<Provider, GetProviderError> {
         let GrabbedPouches {
@@ -163,7 +163,7 @@ impl Providius for ProvidiusImpl {
     async fn delete_default_provider(
         &self,
         vault: Arc<Vault>,
-        feature: &str,
+        feature: &FeatureKey,
     ) -> Result<Option<ProviderId>, DeleteDefaultProviderError> {
         let GrabbedPouches {
             provider_pouch_mut: Some(ref mut providers),
@@ -184,7 +184,7 @@ impl Providius for ProvidiusImpl {
     async fn set_default_provider(
         &self,
         vault: Arc<Vault>,
-        feature: String,
+        feature: FeatureKey,
         id: ProviderId,
     ) -> Result<Option<ProviderId>, SetDefaultProviderError> {
         let GrabbedPouches {
@@ -207,7 +207,7 @@ impl Providius for ProvidiusImpl {
         &self,
         vault: Arc<Vault>,
         id: InstanceId,
-    ) -> Result<HashMap<String, Provider>, GetProvidesError> {
+    ) -> Result<HashMap<FeatureKey, Provider>, GetProvidesError> {
         let GrabbedPouches {
             instance_pouch: Some(ref instances),
             ..
@@ -221,7 +221,7 @@ impl Providius for ProvidiusImpl {
     async fn get_feature_provides(
         &self,
         vault: Arc<Vault>,
-        feature: &str,
+        feature: &FeatureKey,
         id: InstanceId,
     ) -> Result<Provider, GetFeatureProvidesError> {
         let GrabbedPouches {
@@ -289,7 +289,7 @@ impl Providius for ProvidiusImpl {
         &self,
         vault: Arc<Vault>,
         dependency_key: DependencyKey,
-        feature: &str,
+        feature: FeatureKey,
         id: InstanceId,
         provider_reference: ProviderReference,
     ) -> Result<Option<ProviderReference>, SetDependencyError> {

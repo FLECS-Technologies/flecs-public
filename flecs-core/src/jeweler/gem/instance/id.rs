@@ -1,12 +1,33 @@
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::num::ParseIntError;
 use std::str::FromStr;
+use utoipa::openapi::schema::SchemaType;
+use utoipa::openapi::{RefOr, Schema, Type};
+use utoipa::{PartialSchema, ToSchema};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct InstanceId {
     pub(crate) value: u32,
+}
+
+impl PartialSchema for InstanceId {
+    fn schema() -> RefOr<Schema> {
+        utoipa::openapi::ObjectBuilder::new()
+            .schema_type(SchemaType::Type(Type::String))
+            .min_length(Some(8))
+            .max_length(Some(8))
+            .pattern(Some("^[0-9a-fA-F]{8}$"))
+            .into()
+    }
+}
+
+impl ToSchema for InstanceId {
+    fn name() -> Cow<'static, str> {
+        "HexString8".into()
+    }
 }
 
 impl InstanceId {

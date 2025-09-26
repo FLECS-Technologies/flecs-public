@@ -1,39 +1,59 @@
-use crate::sorcerer::providius::{ProvidersAndDefaults, Providius};
-use crate::vault::Vault;
-use flecsd_axum_server::apis::experimental::ProvidersFeatureGetResponse as GetResponse;
-use flecsd_axum_server::models::ProvidersFeatureGetPathParams as GetPathParams;
-use flecsd_axum_server::{models, types};
-use std::sync::Arc;
+use crate::fsm::server_impl::api::v2::models::{AdditionalInfo, FeatureProviders};
+use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
+use crate::jeweler::gem::manifest::FeatureKey;
+use crate::sorcerer::providius::{Provider, ProvidersAndDefaults};
+use axum::Json;
+use axum::extract::{Path, State};
+use axum::response::{IntoResponse, Response};
+use http::StatusCode;
+use serde::Deserialize;
+use utoipa::IntoParams;
 
 pub mod default;
 pub mod id;
 
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct GetPathParams {
+    pub feature: FeatureKey,
+}
+
+#[utoipa::path(
+    get,
+    path = "/providers/{feature}",
+    tag = "Experimental",
+    description = "Get providers for the specified feature",
+    params(GetPathParams),
+    responses(
+        (status = OK, description = "Default provider was found", body = FeatureProviders),
+        (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
+    ),
+)]
 pub async fn get(
-    vault: Arc<Vault>,
-    providius: Arc<dyn Providius>,
-    path_params: GetPathParams,
-) -> GetResponse {
+    State(VaultState(vault)): State<VaultState>,
+    State(ProvidiusState(providius)): State<ProvidiusState>,
+    Path(GetPathParams { feature }): Path<GetPathParams>,
+) -> Response {
     let ProvidersAndDefaults {
         mut providers,
-        defaults,
+        mut defaults,
     } = providius.get_providers_and_defaults(vault).await;
-    let default = defaults.get(&path_params.feature).map(|id| id.to_string());
-    let providers = providers
-        .remove(&path_params.feature)
-        .unwrap_or_default()
-        .into_iter()
-        .map(|(id, val)| {
-            (
-                id.to_string(),
-                models::FeatureProvider {
-                    app_key: val.app_key.into(),
-                    config: Some(types::Object(val.config)),
-                },
-            )
-        })
-        .collect();
+    let provider = FeatureProviders {
+        default: defaults.remove(&feature),
+        providers: providers
+            .remove(&feature)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(id, value)| {
+                (
+                    id,
+                    Provider {
+                        app_key: value.app_key,
+                        config: Default::default(),
+                    },
+                )
+            })
+            .collect(),
+    };
 
-    GetResponse::Status200_InformationForAllProvidersOfTheSpecifiedFeature(
-        models::FeatureProviders { default, providers },
-    )
+    (StatusCode::OK, Json(provider)).into_response()
 }
