@@ -137,7 +137,7 @@ mod tests {
     "statusText": "OK",
     "data": {
         "app": "tech.flecs.flunder",
-        "_schemaVersion": "3.1.0",
+        "_schemaVersion": "3.2.0",
         "version": "3.0.0",
         "image": "flecs.azurecr.io/tech.flecs.flunder"
     }
@@ -167,10 +167,8 @@ mod tests {
             version: Version::from_str(APP_VERSION).unwrap(),
             volumes: None,
         }));
-        let path: String = format!(
-            "/api/v2/manifests/{}/{}?max_manifest_version=3.0.0",
-            APP_NAME, APP_VERSION
-        );
+        let path: String =
+            format!("/api/v2/manifests/{APP_NAME}/{APP_VERSION}?max_manifest_version=3.0.0");
         let mock = server
             .mock("GET", path.as_str())
             .with_status(200)
