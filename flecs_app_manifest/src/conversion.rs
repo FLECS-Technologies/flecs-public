@@ -892,62 +892,62 @@ mod tests {
     #[test]
     fn capability() {
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::Docker,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::Docker,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_2_0_0::FlecsAppManifestCapabilitiesItem::Docker
             )
         );
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::NetAdmin,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::NetAdmin,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_2_0_0::FlecsAppManifestCapabilitiesItem::NetAdmin
             )
         );
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::IpcLock,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::IpcLock,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_2_0_0::FlecsAppManifestCapabilitiesItem::IpcLock
             )
         );
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::NetRaw,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::NetRaw,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_2_0_0::FlecsAppManifestCapabilitiesItem::NetRaw
             )
         );
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::SysNice,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::SysNice,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_2_0_0::FlecsAppManifestCapabilitiesItem::SysNice
             )
         );
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::Docker,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::Docker,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_3_0_0::FlecsAppManifestCapabilitiesItem::Docker
             )
         );
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::NetAdmin,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::NetAdmin,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_3_0_0::FlecsAppManifestCapabilitiesItem::NetAdmin
             )
         );
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::IpcLock,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::IpcLock,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_3_0_0::FlecsAppManifestCapabilitiesItem::IpcLock
             )
         );
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::NetRaw,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::NetRaw,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_3_0_0::FlecsAppManifestCapabilitiesItem::NetRaw
             )
         );
         assert_eq!(
-            manifest_3_1_0::CapabilitiesItem::SysNice,
-            manifest_3_1_0::CapabilitiesItem::from(
+            manifest_3_2_0::CapabilitiesItem::SysNice,
+            manifest_3_2_0::CapabilitiesItem::from(
                 &manifest_3_0_0::FlecsAppManifestCapabilitiesItem::SysNice
             )
         );
@@ -956,11 +956,11 @@ mod tests {
     #[test]
     fn conffile() {
         assert_eq!(
-            manifest_3_1_0::ConffilesItem::from_str(
+            manifest_3_2_0::ConffilesItem::from_str(
                 "default.conf:/etc/my-app/default.conf:rw,no_init"
             )
             .unwrap(),
-            manifest_3_1_0::ConffilesItem::try_from(
+            manifest_3_2_0::ConffilesItem::try_from(
                 &manifest_2_0_0::FlecsAppManifestConffilesItem::from_str(
                     "default.conf:/etc/my-app/default.conf:rw,no_init"
                 )
@@ -969,11 +969,11 @@ mod tests {
             .unwrap()
         );
         assert_eq!(
-            manifest_3_1_0::ConffilesItem::from_str(
+            manifest_3_2_0::ConffilesItem::from_str(
                 "default.conf:/etc/my-app/default.conf:rw,no_init"
             )
             .unwrap(),
-            manifest_3_1_0::ConffilesItem::try_from(
+            manifest_3_2_0::ConffilesItem::try_from(
                 &manifest_3_0_0::FlecsAppManifestConffilesItem::from_str(
                     "default.conf:/etc/my-app/default.conf:rw,no_init"
                 )
@@ -986,15 +986,15 @@ mod tests {
     #[test]
     fn device() {
         assert_eq!(
-            manifest_3_1_0::DevicesItem::from_str("/dev/net/tun").unwrap(),
-            manifest_3_1_0::DevicesItem::try_from(
+            manifest_3_2_0::DevicesItem::from_str("/dev/net/tun").unwrap(),
+            manifest_3_2_0::DevicesItem::try_from(
                 &manifest_2_0_0::FlecsAppManifestDevicesItem::from_str("/dev/net/tun").unwrap()
             )
             .unwrap()
         );
         assert_eq!(
-            manifest_3_1_0::DevicesItem::from_str("/dev/net/tun").unwrap(),
-            manifest_3_1_0::DevicesItem::try_from(
+            manifest_3_2_0::DevicesItem::from_str("/dev/net/tun").unwrap(),
+            manifest_3_2_0::DevicesItem::try_from(
                 &manifest_3_0_0::FlecsAppManifestDevicesItem::from_str("/dev/net/tun").unwrap()
             )
             .unwrap()
@@ -1004,30 +1004,30 @@ mod tests {
     #[test]
     fn editors() {
         assert_eq!(
-            manifest_3_1_0::Editors::from(vec![manifest_3_1_0::EditorsItem {
+            manifest_3_2_0::Editors::from(vec![manifest_3_2_0::EditorsItem {
                 name: "".to_string(),
                 port: std::num::NonZeroU16::try_from(1234).unwrap(),
                 supports_reverse_proxy: false,
             }]),
-            TryInto::<manifest_3_1_0::Editors>::try_into(
+            TryInto::<manifest_3_2_0::Editors>::try_into(
                 &manifest_2_0_0::FlecsAppManifestEditor::from_str(":1234").unwrap()
             )
             .unwrap()
         );
         assert_eq!(
-            manifest_3_1_0::Editors::from(vec![
-                manifest_3_1_0::EditorsItem {
+            manifest_3_2_0::Editors::from(vec![
+                manifest_3_2_0::EditorsItem {
                     name: "TestEditor#1".to_string(),
                     port: std::num::NonZeroU16::try_from(1234).unwrap(),
                     supports_reverse_proxy: false,
                 },
-                manifest_3_1_0::EditorsItem {
+                manifest_3_2_0::EditorsItem {
                     name: "TestEditor#2".to_string(),
                     port: std::num::NonZeroU16::try_from(5678).unwrap(),
                     supports_reverse_proxy: true,
                 }
             ]),
-            manifest_3_1_0::Editors::from(vec![
+            manifest_3_2_0::Editors::from(vec![
                 manifest_3_0_0::FlecsAppManifestEditorsItem {
                     name: "TestEditor#1".to_string(),
                     port: std::num::NonZeroU16::try_from(1234).unwrap(),
@@ -1045,24 +1045,24 @@ mod tests {
     #[test]
     fn env() {
         assert_eq!(
-            manifest_3_1_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
-            manifest_3_1_0::EnvItem::try_from(
+            manifest_3_2_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
+            manifest_3_2_0::EnvItem::try_from(
                 &manifest_2_0_0::FlecsAppManifestEnvItem::from_str("tech.flecs.some-app_value=any")
                     .unwrap()
             )
             .unwrap()
         );
         assert_eq!(
-            manifest_3_1_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
-            manifest_3_1_0::EnvItem::try_from(
+            manifest_3_2_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
+            manifest_3_2_0::EnvItem::try_from(
                 &manifest_2_0_0::FlecsAppManifestEnvItem::from_str("tech.flecs.some-app_value:any")
                     .unwrap()
             )
             .unwrap()
         );
         assert_eq!(
-            manifest_3_1_0::EnvItem::from_str("tech.flecs.some-app_value=a:n:y").unwrap(),
-            manifest_3_1_0::EnvItem::try_from(
+            manifest_3_2_0::EnvItem::from_str("tech.flecs.some-app_value=a:n:y").unwrap(),
+            manifest_3_2_0::EnvItem::try_from(
                 &manifest_2_0_0::FlecsAppManifestEnvItem::from_str(
                     "tech.flecs.some-app_value:a:n:y"
                 )
@@ -1071,8 +1071,8 @@ mod tests {
             .unwrap()
         );
         assert_eq!(
-            manifest_3_1_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
-            manifest_3_1_0::EnvItem::try_from(
+            manifest_3_2_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
+            manifest_3_2_0::EnvItem::try_from(
                 &manifest_3_0_0::FlecsAppManifestEnvItem::from_str("tech.flecs.some-app_value=any")
                     .unwrap()
             )
@@ -1083,9 +1083,9 @@ mod tests {
     #[test]
     fn label() {
         assert_eq!(
-            manifest_3_1_0::LabelsItem::from_str("tech.flecs.some-label=Some custom label value")
+            manifest_3_2_0::LabelsItem::from_str("tech.flecs.some-label=Some custom label value")
                 .unwrap(),
-            manifest_3_1_0::LabelsItem::try_from(
+            manifest_3_2_0::LabelsItem::try_from(
                 &manifest_2_0_0::FlecsAppManifestLabelsItem::from_str(
                     "tech.flecs.some-label=Some custom label value"
                 )
@@ -1094,9 +1094,9 @@ mod tests {
             .unwrap()
         );
         assert_eq!(
-            manifest_3_1_0::LabelsItem::from_str("tech.flecs.some-label=Some custom label value")
+            manifest_3_2_0::LabelsItem::from_str("tech.flecs.some-label=Some custom label value")
                 .unwrap(),
-            manifest_3_1_0::LabelsItem::try_from(
+            manifest_3_2_0::LabelsItem::try_from(
                 &manifest_3_0_0::FlecsAppManifestLabelsItem::from_str(
                     "tech.flecs.some-label=Some custom label value"
                 )
@@ -1109,16 +1109,16 @@ mod tests {
     #[test]
     fn port() {
         assert_eq!(
-            manifest_3_1_0::PortsItem::from_str("5001-5008:6001-6008").unwrap(),
-            manifest_3_1_0::PortsItem::try_from(
+            manifest_3_2_0::PortsItem::from_str("5001-5008:6001-6008").unwrap(),
+            manifest_3_2_0::PortsItem::try_from(
                 &manifest_2_0_0::FlecsAppManifestPortsItem::from_str("5001-5008:6001-6008")
                     .unwrap()
             )
             .unwrap()
         );
         assert_eq!(
-            manifest_3_1_0::PortsItem::from_str("5001-5008:6001-6008").unwrap(),
-            manifest_3_1_0::PortsItem::try_from(
+            manifest_3_2_0::PortsItem::from_str("5001-5008:6001-6008").unwrap(),
+            manifest_3_2_0::PortsItem::try_from(
                 &manifest_3_0_0::FlecsAppManifestPortsItem::from_str("5001-5008:6001-6008")
                     .unwrap()
             )
@@ -1129,16 +1129,16 @@ mod tests {
     #[test]
     fn volume() {
         assert_eq!(
-            manifest_3_1_0::VolumesItem::from_str("/etc/my-app:/etc/my-app").unwrap(),
-            manifest_3_1_0::VolumesItem::try_from(
+            manifest_3_2_0::VolumesItem::from_str("/etc/my-app:/etc/my-app").unwrap(),
+            manifest_3_2_0::VolumesItem::try_from(
                 &manifest_2_0_0::FlecsAppManifestVolumesItem::from_str("/etc/my-app:/etc/my-app")
                     .unwrap()
             )
             .unwrap()
         );
         assert_eq!(
-            manifest_3_1_0::VolumesItem::from_str("/etc/my-app:/etc/my-app").unwrap(),
-            manifest_3_1_0::VolumesItem::try_from(
+            manifest_3_2_0::VolumesItem::from_str("/etc/my-app:/etc/my-app").unwrap(),
+            manifest_3_2_0::VolumesItem::try_from(
                 &manifest_3_0_0::FlecsAppManifestVolumesItem::from_str("/etc/my-app:/etc/my-app")
                     .unwrap()
             )
@@ -1147,7 +1147,7 @@ mod tests {
     }
 
     #[test]
-    fn complete_conversion_2_to_3_1() {
+    fn complete_conversion_2_to_3_2() {
         let manifest_v2 = manifest_2_0_0::FlecsAppManifest {
             app: manifest_2_0_0::FlecsAppManifestApp::from_str("io.some.app").unwrap(),
             args: vec![],
@@ -1205,38 +1205,39 @@ mod tests {
             ],
         };
 
-        let expected_manifest_v3_1 = manifest_3_1_0::Single {
-            app: manifest_3_1_0::App::from_str("io.some.app").unwrap(),
+        let expected_manifest_v3_2 = manifest_3_2_0::Single {
+            app: manifest_3_2_0::App::from_str("io.some.app").unwrap(),
             args: None,
             capabilities: Some(
                 vec![
-                    manifest_3_1_0::CapabilitiesItem::IpcLock,
-                    manifest_3_1_0::CapabilitiesItem::Docker,
+                    manifest_3_2_0::CapabilitiesItem::IpcLock,
+                    manifest_3_2_0::CapabilitiesItem::Docker,
                 ]
                 .into(),
             ),
             conffiles: Some(
                 vec![
-                    manifest_3_1_0::ConffilesItem::from_str(
+                    manifest_3_2_0::ConffilesItem::from_str(
                         "some.conf:/etc/my-app/new.conf:rw,no_init",
                     )
                     .unwrap(),
-                    manifest_3_1_0::ConffilesItem::from_str(
+                    manifest_3_2_0::ConffilesItem::from_str(
                         "default.conf:/etc/my-app/default.conf:rw,no_init",
                     )
                     .unwrap(),
                 ]
                 .into(),
             ),
+            depends: None,
             devices: Some(
                 vec![
-                    manifest_3_1_0::DevicesItem::from_str("/dev/net/tun").unwrap(),
-                    manifest_3_1_0::DevicesItem::from_str("/dev/bus/usb").unwrap(),
+                    manifest_3_2_0::DevicesItem::from_str("/dev/net/tun").unwrap(),
+                    manifest_3_2_0::DevicesItem::from_str("/dev/bus/usb").unwrap(),
                 ]
                 .into(),
             ),
             editors: Some(
-                vec![manifest_3_1_0::EditorsItem {
+                vec![manifest_3_2_0::EditorsItem {
                     name: "".to_string(),
                     port: std::num::NonZeroU16::try_from(15945).unwrap(),
                     supports_reverse_proxy: false,
@@ -1245,18 +1246,18 @@ mod tests {
             ),
             env: Some(
                 vec![
-                    manifest_3_1_0::EnvItem::from_str("MY_ENV=value").unwrap(),
-                    manifest_3_1_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
+                    manifest_3_2_0::EnvItem::from_str("MY_ENV=value").unwrap(),
+                    manifest_3_2_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
                 ]
                 .into(),
             ),
             hostname: Some("TestHostname".to_string().into()),
-            image: manifest_3_1_0::Image::from_str("flecs.azurecr.io/tech.flecs.plunder").unwrap(),
+            image: manifest_3_2_0::Image::from_str("flecs.azurecr.io/tech.flecs.plunder").unwrap(),
             interactive: Some(false.into()),
             labels: Some(
                 vec![
-                    manifest_3_1_0::LabelsItem::from_str("tech.flecs").unwrap(),
-                    manifest_3_1_0::LabelsItem::from_str(
+                    manifest_3_2_0::LabelsItem::from_str("tech.flecs").unwrap(),
+                    manifest_3_2_0::LabelsItem::from_str(
                         "tech.flecs.some-label=Some custom label value",
                     )
                     .unwrap(),
@@ -1267,33 +1268,35 @@ mod tests {
             multi_instance: Some(true.into()),
             ports: Some(
                 vec![
-                    manifest_3_1_0::PortsItem::from_str("8001:8001").unwrap(),
-                    manifest_3_1_0::PortsItem::from_str("5000").unwrap(),
-                    manifest_3_1_0::PortsItem::from_str("5001-5008:6001-6008").unwrap(),
-                    manifest_3_1_0::PortsItem::from_str("6001-6008").unwrap(),
+                    manifest_3_2_0::PortsItem::from_str("8001:8001").unwrap(),
+                    manifest_3_2_0::PortsItem::from_str("5000").unwrap(),
+                    manifest_3_2_0::PortsItem::from_str("5001-5008:6001-6008").unwrap(),
+                    manifest_3_2_0::PortsItem::from_str("6001-6008").unwrap(),
                 ]
                 .into(),
             ),
+            provides: None,
+            recommends: None,
             revision: Some("34".to_string().into()),
             schema: None,
             version: "6.8.8-bunny".to_string().into(),
             volumes: Some(
                 vec![
-                    manifest_3_1_0::VolumesItem::from_str("my-app-etc:/etc/my-app").unwrap(),
-                    manifest_3_1_0::VolumesItem::from_str("/etc/my-app:/etc/my-app").unwrap(),
+                    manifest_3_2_0::VolumesItem::from_str("my-app-etc:/etc/my-app").unwrap(),
+                    manifest_3_2_0::VolumesItem::from_str("/etc/my-app:/etc/my-app").unwrap(),
                 ]
                 .into(),
             ),
         };
 
         assert_eq!(
-            expected_manifest_v3_1,
-            manifest_3_1_0::Single::try_from(&manifest_v2).unwrap()
+            expected_manifest_v3_2,
+            manifest_3_2_0::Single::try_from(&manifest_v2).unwrap()
         )
     }
 
     #[test]
-    fn complete_conversion_3_to_3_1() {
+    fn complete_conversion_3_to_3_2() {
         let manifest_v3 = manifest_3_0_0::FlecsAppManifest {
             app: manifest_3_0_0::FlecsAppManifestApp::from_str("io.some.app").unwrap(),
             args: vec![],
@@ -1355,38 +1358,39 @@ mod tests {
             ],
         };
 
-        let expected_manifest_v3_1 = manifest_3_1_0::Single {
-            app: manifest_3_1_0::App::from_str("io.some.app").unwrap(),
+        let expected_manifest_v3_2 = manifest_3_2_0::Single {
+            app: manifest_3_2_0::App::from_str("io.some.app").unwrap(),
             args: None,
             capabilities: Some(
                 vec![
-                    manifest_3_1_0::CapabilitiesItem::IpcLock,
-                    manifest_3_1_0::CapabilitiesItem::Docker,
+                    manifest_3_2_0::CapabilitiesItem::IpcLock,
+                    manifest_3_2_0::CapabilitiesItem::Docker,
                 ]
                 .into(),
             ),
             conffiles: Some(
                 vec![
-                    manifest_3_1_0::ConffilesItem::from_str(
+                    manifest_3_2_0::ConffilesItem::from_str(
                         "some.conf:/etc/my-app/new.conf:rw,no_init",
                     )
                     .unwrap(),
-                    manifest_3_1_0::ConffilesItem::from_str(
+                    manifest_3_2_0::ConffilesItem::from_str(
                         "default.conf:/etc/my-app/default.conf:rw,no_init",
                     )
                     .unwrap(),
                 ]
                 .into(),
             ),
+            depends: None,
             devices: Some(
                 vec![
-                    manifest_3_1_0::DevicesItem::from_str("/dev/net/tun").unwrap(),
-                    manifest_3_1_0::DevicesItem::from_str("/dev/bus/usb").unwrap(),
+                    manifest_3_2_0::DevicesItem::from_str("/dev/net/tun").unwrap(),
+                    manifest_3_2_0::DevicesItem::from_str("/dev/bus/usb").unwrap(),
                 ]
                 .into(),
             ),
             editors: Some(
-                vec![manifest_3_1_0::EditorsItem {
+                vec![manifest_3_2_0::EditorsItem {
                     name: "".to_string(),
                     port: std::num::NonZeroU16::try_from(15945).unwrap(),
                     supports_reverse_proxy: false,
@@ -1395,18 +1399,18 @@ mod tests {
             ),
             env: Some(
                 vec![
-                    manifest_3_1_0::EnvItem::from_str("MY_ENV=value").unwrap(),
-                    manifest_3_1_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
+                    manifest_3_2_0::EnvItem::from_str("MY_ENV=value").unwrap(),
+                    manifest_3_2_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
                 ]
                 .into(),
             ),
             hostname: None,
-            image: manifest_3_1_0::Image::from_str("flecs.azurecr.io/tech.flecs.plunder").unwrap(),
+            image: manifest_3_2_0::Image::from_str("flecs.azurecr.io/tech.flecs.plunder").unwrap(),
             interactive: Some(false.into()),
             labels: Some(
                 vec![
-                    manifest_3_1_0::LabelsItem::from_str("tech.flecs").unwrap(),
-                    manifest_3_1_0::LabelsItem::from_str(
+                    manifest_3_2_0::LabelsItem::from_str("tech.flecs").unwrap(),
+                    manifest_3_2_0::LabelsItem::from_str(
                         "tech.flecs.some-label=Some custom label value",
                     )
                     .unwrap(),
@@ -1417,28 +1421,30 @@ mod tests {
             multi_instance: Some(true.into()),
             ports: Some(
                 vec![
-                    manifest_3_1_0::PortsItem::from_str("8001:8001").unwrap(),
-                    manifest_3_1_0::PortsItem::from_str("5000").unwrap(),
-                    manifest_3_1_0::PortsItem::from_str("5001-5008:6001-6008").unwrap(),
-                    manifest_3_1_0::PortsItem::from_str("6001-6008").unwrap(),
+                    manifest_3_2_0::PortsItem::from_str("8001:8001").unwrap(),
+                    manifest_3_2_0::PortsItem::from_str("5000").unwrap(),
+                    manifest_3_2_0::PortsItem::from_str("5001-5008:6001-6008").unwrap(),
+                    manifest_3_2_0::PortsItem::from_str("6001-6008").unwrap(),
                 ]
                 .into(),
             ),
+            provides: None,
+            recommends: None,
             revision: Some("34".to_string().into()),
             schema: None,
             version: "6.8.8-bunny".to_string().into(),
             volumes: Some(
                 vec![
-                    manifest_3_1_0::VolumesItem::from_str("my-app-etc:/etc/my-app").unwrap(),
-                    manifest_3_1_0::VolumesItem::from_str("/etc/my-app:/etc/my-app").unwrap(),
+                    manifest_3_2_0::VolumesItem::from_str("my-app-etc:/etc/my-app").unwrap(),
+                    manifest_3_2_0::VolumesItem::from_str("/etc/my-app:/etc/my-app").unwrap(),
                 ]
                 .into(),
             ),
         };
 
         assert_eq!(
-            expected_manifest_v3_1,
-            manifest_3_1_0::Single::try_from(&manifest_v3).unwrap()
+            expected_manifest_v3_2,
+            manifest_3_2_0::Single::try_from(&manifest_v3).unwrap()
         )
     }
 }
