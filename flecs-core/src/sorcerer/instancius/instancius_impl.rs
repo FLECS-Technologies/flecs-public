@@ -28,6 +28,7 @@ use crate::sorcerer::instancius::{
     RedirectEditorRequestResult,
 };
 use crate::sorcerer::spell::instance::{QueryInstanceConfigError, UpdateInstanceError};
+use crate::sorcerer::spell::provider::set_default_dependencies;
 use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
@@ -394,27 +395,40 @@ impl Instancius for InstanciusImpl {
         };
         let instance = result.await?;
         let instance_id = instance.id();
+        let result = {
+            let vault = vault.clone();
+            quest
+                .lock()
+                .await
+                .create_infallible_sub_quest(
+                    format!(
+                        "Saving new instance {} with id {}",
+                        instance.name(),
+                        instance_id
+                    ),
+                    |_quest| async move {
+                        let mut grab = vault
+                            .reservation()
+                            .reserve_instance_pouch_mut()
+                            .grab()
+                            .await;
+                        let pouch = grab
+                            .instance_pouch_mut
+                            .as_mut()
+                            .expect("Vault reservations should never fail");
+                        pouch.gems_mut().insert(instance_id, instance);
+                    },
+                )
+                .await
+                .2
+        };
+        result.await;
         let result = quest
             .lock()
             .await
             .create_infallible_sub_quest(
-                format!(
-                    "Saving new instance {} with id {}",
-                    instance.name(),
-                    instance_id
-                ),
-                |_quest| async move {
-                    let mut grab = vault
-                        .reservation()
-                        .reserve_instance_pouch_mut()
-                        .grab()
-                        .await;
-                    let pouch = grab
-                        .instance_pouch_mut
-                        .as_mut()
-                        .expect("Vault reservations should never fail");
-                    pouch.gems_mut().insert(instance_id, instance);
-                },
+                format!("Set default dependencies for instance with id {instance_id}"),
+                |quest| set_default_dependencies(quest, vault, instance_id),
             )
             .await
             .2;
