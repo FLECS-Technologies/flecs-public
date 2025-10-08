@@ -3,13 +3,15 @@ use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference, StoredProviderReference};
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
 use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
+use crate::quest::{State, SyncQuest};
 use crate::sorcerer::providius::{Dependency, Provider};
-use crate::vault::pouch;
-use crate::vault::pouch::AppKey;
 use crate::vault::pouch::provider::{CoreProviders, ProviderId};
+use crate::vault::pouch::{AppKey, Pouch};
+use crate::vault::{GrabbedPouches, Vault, pouch};
 use anyhow::Context;
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -576,6 +578,90 @@ pub async fn set_dependency(
     Ok(instance
         .set_dependency(dependency_key, provider_reference)
         .map(|dependency| dependency.provider_reference.clone()))
+}
+
+pub async fn set_default_dependencies(quest: SyncQuest, vault: Arc<Vault>, id: InstanceId) {
+    let GrabbedPouches {
+        provider_pouch: Some(ref providers),
+        instance_pouch_mut: Some(ref mut instances),
+        ..
+    } = vault
+        .reservation()
+        .reserve_provider_pouch()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await
+    else {
+        unreachable!("Reservation should never fail");
+    };
+    let Some(instance) = instances.gems().get(&id) else {
+        let mut quest = quest.lock().await;
+        quest.detail = Some(format!("Instance with id {id} does not exist"));
+        quest.state = State::Failed;
+        return;
+    };
+    let dependencies: Vec<_> = instance.dependencies().keys().cloned().collect();
+    if dependencies.is_empty() {
+        let mut quest = quest.lock().await;
+        quest.detail = Some("Instance has no dependencies".to_string());
+        quest.state = State::Skipped;
+        return;
+    }
+    for dependency in dependencies {
+        let detail = match set_default_dependency(
+            instances.gems_mut(),
+            providers.gems(),
+            dependency.clone(),
+            id,
+        )
+        .await
+        {
+            Ok(feature) => format!(
+                "Solved dependency {dependency} with default provider for feature {feature}"
+            ),
+            Err(errors) => errors
+                .into_iter()
+                .map(|(feature, error)| {
+                    format!("Could not use default provider for {feature} for dependency {dependency}: {error}")
+                })
+                .collect::<Vec<_>>()
+                .join("\n"),
+        };
+        let mut quest = quest.lock().await;
+        match quest.detail.as_mut() {
+            None => quest.detail = Some(detail),
+            Some(quest_detail) => {
+                quest_detail.push('\n');
+                quest_detail.push_str(&detail)
+            }
+        }
+    }
+}
+
+pub async fn set_default_dependency(
+    instances: &mut pouch::instance::Gems,
+    providers: &pouch::provider::Gems,
+    dependency_key: DependencyKey,
+    id: InstanceId,
+) -> Result<FeatureKey, Vec<(FeatureKey, SetDependencyError)>> {
+    let mut errors = Vec::new();
+    for feature in dependency_key.features() {
+        if let Err(e) = set_dependency(
+            instances,
+            providers,
+            dependency_key.clone(),
+            feature.clone(),
+            id,
+            ProviderReference::Default,
+        )
+        .await
+        {
+            errors.push((feature, e));
+        } else {
+            return Ok(feature);
+        }
+    }
+    Err(errors)
 }
 
 #[cfg(test)]
