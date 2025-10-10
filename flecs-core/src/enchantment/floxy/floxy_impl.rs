@@ -163,13 +163,26 @@ impl Floxy for FloxyImpl {
         dest_port: u16,
     ) -> crate::Result<(bool, u16)> {
         let free_port = get_random_free_port()?;
-        let config_content = Self::create_server_config(instance_ip, free_port, dest_port);
-        let config_path = self.build_server_config_path(app_name, instance_id, free_port);
+        let config_changed =
+            self.add_instance_redirect(app_name, instance_id, instance_ip, free_port, dest_port)?;
+        Ok((config_changed, free_port))
+    }
+
+    fn add_instance_redirect(
+        &self,
+        app_name: &str,
+        instance_id: InstanceId,
+        instance_ip: IpAddr,
+        src_port: u16,
+        dest_port: u16,
+    ) -> anyhow::Result<bool> {
+        let config_content = Self::create_server_config(instance_ip, src_port, dest_port);
+        let config_path = self.build_server_config_path(app_name, instance_id, src_port);
         let config_changed = self.add_reverse_proxy_config(&config_content, &config_path)?;
         debug!(
-            "Added editor redirect for instance {instance_id} at {config_path:?}: host:{free_port} -> {instance_ip}:{dest_port}"
+            "Added redirect for instance {instance_id} at {config_path:?}: host:{src_port} -> {instance_ip}:{dest_port}"
         );
-        Ok((config_changed, free_port))
+        Ok(config_changed)
     }
 
     fn reload_config(&self) -> anyhow::Result<()> {

@@ -4,7 +4,7 @@ use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::instance::compose::ComposeInstance;
 use crate::jeweler::gem::instance::docker::DockerInstance;
-use crate::jeweler::gem::instance::docker::config::InstanceConfig;
+use crate::jeweler::gem::instance::docker::config::{InstanceConfig, ProviderConfig};
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{Instance, InstanceId};
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
@@ -55,8 +55,18 @@ pub async fn create_docker_instance(
     manifest: Arc<AppManifestSingle>,
     name: String,
     address: IpAddr,
+    provider_config: ProviderConfig,
 ) -> Result<DockerInstance> {
-    DockerInstance::try_create_new(quest, lore, deployment, manifest, name, address).await
+    DockerInstance::try_create_new(
+        quest,
+        lore,
+        deployment,
+        manifest,
+        name,
+        address,
+        provider_config,
+    )
+    .await
 }
 
 pub async fn create_compose_instance(
@@ -534,6 +544,30 @@ pub async fn make_ipv4_reservation(
         .as_mut()
         .expect("Vault reservations should never fail")
         .reserve_free_ipv4_address(network)
+}
+
+pub async fn make_auth_port_reservation(vault: Arc<Vault>) -> Option<u16> {
+    vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Vault reservations should never fail")
+        .reserve_auth_port()
+}
+
+pub async fn clear_auth_port_reservation(vault: Arc<Vault>, port: u16) -> bool {
+    vault
+        .reservation()
+        .reserve_instance_pouch_mut()
+        .grab()
+        .await
+        .instance_pouch_mut
+        .as_mut()
+        .expect("Vault reservations should never fail")
+        .clear_reserved_provider_port(port)
 }
 
 #[derive(Debug, thiserror::Error)]

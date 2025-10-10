@@ -242,6 +242,23 @@ where
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub struct AuthProviderConfig {
+    pub port: u16,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub struct ProviderConfig {
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub auth: Option<AuthProviderConfig>,
+}
+
+impl ProviderConfig {
+    pub fn is_empty(&self) -> bool {
+        self.auth.is_none()
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct InstanceConfig {
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub volume_mounts: HashMap<VolumeId, VolumeMount>,
@@ -264,6 +281,8 @@ pub struct InstanceConfig {
     pub mapped_editor_ports: HashMap<u16, u16>,
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub dependencies: HashMap<DependencyKey, StoredProviderReference>,
+    #[serde(skip_serializing_if = "ProviderConfig::is_empty", default)]
+    pub providers: ProviderConfig,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
