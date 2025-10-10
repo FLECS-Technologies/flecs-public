@@ -7,7 +7,7 @@ use crate::forge::time::SystemTimeExt;
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
-use crate::jeweler::gem::instance::docker::config::InstancePortMapping;
+use crate::jeweler::gem::instance::docker::config::{InstancePortMapping, ProviderConfig};
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::single::{
     AppManifestSingle, BindMount, ConfigFile, Mount, VolumeMount,
@@ -475,6 +475,7 @@ impl DockerInstance {
         manifest: Arc<AppManifestSingle>,
         name: String,
         address: IpAddr,
+        provider_config: ProviderConfig,
     ) -> anyhow::Result<Self> {
         let instance_id = InstanceId::new_random();
         let tcp_port_mapping = manifest.ports.clone();
@@ -540,6 +541,7 @@ impl DockerInstance {
             mapped_editor_ports: Default::default(),
             editor_path_prefixes: manifest.default_editor_path_prefixes(),
             dependencies: HashMap::default(),
+            providers: provider_config,
         };
         Ok(Self {
             hostname: format!("flecs-{instance_id}"),
@@ -563,7 +565,8 @@ impl DockerInstance {
             return Ok(());
         }
         self.load_reverse_proxy_config(floxy.clone()).await?;
-        self.load_additional_locations_reverse_proxy_config(floxy)?;
+        self.load_additional_locations_reverse_proxy_config(floxy.clone())?;
+        self.load_auth_provider_proxy_config(floxy).await?;
         self.deployment
             .start_instance(
                 self.lore.clone(),
@@ -602,6 +605,26 @@ impl DockerInstance {
                     instance_ip,
                     &editor_ports,
                 )?;
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn load_auth_provider_proxy_config<F: Floxy>(
+        &self,
+        floxy: Arc<FloxyOperation<F>>,
+    ) -> anyhow::Result<()> {
+        if let Some(auth_provider) = &self.manifest.specific_providers.auth {
+            if let Some(instance_ip) = self.get_default_network_address().await? {
+                if let Some(auth_config) = &self.config.providers.auth {
+                    floxy.add_instance_redirect(
+                        &self.app_key().name,
+                        self.id,
+                        instance_ip,
+                        auth_config.port,
+                        auth_provider.port,
+                    )?;
+                }
             }
         }
         Ok(())
@@ -1471,6 +1494,7 @@ pub mod tests {
                 ]),
                 mapped_editor_ports: Default::default(),
                 dependencies: HashMap::default(),
+                providers: Default::default(),
             },
             deployment,
             manifest,
@@ -1940,6 +1964,7 @@ pub mod tests {
             manifest.clone(),
             "TestInstance".to_string(),
             address,
+            ProviderConfig::default(),
         )
         .await
         .unwrap();
@@ -1989,6 +2014,7 @@ pub mod tests {
                 manifest.clone(),
                 "TestInstance".to_string(),
                 IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+                ProviderConfig::default(),
             )
             .await
             .is_err()
@@ -2013,6 +2039,7 @@ pub mod tests {
                 manifest.clone(),
                 "TestInstance".to_string(),
                 IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+                ProviderConfig::default(),
             )
             .await
             .is_err()
@@ -2037,6 +2064,7 @@ pub mod tests {
                 manifest.clone(),
                 "TestInstance".to_string(),
                 IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
+                ProviderConfig::default(),
             )
             .await
             .is_err()

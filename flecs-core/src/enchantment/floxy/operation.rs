@@ -148,6 +148,26 @@ impl<F: Floxy> FloxyOperation<F> {
         }
         Ok(port)
     }
+
+    pub fn add_instance_redirect(
+        &self,
+        app_name: &str,
+        instance_id: InstanceId,
+        instance_ip: IpAddr,
+        src_port: u16,
+        dest_port: u16,
+    ) -> crate::Result<()> {
+        if self.floxy.add_instance_redirect(
+            app_name,
+            instance_id,
+            instance_ip,
+            src_port,
+            dest_port,
+        )? {
+            self.mark_for_reload();
+        }
+        Ok(())
+    }
 }
 
 impl<F: Floxy> Drop for FloxyOperation<F> {

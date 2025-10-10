@@ -19,6 +19,7 @@ pub struct InstancePouch {
     lore: Arc<Lore>,
     instances: HashMap<InstanceId, Instance>,
     reserved_ip_addresses: HashSet<IpAddr>,
+    reserved_provider_ports: HashSet<u16>,
 }
 
 impl Pouch for InstancePouch {
@@ -194,6 +195,29 @@ impl InstancePouch {
     pub fn clear_ip_address_reservation(&mut self, address: IpAddr) {
         self.reserved_ip_addresses.remove(&address);
     }
+
+    fn auth_port_in_use(&self, port: u16) -> bool {
+        self.instances.values().any(|instance| match instance {
+            Instance::Docker(instance) => matches!(&instance.config.providers.auth, Some(auth_config) if auth_config.port == port),
+            _ => false,
+        })
+    }
+
+    pub fn reserve_auth_port(&mut self) -> Option<u16> {
+        const MIN_PORT: u16 = 52100;
+        const MAX_PORT: u16 = 52200;
+        for port in MIN_PORT..=MAX_PORT {
+            if !self.reserved_provider_ports.contains(&port) && !self.auth_port_in_use(port) {
+                self.reserved_provider_ports.insert(port);
+                return Some(port);
+            }
+        }
+        None
+    }
+
+    pub fn clear_reserved_provider_port(&mut self, port: u16) -> bool {
+        self.reserved_provider_ports.remove(&port)
+    }
 }
 
 impl InstancePouch {
@@ -202,6 +226,7 @@ impl InstancePouch {
             lore,
             instances: HashMap::default(),
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         }
     }
 }
@@ -304,6 +329,7 @@ pub mod tests {
             .unwrap(),
             lore,
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         }
     }
 
@@ -612,6 +638,7 @@ pub mod tests {
             )]),
             mapped_editor_ports: HashMap::from([(3000, 4000)]),
             dependencies: Default::default(),
+            providers: Default::default(),
         }
     }
 
@@ -925,6 +952,7 @@ pub mod tests {
             ),
             lore,
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         };
         pouch.close().unwrap();
         let data = fs::read_to_string(path).unwrap();
@@ -950,6 +978,7 @@ pub mod tests {
             lore,
             instances: HashMap::new(),
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         };
         fs::write(
             path,
@@ -983,6 +1012,7 @@ pub mod tests {
             ),
             lore,
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         };
         for gem in gems {
             assert!(pouch.gems().contains_key(&gem.0));
@@ -1003,6 +1033,7 @@ pub mod tests {
             ),
             lore,
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         };
         assert_eq!(pouch.instances.len(), 6);
         let instance_ids_by_app_key = pouch.instance_ids_by_app_key(AppKey {
@@ -1027,6 +1058,7 @@ pub mod tests {
             ),
             lore,
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         };
         assert_eq!(pouch.instances.len(), 6);
         let instance_ids_by_app_name =
@@ -1050,6 +1082,7 @@ pub mod tests {
             ),
             lore,
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         };
         assert_eq!(pouch.instances.len(), 6);
         let instance_ids_by_app_version = pouch.instance_ids_by_app_version("1.2.4".to_string());
@@ -1067,6 +1100,7 @@ pub mod tests {
             lore,
             instances: HashMap::default(),
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         };
         assert!(pouch.unavailable_ipv4_addresses().is_empty());
     }
@@ -1086,6 +1120,7 @@ pub mod tests {
                 .iter()
                 .map(|ipv4_address| (*ipv4_address).into())
                 .collect(),
+            reserved_provider_ports: HashSet::default(),
         };
         assert_eq!(
             pouch.unavailable_ipv4_addresses(),
@@ -1106,6 +1141,7 @@ pub mod tests {
             ),
             lore,
             reserved_ip_addresses: HashSet::default(),
+            reserved_provider_ports: HashSet::default(),
         };
         for instance in pouch.instances.values_mut() {
             let Instance::Docker(instance) = instance else {
@@ -1153,6 +1189,7 @@ pub mod tests {
                 IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4)),
                 IpAddr::V4(Ipv4Addr::new(56, 84, 71, 93)),
             ]),
+            reserved_provider_ports: HashSet::default(),
         };
         let expected_ipv4_addresses = HashSet::from([
             Ipv4Addr::new(5, 10, 20, 40),
@@ -1209,6 +1246,7 @@ pub mod tests {
                     0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x83,
                 )),
             ]),
+            reserved_provider_ports: HashSet::default(),
         };
         for instance in pouch.instances.values_mut() {
             let Instance::Docker(instance) = instance else {
@@ -1250,6 +1288,7 @@ pub mod tests {
             lore,
             instances: HashMap::default(),
             reserved_ip_addresses: HashSet::from([ip1, ip2, ip3]),
+            reserved_provider_ports: HashSet::default(),
         };
         pouch.clear_ip_address_reservation(ip1);
         assert_eq!(pouch.reserved_ip_addresses, HashSet::from([ip2, ip3]));
@@ -1282,6 +1321,7 @@ pub mod tests {
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, 4)),
                 IpAddr::V4(Ipv4Addr::new(20, 30, 40, 5)),
             ]),
+            reserved_provider_ports: HashSet::default(),
         };
         let expected_new_address = Ipv4Addr::new(20, 30, 40, 6 + pouch.instances.len() as u8);
         for (i, instance) in pouch.instances.values_mut().enumerate() {
@@ -1330,6 +1370,7 @@ pub mod tests {
             lore,
             instances: HashMap::default(),
             reserved_ip_addresses: reserved_ip_addresses.clone(),
+            reserved_provider_ports: HashSet::default(),
         };
         assert_eq!(pouch.get_free_ipv4_address(network), None);
         assert_eq!(pouch.reserved_ip_addresses, reserved_ip_addresses);

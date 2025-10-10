@@ -68,6 +68,15 @@ pub trait Floxy: Enchantment {
         dest_port: u16,
     ) -> crate::Result<(bool, u16)>;
 
+    fn add_instance_redirect(
+        &self,
+        app_name: &str,
+        instance_id: InstanceId,
+        instance_ip: IpAddr,
+        src_port: u16,
+        dest_port: u16,
+    ) -> crate::Result<bool>;
+
     fn reload_config(&self) -> crate::Result<()>;
 
     fn clear_server_configs(&self) -> crate::Result<()>;

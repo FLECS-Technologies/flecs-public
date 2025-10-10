@@ -42,6 +42,7 @@ impl TryFrom<&serde_json::Value> for AuthProvider {
         const PROPERTY_NAME_ISSUER_URL: &str = "issuer_url";
         const PROPERTY_NAME_NAME: &str = "name";
         const PROPERTY_NAME_KIND: &str = "kind";
+        const PROPERTY_NAME_PORT: &str = "port";
         let serde_json::Value::Object(properties) = value else {
             return Err(AuthProviderFromValueError::NotObject(value.clone()));
         };
@@ -80,6 +81,33 @@ impl TryFrom<&serde_json::Value> for AuthProvider {
                     });
                 }
             },
+            port: match properties.get(PROPERTY_NAME_PORT) {
+                None => return Err(AuthProviderFromValueError::ValueMissing(PROPERTY_NAME_PORT)),
+                Some(serde_json::Value::Number(port)) => match port.as_u64() {
+                    None => {
+                        return Err(AuthProviderFromValueError::ValueMalformed {
+                            name: PROPERTY_NAME_PORT,
+                            value: serde_json::Value::Number(port.clone()),
+                        });
+                    }
+                    Some(port) => {
+                        if port > u16::MAX as u64 {
+                            return Err(AuthProviderFromValueError::ValueMalformed {
+                                name: PROPERTY_NAME_PORT,
+                                value: serde_json::Value::Number(port.into()),
+                            });
+                        } else {
+                            port as u16
+                        }
+                    }
+                },
+                Some(val) => {
+                    return Err(AuthProviderFromValueError::ValueMalformed {
+                        name: PROPERTY_NAME_PORT,
+                        value: val.clone(),
+                    });
+                }
+            },
             config: value.clone(),
         })
     }
@@ -100,5 +128,6 @@ pub struct AuthProvider {
     pub issuer_url: IssuerUrl,
     pub name: String,
     pub kind: String,
+    pub port: u16,
     pub config: serde_json::Value,
 }
