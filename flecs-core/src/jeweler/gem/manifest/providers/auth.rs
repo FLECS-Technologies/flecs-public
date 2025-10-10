@@ -39,36 +39,43 @@ impl TryFrom<&serde_json::Value> for AuthProvider {
     type Error = AuthProviderFromValueError;
 
     fn try_from(value: &serde_json::Value) -> Result<Self, Self::Error> {
+        const PROPERTY_NAME_ISSUER_URL: &str = "issuer_url";
+        const PROPERTY_NAME_NAME: &str = "name";
+        const PROPERTY_NAME_KIND: &str = "kind";
         let serde_json::Value::Object(properties) = value else {
             return Err(AuthProviderFromValueError::NotObject(value.clone()));
         };
         Ok(Self {
-            issuer_url: match properties.get("issuer_url") {
-                None => return Err(AuthProviderFromValueError::ValueMissing("issuer_url")),
+            issuer_url: match properties.get(PROPERTY_NAME_ISSUER_URL) {
+                None => {
+                    return Err(AuthProviderFromValueError::ValueMissing(
+                        PROPERTY_NAME_ISSUER_URL,
+                    ));
+                }
                 Some(serde_json::Value::String(issuer_url)) => try_issuer_url(issuer_url.clone())?,
                 Some(val) => {
                     return Err(AuthProviderFromValueError::ValueMalformed {
-                        name: "issuer_url",
+                        name: PROPERTY_NAME_ISSUER_URL,
                         value: val.clone(),
                     });
                 }
             },
-            name: match properties.get("name") {
-                None => return Err(AuthProviderFromValueError::ValueMissing("name")),
+            name: match properties.get(PROPERTY_NAME_NAME) {
+                None => return Err(AuthProviderFromValueError::ValueMissing(PROPERTY_NAME_NAME)),
                 Some(serde_json::Value::String(name)) => name.clone(),
                 Some(val) => {
                     return Err(AuthProviderFromValueError::ValueMalformed {
-                        name: "name",
+                        name: PROPERTY_NAME_NAME,
                         value: val.clone(),
                     });
                 }
             },
-            kind: match properties.get("kind") {
-                None => return Err(AuthProviderFromValueError::ValueMissing("kind")),
+            kind: match properties.get(PROPERTY_NAME_KIND) {
+                None => return Err(AuthProviderFromValueError::ValueMissing(PROPERTY_NAME_KIND)),
                 Some(serde_json::Value::String(kind)) => kind.clone(),
                 Some(val) => {
                     return Err(AuthProviderFromValueError::ValueMalformed {
-                        name: "kind",
+                        name: PROPERTY_NAME_KIND,
                         value: val.clone(),
                     });
                 }
