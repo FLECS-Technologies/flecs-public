@@ -9,9 +9,9 @@ use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 pub use spell::provider::{
-    ClearDependencyError, DeleteDefaultProviderError, GetDependenciesError, GetDependencyError,
-    GetFeatureProvidesError, GetProviderError, GetProvidesError, PutCoreAuthProviderError,
-    SetDefaultProviderError, SetDependencyError,
+    ClearDependencyError, DeleteDefaultProviderError, GetAuthProviderPortError,
+    GetDependenciesError, GetDependencyError, GetFeatureProvidesError, GetProviderError,
+    GetProvidesError, PutCoreAuthProviderError, SetDefaultProviderError, SetDependencyError,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -118,6 +118,15 @@ pub trait Providius: Sorcerer {
         id: InstanceId,
         provider_reference: ProviderReference,
     ) -> Result<Option<ProviderReference>, SetDependencyError>;
+    async fn get_auth_provider_port(
+        &self,
+        vault: Arc<Vault>,
+        provider_reference: ProviderReference,
+    ) -> Result<u16, GetAuthProviderPortError>;
+    async fn get_core_auth_provider_port(
+        &self,
+        vault: Arc<Vault>,
+    ) -> Result<u16, GetAuthProviderPortError>;
 }
 
 #[cfg(test)]

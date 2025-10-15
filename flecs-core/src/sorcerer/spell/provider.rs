@@ -4,6 +4,7 @@ use crate::jeweler::gem::instance::{InstanceId, ProviderReference, StoredProvide
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
 use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
 use crate::quest::{State, SyncQuest};
+use crate::sorcerer::instancius::QueryInstanceConfigError;
 use crate::sorcerer::providius::{Dependency, Provider};
 use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use crate::vault::pouch::{AppKey, Pouch};
@@ -125,6 +126,20 @@ pub enum PutCoreAuthProviderError {
     DoesNotProvide { id: ProviderId },
 }
 
+#[derive(Error, Debug)]
+pub enum GetAuthProviderPortError {
+    #[error("Core auth provider not set")]
+    CoreProviderNotSet,
+    #[error("Auth provider with id {0} does not exist")]
+    ProviderNotFound(ProviderId),
+    #[error("Can not use default auth provider as it is not set")]
+    DefaultProviderNotSet,
+    #[error("Instance with id {id} does not provide feature auth")]
+    DoesNotProvide { id: ProviderId },
+    #[error(transparent)]
+    QueryConfig(#[from] QueryInstanceConfigError),
+}
+
 pub async fn delete_default_provider(
     feature: &FeatureKey,
     providers: &mut pouch::provider::Gems,
@@ -199,6 +214,17 @@ pub fn get_auth_providers(instances: &pouch::instance::Gems) -> HashMap<Provider
                 .map(|auth_provider| (*id, auth_provider.clone()))
         })
         .collect()
+}
+
+pub fn resolve_provider_reference(
+    providers: &pouch::provider::Gems,
+    feature: &FeatureKey,
+    provider_reference: ProviderReference,
+) -> Option<ProviderId> {
+    match provider_reference {
+        ProviderReference::Default => get_default_provider_id(providers, feature),
+        ProviderReference::Provider(id) => Some(id),
+    }
 }
 
 pub fn get_providers(

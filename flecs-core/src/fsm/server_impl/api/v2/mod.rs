@@ -103,17 +103,14 @@ impl Modify for RenameOps {
         providers::auth::get,
         providers::auth::core::get,
         providers::auth::core::put,
-        providers::auth::core::first_time_setup::super_admin::get,
-        providers::auth::core::first_time_setup::super_admin::post,
+        providers::auth::core::path::any,
         providers::auth::default::delete,
         providers::auth::default::get,
         providers::auth::default::put,
-        providers::auth::default::first_time_setup::super_admin::get,
-        providers::auth::default::first_time_setup::super_admin::post,
+        providers::auth::default::path::any,
         providers::auth::first_time_setup::flecsport::post,
         providers::auth::id::get,
-        providers::auth::id::first_time_setup::super_admin::get,
-        providers::auth::id::first_time_setup::super_admin::post,
+        providers::auth::id::path::any,
     ))
 )]
 #[cfg_attr(

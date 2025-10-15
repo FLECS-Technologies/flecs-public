@@ -380,6 +380,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
+    put:
+      tags:
+      - Experimental
+      description: Set a core auth provider
+      operationId: put_providers_auth_core
+      requestBody:
+        description: The provider that should be used
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderReference'
+        required: true
+      responses:
+        '200':
+          description: Provider was overwritten
+        '201':
+          description: Provider was set
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
   /providers/auth/core/first-time-setup/flecsport:
     post:
       tags:
@@ -399,48 +428,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
-  /providers/auth/core/first-time-setup/super-admin:
-    get:
+  /providers/auth/core/{path}:
+    head:
       tags:
       - Experimental
-      description: Check if the super admin of the core auth provider is set
-      operationId: get_providers_auth_core_first-time-setup_super-admin
-      responses:
-        '204':
-          description: Super admin of core auth provider is set
-        '404':
-          description: Super admin of core auth provider not set or no core provider set
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProviderOrSuperAdminNotFound'
-    post:
-      tags:
-      - Experimental
-      description: Set the super admin of the core auth provider
-      operationId: post_providers_auth_core_first-time-setup_super-admin
-      requestBody:
-        description: Super admin that should be set to the core auth provider
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SuperAdmin'
+      description: Access the core auth provider, on success the response will redirect
+      operationId: head_providers_auth_core_{path}
+      parameters:
+      - name: path
+        in: path
+        description: The path to forward to the default auth provider
         required: true
+        schema:
+          type: string
       responses:
-        '200':
-          description: Super admin of core auth provider set
-        '400':
-          description: Invalid super admin
-          content:
-            application/json:
+        '307':
+          description: Redirect to the location of the auth provider
+          headers:
+            location:
               schema:
-                $ref: '#/components/schemas/AdditionalInfo'
-        '403':
-          description: Forbidden
+                type: string
         '404':
-          description: No core auth provider present
+          description: No core auth provider set
         '500':
-          description: Failed to set super admin of core auth provider
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -511,48 +522,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
-  /providers/auth/default/first-time-setup/super-admin:
-    get:
+  /providers/auth/default/{path}:
+    head:
       tags:
       - Experimental
-      description: Check if the super admin of the default auth provider is set
-      operationId: get_providers_auth_default_first-time-setup_super-admin
-      responses:
-        '204':
-          description: Super admin of default auth provider is set
-        '404':
-          description: Super admin of default auth provider not set or no default provider set
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProviderOrSuperAdminNotFound'
-    post:
-      tags:
-      - Experimental
-      description: Set the super admin of the default auth provider
-      operationId: post_providers_auth_default_first-time-setup_super-admin
-      requestBody:
-        description: Super admin that should be set to the default auth provider
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SuperAdmin'
+      description: Access the default auth provider, on success the response will redirect
+      operationId: head_providers_auth_default_{path}
+      parameters:
+      - name: path
+        in: path
+        description: The path to forward to the default auth provider
         required: true
+        schema:
+          type: string
       responses:
-        '200':
-          description: Super admin of default auth provider set
-        '400':
-          description: Invalid super admin
-          content:
-            application/json:
+        '307':
+          description: Redirect to the location of the default provider
+          headers:
+            location:
               schema:
-                $ref: '#/components/schemas/AdditionalInfo'
-        '403':
-          description: Forbidden
+                type: string
         '404':
-          description: No default auth provider present
+          description: No default auth provider set
         '500':
-          description: Failed to set super admin of default auth provider
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -578,60 +571,36 @@ paths:
                 $ref: '#/components/schemas/AuthProvider'
         '404':
           description: Auth provider was not found
-  /providers/auth/{id}/first-time-setup/super-admin:
-    get:
+  /providers/auth/{provider_id}/{path}:
+    head:
       tags:
       - Experimental
-      description: Check if the super admin of the specified auth provider is set
-      operationId: get_providers_auth_{id}_first-time-setup_super-admin
+      description: Access the auth provider with the specified id, on success the response will redirect
+      operationId: head_providers_auth_{provider_id}_{path}
       parameters:
-      - name: id
+      - name: provider_id
         in: path
+        description: The id of the auth provider
         required: true
         schema:
           $ref: '#/components/schemas/HexString8'
-      responses:
-        '204':
-          description: Super admin of specified auth provider is set
-        '404':
-          description: Super admin of specified auth provider not set or specified provider not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProviderOrSuperAdminNotFound'
-    post:
-      tags:
-      - Experimental
-      description: Set the super admin of the specified auth provider
-      operationId: post_providers_auth_{id}_first-time-setup_super-admin
-      parameters:
-      - name: id
+      - name: path
         in: path
+        description: The path to forward to the specified auth provider
         required: true
         schema:
-          $ref: '#/components/schemas/HexString8'
-      requestBody:
-        description: Super admin that should be set to the specified auth provider
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SuperAdmin'
-        required: true
+          type: string
       responses:
-        '200':
-          description: Super admin of specified auth provider set
-        '400':
-          description: Invalid super admin
-          content:
-            application/json:
+        '307':
+          description: Redirect to the location of the specified auth provider
+          headers:
+            location:
               schema:
-                $ref: '#/components/schemas/AdditionalInfo'
-        '403':
-          description: Forbidden
+                type: string
         '404':
-          description: Specified auth provider not found
+          description: Auth provider not found
         '500':
-          description: Failed to set super admin of specified auth provider
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -789,6 +758,7 @@ components:
       - issuer_url
       - name
       - kind
+      - port
       - config
       properties:
         config: {}
@@ -799,6 +769,10 @@ components:
           type: string
         name:
           type: string
+        port:
+          type: integer
+          format: u-int16
+          minimum: 0
     AuthProvidersAndDefaults:
       type: object
       required:
@@ -912,11 +886,6 @@ components:
         app_key:
           $ref: '#/components/schemas/AppKey'
         config: {}
-    ProviderOrSuperAdminNotFound:
-      type: string
-      enum:
-      - Provider
-      - SuperAdmin
     ProviderReference:
       oneOf:
       - type: string
@@ -949,16 +918,6 @@ components:
           $ref: '#/components/schemas/FeatureKey'
         provider_reference:
           $ref: '#/components/schemas/ProviderReference'
-    SuperAdmin:
-      type: object
-      required:
-      - name
-      - password
-      properties:
-        name:
-          type: string
-        password:
-          type: string
   securitySchemes:
     bearerAuth:
       type: http

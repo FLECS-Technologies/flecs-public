@@ -1,4 +1,4 @@
-pub mod first_time_setup;
+pub mod path;
 
 use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
 use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
@@ -30,7 +30,7 @@ pub async fn get(
     }
 }
 #[utoipa::path(
-    get,
+    put,
     path = "/providers/auth/core",
     tag = "Experimental",
     description = "Set a core auth provider",

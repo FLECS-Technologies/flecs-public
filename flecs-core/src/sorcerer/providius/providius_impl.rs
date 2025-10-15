@@ -1,17 +1,17 @@
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference};
 use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
-use crate::sorcerer::Sorcerer;
 use crate::sorcerer::providius::{
     AuthProvidersAndDefaults, ClearDependencyError, Dependency, GetDependenciesError,
     GetFeatureProvidesError, GetProvidesError, Provider, ProvidersAndDefaults, Providius,
 };
 use crate::sorcerer::spell::provider::{
-    DeleteDefaultProviderError, GetDependencyError, GetProviderError, PutCoreAuthProviderError,
-    SetDefaultProviderError, SetDependencyError, clear_dependency, delete_default_provider,
-    get_auth_providers, get_core_providers, get_default_provider_id, get_default_provider_ids,
-    get_dependencies, get_dependency, get_feature_provides, get_provider, get_providers,
-    get_provides, put_core_auth_provider, set_default_provider, set_dependency,
+    DeleteDefaultProviderError, GetAuthProviderPortError, GetDependencyError, GetProviderError,
+    PutCoreAuthProviderError, SetDefaultProviderError, SetDependencyError, clear_dependency,
+    delete_default_provider, get_auth_providers, get_core_providers, get_default_provider_id,
+    get_default_provider_ids, get_dependencies, get_dependency, get_feature_provides, get_provider,
+    get_providers, get_provides, put_core_auth_provider, set_default_provider, set_dependency,
 };
+use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::Pouch;
 use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use crate::vault::{GrabbedPouches, Vault};
@@ -315,5 +315,62 @@ impl Providius for ProvidiusImpl {
             provider_reference,
         )
         .await
+    }
+
+    async fn get_auth_provider_port(
+        &self,
+        vault: Arc<Vault>,
+        provider_reference: ProviderReference,
+    ) -> Result<u16, GetAuthProviderPortError> {
+        let GrabbedPouches {
+            provider_pouch: Some(ref providers),
+            instance_pouch: Some(ref instances),
+            ..
+        } = vault
+            .reservation()
+            .reserve_provider_pouch()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+        else {
+            unreachable!("Reservation should never fail");
+        };
+        let provider_id = spell::provider::resolve_provider_reference(
+            providers.gems(),
+            &FeatureKey::auth(),
+            provider_reference,
+        )
+        .ok_or(GetAuthProviderPortError::DefaultProviderNotSet)?;
+        spell::instance::get_auth_provider_port(instances.gems(), provider_id).await
+    }
+
+    async fn get_core_auth_provider_port(
+        &self,
+        vault: Arc<Vault>,
+    ) -> Result<u16, GetAuthProviderPortError> {
+        let GrabbedPouches {
+            provider_pouch: Some(ref providers),
+            instance_pouch: Some(ref instances),
+            ..
+        } = vault
+            .reservation()
+            .reserve_provider_pouch()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+        else {
+            unreachable!("Reservation should never fail");
+        };
+        let provider_reference = spell::provider::get_core_providers(providers.gems())
+            .auth
+            .clone()
+            .ok_or(GetAuthProviderPortError::CoreProviderNotSet)?;
+        let provider_id = spell::provider::resolve_provider_reference(
+            providers.gems(),
+            &FeatureKey::auth(),
+            provider_reference,
+        )
+        .ok_or(GetAuthProviderPortError::DefaultProviderNotSet)?;
+        spell::instance::get_auth_provider_port(instances.gems(), provider_id).await
     }
 }
