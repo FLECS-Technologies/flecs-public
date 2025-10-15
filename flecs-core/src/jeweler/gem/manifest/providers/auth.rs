@@ -1,25 +1,13 @@
-#[cfg(feature = "auth")]
-pub use openidconnect::IssuerUrl;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use utoipa::ToSchema;
 use utoipa::openapi::{Object, ObjectBuilder};
 
-#[cfg(not(feature = "auth"))]
-pub type IssuerUrl = String;
-
-fn try_issuer_url(issuer_url: String) -> Result<IssuerUrl, AuthProviderFromValueError> {
-    #[cfg(feature = "auth")]
-    {
-        IssuerUrl::new(issuer_url.clone()).map_err(|_| AuthProviderFromValueError::ValueMalformed {
-            name: "issuer_url",
-            value: serde_json::Value::String(issuer_url),
-        })
-    }
-    #[cfg(not(feature = "auth"))]
-    {
-        Ok(issuer_url)
-    }
+#[cfg(feature = "auth")]
+#[derive(Debug, Error)]
+pub enum ReplaceHostError {
+    #[error("Failed to parse issuer url with replaced host: {0}")]
+    ParseError(#[from] url::ParseError),
 }
 
 #[derive(Error, Debug)]
@@ -33,6 +21,25 @@ pub enum AuthProviderFromValueError {
     },
     #[error("Expected object with properties, received {0:?}")]
     NotObject(serde_json::Value),
+}
+
+#[cfg(not(feature = "auth"))]
+pub type IssuerUrl = String;
+#[cfg(feature = "auth")]
+pub type IssuerUrl = url::Url;
+
+fn try_issuer_url(issuer_url: &str) -> Result<IssuerUrl, AuthProviderFromValueError> {
+    #[cfg(feature = "auth")]
+    {
+        IssuerUrl::parse(issuer_url).map_err(|_| AuthProviderFromValueError::ValueMalformed {
+            name: "issuer_url",
+            value: serde_json::Value::String(issuer_url.to_string()),
+        })
+    }
+    #[cfg(not(feature = "auth"))]
+    {
+        Ok(issuer_url.to_string())
+    }
 }
 
 impl TryFrom<&serde_json::Value> for AuthProvider {
@@ -53,7 +60,7 @@ impl TryFrom<&serde_json::Value> for AuthProvider {
                         PROPERTY_NAME_ISSUER_URL,
                     ));
                 }
-                Some(serde_json::Value::String(issuer_url)) => try_issuer_url(issuer_url.clone())?,
+                Some(serde_json::Value::String(issuer_url)) => try_issuer_url(issuer_url)?,
                 Some(val) => {
                     return Err(AuthProviderFromValueError::ValueMalformed {
                         name: PROPERTY_NAME_ISSUER_URL,

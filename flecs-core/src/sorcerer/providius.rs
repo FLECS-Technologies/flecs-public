@@ -53,7 +53,12 @@ pub trait Providius: Sorcerer {
         vault: Arc<Vault>,
         provider: ProviderReference,
     ) -> Result<Option<ProviderReference>, PutCoreAuthProviderError>;
-    async fn get_auth_providers_and_default(&self, vault: Arc<Vault>) -> AuthProvidersAndDefaults;
+    #[cfg(feature = "auth")]
+    async fn get_auth_providers_and_default(
+        &self,
+        vault: Arc<Vault>,
+        host: &axum::extract::Host,
+    ) -> AuthProvidersAndDefaults;
     async fn get_providers(
         &self,
         vault: Arc<Vault>,
