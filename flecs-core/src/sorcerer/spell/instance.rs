@@ -13,8 +13,10 @@ use crate::jeweler::network::NetworkId;
 use crate::lore::Lore;
 use crate::quest::{State, SyncQuest};
 use crate::relic::network::Ipv4NetworkAccess;
-use crate::vault::Vault;
+use crate::sorcerer::spell::provider::GetAuthProviderPortError;
+use crate::vault::pouch::provider::ProviderId;
 use crate::vault::pouch::{AppKey, Pouch};
+use crate::vault::{Vault, pouch};
 use futures_util::future::join_all;
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
@@ -611,21 +613,52 @@ pub async fn get_instance_config_part_with<F, T>(
 where
     F: FnOnce(&InstanceConfig) -> T,
 {
-    match vault
-        .reservation()
-        .reserve_instance_pouch()
-        .grab()
-        .await
-        .instance_pouch
-        .as_ref()
-        .expect("Reservations should never fail")
-        .gems()
-        .get(&instance_id)
-    {
+    get_instance_config_part_with_from_gems(
+        vault
+            .reservation()
+            .reserve_instance_pouch()
+            .grab()
+            .await
+            .instance_pouch
+            .as_ref()
+            .expect("Reservations should never fail")
+            .gems(),
+        instance_id,
+        with,
+    )
+    .await
+}
+
+pub async fn get_instance_config_part_with_from_gems<F, T>(
+    instances: &pouch::instance::Gems,
+    instance_id: InstanceId,
+    with: F,
+) -> Result<T, QueryInstanceConfigError>
+where
+    F: FnOnce(&InstanceConfig) -> T,
+{
+    match instances.get(&instance_id) {
         None => Err(QueryInstanceConfigError::NotFound(instance_id)),
         Some(Instance::Compose(_)) => Err(QueryInstanceConfigError::NotSupported(instance_id)),
         Some(Instance::Docker(instance)) => Ok(with(&instance.config)),
     }
+}
+
+pub async fn get_auth_provider_port(
+    instances: &pouch::instance::Gems,
+    provider_id: ProviderId,
+) -> Result<u16, GetAuthProviderPortError> {
+    get_instance_config_part_with_from_gems(instances, provider_id, |config| {
+        Ok::<u16, GetAuthProviderPortError>(
+            config
+                .providers
+                .auth
+                .as_ref()
+                .ok_or(GetAuthProviderPortError::DoesNotProvide { id: provider_id })?
+                .port,
+        )
+    })
+    .await?
 }
 
 pub async fn query_instance<F, T>(vault: Arc<Vault>, instance_id: InstanceId, f: F) -> Option<T>

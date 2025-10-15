@@ -8,7 +8,7 @@ use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
 
-pub mod first_time_setup;
+pub mod path;
 
 #[utoipa::path(
     delete,

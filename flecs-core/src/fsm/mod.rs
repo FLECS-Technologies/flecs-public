@@ -29,6 +29,8 @@ use axum::extract::DefaultBodyLimit;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 #[cfg(feature = "auth")]
 use axum::response::IntoResponse;
+#[cfg(feature = "auth")]
+use axum::routing::any;
 use axum::routing::{delete, get, put};
 use axum::{
     Router,
@@ -247,11 +249,8 @@ async fn create_service<
             get(server_impl::api::v2::providers::auth::get),
         )
         .route(
-            "/v2/providers/auth/core/first-time-setup/super-admin",
-            get(server_impl::api::v2::providers::auth::core::first_time_setup::super_admin::get)
-                .post(
-                server_impl::api::v2::providers::auth::core::first_time_setup::super_admin::post,
-            ),
+            "/v2/providers/auth/core/*path",
+            any(server_impl::api::v2::providers::auth::core::path::any),
         )
         .route(
             "/v2/providers/auth/core",
@@ -265,26 +264,22 @@ async fn create_service<
                 .put(server_impl::api::v2::providers::auth::default::put),
         )
         .route(
-            "/v2/providers/auth/default/first-time-setup/super-admin",
-            get(server_impl::api::v2::providers::auth::default::first_time_setup::super_admin::get)
-                .post(
-                    server_impl::api::v2::providers::auth::default::first_time_setup::super_admin::post,
-                ),
+            "/v2/providers/auth/default/*path",
+            any(server_impl::api::v2::providers::auth::default::path::any),
         )
         .route(
             "/v2/providers/auth/first-time-setup/flecsport",
-            axum::routing::post(server_impl::api::v2::providers::auth::first_time_setup::flecsport::post::<IMP, F>)
+            axum::routing::post(
+                server_impl::api::v2::providers::auth::first_time_setup::flecsport::post::<IMP, F>,
+            ),
         )
         .route(
             "/v2/providers/auth/:id",
             get(server_impl::api::v2::providers::auth::id::get),
         )
         .route(
-            "/v2/providers/auth/:id/first-time-setup/super-admin",
-            get(server_impl::api::v2::providers::auth::id::first_time_setup::super_admin::get)
-                .post(
-                    server_impl::api::v2::providers::auth::id::first_time_setup::super_admin::post,
-                ),
+            "/v2/providers/auth/:provider_id/*path",
+            any(server_impl::api::v2::providers::auth::id::path::any),
         );
     let app = app.with_state(server);
     #[cfg(feature = "auth")]

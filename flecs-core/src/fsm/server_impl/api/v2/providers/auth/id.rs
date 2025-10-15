@@ -9,7 +9,7 @@ use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 use utoipa::IntoParams;
 
-pub mod first_time_setup;
+pub mod path;
 
 #[serde_as]
 #[derive(Debug, Deserialize, IntoParams)]
