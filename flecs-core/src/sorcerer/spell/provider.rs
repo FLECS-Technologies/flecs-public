@@ -1,6 +1,9 @@
 use crate::jeweler::gem;
+#[cfg(feature = "auth")]
+use crate::jeweler::gem::instance::Instance;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference, StoredProviderReference};
+#[cfg(feature = "auth")]
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
 use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
 use crate::quest::{State, SyncQuest};
@@ -202,16 +205,24 @@ pub fn get_provider(
     }
 }
 
-pub fn get_auth_providers(instances: &pouch::instance::Gems) -> HashMap<ProviderId, AuthProvider> {
+#[cfg(feature = "auth")]
+pub fn get_auth_providers(
+    instances: &pouch::instance::Gems,
+) -> HashMap<ProviderId, (AuthProvider, u16)> {
     instances
         .iter()
         .filter_map(|(id, instance)| {
-            instance
+            let auth_provider = instance
                 .manifest()
                 .specific_providers()
                 .auth
-                .as_ref()
-                .map(|auth_provider| (*id, auth_provider.clone()))
+                .as_ref()?
+                .clone();
+            let port = match instance {
+                Instance::Docker(instance) => Some(instance.config.providers.auth.as_ref()?.port),
+                _ => None,
+            }?;
+            Some((*id, (auth_provider, port)))
         })
         .collect()
 }

@@ -7,7 +7,7 @@ use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
 use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
 use crate::sorcerer::providius::AuthProvidersAndDefaults;
 use axum::Json;
-use axum::extract::State;
+use axum::extract::{Host, State};
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
 
@@ -24,10 +24,11 @@ use http::StatusCode;
 pub async fn get(
     State(VaultState(vault)): State<VaultState>,
     State(ProvidiusState(providius)): State<ProvidiusState>,
+    host: Host,
 ) -> Response {
     (
         StatusCode::OK,
-        Json(providius.get_auth_providers_and_default(vault).await),
+        Json(providius.get_auth_providers_and_default(vault, &host).await),
     )
         .into_response()
 }

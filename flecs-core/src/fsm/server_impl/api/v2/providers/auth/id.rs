@@ -2,7 +2,7 @@ use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
 use crate::vault::pouch::provider::ProviderId;
 use axum::Json;
-use axum::extract::{Path, State};
+use axum::extract::{Host, Path, State};
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
 use serde::Deserialize;
@@ -33,9 +33,10 @@ pub async fn get(
     State(VaultState(vault)): State<VaultState>,
     State(ProvidiusState(providius)): State<ProvidiusState>,
     Path(GetPathParams { id }): Path<GetPathParams>,
+    host: Host,
 ) -> Response {
     match providius
-        .get_auth_providers_and_default(vault)
+        .get_auth_providers_and_default(vault, &host)
         .await
         .providers
         .remove(&id)

@@ -1,15 +1,20 @@
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference};
 use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
+
+#[cfg(feature = "auth")]
+use crate::sorcerer::providius::AuthProvidersAndDefaults;
 use crate::sorcerer::providius::{
-    AuthProvidersAndDefaults, ClearDependencyError, Dependency, GetDependenciesError,
-    GetFeatureProvidesError, GetProvidesError, Provider, ProvidersAndDefaults, Providius,
+    ClearDependencyError, Dependency, GetDependenciesError, GetFeatureProvidesError,
+    GetProvidesError, Provider, ProvidersAndDefaults, Providius,
 };
+#[cfg(feature = "auth")]
+use crate::sorcerer::spell::provider::get_auth_providers;
 use crate::sorcerer::spell::provider::{
     DeleteDefaultProviderError, GetAuthProviderPortError, GetDependencyError, GetProviderError,
     PutCoreAuthProviderError, SetDefaultProviderError, SetDependencyError, clear_dependency,
-    delete_default_provider, get_auth_providers, get_core_providers, get_default_provider_id,
-    get_default_provider_ids, get_dependencies, get_dependency, get_feature_provides, get_provider,
-    get_providers, get_provides, put_core_auth_provider, set_default_provider, set_dependency,
+    delete_default_provider, get_core_providers, get_default_provider_id, get_default_provider_ids,
+    get_dependencies, get_dependency, get_feature_provides, get_provider, get_providers,
+    get_provides, put_core_auth_provider, set_default_provider, set_dependency,
 };
 use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::Pouch;
@@ -55,7 +60,12 @@ impl Providius for ProvidiusImpl {
         put_core_auth_provider(instances.gems(), providers.gems_mut(), provider)
     }
 
-    async fn get_auth_providers_and_default(&self, vault: Arc<Vault>) -> AuthProvidersAndDefaults {
+    #[cfg(feature = "auth")]
+    async fn get_auth_providers_and_default(
+        &self,
+        vault: Arc<Vault>,
+        host: &axum::extract::Host,
+    ) -> AuthProvidersAndDefaults {
         let GrabbedPouches {
             instance_pouch: Some(ref instances),
             provider_pouch: Some(ref providers),
@@ -72,6 +82,15 @@ impl Providius for ProvidiusImpl {
         let default = get_default_provider_id(providers.gems(), &FeatureKey::auth());
         let core = get_core_providers(providers.gems()).auth.clone();
         let providers = get_auth_providers(instances.gems());
+        let providers = providers
+            .into_iter()
+            .map(|(id, (mut provider, port))| {
+                // Replace host and port part of issuer url as accessible by the client
+                let _ = provider.issuer_url.set_host(Some(&host.0));
+                let _ = provider.issuer_url.set_port(Some(port));
+                (id, provider)
+            })
+            .collect();
         AuthProvidersAndDefaults {
             default,
             core,

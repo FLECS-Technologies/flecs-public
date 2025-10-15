@@ -4,7 +4,7 @@ use crate::jeweler::gem::manifest::FeatureKey;
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
 use crate::sorcerer::providius::{DeleteDefaultProviderError, SetDefaultProviderError};
 use axum::Json;
-use axum::extract::State;
+use axum::extract::{Host, State};
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
 
@@ -48,8 +48,9 @@ pub async fn delete(
 pub async fn get(
     State(VaultState(vault)): State<VaultState>,
     State(ProvidiusState(providius)): State<ProvidiusState>,
+    host: Host,
 ) -> Response {
-    let mut providers = providius.get_auth_providers_and_default(vault).await;
+    let mut providers = providius.get_auth_providers_and_default(vault, &host).await;
     match providers.default {
         Some(provider_id) => match providers.providers.remove(&provider_id) {
             Some(provider) => (StatusCode::OK, Json(provider)).into_response(),
