@@ -114,7 +114,7 @@ impl<
             self.lore.clone(),
             self.sorcerers.importius.clone(),
             self.enchantments.floxy.clone(),
-            self.usb_reader.clone(),
+            self.device_readers.usb_reader.clone(),
             self.enchantments.quest_master.clone(),
             body,
         )

@@ -382,7 +382,7 @@ impl<
             >,
         >,
     ) -> Self {
-        Self(input.usb_reader.clone())
+        Self(input.device_readers.usb_reader.clone())
     }
 }
 

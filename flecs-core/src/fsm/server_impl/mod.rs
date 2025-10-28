@@ -47,6 +47,12 @@ fn ok() -> AdditionalInfo {
     }
 }
 
+pub struct DeviceReaders<U: UsbDeviceReader, N: NetworkAdapterReader, NET: NetDeviceReader> {
+    pub(crate) usb_reader: Arc<U>,
+    pub(crate) network_adapter_reader: Arc<N>,
+    pub(crate) net_device_reader: Arc<NET>,
+}
+
 pub struct ServerImpl<
     APP: AppRaiser,
     AUTH: Authmancer,
@@ -66,9 +72,7 @@ pub struct ServerImpl<
     vault: Arc<Vault>,
     lore: Arc<Lore>,
     enchantments: Enchantments<F>,
-    usb_reader: Arc<T>,
-    network_adapter_reader: Arc<NET>,
-    net_device_reader: Arc<NetDev>,
+    device_readers: DeviceReaders<T, NET, NetDev>,
     console_client: ConsoleClient,
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
 }
@@ -95,18 +99,14 @@ impl<
         lore: Arc<Lore>,
         sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
         enchantments: Enchantments<F>,
-        usb_reader: T,
-        network_adapter_reader: NET,
-        net_device_reader: NetDev,
+        device_readers: DeviceReaders<T, NET, NetDev>,
     ) -> Self {
         Self {
             console_client: crate::fsm::console_client::create_default(vault.clone(), lore.clone()),
             vault,
             lore,
             enchantments,
-            usb_reader: Arc::new(usb_reader),
-            net_device_reader: Arc::new(net_device_reader),
-            network_adapter_reader: Arc::new(network_adapter_reader),
+            device_readers,
             sorcerers,
         }
     }
