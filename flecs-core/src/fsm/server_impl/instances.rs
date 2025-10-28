@@ -183,7 +183,7 @@ impl<
             super::api::v2::instances::instance_id::config::devices::usb::get(
                 self.vault.clone(),
                 self.sorcerers.instancius.clone(),
-                self.usb_reader.clone(),
+                self.device_readers.usb_reader.clone(),
                 path_params,
             )
             .await,
@@ -218,7 +218,7 @@ impl<
             super::api::v2::instances::instance_id::config::devices::usb::port::get(
                 self.vault.clone(),
                 self.sorcerers.instancius.clone(),
-                self.usb_reader.clone(),
+                self.device_readers.usb_reader.clone(),
                 path_params,
             )
             .await,
@@ -236,7 +236,7 @@ impl<
             super::api::v2::instances::instance_id::config::devices::usb::port::put(
                 self.vault.clone(),
                 self.sorcerers.instancius.clone(),
-                self.usb_reader.clone(),
+                self.device_readers.usb_reader.clone(),
                 path_params,
             )
             .await,

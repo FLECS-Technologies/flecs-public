@@ -166,6 +166,19 @@ async fn roles_middleware(
     }
 }
 
+pub type DefaultDeviceReaders =
+    DeviceReaders<UsbDeviceReaderImpl, NetworkAdapterReaderImpl, NetDeviceReaderImpl>;
+
+impl Default for DefaultDeviceReaders {
+    fn default() -> Self {
+        Self {
+            usb_reader: Default::default(),
+            network_adapter_reader: Default::default(),
+            net_device_reader: Default::default(),
+        }
+    }
+}
+
 async fn create_service<
     APP: AppRaiser + 'static,
     AUTH: Authmancer + 'static,
@@ -190,9 +203,7 @@ async fn create_service<
         lore.clone(),
         sorcerers,
         enchantments,
-        UsbDeviceReaderImpl::default(),
-        NetworkAdapterReaderImpl,
-        NetDeviceReaderImpl,
+        DefaultDeviceReaders::default(),
     )
     .await;
     #[cfg(feature = "auth")]

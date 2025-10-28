@@ -52,7 +52,7 @@ impl<
         _cookies: CookieJar,
     ) -> Result<SystemDevicesGetResponse, ()> {
         Ok(super::api::v2::system::devices::get(
-            self.usb_reader.clone(),
+            self.device_readers.usb_reader.clone(),
         ))
     }
 
@@ -63,7 +63,7 @@ impl<
         _cookies: CookieJar,
     ) -> Result<SystemDevicesUsbGetResponse, ()> {
         Ok(super::api::v2::system::devices::usb::get(
-            self.usb_reader.clone(),
+            self.device_readers.usb_reader.clone(),
         ))
     }
 
@@ -75,7 +75,7 @@ impl<
         path_params: SystemDevicesUsbPortGetPathParams,
     ) -> Result<SystemDevicesUsbPortGetResponse, ()> {
         Ok(super::api::v2::system::devices::usb::port::get(
-            self.usb_reader.clone(),
+            self.device_readers.usb_reader.clone(),
             path_params,
         ))
     }
@@ -97,8 +97,8 @@ impl<
     ) -> Result<SystemNetworkAdaptersGetResponse, ()> {
         Ok(super::api::v2::system::network_adapters::get(
             self.sorcerers.systemus.clone(),
-            self.network_adapter_reader.clone(),
-            self.net_device_reader.clone(),
+            self.device_readers.network_adapter_reader.clone(),
+            self.device_readers.net_device_reader.clone(),
         ))
     }
 
@@ -112,8 +112,8 @@ impl<
         Ok(
             super::api::v2::system::network_adapters::network_adapter_id::get(
                 self.sorcerers.systemus.clone(),
-                self.network_adapter_reader.clone(),
-                self.net_device_reader.clone(),
+                self.device_readers.network_adapter_reader.clone(),
+                self.device_readers.net_device_reader.clone(),
                 path_params,
             ),
         )
