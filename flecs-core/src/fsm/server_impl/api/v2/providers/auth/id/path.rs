@@ -5,7 +5,6 @@ use crate::sorcerer::providius::GetAuthProviderPortError;
 use crate::vault::pouch::provider::ProviderId;
 use axum::extract::{Host, OriginalUri, Path, State};
 use axum::response::{IntoResponse, Response};
-use http::uri::Scheme;
 use http::{HeaderValue, StatusCode};
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
@@ -27,23 +26,12 @@ pub fn redirect_port_response(
     host: Host,
     path: String,
     query: Option<&str>,
-    scheme: Option<&Scheme>,
 ) -> Response {
     match port_result {
         Ok(port) => {
             let mut response = StatusCode::TEMPORARY_REDIRECT.into_response();
-            let mut location = String::new();
-            if let Some(scheme) = scheme {
-                location.push_str(scheme.as_str());
-                location.push_str("://")
-            } else {
-                location.push_str("https://")
-            }
-            location.push_str(&host.0);
-            location.push(':');
-            location.push_str(&port.to_string());
-            location.push('/');
-            location.push_str(&path);
+            let host = host.0;
+            let mut location = format!("http://{host}:{port}/{path}");
             if let Some(query) = query {
                 location.push('?');
                 location.push_str(query);
@@ -92,6 +80,5 @@ pub async fn any(
         host,
         path,
         orig.query(),
-        orig.scheme(),
     )
 }

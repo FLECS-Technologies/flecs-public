@@ -447,3 +447,65 @@ impl<
         Self(input.enchantments.quest_master.clone())
     }
 }
+
+#[cfg(feature = "auth")]
+pub struct WatchState(pub Arc<crate::wall::watch::Watch>);
+
+#[cfg(feature = "auth")]
+impl<
+    APP: AppRaiser + 'static,
+    AUTH: Authmancer + 'static,
+    I: Instancius + 'static,
+    L: Licenso + 'static,
+    Q: MageQuester + 'static,
+    M: Manifesto + 'static,
+    SYS: Systemus + 'static,
+    D: Deploymento + 'static,
+    E: Exportius + 'static,
+    IMP: Importius + 'static,
+    F: Floxy + 'static,
+>
+    FromRef<
+        Arc<
+            ServerImpl<
+                APP,
+                AUTH,
+                I,
+                L,
+                Q,
+                M,
+                SYS,
+                D,
+                E,
+                IMP,
+                F,
+                UsbDeviceReaderImpl,
+                NetworkAdapterReaderImpl,
+                NetDeviceReaderImpl,
+            >,
+        >,
+    > for WatchState
+{
+    fn from_ref(
+        input: &Arc<
+            ServerImpl<
+                APP,
+                AUTH,
+                I,
+                L,
+                Q,
+                M,
+                SYS,
+                D,
+                E,
+                IMP,
+                F,
+                UsbDeviceReaderImpl,
+                NetworkAdapterReaderImpl,
+                NetDeviceReaderImpl,
+            >,
+        >,
+    ) -> Self {
+        Self(input.wall.watch.clone())
+    }
+}

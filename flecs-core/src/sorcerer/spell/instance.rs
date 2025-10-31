@@ -626,10 +626,9 @@ where
         instance_id,
         with,
     )
-    .await
 }
 
-pub async fn get_instance_config_part_with_from_gems<F, T>(
+pub fn get_instance_config_part_with_from_gems<F, T>(
     instances: &pouch::instance::Gems,
     instance_id: InstanceId,
     with: F,
@@ -644,7 +643,7 @@ where
     }
 }
 
-pub async fn get_auth_provider_port(
+pub fn get_auth_provider_port(
     instances: &pouch::instance::Gems,
     provider_id: ProviderId,
 ) -> Result<u16, GetAuthProviderPortError> {
@@ -657,8 +656,7 @@ pub async fn get_auth_provider_port(
                 .ok_or(GetAuthProviderPortError::DoesNotProvide { id: provider_id })?
                 .port,
         )
-    })
-    .await?
+    })?
 }
 
 pub async fn query_instance<F, T>(vault: Arc<Vault>, instance_id: InstanceId, f: F) -> Option<T>

@@ -2,16 +2,24 @@ use super::spell;
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference, StoredProviderReference};
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
 use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
+#[cfg(feature = "auth")]
+use crate::lore::Lore;
+#[cfg(feature = "auth")]
+use crate::quest::SyncQuest;
 use crate::sorcerer::Sorcerer;
+#[cfg(feature = "auth")]
+use crate::sorcerer::spell::provider::BuildWatchConfigError;
 use crate::vault::Vault;
 use crate::vault::pouch::AppKey;
 use crate::vault::pouch::provider::{CoreProviders, ProviderId};
+#[cfg(feature = "auth")]
+use crate::wall::{watch, watch::Watch};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 pub use spell::provider::{
     ClearDependencyError, DeleteDefaultProviderError, GetAuthProviderPortError,
     GetDependenciesError, GetDependencyError, GetFeatureProvidesError, GetProviderError,
-    GetProvidesError, PutCoreAuthProviderError, SetDefaultProviderError, SetDependencyError,
+    GetProvidesError, SetCoreAuthProviderError, SetDefaultProviderError, SetDependencyError,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -51,8 +59,18 @@ pub trait Providius: Sorcerer {
     async fn put_core_auth_provider(
         &self,
         vault: Arc<Vault>,
+        #[cfg(feature = "auth")] lore: Arc<Lore>,
+        #[cfg(feature = "auth")] watch: Arc<Watch>,
         provider: ProviderReference,
-    ) -> Result<Option<ProviderReference>, PutCoreAuthProviderError>;
+    ) -> Result<Option<ProviderReference>, SetCoreAuthProviderError>;
+    #[cfg(feature = "auth")]
+    async fn setup_core_auth_provider(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        lore: Arc<Lore>,
+        watch: Arc<Watch>,
+    ) -> Result<(), SetCoreAuthProviderError>;
     #[cfg(feature = "auth")]
     async fn get_auth_providers_and_default(
         &self,
@@ -132,6 +150,13 @@ pub trait Providius: Sorcerer {
         &self,
         vault: Arc<Vault>,
     ) -> Result<u16, GetAuthProviderPortError>;
+    #[cfg(feature = "auth")]
+    async fn build_watch_config_from_auth_provider(
+        &self,
+        vault: Arc<Vault>,
+        lore: Arc<Lore>,
+        auth_provider: ProviderReference,
+    ) -> Result<watch::AuthProviderMetaData, BuildWatchConfigError>;
 }
 
 #[cfg(test)]

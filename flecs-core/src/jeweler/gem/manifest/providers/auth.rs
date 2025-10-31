@@ -1,4 +1,10 @@
+#[cfg(feature = "auth")]
+use crate::wall::watch;
+#[cfg(feature = "auth")]
+use axum::extract::Host;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "auth")]
+use std::net::IpAddr;
 use thiserror::Error;
 use utoipa::ToSchema;
 use utoipa::openapi::{Object, ObjectBuilder};
@@ -24,21 +30,36 @@ pub enum AuthProviderFromValueError {
 }
 
 #[cfg(not(feature = "auth"))]
-pub type IssuerUrl = String;
+pub type Url = String;
 #[cfg(feature = "auth")]
-pub type IssuerUrl = url::Url;
+pub type Url = url::Url;
 
-fn try_issuer_url(issuer_url: &str) -> Result<IssuerUrl, AuthProviderFromValueError> {
+fn try_url_from_property(
+    property: Option<&serde_json::Value>,
+    property_name: &'static str,
+) -> Result<Url, AuthProviderFromValueError> {
+    let url = match property {
+        None => {
+            return Err(AuthProviderFromValueError::ValueMissing(property_name));
+        }
+        Some(serde_json::Value::String(issuer_url)) => issuer_url,
+        Some(val) => {
+            return Err(AuthProviderFromValueError::ValueMalformed {
+                name: property_name,
+                value: val.clone(),
+            });
+        }
+    };
     #[cfg(feature = "auth")]
     {
-        IssuerUrl::parse(issuer_url).map_err(|_| AuthProviderFromValueError::ValueMalformed {
-            name: "issuer_url",
-            value: serde_json::Value::String(issuer_url.to_string()),
+        Url::parse(url).map_err(|_| AuthProviderFromValueError::ValueMalformed {
+            name: property_name,
+            value: serde_json::Value::String(url.to_string()),
         })
     }
     #[cfg(not(feature = "auth"))]
     {
-        Ok(issuer_url.to_string())
+        Ok(url.to_string())
     }
 }
 
@@ -50,40 +71,50 @@ impl TryFrom<&serde_json::Value> for AuthProvider {
         const PROPERTY_NAME_NAME: &str = "name";
         const PROPERTY_NAME_KIND: &str = "kind";
         const PROPERTY_NAME_PORT: &str = "port";
+        const PROPERTY_NAME_JWK_URL: &str = "jwk_url";
+        const PROPERTY_NAME_AUTHORIZE_URL: &str = "authorize_url";
+        const PROPERTY_NAME_TOKEN_URL: &str = "token_url";
         let serde_json::Value::Object(properties) = value else {
             return Err(AuthProviderFromValueError::NotObject(value.clone()));
         };
-        Ok(Self {
-            issuer_url: match properties.get(PROPERTY_NAME_ISSUER_URL) {
-                None => {
-                    return Err(AuthProviderFromValueError::ValueMissing(
-                        PROPERTY_NAME_ISSUER_URL,
-                    ));
-                }
-                Some(serde_json::Value::String(issuer_url)) => try_issuer_url(issuer_url)?,
-                Some(val) => {
-                    return Err(AuthProviderFromValueError::ValueMalformed {
-                        name: PROPERTY_NAME_ISSUER_URL,
-                        value: val.clone(),
-                    });
-                }
+        let config = match properties.get(PROPERTY_NAME_KIND) {
+            None => return Err(AuthProviderFromValueError::ValueMissing(PROPERTY_NAME_KIND)),
+            Some(serde_json::Value::String(kind)) if kind == "oidc" => AuthProviderConfig::Oidc {},
+            Some(serde_json::Value::String(kind)) if kind == "oauth" => AuthProviderConfig::Oauth {
+                authorize_url: try_url_from_property(
+                    properties.get(PROPERTY_NAME_AUTHORIZE_URL),
+                    PROPERTY_NAME_AUTHORIZE_URL,
+                )?
+                .into(),
+                jwk_url: try_url_from_property(
+                    properties.get(PROPERTY_NAME_JWK_URL),
+                    PROPERTY_NAME_JWK_URL,
+                )?
+                .into(),
+                token_url: try_url_from_property(
+                    properties.get(PROPERTY_NAME_TOKEN_URL),
+                    PROPERTY_NAME_TOKEN_URL,
+                )?
+                .into(),
             },
+            Some(val) => {
+                return Err(AuthProviderFromValueError::ValueMalformed {
+                    name: PROPERTY_NAME_KIND,
+                    value: val.clone(),
+                });
+            }
+        };
+        Ok(Self {
+            issuer_url: try_url_from_property(
+                properties.get(PROPERTY_NAME_ISSUER_URL),
+                PROPERTY_NAME_ISSUER_URL,
+            )?,
             name: match properties.get(PROPERTY_NAME_NAME) {
                 None => return Err(AuthProviderFromValueError::ValueMissing(PROPERTY_NAME_NAME)),
                 Some(serde_json::Value::String(name)) => name.clone(),
                 Some(val) => {
                     return Err(AuthProviderFromValueError::ValueMalformed {
                         name: PROPERTY_NAME_NAME,
-                        value: val.clone(),
-                    });
-                }
-            },
-            kind: match properties.get(PROPERTY_NAME_KIND) {
-                None => return Err(AuthProviderFromValueError::ValueMissing(PROPERTY_NAME_KIND)),
-                Some(serde_json::Value::String(kind)) => kind.clone(),
-                Some(val) => {
-                    return Err(AuthProviderFromValueError::ValueMalformed {
-                        name: PROPERTY_NAME_KIND,
                         value: val.clone(),
                     });
                 }
@@ -115,12 +146,13 @@ impl TryFrom<&serde_json::Value> for AuthProvider {
                     });
                 }
             },
-            config: value.clone(),
+            properties: value.clone(),
+            config,
         })
     }
 }
 
-fn custom_type() -> Object {
+fn uri_schema() -> Object {
     ObjectBuilder::new()
         .schema_type(utoipa::openapi::schema::Type::String)
         .format(Some(utoipa::openapi::SchemaFormat::KnownFormat(
@@ -130,11 +162,67 @@ fn custom_type() -> Object {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize, ToSchema)]
+#[serde(tag = "kind")]
+pub enum AuthProviderConfig {
+    #[serde(rename = "oidc")]
+    Oidc {},
+    #[serde(rename = "oauth")]
+    Oauth {
+        #[schema(schema_with = uri_schema)]
+        jwk_url: Box<Url>,
+        #[schema(schema_with = uri_schema)]
+        authorize_url: Box<Url>,
+        #[schema(schema_with = uri_schema)]
+        token_url: Box<Url>,
+    },
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize, ToSchema)]
 pub struct AuthProvider {
-    #[schema(schema_with = custom_type)]
-    pub issuer_url: IssuerUrl,
+    #[serde(flatten)]
+    pub config: AuthProviderConfig,
+    #[schema(schema_with = uri_schema)]
+    pub issuer_url: Url,
     pub name: String,
-    pub kind: String,
     pub port: u16,
-    pub config: serde_json::Value,
+    pub properties: serde_json::Value,
+}
+
+impl AuthProvider {
+    #[cfg(feature = "auth")]
+    pub fn build_meta(&self, ip: IpAddr, port: u16) -> Option<watch::AuthProviderMetaData> {
+        let mut issuer_url = self.issuer_url.clone();
+        issuer_url.set_ip_host(ip).ok()?;
+        issuer_url.set_port(Some(port)).ok()?;
+        Some(match &self.config {
+            AuthProviderConfig::Oidc { .. } => watch::AuthProviderMetaData::Oidc { issuer_url },
+            AuthProviderConfig::Oauth { jwk_url, .. } => {
+                let mut jwk_url = jwk_url.as_ref().clone();
+                jwk_url.set_ip_host(ip).ok()?;
+                jwk_url.set_port(Some(port)).ok()?;
+                watch::AuthProviderMetaData::Oauth {
+                    issuer_url,
+                    jwk_url,
+                }
+            }
+        })
+    }
+    #[cfg(feature = "auth")]
+    pub fn replace_host_and_port(&mut self, host: &Host, port: u16) {
+        let _ = self.issuer_url.set_host(Some(&host.0));
+        let _ = self.issuer_url.set_port(Some(port));
+        if let AuthProviderConfig::Oauth {
+            jwk_url,
+            token_url,
+            authorize_url,
+        } = &mut self.config
+        {
+            let _ = jwk_url.set_host(Some(&host.0));
+            let _ = jwk_url.set_port(Some(port));
+            let _ = token_url.set_host(Some(&host.0));
+            let _ = token_url.set_port(Some(port));
+            let _ = authorize_url.set_host(Some(&host.0));
+            let _ = authorize_url.set_port(Some(port));
+        }
+    }
 }

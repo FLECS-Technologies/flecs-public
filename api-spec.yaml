@@ -753,26 +753,55 @@ components:
         version:
           type: string
     AuthProvider:
-      type: object
-      required:
-      - issuer_url
-      - name
-      - kind
-      - port
-      - config
-      properties:
-        config: {}
-        issuer_url:
-          type: string
-          format: uri
-        kind:
-          type: string
-        name:
-          type: string
-        port:
-          type: integer
-          format: u-int16
-          minimum: 0
+      allOf:
+      - $ref: '#/components/schemas/AuthProviderConfig'
+      - type: object
+        required:
+        - issuer_url
+        - name
+        - port
+        - properties
+        properties:
+          issuer_url:
+            type: string
+            format: uri
+          name:
+            type: string
+          port:
+            type: integer
+            format: u-int16
+            minimum: 0
+          properties: {}
+    AuthProviderConfig:
+      oneOf:
+      - type: object
+        required:
+        - kind
+        properties:
+          kind:
+            type: string
+            enum:
+            - oidc
+      - type: object
+        required:
+        - jwk_url
+        - authorize_url
+        - token_url
+        - kind
+        properties:
+          authorize_url:
+            type: string
+            format: uri
+          jwk_url:
+            type: string
+            format: uri
+          kind:
+            type: string
+            enum:
+            - oauth
+          token_url:
+            type: string
+            format: uri
     AuthProvidersAndDefaults:
       type: object
       required:
@@ -891,12 +920,10 @@ components:
       - type: string
         enum:
         - Default
-      - type: object
-        required:
-        - Provider
-        properties:
-          Provider:
-            $ref: '#/components/schemas/HexString8'
+      - type: string
+        maxLength: 8
+        minLength: 8
+        pattern: ^[0-9a-fA-F]{8}$
     PutDefaultProviderRequest:
       type: object
       required:

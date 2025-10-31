@@ -29,6 +29,8 @@ use crate::sorcerer::mage_quester::MageQuester;
 use crate::sorcerer::manifesto::Manifesto;
 use crate::sorcerer::systemus::Systemus;
 use crate::vault::Vault;
+#[cfg(feature = "auth")]
+use crate::wall::Wall;
 use anyhow::Error;
 pub use api::v2::ApiDoc;
 use flecs_console_client::models::SessionId;
@@ -75,6 +77,8 @@ pub struct ServerImpl<
     device_readers: DeviceReaders<T, NET, NetDev>,
     console_client: ConsoleClient,
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
+    #[cfg(feature = "auth")]
+    wall: Wall,
 }
 
 impl<
@@ -100,6 +104,7 @@ impl<
         sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
         enchantments: Enchantments<F>,
         device_readers: DeviceReaders<T, NET, NetDev>,
+        #[cfg(feature = "auth")] wall: Wall,
     ) -> Self {
         Self {
             console_client: crate::fsm::console_client::create_default(vault.clone(), lore.clone()),
@@ -108,6 +113,8 @@ impl<
             enchantments,
             device_readers,
             sorcerers,
+            #[cfg(feature = "auth")]
+            wall,
         }
     }
 }

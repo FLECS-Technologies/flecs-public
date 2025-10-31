@@ -81,7 +81,7 @@ p,*,/v2/system/ping,GET
 p,*,/v2/system/version,GET
 
 #g,role,inherited_role
-g,tech.flecs.core.operator,read_jobs
+g,tech.flecs.core.operator,tech.flecs.core.read_jobs
 
 g,tech.flecs.core.technician,tech.flecs.core.operator
 
