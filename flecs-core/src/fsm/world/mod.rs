@@ -3,8 +3,8 @@ use crate::enchantment::floxy::{Floxy, FloxyImpl, FloxyOperation};
 use crate::enchantment::quest_master::QuestMaster;
 use crate::fsm::ServerHandle;
 use crate::legacy::MigrateError;
-use crate::lore::{Lore, conf};
-use crate::quest::QuestResult;
+use crate::lore::Lore;
+use crate::quest::{QuestResult, SyncQuest};
 use crate::relic::device::net::{NetDeviceReader, NetDeviceReaderImpl};
 use crate::relic::device::usb::{UsbDeviceReader, UsbDeviceReaderImpl};
 use crate::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
@@ -19,9 +19,13 @@ use crate::sorcerer::instancius::{Instancius, InstanciusImpl};
 use crate::sorcerer::licenso::{Licenso, LicensoImpl};
 use crate::sorcerer::mage_quester::{MageQuester, MageQuesterImpl};
 use crate::sorcerer::manifesto::{Manifesto, ManifestoImpl};
+#[cfg(feature = "auth")]
+use crate::sorcerer::providius::Providius;
 use crate::sorcerer::systemus::{Systemus, SystemusImpl};
 use crate::sorcerer::{FlecsSorcerers, Sorcerers};
 use crate::vault::Vault;
+#[cfg(feature = "auth")]
+use crate::wall::{Wall, enforcer::Enforcer, watch, watch::Watch};
 use crate::{legacy, lore};
 use std::path::Path;
 use std::sync::Arc;
@@ -48,6 +52,9 @@ pub struct World<
     pub relics: Relics<UDR, NAR, NDR>,
     pub vault: Arc<Vault>,
     pub server: ServerHandle,
+    #[cfg(feature = "auth")]
+    pub wall: Wall,
+    pub lore: Arc<Lore>,
 }
 
 pub type FlecsWorld = World<
@@ -81,6 +88,12 @@ pub enum CreateError {
     Lore(#[from] lore::Error),
     #[error("IO Error: {0}")]
     IO(#[from] std::io::Error),
+    #[cfg(feature = "auth")]
+    #[error(transparent)]
+    Casbin(#[from] casbin::Error),
+    #[cfg(feature = "auth")]
+    #[error(transparent)]
+    Watch(#[from] watch::Error),
 }
 
 impl FlecsWorld {
@@ -228,9 +241,9 @@ impl<
     E: Exportius + 'static,
     IMP: Importius + 'static,
     F: Floxy + 'static,
-    UDR: UsbDeviceReader,
-    NAR: NetworkAdapterReader,
-    NDR: NetDeviceReader,
+    UDR: UsbDeviceReader + 'static,
+    NAR: NetworkAdapterReader + 'static,
+    NDR: NetDeviceReader + 'static,
 > World<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, UDR, NAR, NDR>
 {
     pub async fn halt(self) {
@@ -261,18 +274,71 @@ impl<
         }
     }
 
+    async fn startup_quest(
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        #[cfg(feature = "auth")] lore: Arc<Lore>,
+        floxy: Arc<FloxyOperation<F>>,
+        instancius: Arc<I>,
+        #[cfg(feature = "auth")] providius: Arc<dyn Providius>,
+        #[cfg(feature = "auth")] watch: Arc<Watch>,
+    ) -> crate::Result<()> {
+        #[cfg(feature = "auth")]
+        let auth_setup = {
+            let vault = vault.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest("Setup core auth provider", |quest| async move {
+                    providius
+                        .setup_core_auth_provider(quest, vault, lore, watch)
+                        .await
+                })
+                .await
+                .2
+        };
+        let start = quest
+            .lock()
+            .await
+            .create_sub_quest("Start instances", |quest| async move {
+                instancius
+                    .start_all_instances_as_desired(quest, vault, floxy)
+                    .await
+            })
+            .await
+            .2;
+        let start = start.await;
+        #[cfg(feature = "auth")]
+        auth_setup.await?;
+        start
+    }
     async fn spin_up(&self) -> crate::Result<()> {
         let instancius = self.sorcerers.instancius.clone();
+        #[cfg(feature = "auth")]
+        let providius = self.sorcerers.providius.clone();
+        #[cfg(feature = "auth")]
+        let lore = self.lore.clone();
         let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
         let vault = self.vault.clone();
+        #[cfg(feature = "auth")]
+        let watch = self.wall.watch.clone();
         self.enchantments
             .quest_master
             .lock()
             .await
-            .schedule_quest("Flecs startup sequence".to_string(), |quest| async move {
-                instancius
-                    .start_all_instances_as_desired(quest, vault, floxy)
-                    .await
+            .schedule_quest("Flecs startup sequence".to_string(), |quest| {
+                Self::startup_quest(
+                    quest,
+                    vault,
+                    #[cfg(feature = "auth")]
+                    lore,
+                    floxy,
+                    instancius,
+                    #[cfg(feature = "auth")]
+                    providius,
+                    #[cfg(feature = "auth")]
+                    watch,
+                )
             })
             .await?;
         Ok(())
@@ -305,12 +371,16 @@ impl<
             .start()
             .map_err(|e| CreateError::FloxyStartup(e.to_string()))?;
         vault.open().await;
+        #[cfg(feature = "auth")]
+        let wall = Self::build_wall(lore.clone()).await?;
         let world = Self {
             server: crate::fsm::spawn_server(
                 sorcerers.clone(),
                 enchantments.clone(),
                 vault.clone(),
-                lore,
+                lore.clone(),
+                #[cfg(feature = "auth")]
+                wall.clone(),
             )
             .await
             .map_err(|e| CreateError::SpinUp(e.to_string()))?,
@@ -318,14 +388,24 @@ impl<
             enchantments,
             relics,
             vault,
+            #[cfg(feature = "auth")]
+            wall,
+            lore,
         };
         Ok(world)
+    }
+
+    #[cfg(feature = "auth")]
+    pub async fn build_wall(lore: Arc<Lore>) -> Result<Wall, CreateError> {
+        let enforcer = Arc::new(Enforcer::new_with_lore(lore.clone()).await?);
+        let watch = Arc::new(Watch::new_with_lore(lore).await?);
+        Ok(Wall { enforcer, watch })
     }
 
     pub async fn read_lore() -> Result<Lore, lore::Error> {
         let reader = &EnvReader;
         let config_path = lore::config_path(reader);
-        let config_exists = config_path.try_exists().map_err(conf::Error::from)?;
+        let config_exists = config_path.try_exists().map_err(lore::conf::Error::from)?;
         if config_exists {
             let file_config = lore::conf::FlecsConfig::from_path(&config_path).await?;
             let env_config = lore::conf::FlecsConfig::from_var_reader(reader)?;

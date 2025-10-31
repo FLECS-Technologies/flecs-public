@@ -3,6 +3,7 @@ mod server_impl;
 pub mod world;
 use crate::enchantment::Enchantments;
 use crate::enchantment::floxy::Floxy;
+use crate::fsm::server_impl::DeviceReaders;
 use crate::lore::{Listener, Lore};
 use crate::relic::device::net::NetDeviceReaderImpl;
 use crate::relic::device::usb::UsbDeviceReaderImpl;
@@ -21,10 +22,6 @@ use crate::sorcerer::systemus::Systemus;
 use crate::vault::Vault;
 #[cfg(feature = "auth")]
 use crate::wall;
-#[cfg(feature = "auth")]
-use crate::wall::enforcer::Enforcer;
-#[cfg(feature = "auth")]
-use crate::wall::watch::{AuthToken, RolesExtension, Watch};
 use axum::extract::DefaultBodyLimit;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 #[cfg(feature = "auth")]
@@ -111,16 +108,20 @@ fn is_trace_level_path(path: &str) -> bool {
 
 #[cfg(feature = "auth")]
 async fn auth_middleware(
-    axum::extract::State(watch): axum::extract::State<Arc<Watch>>,
-    AuthToken(auth_token): AuthToken,
+    axum::extract::State(watch): axum::extract::State<Arc<wall::watch::Watch>>,
+    wall::watch::AuthToken(auth_token): wall::watch::AuthToken,
     mut request: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
     if let Some(token) = auth_token.as_deref() {
         match watch.verify_token(token).await {
-            Err(wall::watch::Error::NoIssuer) => {
-                debug!("Can not verify token as no issuer is configured, continuing as anonymous");
-                request.extensions_mut().insert(RolesExtension::default());
+            Err(wall::watch::Error::NoAuthProvider) => {
+                debug!(
+                    "Can not verify token as no auth provider is configured, continuing as anonymous"
+                );
+                request
+                    .extensions_mut()
+                    .insert(wall::watch::RolesExtension::default());
             }
             Err(e) => {
                 warn!("Failed to verify token: {e}");
@@ -132,16 +133,18 @@ async fn auth_middleware(
             }
         }
     } else {
-        request.extensions_mut().insert(RolesExtension::default());
+        request
+            .extensions_mut()
+            .insert(wall::watch::RolesExtension::default());
     }
     next.run(request).await
 }
 
 #[cfg(feature = "auth")]
 async fn roles_middleware(
-    axum::extract::State(enforcer): axum::extract::State<Arc<Enforcer>>,
+    axum::extract::State(enforcer): axum::extract::State<Arc<wall::enforcer::Enforcer>>,
     axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
-    axum::Extension(roles): axum::Extension<RolesExtension>,
+    axum::Extension(roles): axum::Extension<wall::watch::RolesExtension>,
     request: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
@@ -197,19 +200,18 @@ async fn create_service<
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
     lore: Arc<Lore>,
+    #[cfg(feature = "auth")] wall: wall::Wall,
 ) -> Result<IntoMakeServiceWithConnectInfo<Router, C>> {
     let server = server_impl::ServerImpl::new(
-        vault,
+        vault.clone(),
         lore.clone(),
         sorcerers,
         enchantments,
         DefaultDeviceReaders::default(),
+        #[cfg(feature = "auth")]
+        wall.clone(),
     )
     .await;
-    #[cfg(feature = "auth")]
-    let watch = Arc::new(Watch::new_with_lore(lore.clone()).await?);
-    #[cfg(feature = "auth")]
-    let enforcer = Arc::new(Enforcer::new_with_lore(lore).await?);
     let server = Arc::new(server);
     let app = flecsd_axum_server::server::new(server.clone());
     let app = app
@@ -296,10 +298,13 @@ async fn create_service<
     #[cfg(feature = "auth")]
     let app = app
         .layer(axum::middleware::from_fn_with_state(
-            enforcer,
+            wall.enforcer,
             roles_middleware,
         ))
-        .layer(axum::middleware::from_fn_with_state(watch, auth_middleware));
+        .layer(axum::middleware::from_fn_with_state(
+            wall.watch,
+            auth_middleware,
+        ));
     let app = app
         // It is not feasible to configure the body limit per route as we would have to manually
         // generated code (flecsd_axum_server::server::new). We therefore disable the limit for all
@@ -463,6 +468,7 @@ pub async fn spawn_server<
     enchantments: Enchantments<F>,
     vault: Arc<Vault>,
     lore: Arc<Lore>,
+    #[cfg(feature = "auth")] wall: wall::Wall,
 ) -> Result<ServerHandle> {
     enum _Listener<T> {
         Socket(
@@ -482,7 +488,15 @@ pub async fn spawn_server<
             format!("unix socket {}", path.display()),
             _Listener::Socket(
                 create_unix_socket(path).await?,
-                create_service(sorcerers, enchantments, vault, lore).await?,
+                create_service(
+                    sorcerers,
+                    enchantments,
+                    vault,
+                    lore,
+                    #[cfg(feature = "auth")]
+                    wall,
+                )
+                .await?,
             ),
         ),
         Listener::TCP { port, bind_address } => (
@@ -493,7 +507,15 @@ pub async fn spawn_server<
             },
             _Listener::Port(
                 create_tcp_listener(port, bind_address).await?,
-                create_service(sorcerers, enchantments, vault, lore).await?,
+                create_service(
+                    sorcerers,
+                    enchantments,
+                    vault,
+                    lore,
+                    #[cfg(feature = "auth")]
+                    wall,
+                )
+                .await?,
             ),
         ),
     };

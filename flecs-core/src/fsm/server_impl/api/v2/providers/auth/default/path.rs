@@ -37,6 +37,5 @@ pub async fn any(
         host,
         path,
         orig.query(),
-        orig.scheme(),
     )
 }

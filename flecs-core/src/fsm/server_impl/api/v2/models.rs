@@ -2,7 +2,7 @@ use crate::fsm::server_impl::api::v2::instances::instance_id::depends::dependenc
 use crate::quest::QuestId;
 use crate::sorcerer::providius::{
     ClearDependencyError, DeleteDefaultProviderError, GetDependenciesError, GetDependencyError,
-    GetFeatureProvidesError, GetProvidesError, Provider, PutCoreAuthProviderError,
+    GetFeatureProvidesError, GetProvidesError, Provider, SetCoreAuthProviderError,
     SetDefaultProviderError, SetDependencyError,
 };
 use crate::vault::pouch::AppKey;
@@ -208,7 +208,7 @@ impl IntoResponse for GetFeatureProvidesError {
     }
 }
 
-impl IntoResponse for PutCoreAuthProviderError {
+impl IntoResponse for SetCoreAuthProviderError {
     fn into_response(self) -> Response {
         AdditionalInfo::new(self.to_string()).into_bad_request()
     }

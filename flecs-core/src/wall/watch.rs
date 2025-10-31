@@ -1,3 +1,4 @@
+use crate::jeweler::gem::manifest::providers::auth::Url;
 use crate::lore::AuthLoreRef;
 use async_trait::async_trait;
 use axum_extra::headers::HeaderMapExt;
@@ -6,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::time::Duration;
 use thiserror::Error;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, RwLockWriteGuard};
 
 pub struct Watch {
     client: reqwest::Client,
@@ -25,8 +26,8 @@ pub enum Error {
     NoKid,
     #[error("Unknown kid '{0}'")]
     UnknownKid(String),
-    #[error("No issuer configured")]
-    NoIssuer,
+    #[error("No auth provider configured")]
+    NoAuthProvider,
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
     #[error(transparent)]
@@ -62,19 +63,37 @@ where
 impl Watch {
     async fn fetch_meta(
         client: &reqwest::Client,
-        issuer_url: IssuerUrl,
+        auth_provider_meta: &AuthProviderMetaData,
     ) -> Result<MetaData, Error> {
-        let provider_metadata =
-            openidconnect::core::CoreProviderMetadata::discover_async(issuer_url, client).await?;
-        let jwks: jsonwebtoken::jwk::JwkSet = client
-            .get(provider_metadata.jwks_uri().url().clone())
-            .send()
-            .await?
-            .json()
-            .await?;
+        let (issuer_url, jwks) = match auth_provider_meta {
+            AuthProviderMetaData::Oidc { issuer_url } => {
+                let provider_metadata = openidconnect::core::CoreProviderMetadata::discover_async(
+                    IssuerUrl::from_url(issuer_url.clone()),
+                    client,
+                )
+                .await?;
+                let jwks: jsonwebtoken::jwk::JwkSet = client
+                    .get(provider_metadata.jwks_uri().url().clone())
+                    .send()
+                    .await?
+                    .json()
+                    .await?;
+                (provider_metadata.issuer().url().clone(), jwks)
+            }
+            AuthProviderMetaData::Oauth {
+                issuer_url,
+                jwk_url,
+            } => {
+                let issuer_url: url::Url =
+                    client.get(issuer_url.clone()).send().await?.json().await?;
+                let jwk: jsonwebtoken::jwk::Jwk =
+                    client.get(jwk_url.clone()).send().await?.json().await?;
+                (issuer_url, jsonwebtoken::jwk::JwkSet { keys: vec![jwk] })
+            }
+        };
         Ok(MetaData {
             jwks,
-            issuer_url: provider_metadata.issuer().clone(),
+            issuer_url,
             time_stamp: std::time::Instant::now(),
         })
     }
@@ -85,26 +104,26 @@ impl Watch {
     ) -> Result<(jsonwebtoken::jwk::Jwk, IssuerUrl), Error> {
         {
             let data = self.data.read().await;
-            if data.issuer_url.is_none() {
-                return Err(Error::NoIssuer);
+            if data.auth_provider_meta.is_none() {
+                return Err(Error::NoAuthProvider);
             };
             match &data.meta {
                 Some(meta) if meta.time_stamp.elapsed() < self.meta_cache_lifetime => {
-                    return Ok((meta.jwk(kid)?, meta.issuer_url.clone()));
+                    return Ok((meta.jwk(kid)?, IssuerUrl::from_url(meta.issuer_url.clone())));
                 }
                 _ => {}
             }
         }
 
         let mut data = self.data.write().await;
-        let Some(issuer_url) = data.issuer_url.clone() else {
-            return Err(Error::NoIssuer);
+        let Some(auth_meta) = &data.auth_provider_meta else {
+            return Err(Error::NoAuthProvider);
         };
-        let meta = Self::fetch_meta(&self.client, issuer_url).await?;
+        let meta = Self::fetch_meta(&self.client, auth_meta).await?;
         let jwk = meta.jwk(kid);
         let issuer_url = meta.issuer_url.clone();
         data.meta.replace(meta);
-        Ok((jwk?, issuer_url))
+        Ok((jwk?, IssuerUrl::from_url(issuer_url)))
     }
 
     fn algorithm_from_jwk(jwk: &jsonwebtoken::jwk::Jwk) -> Result<jsonwebtoken::Algorithm, Error> {
@@ -156,7 +175,7 @@ impl Watch {
         let algorithm = Self::algorithm_from_jwk(&jwk)?;
         let mut validation = jsonwebtoken::Validation::new(algorithm);
         let decoding_key = jsonwebtoken::DecodingKey::from_jwk(&jwk)?;
-        validation.set_audience(&["account"]);
+        validation.set_audience(&["flecs-core-api"]);
         validation.set_issuer(&[issuer_url.as_str()]);
         validation.set_required_spec_claims(&["exp", "aud", "iss", "sub"]);
         let claims = jsonwebtoken::decode::<Claims>(token, &decoding_key, &validation)?.claims;
@@ -175,31 +194,44 @@ impl Watch {
         let client = reqwest::ClientBuilder::new()
             .redirect(reqwest::redirect::Policy::none())
             .build()?;
-        let data = if let Some(issuer_url) = &lore.issuer_url {
-            Data {
-                meta: Self::fetch_meta(&client, issuer_url.clone()).await.ok(),
-                issuer_url: Some(issuer_url.clone()),
-            }
-        } else {
-            Data::default()
-        };
         Ok(Self {
-            data: RwLock::new(data),
+            data: RwLock::new(Data::default()),
             client,
             meta_cache_lifetime: lore.issuer_certificate_cache_lifetime,
         })
     }
+
+    pub async fn data_mut(&self) -> RwLockWriteGuard<'_, Data> {
+        self.data.write().await
+    }
 }
 
-#[derive(Default)]
-struct Data {
+#[derive(Debug)]
+pub enum AuthProviderMetaData {
+    Oidc { issuer_url: Url },
+    Oauth { issuer_url: Url, jwk_url: Url },
+}
+
+#[derive(Debug, Default)]
+pub struct Data {
     meta: Option<MetaData>,
-    issuer_url: Option<IssuerUrl>,
+    auth_provider_meta: Option<AuthProviderMetaData>,
 }
 
+impl Data {
+    pub fn set_auth_provider_meta_data(
+        &mut self,
+        meta: AuthProviderMetaData,
+    ) -> Option<AuthProviderMetaData> {
+        self.meta = None;
+        self.auth_provider_meta.replace(meta)
+    }
+}
+
+#[derive(Debug)]
 struct MetaData {
     jwks: jsonwebtoken::jwk::JwkSet,
-    issuer_url: IssuerUrl,
+    issuer_url: Url,
     time_stamp: std::time::Instant,
 }
 

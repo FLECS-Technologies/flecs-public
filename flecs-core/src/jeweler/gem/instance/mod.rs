@@ -18,12 +18,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::net::Ipv4Addr;
+use std::num::ParseIntError;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq, ToSchema)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Eq, PartialEq, ToSchema)]
 pub enum ProviderReference {
     #[default]
     Default,
@@ -47,6 +49,17 @@ impl Display for ProviderReference {
         match self {
             ProviderReference::Default => write!(f, "Default"),
             ProviderReference::Provider(id) => std::fmt::Display::fmt(id, f),
+        }
+    }
+}
+
+impl FromStr for ProviderReference {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Default" => Ok(Self::Default),
+            s => Ok(Self::Provider(ProviderId::from_str(s)?)),
         }
     }
 }

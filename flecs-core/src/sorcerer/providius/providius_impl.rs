@@ -1,6 +1,11 @@
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference};
 use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
-
+#[cfg(feature = "auth")]
+use crate::lore::Lore;
+#[cfg(feature = "auth")]
+use crate::quest;
+#[cfg(feature = "auth")]
+use crate::quest::SyncQuest;
 #[cfg(feature = "auth")]
 use crate::sorcerer::providius::AuthProvidersAndDefaults;
 use crate::sorcerer::providius::{
@@ -8,20 +13,28 @@ use crate::sorcerer::providius::{
     GetProvidesError, Provider, ProvidersAndDefaults, Providius,
 };
 #[cfg(feature = "auth")]
-use crate::sorcerer::spell::provider::get_auth_providers;
+use crate::sorcerer::spell::provider::{
+    BuildWatchConfigError, build_watch_config_from_auth_provider, get_auth_providers,
+};
 use crate::sorcerer::spell::provider::{
     DeleteDefaultProviderError, GetAuthProviderPortError, GetDependencyError, GetProviderError,
-    PutCoreAuthProviderError, SetDefaultProviderError, SetDependencyError, clear_dependency,
+    SetCoreAuthProviderError, SetDefaultProviderError, SetDependencyError, clear_dependency,
     delete_default_provider, get_core_providers, get_default_provider_id, get_default_provider_ids,
     get_dependencies, get_dependency, get_feature_provides, get_provider, get_providers,
-    get_provides, put_core_auth_provider, set_default_provider, set_dependency,
+    get_provides, set_core_auth_provider, set_default_provider, set_dependency,
 };
 use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::Pouch;
 use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use crate::vault::{GrabbedPouches, Vault};
+#[cfg(feature = "auth")]
+use crate::wall::watch;
+#[cfg(feature = "auth")]
+use crate::wall::watch::Watch;
 use async_trait::async_trait;
 use std::collections::HashMap;
+#[cfg(feature = "auth")]
+use std::ops::DerefMut;
 use std::sync::Arc;
 
 pub struct ProvidiusImpl;
@@ -42,8 +55,10 @@ impl Providius for ProvidiusImpl {
     async fn put_core_auth_provider(
         &self,
         vault: Arc<Vault>,
+        #[cfg(feature = "auth")] lore: Arc<Lore>,
+        #[cfg(feature = "auth")] watch: Arc<Watch>,
         provider: ProviderReference,
-    ) -> Result<Option<ProviderReference>, PutCoreAuthProviderError> {
+    ) -> Result<Option<ProviderReference>, SetCoreAuthProviderError> {
         let GrabbedPouches {
             instance_pouch: Some(ref instances),
             provider_pouch_mut: Some(ref mut providers),
@@ -57,7 +72,62 @@ impl Providius for ProvidiusImpl {
         else {
             unreachable!("Reservation should never fail");
         };
-        put_core_auth_provider(instances.gems(), providers.gems_mut(), provider)
+        #[cfg(feature = "auth")]
+        let config = build_watch_config_from_auth_provider(
+            instances.gems(),
+            providers.gems(),
+            &lore.network.default_network_name,
+            provider,
+        )?;
+        let previous = set_core_auth_provider(instances.gems(), providers.gems_mut(), provider)?;
+        #[cfg(feature = "auth")]
+        watch
+            .data_mut()
+            .await
+            .deref_mut()
+            .set_auth_provider_meta_data(config);
+        Ok(previous)
+    }
+
+    #[cfg(feature = "auth")]
+    async fn setup_core_auth_provider(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        lore: Arc<Lore>,
+        watch: Arc<Watch>,
+    ) -> Result<(), SetCoreAuthProviderError> {
+        let GrabbedPouches {
+            instance_pouch: Some(ref instances),
+            provider_pouch: Some(ref providers),
+            ..
+        } = vault
+            .reservation()
+            .reserve_instance_pouch()
+            .reserve_provider_pouch()
+            .grab()
+            .await
+        else {
+            unreachable!("Reservation should never fail");
+        };
+        let Some(provider) = providers.gems().core_providers.auth else {
+            let mut quest = quest.lock().await;
+            quest.state = quest::State::Skipped;
+            quest.detail = Some("No core auth provider configured".to_string());
+            return Ok(());
+        };
+        let config = build_watch_config_from_auth_provider(
+            instances.gems(),
+            providers.gems(),
+            &lore.network.default_network_name,
+            provider,
+        )?;
+        watch
+            .data_mut()
+            .await
+            .deref_mut()
+            .set_auth_provider_meta_data(config);
+        Ok(())
     }
 
     #[cfg(feature = "auth")]
@@ -80,14 +150,13 @@ impl Providius for ProvidiusImpl {
             unreachable!("Reservation should never fail");
         };
         let default = get_default_provider_id(providers.gems(), &FeatureKey::auth());
-        let core = get_core_providers(providers.gems()).auth.clone();
+        let core = get_core_providers(providers.gems()).auth;
         let providers = get_auth_providers(instances.gems());
         let providers = providers
             .into_iter()
             .map(|(id, (mut provider, port))| {
                 // Replace host and port part of issuer url as accessible by the client
-                let _ = provider.issuer_url.set_host(Some(&host.0));
-                let _ = provider.issuer_url.set_port(Some(port));
+                provider.replace_host_and_port(host, port);
                 (id, provider)
             })
             .collect();
@@ -360,7 +429,7 @@ impl Providius for ProvidiusImpl {
             provider_reference,
         )
         .ok_or(GetAuthProviderPortError::DefaultProviderNotSet)?;
-        spell::instance::get_auth_provider_port(instances.gems(), provider_id).await
+        spell::instance::get_auth_provider_port(instances.gems(), provider_id)
     }
 
     async fn get_core_auth_provider_port(
@@ -382,7 +451,6 @@ impl Providius for ProvidiusImpl {
         };
         let provider_reference = spell::provider::get_core_providers(providers.gems())
             .auth
-            .clone()
             .ok_or(GetAuthProviderPortError::CoreProviderNotSet)?;
         let provider_id = spell::provider::resolve_provider_reference(
             providers.gems(),
@@ -390,6 +458,34 @@ impl Providius for ProvidiusImpl {
             provider_reference,
         )
         .ok_or(GetAuthProviderPortError::DefaultProviderNotSet)?;
-        spell::instance::get_auth_provider_port(instances.gems(), provider_id).await
+        spell::instance::get_auth_provider_port(instances.gems(), provider_id)
+    }
+
+    #[cfg(feature = "auth")]
+    async fn build_watch_config_from_auth_provider(
+        &self,
+        vault: Arc<Vault>,
+        lore: Arc<Lore>,
+        auth_provider: ProviderReference,
+    ) -> Result<watch::AuthProviderMetaData, BuildWatchConfigError> {
+        let GrabbedPouches {
+            instance_pouch: Some(ref instances),
+            provider_pouch: Some(ref providers),
+            ..
+        } = vault
+            .reservation()
+            .reserve_instance_pouch()
+            .reserve_provider_pouch()
+            .grab()
+            .await
+        else {
+            unreachable!("Reservation should never fail");
+        };
+        build_watch_config_from_auth_provider(
+            instances.gems(),
+            providers.gems(),
+            &lore.network.default_network_name,
+            auth_provider,
+        )
     }
 }

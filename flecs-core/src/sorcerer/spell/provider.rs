@@ -9,9 +9,13 @@ use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
 use crate::quest::{State, SyncQuest};
 use crate::sorcerer::instancius::QueryInstanceConfigError;
 use crate::sorcerer::providius::{Dependency, Provider};
+#[cfg(feature = "auth")]
+use crate::sorcerer::spell::instance::get_instance_config_part_with_from_gems;
 use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault, pouch};
+#[cfg(feature = "auth")]
+use crate::wall::watch;
 use anyhow::Context;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -120,13 +124,15 @@ pub enum GetFeatureProvidesError {
 }
 
 #[derive(Error, Debug)]
-pub enum PutCoreAuthProviderError {
+pub enum SetCoreAuthProviderError {
     #[error("Instance with id {0} does not exist")]
     InstanceNotFound(ProviderId),
     #[error("Can not use default auth provider as it is not set")]
     DefaultProviderNotSet,
     #[error("Instance with id {id} does not provide feature auth")]
     DoesNotProvide { id: ProviderId },
+    #[error(transparent)]
+    BuildWatchConfig(#[from] BuildWatchConfigError),
 }
 
 #[derive(Error, Debug)]
@@ -139,6 +145,22 @@ pub enum GetAuthProviderPortError {
     DefaultProviderNotSet,
     #[error("Instance with id {id} does not provide feature auth")]
     DoesNotProvide { id: ProviderId },
+    #[error(transparent)]
+    QueryConfig(#[from] QueryInstanceConfigError),
+}
+
+#[derive(Error, Debug)]
+pub enum BuildWatchConfigError {
+    #[error("Auth provider with id {0} does not exist")]
+    ProviderNotFound(ProviderId),
+    #[error("Can not use default auth provider as it is not set")]
+    DefaultProviderNotSet,
+    #[error("Instance with id {id} does not provide feature auth")]
+    DoesNotProvide { id: ProviderId },
+    #[error("Auth provider with id {id} is not connected to network {network}")]
+    NotConnected { id: ProviderId, network: String },
+    #[error("Auth provider with id {id} is not accessible via host port")]
+    NotAccessible { id: ProviderId },
     #[error(transparent)]
     QueryConfig(#[from] QueryInstanceConfigError),
 }
@@ -296,28 +318,28 @@ pub fn get_core_providers(providers: &pouch::provider::Gems) -> &CoreProviders {
     &providers.core_providers
 }
 
-pub fn put_core_auth_provider(
+pub fn set_core_auth_provider(
     instances: &pouch::instance::Gems,
     providers: &mut pouch::provider::Gems,
     provider: ProviderReference,
-) -> Result<Option<ProviderReference>, PutCoreAuthProviderError> {
+) -> Result<Option<ProviderReference>, SetCoreAuthProviderError> {
     let id = match provider {
         ProviderReference::Default => providers
             .default_providers
             .get(&FeatureKey::auth())
             .cloned()
-            .ok_or(PutCoreAuthProviderError::DefaultProviderNotSet)?,
+            .ok_or(SetCoreAuthProviderError::DefaultProviderNotSet)?,
         ProviderReference::Provider(id) => id,
     };
     if instances
         .get(&id)
-        .ok_or(PutCoreAuthProviderError::InstanceNotFound(id))?
+        .ok_or(SetCoreAuthProviderError::InstanceNotFound(id))?
         .manifest()
         .specific_providers()
         .auth
         .is_none()
     {
-        Err(PutCoreAuthProviderError::DoesNotProvide { id })
+        Err(SetCoreAuthProviderError::DoesNotProvide { id })
     } else {
         Ok(providers.core_providers.auth.replace(provider))
     }
@@ -614,7 +636,7 @@ pub async fn set_dependency(
     };
     Ok(instance
         .set_dependency(dependency_key, provider_reference)
-        .map(|dependency| dependency.provider_reference.clone()))
+        .map(|dependency| dependency.provider_reference))
 }
 
 pub async fn set_default_dependencies(quest: SyncQuest, vault: Arc<Vault>, id: InstanceId) {
@@ -699,6 +721,45 @@ pub async fn set_default_dependency(
         }
     }
     Err(errors)
+}
+
+#[cfg(feature = "auth")]
+pub fn build_watch_config_from_auth_provider(
+    instances: &pouch::instance::Gems,
+    providers: &pouch::provider::Gems,
+    network_name: &str,
+    auth_provider: ProviderReference,
+) -> Result<watch::AuthProviderMetaData, BuildWatchConfigError> {
+    let provider_id = match auth_provider {
+        ProviderReference::Provider(id) => id,
+        ProviderReference::Default => *providers
+            .default_providers
+            .get(&FeatureKey::auth())
+            .ok_or(BuildWatchConfigError::DefaultProviderNotSet)?,
+    };
+    let provider = instances
+        .get(&provider_id)
+        .ok_or(BuildWatchConfigError::ProviderNotFound(provider_id))?;
+    let manifest = provider.manifest();
+    let auth_provider = manifest
+        .specific_providers()
+        .auth
+        .as_ref()
+        .ok_or(BuildWatchConfigError::DoesNotProvide { id: provider_id })?;
+
+    let (ip, port) = get_instance_config_part_with_from_gems(instances, provider_id, |config| {
+        (
+            config.connected_networks.get(network_name).copied(),
+            config.providers.auth.as_ref().map(|auth| auth.port),
+        )
+    })?;
+    let ip = ip.ok_or_else(|| BuildWatchConfigError::NotConnected {
+        id: provider_id,
+        network: network_name.to_string(),
+    })?;
+    let port = port.ok_or(BuildWatchConfigError::NotAccessible { id: provider_id })?;
+    let meta = auth_provider.build_meta(ip, port).unwrap();
+    Ok(meta)
 }
 
 #[cfg(test)]
