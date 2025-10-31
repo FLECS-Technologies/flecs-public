@@ -70,4 +70,5 @@ testdir = "0.9.3"
 
 [features]
 auth = ["dep:openidconnect", "dep:jsonwebtoken", "dep:casbin", "dep:slog", "dep:url", "axum-extra/typed-header"]
+default = ["auth"]
 dev-auth = ["auth"]
