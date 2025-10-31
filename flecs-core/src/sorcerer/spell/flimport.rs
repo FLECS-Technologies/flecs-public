@@ -733,6 +733,7 @@ pub async fn import_instances(
                         manifests.clone(),
                         deployments.clone(),
                         apps.clone(),
+                        *instance_id,
                         config.clone(),
                     )
                 })
@@ -760,9 +761,10 @@ pub async fn import_instance(
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
     apps: Arc<pouch::app::Gems>,
+    id: InstanceId,
     ImportInstanceConfig { lore, src, dst }: ImportInstanceConfig,
 ) -> Result<Instance, ImportInstanceError> {
-    let instance_path = src.join("instance.json");
+    let instance_path = src.join(id.to_string()).join("instance.json");
     let instance = tokio::fs::read(&instance_path).await?;
     let instance: InstanceDeserializable = serde_json::from_slice(&instance)?;
     if !apps.contains_key(instance.app_key()) {
