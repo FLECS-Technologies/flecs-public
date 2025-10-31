@@ -267,8 +267,7 @@ async fn create_service<
         )
         .route(
             "/v2/providers/auth/core",
-            get(server_impl::api::v2::providers::auth::core::get)
-                .put(server_impl::api::v2::providers::auth::core::put),
+            get(server_impl::api::v2::providers::auth::core::get),
         )
         .route(
             "/v2/providers/auth/default",
@@ -281,12 +280,6 @@ async fn create_service<
             any(server_impl::api::v2::providers::auth::default::path::any),
         )
         .route(
-            "/v2/providers/auth/first-time-setup/flecsport",
-            axum::routing::post(
-                server_impl::api::v2::providers::auth::first_time_setup::flecsport::post::<IMP, F>,
-            ),
-        )
-        .route(
             "/v2/providers/auth/:id",
             get(server_impl::api::v2::providers::auth::id::get),
         )
@@ -294,7 +287,25 @@ async fn create_service<
             "/v2/providers/auth/:provider_id/*path",
             any(server_impl::api::v2::providers::auth::id::path::any),
         );
-    let app = app.with_state(server);
+    // The following routes are exempt from the enforcer middleware and the roles/authentication has
+    // to be checked in each handler
+    #[cfg(feature = "auth")]
+    let unenforced = Router::new()
+        .route(
+            "/v2/providers/auth/first-time-setup/flecsport",
+            axum::routing::post(
+                server_impl::api::v2::providers::auth::first_time_setup::flecsport::post::<IMP, F>,
+            ),
+        )
+        .route(
+            "/v2/providers/auth/core",
+            put(server_impl::api::v2::providers::auth::core::put),
+        );
+    #[cfg(feature = "auth")]
+    let unenforced = unenforced.layer(axum::middleware::from_fn_with_state(
+        wall.watch.clone(),
+        auth_middleware,
+    ));
     #[cfg(feature = "auth")]
     let app = app
         .layer(axum::middleware::from_fn_with_state(
@@ -304,7 +315,8 @@ async fn create_service<
         .layer(axum::middleware::from_fn_with_state(
             wall.watch,
             auth_middleware,
-        ));
+        ))
+        .merge(unenforced);
     let app = app
         // It is not feasible to configure the body limit per route as we would have to manually
         // generated code (flecsd_axum_server::server::new). We therefore disable the limit for all
@@ -364,6 +376,7 @@ async fn create_service<
                     },
                 ),
         );
+    let app = app.with_state(server);
     Ok(app.into_make_service_with_connect_info::<C>())
 }
 

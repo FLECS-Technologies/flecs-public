@@ -1,14 +1,18 @@
 pub mod path;
 
 use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
-use crate::fsm::server_impl::state::{LoreState, ProvidiusState, VaultState, WatchState};
+use crate::fsm::server_impl::state::{
+    EnforcerState, LoreState, ProvidiusState, VaultState, WatchState,
+};
 use crate::sorcerer::providius::SetCoreAuthProviderError;
+use crate::wall;
 use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
+use tracing::warn;
 use utoipa::openapi::schema::SchemaType;
 use utoipa::openapi::{RefOr, Schema, Type};
 use utoipa::{PartialSchema, ToSchema};
@@ -82,8 +86,39 @@ pub async fn put(
     State(ProvidiusState(providius)): State<ProvidiusState>,
     State(LoreState(lore)): State<LoreState>,
     #[cfg(feature = "auth")] State(WatchState(watch)): State<WatchState>,
+    #[cfg(feature = "auth")] State(EnforcerState(enforcer)): State<EnforcerState>,
+    #[cfg(feature = "auth")] axum::Extension(roles): axum::Extension<wall::watch::RolesExtension>,
     Json(provider): Json<ProviderReference>,
 ) -> Result<Response, SetCoreAuthProviderError> {
+    #[cfg(feature = "auth")]
+    {
+        let roles_allow_request = match enforcer
+            .verify_roles("/v2/providers/auth/core", &roles.0, &http::Method::PUT)
+            .await
+        {
+            Ok(allow) => allow,
+            Err(e) => {
+                warn!("Error verifying roles: {e}");
+                return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+            }
+        };
+        // The core auth provider is allowed to be set if currently none is present even if the
+        // roles do not allow it
+        if !roles_allow_request
+            && providius
+                .get_core_providers(vault.clone())
+                .await
+                .auth
+                .is_some()
+        {
+            #[cfg(feature = "dev-auth")]
+            warn!(
+                "Authorization failed, but feature dev-auth is enabled and the request will be processed "
+            );
+            #[cfg(not(feature = "dev-auth"))]
+            return Ok(StatusCode::FORBIDDEN.into_response());
+        }
+    }
     match providius
         .put_core_auth_provider(
             vault,
