@@ -14,11 +14,11 @@ use tracing::warn;
 #[allow(clippy::too_many_arguments)]
 #[utoipa::path(
     post,
-    path = "/providers/auth/core/first-time-setup/flecsport",
+    path = "/providers/auth/first-time-setup/flecsport",
     tag = "Experimental",
     description = "Trigger the first time setup of auth providers via flecsport",
     responses(
-        (status = ACCEPTED, description = "Super admin of core auth provider set", body = Accepted),
+        (status = ACCEPTED, description = "First time setup of auth providers via flecsport triggered", body = Accepted),
         (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
     ),
 )]
