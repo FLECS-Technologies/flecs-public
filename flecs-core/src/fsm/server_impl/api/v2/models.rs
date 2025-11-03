@@ -11,8 +11,11 @@ use axum::Json;
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_with::{DisplayFromStr, serde_as};
 use std::collections::HashMap;
 use utoipa::ToSchema;
+use utoipa::openapi::schema::SchemaType;
+use utoipa::openapi::{RefOr, Schema, Type};
 
 #[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct AdditionalInfo {
@@ -79,6 +82,31 @@ pub struct FeatureInfo {
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct PutDefaultProviderRequest {
     pub provider_id: ProviderId,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+pub struct PutProviderReferenceRequest {
+    #[serde_as(as = "DisplayFromStr")]
+    #[schema(schema_with = provider_reference_schema)]
+    pub provider: crate::jeweler::gem::instance::ProviderReference,
+}
+
+fn provider_reference_schema() -> RefOr<Schema> {
+    let id = utoipa::openapi::ObjectBuilder::new()
+        .schema_type(SchemaType::Type(Type::String))
+        .min_length(Some(8))
+        .max_length(Some(8))
+        .pattern(Some("^[0-9a-fA-F]{8}$"))
+        .build();
+    let default_literal = utoipa::openapi::ObjectBuilder::new()
+        .schema_type(SchemaType::Type(Type::String))
+        .enum_values::<Vec<_>, &str>(Some(vec!["Default"]))
+        .build();
+    utoipa::openapi::OneOfBuilder::new()
+        .item(RefOr::T(Schema::Object(default_literal)))
+        .item(RefOr::T(Schema::Object(id)))
+        .into()
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]

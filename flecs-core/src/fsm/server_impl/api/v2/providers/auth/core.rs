@@ -1,6 +1,6 @@
 pub mod path;
 
-use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
+use crate::fsm::server_impl::api::v2::models::{AdditionalInfo, PutProviderReferenceRequest};
 use crate::fsm::server_impl::state::{
     EnforcerState, LoreState, ProvidiusState, VaultState, WatchState,
 };
@@ -10,39 +10,7 @@ use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
-use serde::{Deserialize, Serialize};
-use serde_with::{DisplayFromStr, serde_as};
 use tracing::warn;
-use utoipa::openapi::schema::SchemaType;
-use utoipa::openapi::{RefOr, Schema, Type};
-use utoipa::{PartialSchema, ToSchema};
-
-#[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct ProviderReference(
-    #[serde_as(as = "DisplayFromStr")] crate::jeweler::gem::instance::ProviderReference,
-);
-
-impl ToSchema for ProviderReference {}
-impl PartialSchema for ProviderReference {
-    fn schema() -> RefOr<Schema> {
-        let id = utoipa::openapi::ObjectBuilder::new()
-            .schema_type(SchemaType::Type(Type::String))
-            .min_length(Some(8))
-            .max_length(Some(8))
-            .pattern(Some("^[0-9a-fA-F]{8}$"))
-            .build();
-        let default_literal = utoipa::openapi::ObjectBuilder::new()
-            .schema_type(SchemaType::Type(Type::String))
-            .enum_values::<Vec<_>, &str>(Some(vec!["Default"]))
-            .build();
-        utoipa::openapi::OneOfBuilder::new()
-            .item(RefOr::T(Schema::Object(default_literal)))
-            .item(RefOr::T(Schema::Object(id)))
-            .into()
-    }
-}
 
 #[utoipa::path(
     get,
@@ -71,7 +39,7 @@ pub async fn get(
     tag = "Experimental",
     description = "Set a core auth provider",
     request_body(
-        content = ProviderReference,
+        content = PutProviderReferenceRequest,
         description = "The provider that should be used",
     ),
     responses(
@@ -88,7 +56,7 @@ pub async fn put(
     #[cfg(feature = "auth")] State(WatchState(watch)): State<WatchState>,
     #[cfg(feature = "auth")] State(EnforcerState(enforcer)): State<EnforcerState>,
     #[cfg(feature = "auth")] axum::Extension(roles): axum::Extension<wall::watch::RolesExtension>,
-    Json(provider): Json<ProviderReference>,
+    Json(PutProviderReferenceRequest { provider }): Json<PutProviderReferenceRequest>,
 ) -> Result<Response, SetCoreAuthProviderError> {
     #[cfg(feature = "auth")]
     {
@@ -126,7 +94,7 @@ pub async fn put(
             lore,
             #[cfg(feature = "auth")]
             watch,
-            provider.0,
+            provider,
         )
         .await?
     {
