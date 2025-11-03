@@ -3017,25 +3017,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
-  /providers/auth/core/first-time-setup/flecsport:
-    post:
-      tags:
-        - Experimental
-      description: Trigger the first time setup of auth providers via flecsport
-      operationId: post_providers_auth_core_first-time-setup_flecsport
-      responses:
-        '202':
-          description: Super admin of core auth provider set
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Accepted'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdditionalInfo'
   /providers/auth/core/{path}:
     head:
       tags:
@@ -3152,6 +3133,25 @@ paths:
                 type: string
         '404':
           description: No default auth provider set
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
+  /providers/auth/first-time-setup/flecsport:
+    post:
+      tags:
+        - Experimental
+      description: Trigger the first time setup of auth providers via flecsport
+      operationId: post_providers_auth_first-time-setup_flecsport
+      responses:
+        '202':
+          description: First time setup of auth providers via flecsport triggered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accepted'
         '500':
           description: Internal server error
           content:
