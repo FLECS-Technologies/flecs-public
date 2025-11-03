@@ -3,9 +3,9 @@ pub mod default;
 pub mod first_time_setup;
 pub mod id;
 
+use crate::fsm::server_impl::api::v2::models;
 use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
 use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
-use crate::sorcerer::providius::AuthProvidersAndDefaults;
 use axum::Json;
 use axum::extract::{Host, State};
 use axum::response::{IntoResponse, Response};
@@ -17,7 +17,7 @@ use http::StatusCode;
     tag = "Experimental",
     description = "Get information for all auth providers",
     responses(
-        (status = OK, description = "Information for all auth providers", body = AuthProvidersAndDefaults),
+        (status = OK, description = "Information for all auth providers", body = models::AuthProvidersAndDefaults),
         (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
     ),
 )]
@@ -26,9 +26,9 @@ pub async fn get(
     State(ProvidiusState(providius)): State<ProvidiusState>,
     host: Host,
 ) -> Response {
-    (
-        StatusCode::OK,
-        Json(providius.get_auth_providers_and_default(vault, &host).await),
-    )
-        .into_response()
+    let providers: models::AuthProvidersAndDefaults = providius
+        .get_auth_providers_and_default(vault, &host)
+        .await
+        .into();
+    (StatusCode::OK, Json(providers)).into_response()
 }

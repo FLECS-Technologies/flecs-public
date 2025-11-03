@@ -1,5 +1,8 @@
 use crate::fsm::server_impl::api::v2::instances::instance_id::depends::dependency_key::InstanceNotFoundOrNotDependent;
+use crate::jeweler::gem::instance::ProviderReference;
+use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
 use crate::quest::QuestId;
+use crate::sorcerer;
 use crate::sorcerer::providius::{
     ClearDependencyError, DeleteDefaultProviderError, GetDependenciesError, GetDependencyError,
     GetFeatureProvidesError, GetProvidesError, Provider, SetCoreAuthProviderError,
@@ -89,7 +92,29 @@ pub struct PutDefaultProviderRequest {
 pub struct PutProviderReferenceRequest {
     #[serde_as(as = "DisplayFromStr")]
     #[schema(schema_with = provider_reference_schema)]
-    pub provider: crate::jeweler::gem::instance::ProviderReference,
+    pub provider: ProviderReference,
+}
+
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct AuthProvidersAndDefaults {
+    pub default: Option<ProviderId>,
+    pub providers: HashMap<String, AuthProvider>,
+    pub core: Option<ProviderReference>,
+}
+
+impl From<sorcerer::providius::AuthProvidersAndDefaults> for AuthProvidersAndDefaults {
+    fn from(value: sorcerer::providius::AuthProvidersAndDefaults) -> Self {
+        let providers = value
+            .providers
+            .into_iter()
+            .map(|(id, provider)| (id.to_string(), provider))
+            .collect();
+        Self {
+            default: value.default,
+            providers,
+            core: value.core,
+        }
+    }
 }
 
 fn provider_reference_schema() -> RefOr<Schema> {
