@@ -67,6 +67,7 @@ impl Default for DockerDeploymentImpl {
     }
 }
 
+#[async_trait]
 impl CommonDeployment for DockerDeploymentImpl {
     fn id(&self) -> &jeweler::deployment::DeploymentId {
         &self.id
@@ -74,6 +75,16 @@ impl CommonDeployment for DockerDeploymentImpl {
 
     fn is_default(&self) -> bool {
         self.is_default
+    }
+
+    async fn core_default_address(&self, lore: NetworkLoreRef) -> Option<IpAddr> {
+        self.default_network(lore)
+            .await
+            .ok()?
+            .gateways()
+            .ok()?
+            .first()
+            .copied()
     }
 }
 
@@ -1135,6 +1146,7 @@ impl AppDeployment for DockerDeploymentImpl {
         &self,
         quest: SyncQuest,
         manifest: AppManifest,
+        _lore: NetworkLoreRef,
         token: Option<Token>,
     ) -> anyhow::Result<()> {
         let AppManifest::Single(manifest) = manifest else {

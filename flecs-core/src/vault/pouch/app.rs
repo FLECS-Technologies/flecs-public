@@ -1,17 +1,18 @@
 pub use crate::Result;
 use crate::jeweler::gem::app::{App, AppDeserializable, try_create_app};
-use crate::lore::AppLoreRef;
+use crate::lore::Lore;
 use crate::vault::pouch::{AppKey, Pouch};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 use tracing::error;
 
 const APPS_FILE_NAME: &str = "apps.json";
 pub type Gems = HashMap<AppKey, App>;
 
 pub struct AppPouch {
-    lore: AppLoreRef,
+    lore: Arc<Lore>,
     apps: Gems,
 }
 
@@ -29,7 +30,7 @@ impl Pouch for AppPouch {
 
 impl AppPouch {
     fn base_path(&self) -> &Path {
-        &self.lore.as_ref().as_ref().base_path
+        &self.lore.app.base_path
     }
 
     pub(in super::super) fn close(&mut self) -> Result<()> {
@@ -46,12 +47,12 @@ impl AppPouch {
         manifests: &super::manifest::Gems,
         deployments: &super::deployment::Gems,
     ) -> Result<()> {
-        self.apps = Self::create_apps(self.read_apps()?, manifests, deployments);
+        self.apps = Self::create_apps(self.read_apps()?, manifests, deployments, self.lore.clone());
         Ok(())
     }
 
     fn read_apps(&self) -> Result<Vec<AppDeserializable>> {
-        let file = fs::File::open(self.lore.as_ref().as_ref().base_path.join(APPS_FILE_NAME))?;
+        let file = fs::File::open(self.base_path().join(APPS_FILE_NAME))?;
         Ok(serde_json::from_reader(file)?)
     }
 
@@ -59,11 +60,12 @@ impl AppPouch {
         apps: Vec<AppDeserializable>,
         manifests: &super::manifest::Gems,
         deployments: &super::deployment::Gems,
+        lore: Arc<Lore>,
     ) -> HashMap<AppKey, App> {
         apps.into_iter()
             .filter_map(|app| {
                 let key = app.key.clone();
-                match try_create_app(app, manifests, deployments) {
+                match try_create_app(app, manifests, deployments, lore.clone()) {
                     Ok(app) => Some((key, app)),
                     Err(e) => {
                         error!("Could not create app {key}: {e}");
@@ -76,7 +78,7 @@ impl AppPouch {
 }
 
 impl AppPouch {
-    pub fn new(lore: AppLoreRef) -> Self {
+    pub fn new(lore: Arc<Lore>) -> Self {
         Self {
             lore,
             apps: HashMap::default(),
@@ -128,7 +130,7 @@ pub mod tests {
             .collect();
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         AppPouch {
-            apps: AppPouch::create_apps(apps, manifests, &deployments),
+            apps: AppPouch::create_apps(apps, manifests, &deployments, lore.clone()),
             lore,
         }
     }
@@ -341,9 +343,16 @@ pub mod tests {
     }
 
     fn create_test_app() -> App {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifests = create_test_manifests();
         let deployments = create_test_deployments();
-        try_create_app(create_test_app_deserializable(), &manifests, &deployments).unwrap()
+        try_create_app(
+            create_test_app_deserializable(),
+            &manifests,
+            &deployments,
+            lore,
+        )
+        .unwrap()
     }
 
     fn create_test_app_deserializable() -> AppDeserializable {

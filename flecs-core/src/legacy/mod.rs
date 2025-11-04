@@ -3,7 +3,7 @@ use crate::jeweler::gem::instance::compose::ComposeInstance;
 use crate::jeweler::gem::instance::docker::DockerInstance;
 use crate::jeweler::gem::instance::{CreateInstanceError, Instance};
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::lore::{InstanceLoreRef, Lore};
+use crate::lore::Lore;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::vault::pouch::Pouch;
 use crate::vault::{GrabbedPouches, Vault};
@@ -96,7 +96,7 @@ pub async fn migrate_docker_instances<U: UsbDeviceReader>(
 
 pub async fn migrate_compose_instances(
     vault: Arc<Vault>,
-    lore: InstanceLoreRef,
+    lore: Arc<Lore>,
 ) -> Result<(), MigrateError> {
     let path = Path::new(LEGACY_DEPLOYMENT_PATH).join("compose.json");
     info!("Migrating compose instances from {path:?}");
@@ -164,6 +164,7 @@ pub async fn read_legacy_apps() -> Result<Vec<app::App>, MigrateError> {
 
 pub async fn migrate_apps(
     vault: Arc<Vault>,
+    lore: Arc<Lore>,
     legacy_apps: Vec<app::App>,
 ) -> Result<(), MigrateError> {
     let mut grabbed_pouches = vault
@@ -202,7 +203,7 @@ pub async fn migrate_apps(
                 (manifest.clone(), default_compose_deployment.clone())
             }
         };
-        let mut app = gem::app::App::new(app.app_key, vec![deployment], manifest);
+        let mut app = gem::app::App::new(app.app_key, vec![deployment], manifest, lore.clone());
         app.set_desired(desired);
         let app_key = app.key.clone();
         if let Some(app) = app_pouch.gems_mut().insert(app.key.clone(), app) {
