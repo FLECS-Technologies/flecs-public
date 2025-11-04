@@ -8,7 +8,7 @@ use crate::jeweler::gem::instance::{
 };
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::legacy;
-use crate::lore::{ImportLoreRef, Lore};
+use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::relic::system::info::try_create_system_info;
@@ -374,7 +374,7 @@ pub async fn import_legacy_manifest(
 async fn import_apps_quest(
     quest: &SyncQuest,
     app_keys: Vec<AppKey>,
-    lore: ImportLoreRef,
+    lore: Arc<Lore>,
     input_recv: tokio::sync::oneshot::Receiver<(
         Arc<pouch::manifest::Gems>,
         Arc<pouch::deployment::Gems>,
@@ -395,7 +395,7 @@ async fn import_apps_quest(
 async fn import_legacy_apps_quest(
     quest: &SyncQuest,
     app_keys: Vec<AppKey>,
-    lore: ImportLoreRef,
+    lore: Arc<Lore>,
     input_recv: tokio::sync::oneshot::Receiver<Arc<pouch::manifest::Gems>>,
     default_deployments: DefaultDeployments,
     path: PathBuf,
@@ -419,7 +419,7 @@ pub async fn import_apps(
     app_keys: Vec<AppKey>,
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
-    lore: ImportLoreRef,
+    lore: Arc<Lore>,
     path: PathBuf,
 ) -> pouch::app::Gems {
     let mut results = Vec::new();
@@ -461,14 +461,14 @@ pub async fn import_app(
     app_key: AppKey,
     manifests: Arc<pouch::manifest::Gems>,
     deployments: Arc<pouch::deployment::Gems>,
-    lore: ImportLoreRef,
+    lore: Arc<Lore>,
     path: PathBuf,
 ) -> Result<App, ImportAppError> {
     let path = path.join(format!("{}_{}", app_key.name, app_key.version));
     let app_path = path.join(format!("{}_{}.json", app_key.name, app_key.version));
     let app = tokio::fs::read(&app_path).await?;
     let app: AppDeserializable = serde_json::from_slice(&app)?;
-    let app = try_create_app(app, &manifests, &deployments)?;
+    let app = try_create_app(app, &manifests, &deployments, lore.clone())?;
     app.import(quest, lore, path).await?;
     Ok(app)
 }
@@ -478,7 +478,7 @@ pub async fn import_legacy_apps(
     app_keys: Vec<AppKey>,
     manifests: Arc<pouch::manifest::Gems>,
     default_deployments: DefaultDeployments,
-    lore: ImportLoreRef,
+    lore: Arc<Lore>,
     path: PathBuf,
 ) -> pouch::app::Gems {
     let mut results = Vec::new();
@@ -520,10 +520,15 @@ pub async fn import_legacy_app(
     app_key: AppKey,
     manifests: Arc<pouch::manifest::Gems>,
     default_deployments: DefaultDeployments,
-    lore: ImportLoreRef,
+    lore: Arc<Lore>,
     path: PathBuf,
 ) -> Result<App, ImportAppError> {
-    let app = try_create_legacy_app(app_key.clone(), &manifests, default_deployments)?;
+    let app = try_create_legacy_app(
+        app_key.clone(),
+        &manifests,
+        default_deployments,
+        lore.clone(),
+    )?;
     let app_dir = path.join(format!("{}_{}", app_key.name, app_key.version));
     tokio::fs::create_dir_all(&app_dir).await?;
     match app.manifest() {

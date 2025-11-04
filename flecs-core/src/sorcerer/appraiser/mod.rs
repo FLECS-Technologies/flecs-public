@@ -3,6 +3,7 @@ pub use super::Result;
 use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
@@ -40,6 +41,7 @@ pub trait AppRaiser: Sorcerer {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
+        lore: Arc<Lore>,
         manifest: AppManifest,
         config: ConsoleClient,
     ) -> Result<()>;
@@ -48,6 +50,7 @@ pub trait AppRaiser: Sorcerer {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
+        lore: Arc<Lore>,
         app_keys: Vec<AppKey>,
         config: ConsoleClient,
     ) -> Result<()>;
@@ -56,6 +59,7 @@ pub trait AppRaiser: Sorcerer {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
+        lore: Arc<Lore>,
         app_key: AppKey,
         config: ConsoleClient,
     ) -> Result<()>;

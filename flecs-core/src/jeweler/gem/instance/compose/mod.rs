@@ -7,7 +7,7 @@ use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::{AppManifest, multi};
 use crate::jeweler::{GetAppKey, serialize_deployment_id, serialize_manifest_key};
-use crate::lore::{InstanceLore, InstanceLoreRef};
+use crate::lore::{InstanceLore, Lore};
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch::AppKey;
 use crate::{legacy, vault};
@@ -30,7 +30,7 @@ pub struct ComposeInstance {
     pub name: String,
     pub desired: InstanceStatus,
     #[serde(skip_serializing)]
-    lore: InstanceLoreRef,
+    lore: Arc<Lore>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -100,7 +100,10 @@ impl InstanceCommon for ComposeInstance {
     }
 
     async fn status(&self) -> anyhow::Result<InstanceStatus> {
-        let status = self.deployment.instance_status(&self.manifest).await?;
+        let status = self
+            .deployment
+            .instance_status(&self.manifest, self.lore.clone())
+            .await?;
         let status = Self::aggregate_status(status);
         Ok(status)
     }
@@ -115,7 +118,9 @@ impl InstanceCommon for ComposeInstance {
     }
 
     async fn logs(&self) -> anyhow::Result<Logs> {
-        self.deployment.instance_logs(&self.manifest).await
+        self.deployment
+            .instance_logs(&self.manifest, self.lore.clone())
+            .await
     }
 
     async fn import(
@@ -173,7 +178,7 @@ impl ComposeInstance {
     }
 
     pub fn try_create_with_state(
-        lore: InstanceLoreRef,
+        lore: Arc<Lore>,
         instance: ComposeInstanceDeserializable,
         manifests: &vault::pouch::manifest::Gems,
         deployments: &vault::pouch::deployment::Gems,
@@ -224,7 +229,7 @@ impl ComposeInstance {
     }
 
     pub async fn try_create_from_legacy(
-        lore: InstanceLoreRef,
+        lore: Arc<Lore>,
         instance: legacy::deployment::Instance,
         manifest: Arc<AppManifestMulti>,
         deployment: Arc<dyn ComposeDeployment>,
@@ -244,7 +249,7 @@ impl ComposeInstance {
 
     pub async fn try_create_new(
         quest: SyncQuest,
-        lore: InstanceLoreRef,
+        lore: Arc<Lore>,
         deployment: Arc<dyn ComposeDeployment>,
         manifest: Arc<AppManifestMulti>,
         name: String,
@@ -263,7 +268,7 @@ impl ComposeInstance {
 
     pub async fn try_create(
         quest: SyncQuest,
-        lore: InstanceLoreRef,
+        lore: Arc<Lore>,
         deployment: Arc<dyn ComposeDeployment>,
         manifest: Arc<AppManifestMulti>,
         name: String,
@@ -271,8 +276,7 @@ impl ComposeInstance {
         desired: InstanceStatus,
     ) -> Result<Self, CreateInstanceError> {
         tokio::fs::create_dir_all(
-            lore.as_ref()
-                .as_ref()
+            lore.instance
                 .instance_workdir_path(&instance_id.to_string()),
         )
         .await?;
@@ -309,7 +313,7 @@ impl ComposeInstance {
             return Ok(());
         }
         self.deployment
-            .start_instance(&self.manifest, &self.workdir())
+            .start_instance(&self.manifest, self.lore.clone(), &self.workdir())
             .await?;
         Ok(())
     }
@@ -321,7 +325,7 @@ impl ComposeInstance {
             return Ok(());
         }
         self.deployment
-            .start_instance(&self.manifest, &self.workdir())
+            .start_instance(&self.manifest, self.lore.clone(), &self.workdir())
             .await?;
         Ok(())
     }
@@ -330,7 +334,9 @@ impl ComposeInstance {
         if self.status().await? == InstanceStatus::Stopped {
             return Ok(());
         }
-        self.deployment.stop_instance(&self.manifest).await?;
+        self.deployment
+            .stop_instance(&self.manifest, self.lore.clone())
+            .await?;
         Ok(())
     }
 

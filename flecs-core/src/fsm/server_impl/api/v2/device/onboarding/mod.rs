@@ -1,5 +1,6 @@
 use crate::enchantment::quest_master::QuestMaster;
 use crate::fsm::console_client::ConsoleClient;
+use crate::lore::Lore;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::device::DeviceOnboardingPostResponse as PostResponse;
@@ -11,6 +12,7 @@ use tracing::warn;
 pub async fn post<A: AppRaiser + 'static>(
     vault: Arc<Vault>,
     appraiser: Arc<A>,
+    lore: Arc<Lore>,
     quest_master: QuestMaster,
     console_client: ConsoleClient,
     request: PostRequest,
@@ -45,7 +47,7 @@ pub async fn post<A: AppRaiser + 'static>(
             "Install apps via device onboarding".to_string(),
             move |quest| async move {
                 appraiser
-                    .install_apps(quest, vault, app_keys, console_client)
+                    .install_apps(quest, vault, lore, app_keys, console_client)
                     .await
             },
         )

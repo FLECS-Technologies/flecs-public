@@ -4,7 +4,7 @@ use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::{GetDeploymentId, serialize_hashmap_values};
-use crate::lore::{ExportLoreRef, ImportLoreRef};
+use crate::lore::{ExportLoreRef, ImportLoreRef, Lore};
 use crate::quest::{Quest, State, SyncQuest};
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize, Serializer};
 use std::collections::HashMap;
 use std::mem::swap;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tracing::error;
 
 #[derive(Debug, Serialize, Clone)]
@@ -55,6 +56,8 @@ pub struct App {
     pub(crate) deployments: HashMap<DeploymentId, AppData>,
     #[serde(skip)]
     manifest: AppManifest,
+    #[serde(skip)]
+    lore: Arc<Lore>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,6 +77,7 @@ pub fn try_create_app(
     app: AppDeserializable,
     manifests: &pouch::manifest::Gems,
     deployments: &pouch::deployment::Gems,
+    lore: Arc<Lore>,
 ) -> anyhow::Result<App> {
     let deployments = app
         .deployments
@@ -103,6 +107,7 @@ pub fn try_create_app(
         deployments,
         manifest,
         key: app.key,
+        lore,
     })
 }
 
@@ -110,6 +115,7 @@ pub fn try_create_legacy_app(
     app_key: AppKey,
     manifests: &pouch::manifest::Gems,
     default_deployments: DefaultDeployments,
+    lore: Arc<Lore>,
 ) -> anyhow::Result<App> {
     let Some(manifest) = manifests.get(&app_key).cloned() else {
         anyhow::bail!("No manifest found for {}", app_key);
@@ -141,6 +147,7 @@ pub fn try_create_legacy_app(
         )]),
         manifest,
         key: app_key,
+        lore,
     })
 }
 
@@ -160,7 +167,12 @@ impl App {
         &self.manifest
     }
 
-    pub fn new(key: AppKey, deployments: Vec<Deployment>, manifest: AppManifest) -> Self {
+    pub fn new(
+        key: AppKey,
+        deployments: Vec<Deployment>,
+        manifest: AppManifest,
+        lore: Arc<Lore>,
+    ) -> Self {
         Self {
             key,
             manifest,
@@ -168,6 +180,7 @@ impl App {
                 .into_iter()
                 .map(|deployment| (deployment.id().clone(), AppData::new(deployment)))
                 .collect(),
+            lore,
         }
     }
 
@@ -246,6 +259,7 @@ impl App {
             let deployment = data.deployment.clone();
             let manifest = self.manifest.clone();
             let token = token.clone();
+            let lore = self.lore.clone();
             let (.., id) = quest
                 .lock()
                 .await
@@ -265,7 +279,9 @@ impl App {
                             quest.lock().await.detail = Some("Already installed".to_string());
                             Ok(())
                         } else {
-                            deployment.install_app(quest, manifest.clone(), token).await
+                            deployment
+                                .install_app(quest, manifest.clone(), lore.clone(), token)
+                                .await
                         }
                     },
                 )
@@ -490,8 +506,11 @@ pub mod tests {
     use crate::jeweler::gem::manifest::single::tests::{
         create_test_manifest, create_test_manifest_raw,
     };
+    use crate::lore;
+    use crate::relic::var::test::MockVarReader;
     use crate::vault::pouch::manifest::tests::min_app_1_0_0_manifest;
     use std::sync::Arc;
+    use testdir::testdir;
 
     pub fn test_key() -> AppKey {
         test_key_numbered(0, 0)
@@ -505,12 +524,14 @@ pub mod tests {
     }
     #[tokio::test]
     async fn status_no_deployment() {
-        let app = App::new(test_key(), vec![], min_app_1_0_0_manifest());
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let app = App::new(test_key(), vec![], min_app_1_0_0_manifest(), lore);
         assert!(app.status().await.is_err());
     }
 
     #[test]
     fn set_desired() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let deployments = [
             "MockedDeployment#1",
             "MockedDeployment#2",
@@ -524,7 +545,7 @@ pub mod tests {
             Deployment::Docker(Arc::new(deployment))
         })
         .collect();
-        let mut app = App::new(test_key(), deployments, min_app_1_0_0_manifest());
+        let mut app = App::new(test_key(), deployments, min_app_1_0_0_manifest(), lore);
         assert_eq!(app.deployments.len(), 4);
         for data in app.deployments.values() {
             assert_eq!(data.desired, AppStatus::None);
@@ -537,6 +558,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn status_installed() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_is_app_installed()
@@ -544,12 +566,13 @@ pub mod tests {
             .returning(|_, _| Ok(true));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
+        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest(), lore);
         assert_eq!(app.status().await.unwrap(), AppStatus::Installed);
     }
 
     #[tokio::test]
     async fn status_not_installed() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_is_app_installed()
@@ -557,18 +580,20 @@ pub mod tests {
             .returning(|_, _| Ok(false));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
+        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest(), lore);
         assert_eq!(app.status().await.unwrap(), AppStatus::NotInstalled);
     }
 
     #[tokio::test]
     async fn size_no_deployment() {
-        let app = App::new(test_key(), vec![], min_app_1_0_0_manifest());
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let app = App::new(test_key(), vec![], min_app_1_0_0_manifest(), lore);
         assert!(app.installed_size().await.is_err());
     }
 
     #[tokio::test]
     async fn test_size_installed() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_installed_app_size()
@@ -576,12 +601,13 @@ pub mod tests {
             .returning(|_, _| Ok(6520));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
+        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest(), lore);
         assert_eq!(app.installed_size().await.unwrap(), 6520);
     }
 
     #[tokio::test]
     async fn size_no_size_test() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_installed_app_size()
@@ -589,13 +615,14 @@ pub mod tests {
             .returning(|_, _| Err(anyhow::anyhow!("No size")));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
+        let app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest(), lore);
         assert!(app.installed_size().await.is_err());
     }
 
     #[tokio::test]
     async fn try_create_app_info_no_deployment() {
-        let app = App::new(test_key(), vec![], min_app_1_0_0_manifest());
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
+        let app = App::new(test_key(), vec![], min_app_1_0_0_manifest(), lore);
         assert!(app.try_create_installed_info().await.is_err());
     }
 
@@ -635,6 +662,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn try_create_app_info_ok() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_installed_app_size()
@@ -646,7 +674,7 @@ pub mod tests {
             .returning(|_, _| Ok(true));
         deployment.expect_id().return_const("id".to_string());
         let deployment = Deployment::Docker(Arc::new(deployment));
-        let mut app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest());
+        let mut app = App::new(test_key(), vec![deployment], min_app_1_0_0_manifest(), lore);
         let mut manifest = create_test_manifest_raw(None);
         if let flecs_app_manifest::generated::manifest_3_1_0::FlecsAppManifest::Single(single) =
             &mut manifest
@@ -745,6 +773,7 @@ pub mod tests {
     #[tokio::test]
     async fn uninstall_ok() {
         const DEPLOYMENT_COUNT: usize = 5;
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployments = HashMap::new();
         for i in 0..DEPLOYMENT_COUNT {
             let mut deployment = MockedDockerDeployment::new();
@@ -778,6 +807,7 @@ pub mod tests {
             app,
             &HashMap::from([(manifest.key().clone(), manifest)]),
             &deployments,
+            lore,
         )
         .unwrap();
         assert_eq!(app.deployments.len(), DEPLOYMENT_COUNT);
@@ -790,6 +820,7 @@ pub mod tests {
     async fn uninstall_err() {
         const DEPLOYMENT_COUNT: usize = 5;
         const ERR_DEPLOYMENT_COUNT: usize = 3;
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployments = HashMap::new();
         for i in 0..DEPLOYMENT_COUNT {
             let mut deployment = MockedDockerDeployment::new();
@@ -841,6 +872,7 @@ pub mod tests {
             app,
             &HashMap::from([(manifest.key().clone(), manifest)]),
             &deployments,
+            lore,
         )
         .unwrap();
         assert_eq!(

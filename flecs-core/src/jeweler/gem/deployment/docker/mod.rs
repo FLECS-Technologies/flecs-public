@@ -126,7 +126,7 @@ pub mod tests {
     use mockall::mock;
     use serde::{Serialize, Serializer};
     use std::fmt::{Debug, Formatter};
-    use std::net::Ipv4Addr;
+    use std::net::{IpAddr, Ipv4Addr};
     use std::path::Path;
     use std::path::PathBuf;
     use std::sync::Arc;
@@ -139,6 +139,7 @@ pub mod tests {
                 &self,
                 quest: SyncQuest,
                 manifest: AppManifest,
+                lore: NetworkLoreRef,
                 token: Option<Token>
             ) -> Result<()>;
             async fn uninstall_app(
@@ -208,6 +209,7 @@ pub mod tests {
         impl CommonDeployment for edDockerDeployment {
             fn id(&self) -> &DeploymentId;
             fn is_default(&self) -> bool;
+            async fn core_default_address(&self, lore: NetworkLoreRef) -> Option<IpAddr>;
         }
         #[async_trait]
         impl DockerDeployment for edDockerDeployment {

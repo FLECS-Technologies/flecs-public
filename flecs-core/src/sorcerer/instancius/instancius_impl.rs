@@ -17,7 +17,7 @@ use crate::jeweler::gem::manifest::single::{
 };
 use crate::jeweler::network::{Network, NetworkId};
 use crate::jeweler::volume::VolumeId;
-use crate::lore::{InstanceLoreRef, Lore};
+use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::network::Ipv4NetworkAccess;
@@ -109,7 +109,7 @@ impl InstanciusImpl {
     async fn create_compose_instance(
         quest: SyncQuest,
         deployment: Arc<dyn ComposeDeployment>,
-        lore: InstanceLoreRef,
+        lore: Arc<Lore>,
         manifest: Arc<AppManifestMulti>,
         instance_name: String,
     ) -> anyhow::Result<Instance> {
@@ -2223,6 +2223,7 @@ pub mod tests {
     #[tokio::test]
     async fn start_instance_ok() {
         let mut deployment = MockedDockerDeployment::new();
+        deployment.expect_core_default_address().returning(|_| None);
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());

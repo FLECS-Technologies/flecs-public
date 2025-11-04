@@ -237,79 +237,6 @@ fn bind_mounts_to_bollard_mounts(bind_mounts: &[BindMount]) -> Vec<bollard::mode
         .collect()
 }
 
-impl From<&DockerInstance> for Config<String> {
-    fn from(instance: &DockerInstance) -> Self {
-        let mut bind_mounts = instance.manifest.bind_mounts();
-        let mut capabilities = instance.manifest.capabilities();
-        if capabilities
-            .remove(&flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::Docker)
-        {
-            bind_mounts.push(BindMount::default_docker_socket_bind_mount());
-        }
-        let mut mounts = bind_mounts_to_bollard_mounts(bind_mounts.as_slice());
-        mounts.extend(instance.config.generate_volume_mounts());
-        let arguments = instance.manifest.arguments();
-        let cmd = if arguments.is_empty() {
-            None
-        } else {
-            Some(arguments.clone())
-        };
-        let port_bindings = instance.config.generate_port_bindings();
-        let exposed_ports = Some(
-            port_bindings
-                .keys()
-                .cloned()
-                .map(|key| (key, HashMap::new()))
-                .collect(),
-        );
-        let host_config = Some(HostConfig {
-            port_bindings: Some(port_bindings),
-            mounts: Some(mounts),
-            cap_add: Some(capabilities.iter().map(ToString::to_string).collect()),
-            devices: Some(instance.generate_device_mappings()),
-            extra_hosts: Some(vec![format!("{SPECIAL_CORE_GATEWAY_HOST}:host-gateway")]),
-            ..HostConfig::default()
-        });
-        let mut network_config = instance.config.generate_network_config();
-        if let Some(hostname) = instance.manifest.hostname() {
-            for endpoint in network_config.endpoints_config.values_mut() {
-                let alias = hostname.clone();
-                match &mut endpoint.aliases {
-                    Some(aliases) => {
-                        aliases.push(alias);
-                    }
-                    None => endpoint.aliases = Some(vec![alias]),
-                }
-            }
-        }
-        Config {
-            image: Some(instance.manifest.image_with_tag().to_string()),
-            hostname: Some(instance.hostname.clone()),
-            env: Some(
-                instance
-                    .config
-                    .environment_variables
-                    .iter()
-                    .map(ToString::to_string)
-                    .collect(),
-            ),
-            labels: Some(
-                instance
-                    .manifest
-                    .labels
-                    .iter()
-                    .map(|label| (label.label.clone(), label.value.clone().unwrap_or_default()))
-                    .collect(),
-            ),
-            host_config,
-            cmd,
-            exposed_ports,
-            networking_config: Some(network_config),
-            ..Default::default()
-        }
-    }
-}
-
 impl From<ContainerStateStatusEnum> for InstanceStatus {
     fn from(value: ContainerStateStatusEnum) -> Self {
         // TBD
@@ -623,7 +550,7 @@ impl DockerInstance {
         self.deployment
             .start_instance(
                 self.lore.clone(),
-                self.into(),
+                self.container_config().await,
                 Some(self.id),
                 &self.manifest.config_files,
             )
@@ -1251,6 +1178,83 @@ impl DockerInstance {
                     Ok(IpAddr::from(network.address() | ip))
                 }
             },
+        }
+    }
+
+    async fn container_config(&self) -> Config<String> {
+        let mut bind_mounts = self.manifest.bind_mounts();
+        let mut capabilities = self.manifest.capabilities();
+        if capabilities
+            .remove(&flecs_app_manifest::generated::manifest_3_1_0::CapabilitiesItem::Docker)
+        {
+            bind_mounts.push(BindMount::default_docker_socket_bind_mount());
+        }
+        let mut mounts = bind_mounts_to_bollard_mounts(bind_mounts.as_slice());
+        mounts.extend(self.config.generate_volume_mounts());
+        let arguments = self.manifest.arguments();
+        let cmd = if arguments.is_empty() {
+            None
+        } else {
+            Some(arguments.clone())
+        };
+        let port_bindings = self.config.generate_port_bindings();
+        let exposed_ports = Some(
+            port_bindings
+                .keys()
+                .cloned()
+                .map(|key| (key, HashMap::new()))
+                .collect(),
+        );
+        let extra_host = match self
+            .deployment
+            .core_default_address(self.lore.clone())
+            .await
+        {
+            Some(ip) => format!("{SPECIAL_CORE_GATEWAY_HOST}:{ip}"),
+            None => format!("{SPECIAL_CORE_GATEWAY_HOST}:host-gateway"),
+        };
+        let host_config = Some(HostConfig {
+            port_bindings: Some(port_bindings),
+            mounts: Some(mounts),
+            cap_add: Some(capabilities.iter().map(ToString::to_string).collect()),
+            devices: Some(self.generate_device_mappings()),
+            extra_hosts: Some(vec![extra_host]),
+            ..HostConfig::default()
+        });
+        let mut network_config = self.config.generate_network_config();
+        if let Some(hostname) = self.manifest.hostname() {
+            for endpoint in network_config.endpoints_config.values_mut() {
+                let alias = hostname.clone();
+                match &mut endpoint.aliases {
+                    Some(aliases) => {
+                        aliases.push(alias);
+                    }
+                    None => endpoint.aliases = Some(vec![alias]),
+                }
+            }
+        }
+        Config {
+            image: Some(self.manifest.image_with_tag().to_string()),
+            hostname: Some(self.hostname.clone()),
+            env: Some(
+                self.config
+                    .environment_variables
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect(),
+            ),
+            labels: Some(
+                self.manifest
+                    .labels
+                    .iter()
+                    .map(|label| (label.label.clone(), label.value.clone().unwrap_or_default()))
+                    .collect(),
+            ),
+            host_config,
+            cmd,
+            exposed_ports,
+            networking_config: Some(network_config),
+            ..Default::default()
         }
     }
 }
@@ -2220,12 +2224,13 @@ pub mod tests {
         );
     }
 
-    #[test]
-    fn config_from_instance() {
+    #[tokio::test]
+    async fn config_from_instance() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         prepare_usb_device_test_path("test_instance_dev_1");
         prepare_usb_device_test_path("test_instance_dev_2");
-        let deployment = MockedDockerDeployment::new();
+        let mut deployment = MockedDockerDeployment::new();
+        deployment.expect_core_default_address().returning(|_| None);
         let deployment = Arc::new(deployment);
         let manifest = create_test_manifest_full(Some(true));
         let mut instance = test_instance(123, lore, deployment, manifest);
@@ -2239,7 +2244,7 @@ pub mod tests {
                 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
             )),
         );
-        let config: Config<String> = (&instance).into();
+        let config = instance.container_config().await;
         assert_eq!(
             config.image,
             Some("flecs.azurecr.io/some.test.app:1.2.1".to_string())
@@ -2595,6 +2600,7 @@ pub mod tests {
             .once()
             .withf(|_, _, id, _| id == &Some(InstanceId::new(2)))
             .returning(|_, _, _, _| Ok(InstanceId::new(2)));
+        deployment.expect_core_default_address().returning(|_| None);
         let AppManifest::Single(manifest) = create_test_manifest(None) else {
             panic!()
         };

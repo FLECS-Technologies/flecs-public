@@ -153,7 +153,9 @@ impl FlecsWorld {
         match legacy_apps {
             Err(e) => error!("Failed to migrate apps: {e}"),
             Ok(legacy_apps) => {
-                if let Err(e) = legacy::migrate_apps(world.vault.clone(), legacy_apps).await {
+                if let Err(e) =
+                    legacy::migrate_apps(world.vault.clone(), lore.clone(), legacy_apps).await
+                {
                     error!("Failed to migrate apps: {e}")
                 }
             }

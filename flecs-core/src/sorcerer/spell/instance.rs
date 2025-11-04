@@ -10,7 +10,7 @@ use crate::jeweler::gem::instance::{Instance, InstanceId};
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::single::AppManifestSingle;
 use crate::jeweler::network::NetworkId;
-use crate::lore::{InstanceLoreRef, Lore};
+use crate::lore::Lore;
 use crate::quest::{State, SyncQuest};
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::vault::Vault;
@@ -61,7 +61,7 @@ pub async fn create_docker_instance(
 
 pub async fn create_compose_instance(
     quest: SyncQuest,
-    lore: InstanceLoreRef,
+    lore: Arc<Lore>,
     deployment: Arc<dyn ComposeDeployment>,
     manifest: Arc<AppManifestMulti>,
     name: String,
@@ -909,6 +909,7 @@ pub mod tests {
     #[tokio::test]
     async fn start_instance_ok() {
         let mut deployment = MockedDockerDeployment::new();
+        deployment.expect_core_default_address().returning(|_| None);
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
@@ -1169,6 +1170,7 @@ pub mod tests {
             [RUNNING_INSTANCE, EDITOR_INSTANCE, NETWORK_INSTANCE];
         let instance_deployments = HashMap::from_iter(INSTANCES_TO_START.map(|instance_id| {
             let mut deployment = MockedDockerDeployment::new();
+            deployment.expect_core_default_address().returning(|_| None);
             deployment
                 .expect_id()
                 .return_const(format!("MockDeployment-{instance_id}"));
@@ -1229,6 +1231,7 @@ pub mod tests {
         const ERROR_INSTANCE: InstanceId = PORT_MAPPING_INSTANCE;
         let instance_deployments = HashMap::from_iter(INSTANCES_TO_START.map(|instance_id| {
             let mut deployment = MockedDockerDeployment::new();
+            deployment.expect_core_default_address().returning(|_| None);
             deployment
                 .expect_id()
                 .return_const(format!("MockDeployment-{instance_id}"));

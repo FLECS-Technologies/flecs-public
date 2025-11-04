@@ -10,7 +10,7 @@ pub struct AppManifestMulti {
     #[serde(skip_serializing)]
     pub key: AppKey,
     #[serde(skip_serializing)]
-    pub compose: Compose,
+    compose: Compose,
     #[serde(flatten)]
     original: flecs_app_manifest::AppManifestMulti,
 }
@@ -75,8 +75,15 @@ impl AppManifestMulti {
         self.key.name.replace('.', "-")
     }
 
-    pub fn compose_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string(&self.compose)
+    pub async fn compose_json(
+        &self,
+        extra_hosts: Vec<String>,
+    ) -> Result<String, serde_json::Error> {
+        let mut compose = self.compose.clone();
+        for service in compose.services.0.values_mut().flatten() {
+            service.extra_hosts.extend_from_slice(&extra_hosts)
+        }
+        serde_json::to_string(&compose)
     }
 
     pub fn images(&self) -> Vec<String> {
