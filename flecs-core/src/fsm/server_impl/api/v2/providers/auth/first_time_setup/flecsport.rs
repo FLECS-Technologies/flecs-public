@@ -41,7 +41,7 @@ pub async fn post<I: Importius, F: Floxy + 'static>(
     };
     let roles_allow_request = match enforcer
         .verify_roles(
-            "/v2/providers/auth/core/first-time-setup/flecsport",
+            "/v2/providers/auth/first-time-setup/flecsport",
             &roles.0,
             &http::Method::POST,
         )
