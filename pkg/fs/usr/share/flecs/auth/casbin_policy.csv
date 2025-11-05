@@ -78,13 +78,13 @@ p,*,/v2/providers/auth,GET
 p,*,/v2/providers/auth/core,GET
 p,tech.flecs.core.set_core_auth_provider,/v2/providers/auth/core,PUT
 p,tech.flecs.core.import_initial_auth_provider,/v2/providers/auth/core/first-time-setup/flecsport,POST
-p,*,/v2/providers/auth/core/*path,*
+p,*,/v2/providers/auth/core/*,*
 p,tech.flecs.core.read_default_auth_provider,/v2/providers/auth/default,GET
 p,tech.flecs.core.set_default_auth_provider,/v2/providers/auth/default,PUT
 p,tech.flecs.core.remove_default_auth_provider,/v2/providers/auth/default,DELETE
-p,*,/v2/providers/auth/default/*path,*
+p,*,/v2/providers/auth/default/*,*
 p,tech.flecs.core.read_auth_provider,/v2/providers/auth/:id,GET
-p,*,/v2/providers/auth/:id/*path,*
+p,*,/v2/providers/auth/:id/*,*
 p,tech.flecs.core.read_provider,/v2/providers/:feature,GET
 p,tech.flecs.core.read_default_provider,/v2/providers/:feature/default,GET
 p,tech.flecs.core.set_default_provider,/v2/providers/:feature/default,PUT
