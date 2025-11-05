@@ -494,15 +494,15 @@ impl AuthLore {
             .map(Duration::from_secs)
             .unwrap_or(default::auth::ISSUER_CERTIFICATE_CACHE_LIFETIME);
         let casbin_policy_path = conf.casbin_policy_path.unwrap_or_else(|| {
-            Path::new(default::auth::BASE_PATH).join(default::auth::CASBIN_POLICY_FILE_NAME)
+            Path::new(default::auth::SHARE_BASE_PATH).join(default::auth::CASBIN_POLICY_FILE_NAME)
         });
         let casbin_model_path = conf.casbin_model_path.unwrap_or_else(|| {
-            Path::new(default::auth::BASE_PATH).join(default::auth::CASBIN_MODEL_FILE_NAME)
+            Path::new(default::auth::SHARE_BASE_PATH).join(default::auth::CASBIN_MODEL_FILE_NAME)
         });
         let initial_auth_provider_flecsport_path = conf
             .initial_auth_provider_flecsport_path
             .unwrap_or_else(|| {
-                Path::new(default::auth::BASE_PATH)
+                Path::new(default::auth::LIB_BASE_PATH)
                     .join(default::auth::INITIAL_AUTH_PROVIDER_FLECSPORT_FILE_NAME)
             });
         Self {

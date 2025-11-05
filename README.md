@@ -251,15 +251,15 @@ base_path = "/var/lib/flecs/device"
 # Environment variable: FLECS_CORE_ISSUER_CERTIFICATE_CACHE_LIFETIME
 issuer_certificate_cache_lifetime = 300
 # The path of the casbin policy file used for access control.
-# Default: "/usr/share/flecs/auth/casbin_policy.csv"
+# Default: "/usr/local/share/flecs/auth/casbin_policy.csv"
 # Environment variable: FLECS_CORE_CASBIN_POLICY_PATH
-casbin_policy_path = "/usr/share/flecs/auth/casbin_policy.csv"
+casbin_policy_path = "/usr/local/share/flecs/auth/casbin_policy.csv"
 # The path of the casbin model file used for access control.
-# Default: "/usr/share/flecs/auth/casbin_model.conf"
+# Default: "/usr/local/share/flecs/auth/casbin_model.conf"
 # Environment variable: FLECS_CORE_CASBIN_MODEL_PATH
-casbin_model_path = "/usr/share/flecs/auth/casbin_model.conf"
+casbin_model_path = "/usr/local/share/flecs/auth/casbin_model.conf"
 # The path of the initial auth provider flecsport containing the shipped auth provider.
-# Default: "/usr/share/flecs/auth/initial_auth_provider.tar.gz"
+# Default: "/usr/local/lib/flecs/auth/initial_auth_provider.tar"
 # Environment variable: FLECS_CORE_INITIAL_AUTH_PROVIDER_FLECSPORT_PATH
-initial_auth_provider_flecsport_path = "/usr/share/flecs/auth/initial_auth_provider.tar.gz"
+initial_auth_provider_flecsport_path = "/usr/local/lib/flecs/auth/initial_auth_provider.tar"
 ```
