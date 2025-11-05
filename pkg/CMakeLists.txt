@@ -62,6 +62,11 @@ function(install_common_files cmp)
         COMPONENT ${cmp}
         EXCLUDE_FROM_ALL
     )
+    install(DIRECTORY fs/usr/share/flecs/auth
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/flecs/auth
+        COMPONENT ${cmp}
+        EXCLUDE_FROM_ALL
+    )
 endfunction()
 
 # Install .deb package contents
