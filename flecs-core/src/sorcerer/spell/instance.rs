@@ -482,6 +482,17 @@ pub async fn delete_instances<F: Floxy + 'static>(
     }
 }
 
+pub fn validate_no_dependents_in_slice(
+    providers: &pouch::provider::Gems,
+    instances: &pouch::instance::Gems,
+    provider_ids: &[ProviderId],
+) -> Result<()> {
+    for provider_id in provider_ids {
+        validate_no_dependents(providers, instances, *provider_id)?;
+    }
+    Ok(())
+}
+
 pub fn validate_no_dependents(
     providers: &pouch::provider::Gems,
     instances: &pouch::instance::Gems,
