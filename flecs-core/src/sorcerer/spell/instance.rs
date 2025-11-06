@@ -6,7 +6,7 @@ use crate::jeweler::gem::instance::compose::ComposeInstance;
 use crate::jeweler::gem::instance::docker::DockerInstance;
 use crate::jeweler::gem::instance::docker::config::{InstanceConfig, ProviderConfig};
 use crate::jeweler::gem::instance::status::InstanceStatus;
-use crate::jeweler::gem::instance::{Instance, InstanceId};
+use crate::jeweler::gem::instance::{Instance, InstanceId, ProviderReference};
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::single::AppManifestSingle;
 use crate::jeweler::network::NetworkId;
@@ -16,7 +16,7 @@ use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::spell::provider::GetAuthProviderPortError;
 use crate::vault::pouch::provider::ProviderId;
 use crate::vault::pouch::{AppKey, Pouch};
-use crate::vault::{Vault, pouch};
+use crate::vault::{GrabbedPouches, Vault, pouch};
 use futures_util::future::join_all;
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
@@ -482,22 +482,73 @@ pub async fn delete_instances<F: Floxy + 'static>(
     }
 }
 
+pub fn validate_no_dependents(
+    providers: &pouch::provider::Gems,
+    instances: &pouch::instance::Gems,
+    provider_id: ProviderId,
+) -> Result<()> {
+    let mut usages: Vec<String> = providers
+        .default_providers
+        .iter()
+        .filter_map(|(feature, id)| {
+            if *id == provider_id {
+                Some(format!("default provider for feature {feature}"))
+            } else {
+                None
+            }
+        })
+        .collect();
+    for (dependent_instance_id, instance) in instances {
+        for dependency in instance.dependencies().values() {
+            match dependency.provider_reference {
+                ProviderReference::Provider(id) if id == provider_id => usages.push(format!(
+                    "providing {} for instance {dependent_instance_id}",
+                    dependency.provided_feature
+                )),
+                _ => {}
+            }
+        }
+    }
+    match providers.core_providers.auth {
+        Some(ProviderReference::Provider(core_auth_provider))
+            if core_auth_provider == provider_id =>
+        {
+            usages.push("core auth provider".to_string())
+        }
+        _ => {}
+    }
+    if usages.is_empty() {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!(
+            "Instance {provider_id} is used as a provider: {}",
+            usages.join(", ")
+        ))
+    }
+}
+
 pub async fn delete_instance<F: Floxy + 'static>(
     quest: SyncQuest,
     vault: Arc<Vault>,
     floxy: Arc<FloxyOperation<F>>,
     id: InstanceId,
 ) -> Result<()> {
-    let mut grab = vault
+    let GrabbedPouches {
+        instance_pouch_mut: Some(ref mut instances),
+        provider_pouch: Some(ref providers),
+        ..
+    } = vault
         .reservation()
         .reserve_instance_pouch_mut()
+        .reserve_provider_pouch()
         .grab()
-        .await;
-    let instances = grab
-        .instance_pouch_mut
-        .as_mut()
-        .expect("Reservations should never fail")
-        .gems_mut();
+        .await
+    else {
+        unreachable!("Reservation should never fail");
+    };
+    let providers = providers.gems();
+    let instances = instances.gems_mut();
+    validate_no_dependents(providers, instances, id)?;
     match instances.remove(&id) {
         Some(instance) => {
             let result = match instance {
