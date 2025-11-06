@@ -34,6 +34,39 @@ impl AppRaiser for AppraiserImpl {
     ) -> anyhow::Result<()> {
         let instances_to_delete =
             spell::instance::get_instance_ids_by_app_key(vault.clone(), app_key.clone()).await;
+        let no_dependents_result = {
+            let vault = vault.clone();
+            let instances_to_delete = instances_to_delete.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!("Validate that no instances of {app_key} is needed as a provider"),
+                    |_quest| async move {
+                        let GrabbedPouches {
+                            instance_pouch_mut: Some(ref mut instances),
+                            provider_pouch: Some(ref providers),
+                            ..
+                        } = vault
+                            .reservation()
+                            .reserve_instance_pouch_mut()
+                            .reserve_provider_pouch()
+                            .grab()
+                            .await
+                        else {
+                            unreachable!("Reservation should never fail");
+                        };
+                        spell::instance::validate_no_dependents_in_slice(
+                            providers.gems(),
+                            instances.gems(),
+                            &instances_to_delete,
+                        )
+                    },
+                )
+                .await
+                .2
+        };
+        no_dependents_result.await?;
         let delete_instances_result = quest
             .lock()
             .await
