@@ -39,7 +39,7 @@ pub async fn get(
                     .into_iter()
                     .map(|(id, value)| {
                         (
-                            id,
+                            id.to_string(),
                             GenericProvider {
                                 app_key: value.app_key,
                             },

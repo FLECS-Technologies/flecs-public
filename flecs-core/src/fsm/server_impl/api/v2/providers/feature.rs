@@ -45,7 +45,7 @@ pub async fn get(
             .into_iter()
             .map(|(id, value)| {
                 (
-                    id,
+                    id.to_string(),
                     Provider {
                         app_key: value.app_key,
                         config: Default::default(),

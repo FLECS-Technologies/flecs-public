@@ -65,16 +65,20 @@ pub struct GenericProvider {
     pub app_key: AppKey,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct GenericProviders {
+    #[serde_as(as = "Option<DisplayFromStr>")]
     pub default: Option<ProviderId>,
-    pub providers: HashMap<ProviderId, GenericProvider>,
+    pub providers: HashMap<String, GenericProvider>,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct FeatureProviders {
+    #[serde_as(as = "Option<DisplayFromStr>")]
     pub default: Option<ProviderId>,
-    pub providers: HashMap<ProviderId, Provider>,
+    pub providers: HashMap<String, Provider>,
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -82,8 +86,10 @@ pub struct FeatureInfo {
     pub config: serde_json::Value,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct PutDefaultProviderRequest {
+    #[serde_as(as = "DisplayFromStr")]
     pub provider_id: ProviderId,
 }
 
@@ -95,10 +101,13 @@ pub struct PutProviderReferenceRequest {
     pub provider: ProviderReference,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct AuthProvidersAndDefaults {
+    #[serde_as(as = "Option<DisplayFromStr>")]
     pub default: Option<ProviderId>,
     pub providers: HashMap<String, AuthProvider>,
+    #[serde_as(as = "Option<DisplayFromStr>")]
     pub core: Option<ProviderReference>,
 }
 
