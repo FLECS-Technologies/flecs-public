@@ -34,6 +34,8 @@ set(API_VERSION 2.0.0)
 add_definitions(-DFLECS_VERSION="${FLECS_VERSION_FULL}")
 add_definitions(-DFLECS_API_VERSION="${API_VERSION}")
 
+set(Rust_CARGO ${CMAKE_SOURCE_DIR}/auditable-cargo)
+
 include(FetchContent)
 
 FetchContent_Declare(
