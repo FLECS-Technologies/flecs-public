@@ -24,8 +24,10 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum DeleteDefaultProviderError {
-    #[error("The default provider is still in use ({0:?})")]
+    #[error("The default provider is still used by instances ({0:?})")]
     ProviderInUse(Vec<(InstanceId, AppKey)>),
+    #[error("The default provider for {0} is being used by core")]
+    CoreProvider(FeatureKey),
     #[error("Failed to check dependents: {0}")]
     FailedToCheckDependents(#[from] anyhow::Error),
 }
@@ -174,6 +176,11 @@ pub async fn delete_default_provider(
         return Ok(None);
     };
     let mut depending_running_instances = Vec::new();
+    let auth_feature = FeatureKey::auth();
+    if *feature == auth_feature && providers.core_providers.auth == Some(ProviderReference::Default)
+    {
+        return Err(DeleteDefaultProviderError::CoreProvider(auth_feature));
+    }
     for (id, instance) in instances.iter().filter(|(_, instance)| {
         instance.dependencies().iter().any(|(key, id)| {
             id.provided_feature == *feature && id.is_default() && key.features().contains(feature)
