@@ -285,7 +285,9 @@ impl IntoResponse for SetDefaultProviderError {
 impl IntoResponse for DeleteDefaultProviderError {
     fn into_response(self) -> Response {
         match self {
-            e @ Self::ProviderInUse(_) => AdditionalInfo::new(e.to_string()).into_conflict(),
+            e @ Self::ProviderInUse(_) | e @ Self::CoreProvider(_) => {
+                AdditionalInfo::new(e.to_string()).into_conflict()
+            }
             e @ Self::FailedToCheckDependents { .. } => {
                 AdditionalInfo::new(e.to_string()).into_internal_server_error()
             }
