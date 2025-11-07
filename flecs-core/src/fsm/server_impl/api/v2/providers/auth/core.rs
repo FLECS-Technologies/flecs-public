@@ -10,7 +10,17 @@ use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
+use serde::{Deserialize, Serialize};
+use serde_with::{DisplayFromStr, serde_as};
 use tracing::warn;
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct GetResponse {
+    #[serde_as(as = "DisplayFromStr")]
+    pub provider_reference: crate::jeweler::gem::instance::ProviderReference,
+}
 
 #[utoipa::path(
     get,
@@ -28,7 +38,9 @@ pub async fn get(
     State(ProvidiusState(providius)): State<ProvidiusState>,
 ) -> Response {
     match providius.get_core_providers(vault).await.auth {
-        Some(provider) => (StatusCode::OK, Json(provider)).into_response(),
+        Some(provider_reference) => {
+            (StatusCode::OK, Json(GetResponse { provider_reference })).into_response()
+        }
         None => StatusCode::NOT_FOUND.into_response(),
     }
 }
