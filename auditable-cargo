@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ ! -z "${CARGO_INSTALL_ROOT}" ]; then
+    export PATH="${CARGO_INSTALL_ROOT}/bin:${PATH}"
+fi
+if [ ! -z "${CARGO_HOME}" ]; then
+    export PATH="${CARGO_HOME}/bin:${PATH}"
+fi
+if [ -d "${HOME}/.cargo/bin" ]; then
+    export PATH="${HOME}/.cargo/bin:${PATH}"
+fi
+
+cargo-auditable auditable "$@"
