@@ -7,6 +7,7 @@ use crate::jeweler::gem::instance::docker::DockerInstance;
 use crate::jeweler::gem::instance::docker::config::{InstanceConfig, ProviderConfig};
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{Instance, InstanceId, ProviderReference};
+use crate::jeweler::gem::manifest::FeatureKey;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::gem::manifest::single::AppManifestSingle;
 use crate::jeweler::network::NetworkId;
@@ -131,15 +132,34 @@ pub async fn stop_instance<F: Floxy>(
     floxy: Arc<FloxyOperation<F>>,
     instance_id: InstanceId,
 ) -> Result<()> {
-    let mut grab = vault
+    let GrabbedPouches {
+        provider_pouch: Some(ref providers),
+        instance_pouch_mut: Some(ref mut instances),
+        ..
+    } = vault
         .reservation()
+        .reserve_provider_pouch()
         .reserve_instance_pouch_mut()
         .grab()
-        .await;
-    let instance = grab
-        .instance_pouch_mut
-        .as_mut()
-        .expect("Vault reservations should never fail")
+        .await
+    else {
+        unreachable!("Vault reservations should never fail")
+    };
+    let providers = providers.gems();
+    match &providers.core_providers.auth {
+        Some(ProviderReference::Provider(id)) if *id == instance_id => {
+            anyhow::bail!("Can not stop instance {instance_id} as it is the core auth provider")
+        }
+        Some(ProviderReference::Default)
+            if providers.default_providers.get(&FeatureKey::auth()) == Some(&instance_id) =>
+        {
+            anyhow::bail!(
+                "Can not stop instance {instance_id} as it is the default auth provider and used by core"
+            )
+        }
+        _ => {}
+    }
+    let instance = instances
         .gems_mut()
         .get_mut(&instance_id)
         .ok_or_else(|| anyhow::anyhow!("Instance {instance_id} does not exist"))?;
