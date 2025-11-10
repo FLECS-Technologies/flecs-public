@@ -23,7 +23,7 @@ RUN case "${ARCH}" in \
 
 RUN chmod a+x /fs/usr/local/libexec/docker/cli-plugins/docker-compose
 
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim AS flecs
 
 RUN apt-get update && \
     apt-get --yes --no-install-recommends install \
@@ -38,5 +38,16 @@ COPY --from=docker-downloader /fs /
 ADD fs/ /
 
 RUN echo "/usr/local/lib" >/etc/ld.so.conf.d/00-flecs.conf && ldconfig
+
+FROM anchore/syft AS syft
+
+COPY --from=flecs /usr/local/bin/flecsd /flecs/
+WORKDIR /sbom
+
+RUN ["/syft", "dir:/flecs", "-o", "spdx-json=./sbom.spdx.json"]
+
+FROM flecs
+
+COPY --from=syft /sbom /usr/local/lib/flecs/sbom
 
 ENTRYPOINT [ "/entrypoint.sh" ]
