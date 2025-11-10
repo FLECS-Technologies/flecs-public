@@ -95,6 +95,16 @@ pub mod auth {
     pub const INITIAL_AUTH_PROVIDER_FLECSPORT_FILE_NAME: &str = "initial_auth_provider.tar";
 }
 
+pub mod system {
+    use std::path::PathBuf;
+
+    const SBOM_BASE_PATH: &str = "/usr/local/lib/flecs/sbom";
+    const SBOM_SPDX_FILE_NAME: &str = "sbom.spdx.json";
+    pub fn sbom_spdx_file_path_path() -> PathBuf {
+        PathBuf::from(SBOM_BASE_PATH).join(SBOM_SPDX_FILE_NAME)
+    }
+}
+
 #[cfg(test)]
 pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/";
 #[cfg(not(test))]

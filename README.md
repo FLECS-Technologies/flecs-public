@@ -262,4 +262,10 @@ casbin_model_path = "/usr/local/share/flecs/auth/casbin_model.conf"
 # Default: "/usr/local/lib/flecs/auth/initial_auth_provider.tar"
 # Environment variable: FLECS_CORE_INITIAL_AUTH_PROVIDER_FLECSPORT_PATH
 initial_auth_provider_flecsport_path = "/usr/local/lib/flecs/auth/initial_auth_provider.tar"
+
+[system]
+# The path of the sbom for flecs-core.
+# Default: "/usr/local/lib/flecs/sbom/sbom.spdx.json"
+# Environment variable: FLECS_CORE_SBOM_SPDX_PATH
+core_sbom_spdx_path = "/usr/local/lib/flecs/sbom/sbom.spdx.json"
 ```

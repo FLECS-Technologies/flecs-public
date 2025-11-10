@@ -96,6 +96,7 @@ p,tech.flecs.core.read_devices,/v2/system/devices,GET
 p,tech.flecs.core.read_usb_devices,/v2/system/devices/usb,GET
 p,tech.flecs.core.read_usb_device,/v2/system/devices/usb/:port,GET
 p,tech.flecs.core.read_system_info,/v2/system/info,GET
+p,*,/v2/system/sbom,GET
 p,tech.flecs.core.read_network_adapters,/v2/system/network_adapters,GET
 p,tech.flecs.core.read_network_adapter,/v2/system/network_adapters/:network_adapter_id,GET
 p,*,/v2/system/ping,GET

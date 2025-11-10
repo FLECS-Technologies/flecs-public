@@ -3481,6 +3481,26 @@ paths:
           description: Device not found
         "500":
           $ref: "#/components/responses/response_500"
+  /system/sbom:
+    get:
+      tags:
+        - System
+      description: SBOM
+      operationId: get_system_sbom
+      responses:
+        '200':
+          description: SBOM in spdx format
+          content:
+            application/json:
+              schema: { }
+        '404':
+          description: SBOM was not found at expected location
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
   # Device related paths
   /device/license/activation:
     post:
