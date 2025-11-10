@@ -48,7 +48,56 @@ function(stage_docker_fs)
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
+    install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/../initial_auth_provider.tar
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib/flecs/auth/initial_auth_provider.tar
+        COMPONENT docker
+        EXCLUDE_FROM_ALL
+    )
 endfunction()
+
+set(FENCE_DOWNLOAD_CODE [[
+    set(ARCH @ARCH@)
+    message(STATUS "Building for architecture ${ARCH}")
+    set(FENCE_REMOTE_PATH "https://flecs.blob.core.windows.net/flecs-dl/tech.flecs.fence/{1}/flecs-export-tech.flecs.fence_{1}_amd64.tar")
+    message(STATUS "Determining latest fence version")
+    execute_process(
+        COMMAND curl -s --head https://github.com/FLECS-Technologies/apps-tech.flecs.fence/releases/latest
+        RESULT_VARIABLE curl_exit_code
+        OUTPUT_VARIABLE curl_headers
+        ERROR_VARIABLE curl_error
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(NOT curl_exit_code EQUAL 0)
+        message(FATAL_ERROR "curl exited with non-zero exit code ${curl_exit_code}: ${curl_error}")
+    endif()
+    string(REPLACE "\r\n" "\n" curl_headers ${curl_headers})
+    string(REGEX MATCH "[Ll]ocation:[ \t]*([^\n]+)" location_header "${curl_headers}")
+    string(REGEX REPLACE "^.*/tag/(.+)$" "\\1" fence_tag "${location_header}")
+    if(fence_tag STREQUAL "")
+        message(FATAL_ERROR "could not extract latest fence tag from ${location_header}")
+    endif()
+    message(STATUS "Latest fence version: ${fence_tag}")
+    string(REPLACE "{1}" "${fence_tag}" FENCE_REMOTE_PATH "${FENCE_REMOTE_PATH}")
+    string(REPLACE "{2}" "${ARCH}" FENCE_REMOTE_PATH "${FENCE_REMOTE_PATH}")
+    message(STATUS "Downloading fence from ${FENCE_REMOTE_PATH}")
+    file(DOWNLOAD
+        ${FENCE_REMOTE_PATH}
+        ${CMAKE_CURRENT_LIST_DIR}/initial_auth_provider.tar
+        STATUS fence_download_status
+    )
+    list(GET fence_download_status 0 fence_download_result)
+    list(GET fence_download_status 1 fence_download_message)
+    if(NOT fence_download_result EQUAL 0)
+        message(FATAL_ERROR "fence download failed with status ${fence_download_result}: ${fence_download_message}")
+    endif()]]
+)
+string(CONFIGURE "${FENCE_DOWNLOAD_CODE}" FENCE_DOWNLOAD_CODE_CONFIGURED @ONLY)
+install(
+    CODE "${FENCE_DOWNLOAD_CODE_CONFIGURED}"
+    COMPONENT docker
+    EXCLUDE_FROM_ALL
+)
 
 add_subdirectory(flecs)
 add_subdirectory(flecs-slim)
