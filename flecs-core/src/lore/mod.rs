@@ -72,6 +72,7 @@ pub struct Lore {
     #[cfg(feature = "auth")]
     pub auth: AuthLore,
     pub provider: ProviderLore,
+    pub system: SystemLore,
 }
 
 impl LoreRef<InstanceLore> for Lore {}
@@ -244,6 +245,11 @@ pub struct ProviderLore {
     pub base_path: PathBuf,
 }
 
+#[derive(Debug)]
+pub struct SystemLore {
+    pub core_sbom_spdx_path: PathBuf,
+}
+
 impl Lore {
     pub fn from_confs_with_defaults(
         confs: impl IntoIterator<Item = conf::FlecsConfig>,
@@ -333,6 +339,7 @@ impl Lore {
             tracing_filter,
             base_path,
             listener,
+            system: SystemLore::from_conf_with_defaults(conf.system.unwrap_or_default()),
         })
     }
 }
@@ -521,6 +528,17 @@ impl ProviderLore {
             .base_path
             .unwrap_or_else(|| base_path.join(default::provider::BASE_DIRECTORY_NAME));
         Self { base_path }
+    }
+}
+
+impl SystemLore {
+    pub fn from_conf_with_defaults(conf: conf::SystemConfig) -> Self {
+        let core_sbom_spdx_path = conf
+            .core_sbom_spdx_path
+            .unwrap_or_else(default::system::sbom_spdx_file_path_path);
+        Self {
+            core_sbom_spdx_path,
+        }
     }
 }
 

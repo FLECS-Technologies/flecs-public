@@ -111,6 +111,7 @@ impl Modify for RenameOps {
         providers::auth::first_time_setup::flecsport::post,
         providers::auth::id::get,
         providers::auth::id::path::any,
+        system::sbom::get,
     ))
 )]
 #[cfg_attr(
@@ -129,6 +130,7 @@ impl Modify for RenameOps {
         providers::feature::default::get,
         providers::feature::default::put,
         providers::feature::id::get,
+        system::sbom::get,
     ))
 )]
 pub struct ApiDoc;

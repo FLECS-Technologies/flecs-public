@@ -4,7 +4,7 @@ use crate::jeweler::network::NetworkKind;
 use crate::lore::AuthLore;
 use crate::lore::{
     AppLore, ConsoleLore, DeploymentLore, ExportLore, FloxyLore, ImportLore, InstanceLore, Lore,
-    ManifestLore, NetworkLore, ProviderLore, SecretLore,
+    ManifestLore, NetworkLore, ProviderLore, SecretLore, SystemLore,
 };
 use crate::relic::network::Ipv4Network;
 use serde::{Deserialize, Serialize};
@@ -96,6 +96,8 @@ pub struct FlecsConfig {
     pub auth: Option<AuthConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider: Option<ProviderConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system: Option<SystemConfig>,
 }
 
 impl Default for FlecsConfig {
@@ -118,6 +120,7 @@ impl Default for FlecsConfig {
             #[cfg(feature = "auth")]
             auth: None,
             provider: None,
+            system: None,
         }
     }
 }
@@ -145,6 +148,7 @@ impl From<&Lore> for FlecsConfig {
             #[cfg(feature = "auth")]
             auth: Some((&value.auth).into()),
             provider: Some((&value.provider).into()),
+            system: Some((&value.system).into()),
         }
     }
 }
@@ -363,6 +367,20 @@ impl From<&ProviderLore> for ProviderConfig {
     fn from(value: &ProviderLore) -> Self {
         Self {
             base_path: Some(value.base_path.clone()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SystemConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub core_sbom_spdx_path: Option<PathBuf>,
+}
+
+impl From<&SystemLore> for SystemConfig {
+    fn from(value: &SystemLore) -> Self {
+        Self {
+            core_sbom_spdx_path: Some(value.core_sbom_spdx_path.clone()),
         }
     }
 }

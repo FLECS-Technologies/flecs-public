@@ -726,6 +726,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
+  /system/sbom:
+    get:
+      tags:
+      - System
+      description: SBOM
+      operationId: get_system_sbom
+      responses:
+        '200':
+          description: SBOM in spdx format
+          content:
+            application/json:
+              schema: {}
+        '404':
+          description: SBOM was not found at expected location
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalInfo'
 components:
   schemas:
     Accepted:
@@ -821,9 +841,6 @@ components:
             $ref: '#/components/schemas/AuthProvider'
           propertyNames:
             type: string
-            maxLength: 8
-            minLength: 8
-            pattern: ^[0-9a-fA-F]{8}$
     Dependency:
       type: object
       required:
@@ -863,9 +880,6 @@ components:
             $ref: '#/components/schemas/Provider'
           propertyNames:
             type: string
-            maxLength: 8
-            minLength: 8
-            pattern: ^[0-9a-fA-F]{8}$
     GenericProvider:
       type: object
       required:
@@ -888,9 +902,6 @@ components:
             $ref: '#/components/schemas/GenericProvider'
           propertyNames:
             type: string
-            maxLength: 8
-            minLength: 8
-            pattern: ^[0-9a-fA-F]{8}$
     HexString8:
       type: string
       maxLength: 8

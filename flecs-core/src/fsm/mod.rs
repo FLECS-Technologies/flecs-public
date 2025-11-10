@@ -253,6 +253,10 @@ async fn create_service<
             delete(server_impl::api::v2::providers::feature::default::delete)
                 .get(server_impl::api::v2::providers::feature::default::get)
                 .put(server_impl::api::v2::providers::feature::default::put),
+        )
+        .route(
+            "/v2/system/sbom",
+            get(server_impl::api::v2::system::sbom::get),
         );
 
     #[cfg(feature = "auth")]

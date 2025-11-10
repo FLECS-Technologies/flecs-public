@@ -4,7 +4,7 @@ use crate::lore::conf::AuthConfig;
 use crate::lore::conf::{
     AppConfig, ConsoleConfig, DeploymentConfig, ExportConfig, FlecsConfig, FloxyConfig,
     ImportConfig, InstanceConfig, Listener, ManifestConfig, NetworkConfig, ProviderConfig,
-    SecretConfig,
+    SecretConfig, SystemConfig,
 };
 use crate::relic::var;
 use crate::relic::var::VarReader;
@@ -94,6 +94,7 @@ impl FlecsConfig {
             #[cfg(feature = "auth")]
             auth: AuthConfig::from_var_reader(reader)?,
             provider: ProviderConfig::from_var_reader(reader),
+            system: SystemConfig::from_var_reader(reader),
         })
     }
 }
@@ -394,6 +395,26 @@ pub mod provider {
             let base_path = base_path(reader);
             base_path.map(|base_path| Self {
                 base_path: Some(base_path),
+            })
+        }
+    }
+}
+
+pub mod system {
+    use crate::lore::conf::SystemConfig;
+    use crate::relic::var::VarReader;
+    use std::path::PathBuf;
+    const SBOM_SPDX_PATH: &str = "FLECS_CORE_SBOM_SPDX_PATH";
+
+    fn sbom_spdx_path(reader: &impl VarReader) -> Option<PathBuf> {
+        reader.read_path(SBOM_SPDX_PATH)
+    }
+
+    impl SystemConfig {
+        pub fn from_var_reader(reader: &impl VarReader) -> Option<Self> {
+            let core_sbom_spdx_path = sbom_spdx_path(reader)?;
+            Some(Self {
+                core_sbom_spdx_path: Some(core_sbom_spdx_path),
             })
         }
     }
