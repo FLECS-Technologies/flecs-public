@@ -754,17 +754,14 @@ pub fn build_watch_config_from_auth_provider(
         .as_ref()
         .ok_or(BuildWatchConfigError::DoesNotProvide { id: provider_id })?;
 
-    let (ip, port) = get_instance_config_part_with_from_gems(instances, provider_id, |config| {
-        (
-            config.connected_networks.get(network_name).copied(),
-            config.providers.auth.as_ref().map(|auth| auth.port),
-        )
+    let ip = get_instance_config_part_with_from_gems(instances, provider_id, |config| {
+        config.connected_networks.get(network_name).copied()
     })?;
     let ip = ip.ok_or_else(|| BuildWatchConfigError::NotConnected {
         id: provider_id,
         network: network_name.to_string(),
     })?;
-    let port = port.ok_or(BuildWatchConfigError::NotAccessible { id: provider_id })?;
+    let port = auth_provider.port;
     let meta = auth_provider.build_meta(ip, port).unwrap();
     Ok(meta)
 }
