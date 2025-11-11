@@ -27,11 +27,19 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
+      - name: Cache Rust dependencies (restore)
+        id: cache-rust
+        uses: actions/cache/restore@v4
         with:
           path: /opt/cargo/registry
           key: ${{ inputs.arch }}-rust
+
+      - name: Cache build artifacts (restore)
+        id: cache-build
+        uses: actions/cache/restore@v4
+        with:
+          path: build/${{ inputs.arch }}
+          key: ${{ inputs.arch }}-build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -39,11 +47,25 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
       - name: "CMake: Configure"
         run: |
-          cmake -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }}
+          cmake --fresh -G Ninja -B build/${{ inputs.arch }} ${{ inputs.cmake_args }} -DARCH=${{ inputs.arch }} -DCMAKE_BUILD_TYPE=${{ inputs.build_type }}
 
       - name: "CMake: Build"
         run: |
           cmake --build build/${{ inputs.arch }}
+
+      - name: Cache Rust dependencies (save)
+        if: steps.cache-rust.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /opt/cargo/registry
+          key: ${{ inputs.arch }}-rust
+
+      - name: Cache build artifacts (save)
+        if: steps.cache-build.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/${{ inputs.arch }}
+          key: ${{ inputs.arch }}-build
 
       - name: "CMake: Docker"
         run: |
