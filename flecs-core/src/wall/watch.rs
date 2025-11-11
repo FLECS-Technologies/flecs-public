@@ -9,6 +9,8 @@ use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::{RwLock, RwLockWriteGuard};
 
+const INITIAL_SETUP_ROLE: &str = "tech.flecs.core.initial_setup";
+
 pub struct Watch {
     client: reqwest::Client,
     data: RwLock<Data>,
@@ -36,6 +38,12 @@ pub enum Error {
 
 #[derive(Clone, Default)]
 pub struct RolesExtension(pub HashSet<String>);
+
+impl RolesExtension {
+    pub fn new_with_initial_setup_roles() -> Self {
+        Self(HashSet::from([INITIAL_SETUP_ROLE.to_string()]))
+    }
+}
 
 #[async_trait]
 impl<S> axum::extract::FromRequestParts<S> for AuthToken
@@ -203,6 +211,10 @@ impl Watch {
 
     pub async fn data_mut(&self) -> RwLockWriteGuard<'_, Data> {
         self.data.write().await
+    }
+
+    pub async fn has_auth_provider(&self) -> bool {
+        self.data.read().await.auth_provider_meta.is_some()
     }
 }
 
