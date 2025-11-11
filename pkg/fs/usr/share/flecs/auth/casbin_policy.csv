@@ -152,6 +152,11 @@ g,tech.flecs.core.read_system,tech.flecs.core.read_system_info
 g,tech.flecs.core.read_system,tech.flecs.core.read_network_adapters
 g,tech.flecs.core.read_system,tech.flecs.core.read_network_adapter
 
+g,tech.flecs.core.initial_setup,tech.flecs.core.read_quest
+g,tech.flecs.core.initial_setup,tech.flecs.core.read_quests
+g,tech.flecs.core.initial_setup,tech.flecs.core.set_core_auth_provider
+g,tech.flecs.core.initial_setup,tech.flecs.core.import_initial_auth_provider
+
 g,tech.flecs.core.operator,tech.flecs.core.read_instance_config
 g,tech.flecs.core.operator,tech.flecs.core.read_system
 g,tech.flecs.core.operator,tech.flecs.core.read_quest
