@@ -152,7 +152,6 @@ g,tech.flecs.core.read_system,tech.flecs.core.read_system_info
 g,tech.flecs.core.read_system,tech.flecs.core.read_network_adapters
 g,tech.flecs.core.read_system,tech.flecs.core.read_network_adapter
 
-g,tech.flecs.core.operator,tech.flecs.core.read_jobs
 g,tech.flecs.core.operator,tech.flecs.core.read_instance_config
 g,tech.flecs.core.operator,tech.flecs.core.read_system
 g,tech.flecs.core.operator,tech.flecs.core.read_quest
