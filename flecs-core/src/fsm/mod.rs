@@ -113,7 +113,12 @@ async fn auth_middleware(
     mut request: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
-    if let Some(token) = auth_token.as_deref() {
+    if !watch.has_auth_provider().await {
+        debug!("There is no core auth provider, continuing with initial setup permissions");
+        request
+            .extensions_mut()
+            .insert(wall::watch::RolesExtension::new_with_initial_setup_roles());
+    } else if let Some(token) = auth_token.as_deref() {
         match watch.verify_token(token).await {
             Err(wall::watch::Error::NoAuthProvider) => {
                 debug!(
