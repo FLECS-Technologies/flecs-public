@@ -63,7 +63,7 @@ jobs:
         with:
           name: docker_${{ inputs.arch }}
           path: |
-            build/${{ inputs.arch }}/docker/**/*.tar
+            build/${{ inputs.arch }}/docker/**/flecs*.tar
           retention-days: 1
 
       - name: Archive packages
