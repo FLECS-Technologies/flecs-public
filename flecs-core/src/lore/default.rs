@@ -87,7 +87,7 @@ pub mod provider {
 pub mod auth {
     use std::time::Duration;
 
-    pub const ISSUER_CERTIFICATE_CACHE_LIFETIME: Duration = Duration::from_secs(300);
+    pub const ISSUER_CERTIFICATE_CACHE_LIFETIME: Duration = Duration::from_secs(3);
     pub const SHARE_BASE_PATH: &str = "/usr/local/share/flecs/auth";
     pub const LIB_BASE_PATH: &str = "/usr/local/lib/flecs/auth";
     pub const CASBIN_POLICY_FILE_NAME: &str = "casbin_policy.csv";
