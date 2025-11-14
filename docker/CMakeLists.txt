@@ -50,7 +50,7 @@ function(stage_docker_fs)
     )
     install(
         FILES ${CMAKE_CURRENT_BINARY_DIR}/../initial_auth_provider.tar
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib/flecs/auth/initial_auth_provider.tar
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/lib/flecs/auth/
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
